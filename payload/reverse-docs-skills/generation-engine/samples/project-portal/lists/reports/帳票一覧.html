@@ -716,8 +716,10 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
     color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
   }
   .csv-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
-  .unit-view-link { display: inline-block; margin-left: 8px; font-size: .75rem; color: var(--accent); text-decoration: none; }
-  .unit-view-link:hover { text-decoration: underline; }
+  td.unit-doc-links-cell { white-space: normal; overflow: visible; text-overflow: clip; }
+  .unit-doc-links { display: flex; flex-wrap: wrap; gap: 6px; }
+  .unit-doc-link { color: var(--accent); text-decoration: none; font-size: .78rem; }
+  .unit-doc-link:hover { text-decoration: underline; }
   table.units tbody tr, table.screens tbody tr { cursor: pointer; }
   .expand-cell { transition: color 0.15s; }
   tr:hover .expand-cell { color: var(--accent); }
@@ -751,7 +753,7 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
     <div class="pt-brand-switch" id="pt-brand-switch">
       <div class="pt-brand-name"></div>
     </div>
-    <div class="pt-brand-sub">設計台帳 · 全60資料</div>
+    <div class="pt-brand-sub">設計台帳 · 全61資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
   
@@ -761,7 +763,7 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
   <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-30T00:00:00Z</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
-<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":14},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":6},{"key":"list","num":"04","label":"一覧・設計図","count":14},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
 <script type="application/json" id="pt-sites-data">[]</script>
 <script>
 (function () {
@@ -1133,7 +1135,7 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
       </div>
 
       <script type="application/json" id="unit-manifest">
-{"generatedAt":"2026-07-30T00:00:00Z","sourceDir":"generation-engine/samples/project-portal/一覧/帳票一覧/fixtures","unitKind":"report","strategy":{"extractionMethod":"static-analysis","approvedByUser":true,"unitIdRegex":null},"detectionSummary":{"unitCount":8,"unresolvedCount":0},"units":[{"unitId":"report-invoice","unitKey":"invoice","kind":"template","unitNameGuess":"請求書","identifier":"invoice_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":3,"sourceFile":"src/reports/invoice.py"},{"unitId":"report-monthly-sales","unitKey":"monthly-sales","kind":"template","unitNameGuess":"月次売上レポート","identifier":"monthly_sales_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":2,"sourceFile":"src/reports/monthly_sales.py","relatedBatch":"daily-report"},{"unitId":"report-user-roster","unitKey":"user-roster","kind":"generator","unitNameGuess":"ユーザー名簿","identifier":"user_roster","detectionMethod":"query-scan","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/reports/user_roster.py"},{"unitId":"report-audit-trail","unitKey":"audit-trail","kind":"template","unitNameGuess":"監査証跡","identifier":"audit_trail_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":2,"sourceFile":"src/reports/audit_trail.py","relatedBatch":"audit-archive"},{"unitId":"report-post-stats","unitKey":"post-stats","kind":"generator","unitNameGuess":"投稿統計","identifier":"post_stats","detectionMethod":"query-scan","confidence":"MEDIUM","fileCount":1,"sourceFile":"src/reports/post_stats.py"},{"unitId":"report-inventory","unitKey":"inventory","kind":"generator","unitNameGuess":"在庫一覧","identifier":"inventory_list","detectionMethod":"query-scan","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/reports/inventory.py"},{"unitId":"report-org-summary","unitKey":"org-summary","kind":"template","unitNameGuess":"組織別集計","identifier":"org_summary_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":3,"sourceFile":"src/reports/org_summary.py","relatedBatch":"data-export"},{"unitId":"report-annual","unitKey":"annual-report","kind":"template","unitNameGuess":"年次報告","identifier":"annual_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":4,"sourceFile":"src/reports/annual.py","relatedBatch":"data-export"}]}
+{"generatedAt":"2026-07-30T00:00:00Z","sourceDir":"source/report","unitKind":"report","strategy":{"extractionMethod":"static-analysis","approvedByUser":true,"unitIdRegex":null},"detectionSummary":{"unitCount":8,"unresolvedCount":0},"units":[{"unitId":"report-invoice","unitKey":"invoice","kind":"template","unitNameGuess":"請求書","identifier":"invoice_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":3,"sourceFile":"src/reports/invoice.py"},{"unitId":"report-monthly-sales","unitKey":"monthly-sales","kind":"template","unitNameGuess":"月次売上レポート","identifier":"monthly_sales_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":2,"sourceFile":"src/reports/monthly_sales.py","relatedBatch":"daily-report"},{"unitId":"report-user-roster","unitKey":"user-roster","kind":"generator","unitNameGuess":"ユーザー名簿","identifier":"user_roster","detectionMethod":"query-scan","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/reports/user_roster.py"},{"unitId":"report-audit-trail","unitKey":"audit-trail","kind":"template","unitNameGuess":"監査証跡","identifier":"audit_trail_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":2,"sourceFile":"src/reports/audit_trail.py","relatedBatch":"audit-archive"},{"unitId":"report-post-stats","unitKey":"post-stats","kind":"generator","unitNameGuess":"投稿統計","identifier":"post_stats","detectionMethod":"query-scan","confidence":"MEDIUM","fileCount":1,"sourceFile":"src/reports/post_stats.py"},{"unitId":"report-inventory","unitKey":"inventory","kind":"generator","unitNameGuess":"在庫一覧","identifier":"inventory_list","detectionMethod":"query-scan","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/reports/inventory.py"},{"unitId":"report-org-summary","unitKey":"org-summary","kind":"template","unitNameGuess":"組織別集計","identifier":"org_summary_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":3,"sourceFile":"src/reports/org_summary.py","relatedBatch":"data-export"},{"unitId":"report-annual","unitKey":"annual-report","kind":"template","unitNameGuess":"年次報告","identifier":"annual_report","detectionMethod":"template-scan","confidence":"HIGH","fileCount":4,"sourceFile":"src/reports/annual.py","relatedBatch":"data-export"}]}
       </script>
       <script type="application/json" id="column-spec">
 {"specVersion":1,"axes":[],"columns":[{"key":"format","label":"出力形式","appliesTo":["report"],"order":10},{"key":"trigger","label":"出力契機","appliesTo":["report"],"order":20},{"key":"businessClass","label":"業務区分","appliesTo":["table","api","batch","external","report"],"order":100}]}
@@ -1407,13 +1409,21 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
     var tbody = table.querySelector('tbody');
     var allRows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
 
-    /* 1-36: 個別ページへの実在パスを持つ行にだけ、行内のリンク要素で遷移を追加する。
-       行クリックはこれまで通りページ内展開のみを担う(a要素へのクリックは展開処理の対象外。
-       後段の行クリック展開ハンドラが ev.target.closest('.copy-btn,a,button') で除外する)。
-       個別ページの生成経路は種別ごとに異なり、このテンプレートは経路の新設を行わない。
-       マニフェスト側が既に安全な相対URLとして持つ designDocPath の有無だけで実在を判定する
-       (screen-list-template.html の関連資料リンクと同じ isSafeRelativeUrl 判定基準)。 */
+    /* 1-65: 読者向け成果物を行末尾の専用「関連資料」列に表示する。行クリックはこれまで通り
+       ページ内展開のみを担い、a要素へのクリックは後段の行クリック展開ハンドラが
+       ev.target.closest('.copy-btn,a,button') で除外する。 */
     (function () {
+      var DOC_DEFS = [
+        {label: '基本設計書', pathField: 'designDocPath', kind: 'basic'},
+        {label: '詳細設計書', pathField: 'detailDocPath', kind: 'detail'},
+        {label: 'シーケンス図', pathField: 'sequencePath', kind: 'sequence'},
+        {label: 'テストケース', pathField: 'testCasePath', kind: 'test'},
+        {label: '単体テスト観点表', pathField: 'unitTestViewpointPath', kind: 'unit-viewpoint'},
+        {label: '結合テスト観点表', pathField: 'integrationTestViewpointPath', kind: 'integration-viewpoint'},
+        {label: '結合テスト仕様書', pathField: 'integrationTestCasePath', kind: 'integration-case'},
+        {label: '操作シナリオ仕様書', pathField: 'scenarioPath', kind: 'scenario'}
+      ];
+
       function isSafeRelativeUrl(v) {
         return typeof v === 'string' &&
           v.length > 0 &&
@@ -1423,8 +1433,21 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
           !/^[\/\\]/.test(v) &&
           v.indexOf('\\') === -1;
       }
+
+      var units = (manifest && manifest.units) || [];
+      if (!units.some(function (unit) {
+        return DOC_DEFS.some(function (doc) { return unit && unit[doc.pathField]; });
+      })) return;
+
+      var headRow = table.querySelector('thead tr');
+      if (!headRow) return;
+      var th = document.createElement('th');
+      th.textContent = '関連資料';
+      th.style.width = '170px';
+      headRow.appendChild(th);
+
       var viewById = {}, viewByKey = {};
-      (manifest.units || []).forEach(function (u) {
+      units.forEach(function (u) {
         if (u.unitId !== undefined && u.unitId !== null) viewById[String(u.unitId)] = u;
         if (u.unitKey !== undefined && u.unitKey !== null) viewByKey[String(u.unitKey)] = u;
       });
@@ -1432,16 +1455,24 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
         var idAttr = tr.getAttribute('data-unit-id') || '';
         var keyAttr = tr.getAttribute('data-unit-key') || '';
         var unit = (idAttr && viewById[idAttr]) || (keyAttr && viewByKey[keyAttr]) || null;
-        var path = unit ? unit.designDocPath : null;
-        if (!isSafeRelativeUrl(path)) return;
-        var firstTd = tr.querySelector('td');
-        if (!firstTd) return;
-        var link = document.createElement('a');
-        link.href = path;
-        link.className = 'unit-view-link';
-        link.title = '個別ページを開く';
-        link.textContent = '個別ページ';
-        firstTd.appendChild(link);
+        var td = document.createElement('td');
+        td.className = 'unit-doc-links-cell';
+        var links = document.createElement('div');
+        links.className = 'unit-doc-links';
+        if (unit) {
+          DOC_DEFS.forEach(function (doc) {
+            var path = unit[doc.pathField];
+            if (!isSafeRelativeUrl(path)) return;
+            var link = document.createElement('a');
+            link.href = path;
+            link.className = 'unit-doc-link';
+            link.setAttribute('data-kind', doc.kind);
+            link.textContent = doc.label;
+            links.appendChild(link);
+          });
+        }
+        td.appendChild(links);
+        tr.appendChild(td);
       });
     })();
 

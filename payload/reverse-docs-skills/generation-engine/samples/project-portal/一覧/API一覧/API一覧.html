@@ -716,8 +716,10 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
     color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
   }
   .csv-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
-  .unit-view-link { display: inline-block; margin-left: 8px; font-size: .75rem; color: var(--accent); text-decoration: none; }
-  .unit-view-link:hover { text-decoration: underline; }
+  td.unit-doc-links-cell { white-space: normal; overflow: visible; text-overflow: clip; }
+  .unit-doc-links { display: flex; flex-wrap: wrap; gap: 6px; }
+  .unit-doc-link { color: var(--accent); text-decoration: none; font-size: .78rem; }
+  .unit-doc-link:hover { text-decoration: underline; }
   table.units tbody tr, table.screens tbody tr { cursor: pointer; }
   .expand-cell { transition: color 0.15s; }
   tr:hover .expand-cell { color: var(--accent); }
@@ -751,7 +753,7 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
     <div class="pt-brand-switch" id="pt-brand-switch">
       <div class="pt-brand-name"></div>
     </div>
-    <div class="pt-brand-sub">設計台帳 · 全60資料</div>
+    <div class="pt-brand-sub">設計台帳 · 全61資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
   
@@ -761,7 +763,7 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
   <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-30T00:00:00Z</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
-<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":14},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":6},{"key":"list","num":"04","label":"一覧・設計図","count":14},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
 <script type="application/json" id="pt-sites-data">[]</script>
 <script>
 (function () {
@@ -1071,554 +1073,418 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
             <tr>
               <th data-key="unitNameGuess">API名</th>
               <th data-key="identifier">識別子</th>
-              <th data-key="kind">区分</th>
+              
             </tr>
           </thead>
           <tbody>
             <tr data-unit-id="api-auth-login" data-unit-key="auth-login">
 <td>ログイン</td>
 <td><code>POST /api/auth/login</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-auth-logout" data-unit-key="auth-logout">
 <td>ログアウト</td>
 <td><code>DELETE /api/auth/session</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-auth-refresh" data-unit-key="auth-refresh">
 <td>トークン更新</td>
 <td><code>POST /api/auth/refresh</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-auth-register" data-unit-key="auth-register">
 <td>新規登録</td>
 <td><code>POST /api/auth/register</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-auth-forgot-password" data-unit-key="auth-forgot-password">
 <td>パスワード再設定依頼</td>
 <td><code>POST /api/auth/forgot-password</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-auth-reset-password" data-unit-key="auth-reset-password">
 <td>パスワード再設定実行</td>
 <td><code>POST /api/auth/reset-password</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-auth-verify-email" data-unit-key="auth-verify-email">
 <td>メール確認</td>
 <td><code>POST /api/auth/verify-email</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-auth-me" data-unit-key="auth-me">
 <td>自分自身の情報取得</td>
 <td><code>GET /api/auth/me</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-auth-sessions" data-unit-key="auth-sessions">
 <td>有効セッション一覧取得</td>
 <td><code>GET /api/auth/sessions</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-auth-sessions-revoke" data-unit-key="auth-sessions-revoke">
 <td>セッション個別失効</td>
 <td><code>DELETE /api/auth/sessions/:sessionId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-auth-sessions-revoke-all" data-unit-key="auth-sessions-revoke-all">
 <td>全セッション失効</td>
 <td><code>DELETE /api/auth/sessions</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-auth-change-password" data-unit-key="auth-change-password">
 <td>パスワード変更</td>
 <td><code>PUT /api/auth/password</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-auth-mfa-enable" data-unit-key="auth-mfa-enable">
 <td>多要素認証有効化</td>
 <td><code>POST /api/auth/mfa</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-auth-mfa-verify" data-unit-key="auth-mfa-verify">
 <td>多要素認証コード検証</td>
 <td><code>POST /api/auth/mfa/verify</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-auth-mfa-disable" data-unit-key="auth-mfa-disable">
 <td>多要素認証無効化</td>
 <td><code>DELETE /api/auth/mfa</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-users-list" data-unit-key="users-list">
 <td>ユーザー一覧取得</td>
 <td><code>GET /api/users</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-users-create" data-unit-key="users-create">
 <td>ユーザー新規作成</td>
 <td><code>POST /api/users</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-users-get" data-unit-key="users-get">
 <td>ユーザー詳細取得</td>
 <td><code>GET /api/users/:userId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-users-update" data-unit-key="users-update">
 <td>ユーザー更新</td>
 <td><code>PUT /api/users/:userId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-users-delete" data-unit-key="users-delete">
 <td>ユーザー削除</td>
 <td><code>DELETE /api/users/:userId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-users-search" data-unit-key="users-search">
 <td>ユーザー検索（/api/users/search）</td>
 <td><code>GET /api/users/search</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-users-bulk-import" data-unit-key="users-bulk-import">
 <td>ユーザー一括登録</td>
 <td><code>POST /api/users/bulk-import</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-users-export" data-unit-key="users-export">
 <td>ユーザーエクスポート</td>
 <td><code>GET /api/users/export</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-users-roles" data-unit-key="users-roles">
 <td>ユーザーロール取得</td>
 <td><code>GET /api/users/:userId/roles</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-users-permissions" data-unit-key="users-permissions">
 <td>ユーザー権限更新</td>
 <td><code>PUT /api/users/:userId/permissions</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-users-avatar-upload" data-unit-key="users-avatar-upload">
 <td>アバターアップロード</td>
 <td><code>POST /api/users/:userId/avatar</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-users-get-by-email" data-unit-key="users-get-by-email">
 <td>メールアドレスでユーザー検索</td>
 <td><code>GET /api/users/lookup</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-users-activity-log" data-unit-key="users-activity-log">
 <td>ユーザー操作履歴取得</td>
 <td><code>GET /api/users/:userId/activity</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-users-impersonate" data-unit-key="users-impersonate">
 <td>ユーザーなりすまし開始</td>
 <td><code>POST /api/users/:userId/impersonate</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-users-deactivate" data-unit-key="users-deactivate">
 <td>ユーザー無効化</td>
 <td><code>POST /api/users/:userId/deactivate</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-users-reactivate" data-unit-key="users-reactivate">
 <td>ユーザー再有効化</td>
 <td><code>POST /api/users/:userId/reactivate</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-organizations-list" data-unit-key="organizations-list">
 <td>組織一覧取得</td>
 <td><code>GET /api/organizations</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-organizations-create" data-unit-key="organizations-create">
 <td>組織新規作成</td>
 <td><code>POST /api/organizations</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-organizations-get" data-unit-key="organizations-get">
 <td>組織詳細取得</td>
 <td><code>GET /api/organizations/:orgId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-organizations-update" data-unit-key="organizations-update">
 <td>組織更新</td>
 <td><code>PUT /api/organizations/:orgId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-organizations-delete" data-unit-key="organizations-delete">
 <td>組織削除</td>
 <td><code>DELETE /api/organizations/:orgId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-organizations-members" data-unit-key="organizations-members">
 <td>組織メンバー一覧取得</td>
 <td><code>GET /api/organizations/:orgId/members</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-organizations-invite" data-unit-key="organizations-invite">
 <td>組織招待送信</td>
 <td><code>POST /api/organizations/:orgId/invites</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-organizations-settings" data-unit-key="organizations-settings">
 <td>組織設定取得</td>
 <td><code>GET /api/organizations/:orgId/settings</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-organizations-billing" data-unit-key="organizations-billing">
 <td>組織請求情報取得</td>
 <td><code>GET /api/organizations/:orgId/billing</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-organizations-usage" data-unit-key="organizations-usage">
 <td>組織利用状況取得</td>
 <td><code>GET /api/organizations/:orgId/usage</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-organizations-audit-log" data-unit-key="organizations-audit-log">
 <td>組織監査ログ取得</td>
 <td><code>GET /api/organizations/:orgId/audit-log</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-organizations-domains" data-unit-key="organizations-domains">
 <td>組織ドメイン一覧取得</td>
 <td><code>GET /api/organizations/:orgId/domains</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-projects-list" data-unit-key="projects-list">
 <td>プロジェクト一覧取得</td>
 <td><code>GET /api/projects</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-projects-create" data-unit-key="projects-create">
 <td>プロジェクト新規作成</td>
 <td><code>POST /api/projects</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-projects-get" data-unit-key="projects-get">
 <td>プロジェクト詳細取得</td>
 <td><code>GET /api/projects/:projectId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-projects-update" data-unit-key="projects-update">
 <td>プロジェクト更新</td>
 <td><code>PUT /api/projects/:projectId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-projects-delete" data-unit-key="projects-delete">
 <td>プロジェクト削除</td>
 <td><code>DELETE /api/projects/:projectId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-projects-archive" data-unit-key="projects-archive">
 <td>プロジェクトアーカイブ</td>
 <td><code>POST /api/projects/:projectId/archive</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-projects-members" data-unit-key="projects-members">
 <td>プロジェクトメンバー一覧取得</td>
 <td><code>GET /api/projects/:projectId/members</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-projects-tasks" data-unit-key="projects-tasks">
 <td>プロジェクト内タスク一覧取得</td>
 <td><code>GET /api/projects/:projectId/tasks</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-projects-milestones" data-unit-key="projects-milestones">
 <td>マイルストーン一覧取得</td>
 <td><code>GET /api/projects/:projectId/milestones</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-projects-duplicate" data-unit-key="projects-duplicate">
 <td>プロジェクト複製</td>
 <td><code>POST /api/projects/:projectId/duplicate</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-projects-export" data-unit-key="projects-export">
 <td>プロジェクトエクスポート</td>
 <td><code>GET /api/projects/:projectId/export</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-projects-import" data-unit-key="projects-import">
 <td>プロジェクトインポート</td>
 <td><code>POST /api/projects/import</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-projects-labels" data-unit-key="projects-labels">
 <td>プロジェクトラベル一覧取得</td>
 <td><code>GET /api/projects/:projectId/labels</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-projects-templates" data-unit-key="projects-templates">
 <td>プロジェクトテンプレート一覧取得</td>
 <td><code>GET /api/projects/templates</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-tasks-list" data-unit-key="tasks-list">
 <td>タスク一覧取得</td>
 <td><code>GET /api/tasks</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-tasks-create" data-unit-key="tasks-create">
 <td>タスク新規作成</td>
 <td><code>POST /api/tasks</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-tasks-get" data-unit-key="tasks-get">
 <td>タスク詳細取得</td>
 <td><code>GET /api/tasks/:taskId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-tasks-update" data-unit-key="tasks-update">
 <td>タスク更新</td>
 <td><code>PUT /api/tasks/:taskId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-tasks-delete" data-unit-key="tasks-delete">
 <td>タスク削除</td>
 <td><code>DELETE /api/tasks/:taskId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-tasks-assign" data-unit-key="tasks-assign">
 <td>タスク担当者変更</td>
 <td><code>PUT /api/tasks/:taskId/assignee</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-tasks-status" data-unit-key="tasks-status">
 <td>タスクステータス変更</td>
 <td><code>PATCH /api/tasks/:taskId/status</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-tasks-comments" data-unit-key="tasks-comments">
 <td>タスクコメント一覧取得</td>
 <td><code>GET /api/tasks/:taskId/comments</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-tasks-attachments" data-unit-key="tasks-attachments">
 <td>タスク添付ファイル追加</td>
 <td><code>POST /api/tasks/:taskId/attachments</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-tasks-history" data-unit-key="tasks-history">
 <td>タスク変更履歴取得</td>
 <td><code>GET /api/tasks/:taskId/history</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-tasks-reorder" data-unit-key="tasks-reorder">
 <td>タスク並び替え</td>
 <td><code>PUT /api/tasks/reorder</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-tasks-bulk-update" data-unit-key="tasks-bulk-update">
 <td>タスク一括更新</td>
 <td><code>PATCH /api/tasks/bulk-update</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-tasks-watchers" data-unit-key="tasks-watchers">
 <td>タスクウォッチャー一覧取得</td>
 <td><code>GET /api/tasks/:taskId/watchers</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-tasks-dependencies" data-unit-key="tasks-dependencies">
 <td>タスク依存関係取得</td>
 <td><code>GET /api/tasks/:taskId/dependencies</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-tasks-time-tracking" data-unit-key="tasks-time-tracking">
 <td>タスク作業時間記録</td>
 <td><code>POST /api/tasks/:taskId/time-entries</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-comments-create" data-unit-key="comments-create">
 <td>コメント投稿</td>
 <td><code>POST /api/posts/:postId/comments</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-comments-update" data-unit-key="comments-update">
 <td>コメント編集</td>
 <td><code>PUT /api/comments/:commentId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-comments-delete" data-unit-key="comments-delete">
 <td>コメント削除</td>
 <td><code>DELETE /api/comments/:commentId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-comments-list" data-unit-key="comments-list">
 <td>コメント一覧取得</td>
 <td><code>GET /api/posts/:postId/comments</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-comments-reactions" data-unit-key="comments-reactions">
 <td>コメントリアクション追加</td>
 <td><code>POST /api/comments/:commentId/reactions</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-comments-pin" data-unit-key="comments-pin">
 <td>コメント固定</td>
 <td><code>PUT /api/comments/:commentId/pin</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-comments-unpin" data-unit-key="comments-unpin">
 <td>コメント固定解除</td>
 <td><code>DELETE /api/comments/:commentId/pin</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-files-upload" data-unit-key="files-upload">
 <td>ファイルアップロード</td>
 <td><code>POST /api/files</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-files-download" data-unit-key="files-download">
 <td>ファイルダウンロード</td>
 <td><code>GET /api/files/:fileId/download</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-files-list" data-unit-key="files-list">
 <td>ファイル一覧取得</td>
 <td><code>GET /api/files</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-files-delete" data-unit-key="files-delete">
 <td>ファイル削除</td>
 <td><code>DELETE /api/files/:fileId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-files-metadata" data-unit-key="files-metadata">
 <td>ファイルメタ情報取得</td>
 <td><code>GET /api/files/:fileId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-files-thumbnails" data-unit-key="files-thumbnails">
 <td>ファイルサムネイル取得</td>
 <td><code>GET /api/files/:fileId/thumbnail</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-files-share" data-unit-key="files-share">
 <td>ファイル共有リンク発行</td>
 <td><code>POST /api/files/:fileId/share</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-files-versions" data-unit-key="files-versions">
 <td>ファイルバージョン一覧取得</td>
 <td><code>GET /api/files/:fileId/versions</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-files-restore-version" data-unit-key="files-restore-version">
 <td>ファイルバージョン復元</td>
 <td><code>POST /api/files/:fileId/versions/:versionId/restore</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-files-permissions" data-unit-key="files-permissions">
 <td>ファイル権限設定</td>
 <td><code>PUT /api/files/:fileId/permissions</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-notifications-list" data-unit-key="notifications-list">
 <td>通知一覧取得</td>
 <td><code>GET /api/notifications</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-notifications-read" data-unit-key="notifications-read">
 <td>通知既読化</td>
 <td><code>PUT /api/notifications/:notificationId/read</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-notifications-read-all" data-unit-key="notifications-read-all">
 <td>全通知既読化</td>
 <td><code>PUT /api/notifications/read-all</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-notifications-settings" data-unit-key="notifications-settings">
 <td>通知設定取得</td>
 <td><code>GET /api/notifications/settings</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-notifications-subscribe" data-unit-key="notifications-subscribe">
 <td>通知購読登録</td>
 <td><code>POST /api/notifications/subscriptions</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-notifications-unsubscribe" data-unit-key="notifications-unsubscribe">
 <td>通知購読解除</td>
 <td><code>DELETE /api/notifications/subscriptions/:subscriptionId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-notifications-preferences" data-unit-key="notifications-preferences">
 <td>通知設定更新</td>
 <td><code>PUT /api/notifications/settings</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-notifications-test" data-unit-key="notifications-test">
 <td>テスト通知送信</td>
 <td><code>POST /api/notifications/test</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-search-global" data-unit-key="search-global">
 <td>全体横断検索</td>
 <td><code>GET /api/search</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-search-users" data-unit-key="search-users">
 <td>ユーザー検索（/api/search/users）</td>
 <td><code>GET /api/search/users</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-search-projects" data-unit-key="search-projects">
 <td>プロジェクト検索</td>
 <td><code>GET /api/search/projects</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-search-tasks" data-unit-key="search-tasks">
 <td>タスク検索</td>
 <td><code>GET /api/search/tasks</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-search-files" data-unit-key="search-files">
 <td>ファイル検索</td>
 <td><code>GET /api/search/files</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-search-suggestions" data-unit-key="search-suggestions">
 <td>検索候補取得</td>
 <td><code>GET /api/search/suggestions</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-search-recent" data-unit-key="search-recent">
 <td>最近の検索履歴取得</td>
 <td><code>GET /api/search/recent</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-search-saved" data-unit-key="search-saved">
 <td>保存済み検索条件取得</td>
 <td><code>GET /api/search/saved</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-dashboard-overview" data-unit-key="dashboard-overview">
 <td>ダッシュボード概要取得</td>
 <td><code>GET /api/dashboard/overview</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-dashboard-stats" data-unit-key="dashboard-stats">
 <td>ダッシュボード統計取得</td>
 <td><code>GET /api/dashboard/stats</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-dashboard-recent-activity" data-unit-key="dashboard-recent-activity">
 <td>最近のアクティビティ取得</td>
 <td><code>GET /api/dashboard/recent-activity</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-dashboard-charts" data-unit-key="dashboard-charts">
 <td>ダッシュボードチャートデータ取得</td>
 <td><code>GET /api/dashboard/charts</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-dashboard-widgets" data-unit-key="dashboard-widgets">
 <td>ダッシュボードウィジェット構成取得</td>
 <td><code>GET /api/dashboard/widgets</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-dashboard-export" data-unit-key="dashboard-export">
 <td>ダッシュボードエクスポート</td>
 <td><code>GET /api/dashboard/export</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-reports-generate" data-unit-key="reports-generate">
 <td>帳票生成依頼</td>
 <td><code>POST /api/reports</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-reports-list" data-unit-key="reports-list">
 <td>帳票一覧取得</td>
 <td><code>GET /api/reports</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-reports-download" data-unit-key="reports-download">
 <td>帳票ダウンロード</td>
 <td><code>GET /api/reports/:reportId/download</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-reports-schedule" data-unit-key="reports-schedule">
 <td>帳票定期実行設定</td>
 <td><code>POST /api/reports/schedules</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-reports-templates" data-unit-key="reports-templates">
 <td>帳票テンプレート一覧取得</td>
 <td><code>GET /api/reports/templates</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-reports-delete" data-unit-key="reports-delete">
 <td>帳票削除</td>
 <td><code>DELETE /api/reports/:reportId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-reports-share" data-unit-key="reports-share">
 <td>帳票共有</td>
 <td><code>POST /api/reports/:reportId/share</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-settings-get" data-unit-key="settings-get">
 <td>設定取得</td>
 <td><code>GET /api/settings</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-settings-update" data-unit-key="settings-update">
 <td>設定更新</td>
 <td><code>PUT /api/settings</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-settings-integrations" data-unit-key="settings-integrations">
 <td>外部連携設定取得</td>
 <td><code>GET /api/settings/integrations</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-settings-webhooks" data-unit-key="settings-webhooks">
 <td>Webhook設定取得</td>
 <td><code>GET /api/settings/webhooks</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-settings-api-keys" data-unit-key="settings-api-keys">
 <td>APIキー一覧取得</td>
 <td><code>GET /api/settings/api-keys</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-settings-notifications" data-unit-key="settings-notifications">
 <td>通知系設定更新</td>
 <td><code>PUT /api/settings/notification-preferences</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-settings-security" data-unit-key="settings-security">
 <td>セキュリティ設定取得</td>
 <td><code>GET /api/settings/security</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-settings-sessions" data-unit-key="settings-sessions">
 <td>設定画面向けセッション一覧取得</td>
 <td><code>GET /api/settings/sessions</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-audit-logs" data-unit-key="audit-logs">
 <td>監査ログ一覧取得</td>
 <td><code>GET /api/audit/logs</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-audit-export" data-unit-key="audit-export">
 <td>監査ログエクスポート</td>
 <td><code>GET /api/audit/logs/export</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-audit-user-activity" data-unit-key="audit-user-activity">
 <td>ユーザー別監査ログ取得</td>
 <td><code>GET /api/audit/users/:userId</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-audit-alerts" data-unit-key="audit-alerts">
 <td>監査アラート一覧取得</td>
 <td><code>GET /api/audit/alerts</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-audit-retention-policy" data-unit-key="audit-retention-policy">
 <td>監査ログ保持期間設定取得</td>
 <td><code>GET /api/audit/retention-policy</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-system-health" data-unit-key="system-health">
 <td>ヘルスチェック</td>
 <td><code>GET /api/health</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-system-version" data-unit-key="system-version">
 <td>バージョン情報取得</td>
 <td><code>GET /api/version</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-system-metrics" data-unit-key="system-metrics">
 <td>システムメトリクス取得</td>
 <td><code>GET /api/metrics</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-system-status" data-unit-key="system-status">
 <td>システムステータス取得</td>
 <td><code>GET /api/status</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr><tr data-unit-id="api-system-ping" data-unit-key="system-ping">
 <td>疎通確認</td>
 <td><code>GET /api/ping</code></td>
-<td><span class="badge kind-generic">endpoint</span></td>
 </tr>
           </tbody>
         </table>
@@ -1641,30 +1507,25 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
         <table class="units" id="unresolved-table" data-unit-table>
 <thead>
 <tr>
-<th data-key="unitNameGuess">API名</th><th data-key="identifier">識別子</th><th data-key="kind">区分</th>
+<th data-key="unitNameGuess">API名</th><th data-key="identifier">識別子</th>
 </tr>
 </thead>
 <tbody>
 <tr data-unit-id="unresolved-legacy-export" data-unit-key="unresolved-legacy-export">
 <td>旧バージョンエクスポート処理(要確認)</td>
 <td><code>? /api/v1/export/...</code></td>
-<td><span class="badge kind-unresolved">要確認</span></td>
 </tr><tr data-unit-id="unresolved-internal-webhook-relay" data-unit-key="unresolved-internal-webhook-relay">
 <td>内部Webhook中継処理(要確認)</td>
 <td><code>POST /api/internal/???</code></td>
-<td><span class="badge kind-unresolved">要確認</span></td>
 </tr><tr data-unit-id="unresolved-batch-callback" data-unit-key="unresolved-batch-callback">
 <td>バッチ処理コールバック受信(要確認)</td>
 <td><code>? /api/callbacks/batch/...</code></td>
-<td><span class="badge kind-unresolved">要確認</span></td>
 </tr><tr data-unit-id="unresolved-partner-sync-endpoint" data-unit-key="unresolved-partner-sync-endpoint">
 <td>パートナー連携同期処理(要確認)</td>
 <td><code>PATCH /api/partners/???</code></td>
-<td><span class="badge kind-unresolved">要確認</span></td>
 </tr><tr data-unit-id="unresolved-deprecated-token-exchange" data-unit-key="unresolved-deprecated-token-exchange">
 <td>旧トークン交換処理(要確認)</td>
 <td><code>POST /api/oauth/exchange(旧仕様)</code></td>
-<td><span class="badge kind-unresolved">要確認</span></td>
 </tr>
 </tbody>
 </table>
@@ -1674,7 +1535,7 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
       </div>
 
       <script type="application/json" id="unit-manifest">
-{"generatedAt":"2026-07-30T00:00:00Z","sourceDir":"generation-engine/samples/project-portal/一覧/API一覧/fixtures","unitKind":"api","strategy":{"extractionMethod":"static-analysis","approvedByUser":true,"unitIdRegex":null},"detectionSummary":{"unitCount":141,"unresolvedCount":5},"units":[{"unitId":"api-auth-login","unitKey":"auth-login","kind":"endpoint","unitNameGuess":"ログイン","identifier":"POST /api/auth/login","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-logout","unitKey":"auth-logout","kind":"endpoint","unitNameGuess":"ログアウト","identifier":"DELETE /api/auth/session","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-refresh","unitKey":"auth-refresh","kind":"endpoint","unitNameGuess":"トークン更新","identifier":"POST /api/auth/refresh","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-register","unitKey":"auth-register","kind":"endpoint","unitNameGuess":"新規登録","identifier":"POST /api/auth/register","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-forgot-password","unitKey":"auth-forgot-password","kind":"endpoint","unitNameGuess":"パスワード再設定依頼","identifier":"POST /api/auth/forgot-password","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-reset-password","unitKey":"auth-reset-password","kind":"endpoint","unitNameGuess":"パスワード再設定実行","identifier":"POST /api/auth/reset-password","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-verify-email","unitKey":"auth-verify-email","kind":"endpoint","unitNameGuess":"メール確認","identifier":"POST /api/auth/verify-email","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-me","unitKey":"auth-me","kind":"endpoint","unitNameGuess":"自分自身の情報取得","identifier":"GET /api/auth/me","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-sessions","unitKey":"auth-sessions","kind":"endpoint","unitNameGuess":"有効セッション一覧取得","identifier":"GET /api/auth/sessions","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-sessions-revoke","unitKey":"auth-sessions-revoke","kind":"endpoint","unitNameGuess":"セッション個別失効","identifier":"DELETE /api/auth/sessions/:sessionId","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-sessions-revoke-all","unitKey":"auth-sessions-revoke-all","kind":"endpoint","unitNameGuess":"全セッション失効","identifier":"DELETE /api/auth/sessions","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-change-password","unitKey":"auth-change-password","kind":"endpoint","unitNameGuess":"パスワード変更","identifier":"PUT /api/auth/password","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-mfa-enable","unitKey":"auth-mfa-enable","kind":"endpoint","unitNameGuess":"多要素認証有効化","identifier":"POST /api/auth/mfa","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-mfa-verify","unitKey":"auth-mfa-verify","kind":"endpoint","unitNameGuess":"多要素認証コード検証","identifier":"POST /api/auth/mfa/verify","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-mfa-disable","unitKey":"auth-mfa-disable","kind":"endpoint","unitNameGuess":"多要素認証無効化","identifier":"DELETE /api/auth/mfa","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/auth.py"},{"unitId":"api-users-list","unitKey":"users-list","kind":"endpoint","unitNameGuess":"ユーザー一覧取得","identifier":"GET /api/users","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/users.py"},{"unitId":"api-users-create","unitKey":"users-create","kind":"endpoint","unitNameGuess":"ユーザー新規作成","identifier":"POST /api/users","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/users.py"},{"unitId":"api-users-get","unitKey":"users-get","kind":"endpoint","unitNameGuess":"ユーザー詳細取得","identifier":"GET /api/users/:userId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/users.py"},{"unitId":"api-users-update","unitKey":"users-update","kind":"endpoint","unitNameGuess":"ユーザー更新","identifier":"PUT /api/users/:userId","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/users.py"},{"unitId":"api-users-delete","unitKey":"users-delete","kind":"endpoint","unitNameGuess":"ユーザー削除","identifier":"DELETE /api/users/:userId","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/users.py"},{"unitId":"api-users-search","unitKey":"users-search","kind":"endpoint","unitNameGuess":"ユーザー検索（/api/users/search）","identifier":"GET /api/users/search","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/api/users.py"},{"unitId":"api-users-bulk-import","unitKey":"users-bulk-import","kind":"endpoint","unitNameGuess":"ユーザー一括登録","identifier":"POST /api/users/bulk-import","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/users.py"},{"unitId":"api-users-export","unitKey":"users-export","kind":"endpoint","unitNameGuess":"ユーザーエクスポート","identifier":"GET /api/users/export","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/users.py"},{"unitId":"api-users-roles","unitKey":"users-roles","kind":"endpoint","unitNameGuess":"ユーザーロール取得","identifier":"GET /api/users/:userId/roles","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/users.py"},{"unitId":"api-users-permissions","unitKey":"users-permissions","kind":"endpoint","unitNameGuess":"ユーザー権限更新","identifier":"PUT /api/users/:userId/permissions","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/users.py"},{"unitId":"api-users-avatar-upload","unitKey":"users-avatar-upload","kind":"endpoint","unitNameGuess":"アバターアップロード","identifier":"POST /api/users/:userId/avatar","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/users.py"},{"unitId":"api-users-get-by-email","unitKey":"users-get-by-email","kind":"endpoint","unitNameGuess":"メールアドレスでユーザー検索","identifier":"GET /api/users/lookup","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/users.py"},{"unitId":"api-users-activity-log","unitKey":"users-activity-log","kind":"endpoint","unitNameGuess":"ユーザー操作履歴取得","identifier":"GET /api/users/:userId/activity","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/users.py"},{"unitId":"api-users-impersonate","unitKey":"users-impersonate","kind":"endpoint","unitNameGuess":"ユーザーなりすまし開始","identifier":"POST /api/users/:userId/impersonate","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/users.py"},{"unitId":"api-users-deactivate","unitKey":"users-deactivate","kind":"endpoint","unitNameGuess":"ユーザー無効化","identifier":"POST /api/users/:userId/deactivate","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/users.py"},{"unitId":"api-users-reactivate","unitKey":"users-reactivate","kind":"endpoint","unitNameGuess":"ユーザー再有効化","identifier":"POST /api/users/:userId/reactivate","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/users.py"},{"unitId":"api-organizations-list","unitKey":"organizations-list","kind":"endpoint","unitNameGuess":"組織一覧取得","identifier":"GET /api/organizations","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-create","unitKey":"organizations-create","kind":"endpoint","unitNameGuess":"組織新規作成","identifier":"POST /api/organizations","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-get","unitKey":"organizations-get","kind":"endpoint","unitNameGuess":"組織詳細取得","identifier":"GET /api/organizations/:orgId","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-update","unitKey":"organizations-update","kind":"endpoint","unitNameGuess":"組織更新","identifier":"PUT /api/organizations/:orgId","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-delete","unitKey":"organizations-delete","kind":"endpoint","unitNameGuess":"組織削除","identifier":"DELETE /api/organizations/:orgId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-members","unitKey":"organizations-members","kind":"endpoint","unitNameGuess":"組織メンバー一覧取得","identifier":"GET /api/organizations/:orgId/members","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-invite","unitKey":"organizations-invite","kind":"endpoint","unitNameGuess":"組織招待送信","identifier":"POST /api/organizations/:orgId/invites","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-settings","unitKey":"organizations-settings","kind":"endpoint","unitNameGuess":"組織設定取得","identifier":"GET /api/organizations/:orgId/settings","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-billing","unitKey":"organizations-billing","kind":"endpoint","unitNameGuess":"組織請求情報取得","identifier":"GET /api/organizations/:orgId/billing","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-usage","unitKey":"organizations-usage","kind":"endpoint","unitNameGuess":"組織利用状況取得","identifier":"GET /api/organizations/:orgId/usage","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-audit-log","unitKey":"organizations-audit-log","kind":"endpoint","unitNameGuess":"組織監査ログ取得","identifier":"GET /api/organizations/:orgId/audit-log","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-domains","unitKey":"organizations-domains","kind":"endpoint","unitNameGuess":"組織ドメイン一覧取得","identifier":"GET /api/organizations/:orgId/domains","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/organizations.py"},{"unitId":"api-projects-list","unitKey":"projects-list","kind":"endpoint","unitNameGuess":"プロジェクト一覧取得","identifier":"GET /api/projects","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-create","unitKey":"projects-create","kind":"endpoint","unitNameGuess":"プロジェクト新規作成","identifier":"POST /api/projects","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-get","unitKey":"projects-get","kind":"endpoint","unitNameGuess":"プロジェクト詳細取得","identifier":"GET /api/projects/:projectId","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-update","unitKey":"projects-update","kind":"endpoint","unitNameGuess":"プロジェクト更新","identifier":"PUT /api/projects/:projectId","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-delete","unitKey":"projects-delete","kind":"endpoint","unitNameGuess":"プロジェクト削除","identifier":"DELETE /api/projects/:projectId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-archive","unitKey":"projects-archive","kind":"endpoint","unitNameGuess":"プロジェクトアーカイブ","identifier":"POST /api/projects/:projectId/archive","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-members","unitKey":"projects-members","kind":"endpoint","unitNameGuess":"プロジェクトメンバー一覧取得","identifier":"GET /api/projects/:projectId/members","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-tasks","unitKey":"projects-tasks","kind":"endpoint","unitNameGuess":"プロジェクト内タスク一覧取得","identifier":"GET /api/projects/:projectId/tasks","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-milestones","unitKey":"projects-milestones","kind":"endpoint","unitNameGuess":"マイルストーン一覧取得","identifier":"GET /api/projects/:projectId/milestones","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-duplicate","unitKey":"projects-duplicate","kind":"endpoint","unitNameGuess":"プロジェクト複製","identifier":"POST /api/projects/:projectId/duplicate","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-export","unitKey":"projects-export","kind":"endpoint","unitNameGuess":"プロジェクトエクスポート","identifier":"GET /api/projects/:projectId/export","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-import","unitKey":"projects-import","kind":"endpoint","unitNameGuess":"プロジェクトインポート","identifier":"POST /api/projects/import","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-labels","unitKey":"projects-labels","kind":"endpoint","unitNameGuess":"プロジェクトラベル一覧取得","identifier":"GET /api/projects/:projectId/labels","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-templates","unitKey":"projects-templates","kind":"endpoint","unitNameGuess":"プロジェクトテンプレート一覧取得","identifier":"GET /api/projects/templates","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/projects.py"},{"unitId":"api-tasks-list","unitKey":"tasks-list","kind":"endpoint","unitNameGuess":"タスク一覧取得","identifier":"GET /api/tasks","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-create","unitKey":"tasks-create","kind":"endpoint","unitNameGuess":"タスク新規作成","identifier":"POST /api/tasks","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-get","unitKey":"tasks-get","kind":"endpoint","unitNameGuess":"タスク詳細取得","identifier":"GET /api/tasks/:taskId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-update","unitKey":"tasks-update","kind":"endpoint","unitNameGuess":"タスク更新","identifier":"PUT /api/tasks/:taskId","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-delete","unitKey":"tasks-delete","kind":"endpoint","unitNameGuess":"タスク削除","identifier":"DELETE /api/tasks/:taskId","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-assign","unitKey":"tasks-assign","kind":"endpoint","unitNameGuess":"タスク担当者変更","identifier":"PUT /api/tasks/:taskId/assignee","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-status","unitKey":"tasks-status","kind":"endpoint","unitNameGuess":"タスクステータス変更","identifier":"PATCH /api/tasks/:taskId/status","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-comments","unitKey":"tasks-comments","kind":"endpoint","unitNameGuess":"タスクコメント一覧取得","identifier":"GET /api/tasks/:taskId/comments","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-attachments","unitKey":"tasks-attachments","kind":"endpoint","unitNameGuess":"タスク添付ファイル追加","identifier":"POST /api/tasks/:taskId/attachments","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-history","unitKey":"tasks-history","kind":"endpoint","unitNameGuess":"タスク変更履歴取得","identifier":"GET /api/tasks/:taskId/history","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-reorder","unitKey":"tasks-reorder","kind":"endpoint","unitNameGuess":"タスク並び替え","identifier":"PUT /api/tasks/reorder","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-bulk-update","unitKey":"tasks-bulk-update","kind":"endpoint","unitNameGuess":"タスク一括更新","identifier":"PATCH /api/tasks/bulk-update","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-watchers","unitKey":"tasks-watchers","kind":"endpoint","unitNameGuess":"タスクウォッチャー一覧取得","identifier":"GET /api/tasks/:taskId/watchers","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-dependencies","unitKey":"tasks-dependencies","kind":"endpoint","unitNameGuess":"タスク依存関係取得","identifier":"GET /api/tasks/:taskId/dependencies","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-time-tracking","unitKey":"tasks-time-tracking","kind":"endpoint","unitNameGuess":"タスク作業時間記録","identifier":"POST /api/tasks/:taskId/time-entries","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/tasks.py"},{"unitId":"api-comments-create","unitKey":"comments-create","kind":"endpoint","unitNameGuess":"コメント投稿","identifier":"POST /api/posts/:postId/comments","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/comments.py"},{"unitId":"api-comments-update","unitKey":"comments-update","kind":"endpoint","unitNameGuess":"コメント編集","identifier":"PUT /api/comments/:commentId","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/comments.py"},{"unitId":"api-comments-delete","unitKey":"comments-delete","kind":"endpoint","unitNameGuess":"コメント削除","identifier":"DELETE /api/comments/:commentId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/comments.py"},{"unitId":"api-comments-list","unitKey":"comments-list","kind":"endpoint","unitNameGuess":"コメント一覧取得","identifier":"GET /api/posts/:postId/comments","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/comments.py"},{"unitId":"api-comments-reactions","unitKey":"comments-reactions","kind":"endpoint","unitNameGuess":"コメントリアクション追加","identifier":"POST /api/comments/:commentId/reactions","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/api/comments.py"},{"unitId":"api-comments-pin","unitKey":"comments-pin","kind":"endpoint","unitNameGuess":"コメント固定","identifier":"PUT /api/comments/:commentId/pin","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/comments.py"},{"unitId":"api-comments-unpin","unitKey":"comments-unpin","kind":"endpoint","unitNameGuess":"コメント固定解除","identifier":"DELETE /api/comments/:commentId/pin","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/comments.py"},{"unitId":"api-files-upload","unitKey":"files-upload","kind":"endpoint","unitNameGuess":"ファイルアップロード","identifier":"POST /api/files","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/files.py"},{"unitId":"api-files-download","unitKey":"files-download","kind":"endpoint","unitNameGuess":"ファイルダウンロード","identifier":"GET /api/files/:fileId/download","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/files.py"},{"unitId":"api-files-list","unitKey":"files-list","kind":"endpoint","unitNameGuess":"ファイル一覧取得","identifier":"GET /api/files","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/files.py"},{"unitId":"api-files-delete","unitKey":"files-delete","kind":"endpoint","unitNameGuess":"ファイル削除","identifier":"DELETE /api/files/:fileId","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/files.py"},{"unitId":"api-files-metadata","unitKey":"files-metadata","kind":"endpoint","unitNameGuess":"ファイルメタ情報取得","identifier":"GET /api/files/:fileId","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/api/files.py"},{"unitId":"api-files-thumbnails","unitKey":"files-thumbnails","kind":"endpoint","unitNameGuess":"ファイルサムネイル取得","identifier":"GET /api/files/:fileId/thumbnail","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/files.py"},{"unitId":"api-files-share","unitKey":"files-share","kind":"endpoint","unitNameGuess":"ファイル共有リンク発行","identifier":"POST /api/files/:fileId/share","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/files.py"},{"unitId":"api-files-versions","unitKey":"files-versions","kind":"endpoint","unitNameGuess":"ファイルバージョン一覧取得","identifier":"GET /api/files/:fileId/versions","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/files.py"},{"unitId":"api-files-restore-version","unitKey":"files-restore-version","kind":"endpoint","unitNameGuess":"ファイルバージョン復元","identifier":"POST /api/files/:fileId/versions/:versionId/restore","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/files.py"},{"unitId":"api-files-permissions","unitKey":"files-permissions","kind":"endpoint","unitNameGuess":"ファイル権限設定","identifier":"PUT /api/files/:fileId/permissions","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/files.py"},{"unitId":"api-notifications-list","unitKey":"notifications-list","kind":"endpoint","unitNameGuess":"通知一覧取得","identifier":"GET /api/notifications","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/notifications.py"},{"unitId":"api-notifications-read","unitKey":"notifications-read","kind":"endpoint","unitNameGuess":"通知既読化","identifier":"PUT /api/notifications/:notificationId/read","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/notifications.py"},{"unitId":"api-notifications-read-all","unitKey":"notifications-read-all","kind":"endpoint","unitNameGuess":"全通知既読化","identifier":"PUT /api/notifications/read-all","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/notifications.py"},{"unitId":"api-notifications-settings","unitKey":"notifications-settings","kind":"endpoint","unitNameGuess":"通知設定取得","identifier":"GET /api/notifications/settings","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/notifications.py"},{"unitId":"api-notifications-subscribe","unitKey":"notifications-subscribe","kind":"endpoint","unitNameGuess":"通知購読登録","identifier":"POST /api/notifications/subscriptions","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/notifications.py"},{"unitId":"api-notifications-unsubscribe","unitKey":"notifications-unsubscribe","kind":"endpoint","unitNameGuess":"通知購読解除","identifier":"DELETE /api/notifications/subscriptions/:subscriptionId","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/notifications.py"},{"unitId":"api-notifications-preferences","unitKey":"notifications-preferences","kind":"endpoint","unitNameGuess":"通知設定更新","identifier":"PUT /api/notifications/settings","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/notifications.py"},{"unitId":"api-notifications-test","unitKey":"notifications-test","kind":"endpoint","unitNameGuess":"テスト通知送信","identifier":"POST /api/notifications/test","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/notifications.py"},{"unitId":"api-search-global","unitKey":"search-global","kind":"endpoint","unitNameGuess":"全体横断検索","identifier":"GET /api/search","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/api/search.py"},{"unitId":"api-search-users","unitKey":"search-users","kind":"endpoint","unitNameGuess":"ユーザー検索（/api/search/users）","identifier":"GET /api/search/users","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/search.py"},{"unitId":"api-search-projects","unitKey":"search-projects","kind":"endpoint","unitNameGuess":"プロジェクト検索","identifier":"GET /api/search/projects","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/search.py"},{"unitId":"api-search-tasks","unitKey":"search-tasks","kind":"endpoint","unitNameGuess":"タスク検索","identifier":"GET /api/search/tasks","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/search.py"},{"unitId":"api-search-files","unitKey":"search-files","kind":"endpoint","unitNameGuess":"ファイル検索","identifier":"GET /api/search/files","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/search.py"},{"unitId":"api-search-suggestions","unitKey":"search-suggestions","kind":"endpoint","unitNameGuess":"検索候補取得","identifier":"GET /api/search/suggestions","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/search.py"},{"unitId":"api-search-recent","unitKey":"search-recent","kind":"endpoint","unitNameGuess":"最近の検索履歴取得","identifier":"GET /api/search/recent","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/search.py"},{"unitId":"api-search-saved","unitKey":"search-saved","kind":"endpoint","unitNameGuess":"保存済み検索条件取得","identifier":"GET /api/search/saved","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/api/search.py"},{"unitId":"api-dashboard-overview","unitKey":"dashboard-overview","kind":"endpoint","unitNameGuess":"ダッシュボード概要取得","identifier":"GET /api/dashboard/overview","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/dashboard.py"},{"unitId":"api-dashboard-stats","unitKey":"dashboard-stats","kind":"endpoint","unitNameGuess":"ダッシュボード統計取得","identifier":"GET /api/dashboard/stats","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/dashboard.py"},{"unitId":"api-dashboard-recent-activity","unitKey":"dashboard-recent-activity","kind":"endpoint","unitNameGuess":"最近のアクティビティ取得","identifier":"GET /api/dashboard/recent-activity","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/dashboard.py"},{"unitId":"api-dashboard-charts","unitKey":"dashboard-charts","kind":"endpoint","unitNameGuess":"ダッシュボードチャートデータ取得","identifier":"GET /api/dashboard/charts","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/dashboard.py"},{"unitId":"api-dashboard-widgets","unitKey":"dashboard-widgets","kind":"endpoint","unitNameGuess":"ダッシュボードウィジェット構成取得","identifier":"GET /api/dashboard/widgets","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/dashboard.py"},{"unitId":"api-dashboard-export","unitKey":"dashboard-export","kind":"endpoint","unitNameGuess":"ダッシュボードエクスポート","identifier":"GET /api/dashboard/export","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/dashboard.py"},{"unitId":"api-reports-generate","unitKey":"reports-generate","kind":"endpoint","unitNameGuess":"帳票生成依頼","identifier":"POST /api/reports","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/reports.py"},{"unitId":"api-reports-list","unitKey":"reports-list","kind":"endpoint","unitNameGuess":"帳票一覧取得","identifier":"GET /api/reports","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/reports.py"},{"unitId":"api-reports-download","unitKey":"reports-download","kind":"endpoint","unitNameGuess":"帳票ダウンロード","identifier":"GET /api/reports/:reportId/download","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/reports.py"},{"unitId":"api-reports-schedule","unitKey":"reports-schedule","kind":"endpoint","unitNameGuess":"帳票定期実行設定","identifier":"POST /api/reports/schedules","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/reports.py"},{"unitId":"api-reports-templates","unitKey":"reports-templates","kind":"endpoint","unitNameGuess":"帳票テンプレート一覧取得","identifier":"GET /api/reports/templates","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/reports.py"},{"unitId":"api-reports-delete","unitKey":"reports-delete","kind":"endpoint","unitNameGuess":"帳票削除","identifier":"DELETE /api/reports/:reportId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/reports.py"},{"unitId":"api-reports-share","unitKey":"reports-share","kind":"endpoint","unitNameGuess":"帳票共有","identifier":"POST /api/reports/:reportId/share","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/reports.py"},{"unitId":"api-settings-get","unitKey":"settings-get","kind":"endpoint","unitNameGuess":"設定取得","identifier":"GET /api/settings","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/api/settings.py"},{"unitId":"api-settings-update","unitKey":"settings-update","kind":"endpoint","unitNameGuess":"設定更新","identifier":"PUT /api/settings","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/settings.py"},{"unitId":"api-settings-integrations","unitKey":"settings-integrations","kind":"endpoint","unitNameGuess":"外部連携設定取得","identifier":"GET /api/settings/integrations","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/settings.py"},{"unitId":"api-settings-webhooks","unitKey":"settings-webhooks","kind":"endpoint","unitNameGuess":"Webhook設定取得","identifier":"GET /api/settings/webhooks","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/settings.py"},{"unitId":"api-settings-api-keys","unitKey":"settings-api-keys","kind":"endpoint","unitNameGuess":"APIキー一覧取得","identifier":"GET /api/settings/api-keys","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/settings.py"},{"unitId":"api-settings-notifications","unitKey":"settings-notifications","kind":"endpoint","unitNameGuess":"通知系設定更新","identifier":"PUT /api/settings/notification-preferences","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/settings.py"},{"unitId":"api-settings-security","unitKey":"settings-security","kind":"endpoint","unitNameGuess":"セキュリティ設定取得","identifier":"GET /api/settings/security","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/settings.py"},{"unitId":"api-settings-sessions","unitKey":"settings-sessions","kind":"endpoint","unitNameGuess":"設定画面向けセッション一覧取得","identifier":"GET /api/settings/sessions","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/api/settings.py"},{"unitId":"api-audit-logs","unitKey":"audit-logs","kind":"endpoint","unitNameGuess":"監査ログ一覧取得","identifier":"GET /api/audit/logs","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/audit.py"},{"unitId":"api-audit-export","unitKey":"audit-export","kind":"endpoint","unitNameGuess":"監査ログエクスポート","identifier":"GET /api/audit/logs/export","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/audit.py"},{"unitId":"api-audit-user-activity","unitKey":"audit-user-activity","kind":"endpoint","unitNameGuess":"ユーザー別監査ログ取得","identifier":"GET /api/audit/users/:userId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/audit.py"},{"unitId":"api-audit-alerts","unitKey":"audit-alerts","kind":"endpoint","unitNameGuess":"監査アラート一覧取得","identifier":"GET /api/audit/alerts","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/audit.py"},{"unitId":"api-audit-retention-policy","unitKey":"audit-retention-policy","kind":"endpoint","unitNameGuess":"監査ログ保持期間設定取得","identifier":"GET /api/audit/retention-policy","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/audit.py"},{"unitId":"api-system-health","unitKey":"system-health","kind":"endpoint","unitNameGuess":"ヘルスチェック","identifier":"GET /api/health","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/system.py"},{"unitId":"api-system-version","unitKey":"system-version","kind":"endpoint","unitNameGuess":"バージョン情報取得","identifier":"GET /api/version","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/system.py"},{"unitId":"api-system-metrics","unitKey":"system-metrics","kind":"endpoint","unitNameGuess":"システムメトリクス取得","identifier":"GET /api/metrics","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/system.py"},{"unitId":"api-system-status","unitKey":"system-status","kind":"endpoint","unitNameGuess":"システムステータス取得","identifier":"GET /api/status","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/system.py"},{"unitId":"api-system-ping","unitKey":"system-ping","kind":"endpoint","unitNameGuess":"疎通確認","identifier":"GET /api/ping","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/system.py"},{"unitId":"unresolved-legacy-export","unitKey":"unresolved-legacy-export","kind":"unresolved","unitNameGuess":"旧バージョンエクスポート処理(要確認)","identifier":"? /api/v1/export/...","detectionMethod":"heuristic","confidence":"LOW","fileCount":1,"sourceFile":"src/api/legacy.py"},{"unitId":"unresolved-internal-webhook-relay","unitKey":"unresolved-internal-webhook-relay","kind":"unresolved","unitNameGuess":"内部Webhook中継処理(要確認)","identifier":"POST /api/internal/???","detectionMethod":"heuristic","confidence":"LOW","fileCount":1,"sourceFile":"src/api/webhooks_internal.py"},{"unitId":"unresolved-batch-callback","unitKey":"unresolved-batch-callback","kind":"unresolved","unitNameGuess":"バッチ処理コールバック受信(要確認)","identifier":"? /api/callbacks/batch/...","detectionMethod":"heuristic","confidence":"LOW","fileCount":1,"sourceFile":"src/api/callbacks.py"},{"unitId":"unresolved-partner-sync-endpoint","unitKey":"unresolved-partner-sync-endpoint","kind":"unresolved","unitNameGuess":"パートナー連携同期処理(要確認)","identifier":"PATCH /api/partners/???","detectionMethod":"heuristic","confidence":"LOW","fileCount":1,"sourceFile":"src/api/partners.py"},{"unitId":"unresolved-deprecated-token-exchange","unitKey":"unresolved-deprecated-token-exchange","kind":"unresolved","unitNameGuess":"旧トークン交換処理(要確認)","identifier":"POST /api/oauth/exchange(旧仕様)","detectionMethod":"heuristic","confidence":"LOW","fileCount":1,"sourceFile":"src/api/oauth_legacy.py"}]}
+{"generatedAt":"2026-07-30T00:00:00Z","sourceDir":"source/api","unitKind":"api","strategy":{"extractionMethod":"static-analysis","approvedByUser":true,"unitIdRegex":null},"detectionSummary":{"unitCount":141,"unresolvedCount":5},"units":[{"unitId":"api-auth-login","unitKey":"auth-login","kind":"endpoint","unitNameGuess":"ログイン","identifier":"POST /api/auth/login","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-logout","unitKey":"auth-logout","kind":"endpoint","unitNameGuess":"ログアウト","identifier":"DELETE /api/auth/session","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-refresh","unitKey":"auth-refresh","kind":"endpoint","unitNameGuess":"トークン更新","identifier":"POST /api/auth/refresh","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-register","unitKey":"auth-register","kind":"endpoint","unitNameGuess":"新規登録","identifier":"POST /api/auth/register","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-forgot-password","unitKey":"auth-forgot-password","kind":"endpoint","unitNameGuess":"パスワード再設定依頼","identifier":"POST /api/auth/forgot-password","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-reset-password","unitKey":"auth-reset-password","kind":"endpoint","unitNameGuess":"パスワード再設定実行","identifier":"POST /api/auth/reset-password","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-verify-email","unitKey":"auth-verify-email","kind":"endpoint","unitNameGuess":"メール確認","identifier":"POST /api/auth/verify-email","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-me","unitKey":"auth-me","kind":"endpoint","unitNameGuess":"自分自身の情報取得","identifier":"GET /api/auth/me","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-sessions","unitKey":"auth-sessions","kind":"endpoint","unitNameGuess":"有効セッション一覧取得","identifier":"GET /api/auth/sessions","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-sessions-revoke","unitKey":"auth-sessions-revoke","kind":"endpoint","unitNameGuess":"セッション個別失効","identifier":"DELETE /api/auth/sessions/:sessionId","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-sessions-revoke-all","unitKey":"auth-sessions-revoke-all","kind":"endpoint","unitNameGuess":"全セッション失効","identifier":"DELETE /api/auth/sessions","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-change-password","unitKey":"auth-change-password","kind":"endpoint","unitNameGuess":"パスワード変更","identifier":"PUT /api/auth/password","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-mfa-enable","unitKey":"auth-mfa-enable","kind":"endpoint","unitNameGuess":"多要素認証有効化","identifier":"POST /api/auth/mfa","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-mfa-verify","unitKey":"auth-mfa-verify","kind":"endpoint","unitNameGuess":"多要素認証コード検証","identifier":"POST /api/auth/mfa/verify","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/api/auth.py"},{"unitId":"api-auth-mfa-disable","unitKey":"auth-mfa-disable","kind":"endpoint","unitNameGuess":"多要素認証無効化","identifier":"DELETE /api/auth/mfa","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/auth.py"},{"unitId":"api-users-list","unitKey":"users-list","kind":"endpoint","unitNameGuess":"ユーザー一覧取得","identifier":"GET /api/users","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/users.py"},{"unitId":"api-users-create","unitKey":"users-create","kind":"endpoint","unitNameGuess":"ユーザー新規作成","identifier":"POST /api/users","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/users.py"},{"unitId":"api-users-get","unitKey":"users-get","kind":"endpoint","unitNameGuess":"ユーザー詳細取得","identifier":"GET /api/users/:userId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/users.py"},{"unitId":"api-users-update","unitKey":"users-update","kind":"endpoint","unitNameGuess":"ユーザー更新","identifier":"PUT /api/users/:userId","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/users.py"},{"unitId":"api-users-delete","unitKey":"users-delete","kind":"endpoint","unitNameGuess":"ユーザー削除","identifier":"DELETE /api/users/:userId","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/users.py"},{"unitId":"api-users-search","unitKey":"users-search","kind":"endpoint","unitNameGuess":"ユーザー検索（/api/users/search）","identifier":"GET /api/users/search","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/api/users.py"},{"unitId":"api-users-bulk-import","unitKey":"users-bulk-import","kind":"endpoint","unitNameGuess":"ユーザー一括登録","identifier":"POST /api/users/bulk-import","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/users.py"},{"unitId":"api-users-export","unitKey":"users-export","kind":"endpoint","unitNameGuess":"ユーザーエクスポート","identifier":"GET /api/users/export","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/users.py"},{"unitId":"api-users-roles","unitKey":"users-roles","kind":"endpoint","unitNameGuess":"ユーザーロール取得","identifier":"GET /api/users/:userId/roles","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/users.py"},{"unitId":"api-users-permissions","unitKey":"users-permissions","kind":"endpoint","unitNameGuess":"ユーザー権限更新","identifier":"PUT /api/users/:userId/permissions","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/users.py"},{"unitId":"api-users-avatar-upload","unitKey":"users-avatar-upload","kind":"endpoint","unitNameGuess":"アバターアップロード","identifier":"POST /api/users/:userId/avatar","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/users.py"},{"unitId":"api-users-get-by-email","unitKey":"users-get-by-email","kind":"endpoint","unitNameGuess":"メールアドレスでユーザー検索","identifier":"GET /api/users/lookup","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/users.py"},{"unitId":"api-users-activity-log","unitKey":"users-activity-log","kind":"endpoint","unitNameGuess":"ユーザー操作履歴取得","identifier":"GET /api/users/:userId/activity","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/users.py"},{"unitId":"api-users-impersonate","unitKey":"users-impersonate","kind":"endpoint","unitNameGuess":"ユーザーなりすまし開始","identifier":"POST /api/users/:userId/impersonate","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/users.py"},{"unitId":"api-users-deactivate","unitKey":"users-deactivate","kind":"endpoint","unitNameGuess":"ユーザー無効化","identifier":"POST /api/users/:userId/deactivate","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/users.py"},{"unitId":"api-users-reactivate","unitKey":"users-reactivate","kind":"endpoint","unitNameGuess":"ユーザー再有効化","identifier":"POST /api/users/:userId/reactivate","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/users.py"},{"unitId":"api-organizations-list","unitKey":"organizations-list","kind":"endpoint","unitNameGuess":"組織一覧取得","identifier":"GET /api/organizations","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-create","unitKey":"organizations-create","kind":"endpoint","unitNameGuess":"組織新規作成","identifier":"POST /api/organizations","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-get","unitKey":"organizations-get","kind":"endpoint","unitNameGuess":"組織詳細取得","identifier":"GET /api/organizations/:orgId","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-update","unitKey":"organizations-update","kind":"endpoint","unitNameGuess":"組織更新","identifier":"PUT /api/organizations/:orgId","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-delete","unitKey":"organizations-delete","kind":"endpoint","unitNameGuess":"組織削除","identifier":"DELETE /api/organizations/:orgId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-members","unitKey":"organizations-members","kind":"endpoint","unitNameGuess":"組織メンバー一覧取得","identifier":"GET /api/organizations/:orgId/members","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-invite","unitKey":"organizations-invite","kind":"endpoint","unitNameGuess":"組織招待送信","identifier":"POST /api/organizations/:orgId/invites","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-settings","unitKey":"organizations-settings","kind":"endpoint","unitNameGuess":"組織設定取得","identifier":"GET /api/organizations/:orgId/settings","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-billing","unitKey":"organizations-billing","kind":"endpoint","unitNameGuess":"組織請求情報取得","identifier":"GET /api/organizations/:orgId/billing","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-usage","unitKey":"organizations-usage","kind":"endpoint","unitNameGuess":"組織利用状況取得","identifier":"GET /api/organizations/:orgId/usage","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-audit-log","unitKey":"organizations-audit-log","kind":"endpoint","unitNameGuess":"組織監査ログ取得","identifier":"GET /api/organizations/:orgId/audit-log","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/api/organizations.py"},{"unitId":"api-organizations-domains","unitKey":"organizations-domains","kind":"endpoint","unitNameGuess":"組織ドメイン一覧取得","identifier":"GET /api/organizations/:orgId/domains","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/organizations.py"},{"unitId":"api-projects-list","unitKey":"projects-list","kind":"endpoint","unitNameGuess":"プロジェクト一覧取得","identifier":"GET /api/projects","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-create","unitKey":"projects-create","kind":"endpoint","unitNameGuess":"プロジェクト新規作成","identifier":"POST /api/projects","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-get","unitKey":"projects-get","kind":"endpoint","unitNameGuess":"プロジェクト詳細取得","identifier":"GET /api/projects/:projectId","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-update","unitKey":"projects-update","kind":"endpoint","unitNameGuess":"プロジェクト更新","identifier":"PUT /api/projects/:projectId","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-delete","unitKey":"projects-delete","kind":"endpoint","unitNameGuess":"プロジェクト削除","identifier":"DELETE /api/projects/:projectId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-archive","unitKey":"projects-archive","kind":"endpoint","unitNameGuess":"プロジェクトアーカイブ","identifier":"POST /api/projects/:projectId/archive","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-members","unitKey":"projects-members","kind":"endpoint","unitNameGuess":"プロジェクトメンバー一覧取得","identifier":"GET /api/projects/:projectId/members","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-tasks","unitKey":"projects-tasks","kind":"endpoint","unitNameGuess":"プロジェクト内タスク一覧取得","identifier":"GET /api/projects/:projectId/tasks","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-milestones","unitKey":"projects-milestones","kind":"endpoint","unitNameGuess":"マイルストーン一覧取得","identifier":"GET /api/projects/:projectId/milestones","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-duplicate","unitKey":"projects-duplicate","kind":"endpoint","unitNameGuess":"プロジェクト複製","identifier":"POST /api/projects/:projectId/duplicate","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-export","unitKey":"projects-export","kind":"endpoint","unitNameGuess":"プロジェクトエクスポート","identifier":"GET /api/projects/:projectId/export","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-import","unitKey":"projects-import","kind":"endpoint","unitNameGuess":"プロジェクトインポート","identifier":"POST /api/projects/import","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-labels","unitKey":"projects-labels","kind":"endpoint","unitNameGuess":"プロジェクトラベル一覧取得","identifier":"GET /api/projects/:projectId/labels","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/api/projects.py"},{"unitId":"api-projects-templates","unitKey":"projects-templates","kind":"endpoint","unitNameGuess":"プロジェクトテンプレート一覧取得","identifier":"GET /api/projects/templates","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/projects.py"},{"unitId":"api-tasks-list","unitKey":"tasks-list","kind":"endpoint","unitNameGuess":"タスク一覧取得","identifier":"GET /api/tasks","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-create","unitKey":"tasks-create","kind":"endpoint","unitNameGuess":"タスク新規作成","identifier":"POST /api/tasks","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-get","unitKey":"tasks-get","kind":"endpoint","unitNameGuess":"タスク詳細取得","identifier":"GET /api/tasks/:taskId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-update","unitKey":"tasks-update","kind":"endpoint","unitNameGuess":"タスク更新","identifier":"PUT /api/tasks/:taskId","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-delete","unitKey":"tasks-delete","kind":"endpoint","unitNameGuess":"タスク削除","identifier":"DELETE /api/tasks/:taskId","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-assign","unitKey":"tasks-assign","kind":"endpoint","unitNameGuess":"タスク担当者変更","identifier":"PUT /api/tasks/:taskId/assignee","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-status","unitKey":"tasks-status","kind":"endpoint","unitNameGuess":"タスクステータス変更","identifier":"PATCH /api/tasks/:taskId/status","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-comments","unitKey":"tasks-comments","kind":"endpoint","unitNameGuess":"タスクコメント一覧取得","identifier":"GET /api/tasks/:taskId/comments","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-attachments","unitKey":"tasks-attachments","kind":"endpoint","unitNameGuess":"タスク添付ファイル追加","identifier":"POST /api/tasks/:taskId/attachments","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-history","unitKey":"tasks-history","kind":"endpoint","unitNameGuess":"タスク変更履歴取得","identifier":"GET /api/tasks/:taskId/history","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-reorder","unitKey":"tasks-reorder","kind":"endpoint","unitNameGuess":"タスク並び替え","identifier":"PUT /api/tasks/reorder","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-bulk-update","unitKey":"tasks-bulk-update","kind":"endpoint","unitNameGuess":"タスク一括更新","identifier":"PATCH /api/tasks/bulk-update","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-watchers","unitKey":"tasks-watchers","kind":"endpoint","unitNameGuess":"タスクウォッチャー一覧取得","identifier":"GET /api/tasks/:taskId/watchers","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-dependencies","unitKey":"tasks-dependencies","kind":"endpoint","unitNameGuess":"タスク依存関係取得","identifier":"GET /api/tasks/:taskId/dependencies","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/tasks.py"},{"unitId":"api-tasks-time-tracking","unitKey":"tasks-time-tracking","kind":"endpoint","unitNameGuess":"タスク作業時間記録","identifier":"POST /api/tasks/:taskId/time-entries","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/tasks.py"},{"unitId":"api-comments-create","unitKey":"comments-create","kind":"endpoint","unitNameGuess":"コメント投稿","identifier":"POST /api/posts/:postId/comments","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/comments.py"},{"unitId":"api-comments-update","unitKey":"comments-update","kind":"endpoint","unitNameGuess":"コメント編集","identifier":"PUT /api/comments/:commentId","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/comments.py"},{"unitId":"api-comments-delete","unitKey":"comments-delete","kind":"endpoint","unitNameGuess":"コメント削除","identifier":"DELETE /api/comments/:commentId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/comments.py"},{"unitId":"api-comments-list","unitKey":"comments-list","kind":"endpoint","unitNameGuess":"コメント一覧取得","identifier":"GET /api/posts/:postId/comments","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/comments.py"},{"unitId":"api-comments-reactions","unitKey":"comments-reactions","kind":"endpoint","unitNameGuess":"コメントリアクション追加","identifier":"POST /api/comments/:commentId/reactions","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/api/comments.py"},{"unitId":"api-comments-pin","unitKey":"comments-pin","kind":"endpoint","unitNameGuess":"コメント固定","identifier":"PUT /api/comments/:commentId/pin","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/comments.py"},{"unitId":"api-comments-unpin","unitKey":"comments-unpin","kind":"endpoint","unitNameGuess":"コメント固定解除","identifier":"DELETE /api/comments/:commentId/pin","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/comments.py"},{"unitId":"api-files-upload","unitKey":"files-upload","kind":"endpoint","unitNameGuess":"ファイルアップロード","identifier":"POST /api/files","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/files.py"},{"unitId":"api-files-download","unitKey":"files-download","kind":"endpoint","unitNameGuess":"ファイルダウンロード","identifier":"GET /api/files/:fileId/download","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/files.py"},{"unitId":"api-files-list","unitKey":"files-list","kind":"endpoint","unitNameGuess":"ファイル一覧取得","identifier":"GET /api/files","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/files.py"},{"unitId":"api-files-delete","unitKey":"files-delete","kind":"endpoint","unitNameGuess":"ファイル削除","identifier":"DELETE /api/files/:fileId","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/files.py"},{"unitId":"api-files-metadata","unitKey":"files-metadata","kind":"endpoint","unitNameGuess":"ファイルメタ情報取得","identifier":"GET /api/files/:fileId","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/api/files.py"},{"unitId":"api-files-thumbnails","unitKey":"files-thumbnails","kind":"endpoint","unitNameGuess":"ファイルサムネイル取得","identifier":"GET /api/files/:fileId/thumbnail","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/files.py"},{"unitId":"api-files-share","unitKey":"files-share","kind":"endpoint","unitNameGuess":"ファイル共有リンク発行","identifier":"POST /api/files/:fileId/share","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/files.py"},{"unitId":"api-files-versions","unitKey":"files-versions","kind":"endpoint","unitNameGuess":"ファイルバージョン一覧取得","identifier":"GET /api/files/:fileId/versions","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/files.py"},{"unitId":"api-files-restore-version","unitKey":"files-restore-version","kind":"endpoint","unitNameGuess":"ファイルバージョン復元","identifier":"POST /api/files/:fileId/versions/:versionId/restore","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/files.py"},{"unitId":"api-files-permissions","unitKey":"files-permissions","kind":"endpoint","unitNameGuess":"ファイル権限設定","identifier":"PUT /api/files/:fileId/permissions","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/files.py"},{"unitId":"api-notifications-list","unitKey":"notifications-list","kind":"endpoint","unitNameGuess":"通知一覧取得","identifier":"GET /api/notifications","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/notifications.py"},{"unitId":"api-notifications-read","unitKey":"notifications-read","kind":"endpoint","unitNameGuess":"通知既読化","identifier":"PUT /api/notifications/:notificationId/read","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/notifications.py"},{"unitId":"api-notifications-read-all","unitKey":"notifications-read-all","kind":"endpoint","unitNameGuess":"全通知既読化","identifier":"PUT /api/notifications/read-all","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/notifications.py"},{"unitId":"api-notifications-settings","unitKey":"notifications-settings","kind":"endpoint","unitNameGuess":"通知設定取得","identifier":"GET /api/notifications/settings","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/notifications.py"},{"unitId":"api-notifications-subscribe","unitKey":"notifications-subscribe","kind":"endpoint","unitNameGuess":"通知購読登録","identifier":"POST /api/notifications/subscriptions","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/notifications.py"},{"unitId":"api-notifications-unsubscribe","unitKey":"notifications-unsubscribe","kind":"endpoint","unitNameGuess":"通知購読解除","identifier":"DELETE /api/notifications/subscriptions/:subscriptionId","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/notifications.py"},{"unitId":"api-notifications-preferences","unitKey":"notifications-preferences","kind":"endpoint","unitNameGuess":"通知設定更新","identifier":"PUT /api/notifications/settings","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/notifications.py"},{"unitId":"api-notifications-test","unitKey":"notifications-test","kind":"endpoint","unitNameGuess":"テスト通知送信","identifier":"POST /api/notifications/test","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/notifications.py"},{"unitId":"api-search-global","unitKey":"search-global","kind":"endpoint","unitNameGuess":"全体横断検索","identifier":"GET /api/search","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/api/search.py"},{"unitId":"api-search-users","unitKey":"search-users","kind":"endpoint","unitNameGuess":"ユーザー検索（/api/search/users）","identifier":"GET /api/search/users","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/search.py"},{"unitId":"api-search-projects","unitKey":"search-projects","kind":"endpoint","unitNameGuess":"プロジェクト検索","identifier":"GET /api/search/projects","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/search.py"},{"unitId":"api-search-tasks","unitKey":"search-tasks","kind":"endpoint","unitNameGuess":"タスク検索","identifier":"GET /api/search/tasks","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/search.py"},{"unitId":"api-search-files","unitKey":"search-files","kind":"endpoint","unitNameGuess":"ファイル検索","identifier":"GET /api/search/files","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/search.py"},{"unitId":"api-search-suggestions","unitKey":"search-suggestions","kind":"endpoint","unitNameGuess":"検索候補取得","identifier":"GET /api/search/suggestions","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/search.py"},{"unitId":"api-search-recent","unitKey":"search-recent","kind":"endpoint","unitNameGuess":"最近の検索履歴取得","identifier":"GET /api/search/recent","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/search.py"},{"unitId":"api-search-saved","unitKey":"search-saved","kind":"endpoint","unitNameGuess":"保存済み検索条件取得","identifier":"GET /api/search/saved","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/api/search.py"},{"unitId":"api-dashboard-overview","unitKey":"dashboard-overview","kind":"endpoint","unitNameGuess":"ダッシュボード概要取得","identifier":"GET /api/dashboard/overview","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/dashboard.py"},{"unitId":"api-dashboard-stats","unitKey":"dashboard-stats","kind":"endpoint","unitNameGuess":"ダッシュボード統計取得","identifier":"GET /api/dashboard/stats","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/dashboard.py"},{"unitId":"api-dashboard-recent-activity","unitKey":"dashboard-recent-activity","kind":"endpoint","unitNameGuess":"最近のアクティビティ取得","identifier":"GET /api/dashboard/recent-activity","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/dashboard.py"},{"unitId":"api-dashboard-charts","unitKey":"dashboard-charts","kind":"endpoint","unitNameGuess":"ダッシュボードチャートデータ取得","identifier":"GET /api/dashboard/charts","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/dashboard.py"},{"unitId":"api-dashboard-widgets","unitKey":"dashboard-widgets","kind":"endpoint","unitNameGuess":"ダッシュボードウィジェット構成取得","identifier":"GET /api/dashboard/widgets","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/dashboard.py"},{"unitId":"api-dashboard-export","unitKey":"dashboard-export","kind":"endpoint","unitNameGuess":"ダッシュボードエクスポート","identifier":"GET /api/dashboard/export","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/dashboard.py"},{"unitId":"api-reports-generate","unitKey":"reports-generate","kind":"endpoint","unitNameGuess":"帳票生成依頼","identifier":"POST /api/reports","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/reports.py"},{"unitId":"api-reports-list","unitKey":"reports-list","kind":"endpoint","unitNameGuess":"帳票一覧取得","identifier":"GET /api/reports","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/reports.py"},{"unitId":"api-reports-download","unitKey":"reports-download","kind":"endpoint","unitNameGuess":"帳票ダウンロード","identifier":"GET /api/reports/:reportId/download","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/reports.py"},{"unitId":"api-reports-schedule","unitKey":"reports-schedule","kind":"endpoint","unitNameGuess":"帳票定期実行設定","identifier":"POST /api/reports/schedules","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/reports.py"},{"unitId":"api-reports-templates","unitKey":"reports-templates","kind":"endpoint","unitNameGuess":"帳票テンプレート一覧取得","identifier":"GET /api/reports/templates","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/reports.py"},{"unitId":"api-reports-delete","unitKey":"reports-delete","kind":"endpoint","unitNameGuess":"帳票削除","identifier":"DELETE /api/reports/:reportId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/reports.py"},{"unitId":"api-reports-share","unitKey":"reports-share","kind":"endpoint","unitNameGuess":"帳票共有","identifier":"POST /api/reports/:reportId/share","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/reports.py"},{"unitId":"api-settings-get","unitKey":"settings-get","kind":"endpoint","unitNameGuess":"設定取得","identifier":"GET /api/settings","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":4,"sourceFile":"src/api/settings.py"},{"unitId":"api-settings-update","unitKey":"settings-update","kind":"endpoint","unitNameGuess":"設定更新","identifier":"PUT /api/settings","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/settings.py"},{"unitId":"api-settings-integrations","unitKey":"settings-integrations","kind":"endpoint","unitNameGuess":"外部連携設定取得","identifier":"GET /api/settings/integrations","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/settings.py"},{"unitId":"api-settings-webhooks","unitKey":"settings-webhooks","kind":"endpoint","unitNameGuess":"Webhook設定取得","identifier":"GET /api/settings/webhooks","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/settings.py"},{"unitId":"api-settings-api-keys","unitKey":"settings-api-keys","kind":"endpoint","unitNameGuess":"APIキー一覧取得","identifier":"GET /api/settings/api-keys","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/settings.py"},{"unitId":"api-settings-notifications","unitKey":"settings-notifications","kind":"endpoint","unitNameGuess":"通知系設定更新","identifier":"PUT /api/settings/notification-preferences","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/settings.py"},{"unitId":"api-settings-security","unitKey":"settings-security","kind":"endpoint","unitNameGuess":"セキュリティ設定取得","identifier":"GET /api/settings/security","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/settings.py"},{"unitId":"api-settings-sessions","unitKey":"settings-sessions","kind":"endpoint","unitNameGuess":"設定画面向けセッション一覧取得","identifier":"GET /api/settings/sessions","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":2,"sourceFile":"src/api/settings.py"},{"unitId":"api-audit-logs","unitKey":"audit-logs","kind":"endpoint","unitNameGuess":"監査ログ一覧取得","identifier":"GET /api/audit/logs","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/audit.py"},{"unitId":"api-audit-export","unitKey":"audit-export","kind":"endpoint","unitNameGuess":"監査ログエクスポート","identifier":"GET /api/audit/logs/export","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/audit.py"},{"unitId":"api-audit-user-activity","unitKey":"audit-user-activity","kind":"endpoint","unitNameGuess":"ユーザー別監査ログ取得","identifier":"GET /api/audit/users/:userId","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/audit.py"},{"unitId":"api-audit-alerts","unitKey":"audit-alerts","kind":"endpoint","unitNameGuess":"監査アラート一覧取得","identifier":"GET /api/audit/alerts","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/audit.py"},{"unitId":"api-audit-retention-policy","unitKey":"audit-retention-policy","kind":"endpoint","unitNameGuess":"監査ログ保持期間設定取得","identifier":"GET /api/audit/retention-policy","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/audit.py"},{"unitId":"api-system-health","unitKey":"system-health","kind":"endpoint","unitNameGuess":"ヘルスチェック","identifier":"GET /api/health","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/system.py"},{"unitId":"api-system-version","unitKey":"system-version","kind":"endpoint","unitNameGuess":"バージョン情報取得","identifier":"GET /api/version","detectionMethod":"decorator","confidence":"MEDIUM","fileCount":3,"sourceFile":"src/api/system.py"},{"unitId":"api-system-metrics","unitKey":"system-metrics","kind":"endpoint","unitNameGuess":"システムメトリクス取得","identifier":"GET /api/metrics","detectionMethod":"decorator","confidence":"HIGH","fileCount":4,"sourceFile":"src/api/system.py"},{"unitId":"api-system-status","unitKey":"system-status","kind":"endpoint","unitNameGuess":"システムステータス取得","identifier":"GET /api/status","detectionMethod":"decorator","confidence":"HIGH","fileCount":2,"sourceFile":"src/api/system.py"},{"unitId":"api-system-ping","unitKey":"system-ping","kind":"endpoint","unitNameGuess":"疎通確認","identifier":"GET /api/ping","detectionMethod":"decorator","confidence":"HIGH","fileCount":3,"sourceFile":"src/api/system.py"},{"unitId":"unresolved-legacy-export","unitKey":"unresolved-legacy-export","kind":"unresolved","unitNameGuess":"旧バージョンエクスポート処理(要確認)","identifier":"? /api/v1/export/...","detectionMethod":"heuristic","confidence":"LOW","fileCount":1,"sourceFile":"src/api/legacy.py"},{"unitId":"unresolved-internal-webhook-relay","unitKey":"unresolved-internal-webhook-relay","kind":"unresolved","unitNameGuess":"内部Webhook中継処理(要確認)","identifier":"POST /api/internal/???","detectionMethod":"heuristic","confidence":"LOW","fileCount":1,"sourceFile":"src/api/webhooks_internal.py"},{"unitId":"unresolved-batch-callback","unitKey":"unresolved-batch-callback","kind":"unresolved","unitNameGuess":"バッチ処理コールバック受信(要確認)","identifier":"? /api/callbacks/batch/...","detectionMethod":"heuristic","confidence":"LOW","fileCount":1,"sourceFile":"src/api/callbacks.py"},{"unitId":"unresolved-partner-sync-endpoint","unitKey":"unresolved-partner-sync-endpoint","kind":"unresolved","unitNameGuess":"パートナー連携同期処理(要確認)","identifier":"PATCH /api/partners/???","detectionMethod":"heuristic","confidence":"LOW","fileCount":1,"sourceFile":"src/api/partners.py"},{"unitId":"unresolved-deprecated-token-exchange","unitKey":"unresolved-deprecated-token-exchange","kind":"unresolved","unitNameGuess":"旧トークン交換処理(要確認)","identifier":"POST /api/oauth/exchange(旧仕様)","detectionMethod":"heuristic","confidence":"LOW","fileCount":1,"sourceFile":"src/api/oauth_legacy.py"}]}
       </script>
       <script type="application/json" id="column-spec">
 {"specVersion":1,"axes":[],"columns":[{"key":"method","label":"メソッド","appliesTo":["api"],"order":10},{"key":"authRequired","label":"認証","appliesTo":["api"],"order":20},{"key":"callers","label":"呼び出し元画面","appliesTo":["api"],"order":30},{"key":"ioSummary","label":"I/O概要","appliesTo":["api"],"order":40},{"key":"businessClass","label":"業務区分","appliesTo":["table","api","batch","external","report"],"order":100}]}
@@ -1948,13 +1809,21 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
     var tbody = table.querySelector('tbody');
     var allRows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
 
-    /* 1-36: 個別ページへの実在パスを持つ行にだけ、行内のリンク要素で遷移を追加する。
-       行クリックはこれまで通りページ内展開のみを担う(a要素へのクリックは展開処理の対象外。
-       後段の行クリック展開ハンドラが ev.target.closest('.copy-btn,a,button') で除外する)。
-       個別ページの生成経路は種別ごとに異なり、このテンプレートは経路の新設を行わない。
-       マニフェスト側が既に安全な相対URLとして持つ designDocPath の有無だけで実在を判定する
-       (screen-list-template.html の関連資料リンクと同じ isSafeRelativeUrl 判定基準)。 */
+    /* 1-65: 読者向け成果物を行末尾の専用「関連資料」列に表示する。行クリックはこれまで通り
+       ページ内展開のみを担い、a要素へのクリックは後段の行クリック展開ハンドラが
+       ev.target.closest('.copy-btn,a,button') で除外する。 */
     (function () {
+      var DOC_DEFS = [
+        {label: '基本設計書', pathField: 'designDocPath', kind: 'basic'},
+        {label: '詳細設計書', pathField: 'detailDocPath', kind: 'detail'},
+        {label: 'シーケンス図', pathField: 'sequencePath', kind: 'sequence'},
+        {label: 'テストケース', pathField: 'testCasePath', kind: 'test'},
+        {label: '単体テスト観点表', pathField: 'unitTestViewpointPath', kind: 'unit-viewpoint'},
+        {label: '結合テスト観点表', pathField: 'integrationTestViewpointPath', kind: 'integration-viewpoint'},
+        {label: '結合テスト仕様書', pathField: 'integrationTestCasePath', kind: 'integration-case'},
+        {label: '操作シナリオ仕様書', pathField: 'scenarioPath', kind: 'scenario'}
+      ];
+
       function isSafeRelativeUrl(v) {
         return typeof v === 'string' &&
           v.length > 0 &&
@@ -1964,8 +1833,21 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
           !/^[\/\\]/.test(v) &&
           v.indexOf('\\') === -1;
       }
+
+      var units = (manifest && manifest.units) || [];
+      if (!units.some(function (unit) {
+        return DOC_DEFS.some(function (doc) { return unit && unit[doc.pathField]; });
+      })) return;
+
+      var headRow = table.querySelector('thead tr');
+      if (!headRow) return;
+      var th = document.createElement('th');
+      th.textContent = '関連資料';
+      th.style.width = '170px';
+      headRow.appendChild(th);
+
       var viewById = {}, viewByKey = {};
-      (manifest.units || []).forEach(function (u) {
+      units.forEach(function (u) {
         if (u.unitId !== undefined && u.unitId !== null) viewById[String(u.unitId)] = u;
         if (u.unitKey !== undefined && u.unitKey !== null) viewByKey[String(u.unitKey)] = u;
       });
@@ -1973,16 +1855,24 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
         var idAttr = tr.getAttribute('data-unit-id') || '';
         var keyAttr = tr.getAttribute('data-unit-key') || '';
         var unit = (idAttr && viewById[idAttr]) || (keyAttr && viewByKey[keyAttr]) || null;
-        var path = unit ? unit.designDocPath : null;
-        if (!isSafeRelativeUrl(path)) return;
-        var firstTd = tr.querySelector('td');
-        if (!firstTd) return;
-        var link = document.createElement('a');
-        link.href = path;
-        link.className = 'unit-view-link';
-        link.title = '個別ページを開く';
-        link.textContent = '個別ページ';
-        firstTd.appendChild(link);
+        var td = document.createElement('td');
+        td.className = 'unit-doc-links-cell';
+        var links = document.createElement('div');
+        links.className = 'unit-doc-links';
+        if (unit) {
+          DOC_DEFS.forEach(function (doc) {
+            var path = unit[doc.pathField];
+            if (!isSafeRelativeUrl(path)) return;
+            var link = document.createElement('a');
+            link.href = path;
+            link.className = 'unit-doc-link';
+            link.setAttribute('data-kind', doc.kind);
+            link.textContent = doc.label;
+            links.appendChild(link);
+          });
+        }
+        td.appendChild(links);
+        tr.appendChild(td);
       });
     })();
 

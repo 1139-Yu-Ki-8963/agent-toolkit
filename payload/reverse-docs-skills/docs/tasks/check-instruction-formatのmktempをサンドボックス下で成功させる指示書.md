@@ -69,10 +69,10 @@
 
 | 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |
 |---|---|---|---|---|
-| 1. check-instruction-format.shの終了コードが2でない | `bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh; [ $? -ne 2 ]` | 未着手 | — | — |
-| 2. check-instruction-format.sh --self-testの終了コードが2でない | `bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh --self-test; [ $? -ne 2 ]` | 未着手 | — | — |
-| 3. 出力にUNKNOWNが含まれない | `! (bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh 2>&1; bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh --self-test 2>&1) \| grep -q '\[UNKNOWN\]'` | 未着手 | — | — |
-| 4. judge-task-done.shのdone/判定不能が解消 | `! bash docs/scripts/judge-task-done.sh --only "docs/tasks/done/指摘の追跡を機械で読める形にする指示書.md" 2>&1 \| grep -q '判定不能'` | 未着手 | — | — |
+| 1. check-instruction-format.shの終了コードが2でない | `bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh; [ $? -ne 2 ]` | 完了 | — | — |
+| 2. check-instruction-format.sh --self-testの終了コードが2でない | `bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh --self-test; [ $? -ne 2 ]` | 完了 | — | — |
+| 3. 出力にUNKNOWNが含まれない | `! (bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh 2>&1; bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh --self-test 2>&1) \| grep -q '\[UNKNOWN\]'` | 完了 | — | — |
+| 4. judge-task-done.shのdone/判定不能が解消 | `! bash docs/scripts/judge-task-done.sh --only "docs/tasks/done/指摘の追跡を機械で読める形にする指示書.md" 2>&1 \| grep -q '判定不能'` | 完了 | — | — |
 
 ### 判断の記録
 

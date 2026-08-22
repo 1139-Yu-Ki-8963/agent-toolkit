@@ -2,7 +2,8 @@
 # 種別別一覧スキル群(generating-<種別>-list-for-reverse-docs)共通エンジン: 種別対応HTML一覧生成ディスパッチャ。
 # unit_kind=screen なら build-screen-list.sh、unit_kind=feature なら build-feature-list.sh に委譲、他種別は汎用テンプレートから生成する。
 #
-# Usage: build-unit-list.sh <manifest.json> <output-html-path> [--unit-kind <kind>]
+# Usage: build-unit-list.sh <manifest.json> <output-html-path> [--unit-kind <kind>] [--repo-root <パス>]
+#   --repo-root <パス>: 元データの sourceDir を解決する基準にするディレクトリ。省略すると元データの所在から上へ辿って探す
 #
 # unit_kind=screen の場合:
 #   同ディレクトリの build-screen-list.sh に <manifest.json> <output-html-path> をそのまま渡して
@@ -702,6 +703,47 @@ EOF
     rc=1
   fi
 
+  # --- --repo-root: 指定した基準ディレクトリで相対sourceDirを解決できること ---
+  # sourceDirはmock-repo-root配下からの相対値のまま保持し、manifest自身は$tmp直下(mock-repo-rootの外)に置く。
+  # .git祖先もgeneration-engine/DESIGN.mdもmock-repo-root配下には無いため、--repo-root省略時の
+  # 既定解決(マニフェスト所在ディレクトリへのフォールバック)では実在確認が失敗するはずである。
+  mkdir -p "$tmp/mock-repo-root/src/routes"
+  cat > "$tmp/mock-repo-root/src/routes/orders.ts" <<'EOF'
+export function ordersRoute() {}
+EOF
+  local repo_root_manifest="$tmp/manifest-repo-root.json"
+  jq -n '{
+    generatedAt: "2026-01-01T00:00:00Z",
+    sourceDir: "src/routes",
+    unitKind: "api",
+    strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 1, unresolvedCount: 0},
+    units: [
+      {
+        unitKey: "orders-list",
+        kind: "endpoint",
+        identifier: "GET /api/orders",
+        unitNameGuess: "注文一覧",
+        sourceFile: "orders.ts",
+        confidence: "high",
+        fileCount: 1,
+        detectionMethod: "manual"
+      }
+    ]
+  }' > "$repo_root_manifest"
+  local repo_root_out="$tmp/out-repo-root.html" repo_root_default_out="$tmp/out-repo-root-default.html"
+  if bash "$script_path" "$repo_root_manifest" "$repo_root_out" --unit-kind api --repo-root "$tmp/mock-repo-root" >/dev/null 2>&1; then
+    if bash "$script_path" "$repo_root_manifest" "$repo_root_default_out" --unit-kind api >/dev/null 2>&1; then
+      echo "  [FAIL] --repo-root指定: 省略時も成功してしまい、--repo-rootが解決基準を変えていることを確認できない" >&2
+      rc=1
+    else
+      echo "  [PASS] --repo-root指定: 指定時は成功、省略時は既定の解決基準(マニフェスト所在ディレクトリ)で失敗する"
+    fi
+  else
+    echo "  [FAIL] --repo-root指定: 指定した基準ディレクトリでの相対sourceDir解決に失敗した" >&2
+    rc=1
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -715,8 +757,8 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-MANIFEST="${1:?Usage: build-unit-list.sh <manifest.json> <output-html-path> [--unit-kind <kind>] [--portal-dir <path>] [--project-name <name>] [--axes <file>] [--split-by <axisKey>] [--catalog <file>] [--sites <file>] [--site-key <key>]}"
-OUTPUT_HTML="${2:?Usage: build-unit-list.sh <manifest.json> <output-html-path> [--unit-kind <kind>] [--portal-dir <path>] [--project-name <name>] [--axes <file>] [--split-by <axisKey>] [--catalog <file>] [--sites <file>] [--site-key <key>]}"
+MANIFEST="${1:?Usage: build-unit-list.sh <manifest.json> <output-html-path> [--unit-kind <kind>] [--portal-dir <path>] [--project-name <name>] [--axes <file>] [--split-by <axisKey>] [--catalog <file>] [--sites <file>] [--site-key <key>] [--repo-root <パス>]}"
+OUTPUT_HTML="${2:?Usage: build-unit-list.sh <manifest.json> <output-html-path> [--unit-kind <kind>] [--portal-dir <path>] [--project-name <name>] [--axes <file>] [--split-by <axisKey>] [--catalog <file>] [--sites <file>] [--site-key <key>] [--repo-root <パス>]}"
 shift 2 || true
 
 UNIT_KIND_ARG=""
@@ -727,6 +769,7 @@ SPLIT_BY=""
 CATALOG_FILE=""
 SITES_FILE=""
 SITE_KEY=""
+REPO_ROOT_ARG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --unit-kind)
@@ -763,6 +806,11 @@ while [ $# -gt 0 ]; do
     --site-key)
       # このポータルが属するサイトのキー
       SITE_KEY="${2:-}"
+      shift 2
+      ;;
+    --repo-root)
+      # 元データの sourceDir を解決する基準にするディレクトリ。省略すると元データの所在から上へ辿って探す
+      REPO_ROOT_ARG="${2:-}"
       shift 2
       ;;
     *)
@@ -872,6 +920,9 @@ case "$UNIT_KIND" in
     ;;
   *)
     VALIDATE_CMD=("$SCRIPT_DIR/validate-manifest.sh" "$MANIFEST" --unit-kind "$UNIT_KIND" --axes "$AXES_PASS_FILE")
+    if [ -n "$REPO_ROOT_ARG" ]; then
+      VALIDATE_CMD+=(--repo-root "$REPO_ROOT_ARG")
+    fi
     ;;
 esac
 

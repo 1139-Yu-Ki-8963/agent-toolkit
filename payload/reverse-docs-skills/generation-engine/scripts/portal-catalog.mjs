@@ -84,18 +84,45 @@ function validateDiscoveryMergePolicy(value) {
   }
 }
 
-function resolveDefaultRootPrefix(value, defaultRoots, outputLayout) {
+// output-layout.sh の output_layout_get と同じ規則で解決する。
+// output_layout_get は {labelDir} を「kindLabels の逆引きで kind を求め、
+// kindDirNames[kind] を当てる」ことで解決する（unitListHtml 等）。
+// ここでは blueprint.kind を直接持っているため逆引きは不要だが、
+// 参照する値（kindLabels・kindDirNames）とプレースホルダの意味は同一である。
+// 1つ目のブロックは output-layout の物理配置キー（unitsRoot 等）の接頭辞置換、
+// 2つ目のブロックは種別ごとのディレクトリ名（画面一覧→screens 等）の置換であり、
+// 新しい解決規則を追加するのではなく、output-layout.sh が既に持つ2種の置換を
+// portal-catalog.mjs 側でも同じ入力（kindDirNames・kindLabels）から再現する。
+function resolveDefaultRootPrefix(value, defaultRoots, outputLayout, kind) {
   if (!outputLayout) return value;
+  const layout = outputLayout.layout || {};
+  let result = value;
   for (const [key, prefix] of Object.entries(defaultRoots || {})) {
-    if (value === prefix || value.startsWith(`${prefix}/`)) {
-      const override = outputLayout[key];
+    if (result === prefix || result.startsWith(`${prefix}/`)) {
+      const override = layout[key];
       if (typeof override === "string" && override.length > 0) {
-        return override + value.slice(prefix.length);
+        result = override + result.slice(prefix.length);
       }
-      return value;
+      break;
     }
   }
-  return value;
+  if (kind) {
+    const kindLabel = (outputLayout.kindLabels || {})[kind];
+    const kindDirName = (outputLayout.kindDirNames || {})[kind];
+    if (typeof kindLabel === "string" && kindLabel.length > 0
+      && typeof kindDirName === "string" && kindDirName.length > 0) {
+      // 出力パスの旧来のディレクトリ名は「<kindLabel>一覧」の形（画面一覧・API一覧等）で
+      // 各種別一覧スキルの SKILL.md が生成先を指定してきた実績と一致する。この形にちょうど
+      // 一致するパスの segment だけを kindDirNames[kind] へ差し替える（ファイル名の
+      // 「<kindLabel>一覧.html」は segment 全体が一致しないため対象外）。
+      const oldSegment = `${kindLabel}一覧`;
+      result = result
+        .split("/")
+        .map((segment) => (segment === oldSegment ? kindDirName : segment))
+        .join("/");
+    }
+  }
+  return result;
 }
 
 export function validateCatalog(catalog) {
@@ -341,7 +368,7 @@ export function renderCatalog(catalog, outputRoot, portalDir, outputLayout = nul
     const categoryRootOrder = new Map(categoryRoots.map((declaredRoot, index) => [declaredRoot, index]));
     const hasMultipleRoots = categoryRoots.length > 1;
     for (const [blueprintIndex, blueprint] of category.blueprints.entries()) {
-      const effectiveGlob = resolveDefaultRootPrefix(blueprint.discovery.glob, catalog.defaultRoots, outputLayout);
+      const effectiveGlob = resolveDefaultRootPrefix(blueprint.discovery.glob, catalog.defaultRoots, outputLayout, blueprint.kind);
       const matcher = globRegex(effectiveGlob);
       const matches = [];
       const discoveryRoots = discoveryRootsFor(catalog, blueprint.discovery);
@@ -473,7 +500,11 @@ function readOutputLayout(file) {
   if (!json || typeof json !== "object" || typeof json.layout !== "object" || json.layout === null) {
     fail(`output-layout JSON must have a layout object: ${file}`);
   }
-  return json.layout;
+  // resolveDefaultRootPrefix は .layout（物理配置キーの接頭辞）に加えて
+  // .kindDirNames・.kindLabels（種別ごとのディレクトリ名解決）を要るため、
+  // output-layout.sh の resolve_output_layout が返す全体（.layout の外側の
+  // トップレベルキーも含む）をそのまま返す。
+  return json;
 }
 
 function parseArgs(argv) {
@@ -707,6 +738,51 @@ function runSelfTest() {
       assert.deepStrictEqual(
         selfTestTitles(selfTestCatalog(["first", "second"]), root),
         ["First a", "First z", "Second b"],
+      );
+    });
+
+    check("kind directory name is resolved via output-layout kindDirNames (7種別)", () => {
+      // 実物のkindDirNames/kindLabelsを使い、resolveDefaultRootPrefixが
+      // output-layout.shのoutput_layout_get（unitListHtml等の{labelDir}解決）と
+      // 同じ最終パスへ収束することを確かめる。
+      const outputLayout = {
+        layout: { unitsRoot: "project-portal/lists" },
+        kindDirNames: {
+          screen: "screens", api: "apis", table: "tables", batch: "batches",
+          report: "reports", external: "externals", feature: "features", message: "messages",
+        },
+        kindLabels: {
+          screen: "画面", api: "API", table: "テーブル", batch: "バッチ",
+          report: "帳票", external: "外部連携", feature: "機能", message: "メッセージ",
+        },
+      };
+      const defaultRoots = { unitsRoot: "project-portal/一覧" };
+      const cases = [
+        ["screen", "project-portal/一覧/画面一覧/画面一覧.html", "project-portal/lists/screens/画面一覧.html"],
+        ["api", "project-portal/一覧/API一覧/API一覧.html", "project-portal/lists/apis/API一覧.html"],
+        ["table", "project-portal/一覧/テーブル一覧/テーブル一覧.html", "project-portal/lists/tables/テーブル一覧.html"],
+        ["batch", "project-portal/一覧/バッチ一覧/バッチ一覧.html", "project-portal/lists/batches/バッチ一覧.html"],
+        ["report", "project-portal/一覧/帳票一覧/帳票一覧.html", "project-portal/lists/reports/帳票一覧.html"],
+        ["external", "project-portal/一覧/外部連携一覧/外部連携一覧.html", "project-portal/lists/externals/外部連携一覧.html"],
+        ["feature", "project-portal/一覧/機能一覧/機能一覧.html", "project-portal/lists/features/機能一覧.html"],
+      ];
+      for (const [kind, input, expected] of cases) {
+        assert.strictEqual(resolveDefaultRootPrefix(input, defaultRoots, outputLayout, kind), expected);
+      }
+    });
+
+    check("blueprints without a kindDirNames entry keep only the root prefix replaced", () => {
+      const outputLayout = {
+        layout: { unitsRoot: "project-portal/lists" },
+        kindDirNames: { screen: "screens" },
+        kindLabels: { screen: "画面" },
+      };
+      const defaultRoots = { unitsRoot: "project-portal/一覧" };
+      // 用語辞書等はkindDirNamesに対応キーを持たない種別のため、
+      // ルート接頭辞の置換だけが行われ、ディレクトリ名は変わらない。
+      assert.strictEqual(
+        resolveDefaultRootPrefix("project-portal/一覧/用語辞書/用語辞書.html", defaultRoots, outputLayout, "semantic-glossary"),
+        "project-portal/lists/用語辞書/用語辞書.html",
       );
     });
   } finally {

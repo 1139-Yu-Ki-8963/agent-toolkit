@@ -34,8 +34,8 @@
 #     （画面は doc-extraction.json の対象外だが、実際のスキルが生成する構造に合わせる）
 #   プロジェクト共通: commonRoot/<同名ファイル>（フラット）
 #
-# 識別子の決め方: 各種別につき、対応する疑似コード一覧（generation-engine/samples/project-portal/一覧/
-# <種別>一覧/fixtures/）を再帰列挙し、相対パスを辞書順ソートして先頭の1件を代表として選ぶ
+# 識別子の決め方: 各種別につき、対応する疑似コード一覧（generation-engine/samples/source/
+# <種別英語キー>/）を再帰列挙し、相対パスを辞書順ソートして先頭の1件を代表として選ぶ
 # （決定的・冪等）。識別子キーはそのファイル名から機械的に導出する（拡張子除去 → 先頭の
 # 連番プレフィックスと "create_" 接頭辞を除去。テーブルのマイグレーションファイル名
 # 001_create_users.sql → users のみに作用し、他種別は無変化）。source_ref はその疑似コードの
@@ -330,8 +330,8 @@ first_fixture_relpath() {
 }
 
 # ---- 疑似コードの配置 ----
-# 設計文書の source_ref/sourceFile は各種別の疑似コード一覧（$FIXTURES_BASE/<種別>一覧/
-# fixtures/ 配下）の相対パスをそのまま使う（first_fixture_relpath）。この相対パスを
+# 設計文書の source_ref/sourceFile は各種別の疑似コード一覧（$FIXTURES_BASE/<種別英語キー>/
+# 配下）の相対パスをそのまま使う（first_fixture_relpath）。この相対パスを
 # 種別別抽出（extract-*-metadata.sh）が解決できるようにするには、抽出の起点
 # （source-dir 引数）配下に同じ相対パスでファイルが実在する必要がある。
 # ここでは種別ごとの fixtures ツリーを丸ごと
@@ -346,17 +346,9 @@ stage_fixture_code() {
   local stage_root="$output_dir/verification-source"
   rm -rf "$stage_root"
   mkdir -p "$stage_root"
-  local kind_en kind_jp_dir src dest
+  local kind_en src dest
   for kind_en in api table batch report external feature; do
-    case "$kind_en" in
-      api) kind_jp_dir="API一覧" ;;
-      table) kind_jp_dir="テーブル一覧" ;;
-      batch) kind_jp_dir="バッチ一覧" ;;
-      report) kind_jp_dir="帳票一覧" ;;
-      external) kind_jp_dir="外部連携一覧" ;;
-      feature) kind_jp_dir="機能一覧" ;;
-    esac
-    src="$FIXTURES_BASE/$kind_jp_dir/fixtures"
+    src="$FIXTURES_BASE/$kind_en"
     dest="$stage_root/$kind_en"
     if [ -d "$src" ]; then
       mkdir -p "$dest"
@@ -380,18 +372,11 @@ stage_fixture_code() {
 stage_fixture_for_sourcefile_check() {
   local output_dir="$1" layout_json="$2"
   local manifests_dir="$output_dir/docs/manifests"
-  local kind_en kind_jp_dir unit_root_rel src rel dest_file
+  local kind_en unit_root_rel src rel dest_file
   for kind_en in api table batch report external; do
-    case "$kind_en" in
-      api) kind_jp_dir="API一覧" ;;
-      table) kind_jp_dir="テーブル一覧" ;;
-      batch) kind_jp_dir="バッチ一覧" ;;
-      report) kind_jp_dir="帳票一覧" ;;
-      external) kind_jp_dir="外部連携一覧" ;;
-    esac
     unit_root_rel="$(output_layout_get "$layout_json" "${kind_en}UnitRoot" 2>/dev/null)" || continue
     [ -z "$unit_root_rel" ] && continue
-    src="$FIXTURES_BASE/$kind_jp_dir/fixtures"
+    src="$FIXTURES_BASE/$kind_en"
     [ -d "$src" ] || continue
     rel="$(first_fixture_relpath "$src")"
     [ -z "$rel" ] && continue
@@ -498,13 +483,13 @@ run_prepare() {
   COMMON_ROOT="$(output_layout_get "$layout_json" commonRoot)" || return 1
   UNIT_TEST_DESIGN_DIR="$(output_layout_get "$layout_json" unitTestDesignDir)" || return 1
 
-  API_SRC="$(first_fixture_relpath "$FIXTURES_BASE/API一覧/fixtures")"
-  TABLE_SRC="$(first_fixture_relpath "$FIXTURES_BASE/テーブル一覧/fixtures")"
-  BATCH_SRC="$(first_fixture_relpath "$FIXTURES_BASE/バッチ一覧/fixtures")"
-  REPORT_SRC="$(first_fixture_relpath "$FIXTURES_BASE/帳票一覧/fixtures")"
-  EXTERNAL_SRC="$(first_fixture_relpath "$FIXTURES_BASE/外部連携一覧/fixtures")"
-  FEATURE_SRC="$(first_fixture_relpath "$FIXTURES_BASE/機能一覧/fixtures")"
-  SCREEN_SRC="$(first_fixture_relpath "$FIXTURES_BASE/画面一覧/fixtures")"
+  API_SRC="$(first_fixture_relpath "$FIXTURES_BASE/api")"
+  TABLE_SRC="$(first_fixture_relpath "$FIXTURES_BASE/table")"
+  BATCH_SRC="$(first_fixture_relpath "$FIXTURES_BASE/batch")"
+  REPORT_SRC="$(first_fixture_relpath "$FIXTURES_BASE/report")"
+  EXTERNAL_SRC="$(first_fixture_relpath "$FIXTURES_BASE/external")"
+  FEATURE_SRC="$(first_fixture_relpath "$FIXTURES_BASE/feature")"
+  SCREEN_SRC="$(first_fixture_relpath "$FIXTURES_BASE/screen")"
 
   if [ -z "$API_SRC" ] || [ -z "$TABLE_SRC" ] || [ -z "$BATCH_SRC" ] || [ -z "$REPORT_SRC" ] \
     || [ -z "$EXTERNAL_SRC" ] || [ -z "$FEATURE_SRC" ] || [ -z "$SCREEN_SRC" ]; then
@@ -791,7 +776,7 @@ while [ $# -gt 0 ]; do
 done
 
 TEMPLATE_ROOT="$REPO_ROOT/delivery-payload/templates/リバース検証"
-FIXTURES_BASE="$REPO_ROOT/generation-engine/samples/project-portal/一覧"
+FIXTURES_BASE="$REPO_ROOT/generation-engine/samples/source"
 
 if [ "$SELF_TEST" -eq 1 ]; then
   if self_test; then

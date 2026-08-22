@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 集約の対象外: 本ファイル自体が test-portal-conventions.sh の
+# 集約には名前で収集される（run-layer-machine-checks.sh が test-*.sh を無条件に拾う）。
 # 回帰テストであり、--self-test フラグを持つ本番経路スクリプトではないため、追加の
 # --self-test 実装は行わない（本ファイルの実行自体が回帰検証にあたる）。
 set -euo pipefail

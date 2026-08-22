@@ -716,8 +716,10 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
     color: var(--text-sub); cursor: pointer; padding: 5px 12px; font-size: 0.82rem; font-family: inherit;
   }
   .csv-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
-  .unit-view-link { display: inline-block; margin-left: 8px; font-size: .75rem; color: var(--accent); text-decoration: none; }
-  .unit-view-link:hover { text-decoration: underline; }
+  td.unit-doc-links-cell { white-space: normal; overflow: visible; text-overflow: clip; }
+  .unit-doc-links { display: flex; flex-wrap: wrap; gap: 6px; }
+  .unit-doc-link { color: var(--accent); text-decoration: none; font-size: .78rem; }
+  .unit-doc-link:hover { text-decoration: underline; }
   table.units tbody tr, table.screens tbody tr { cursor: pointer; }
   .expand-cell { transition: color 0.15s; }
   tr:hover .expand-cell { color: var(--accent); }
@@ -751,7 +753,7 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
     <div class="pt-brand-switch" id="pt-brand-switch">
       <div class="pt-brand-name"></div>
     </div>
-    <div class="pt-brand-sub">設計台帳 · 全60資料</div>
+    <div class="pt-brand-sub">設計台帳 · 全61資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
   
@@ -761,7 +763,7 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
   <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-30T00:00:00Z</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
-<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":14},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":6},{"key":"list","num":"04","label":"一覧・設計図","count":14},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
 <script type="application/json" id="pt-sites-data">[]</script>
 <script>
 (function () {
@@ -1071,74 +1073,58 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
             <tr>
               <th data-key="unitNameGuess">テーブル名</th>
               <th data-key="identifier">識別子</th>
-              <th data-key="kind">区分</th>
+              
             </tr>
           </thead>
           <tbody>
             <tr data-unit-id="table-users" data-unit-key="users">
 <td>ユーザー</td>
 <td><code>users</code></td>
-<td><span class="badge kind-generic">table</span></td>
 </tr><tr data-unit-id="table-sessions" data-unit-key="sessions">
 <td>セッション</td>
 <td><code>sessions</code></td>
-<td><span class="badge kind-generic">table</span></td>
 </tr><tr data-unit-id="table-settings" data-unit-key="settings">
 <td>設定</td>
 <td><code>app_settings</code></td>
-<td><span class="badge kind-generic">table</span></td>
 </tr><tr data-unit-id="table-roles" data-unit-key="roles">
 <td>ロール</td>
 <td><code>roles</code></td>
-<td><span class="badge kind-generic">table</span></td>
 </tr><tr data-unit-id="table-permissions" data-unit-key="permissions">
 <td>権限</td>
 <td><code>permissions</code></td>
-<td><span class="badge kind-generic">table</span></td>
 </tr><tr data-unit-id="table-user-roles" data-unit-key="user-roles">
 <td>ユーザーロール紐付</td>
 <td><code>user_roles</code></td>
-<td><span class="badge kind-generic">table</span></td>
 </tr><tr data-unit-id="table-posts" data-unit-key="posts">
 <td>投稿</td>
 <td><code>posts</code></td>
-<td><span class="badge kind-generic">table</span></td>
 </tr><tr data-unit-id="table-comments" data-unit-key="comments">
 <td>コメント</td>
 <td><code>comments</code></td>
-<td><span class="badge kind-generic">table</span></td>
 </tr><tr data-unit-id="table-categories" data-unit-key="categories">
 <td>カテゴリ</td>
 <td><code>categories</code></td>
-<td><span class="badge kind-generic">table</span></td>
 </tr><tr data-unit-id="table-tags" data-unit-key="tags">
 <td>タグ</td>
 <td><code>tags</code></td>
-<td><span class="badge kind-generic">table</span></td>
 </tr><tr data-unit-id="table-post-tags" data-unit-key="post-tags">
 <td>投稿タグ紐付</td>
 <td><code>post_tags</code></td>
-<td><span class="badge kind-generic">table</span></td>
 </tr><tr data-unit-id="table-notifications" data-unit-key="notifications">
 <td>通知</td>
 <td><code>notifications</code></td>
-<td><span class="badge kind-generic">table</span></td>
 </tr><tr data-unit-id="table-audit-logs" data-unit-key="audit-logs">
 <td>監査ログ</td>
 <td><code>audit_logs</code></td>
-<td><span class="badge kind-generic">table</span></td>
 </tr><tr data-unit-id="table-files" data-unit-key="files">
 <td>ファイル</td>
 <td><code>uploaded_files</code></td>
-<td><span class="badge kind-generic">table</span></td>
 </tr><tr data-unit-id="table-organizations" data-unit-key="organizations">
 <td>組織</td>
 <td><code>organizations</code></td>
-<td><span class="badge kind-generic">table</span></td>
 </tr><tr data-unit-id="table-org-members" data-unit-key="org-members">
 <td>組織メンバー紐付</td>
 <td><code>organization_members</code></td>
-<td><span class="badge kind-generic">table</span></td>
 </tr>
           </tbody>
         </table>
@@ -1165,7 +1151,7 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
       </div>
 
       <script type="application/json" id="unit-manifest">
-{"generatedAt":"2026-07-30T00:00:00Z","sourceDir":"generation-engine/samples/project-portal/一覧/テーブル一覧/fixtures","unitKind":"table","strategy":{"extractionMethod":"static-analysis","approvedByUser":true,"unitIdRegex":null},"detectionSummary":{"unitCount":16,"unresolvedCount":0},"units":[{"unitId":"table-users","unitKey":"users","kind":"table","unitNameGuess":"ユーザー","identifier":"users","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"001_create_users.sql"},{"unitId":"table-sessions","unitKey":"sessions","kind":"table","unitNameGuess":"セッション","identifier":"sessions","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"002_create_sessions.sql"},{"unitId":"table-settings","unitKey":"settings","kind":"table","unitNameGuess":"設定","identifier":"app_settings","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"003_create_settings.sql"},{"unitId":"table-roles","unitKey":"roles","kind":"table","unitNameGuess":"ロール","identifier":"roles","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"004_create_roles.sql"},{"unitId":"table-permissions","unitKey":"permissions","kind":"table","unitNameGuess":"権限","identifier":"permissions","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"005_create_permissions.sql"},{"unitId":"table-user-roles","unitKey":"user-roles","kind":"table","unitNameGuess":"ユーザーロール紐付","identifier":"user_roles","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"006_create_user_roles.sql"},{"unitId":"table-posts","unitKey":"posts","kind":"table","unitNameGuess":"投稿","identifier":"posts","detectionMethod":"migration","confidence":"HIGH","fileCount":2,"sourceFile":"007_create_posts.sql"},{"unitId":"table-comments","unitKey":"comments","kind":"table","unitNameGuess":"コメント","identifier":"comments","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"008_create_comments.sql"},{"unitId":"table-categories","unitKey":"categories","kind":"table","unitNameGuess":"カテゴリ","identifier":"categories","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"009_create_categories.sql"},{"unitId":"table-tags","unitKey":"tags","kind":"table","unitNameGuess":"タグ","identifier":"tags","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"010_create_tags.sql"},{"unitId":"table-post-tags","unitKey":"post-tags","kind":"table","unitNameGuess":"投稿タグ紐付","identifier":"post_tags","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"011_create_post_tags.sql"},{"unitId":"table-notifications","unitKey":"notifications","kind":"table","unitNameGuess":"通知","identifier":"notifications","detectionMethod":"migration","confidence":"HIGH","fileCount":2,"sourceFile":"012_create_notifications.sql"},{"unitId":"table-audit-logs","unitKey":"audit-logs","kind":"table","unitNameGuess":"監査ログ","identifier":"audit_logs","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"013_create_audit_logs.sql"},{"unitId":"table-files","unitKey":"files","kind":"table","unitNameGuess":"ファイル","identifier":"uploaded_files","detectionMethod":"migration","confidence":"MEDIUM","fileCount":1,"sourceFile":"014_create_files.sql"},{"unitId":"table-organizations","unitKey":"organizations","kind":"table","unitNameGuess":"組織","identifier":"organizations","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"015_create_organizations.sql"},{"unitId":"table-org-members","unitKey":"org-members","kind":"table","unitNameGuess":"組織メンバー紐付","identifier":"organization_members","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"016_create_org_members.sql"}]}
+{"generatedAt":"2026-07-30T00:00:00Z","sourceDir":"source/table","unitKind":"table","strategy":{"extractionMethod":"static-analysis","approvedByUser":true,"unitIdRegex":null},"detectionSummary":{"unitCount":16,"unresolvedCount":0},"units":[{"unitId":"table-users","unitKey":"users","kind":"table","unitNameGuess":"ユーザー","identifier":"users","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"001_create_users.sql"},{"unitId":"table-sessions","unitKey":"sessions","kind":"table","unitNameGuess":"セッション","identifier":"sessions","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"002_create_sessions.sql"},{"unitId":"table-settings","unitKey":"settings","kind":"table","unitNameGuess":"設定","identifier":"app_settings","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"003_create_settings.sql"},{"unitId":"table-roles","unitKey":"roles","kind":"table","unitNameGuess":"ロール","identifier":"roles","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"004_create_roles.sql"},{"unitId":"table-permissions","unitKey":"permissions","kind":"table","unitNameGuess":"権限","identifier":"permissions","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"005_create_permissions.sql"},{"unitId":"table-user-roles","unitKey":"user-roles","kind":"table","unitNameGuess":"ユーザーロール紐付","identifier":"user_roles","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"006_create_user_roles.sql"},{"unitId":"table-posts","unitKey":"posts","kind":"table","unitNameGuess":"投稿","identifier":"posts","detectionMethod":"migration","confidence":"HIGH","fileCount":2,"sourceFile":"007_create_posts.sql"},{"unitId":"table-comments","unitKey":"comments","kind":"table","unitNameGuess":"コメント","identifier":"comments","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"008_create_comments.sql"},{"unitId":"table-categories","unitKey":"categories","kind":"table","unitNameGuess":"カテゴリ","identifier":"categories","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"009_create_categories.sql"},{"unitId":"table-tags","unitKey":"tags","kind":"table","unitNameGuess":"タグ","identifier":"tags","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"010_create_tags.sql"},{"unitId":"table-post-tags","unitKey":"post-tags","kind":"table","unitNameGuess":"投稿タグ紐付","identifier":"post_tags","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"011_create_post_tags.sql"},{"unitId":"table-notifications","unitKey":"notifications","kind":"table","unitNameGuess":"通知","identifier":"notifications","detectionMethod":"migration","confidence":"HIGH","fileCount":2,"sourceFile":"012_create_notifications.sql"},{"unitId":"table-audit-logs","unitKey":"audit-logs","kind":"table","unitNameGuess":"監査ログ","identifier":"audit_logs","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"013_create_audit_logs.sql"},{"unitId":"table-files","unitKey":"files","kind":"table","unitNameGuess":"ファイル","identifier":"uploaded_files","detectionMethod":"migration","confidence":"MEDIUM","fileCount":1,"sourceFile":"014_create_files.sql"},{"unitId":"table-organizations","unitKey":"organizations","kind":"table","unitNameGuess":"組織","identifier":"organizations","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"015_create_organizations.sql"},{"unitId":"table-org-members","unitKey":"org-members","kind":"table","unitNameGuess":"組織メンバー紐付","identifier":"organization_members","detectionMethod":"migration","confidence":"HIGH","fileCount":1,"sourceFile":"016_create_org_members.sql"}]}
       </script>
       <script type="application/json" id="column-spec">
 {"specVersion":1,"axes":[],"columns":[{"key":"foreignKeys","label":"FK参照先","appliesTo":["table"],"order":10},{"key":"columnCount","label":"カラム数","appliesTo":["table"],"order":20},{"key":"mainColumns","label":"主要カラム","appliesTo":["table"],"order":30},{"key":"businessClass","label":"業務区分","appliesTo":["table","api","batch","external","report"],"order":100}]}
@@ -1439,13 +1425,21 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
     var tbody = table.querySelector('tbody');
     var allRows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
 
-    /* 1-36: 個別ページへの実在パスを持つ行にだけ、行内のリンク要素で遷移を追加する。
-       行クリックはこれまで通りページ内展開のみを担う(a要素へのクリックは展開処理の対象外。
-       後段の行クリック展開ハンドラが ev.target.closest('.copy-btn,a,button') で除外する)。
-       個別ページの生成経路は種別ごとに異なり、このテンプレートは経路の新設を行わない。
-       マニフェスト側が既に安全な相対URLとして持つ designDocPath の有無だけで実在を判定する
-       (screen-list-template.html の関連資料リンクと同じ isSafeRelativeUrl 判定基準)。 */
+    /* 1-65: 読者向け成果物を行末尾の専用「関連資料」列に表示する。行クリックはこれまで通り
+       ページ内展開のみを担い、a要素へのクリックは後段の行クリック展開ハンドラが
+       ev.target.closest('.copy-btn,a,button') で除外する。 */
     (function () {
+      var DOC_DEFS = [
+        {label: '基本設計書', pathField: 'designDocPath', kind: 'basic'},
+        {label: '詳細設計書', pathField: 'detailDocPath', kind: 'detail'},
+        {label: 'シーケンス図', pathField: 'sequencePath', kind: 'sequence'},
+        {label: 'テストケース', pathField: 'testCasePath', kind: 'test'},
+        {label: '単体テスト観点表', pathField: 'unitTestViewpointPath', kind: 'unit-viewpoint'},
+        {label: '結合テスト観点表', pathField: 'integrationTestViewpointPath', kind: 'integration-viewpoint'},
+        {label: '結合テスト仕様書', pathField: 'integrationTestCasePath', kind: 'integration-case'},
+        {label: '操作シナリオ仕様書', pathField: 'scenarioPath', kind: 'scenario'}
+      ];
+
       function isSafeRelativeUrl(v) {
         return typeof v === 'string' &&
           v.length > 0 &&
@@ -1455,8 +1449,21 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
           !/^[\/\\]/.test(v) &&
           v.indexOf('\\') === -1;
       }
+
+      var units = (manifest && manifest.units) || [];
+      if (!units.some(function (unit) {
+        return DOC_DEFS.some(function (doc) { return unit && unit[doc.pathField]; });
+      })) return;
+
+      var headRow = table.querySelector('thead tr');
+      if (!headRow) return;
+      var th = document.createElement('th');
+      th.textContent = '関連資料';
+      th.style.width = '170px';
+      headRow.appendChild(th);
+
       var viewById = {}, viewByKey = {};
-      (manifest.units || []).forEach(function (u) {
+      units.forEach(function (u) {
         if (u.unitId !== undefined && u.unitId !== null) viewById[String(u.unitId)] = u;
         if (u.unitKey !== undefined && u.unitKey !== null) viewByKey[String(u.unitKey)] = u;
       });
@@ -1464,16 +1471,24 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
         var idAttr = tr.getAttribute('data-unit-id') || '';
         var keyAttr = tr.getAttribute('data-unit-key') || '';
         var unit = (idAttr && viewById[idAttr]) || (keyAttr && viewByKey[keyAttr]) || null;
-        var path = unit ? unit.designDocPath : null;
-        if (!isSafeRelativeUrl(path)) return;
-        var firstTd = tr.querySelector('td');
-        if (!firstTd) return;
-        var link = document.createElement('a');
-        link.href = path;
-        link.className = 'unit-view-link';
-        link.title = '個別ページを開く';
-        link.textContent = '個別ページ';
-        firstTd.appendChild(link);
+        var td = document.createElement('td');
+        td.className = 'unit-doc-links-cell';
+        var links = document.createElement('div');
+        links.className = 'unit-doc-links';
+        if (unit) {
+          DOC_DEFS.forEach(function (doc) {
+            var path = unit[doc.pathField];
+            if (!isSafeRelativeUrl(path)) return;
+            var link = document.createElement('a');
+            link.href = path;
+            link.className = 'unit-doc-link';
+            link.setAttribute('data-kind', doc.kind);
+            link.textContent = doc.label;
+            links.appendChild(link);
+          });
+        }
+        td.appendChild(links);
+        tr.appendChild(td);
       });
     })();
 

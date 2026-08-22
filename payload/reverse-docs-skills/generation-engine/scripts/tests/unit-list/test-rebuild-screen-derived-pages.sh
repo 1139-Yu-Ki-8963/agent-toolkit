@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 実サンプルfixtureによるfull rebuild決定性・child失敗・commit途中rollback試験。
 #
-# 集約の対象外: 本ファイル自体が試験スクリプトであり、
+# 集約には名前で収集される（run-layer-machine-checks.sh が test-*.sh を無条件に拾う）。
 # --self-test フラグを持つ本番経路スクリプトではないため、追加の --self-test 実装は
 # 行わない（本ファイルの実行自体が回帰検証にあたる）。
 set -euo pipefail

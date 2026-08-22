@@ -4318,7 +4318,19 @@ else
   COMMIT_SHORT=""
 fi
 
-# --build-manifests-from-docs 指定時は、一覧・対応表・図の材料をここで一括して生成する。
+# 改善課題: 対応表(CRUD対応表)の生成に本当に必要なのは元データ(screen-manifest.json・
+# api-manifest.json等)が実在することであり、--build-manifests-from-docsによる元データの
+# 組み立て直しではない。組み立て直しを行わない実行(既存の元データをそのまま使う場合)でも
+# 対応表を生成できるよう、パス変数は --build-manifests-from-docs の分岐の外で常に解決する。
+# --screen-manifest は従来から受け付けている外部入力である。設計書から作る
+# API/テーブルのマニフェストと同じ生成連鎖で対応表・遷移図へ渡し、DOCS_ROOT配下に
+# 複製させない。未指定時だけ従来どおり既定の配置を読む。
+screen_manifest="${SCREEN_MANIFEST:-$DOCS_ROOT/$LAYOUT_MANIFESTS_ROOT/screen-manifest.json}"
+api_manifest="$DOCS_ROOT/$LAYOUT_MANIFESTS_ROOT/api-manifest.json"
+table_manifest="$DOCS_ROOT/$LAYOUT_MANIFESTS_ROOT/table-manifest.json"
+feature_manifest="$DOCS_ROOT/$LAYOUT_MANIFESTS_ROOT/feature-manifest.json"
+
+# --build-manifests-from-docs 指定時は、一覧・図の材料をここで一括して生成する。
 # --portal-only は index.html 以外を変更しない既存契約を守るため、この前段を実行しない。
 if [ "$BUILD_MANIFESTS_FROM_DOCS" -eq 1 ] && [ "$PORTAL_ONLY" -eq 0 ]; then
   DOC_EXTRACTION_DECL="$SCRIPT_DIR/../../delivery-payload/references/doc-extraction.json"
@@ -4379,29 +4391,6 @@ if [ "$BUILD_MANIFESTS_FROM_DOCS" -eq 1 ] && [ "$PORTAL_ONLY" -eq 0 ]; then
     echo "SKIP: message list (message definition document is absent: $DOCS_ROOT/$message_doc_rel)" >&2
   fi
 
-  # --screen-manifest は従来から受け付けている外部入力である。設計書から作る
-  # API/テーブルのマニフェストと同じ生成連鎖で対応表・遷移図へ渡し、DOCS_ROOT配下に
-  # 複製させない。未指定時だけ従来どおり既定の配置を読む。
-  screen_manifest="${SCREEN_MANIFEST:-$DOCS_ROOT/$LAYOUT_MANIFESTS_ROOT/screen-manifest.json}"
-  api_manifest="$DOCS_ROOT/$LAYOUT_MANIFESTS_ROOT/api-manifest.json"
-  table_manifest="$DOCS_ROOT/$LAYOUT_MANIFESTS_ROOT/table-manifest.json"
-  feature_manifest="$DOCS_ROOT/$LAYOUT_MANIFESTS_ROOT/feature-manifest.json"
-  matrix_dir_rel="$(output_layout_get "$LAYOUT_JSON" matrixDir)" || exit 1
-  matrix_dir="$PORTAL_DIR/${matrix_dir_rel#*/}"
-  if [ -f "$screen_manifest" ] && [ -f "$api_manifest" ]; then
-    matrix_args=("$matrix_dir/data" --screen-manifest "$screen_manifest" --api-manifest "$api_manifest")
-    [ -f "$table_manifest" ] && matrix_args+=(--table-manifest "$table_manifest")
-    [ -f "$feature_manifest" ] && matrix_args+=(--feature-manifest "$feature_manifest")
-    echo "INFO: generating CRUD matrix data" >&2
-    bash "$SCRIPT_DIR/extract/build-matrix-data.sh" "${matrix_args[@]}" \
-      || { echo "ERROR: CRUD matrix data generation failed" >&2; exit 1; }
-    echo "INFO: generating CRUD matrix page" >&2
-    bash "$SCRIPT_DIR/matrix/build-matrix-pages.sh" crud "$matrix_dir/data/crud-matrix.json" "$matrix_dir/CRUD図/CRUD図.html" \
-      || { echo "ERROR: CRUD matrix page generation failed" >&2; exit 1; }
-  else
-    echo "SKIP: CRUD matrix (screen or API manifest is absent)" >&2
-  fi
-
   diagram_dir_rel="$(output_layout_get "$LAYOUT_JSON" diagramDir)" || exit 1
   diagrams_dir="$PORTAL_DIR/${diagram_dir_rel#*/}"
   for diagram_spec in \
@@ -4430,6 +4419,30 @@ EOF
   fi
 elif [ "$BUILD_MANIFESTS_FROM_DOCS" -eq 1 ]; then
   echo "INFO: --portal-only skips --build-manifests-from-docs to preserve index-only generation" >&2
+fi
+
+# 対応表(CRUD対応表)の生成に本当に必要なのは元データ(screen-manifest.json・
+# api-manifest.json)が実在することであり、--build-manifests-from-docsによる
+# 組み立て直しではない。上のブロックで組み立て直した場合はその結果を、
+# 行わない場合は既存の元データをそのまま使う。いずれの場合も入力の実在だけを条件に
+# ここで生成する。--portal-only は index.html 以外を変更しない既存契約を守るため
+# 生成しない。
+if [ "$PORTAL_ONLY" -eq 0 ]; then
+  matrix_dir_rel="$(output_layout_get "$LAYOUT_JSON" matrixDir)" || exit 1
+  matrix_dir="$PORTAL_DIR/${matrix_dir_rel#*/}"
+  if [ -f "$screen_manifest" ] && [ -f "$api_manifest" ]; then
+    matrix_args=("$matrix_dir/data" --screen-manifest "$screen_manifest" --api-manifest "$api_manifest")
+    [ -f "$table_manifest" ] && matrix_args+=(--table-manifest "$table_manifest")
+    [ -f "$feature_manifest" ] && matrix_args+=(--feature-manifest "$feature_manifest")
+    echo "INFO: generating CRUD matrix data" >&2
+    bash "$SCRIPT_DIR/extract/build-matrix-data.sh" "${matrix_args[@]}" \
+      || { echo "ERROR: CRUD matrix data generation failed" >&2; exit 1; }
+    echo "INFO: generating CRUD matrix page" >&2
+    bash "$SCRIPT_DIR/matrix/build-matrix-pages.sh" crud "$matrix_dir/data/crud-matrix.json" "$matrix_dir/CRUD図/CRUD図.html" \
+      || { echo "ERROR: CRUD matrix page generation failed" >&2; exit 1; }
+  else
+    echo "SKIP: CRUD matrix (screen or API manifest is absent)" >&2
+  fi
 fi
 
 run_pipeline_hook "--pre-build" "$PRE_BUILD"

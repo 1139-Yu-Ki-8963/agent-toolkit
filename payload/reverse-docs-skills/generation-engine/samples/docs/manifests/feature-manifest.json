@@ -1,6 +1,6 @@
 {
   "generatedAt": "2026-07-30T00:00:00Z",
-  "sourceDir": "generation-engine/samples/project-portal/一覧/機能一覧/fixtures",
+  "sourceDir": "source/feature",
   "unitKind": "feature",
   "strategy": {
     "extractionMethod": "static-analysis",

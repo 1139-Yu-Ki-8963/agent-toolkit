@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # generating-feature-list-for-reverse-docs: 機能一覧.HTML 決定的生成
 #
-# Usage: build-feature-list.sh <manifest.json> <output-html-path>
+# Usage: build-feature-list.sh <manifest.json> <output-html-path> [--repo-root <パス>]
 #        build-feature-list.sh --self-test
+#   --repo-root <パス>: 元データの sourceDir を解決する基準にするディレクトリ。省略すると元データの所在から上へ辿って探す
 #
 # unit_kind=feature のマニフェストJSONを厳密な契約として扱い、
 # delivery-payload/templates/unit-list/feature-list-template.html を土台に決定的にHTMLを生成する。
@@ -406,6 +407,52 @@ EOF
     rc=1
   fi
 
+  # --- --repo-root: 指定した基準ディレクトリで相対sourceDirを解決できること ---
+  # sourceDirはmock-repo-root配下からの相対値のまま保持し、manifest自身は$tmp直下(mock-repo-rootの外)に置く。
+  # .git祖先もgeneration-engine/DESIGN.mdもmock-repo-root配下には無いため、--repo-root省略時の
+  # 既定解決(マニフェスト所在ディレクトリへのフォールバック)では実在確認が失敗するはずである。
+  mkdir -p "$tmp/mock-repo-root/features"
+  cat > "$tmp/mock-repo-root/features/order-list.ts" <<'EOF'
+export function orderListFeature() {}
+EOF
+  local repo_root_manifest="$tmp/manifest-repo-root.json"
+  jq -n '{
+    generatedAt: "2026-01-01T00:00:00Z",
+    sourceDir: "features",
+    unitKind: "feature",
+    strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 1, unresolvedCount: 0},
+    units: [
+      {
+        unitKey: "order-list-view",
+        kind: "feature",
+        category: "注文管理",
+        identifier: "/master/orders",
+        unitNameGuess: "注文一覧表示",
+        summary: "注文一覧を表示する",
+        sourceFile: "order-list.ts",
+        relatedScreens: [],
+        relatedApis: [],
+        relatedTables: [],
+        confidence: "high",
+        fileCount: 1,
+        detectionMethod: "manual"
+      }
+    ]
+  }' > "$repo_root_manifest"
+  local repo_root_out="$tmp/out-repo-root.html" repo_root_default_out="$tmp/out-repo-root-default.html"
+  if bash "$script_path" "$repo_root_manifest" "$repo_root_out" --repo-root "$tmp/mock-repo-root" >/dev/null 2>&1; then
+    if bash "$script_path" "$repo_root_manifest" "$repo_root_default_out" >/dev/null 2>&1; then
+      echo "  [FAIL] --repo-root指定: 省略時も成功してしまい、--repo-rootが解決基準を変えていることを確認できない" >&2
+      rc=1
+    else
+      echo "  [PASS] --repo-root指定: 指定時は成功、省略時は既定の解決基準(マニフェスト所在ディレクトリ)で失敗する"
+    fi
+  else
+    echo "  [FAIL] --repo-root指定: 指定した基準ディレクトリでの相対sourceDir解決に失敗した" >&2
+    rc=1
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -419,14 +466,15 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-MANIFEST="${1:?Usage: build-feature-list.sh <manifest.json> <output-html-path> [--portal-dir <path>] [--project-name <name>] [--axes <file>] [--catalog <file>]}"
-OUTPUT_HTML="${2:?Usage: build-feature-list.sh <manifest.json> <output-html-path> [--portal-dir <path>] [--project-name <name>] [--axes <file>] [--catalog <file>]}"
+MANIFEST="${1:?Usage: build-feature-list.sh <manifest.json> <output-html-path> [--portal-dir <path>] [--project-name <name>] [--axes <file>] [--catalog <file>] [--repo-root <パス>]}"
+OUTPUT_HTML="${2:?Usage: build-feature-list.sh <manifest.json> <output-html-path> [--portal-dir <path>] [--project-name <name>] [--axes <file>] [--catalog <file>] [--repo-root <パス>]}"
 shift 2 || true
 
 PORTAL_DIR_ARG=""
 PROJECT_NAME_ARG=""
 AXES_FILE=""
 CATALOG_FILE=""
+REPO_ROOT_ARG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --portal-dir)
@@ -444,6 +492,11 @@ while [ $# -gt 0 ]; do
       ;;
     --axes)
       AXES_FILE="${2:-}"
+      shift 2
+      ;;
+    --repo-root)
+      # 元データの sourceDir を解決する基準にするディレクトリ。省略すると元データの所在から上へ辿って探す
+      REPO_ROOT_ARG="${2:-}"
       shift 2
       ;;
     *)
@@ -465,7 +518,11 @@ fi
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
-if ! "$SCRIPT_DIR/validate-manifest.sh" "$MANIFEST" --unit-kind feature; then
+VALIDATE_FEATURE_CMD=("$SCRIPT_DIR/validate-manifest.sh" "$MANIFEST" --unit-kind feature)
+if [ -n "$REPO_ROOT_ARG" ]; then
+  VALIDATE_FEATURE_CMD+=(--repo-root "$REPO_ROOT_ARG")
+fi
+if ! "${VALIDATE_FEATURE_CMD[@]}"; then
   echo "ERROR: manifestがvalidate-manifest.shの検証に失敗しました。Phase 3の整合検証を先に完了してください" >&2
   exit 1
 fi

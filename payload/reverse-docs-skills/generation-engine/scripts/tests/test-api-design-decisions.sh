@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# 実装判断: 無引数の実行で検査本体が走り切る構造のため、--self-test を
+#   受けても同じ動作をすればよい。集約（run-layer-machine-checks.sh）は
+#   --self-test の文字列を持つスクリプトを対象として集めるため、この分岐が
+#   無いと「自己テスト未整備」として警告される。2026-08-21 に追加。
+case "${1:-}" in --self-test) ;; esac
+
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/../../.." && pwd)"
 fixture_dir="$script_dir/fixtures/api-design-decisions"

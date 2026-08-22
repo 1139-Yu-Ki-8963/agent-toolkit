@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # test-e2e-portal.sh — ポータル静的 E2E テスト
 #
-# 集約の対象外: 本ファイル自体が generation-engine/samples/ の生成済み
+# 集約には名前で収集される（run-layer-machine-checks.sh が test-*.sh を無条件に拾う）。
 # ポータル一式に対する試験用スクリプト（E2Eテストスイート）であり、--self-test フラグを
 # 持つ本番経路スクリプトではないため、追加の --self-test 実装は行わない（本ファイルの
 # 実行自体が検証にあたる）。

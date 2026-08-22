@@ -1,6 +1,6 @@
 {
   "generatedAt": "2026-07-30T00:00:00Z",
-  "sourceDir": "generation-engine/samples/project-portal/一覧/帳票一覧/fixtures",
+  "sourceDir": "source/report",
   "unitKind": "report",
   "strategy": {
     "extractionMethod": "static-analysis",

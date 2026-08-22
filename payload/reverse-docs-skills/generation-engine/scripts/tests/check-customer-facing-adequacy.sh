@@ -14,4 +14,8 @@
 set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
+
+# 実装判断: 委譲先が --self-test を持つが、このラッパー自身のテキストには
+#   現れないため集約の収集対象から漏れていた。2026-08-21 に転送を明示。
+case "${1:-}" in --self-test) ;; esac
 exec bash "$REPO_ROOT/delivery-payload/templates/rules/checkers/check-customer-facing-adequacy.sh" "$@"

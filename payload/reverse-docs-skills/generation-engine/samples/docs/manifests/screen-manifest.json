@@ -1,6 +1,6 @@
 {
   "generatedAt": "2026-07-23T00:00:00+09:00",
-  "sourceDir": "generation-engine/samples/project-portal/一覧/画面一覧/fixtures",
+  "sourceDir": "source/screen",
   "strategy": {
     "extractionMethod": "静的解析（ルーティング定義 + ファイル走査）",
     "approvedByUser": true,

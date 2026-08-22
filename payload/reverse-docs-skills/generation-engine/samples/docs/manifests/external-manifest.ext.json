@@ -1,6 +1,6 @@
 {
   "generatedAt": "2026-07-30T00:00:00Z",
-  "sourceDir": "generation-engine/samples/project-portal/一覧/外部連携一覧/fixtures",
+  "sourceDir": "source/external",
   "unitKind": "external",
   "strategy": {
     "extractionMethod": "static-analysis",

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 集約の対象外: 本ファイル自体が固定5サンプルに対する回帰試験
+# 集約には名前で収集される（run-layer-machine-checks.sh が test-*.sh を無条件に拾う）。
 # （writing-rules.md の密度上限の再現確認）であり、--self-test フラグを持つ本番経路
 # スクリプトではないため、追加の --self-test 実装は行わない（本ファイルの実行自体が
 # 回帰検証にあたる）。

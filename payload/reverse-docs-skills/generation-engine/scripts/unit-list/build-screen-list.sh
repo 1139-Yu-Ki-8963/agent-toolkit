@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # generating-screen-list-for-reverse-docs: Phase 4 画面一覧.HTML 決定的生成
 #
-# Usage: build-screen-list.sh <manifest.json> <output-html-path> [--split-by <axisKey>]
+# Usage: build-screen-list.sh <manifest.json> <output-html-path> [--split-by <axisKey>] [--repo-root <パス>]
+#   --repo-root <パス>: 元データの sourceDir を解決する基準にするディレクトリ。省略すると元データの所在から上へ辿って探す
 #
 # --split-by <axisKey>: 一覧を指定した軸の値ごとに分割する。none で分割を無効化する。
 #   未指定時は unit-axes.json で split.default=true な screen 軸(既定: accountGroup)が使われる。
@@ -845,6 +846,52 @@ print(os.path.abspath(os.path.join(sys.argv[1], "index.html")))
     rc=1
   fi
 
+  # --- --repo-root: 指定した基準ディレクトリで相対sourceDirを解決できること ---
+  # sourceDirはmock-repo-root配下からの相対値のまま保持し、manifest自身は$tmp直下(mock-repo-rootの外)に置く。
+  # .git祖先もgeneration-engine/DESIGN.mdもmock-repo-root配下には無いため、--repo-root省略時の
+  # 既定解決(マニフェスト所在ディレクトリへのフォールバック)では実在確認が失敗するはずである。
+  mkdir -p "$tmp/mock-repo-root/screens"
+  cat > "$tmp/mock-repo-root/screens/Top.tsx" <<'EOF'
+export default function Top() { return null; }
+EOF
+  local repo_root_manifest="$tmp/manifest-repo-root.json"
+  jq -n '{
+    generatedAt: "2026-01-01T00:00:00Z",
+    sourceDir: "screens",
+    strategy: {extractionMethod: "custom", approvedByUser: true, screenIdRegex: null, excludePatterns: []},
+    detectionSummary: {screenCount: 1, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
+    screens: [
+      {
+        screenKey: "top",
+        kind: "route",
+        route: "/",
+        screenNameGuess: "トップ",
+        entryFile: "Top.tsx",
+        detectionMethod: "manual",
+        confidence: "high",
+        screenType: "top",
+        accountGroup: "common",
+        accountSubType: "common",
+        hasTemplate: true,
+        parentScreen: null,
+        childComponents: [],
+        isProcessingEndpoint: false
+      }
+    ]
+  }' > "$repo_root_manifest"
+  local repo_root_out="$tmp/out-repo-root.html" repo_root_default_out="$tmp/out-repo-root-default.html"
+  if bash "$script_path" "$repo_root_manifest" "$repo_root_out" --repo-root "$tmp/mock-repo-root" >/dev/null 2>&1; then
+    if bash "$script_path" "$repo_root_manifest" "$repo_root_default_out" >/dev/null 2>&1; then
+      echo "  [FAIL] --repo-root指定: 省略時も成功してしまい、--repo-rootが解決基準を変えていることを確認できない" >&2
+      rc=1
+    else
+      echo "  [PASS] --repo-root指定: 指定時は成功、省略時は既定の解決基準(マニフェスト所在ディレクトリ)で失敗する"
+    fi
+  else
+    echo "  [FAIL] --repo-root指定: 指定した基準ディレクトリでの相対sourceDir解決に失敗した" >&2
+    rc=1
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -858,8 +905,8 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-MANIFEST="${1:?Usage: build-screen-list.sh <manifest.json> <output-html-path> [--portal-dir <path>] [--project-name <name>] [--generated-at <iso8601>] [--axes <file>] [--split-by <axisKey>] [--catalog <file>] [--sites <file>] [--site-key <key>]}"
-OUTPUT_HTML="${2:?Usage: build-screen-list.sh <manifest.json> <output-html-path> [--portal-dir <path>] [--project-name <name>] [--generated-at <iso8601>] [--axes <file>] [--split-by <axisKey>] [--catalog <file>] [--sites <file>] [--site-key <key>]}"
+MANIFEST="${1:?Usage: build-screen-list.sh <manifest.json> <output-html-path> [--portal-dir <path>] [--project-name <name>] [--generated-at <iso8601>] [--axes <file>] [--split-by <axisKey>] [--catalog <file>] [--sites <file>] [--site-key <key>] [--repo-root <パス>]}"
+OUTPUT_HTML="${2:?Usage: build-screen-list.sh <manifest.json> <output-html-path> [--portal-dir <path>] [--project-name <name>] [--generated-at <iso8601>] [--axes <file>] [--split-by <axisKey>] [--catalog <file>] [--sites <file>] [--site-key <key>] [--repo-root <パス>]}"
 shift 2 || true
 
 PORTAL_DIR_ARG=""
@@ -870,6 +917,7 @@ SPLIT_BY=""
 CATALOG_FILE=""
 SITES_FILE=""
 SITE_KEY=""
+REPO_ROOT_ARG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --portal-dir)
@@ -906,6 +954,11 @@ while [ $# -gt 0 ]; do
     --site-key)
       # このポータルが属するサイトのキー
       SITE_KEY="${2:-}"
+      shift 2
+      ;;
+    --repo-root)
+      # 元データの sourceDir を解決する基準にするディレクトリ。省略すると元データの所在から上へ辿って探す
+      REPO_ROOT_ARG="${2:-}"
       shift 2
       ;;
     *)
@@ -959,7 +1012,11 @@ printf '%s' "$axes_resolved" > "$AXES_RESOLVED_FILE"
 unit_axes_apply_detect "$axes_resolved" "screen" "$MANIFEST" > "$DETECTED_MANIFEST"
 MANIFEST="$DETECTED_MANIFEST"
 
-if ! "$SCRIPT_DIR/validate-manifest.sh" "$MANIFEST" --axes "$AXES_RESOLVED_FILE"; then
+VALIDATE_SCREEN_CMD=("$SCRIPT_DIR/validate-manifest.sh" "$MANIFEST" --axes "$AXES_RESOLVED_FILE")
+if [ -n "$REPO_ROOT_ARG" ]; then
+  VALIDATE_SCREEN_CMD+=(--repo-root "$REPO_ROOT_ARG")
+fi
+if ! "${VALIDATE_SCREEN_CMD[@]}"; then
   echo "ERROR: manifestがvalidate-manifest.shの検証に失敗しました。Phase 3の整合検証を先に完了してください" >&2
   exit 1
 fi

@@ -38,6 +38,10 @@ copy_generation_engine() {
 
 # 見本マニフェストを$placement配下のvalidate-manifest.shで検証する。
 # 引数: placement（generation-engineを直下に持つディレクトリ）
+# sourceDirは見本のルート（generation-engine/samples）起点で書かれているため、
+# --repo-rootへ$placement配下の見本のルートを明示する。置き方（独立配置/上位に
+# リポジトリを持つ配置）によって$placement自体のパスが変わるため、見本のルートの
+# パスも呼び出しごとに異なる。
 # 標準出力: 検証コマンドの出力。戻り値: 検証コマンドの終了コード。
 run_gold_validation() {
   local placement="$1"
@@ -45,7 +49,8 @@ run_gold_validation() {
     cd /tmp 2>/dev/null || cd "$placement" || exit 1
     bash "$placement/generation-engine/scripts/unit-list/validate-manifest.sh" \
       "$placement/generation-engine/samples/docs/manifests/screen-manifest.json" \
-      --unit-kind screen
+      --unit-kind screen \
+      --repo-root "$placement/generation-engine/samples"
   )
 }
 

@@ -7,6 +7,12 @@
 # がGLOSSARY_PYTHONを読む口を使う)。この注入無しに同じレースを機械的に再現する手段はない。
 set -euo pipefail
 
+# 実装判断: 無引数の実行で検査本体が走り切る構造のため、--self-test を
+#   受けても同じ動作をすればよい。集約（run-layer-machine-checks.sh）は
+#   --self-test の文字列を持つスクリプトを対象として集めるため、この分岐が
+#   無いと「自己テスト未整備」として警告される。2026-08-21 に追加。
+case "${1:-}" in --self-test) ;; esac
+
 # 2026-08-19 に次の 2 点が変わり、この検査は集約へ載せ直された。
 #   1. 集約の収集の条件へ、名前が test-*.sh に一致するものを拾う経路が加わった
 #      （run-layer-machine-checks.sh の list_targets）。この検査は --self-test の

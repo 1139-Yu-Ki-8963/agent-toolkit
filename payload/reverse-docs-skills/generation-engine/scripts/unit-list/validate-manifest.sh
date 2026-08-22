@@ -1461,19 +1461,22 @@ EOF
   fi
 
   # ---- 配布物のサンプルが実在検査を通ることの確認 ----
-  # sourceDirをリポジトリのルート起点で書いた実物のサンプルで、二重連結が起きないことを見る。
-  local gold_repo_root gold_layout_json gold_screen_manifest_rel
+  # sourceDirは見本のルート(generation-engine/samples)起点で書かれているため、
+  # --repo-rootへ見本のルートを渡して解決する。渡さない場合は既定の.git祖先探索が
+  # リポジトリのルートを基準にしてしまい、sourceDirが二重連結されず解決に失敗する。
+  local gold_repo_root gold_samples_root gold_layout_json gold_screen_manifest_rel
   gold_repo_root="$(cd "$SCRIPT_DIR/../../.." && pwd)"
-  gold_layout_json="$(resolve_output_layout "$gold_repo_root/generation-engine/samples")" || return 1
+  gold_samples_root="$gold_repo_root/generation-engine/samples"
+  gold_layout_json="$(resolve_output_layout "$gold_samples_root")" || return 1
   gold_screen_manifest_rel="$(output_layout_get "$gold_layout_json" screenManifest)" || return 1
-  local gold_screen_manifest="$gold_repo_root/generation-engine/samples/$gold_screen_manifest_rel"
+  local gold_screen_manifest="$gold_samples_root/$gold_screen_manifest_rel"
   if [ -f "$gold_screen_manifest" ]; then
     local gold_output
-    gold_output="$(cd /tmp && run_validate "$gold_screen_manifest" "" "screen" 2>&1)"
+    gold_output="$(cd /tmp && run_validate "$gold_screen_manifest" "" "screen" "" "$gold_samples_root" 2>&1)"
     if echo "$gold_output" | grep -q '^\[PASS\] entryFile-実在'; then
-      echo "  [PASS] entryFile-実在(サンプル): リポジトリのルート起点sourceDirが二重連結されない"
+      echo "  [PASS] entryFile-実在(サンプル): 見本のルート起点sourceDirが正しく解決される"
     else
-      echo "  [FAIL] entryFile-実在(サンプル): リポジトリのルート起点sourceDirの解決に失敗した" >&2
+      echo "  [FAIL] entryFile-実在(サンプル): 見本のルート起点sourceDirの解決に失敗した" >&2
       rc=1
     fi
   else

@@ -55,6 +55,10 @@ set -euo pipefail
 #   <出力先>/.claude/agents/rule-reviewer.md へ同じ生成物notice comment規約で複製する
 #   （こちらは1段のみ。dev-flow の Phase5（実装後はレビューを通してから統合する）が
 #   使うレビュアーであり、スキル群と同じく dev-flow を支える配布物のため同じフラグで配る）。
+#   加えて deploy-generation-engine.sh を呼び、<出力先>/reverse-docs-engine/ へ
+#   生成器一式（generation-engine/scripts・delivery-payload/templates・
+#   delivery-payload/references）を配る（maintaining-portal スキルが前提とする
+#   生成器の再実行手段であり、スキル群と同じフラグで配る。重複実装しない）。
 #
 # docs/rules/agent-operations/ai-config-asset-management/ への検証・生成スクリプトの配備:
 #   build-derived-rules.sh --deploy-rule-scripts を呼ぶだけで、重複実装しない
@@ -82,6 +86,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 TAXONOMY_JSON="${REPO_ROOT}/delivery-payload/references/rule-taxonomy.json"
 BANNED_TERMS_JSON="${REPO_ROOT}/delivery-payload/references/rule-banned-terms.json"
 BUILD_DERIVED_SCRIPT="${SCRIPT_DIR}/build-derived-rules.sh"
+DEPLOY_GENERATION_ENGINE_SCRIPT="${SCRIPT_DIR}/deploy-generation-engine.sh"
 SKILLS_TEMPLATE_DIR="${REPO_ROOT}/delivery-payload/templates/delivered-skills"
 SKILL_CATALOG_JSON="${REPO_ROOT}/delivery-payload/references/delivered-skill-catalog.json"
 AGENTS_TEMPLATE_DIR="${REPO_ROOT}/delivery-payload/templates/delivered-agents"
@@ -715,6 +720,15 @@ EOF
   if [ "$WITH_SKILLS" -eq 1 ]; then
     deliver_skills "$out_root"
     deliver_agent "$out_root"
+    # maintaining-portal（deliver_skillsで配る納品スキルの1つ）が生成器の再実行を
+    # 前提にするため、生成器一式の配布も --with-skills と同じ扱いにする
+    # （--with-skills 無しの規約定義のみの配布では生成器一式は要らない）。
+    if [ "$APPLY" -eq 1 ]; then
+      plan_add "reverse-docs-engine/（generation-engine一式・deploy-generation-engine.shで配備）"
+      bash "$DEPLOY_GENERATION_ENGINE_SCRIPT" "$out_root" --apply
+    else
+      plan_add "${out_root}/reverse-docs-engine/"
+    fi
   fi
 
   if [ "$APPLY" -eq 1 ]; then
