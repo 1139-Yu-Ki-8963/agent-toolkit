@@ -57,7 +57,7 @@ STRIPPED_TMP=""
 MKTEMP_FAILED=0
 ensure_stripped_tmp() {
   if [ -z "$STRIPPED_TMP" ]; then
-    if ! STRIPPED_TMP="$(mktemp 2>/dev/null)" || [ -z "$STRIPPED_TMP" ]; then
+    if ! STRIPPED_TMP="$(mktemp "${TMPDIR:-/tmp}/check-instruction-format-stripped.XXXXXX" 2>/dev/null)" || [ -z "$STRIPPED_TMP" ]; then
       MKTEMP_FAILED=1
       STRIPPED_TMP=""
       return 1
@@ -919,7 +919,7 @@ run_self_test() {
   # このシェルで以後に返るすべての関数呼び出し（run_case等）で再発火するため、
   # ローカル変数だと最初のネスト関数の return 時点で削除されてしまう。
   # trap EXIT + グローバル変数の組み合わせで、スクリプト終了時にのみ1回だけ掃除する。
-  if ! tmpdir="$(mktemp -d 2>/dev/null)" || [ -z "$tmpdir" ]; then
+  if ! tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/check-instruction-format-selftest.XXXXXX" 2>/dev/null)" || [ -z "$tmpdir" ]; then
     echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため自己テストを判定できません（mktemp -d が一時領域へ書き込めませんでした）"
     exit 2
   fi

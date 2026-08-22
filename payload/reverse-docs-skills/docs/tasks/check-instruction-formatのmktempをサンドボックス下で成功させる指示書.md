@@ -69,10 +69,36 @@
 
 | 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |
 |---|---|---|---|---|
-| 1. check-instruction-format.shの終了コードが2でない | `bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh; [ $? -ne 2 ]` | 完了 | — | — |
-| 2. check-instruction-format.sh --self-testの終了コードが2でない | `bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh --self-test; [ $? -ne 2 ]` | 完了 | — | — |
-| 3. 出力にUNKNOWNが含まれない | `! (bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh 2>&1; bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh --self-test 2>&1) \| grep -q '\[UNKNOWN\]'` | 完了 | — | — |
-| 4. judge-task-done.shのdone/判定不能が解消 | `! bash docs/scripts/judge-task-done.sh --only "docs/tasks/done/指摘の追跡を機械で読める形にする指示書.md" 2>&1 \| grep -q '判定不能'` | 完了 | — | — |
+| 1. check-instruction-format.shの終了コードが2でない | `bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh; [ $? -ne 2 ]` | 完了 | 5ae86d7337cecfc733f63c5b595fd6b47e976dbc | 終了コード0。合格66件・不合格0件だった |
+| 2. check-instruction-format.sh --self-testの終了コードが2でない | `bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh --self-test; [ $? -ne 2 ]` | 完了 | 5ae86d7337cecfc733f63c5b595fd6b47e976dbc | 終了コード0。合格35件・不合格0件だった |
+| 3. 出力にUNKNOWNが含まれない | `! (bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh 2>&1; bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh --self-test 2>&1) \| grep -q '\[UNKNOWN\]'` | 完了 | 5ae86d7337cecfc733f63c5b595fd6b47e976dbc | 終了コード0。2コマンドの出力に`[UNKNOWN]`はなかった |
+| 4. judge-task-done.shのdone/判定不能が解消 | `! bash docs/scripts/judge-task-done.sh --only "docs/tasks/done/指摘の追跡を機械で読める形にする指示書.md" 2>&1 \| grep -q '判定不能'` | 完了 | 5ae86d7337cecfc733f63c5b595fd6b47e976dbc | 終了コード0。「判定不能」ではなく、実在するコミットが書かれていないという具体的な不合格理由を返した |
+
+### 検証結果
+
+```text
+$ bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh
+合格 66 件 / 不合格 0 件
+終了コード: 0
+
+$ bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh --self-test
+合格 35 件 / 不合格 0 件
+終了コード: 0
+
+$ ! (bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh 2>&1; bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh --self-test 2>&1) | grep -q '\[UNKNOWN\]'
+終了コード: 0
+
+$ bash docs/scripts/judge-task-done.sh --only "docs/tasks/done/指摘の追跡を機械で読める形にする指示書.md"
+公開の状態: 反映済み
+移せる: 0件
+移せない: 指摘の追跡を機械で読める形にする指示書.md: 完了があるのに実在するコミットが1件も書かれていない
+終了コード: 0
+
+$ ! bash docs/scripts/judge-task-done.sh --only "docs/tasks/done/指摘の追跡を機械で読める形にする指示書.md" 2>&1 | grep -q '判定不能'
+終了コード: 0
+```
+
+修正前後とも通常検査は合格66件・不合格0件、自己テストは合格35件・不合格0件であり、既存の判定件数に差異はなかった。
 
 ### 判断の記録
 
