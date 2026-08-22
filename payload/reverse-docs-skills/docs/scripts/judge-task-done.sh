@@ -17,8 +17,9 @@
 #      （「確かめる手段」の列が無い古い4列の表は満たさない）、各行の「確かめる手段」欄のコマンドを
 #      実際に実行してすべてが終了コード0を返す。「目視」と書かれた行が1件でもあれば
 #      （機械では確かめられないため）満たさない。コマンドが時間の上限（既定120秒。--timeoutで変更可）を
-#      超えたら「未確認」として満たさない。終了コード2（判定不能）も「未確認」として満たさない
-#      （実行できなかったことと不合格だったことを区別する。定義:
+#      超えたら「未確認」として満たさない。終了コード2は結合出力の行頭に `[UNKNOWN]` が
+#      あれば「未確認」、無ければ「未着手」とする（実行できなかったこととコマンド自身の
+#      エラーを区別する。定義:
 #      .claude/rules/always/verification/indeterminate-result/rule.md）
 #   3. main へ入っている: 表のコミット欄から実在するコミット（`git cat-file -e`）を取り出し、
 #      すべてが main の祖先（`git merge-base --is-ancestor`）である。「対象外」だけで構成され
@@ -41,7 +42,7 @@
 #
 # 出力: 「公開の状態」の1行 / 「移せる」の一覧 / 「移せない」の一覧（理由付き。理由は11通り:
 #   記録なし・確かめる手段の列が無い・判定の行が0件・目視の行がある・実測で満たさない判定がある・
-#   確かめる手段が判定不能（終了コード2）・確かめる手段が時間の上限を超えた（未確認）・
+#   確かめる手段が判定不能（終了コード2かつ行頭 `[UNKNOWN]`）・確かめる手段が時間の上限を超えた（未確認）・
 #   判断待ちが残る・未着手/対応中が残る・
 #   完了があるのに実在するコミットが1件も書かれていない・mainに入っていないコミットがある・公開が未反映）
 #
@@ -136,7 +137,7 @@ if [ -z "$REPO_ROOT" ]; then
   exit 1
 fi
 
-TASKS_DIR="$REPO_ROOT/docs/tasks"
+TASKS_DIR="${JUDGE_TASK_DONE_TEST_TASKS_DIR:-$REPO_ROOT/docs/tasks}"
 DONE_DIR="$TASKS_DIR/done"
 MAIN_REF="main"
 TOOLKIT_DIR="${TASK_DONE_TOOLKIT_DIR:-$HOME/github-public/agent-toolkit}"
@@ -353,16 +354,34 @@ judge_publish() {
 # 同じ考え方（`set -m` で専用プロセスグループとして起動し、ポーリングで生存確認したうえで
 # 上限超過時に負のPID（プロセスグループ）へシグナルを送る）で自前実装する。
 CONFIRM_RC=0
+CONFIRM_ORIGIN="command"
+CONFIRM_HAS_UNKNOWN_LABEL=0
+CONFIRM_UNKNOWN_LINE=""
+
+create_confirm_output_file() {
+  if [ "${JUDGE_TASK_DONE_TEST_CONFIRM_MKTEMP_FAIL:-0}" = "1" ]; then
+    return 1
+  fi
+  mktemp "${TMPDIR:-/tmp}/judge-task-done-cmd.XXXXXX" 2>/dev/null
+}
+
 run_confirm_command() {
   local cmd="$1" timeout_sec="$2"
   local out_file pid ticks max_ticks finished prev_monitor
 
-  out_file="$(mktemp "${TMPDIR:-/tmp}/judge-task-done-cmd.XXXXXX" 2>/dev/null)" || true
+  CONFIRM_RC=0
+  CONFIRM_ORIGIN="runner"
+  CONFIRM_HAS_UNKNOWN_LABEL=0
+  CONFIRM_UNKNOWN_LINE=""
+  out_file="$(create_confirm_output_file)" || true
   if [ -z "${out_file:-}" ]; then
-    # 判定器自身が一時ファイルを作れない場合も「実行できなかった」であり不合格ではない。
+    CONFIRM_UNKNOWN_LINE="[UNKNOWN] 確かめる手段の出力ファイル作成（mktemp）に失敗した。サンドボックスなど実行環境の制約が想定される"
+    echo "$CONFIRM_UNKNOWN_LINE" >&2
     CONFIRM_RC=2
     return
   fi
+
+  CONFIRM_ORIGIN="command"
 
   prev_monitor=0
   case $- in *m*) prev_monitor=1 ;; esac
@@ -388,6 +407,10 @@ run_confirm_command() {
 
   if [ "$finished" -eq 1 ]; then
     { wait "$pid" 2>/dev/null; CONFIRM_RC=$?; } 2>/dev/null
+    if [ "$CONFIRM_RC" -eq 2 ] && grep -qE '^[[:space:]]*\[UNKNOWN\]([[:space:]]|$)' "$out_file"; then
+      CONFIRM_HAS_UNKNOWN_LABEL=1
+      CONFIRM_UNKNOWN_LINE="$(LC_ALL=C awk '/^[[:space:]]*\[UNKNOWN\]([[:space:]]|$)/ { sub(/^[[:space:]]*/, ""); print; exit }' "$out_file")"
+    fi
   else
     {
       kill -TERM -$pid 2>/dev/null
@@ -413,6 +436,7 @@ MEAS_CONFIRM=()
 MEAS_RESULT=()
 MEAS_ORIG_STATE=()
 MEAS_COMMIT=()
+MEAS_INDETERMINATE=0
 
 judge_measurement() {
   local file="$1" timeout_sec="$2"
@@ -422,6 +446,7 @@ judge_measurement() {
   MEAS_RESULT=()
   MEAS_ORIG_STATE=()
   MEAS_COMMIT=()
+  MEAS_INDETERMINATE=0
 
   local raw
   raw="$(extract_judgment_rows "$file")"
@@ -442,7 +467,7 @@ judge_measurement() {
     return
   fi
 
-  local confirm state cm has_shime=0 has_fail=0 has_timeout=0 has_indeterminate=0 rc
+  local confirm state cm has_shime=0 has_fail=0 has_timeout=0 has_indeterminate=0 rc indeterminate_detail=""
   while IFS=$'\t' read -r confirm state cm; do
     MEAS_CONFIRM+=("$confirm")
     MEAS_ORIG_STATE+=("$state")
@@ -462,13 +487,12 @@ judge_measurement() {
     rc="$CONFIRM_RC"
     if [ "$rc" -eq 0 ]; then
       MEAS_RESULT+=("pass")
-    elif [ "$rc" -eq 2 ]; then
-      # 終了コード2は判定不能（実行できなかった）であり、不合格（満たさない）ではない。
-      # 実行環境の制約（サンドボックスによる一時領域への書き込み拒否等）で検査を
-      # 実行できなかった場合が該当する。定義:
-      # .claude/rules/always/verification/indeterminate-result/rule.md
+    elif [ "$rc" -eq 2 ] && { [ "$CONFIRM_ORIGIN" = "runner" ] || [ "$CONFIRM_HAS_UNKNOWN_LABEL" -eq 1 ]; }; then
       MEAS_RESULT+=("indeterminate")
       has_indeterminate=1
+      if [ -z "$indeterminate_detail" ]; then
+        indeterminate_detail="$CONFIRM_UNKNOWN_LINE"
+      fi
     elif [ "$rc" -eq 124 ]; then
       MEAS_RESULT+=("timeout")
       has_timeout=1
@@ -478,14 +502,15 @@ judge_measurement() {
     fi
   done <<< "$data_rows"
 
+  if [ "$has_indeterminate" -eq 1 ]; then
+    MEAS_OK=0
+    MEAS_INDETERMINATE=1
+    MEAS_REASON="${indeterminate_detail:-[UNKNOWN] 確かめる手段が判定不能（終了コード2）。判定器または実行環境の制約が想定される}"
+    return
+  fi
   if [ "$has_shime" -eq 1 ]; then
     MEAS_OK=0
     MEAS_REASON="目視の行がある"
-    return
-  fi
-  if [ "$has_indeterminate" -eq 1 ]; then
-    MEAS_OK=0
-    MEAS_REASON="確かめる手段が判定不能（終了コード2）。実行環境の制約で検査を実行できなかった"
     return
   fi
   if [ "$has_timeout" -eq 1 ]; then
@@ -788,6 +813,7 @@ run_cross_check() {
 MOVABLE=()
 BLOCKED_FILES=()
 BLOCKED_REASONS=()
+HAS_INDETERMINATE=0
 
 judge_file() {
   local file="$1" fname
@@ -802,6 +828,9 @@ judge_file() {
   # ---- 段階2（実測）: 確かめる手段の列・目視・実行結果 ----
   judge_measurement "$file" "$TIMEOUT_SEC"
   if [ "$MEAS_OK" -ne 1 ]; then
+    if [ "$MEAS_INDETERMINATE" -eq 1 ]; then
+      HAS_INDETERMINATE=1
+    fi
     BLOCKED_FILES+=("$fname")
     BLOCKED_REASONS+=("$MEAS_REASON")
     return
@@ -913,6 +942,11 @@ resolve_only_path() {
 run_normal_mode() {
   local target_files=() f
 
+  if [ "$APPLY" -eq 1 ] && [ "$TASKS_DIR" != "$REPO_ROOT/docs/tasks" ]; then
+    echo "ERROR: テスト用TASKS_DIR注入中は--applyを実行できない" >&2
+    return 1
+  fi
+
   if [ -n "$ONLY_FILE" ]; then
     target_files=("$ONLY_FILE")
   else
@@ -932,6 +966,7 @@ run_normal_mode() {
   MOVABLE=()
   BLOCKED_FILES=()
   BLOCKED_REASONS=()
+  HAS_INDETERMINATE=0
   if [ "${#target_files[@]}" -gt 0 ]; then
     for f in "${target_files[@]}"; do
       judge_file "$f"
@@ -974,6 +1009,12 @@ run_normal_mode() {
       echo "--apply: ${#MOVABLE[@]}件を docs/tasks/done/ へ移した（コミットはしていない）"
     fi
   fi
+
+  if [ -n "$ONLY_FILE" ] && [ "$HAS_INDETERMINATE" -eq 1 ]; then
+    echo "$MEAS_REASON"
+    return 2
+  fi
+  return 0
 }
 
 # ---------- self-test ----------
@@ -1013,7 +1054,7 @@ run_self_test() {
     fi
   }
 
-  echo "実行 23 件"
+  echo "実行 29 件"
 
   # 0. 確かめる手段がバッククォート囲み（rule.mdの見本と同じ書き方） -> 中身のコマンドとして実行され満たす
   #    （囲みを剥がさずに実行すると、バッククォート付き文字列がコマンド置換として実行され、
@@ -1346,32 +1387,109 @@ run_self_test() {
     fail=$((fail + 1))
   fi
 
-  # 20. 確かめる手段が終了コード2（判定不能）を返す -> 満たさない（未確認・移せない）
-  #     不合格（終了コード1）とは区別する。実行環境の制約で検査を実行できなかった場合が
-  #     該当する。定義: .claude/rules/always/verification/indeterminate-result/rule.md
+  # 20. 確かめる手段が終了コード2と行頭の [UNKNOWN] を返す -> 判定不能。
   local f20="$tmpdir/case20.md"
-  mk_doc "$(printf '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |\n|---|---|---|---|---|\n| 1. 何か | exit 2 | 未着手 | — | — |')" > "$f20"
-  run_meas_case "確かめる手段が判定不能（終了コード2）" "$f20" 5 0 "判定不能"
+  mk_doc "$(printf '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |\n|---|---|---|---|---|\n| 1. 何か | echo "  [UNKNOWN] sandbox"; exit 2 | 未着手 | — | — |')" > "$f20"
+  run_meas_case "終了コード2と先頭空白付き行頭ラベルは判定不能" "$f20" 5 0 "[UNKNOWN]"
 
-  # 21. --write は終了コード2（判定不能）の行を「未着手」へ降格させない。
-  #     「完了」だった行は「未確認」にし、「対象外」「判断待ち」は元の値のまま残す。
-  #     実行環境の制約で検査を実行できなかっただけで、正しい記録を消してはならない。
+  # 21. --write はラベルなしの終了コード2を未着手、ラベルありを未確認にする。
   local f21="$tmpdir/case21.md"
-  mk_doc "$(printf '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |\n|---|---|---|---|---|\n| 1. 何か | exit 2 | 完了 | — | — |\n| 2. 何か | exit 2 | 対象外 | — | — |\n| 3. 何か | exit 2 | 判断待ち | — | — |')" > "$f21"
+  mk_doc "$(printf '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |\n|---|---|---|---|---|\n| 1. ラベルなし | exit 2 | 完了 | — | — |\n| 2. ラベルあり | echo "[UNKNOWN] sandbox"; exit 2 | 完了 | — | — |')" > "$f21"
   write_measurement_states "$f21" 5
   local got21="fail"
-  if grep -qE '\|[[:space:]]*1\. 何か[[:space:]]*\|[[:space:]]*exit 2[[:space:]]*\|[[:space:]]*未確認[[:space:]]*\|' "$f21" \
-     && grep -qE '\|[[:space:]]*2\. 何か[[:space:]]*\|[[:space:]]*exit 2[[:space:]]*\|[[:space:]]*対象外[[:space:]]*\|' "$f21" \
-     && grep -qE '\|[[:space:]]*3\. 何か[[:space:]]*\|[[:space:]]*exit 2[[:space:]]*\|[[:space:]]*判断待ち[[:space:]]*\|' "$f21"; then
+  if grep -qE '\|[[:space:]]*1\. ラベルなし[[:space:]]*\|[[:space:]]*exit 2[[:space:]]*\|[[:space:]]*未着手[[:space:]]*\|' "$f21" \
+     && grep -qE '\|[[:space:]]*2\. ラベルあり[[:space:]]*\|.*\|[[:space:]]*未確認[[:space:]]*\|' "$f21"; then
     got21="pass"
   fi
   if [ "$got21" = "pass" ]; then
-    echo "[PASS] --writeが判定不能の行を未着手へ降格させない"
+    echo "[PASS] --writeがラベルなしを未着手、ラベルありを未確認にする"
     pass=$((pass + 1))
   else
-    echo "[FAIL] --writeが判定不能の行を未着手へ降格させない"
+    echo "[FAIL] --writeがラベルなしを未着手、ラベルありを未確認にする"
     echo "       中身:"
     sed 's/^/       /' "$f21"
+    fail=$((fail + 1))
+  fi
+
+  # 23. 判定器の out_file 用 mktemp 失敗は runner 由来の判定不能になり、
+  #     --only は行頭ラベルを出して終了コード2になる。
+  local f23="$tmpdir/case23-child.md" out23 out23_apply rc23 rc23_apply
+  mk_doc "$(printf '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |\n|---|---|---|---|---|\n| 1. 何か | true | 未着手 | — | — |')" > "$f23"
+  out23="$(JUDGE_TASK_DONE_TEST_TASKS_DIR="$tmpdir" JUDGE_TASK_DONE_TEST_CONFIRM_MKTEMP_FAIL=1 env bash "$SCRIPT_DIR/judge-task-done.sh" --only "$f23" 2>&1)"; rc23=$?
+  out23_apply="$(JUDGE_TASK_DONE_TEST_TASKS_DIR="$tmpdir" env bash "$SCRIPT_DIR/judge-task-done.sh" --apply --only "$f23" 2>&1)"; rc23_apply=$?
+  if [ "$rc23" -eq 2 ] \
+     && printf '%s\n' "$out23" | grep -qE '^\[UNKNOWN\].*出力ファイル作成.*サンドボックス' \
+     && printf '%s\n' "$out23" | grep -qE '^-[[:space:]].*: \[UNKNOWN\]' \
+     && [ "$rc23_apply" -eq 1 ] \
+     && printf '%s\n' "$out23_apply" | grep -qF 'テスト用TASKS_DIR注入中は--applyを実行できない'; then
+    echo "[PASS] 判定器のmktemp失敗を--onlyが判定不能として終了コード2で返す"
+    pass=$((pass + 1))
+  else
+    echo "[FAIL] 判定器のmktemp失敗を--onlyが判定不能として終了コード2で返す（rc=${rc23}）"
+    fail=$((fail + 1))
+  fi
+
+  # 24. ラベルなしの終了コード2はコマンドエラーとして不合格になる。
+  local f24="$tmpdir/case24.md"
+  mk_doc "$(printf '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |\n|---|---|---|---|---|\n| 1. 何か | exit 2 | 未着手 | — | — |')" > "$f24"
+  run_meas_case "終了コード2でもラベルなしはコマンドエラー" "$f24" 5 0 "実測"
+
+  # 25. 行頭でない [UNKNOWN] は判定不能ラベルとして扱わない。
+  local f25="$tmpdir/case25.md"
+  mk_doc "$(printf '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |\n|---|---|---|---|---|\n| 1. 何か | echo "prefix [UNKNOWN] text"; exit 2 | 未着手 | — | — |')" > "$f25"
+  run_meas_case "文中のUNKNOWNラベルはコマンドエラー" "$f25" 5 0 "実測"
+
+  # 26. --only は判定不能を行頭ラベルで報告し終了コード2になる。
+  local only_unknown_dir="$tmpdir/only-unknown" f26="$tmpdir/only-unknown/task.md" out26 rc26
+  mkdir -p "$only_unknown_dir"
+  mk_doc "$(printf '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |\n|---|---|---|---|---|\n| 1. 何か | echo "[UNKNOWN] child-operation=database-connect cause=dns-unavailable"; exit 2 | 未確認 | — | — |\n| 2. 目視も同居 | 目視 | 未着手 | — | — |')" > "$f26"
+  judge_publish_orig="$(declare -f judge_publish)"
+  judge_publish() { PUBLISH_OK=1; PUBLISH_MSG="stub"; }
+  saved_tasks_dir="$TASKS_DIR"; saved_only_file="$ONLY_FILE"; saved_write="$WRITE"
+  TASKS_DIR="$only_unknown_dir"; ONLY_FILE="$f26"; WRITE=0
+  out26="$(run_normal_mode 2>&1)"; rc26=$?
+  TASKS_DIR="$saved_tasks_dir"; ONLY_FILE="$saved_only_file"; WRITE="$saved_write"
+  eval "$judge_publish_orig"
+  if [ "$rc26" -eq 2 ] && printf '%s\n' "$out26" | grep -qE '^\[UNKNOWN\] child-operation=database-connect cause=dns-unavailable$'; then
+    echo "[PASS] --onlyは判定不能を報告して終了コード2"
+    pass=$((pass + 1))
+  else
+    echo "[FAIL] --onlyは判定不能を報告して終了コード2（rc=${rc26}）"
+    fail=$((fail + 1))
+  fi
+
+  # 27. 引数なし一覧は判定不能を含んでも完走し、報告成功なら終了コード0になる。
+  local all_dir="$tmpdir/all-unknown" f27a="$tmpdir/all-unknown/a.md" f27b="$tmpdir/all-unknown/b.md" out27 rc27
+  mkdir -p "$all_dir"
+  mk_doc "$(printf '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |\n|---|---|---|---|---|\n| 1. 何か | echo "[UNKNOWN] sandbox"; exit 2 | 未確認 | — | — |')" > "$f27a"
+  mk_doc "$(printf '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |\n|---|---|---|---|---|\n| 1. 何か | false | 未着手 | — | — |')" > "$f27b"
+  judge_publish_orig="$(declare -f judge_publish)"
+  judge_publish() { PUBLISH_OK=1; PUBLISH_MSG="stub"; }
+  saved_tasks_dir="$TASKS_DIR"; saved_only_file="$ONLY_FILE"; saved_write="$WRITE"
+  TASKS_DIR="$all_dir"; ONLY_FILE=""; WRITE=0
+  out27="$(run_normal_mode 2>&1)"; rc27=$?
+  TASKS_DIR="$saved_tasks_dir"; ONLY_FILE="$saved_only_file"; WRITE="$saved_write"
+  eval "$judge_publish_orig"
+  if [ "$rc27" -eq 0 ] && printf '%s\n' "$out27" | grep -q 'a.md: \[UNKNOWN\]' \
+     && printf '%s\n' "$out27" | grep -q 'b.md: 実測で満たさない判定がある'; then
+    echo "[PASS] 引数なし一覧は判定不能を含んでも完走して終了コード0"
+    pass=$((pass + 1))
+  else
+    echo "[FAIL] 引数なし一覧は判定不能を含んでも完走して終了コード0（rc=${rc27}）"
+    fail=$((fail + 1))
+  fi
+
+  # 28. 判定器由来と確かめる手段由来を内部状態で区別して保持する。
+  local err28="$tmpdir/case28.err" runner_origin command_origin
+  JUDGE_TASK_DONE_TEST_CONFIRM_MKTEMP_FAIL=1 run_confirm_command "true" 5 2> "$err28"
+  runner_origin="$CONFIRM_ORIGIN"
+  run_confirm_command "exit 2" 5
+  command_origin="$CONFIRM_ORIGIN"
+  if [ "$runner_origin" = "runner" ] && [ "$command_origin" = "command" ]; then
+    echo "[PASS] 判定器由来と確かめる手段由来を内部状態で区別する"
+    pass=$((pass + 1))
+  else
+    echo "[FAIL] 判定器由来と確かめる手段由来を内部状態で区別する（runner=${runner_origin} command=${command_origin}）"
     fail=$((fail + 1))
   fi
 
