@@ -83,10 +83,10 @@ table_value() { # $1=key $2=value。複数行literalは表へ押し込まず別�
 
 # ---- facts.yml パース（awk固定インデント方式。facts-schema.md準拠） ----
 
-extract_items() { # $1=facts.yml $2=対象セクション名 -> key\x01value\x01evidence を1行ずつ出力
+extract_items() { # $1=facts.yml $2=対象セクション名 -> key\x1fvalue\x1fevidence を1行ずつ出力
   awk -v target="$2" '
     function flush() {
-      printf "%s\x01%s\x01%s\n", key, value, evidence
+      printf "%s\x1f%s\x1f%s\n", key, value, evidence
       havekey = 0
     }
     /^sections:/ { insec = 1; next }
@@ -122,10 +122,10 @@ extract_items() { # $1=facts.yml $2=対象セクション名 -> key\x01value\x01
 # 複数行literalを忠実に復号する経路では、固定YAMLスカラーを生のまま取り出す。
 # Python extractorが出力する二重引用符スカラーはJSON文字列でもあるため、jqの
 # fromjsonで引用符・バックスラッシュ・Unicodeを一括復号する。
-extract_raw_items() { # $1=facts.yml $2=対象セクション名 -> raw key\x01raw value\x01raw evidence
+extract_raw_items() { # $1=facts.yml $2=対象セクション名 -> raw key\x1fraw value\x1fraw evidence
   awk -v target="$2" '
     function flush() {
-      printf "%s\x01%s\x01%s\n", key, value, evidence
+      printf "%s\x1f%s\x1f%s\n", key, value, evidence
       havekey = 0
     }
     /^sections:/ { insec = 1; next }
@@ -293,7 +293,7 @@ insert_list_rows() { # $1=infile $2=anchor(ERE) $3=rows_file(番号なしの本�
 # ---- セクション別の行生成 ----
 
 build_rows_import() {
-  while IFS=$'\x01' read -r key value evidence; do
+  while IFS=$'\x1f' read -r key value evidence; do
     [ -z "$key" ] && continue
     local name content kind
     name="$(key_token "$key" 2)"; [ -z "$name" ] && name="$(mk_marker 15 モジュール)"
@@ -304,7 +304,7 @@ build_rows_import() {
 }
 
 build_rows_export_file() { # §15.1（export-* キー。type-* 以外すべて）
-  while IFS=$'\x01' read -r key value evidence; do
+  while IFS=$'\x1f' read -r key value evidence; do
     [ -z "$key" ] && continue
     case "$key" in
       type-*) continue ;;
@@ -320,7 +320,7 @@ build_rows_export_file() { # §15.1（export-* キー。type-* 以外すべて�
 }
 
 build_rows_export_type() { # §15.2（type-* キーのみ）
-  while IFS=$'\x01' read -r key value evidence; do
+  while IFS=$'\x1f' read -r key value evidence; do
     [ -z "$key" ] && continue
     case "$key" in
       type-*) ;;
@@ -336,7 +336,7 @@ build_rows_export_type() { # §15.2（type-* キーのみ）
 }
 
 build_rows_const() {
-  while IFS=$'\x01' read -r key value evidence; do
+  while IFS=$'\x1f' read -r key value evidence; do
     [ -z "$key" ] && continue
     local name val usage
     name="$(key_token "$key" 2)"; [ -z "$name" ] && name="$key"
@@ -348,7 +348,7 @@ build_rows_const() {
 }
 
 build_rows_state() {
-  while IFS=$'\x01' read -r key value evidence; do
+  while IFS=$'\x1f' read -r key value evidence; do
     [ -z "$key" ] && continue
     local name type_col init role
     name="$(key_token "$key" 2)"; [ -z "$name" ] && name="$key"
@@ -360,7 +360,7 @@ build_rows_state() {
 }
 
 build_rows_handler() {
-  while IFS=$'\x01' read -r key value evidence; do
+  while IFS=$'\x1f' read -r key value evidence; do
     [ -z "$key" ] && continue
     local name trigger summary
     name="$(key_token "$key" 2)"; [ -z "$name" ] && name="$key"
@@ -371,7 +371,7 @@ build_rows_handler() {
 }
 
 build_rows_jsx() { # §3.2 DOM配置順序（リスト本文のみ。連番はinsert_list_rowsが付与）
-  while IFS=$'\x01' read -r key value evidence; do
+  while IFS=$'\x1f' read -r key value evidence; do
     [ -z "$key" ] && continue
     local purpose
     purpose="$value"; [ -z "$purpose" ] && purpose="$(mk_marker 3 目的)"
@@ -380,7 +380,7 @@ build_rows_jsx() { # §3.2 DOM配置順序（リスト本文のみ。連番はin
 }
 
 build_rows_style() {
-  while IFS=$'\x01' read -r key value evidence; do
+  while IFS=$'\x1f' read -r key value evidence; do
     [ -z "$key" ] && continue
     local area pattern ref
     area="$(key_token "$key" 2)"; [ -z "$area" ] && area="$key"
@@ -392,7 +392,7 @@ build_rows_style() {
 }
 
 build_rows_api() {
-  while IFS=$'\x01' read -r key value evidence; do
+  while IFS=$'\x1f' read -r key value evidence; do
     [ -z "$key" ] && continue
     local name no_col method endpoint trigger
     name="$(key_token "$key" 2)"; [ -z "$name" ] && name="$key"
@@ -405,7 +405,7 @@ build_rows_api() {
 }
 
 build_rows_measurement_pending() { # §16
-  while IFS=$'\x01' read -r key value evidence; do
+  while IFS=$'\x1f' read -r key value evidence; do
     [ -z "$key" ] && continue
     local kcol filed content pending_ch resolve
     kcol="mp-${key}"
@@ -419,7 +419,7 @@ build_rows_measurement_pending() { # §16
 
 # 補助転記（facts全キー突合のカウント対象外）: handler由来のevidenceのみ§6.4/§12.1へ転記する
 build_rows_dataflow_trigger() { # §6.4
-  while IFS=$'\x01' read -r key value evidence; do
+  while IFS=$'\x1f' read -r key value evidence; do
     [ -z "$key" ] && continue
     local name kind summary
     name="$(key_token "$key" 2)"; [ -z "$name" ] && name="$key"
@@ -431,7 +431,7 @@ build_rows_dataflow_trigger() { # §6.4
 }
 
 build_rows_transition_list() { # §12.1
-  while IFS=$'\x01' read -r key value evidence; do
+  while IFS=$'\x1f' read -r key value evidence; do
     [ -z "$key" ] && continue
     local dest method cond param
     dest="$(mk_marker 12 遷移先画面)"
@@ -447,7 +447,7 @@ build_rows_transition_list() { # §12.1
 # 名前・文脈を復元し、value は最も適合する単一カラムへそのまま転記する（他分類と同じ設計方針）。
 
 build_rows_local_type() { # §15.2（type-*以外のローカル型定義。key: local-type-<型名>）
-  while IFS=$'\x01' read -r key value evidence; do
+  while IFS=$'\x1f' read -r key value evidence; do
     [ -z "$key" ] && continue
     local tname field_name fields req
     tname="$(key_token "$key" 3)"; [ -z "$tname" ] && tname="$(mk_marker 15 型名)"
@@ -460,7 +460,7 @@ build_rows_local_type() { # §15.2（type-*以外のローカル型定義。key:
 }
 
 build_rows_effect_trigger() { # §6.4（key: effect-<主処理名>-<契機>）
-  while IFS=$'\x01' read -r key value evidence; do
+  while IFS=$'\x1f' read -r key value evidence; do
     [ -z "$key" ] && continue
     local name deps cleanup
     name="$(key_token "$key" 2)"; [ -z "$name" ] && name="$key"
@@ -474,7 +474,7 @@ build_rows_effect_trigger() { # §6.4（key: effect-<主処理名>-<契機>）
 }
 
 build_rows_error_handling() { # §11.2（key: error-<文脈>-<種別>）
-  while IFS=$'\x01' read -r key value evidence; do
+  while IFS=$'\x1f' read -r key value evidence; do
     [ -z "$key" ] && continue
     local ctx msg action
     ctx="$(key_token "$key" 2)"; [ -z "$ctx" ] && ctx="$key"
@@ -597,7 +597,7 @@ append_multiline_literal_blocks() { # $1=facts.yml $2=design.md
   # 手元で裸の mktemp に戻して動いて見えてもそれを理由に外すな。
   blocks="$(mktemp "${TMPDIR:-/tmp}/prefill-code-blocks.XXXXXX")"
   for sec in handler local_type function; do
-    while IFS=$'\x01' read -r raw_key raw_value raw_evidence; do
+    while IFS=$'\x1f' read -r raw_key raw_value raw_evidence; do
       key="$(decode_fixed_scalar "$raw_key")"
       value="$(decode_fixed_scalar "$raw_value")"
       [ -z "$key" ] && continue
