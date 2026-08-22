@@ -248,22 +248,11 @@ declared_long_running_timeout() {
   esac
 }
 
-# declared_long_running_timeout() の対象のうち、実測が300秒を超えるため
-# 集計側の待ち時間を延ばさず、既定上限で打ち切ったうえで区別だけを付ける
-# 対象を宣言する（改善課題1-52）。この関数が真を返すスクリプトが既定上限で
-# 打ち切られた場合、run_all() は TIMEOUT ではなく DECLARED-LONG として記録し、
-# 途中停止の疑い・打ち切りのいずれにも数えず、終了コードにも影響させない
-# （宣言済みで実測済みの既知事実であり、機械検証の実行時間そのものを1本の
-# ために15分超へ延ばすことは検証の目的に対して不釣り合いなため）。
-#   generation-engine/scripts/build-portal.sh  実測815s（機能はdelivery-payload/templates由来の
-#                                    決定的生成であり短縮も改変も範囲外）
-#   generation-engine/scripts/unit-list/rebuild-screen-derived-pages.sh
-#                                    実測750s（改善課題1-52対応で自己テスト
-#                                    フィクスチャのsourceDir解決を修正した結果、
-#                                    以前は早期FAILで短時間だった自己テストが
-#                                    本番pipelineを複数回最後まで完走するよう
-#                                    になったため露見した実行時間。単体実行では
-#                                    終了コード0で完走することを確認済み）
+# 既定上限を超えることを実測で確認した対象だけをここへ宣言する。この関数が
+# 真を返すスクリプトが既定上限で打ち切られた場合、run_all() は TIMEOUT ではなく
+# DECLARED-LONG として記録し、途中停止の疑い・打ち切りのいずれにも数えず、
+# 終了コードにも影響させない。現在の登録は0件。将来、既定上限超過が実測された
+# 対象のみここへ追加する。
 # 引数: repo・abs（対象スクリプトの絶対パス）。戻り値: 対象なら "1" を echo
 # し終了コード0、対象外なら何も出力せず終了コード1。
 declared_long_running_known() {
@@ -273,22 +262,6 @@ declared_long_running_known() {
     "$repo"/*) rel="${rel#"$repo"/}" ;;
   esac
   case "$rel" in
-    generation-engine/scripts/build-portal.sh)
-      echo 1
-      return 0
-      ;;
-    generation-engine/scripts/unit-list/rebuild-screen-derived-pages.sh)
-      echo 1
-      return 0
-      ;;
-    # 2026-08-19 に test-*.sh を名前で拾う条件を足したことで集約に載った。
-    # 上の rebuild-screen-derived-pages.sh を呼ぶ回帰テストであり、呼ぶ側が
-    # 宣言済みである以上、こちらも上限を超える。実測で 6 分 35 秒を経過しても
-    # 完走せず、既定上限 120 秒を大きく超えることを確認した。
-    generation-engine/scripts/tests/unit-list/test-rebuild-screen-derived-pages.sh)
-      echo 1
-      return 0
-      ;;
     *)
       return 1
       ;;
@@ -799,8 +772,8 @@ EOS
   local knownYes knownRc
   knownYes="$(declared_long_running_known "/x" "/x/generation-engine/scripts/build-portal.sh")"
   knownRc=$?
-  [ "$knownYes" = "1" ] && [ "$knownRc" -eq 0 ] \
-    && assert_true "宣言済み既知対象-登録対象" 0 || assert_true "宣言済み既知対象-登録対象" 1
+  [ -z "$knownYes" ] && [ "$knownRc" -ne 0 ] \
+    && assert_true "宣言済み既知対象-現在0件" 0 || assert_true "宣言済み既知対象-現在0件" 1
   declared_long_running_known "/x" "/x/generation-engine/scripts/unrelated-script.sh" >/dev/null
   [ $? -ne 0 ] && assert_true "宣言済み既知対象-未登録は非0" 0 || assert_true "宣言済み既知対象-未登録は非0" 1
 
@@ -833,8 +806,8 @@ EOS
 
   # --- フィクスチャ準備（repoF: declared_long_running_known の
   #     DECLARED-LONG 分類の検証用） ---
-  # ファイル名を declared_long_running_known() の登録名（相対パス）と一致
-  # させ、既定の1秒上限を超える1.5秒の実行が TIMEOUT ではなく
+  # テスト専用の override で build-portal.sh だけを既知対象として扱い、
+  # 既定の1秒上限を超える1.5秒の実行が TIMEOUT ではなく
   # [DECLARED-LONG] として記録され、それが唯一の異常でも run_all() の
   # 終了コードが0のまま（途中停止の疑い・打ち切りいずれにも数えない）
   # ことを確認する。
@@ -851,6 +824,22 @@ fi
 exit 0
 EOS
   chmod +x "$scanF/build-portal.sh"
+
+  # 本番の登録が0件であることとは独立して分類ロジックを検証するための、
+  # self-test ローカルの override。実対象を case arm に再登録しない。
+  local self_test_declared_rel="generation-engine/scripts/build-portal.sh"
+  declared_long_running_known() {
+    local repo="$1" abs="$2" rel
+    rel="$abs"
+    case "$rel" in
+      "$repo"/*) rel="${rel#"$repo"/}" ;;
+    esac
+    if [ "$rel" = "$self_test_declared_rel" ]; then
+      echo 1
+      return 0
+    fi
+    return 1
+  }
 
   local outF rcF
   outF="$(run_all "$tmp/repoF" "/dev/null/no-such-self" 1)"

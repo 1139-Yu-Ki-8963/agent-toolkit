@@ -237,6 +237,14 @@ build_matrix() {
   [ -n "$project_name" ] && args+=(--project-name "$project_name")
   bash "$REPO_ROOT/generation-engine/scripts/matrix/build-matrix-pages.sh" "${args[@]}"
 }
+# transactionへ複製された陳腐化した任意出力を先に除去する。必須成分0件で生成を
+# スキップした場合も不在のままにし、commit時に既存outputから削除できるようにする。
+rm -f \
+  "$transaction_root/マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html" \
+  "$transaction_root/マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html" \
+  "$transaction_root/マトリクス・対応表/CRUD図/CRUD図.html" \
+  "$transaction_root/マトリクス・対応表/画面-API-テーブル対応表/画面-API-テーブル対応表.html"
+
 build_matrix permission-screen "$matrix_dir/permission-matrix.json" "$transaction_root/マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html"
 build_matrix permission-function "$matrix_dir/permission-function-matrix.json" "$transaction_root/マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html"
 build_matrix crud "$matrix_dir/crud-matrix.json" "$transaction_root/マトリクス・対応表/CRUD図/CRUD図.html"

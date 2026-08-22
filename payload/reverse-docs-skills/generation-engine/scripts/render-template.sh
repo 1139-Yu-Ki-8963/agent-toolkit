@@ -5,9 +5,9 @@
 #   source "path/to/render-template.sh"
 #   result="$(render_template "$template" "{{KEY1}}" "$val1" "{{KEY2}}" "$val2")"
 #
-# テンプレートの「まだ処理していない残り」だけを走査対象にし、一度確定した出力
-# (地の文または埋め込み済みの値)は二度とプレースホルダのパターンマッチ対象にしない。
-# 値の中身に他マーカーの文字列が偶然含まれていても誤爆しない。
+# テンプレートだけを左から走査し、一度確定した出力(地の文または埋め込み済みの値)は
+# 二度とプレースホルダの走査対象にしない。値の中身に他マーカーの文字列が偶然含まれて
+# いても誤爆しない。置換候補が同位置なら、引数で先に渡されたキーを優先する。
 #
 # 集約の対象外: 本ファイルは source される共通関数ライブラリで
 # あり、単体で実行される本番経路のスクリプトではない（トップレベルの引数解析・実行文を
@@ -61,36 +61,87 @@ strip_generator_notice_comment() {
 }
 
 render_template() {
+  if [ "$#" -lt 1 ]; then
+    echo "render_template: template is required" >&2
+    return 2
+  fi
+
   local template
   template="$(strip_generator_notice_comment "$1")"; shift
-  local -a keys=() vals=()
-  while [ $# -gt 0 ]; do
-    keys+=("$1"); vals+=("$2"); shift 2
+
+  if [ $(( $# % 2 )) -ne 0 ]; then
+    echo "render_template: key/value arguments must be paired" >&2
+    return 2
+  fi
+
+  local i
+  for ((i = 1; i <= $#; i += 2)); do
+    if [ -z "${!i}" ]; then
+      echo "render_template: empty key is not supported" >&2
+      return 2
+    fi
   done
 
-  local rest="$template" result="" i n=${#keys[@]}
-  local best_idx best_prefix candidate
+  if ! command -v node >/dev/null 2>&1; then
+    echo "render_template: node is required" >&2
+    return 127
+  fi
 
-  while :; do
-    best_idx=-1
-    best_prefix=""
-    for ((i = 0; i < n; i++)); do
-      case "$rest" in
-        *"${keys[$i]}"*)
-          candidate="${rest%%"${keys[$i]}"*}"
-          if [ "$best_idx" -eq -1 ] || [ "${#candidate}" -lt "${#best_prefix}" ]; then
-            best_idx=$i
-            best_prefix="$candidate"
-          fi
-          ;;
-      esac
-    done
-    [ "$best_idx" -eq -1 ] && break
-    result="${result}${best_prefix}${vals[$best_idx]}"
-    rest="${rest#"${best_prefix}"}"
-    rest="${rest#"${keys[$best_idx]}"}"
-  done
+  # Bash変数はNULを保持できないため、テンプレートとkey/value列を安全に区切って渡せる。
+  # Node側はtemplateのみを走査するため、値に含まれるマーカーは再置換されない。
+  printf '%s\0' "$template" "$@" | node -e '
+const chunks = [];
+process.stdin.on("data", (chunk) => chunks.push(chunk));
+process.stdin.on("end", () => {
+  const input = Buffer.concat(chunks).toString("utf8");
+  if (!input.endsWith("\0")) {
+    process.stderr.write("render_template: invalid NUL-delimited input\n");
+    process.exitCode = 2;
+    return;
+  }
 
-  result="${result}${rest}"
-  printf '%s' "$result"
+  const fields = input.split("\0");
+  fields.pop();
+  const template = fields.shift();
+  if ((fields.length % 2) !== 0) {
+    process.stderr.write("render_template: key/value arguments must be paired\n");
+    process.exitCode = 2;
+    return;
+  }
+
+  const keys = [];
+  const values = [];
+  for (let index = 0; index < fields.length; index += 2) {
+    if (fields[index] === "") {
+      process.stderr.write("render_template: empty key is not supported\n");
+      process.exitCode = 2;
+      return;
+    }
+    keys.push(fields[index]);
+    values.push(fields[index + 1]);
+  }
+
+  const output = [];
+  let cursor = 0;
+  while (cursor < template.length) {
+    let earliest = -1;
+    let matchedIndex = -1;
+    for (let index = 0; index < keys.length; index += 1) {
+      const position = template.indexOf(keys[index], cursor);
+      if (position !== -1 && (earliest === -1 || position < earliest)) {
+        earliest = position;
+        matchedIndex = index;
+      }
+    }
+    if (matchedIndex === -1) {
+      output.push(template.slice(cursor));
+      break;
+    }
+    output.push(template.slice(cursor, earliest), values[matchedIndex]);
+    cursor = earliest + keys[matchedIndex].length;
+  }
+
+  process.stdout.write(output.join(""));
+});
+'
 }

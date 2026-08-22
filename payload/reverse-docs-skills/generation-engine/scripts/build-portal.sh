@@ -155,8 +155,8 @@ detect_undefined_unit_phase_dirs() {
 
 # 書込先自身と、そこへ至る既存path componentをlstatで検査する。
 # symlinkを1つでも含む場合は、リンク先のrepo外treeへ書かないようfail closedにする。
-assert_no_symlink_output_path() {
-  node - "$1" "$2" <<'NODE'
+assert_no_symlink_output_paths() {
+  node - "$@" <<'NODE'
 const fs = require("fs");
 const path = require("path");
 function lexicalAbsolute(raw) {
@@ -183,27 +183,30 @@ function assertNoLexicalSymlink(raw) {
     }
   }
 }
-assertNoLexicalSymlink(process.argv[2]);
-assertNoLexicalSymlink(process.argv[3]);
-const outputRoot = path.resolve(process.argv[2]);
-const target = path.resolve(process.argv[3]);
-const relative = path.relative(outputRoot, target);
-if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
-  throw new Error(`write path must stay under output_dir: ${target}`);
-}
-const parsed = path.parse(target);
-let current = parsed.root;
-for (const segment of target.slice(parsed.root.length).split(path.sep).filter(Boolean)) {
-  current = path.join(current, segment);
-  let stat;
-  try {
-    stat = fs.lstatSync(current);
-  } catch (error) {
-    if (error && error.code === "ENOENT") break;
-    throw error;
+const outputRootRaw = process.argv[2];
+const outputRoot = path.resolve(outputRootRaw);
+for (const rawTarget of process.argv.slice(3)) {
+  assertNoLexicalSymlink(outputRootRaw);
+  assertNoLexicalSymlink(rawTarget);
+  const target = path.resolve(rawTarget);
+  const relative = path.relative(outputRoot, target);
+  if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new Error(`write path must stay under output_dir: ${target}`);
   }
-  if (stat.isSymbolicLink()) {
-    throw new Error(`write path must not contain a symbolic link: ${current}`);
+  const parsed = path.parse(target);
+  let current = parsed.root;
+  for (const segment of target.slice(parsed.root.length).split(path.sep).filter(Boolean)) {
+    current = path.join(current, segment);
+    let stat;
+    try {
+      stat = fs.lstatSync(current);
+    } catch (error) {
+      if (error && error.code === "ENOENT") break;
+      throw error;
+    }
+    if (stat.isSymbolicLink()) {
+      throw new Error(`write path must not contain a symbolic link: ${current}`);
+    }
   }
 }
 NODE
@@ -4174,35 +4177,75 @@ LAYOUT_JSON="$(resolve_output_layout "$DOCS_ROOT")" || exit 1
 # ファイル形式（{specVersion, layout, kindLabels}のJSONファイル）として一時ファイルへ書き出し、
 # render呼び出しへ渡す。新しい正本ファイルは作らず、ビルド実行中だけの一時ファイルとして作る。
 OUTPUT_LAYOUT_RESOLVED_FILE="$(mktemp "${TMPDIR:-/tmp}/portal-output-layout.XXXXXX")"
+OUTPUT_LAYOUT_VALUES_FILE="${OUTPUT_LAYOUT_RESOLVED_FILE}.values"
+trap 'rm -f "$OUTPUT_LAYOUT_RESOLVED_FILE" "$OUTPUT_LAYOUT_VALUES_FILE"' EXIT
 printf '%s' "$LAYOUT_JSON" > "$OUTPUT_LAYOUT_RESOLVED_FILE"
-LAYOUT_COMMON_ROOT="$(output_layout_get "$LAYOUT_JSON" commonRoot)" || exit 1
-LAYOUT_CROSS_CUTTING_ROOT="$(output_layout_get "$LAYOUT_JSON" crossCuttingDesignRoot)" || exit 1
-LAYOUT_SCREEN_LIST_DIR="$(output_layout_get "$LAYOUT_JSON" screenListDir)" || exit 1
-LAYOUT_SCREEN_UNIT_ROOT="$(output_layout_get "$LAYOUT_JSON" screenUnitRoot)" || exit 1
-LAYOUT_RULES_ROOT="$(output_layout_get "$LAYOUT_JSON" rulesRoot)" || exit 1
-LAYOUT_FOUNDATION_DIR="$(output_layout_get "$LAYOUT_JSON" foundationDir)" || exit 1
-LAYOUT_SCREEN_VIEW_ROOT="$(output_layout_get "$LAYOUT_JSON" screenViewRoot)" || exit 1
-LAYOUT_MANIFESTS_ROOT="$(output_layout_get "$LAYOUT_JSON" manifestsRoot)" || exit 1
+# 生成のたびに同じJSONへ output_layout_get（存在確認jq + 値取得jq）を繰り返すと、
+# self-testの再帰生成50回で短命プロセスが支配的になる。必要な14キーを1プロセスで
+# 取り出す。NUL区切りなので、値に空白や改行があっても読み分けられる。
+if ! node - "$OUTPUT_LAYOUT_RESOLVED_FILE" \
+  commonRoot crossCuttingDesignRoot screenListDir screenUnitRoot rulesRoot foundationDir \
+  screenViewRoot manifestsRoot apiUnitRoot tableUnitRoot batchUnitRoot reportUnitRoot \
+  externalUnitRoot featureUnitRoot > "$OUTPUT_LAYOUT_VALUES_FILE" <<'NODE'
+const fs = require("fs");
+const doc = JSON.parse(fs.readFileSync(process.argv[2], "utf8"));
+const layout = doc.layout || {};
+for (const key of process.argv.slice(3)) {
+  if (!Object.prototype.hasOwnProperty.call(layout, key)) {
+    process.stderr.write(`ERROR: output-layout のキーが存在しません: ${key}\n`);
+    process.exit(2);
+  }
+  const value = layout[key];
+  const rendered = typeof value === "string"
+    ? value
+    : value === null
+      ? "null"
+      : typeof value === "object"
+        ? JSON.stringify(value)
+        : String(value);
+  process.stdout.write(`${rendered}\0`);
+}
+NODE
+then
+  exit 1
+fi
+layout_values=()
+while IFS= read -r -d '' layout_value; do
+  layout_values+=("$layout_value")
+done < "$OUTPUT_LAYOUT_VALUES_FILE"
+if [ "${#layout_values[@]}" -ne 14 ]; then
+  echo "ERROR: output-layout の一括取得結果が不完全です" >&2
+  exit 1
+fi
+LAYOUT_COMMON_ROOT="${layout_values[0]}"
+LAYOUT_CROSS_CUTTING_ROOT="${layout_values[1]}"
+LAYOUT_SCREEN_LIST_DIR="${layout_values[2]}"
+LAYOUT_SCREEN_UNIT_ROOT="${layout_values[3]}"
+LAYOUT_RULES_ROOT="${layout_values[4]}"
+LAYOUT_FOUNDATION_DIR="${layout_values[5]}"
+LAYOUT_SCREEN_VIEW_ROOT="${layout_values[6]}"
+LAYOUT_MANIFESTS_ROOT="${layout_values[7]}"
 # 1-36: 非画面6種別（API・テーブル・バッチ・帳票・外部連携・機能）の設計書単位文書を、
 # 個別ページへの遷移リンク（一覧マニフェストのdesignDocPath）が指す実体として変換するため、
 # 各UnitRootを共通文書ループ（common_roots）へ合流させる。screenUnitRootは既存の専用ループ
 # （画面基本設計/詳細設計の別ルート出力・戻るリンク付き）が担うため対象外のまま維持する。
-LAYOUT_API_UNIT_ROOT="$(output_layout_get "$LAYOUT_JSON" apiUnitRoot)" || exit 1
-LAYOUT_TABLE_UNIT_ROOT="$(output_layout_get "$LAYOUT_JSON" tableUnitRoot)" || exit 1
-LAYOUT_BATCH_UNIT_ROOT="$(output_layout_get "$LAYOUT_JSON" batchUnitRoot)" || exit 1
-LAYOUT_REPORT_UNIT_ROOT="$(output_layout_get "$LAYOUT_JSON" reportUnitRoot)" || exit 1
-LAYOUT_EXTERNAL_UNIT_ROOT="$(output_layout_get "$LAYOUT_JSON" externalUnitRoot)" || exit 1
-LAYOUT_FEATURE_UNIT_ROOT="$(output_layout_get "$LAYOUT_JSON" featureUnitRoot)" || exit 1
+LAYOUT_API_UNIT_ROOT="${layout_values[8]}"
+LAYOUT_TABLE_UNIT_ROOT="${layout_values[9]}"
+LAYOUT_BATCH_UNIT_ROOT="${layout_values[10]}"
+LAYOUT_REPORT_UNIT_ROOT="${layout_values[11]}"
+LAYOUT_EXTERNAL_UNIT_ROOT="${layout_values[12]}"
+LAYOUT_FEATURE_UNIT_ROOT="${layout_values[13]}"
 check_docs_root_misconfiguration "$LAYOUT_JSON" "$DOCS_ROOT" || exit 1
-assert_no_symlink_output_path "$DOCS_ROOT" "$DOCS_ROOT" || exit 1
-assert_no_symlink_output_path "$DOCS_ROOT" "$DOCS_ROOT/$LAYOUT_SCREEN_UNIT_ROOT" || exit 1
-assert_no_symlink_output_path "$DOCS_ROOT" "$DOCS_ROOT/$LAYOUT_CROSS_CUTTING_ROOT" || exit 1
-assert_no_symlink_output_path "$DOCS_ROOT" "$DOCS_ROOT/$LAYOUT_API_UNIT_ROOT" || exit 1
-assert_no_symlink_output_path "$DOCS_ROOT" "$DOCS_ROOT/$LAYOUT_TABLE_UNIT_ROOT" || exit 1
-assert_no_symlink_output_path "$DOCS_ROOT" "$DOCS_ROOT/$LAYOUT_BATCH_UNIT_ROOT" || exit 1
-assert_no_symlink_output_path "$DOCS_ROOT" "$DOCS_ROOT/$LAYOUT_REPORT_UNIT_ROOT" || exit 1
-assert_no_symlink_output_path "$DOCS_ROOT" "$DOCS_ROOT/$LAYOUT_EXTERNAL_UNIT_ROOT" || exit 1
-assert_no_symlink_output_path "$DOCS_ROOT" "$DOCS_ROOT/$LAYOUT_FEATURE_UNIT_ROOT" || exit 1
+assert_no_symlink_output_paths "$DOCS_ROOT" \
+  "$DOCS_ROOT" \
+  "$DOCS_ROOT/$LAYOUT_SCREEN_UNIT_ROOT" \
+  "$DOCS_ROOT/$LAYOUT_CROSS_CUTTING_ROOT" \
+  "$DOCS_ROOT/$LAYOUT_API_UNIT_ROOT" \
+  "$DOCS_ROOT/$LAYOUT_TABLE_UNIT_ROOT" \
+  "$DOCS_ROOT/$LAYOUT_BATCH_UNIT_ROOT" \
+  "$DOCS_ROOT/$LAYOUT_REPORT_UNIT_ROOT" \
+  "$DOCS_ROOT/$LAYOUT_EXTERNAL_UNIT_ROOT" \
+  "$DOCS_ROOT/$LAYOUT_FEATURE_UNIT_ROOT" || exit 1
 
 CATALOG="$DEFAULT_CATALOG"
 GENERATED_AT=""
@@ -4913,19 +4956,20 @@ screen_list_dir="$DOCS_ROOT/$LAYOUT_SCREEN_LIST_DIR"
 if [ -d "$DOCS_ROOT/$LAYOUT_SCREEN_UNIT_ROOT" ] && [ -f "$SCREEN_DOC_TEMPLATE_FILE" ]; then
   for screen_dir in "$DOCS_ROOT/$LAYOUT_SCREEN_UNIT_ROOT"/screen-*/; do
     [ -d "$screen_dir" ] || continue
-    assert_no_symlink_output_path "$DOCS_ROOT" "$screen_dir" || exit 1
+    assert_no_symlink_output_paths "$DOCS_ROOT" "$screen_dir" || exit 1
 
     # html は screenUnitRoot（定義の置き場）と物理的に分離し、screenViewRoot
     # （project-portal/画面。人が読む資料の置き場）の同名 screen-<ID> 配下へ出力する。
     screen_dir_name="$(basename "${screen_dir%/}")"
     screen_view_dir="$DOCS_ROOT/$LAYOUT_SCREEN_VIEW_ROOT/${screen_dir_name}/"
     mkdir -p "$screen_view_dir"
-    assert_no_symlink_output_path "$DOCS_ROOT" "$screen_view_dir" || exit 1
 
     base_md="${screen_dir}基本設計/画面基本設計書.md"
     detail_md="${screen_dir}詳細設計/画面詳細設計書.md"
-    assert_no_symlink_output_path "$DOCS_ROOT" "$(dirname "$base_md")" || exit 1
-    assert_no_symlink_output_path "$DOCS_ROOT" "$(dirname "$detail_md")" || exit 1
+    assert_no_symlink_output_paths "$DOCS_ROOT" \
+      "$screen_view_dir" \
+      "$(dirname "$base_md")" \
+      "$(dirname "$detail_md")" || exit 1
 
     # 表示コミット（画面単位）: 画面詳細設計書 frontmatter の source_ref から算出する。
     # 基本設計書・詳細設計書のどちらをレンダリングする場合も同じ値を使う。
@@ -5184,4 +5228,5 @@ if [ "${PORTAL_ONLY:-0}" -eq 0 ]; then
   rm -f "$PORTAL_MD_MAP_FILE"
   unset PORTAL_MD_MAP_FILE
 fi
-rm -f "$OUTPUT_LAYOUT_RESOLVED_FILE"
+rm -f "$OUTPUT_LAYOUT_RESOLVED_FILE" "$OUTPUT_LAYOUT_VALUES_FILE"
+trap - EXIT

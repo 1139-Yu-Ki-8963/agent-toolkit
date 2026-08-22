@@ -35,6 +35,8 @@ api_html="$REPO_ROOT/generation-engine/samples/$API_LIST_HTML_REL"
 [ -f "$screen_raw" ] || { echo "ERROR: fixture source not found: $screen_raw" >&2; exit 1; }
 [ -f "$api_html" ] || { echo "ERROR: fixture source not found: $api_html" >&2; exit 1; }
 mkdir -p "$tmp/fixture/raw"
+fixture_source_root="$tmp/fixture/source/screen"
+mkdir -p "$fixture_source_root"
 cp "$screen_raw" "$tmp/fixture/raw/screen-manifest.json"
 node - "$api_html" unit-manifest "$tmp/fixture/raw/api-manifest.json" <<'NODE'
 const fs=require("fs");
@@ -58,14 +60,10 @@ jq '
   | .detectionSummary.unresolvedCount = 0
 ' "$tmp/fixture/raw/api-manifest.json" > "$tmp/fixture/raw/api-manifest.clean.json"
 mv "$tmp/fixture/raw/api-manifest.clean.json" "$tmp/fixture/raw/api-manifest.json"
-# sourceDirはリポジトリ既定fixtureのroot起点相対パスとして記録されている。本テストの
-# rebuild実行先($out)は$TMPDIR配下でGit祖先を持たないため、validate-manifest.shの
-# entryFile-実在チェックがGit祖先探索でrepo rootを解決できない。sourceDirを絶対パスへ
-# 書き換えることで、Git祖先探索を経由しない絶対パス解決の経路（validate-manifest.sh側の
-# 既存契約）を使う。
-jq --arg repo_root "$REPO_ROOT" '
+# Git祖先がないため一時fixtureに実在entryFileを用意し、絶対sourceDirを使う。
+jq --arg source_dir "$fixture_source_root" '
   del(.manifestContentHash)
-  | .sourceDir = (if (.sourceDir // "") == "" or (.sourceDir | startswith("/")) then .sourceDir else ($repo_root + "/" + .sourceDir) end)
+  | .sourceDir = $source_dir
   | .strategy.extractionMethod = (.strategy.extractionMethod // "custom")
   | .strategy.approvedByUser = true
   | .strategy.screenIdRegex = (.strategy.screenIdRegex // null)
@@ -80,8 +78,36 @@ jq --arg repo_root "$REPO_ROOT" '
       | .isProcessingEndpoint = (.isProcessingEndpoint // false)
     ]
   | .screens[0].existingTestCount = 3
+  | .detectionSummary.diagnostics = ((.detectionSummary.diagnostics // {}) + {
+      extensionExtraction: {
+        addedUnitCount: 43,
+        total: 44,
+        weakEvidence: {count: 1, total: 44, ratio: (1 / 44), warning: false},
+        rules: [
+          {name: "category", searchedFor: "route prefix と画面構成ファイル", matchedUnitCount: 0},
+          {name: "permissions", searchedFor: "認可ロール指定", matchedUnitCount: 0},
+          {name: "relatedApis", searchedFor: "fetch または API client のパス", matchedUnitCount: 0},
+          {name: "designDocStatus", searchedFor: "設計書ディレクトリ", matchedUnitCount: 0},
+          {name: "sourceHash", searchedFor: "実在構成ファイル", matchedUnitCount: 0}
+        ]
+      }
+    })
 ' "$tmp/fixture/raw/screen-manifest.json" > "$tmp/fixture/raw/screen-manifest.clean.json"
 mv "$tmp/fixture/raw/screen-manifest.clean.json" "$tmp/fixture/raw/screen-manifest.json"
+jq -r '.screens[].entryFile // empty' "$tmp/fixture/raw/screen-manifest.json" |
+  while IFS= read -r entry_file; do
+    case "$entry_file" in
+      /*|*..*)
+        printf 'ERROR: unsafe fixture entryFile: %s\n' "$entry_file" >&2
+        exit 1
+        ;;
+    esac
+    entry_parent="${entry_file%/*}"
+    if [ "$entry_parent" != "$entry_file" ]; then
+      mkdir -p "$fixture_source_root/$entry_parent"
+    fi
+    : > "$fixture_source_root/$entry_file"
+  done
 raw="$tmp/fixture/raw/screen-manifest.json"
 api="$tmp/fixture/raw/api-manifest.json"
 

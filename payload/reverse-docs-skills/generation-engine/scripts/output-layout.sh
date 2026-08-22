@@ -102,48 +102,73 @@ _output_layout_check_relpath() {
 
 # 解決後の宣言の妥当性を fail-fast で検査する。
 output_layout_validate() {
-  spec_version="$(printf '%s' "$1" | jq -r '.specVersion // 0')"
-  if [ "$spec_version" != "1" ]; then
-    echo "ERROR: output-layout.json の specVersion が 1 ではありません" >&2
-    return 2
-  fi
-
-  for key in docsRoot rulesRoot manifestsRoot scopeProgressRoot screenUnitRoot commonRoot \
-    apiUnitRoot tableUnitRoot batchUnitRoot reportUnitRoot externalUnitRoot featureUnitRoot \
-    unitTestDesignDir; do
-    if ! printf '%s' "$1" | jq -e --arg k "$key" '.layout[$k] | type == "string"' >/dev/null 2>&1; then
-      echo "ERROR: output-layout の $key は文字列で必須です" >&2
-      return 2
-    fi
-    value="$(printf '%s' "$1" | jq -r --arg k "$key" '.layout[$k]')"
-    _output_layout_check_relpath "$key" "$value" || return $?
-  done
-
-  # 各種別の物理rootは互いに、および unitsRoot・commonRoot と NFC比較で衝突しないこと
-  # （既存互換の物理root非衝突検査を全種別の物理rootへ一般化）。
-  if ! printf '%s' "$1" | node -e '
+  # 同じJSONをキーごとにjq/Nodeへ渡すと、ポータル生成1回につき30近い
+  # 短命プロセスが起動する。検査順・拒否条件・エラー文言を保ったまま1プロセスで検査する。
+  printf '%s' "$1" | node -e '
     const fs = require("fs");
-    const doc = JSON.parse(fs.readFileSync(0, "utf8"));
+    let doc;
+    try {
+      doc = JSON.parse(fs.readFileSync(0, "utf8"));
+    } catch (_) {
+      process.stderr.write("ERROR: output-layout.json の specVersion が 1 ではありません\n");
+      process.exit(2);
+    }
+    if (doc.specVersion !== 1 && doc.specVersion !== "1") {
+      process.stderr.write("ERROR: output-layout.json の specVersion が 1 ではありません\n");
+      process.exit(2);
+    }
     const layout = doc.layout || {};
+    const required = [
+      "docsRoot", "rulesRoot", "manifestsRoot", "scopeProgressRoot", "screenUnitRoot", "commonRoot",
+      "apiUnitRoot", "tableUnitRoot", "batchUnitRoot", "reportUnitRoot", "externalUnitRoot", "featureUnitRoot",
+      "unitTestDesignDir"
+    ];
+    for (const key of required) {
+      const value = layout[key];
+      if (typeof value !== "string") {
+        process.stderr.write(`ERROR: output-layout の ${key} は文字列で必須です\n`);
+        process.exit(2);
+      }
+      if (value === "" || value === "." || value === "..") {
+        process.stderr.write(`ERROR: output-layout の ${key} は空・.・.. 以外の安全な相対パスで指定してください\n`);
+        process.exit(2);
+      }
+      if (value.startsWith("/") || value.endsWith("/")) {
+        process.stderr.write(`ERROR: output-layout の ${key} は先頭または末尾に / を含められません\n`);
+        process.exit(2);
+      }
+      if (value.includes("//")) {
+        process.stderr.write(`ERROR: output-layout の ${key} に // の連続を含められません\n`);
+        process.exit(2);
+      }
+      if (/[\\*?\[\]]/.test(value)) {
+        process.stderr.write(`ERROR: output-layout の ${key} に backslash・find globメタ文字を含められません\n`);
+        process.exit(2);
+      }
+      if (value.split("/").some((segment) => segment.startsWith("."))) {
+        process.stderr.write(`ERROR: output-layout の ${key} の各 segment は . で始められません（.. による上位脱出を含む）\n`);
+        process.exit(2);
+      }
+      if (/[\p{C}\p{Z}]/u.test(value) || value.normalize("NFC") !== value) {
+        process.stderr.write(`ERROR: output-layout の ${key} はUnicode制御・空白文字を含まずNFCで指定してください\n`);
+        process.exit(2);
+      }
+    }
+
     const rootKeys = [
       "screenUnitRoot", "apiUnitRoot", "tableUnitRoot", "batchUnitRoot",
       "reportUnitRoot", "externalUnitRoot", "featureUnitRoot", "unitsRoot", "commonRoot",
       "crossCuttingDesignRoot", "plansRoot", "recordsRoot"
     ];
     const values = rootKeys
-      .map((key) => ({ key, value: layout[key] }))
-      .filter((entry) => typeof entry.value === "string")
-      .map((entry) => ({ key: entry.key, normalized: entry.value.normalize("NFC") }));
-    for (let i = 0; i < values.length; i += 1) {
-      for (let j = i + 1; j < values.length; j += 1) {
-        if (values[i].normalized === values[j].normalized) process.exit(1);
-      }
+      .map((key) => layout[key])
+      .filter((value) => typeof value === "string")
+      .map((value) => value.normalize("NFC"));
+    if (new Set(values).size !== values.length) {
+      process.stderr.write("ERROR: output-layout の種別ごとの物理rootは互いに、また unitsRoot・commonRoot・crossCuttingDesignRoot・plansRoot・recordsRoot とも衝突できません\n");
+      process.exit(2);
     }
-  ' >/dev/null 2>&1; then
-    echo "ERROR: output-layout の種別ごとの物理rootは互いに、また unitsRoot・commonRoot・crossCuttingDesignRoot・plansRoot・recordsRoot とも衝突できません" >&2
-    return 2
-  fi
-  return 0
+  '
 }
 
 # 宣言を解決して JSON を stdout へ返す。
@@ -293,13 +318,19 @@ JSON
     rc=1
   fi
 
-  # ケース6: specVersion 不正で return 2
+  # ケース6: specVersion は数値1・文字列"1"を受理し、それ以外を return 2
+  string_version6="$(printf '%s' "$base" | jq '.specVersion = "1"')"
+  output_layout_validate "$string_version6" >/dev/null 2>&1
+  rc6_string=$?
   output_layout_validate '{"specVersion":2,"layout":{}}' >/dev/null 2>&1
   rc6=$?
-  if [ "$rc6" -eq 2 ]; then
-    echo "  [PASS] ケース6: specVersion 不正で return 2"
+  invalid_string_version6="$(printf '%s' "$base" | jq '.specVersion = "2"')"
+  output_layout_validate "$invalid_string_version6" >/dev/null 2>&1
+  rc6_invalid_string=$?
+  if [ "$rc6_string" -eq 0 ] && [ "$rc6" -eq 2 ] && [ "$rc6_invalid_string" -eq 2 ]; then
+    echo "  [PASS] ケース6: specVersion の数値1・文字列\"1\"を受理し、それ以外を return 2"
   else
-    echo "  [FAIL] ケース6: specVersion 不正の返り値が不正 (rc=$rc6, 期待 2)" >&2
+    echo "  [FAIL] ケース6: specVersion の返り値が不正 (string1=$rc6_string number2=$rc6 string2=$rc6_invalid_string)" >&2
     rc=1
   fi
 

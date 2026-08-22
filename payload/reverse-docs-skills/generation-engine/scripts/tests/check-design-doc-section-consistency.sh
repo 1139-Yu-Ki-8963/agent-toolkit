@@ -183,38 +183,132 @@ run_check() {
   validate_requirements_file "$definition_file" || return 1
   kind_roots="$(resolve_kind_roots "$project_root")" || return 1
 
-  local kind kind_root file basename
+  local kind kind_root
+  local -a check_args
+  check_args=("$definition_file" "$DEFAULT_REQUIREMENTS_FILE" "$API_DETAIL_TEMPLATE")
   while IFS=$'\t' read -r kind kind_root; do
     [ -n "$kind_root" ] || continue
-    while IFS= read -r file; do
-      [ -n "$file" ] || continue
-      checked_count=$((checked_count + 1))
-      basename="$(basename "$file")"
-      if ! has_definition "$definition_file" "$kind" "$basename"; then
-        if ! printf '%s' "$undefined_seen" | grep -Fqx -- "${kind}/${basename}"; then
-          echo "WARN 必須節定義-なし ${file}: 文書種別（${kind}/${basename}）の必須節定義がない"
-          undefined_seen="${undefined_seen}${kind}/${basename}"$'\n'
-        fi
-        continue
-      fi
-      check_document "$definition_file" "$kind" "$basename" "$file" || rc=1
-      # SECTION_REQUIREMENTS_FILEは別契約の単体検査用であり、正本テンプレートとの
-      # 比較はリポジトリ標準の必須節定義を使う通常実行だけに適用する。
-      if [ "$definition_file" = "$DEFAULT_REQUIREMENTS_FILE" ] \
-        && [ "$kind" = "api" ] \
-        && [ "$basename" = "API詳細設計書.md" ]; then
-        check_api_template_conformance "$file" || rc=1
-      fi
-    done < <(find "$kind_root" -type f -name '*.md' 2>/dev/null | sort)
+    check_args+=("$kind" "$kind_root")
   done <<EOF
 $kind_roots
 EOF
 
-  if [ "$checked_count" -eq 0 ]; then
-    echo "ERROR: 検査対象の設計文書が0件です: project_root=$project_root" >&2
-    return 1
-  fi
-  return "$rc"
+  # 定義・文書ごとに jq/awk/find を起動すると、build-portal の再帰self-testで
+  # 同じ定義JSONを数百回読み直す。出力順・文言・終了コードを保ったまま、定義を
+  # 1回だけ読み、全対象文書を1つのNodeプロセスで走査する。
+  node - "$project_root" "${check_args[@]}" <<'NODE'
+const fs = require("fs");
+const path = require("path");
+
+const [projectRoot, definitionFile, defaultDefinitionFile, apiTemplate, ...kindRoots] = process.argv.slice(2);
+const definition = JSON.parse(fs.readFileSync(definitionFile, "utf8"));
+let failed = false;
+let checkedCount = 0;
+const undefinedSeen = new Set();
+
+function listMarkdownFiles(root) {
+  const files = [];
+  function visit(dir) {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const target = path.join(dir, entry.name);
+      if (entry.isDirectory()) visit(target);
+      else if (entry.isFile() && entry.name.endsWith(".md")) files.push(target);
+    }
+  }
+  visit(root);
+  return files.sort((left, right) => Buffer.compare(Buffer.from(left), Buffer.from(right)));
+}
+
+function bodyLines(file) {
+  const lines = fs.readFileSync(file, "utf8").split(/\n/);
+  if (lines[0] !== "---") return lines;
+  let index = 1;
+  while (index < lines.length && lines[index] !== "---") index += 1;
+  return index < lines.length ? lines.slice(index + 1) : [];
+}
+
+function headings(file) {
+  return bodyLines(file).filter((line) => line.startsWith("## ")).map((line) => line.slice(3));
+}
+
+function tableHeaders(file) {
+  const result = [];
+  let h2 = "";
+  let h3 = "";
+  let previous = "";
+  for (const line of bodyLines(file)) {
+    if (line.startsWith("## ")) { h2 = line.slice(3); h3 = ""; }
+    if (line.startsWith("### ")) h3 = line.slice(4);
+    if (/^\|[|: \-]+\|[\s]*$/.test(line) && line.includes("---") && /^\|.*\|[\s]*$/.test(previous)) {
+      result.push(`${h2}\t${h3}\t${previous}`);
+    }
+    previous = line;
+  }
+  return result;
+}
+
+let templateHeadings;
+let templateTables;
+for (let index = 0; index < kindRoots.length; index += 2) {
+  const kind = kindRoots[index];
+  const root = kindRoots[index + 1];
+  for (const file of listMarkdownFiles(root)) {
+    checkedCount += 1;
+    const basename = path.basename(file);
+    const documentDefinition = definition.documentTypes?.[kind]?.[basename];
+    if (!documentDefinition || !Array.isArray(documentDefinition.requiredSections)) {
+      const key = `${kind}/${basename}`;
+      if (!undefinedSeen.has(key)) {
+        process.stdout.write(`WARN 必須節定義-なし ${file}: 文書種別（${key}）の必須節定義がない\n`);
+        undefinedSeen.add(key);
+      }
+      continue;
+    }
+
+    const actualHeadings = headings(file);
+    let previousPosition = 0;
+    let outOfOrder = false;
+    for (const section of documentDefinition.requiredSections) {
+      const found = actualHeadings.indexOf(section);
+      if (found === -1) {
+        process.stdout.write(`FAIL 必須節-欠落 ${file}: 文書種別（${kind}/${basename}）に必須節「${section}」がない\n`);
+        failed = true;
+        continue;
+      }
+      const position = found + 1;
+      if (position <= previousPosition) outOfOrder = true;
+      previousPosition = position;
+    }
+    if (outOfOrder) {
+      process.stdout.write(`WARN 見出し順-相違 ${file}: 同一役割（${basename}）の必須節の並びが定義と異なる\n`);
+    }
+
+    if (definitionFile === defaultDefinitionFile && kind === "api" && basename === "API詳細設計書.md") {
+      if (!fs.existsSync(apiTemplate)) {
+        process.stderr.write(`ERROR: API詳細設計書テンプレートが存在しません: ${apiTemplate}\n`);
+        failed = true;
+      } else {
+        templateHeadings ??= headings(apiTemplate);
+        templateTables ??= tableHeaders(apiTemplate);
+        if (JSON.stringify(templateHeadings) !== JSON.stringify(actualHeadings)) {
+          process.stdout.write(`FAIL テンプレート見出し-不一致 ${file}: API詳細設計書の全節・順序・件数がテンプレートと一致しない\n`);
+          failed = true;
+        }
+        if (JSON.stringify(templateTables) !== JSON.stringify(tableHeaders(file))) {
+          process.stdout.write(`FAIL テンプレート表列-不一致 ${file}: API詳細設計書の表の所属節・小節・列見出し・順序・件数がテンプレートと一致しない\n`);
+          failed = true;
+        }
+      }
+    }
+  }
+}
+
+if (checkedCount === 0) {
+  process.stderr.write(`ERROR: 検査対象の設計文書が0件です: project_root=${projectRoot}\n`);
+  process.exit(1);
+}
+process.exit(failed ? 1 : 0);
+NODE
 }
 
 # ---------------------------------------------------------------------------
