@@ -30,7 +30,7 @@
 #   API/テーブル/バッチ/帳票/外部連携: <kind>UnitRoot/<kind>-<key>/{基本設計,詳細設計}/<file>
 #     （scaffold-design-unit.sh と同じ命名規則。design-unit-layout.json の phases に従う）
 #   機能: featureUnitRoot/feature-<key>/基本設計/<同名ファイル>（detail は持たない）
-#   画面: screenUnitRoot/screen-<key>/{基本設計,詳細設計,テスト項目書}/<file>
+#   画面: screenUnitRoot/screen-<key>/{基本設計,詳細設計,テスト設計}/<file>
 #     （画面は doc-extraction.json の対象外だが、実際のスキルが生成する構造に合わせる）
 #   プロジェクト共通: commonRoot/<同名ファイル>（フラット）
 #
@@ -405,26 +405,31 @@ dest_path_for() {
     "API/API詳細設計書.md") printf '%s/api-%s/詳細設計/API詳細設計書.md' "$API_ROOT" "$API_KEY" ;;
     "テーブル/論理データモデル.md") printf '%s/table-%s/基本設計/論理データモデル.md' "$TABLE_ROOT" "$TABLE_KEY" ;;
     "テーブル/テーブルテスト設計書.md") printf '%s/table-%s/%s/テーブルテスト設計書.md' "$TABLE_ROOT" "$TABLE_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
+    "テーブル/テーブル単体テスト設計書.md") printf '%s/table-%s/%s/テーブル単体テスト設計書.md' "$TABLE_ROOT" "$TABLE_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "テーブル/テーブル定義書.md") printf '%s/table-%s/詳細設計/テーブル定義書.md' "$TABLE_ROOT" "$TABLE_KEY" ;;
     "バッチ/バッチ基本設計書.md") printf '%s/batch-%s/基本設計/バッチ基本設計書.md' "$BATCH_ROOT" "$BATCH_KEY" ;;
     "バッチ/バッチテスト設計書.md") printf '%s/batch-%s/%s/バッチテスト設計書.md' "$BATCH_ROOT" "$BATCH_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
+    "バッチ/バッチ単体テスト設計書.md") printf '%s/batch-%s/%s/バッチ単体テスト設計書.md' "$BATCH_ROOT" "$BATCH_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "バッチ/バッチ詳細設計書.md") printf '%s/batch-%s/詳細設計/バッチ詳細設計書.md' "$BATCH_ROOT" "$BATCH_KEY" ;;
     "帳票/帳票基本設計書.md") printf '%s/report-%s/基本設計/帳票基本設計書.md' "$REPORT_ROOT" "$REPORT_KEY" ;;
     "帳票/帳票テスト設計書.md") printf '%s/report-%s/%s/帳票テスト設計書.md' "$REPORT_ROOT" "$REPORT_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
+    "帳票/帳票単体テスト設計書.md") printf '%s/report-%s/%s/帳票単体テスト設計書.md' "$REPORT_ROOT" "$REPORT_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "帳票/帳票詳細設計書.md") printf '%s/report-%s/詳細設計/帳票詳細設計書.md' "$REPORT_ROOT" "$REPORT_KEY" ;;
     "外部連携/外部連携基本設計書.md") printf '%s/external-%s/基本設計/外部連携基本設計書.md' "$EXTERNAL_ROOT" "$EXTERNAL_KEY" ;;
     "外部連携/外部連携テスト設計書.md") printf '%s/external-%s/%s/外部連携テスト設計書.md' "$EXTERNAL_ROOT" "$EXTERNAL_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
+    "外部連携/外部連携単体テスト設計書.md") printf '%s/external-%s/%s/外部連携単体テスト設計書.md' "$EXTERNAL_ROOT" "$EXTERNAL_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "外部連携/外部連携詳細設計書.md") printf '%s/external-%s/詳細設計/外部連携詳細設計書.md' "$EXTERNAL_ROOT" "$EXTERNAL_KEY" ;;
     "機能/機能設計書.md") printf '%s/feature-%s/基本設計/機能設計書.md' "$FEATURE_ROOT" "$FEATURE_KEY" ;;
     "機能/機能テスト設計書.md") printf '%s/feature-%s/%s/機能テスト設計書.md' "$FEATURE_ROOT" "$FEATURE_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
+    "機能/機能単体テスト設計書.md") printf '%s/feature-%s/%s/機能単体テスト設計書.md' "$FEATURE_ROOT" "$FEATURE_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "画面/基本設計/画面基本設計書.md") printf '%s/screen-%s/基本設計/画面基本設計書.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
     "画面/詳細設計/画面詳細設計書.md") printf '%s/screen-%s/詳細設計/画面詳細設計書.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
     "画面/詳細設計/DESIGN.md") printf '%s/screen-%s/詳細設計/DESIGN.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
     "画面/詳細設計/結合テスト観点表.md") printf '%s/screen-%s/詳細設計/結合テスト観点表.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
     "画面/詳細設計/単体テスト観点表.md") printf '%s/screen-%s/詳細設計/単体テスト観点表.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
-    "画面/テスト項目書/結合テスト仕様書.md") printf '%s/screen-%s/テスト項目書/結合テスト仕様書.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
-    "画面/テスト項目書/単体テスト仕様書.md") printf '%s/screen-%s/テスト項目書/単体テスト仕様書.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
-    "画面/テスト項目書/操作シナリオ仕様書.md") printf '%s/screen-%s/テスト項目書/操作シナリオ仕様書.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
+    "画面/テスト設計/画面テスト設計書.md") printf '%s/screen-%s/テスト設計/画面テスト設計書.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
+    "画面/テスト設計/画面単体テスト設計書.md") printf '%s/screen-%s/テスト設計/画面単体テスト設計書.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
+    "画面/テスト設計/操作シナリオ仕様書.md") printf '%s/screen-%s/テスト設計/操作シナリオ仕様書.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
     "プロジェクト共通/DESIGN.md") printf '%s/DESIGN.md' "$COMMON_ROOT" ;;
     "プロジェクト共通/"*) printf '%s/%s' "$COMMON_ROOT" "$(basename "$relpath")" ;;
     *)

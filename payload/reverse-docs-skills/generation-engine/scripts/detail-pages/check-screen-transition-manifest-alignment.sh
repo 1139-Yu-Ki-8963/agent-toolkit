@@ -125,10 +125,10 @@ jq -e -n \
   # 正常系を誤ってFAILさせる形で顕在化する(1-170再検証の自己テストが保証)ため、
   # フィールドを追加するたびにこの列挙へ追従させる必要がある。
   def strip_ext_fields:
-    del(.generatedAt,.manifestContentHash)
+    del(.generatedAt,.manifestContentHash,.detectionSummary.diagnostics)
     | .screens = [(.screens // [])[] | del(
         .category,.permissions,.relatedApis,.designDocStatus,.confirmedScreenName,
-        .designDocPath,.detailDocPath,.sequencePath,.testCasePath,.sourceHash,
+        .designDocPath,.detailDocPath,.sequencePath,.testCasePath,.unitTestViewpointPath,.sourceHash,
         .designDocSourceHash,
         .valueProvenance,.confirmedPermissions,.confirmedSchedule
       )];

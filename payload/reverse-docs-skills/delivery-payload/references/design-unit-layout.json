@@ -5,7 +5,7 @@
       "sourcePhase": "detail",
       "targetPhase": "basic",
       "eligibility": "sourcePhase に宣言されたファイルがすべて実在する設計単位を対象とする",
-      "excludedKinds": []
+      "excludedKinds": ["screen"]
     }
   },
   "kinds": {

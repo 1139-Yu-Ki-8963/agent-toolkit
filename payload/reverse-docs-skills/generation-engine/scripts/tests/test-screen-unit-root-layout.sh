@@ -55,26 +55,60 @@ cat > "$docs/スクリーン/screen-e2e-root/詳細設計/結合テスト観点�
 |---|---|
 | 配置連結 | 読み込まれる |
 MD
-cat > "$docs/スクリーン/screen-e2e-root/テスト項目書/単体テスト仕様書.md" <<'MD'
-| キー | 対応観点キー | 入力値 | 期待結果（アサーション） |
-|---|---|---|---|
-| root-unit | 配置上書き | input | pass |
-MD
-cat > "$docs/スクリーン/screen-e2e-root/テスト項目書/結合テスト仕様書.md" <<'MD'
-| キー | 対応観点キー | 操作手順 | 入力値 | 期待結果（アサーション） |
+cat > "$docs/スクリーン/screen-e2e-root/テスト設計/画面単体テスト設計書.md" <<'MD'
+## §1 テスト観点
+
+| キー | 対象 | 観点 | 由来する詳細設計書の章 | 区分 | 乖離分類 | テスト参照（実装後） |
+|---|---|---|---|---|---|---|
+| 配置上書き | fixture | 配置上書きの観点 | 詳細設計 | 正常 | 該当なし | fixture.test |
+
+## §2 テストケース一覧
+
+| キー | 対応観点キー | 入力値・操作 | 期待結果（アサーション） | 実装後のテストファイル参照 |
 |---|---|---|---|---|
-| root-integration | 配置連結 | click | input | pass |
+| root-unit | 配置上書き | input | pass | fixture.test |
 MD
-cat > "$docs/スクリーン/screen-e2e-root/テスト項目書/操作シナリオ仕様書.md" <<'MD'
+cat > "$docs/スクリーン/screen-e2e-root/テスト設計/画面テスト設計書.md" <<'MD'
+## §1 テスト観点
+
+| キー | 観点 | 由来する設計書の章 | 区分 | 受け入れ | 実施方法 | 乖離分類 | テスト参照・検証記録参照 |
+|---|---|---|---|---|---|---|---|
+| 配置連結 | 配置連結の観点 | 基本設計 | 正常 | ◯ | 自動 | 該当なし | fixture.test |
+
+## §2 テストケース一覧
+
+| キー | 対応観点キー | 操作手順 | 入力値 | 期待結果（アサーション） | 実装後のテストファイル参照 |
+|---|---|---|---|---|---|
+| root-integration | 配置連結 | click | input | pass | fixture.test |
+MD
+cat > "$docs/スクリーン/screen-e2e-root/テスト設計/操作シナリオ仕様書.md" <<'MD'
 ## シナリオ一覧表
-| シナリオ名 | 対応往復検証観点キー | 前提条件 |
-|---|---|---|
-| root-scenario | 配置往復 | ready |
+| シナリオキー | シナリオ名 | 開始状態 | 操作数 | 対応往復検証観点キー | 対応画面テストケースキー |
+|---|---|---|---|---|---|
+| root-scenario | root-scenario | ready | 1 | 配置往復 | root-integration |
 
 ### root-scenario
-**期待結果**
 
-pass
+#### 操作と期待結果
+
+| 順序 | 操作 | 対象 | 値 | 期待結果 |
+|---|---|---|---|---|
+| 1 | click | root-button |  | pass |
+
+## 機械実行用YAML
+
+```yaml
+scenarios:
+  - key: root-scenario
+    name: root-scenario
+    start_state: ready
+    roundtrip_viewpoint_key: 配置往復
+    screen_test_case_key: root-integration
+    operations:
+      - action: click
+        target: root-button
+        expected: pass
+```
 MD
 
 # portal topのsource_ref集計はportal出力先ではなく定義側docsを読む。
@@ -89,15 +123,19 @@ perl -pi -e 'if ($. <= 3) { s/\n/\r\n/ }' \
 printf '\nsource_ref: ffffffffffffffffffffffffffffffffffffffff\n' \
   >> "$docs/スクリーン/screen-e2e-root/詳細設計/画面詳細設計書.md"
 mkdir -p "$docs/スクリーン/archive/詳細設計"
-cat > "$docs/スクリーン/archive/詳細設計/画面詳細設計書.md" <<'MD'
----
-source_ref: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee
----
-# screen unitではないdecoy
-MD
+cp "$docs/スクリーン/screen-e2e-root/詳細設計/画面詳細設計書.md" \
+  "$docs/スクリーン/archive/詳細設計/画面詳細設計書.md"
+sed -i.bak 's/source_ref: dddddddddddddddddddddddddddddddddddddddd/source_ref: eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee/' \
+  "$docs/スクリーン/archive/詳細設計/画面詳細設計書.md"
+rm -f "$docs/スクリーン/archive/詳細設計/画面詳細設計書.md.bak"
+printf '\nsource_ref: gggggggggggggggggggggggggggggggggggggggg\n' \
+  >> "$docs/スクリーン/archive/詳細設計/画面詳細設計書.md"
 mkdir -p "$docs/スクリーン/screen-no-ref/詳細設計"
-printf '%s' $'---\nsource_repo: sample\r\n---\r\n# source_refなし\nsource_ref: gggggggggggggggggggggggggggggggggggggggg\n' \
-  > "$docs/スクリーン/screen-no-ref/詳細設計/画面詳細設計書.md"
+cp "$docs/スクリーン/screen-e2e-root/詳細設計/画面詳細設計書.md" \
+  "$docs/スクリーン/screen-no-ref/詳細設計/画面詳細設計書.md"
+sed -i.bak 's/source_ref: dddddddddddddddddddddddddddddddddddddddd/source_repo: sample/' \
+  "$docs/スクリーン/screen-no-ref/詳細設計/画面詳細設計書.md"
+rm -f "$docs/スクリーン/screen-no-ref/詳細設計/画面詳細設計書.md.bak"
 
 cases="$tmp/cases.json"
 viewpoints="$tmp/viewpoints.json"
@@ -128,7 +166,7 @@ no_ref_footer="$(grep -o '<span id="pt-footer-commit">[^<]*</span>' \
 ! printf '%s' "$no_ref_footer" | grep -q 'ggggggg'
 
 # 同じdocs fixtureを状態判定へ渡し、旧rootのdecoyではなくcustom rootの不足を判定する。
-mkdir -p "$docs/規約" "$docs/一覧/画面一覧" "$docs/project-portal/一覧/画面一覧" "$docs/プロジェクト共通"
+mkdir -p "$docs/規約" "$docs/一覧/画面一覧" "$docs/project-portal/lists/screens" "$docs/プロジェクト共通"
 cat > "$docs/プロジェクト共通/アーキテクチャ調査書.md" <<'MD'
 # アーキテクチャ調査書
 ### サイト一覧
@@ -139,7 +177,7 @@ MD
 cat > "$docs/一覧/excluded-kinds.json" <<'JSON'
 {"presentKinds":["screen"],"excludedKinds":[]}
 JSON
-: > "$docs/project-portal/一覧/画面一覧/画面一覧.html"
+: > "$docs/project-portal/lists/screens/画面一覧.html"
 for file in コーディング規約 命名規約 ディレクトリ構成規約 コンポーネント設計規約; do : > "$docs/規約/$file.md"; done
 for file in 共通設計書 メッセージ定義書 DESIGN 基盤設計 UI共通設計 データ設計; do : > "$docs/プロジェクト共通/$file.md"; done
 : > "$docs/index.html"
@@ -148,11 +186,11 @@ state="$(bash "$REPO_ROOT/.claude/skills/orchestrating-ai-development-setup/scri
 [ "$state" = "シーケンス図未生成（任意）" ] || { echo "FAIL: same fixture flow state: $state" >&2; exit 1; }
 
 # 同じcustom rootへsample rawのscreen-home文書を置き、rebuildへ明示してext linkを検査する。
-mkdir -p "$docs/スクリーン/screen-home/基本設計" "$docs/スクリーン/screen-home/詳細設計" "$docs/スクリーン/screen-home/テスト項目書"
+mkdir -p "$docs/スクリーン/screen-home/基本設計" "$docs/スクリーン/screen-home/詳細設計" "$docs/スクリーン/screen-home/テスト設計"
 : > "$docs/スクリーン/screen-home/基本設計/画面基本設計書.html"
 : > "$docs/スクリーン/screen-home/詳細設計/画面詳細設計書.html"
 : > "$docs/スクリーン/screen-home/シーケンス図.html"
-: > "$docs/スクリーン/screen-home/テスト項目書/単体テスト仕様書.md"
+: > "$docs/スクリーン/screen-home/テスト設計/画面単体テスト設計書.md"
 raw="$REPO_ROOT/generation-engine/samples/docs/manifests/screen-manifest.json"
 api="$tmp/api-manifest.json"
 node - "$REPO_ROOT/generation-engine/samples/project-portal/一覧/API一覧/API一覧.html" "$api" <<'NODE'
@@ -165,19 +203,19 @@ mkdir -p "$docs/一覧/画面一覧"
 # sourceDir は見本のroot起点の相対パスで記録されている。そのまま複製すると
 # entryFile-実在の判定がリポジトリルート基準になり、44件すべてが実在しないと
 # 判定されて必ず落ちる（2026-08-19 実測。19件中18件合格・1件不合格）。
-# sourceDir を絶対パスへ書き換えると44件すべてが実在する。同じ問題を
+# sourceDir を見本の絶対パスへ書き換えると44件すべてが実在する。同じ問題を
 # tests/unit-list/test-rebuild-screen-derived-pages.sh が既に同じ方法で解いており、
 # その解き方に揃える。
-jq --arg repo_root "$REPO_ROOT" '
+jq --arg samples_root "$REPO_ROOT/generation-engine/samples" '
   .sourceDir = (if (.sourceDir // "") == "" or (.sourceDir | startswith("/"))
                 then .sourceDir
-                else ($repo_root + "/" + .sourceDir) end)
+                else ($samples_root + "/" + .sourceDir) end)
 ' "$raw" > "$docs/一覧/画面一覧/screen-manifest.json"
 bash "$REPO_ROOT/generation-engine/scripts/unit-list/rebuild-screen-derived-pages.sh" \
   --raw-manifest "$docs/一覧/画面一覧/screen-manifest.json" --target-repo "$REPO_ROOT" \
   --api-manifest "$api" --output-root "$docs" --generated-at 2026-08-02T00:00:00Z \
   --project-name e2e --design-docs-dir "$docs/スクリーン" >/dev/null
-jq -e '.screens[] | select(.screenKey == "home") | .designDocPath == "../../../スクリーン/screen-home/基本設計/画面基本設計書.html" and .detailDocPath == "../../../スクリーン/screen-home/詳細設計/画面詳細設計書.html" and .sequencePath == "../../../スクリーン/screen-home/シーケンス図.html" and .testCasePath == "../../../スクリーン/screen-home/テスト項目書/単体テスト仕様書.md"' \
+jq -e '.screens[] | select(.screenKey == "home") | .designDocPath == "../../../スクリーン/screen-home/基本設計/画面基本設計書.html" and .detailDocPath == "../../../スクリーン/screen-home/詳細設計/画面詳細設計書.html" and .sequencePath == "../../../スクリーン/screen-home/シーケンス図.html" and .testCasePath == "../../../スクリーン/screen-home/テスト設計/画面単体テスト設計書.md"' \
   "$docs/一覧/画面一覧/screen-manifest.ext.json" >/dev/null
 if jq -e '.. | strings | select(contains("../../画面/screen-home/"))' "$docs/一覧/画面一覧/screen-manifest.ext.json" >/dev/null; then
   echo "FAIL: ext manifest retained old 画面/screen-home links" >&2

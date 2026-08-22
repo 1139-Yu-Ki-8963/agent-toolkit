@@ -34,14 +34,20 @@ copy_generation_engine() {
   local repo="$1" dst="$2"
   mkdir -p "$dst"
   cp -R "$repo/generation-engine" "$dst/generation-engine"
+  # 見本のsourceDirは samples 起点なので、配置独立性を調べる複製では配布物
+  # ルート起点へ正規化する。これにより境界目印を外したときだけ埋め込み配置が失敗する。
+  jq '.sourceDir = "generation-engine/samples/" + .sourceDir' \
+    "$dst/generation-engine/samples/docs/manifests/screen-manifest.json" \
+    > "$dst/generation-engine/samples/docs/manifests/screen-manifest.json.next"
+  mv "$dst/generation-engine/samples/docs/manifests/screen-manifest.json.next" \
+    "$dst/generation-engine/samples/docs/manifests/screen-manifest.json"
 }
 
 # 見本マニフェストを$placement配下のvalidate-manifest.shで検証する。
 # 引数: placement（generation-engineを直下に持つディレクトリ）
-# sourceDirは見本のルート（generation-engine/samples）起点で書かれているため、
-# --repo-rootへ$placement配下の見本のルートを明示する。置き方（独立配置/上位に
-# リポジトリを持つ配置）によって$placement自体のパスが変わるため、見本のルートの
-# パスも呼び出しごとに異なる。
+# 複製時にsourceDirを配布物ルート起点へ正規化しているため、境界目印または.git祖先から
+# 自動解決させる。ここで--repo-rootを明示すると、境界目印を外した退行ケースでも
+# 同じ基準を注入してしまい、配置差を検出できなくなる。
 # 標準出力: 検証コマンドの出力。戻り値: 検証コマンドの終了コード。
 run_gold_validation() {
   local placement="$1"
@@ -49,8 +55,7 @@ run_gold_validation() {
     cd /tmp 2>/dev/null || cd "$placement" || exit 1
     bash "$placement/generation-engine/scripts/unit-list/validate-manifest.sh" \
       "$placement/generation-engine/samples/docs/manifests/screen-manifest.json" \
-      --unit-kind screen \
-      --repo-root "$placement/generation-engine/samples"
+      --unit-kind screen
   )
 }
 

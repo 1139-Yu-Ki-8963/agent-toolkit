@@ -388,6 +388,7 @@ else
       -not -path '*/delivery-payload/templates/partials/*' \
       -not -path '*/docs/guides/reverse-docs-overview.html' \
       -not -path '*/docs/guides/納品物ガイド.html' \
+      -not -path '*/docs/guides/成果物一覧.html' \
       -not -path '*/docs/design/portal/ポータル設計基盤.html' \
       -not -path '*/docs/guides/スキル一覧.html' \
       -not -path '*/docs/guides/スキルの変遷.html' \

@@ -102,12 +102,12 @@ fi
 
 allowed='["category","permissions","relatedApis","designDocStatus","confirmedScreenName","designDocPath","detailDocPath","sequencePath","testCasePath","unitTestViewpointPath","integrationTestViewpointPath","integrationTestCasePath","scenarioPath","sourceHash","designDocSourceHash","valueProvenance","confirmedPermissions","confirmedSchedule"]'
 jq -S --argjson allowed "$allowed" '
-  del(.generatedAt,.manifestContentHash)
+  del(.generatedAt,.manifestContentHash,.detectionSummary.diagnostics)
   | .screens = [(.screens // [])[] | delpaths([$allowed[] | [.]])]
 ' "$raw" > "${TMPDIR:-/tmp}/screen-consistency-raw.$$.json"
 trap 'rm -f "${TMPDIR:-/tmp}/screen-consistency-raw.$$.json" "${TMPDIR:-/tmp}/screen-consistency-ext.$$.json" "${TMPDIR:-/tmp}/screen-consistency-embedded.$$.json"' EXIT
 jq -S --argjson allowed "$allowed" '
-  del(.generatedAt,.manifestContentHash)
+  del(.generatedAt,.manifestContentHash,.detectionSummary.diagnostics)
   | .screens = [(.screens // [])[] | delpaths([$allowed[] | [.]])]
 ' "$ext" > "${TMPDIR:-/tmp}/screen-consistency-ext.$$.json"
 cmp "${TMPDIR:-/tmp}/screen-consistency-raw.$$.json" "${TMPDIR:-/tmp}/screen-consistency-ext.$$.json" \

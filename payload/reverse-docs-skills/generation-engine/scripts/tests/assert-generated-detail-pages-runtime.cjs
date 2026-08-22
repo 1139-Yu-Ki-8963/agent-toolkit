@@ -7,7 +7,7 @@ const {pathToFileURL} = require('node:url');
 const {chromium} = require('playwright');
 
 const htmlPaths = process.argv.slice(2);
-assert.equal(htmlPaths.length, 3, 'usage: test-generated-detail-pages-runtime.cjs <techstack.html> <env.html> <glossary.html>');
+assert.equal(htmlPaths.length, 3, 'usage: assert-generated-detail-pages-runtime.cjs <techstack.html> <env.html> <glossary.html>');
 for (const htmlPath of htmlPaths) {
   assert.ok(fs.existsSync(htmlPath), `generated page must exist: ${htmlPath}`);
 }

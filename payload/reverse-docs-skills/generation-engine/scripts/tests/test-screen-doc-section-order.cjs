@@ -373,7 +373,7 @@ function generateScreenDetailDocument() {
     ]);
     browser = launched.browser;
     const headings = extractSectionHeadings(launched.html);
-    const relatedHeading = '関連資料（正の宣言・付録A）';
+    const relatedHeading = '§19 関連資料';
     const chapterMapHeading = '章マップ（付録B）';
 
     assert.equal(

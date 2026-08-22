@@ -19,7 +19,8 @@
     "report": "reports",
     "external": "externals",
     "feature": "features",
-    "message": "messages"
+    "message": "messages",
+    "testCase": "test-cases"
   },
   "displayLabels": {
     "project-portal/lists": "一覧",
@@ -98,6 +99,7 @@
     "report": "帳票",
     "external": "外部連携",
     "feature": "機能",
-    "message": "メッセージ"
+    "message": "メッセージ",
+    "testCase": "テストケース"
   }
 }

@@ -1233,7 +1233,7 @@ EOF
   ensure_playwright_installed
   if [ -z "$PLAYWRIGHT_AVAILABLE" ]; then
     echo "SKIP: --self-test ケース48d実描画（playwrightパッケージが利用できないため。導入後は3種の生成ページでpageerror=0を検査する）"
-  elif ! node "$SCRIPT_DIR/tests/test-generated-detail-pages-runtime.cjs" \
+  elif ! node "$SCRIPT_DIR/tests/assert-generated-detail-pages-runtime.cjs" \
       "$test_portal/基盤/技術スタック.html" \
       "$test_portal/基盤/環境構築手順.html" \
       "$test_portal/一覧/用語辞書/用語辞書.html"; then

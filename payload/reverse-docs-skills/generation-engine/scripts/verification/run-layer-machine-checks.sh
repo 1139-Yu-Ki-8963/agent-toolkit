@@ -141,6 +141,12 @@ count_cases() {
     return 0
   fi
 
+  n="$(printf '%s\n' "$output" | grep -oE '^# (tests|pass) [0-9]+' | head -1 | grep -oE '[0-9]+')"
+  if [ -n "$n" ]; then
+    printf '%s' "$n"
+    return 0
+  fi
+
   line="$(printf '%s\n' "$output" | grep -oE 'self-test: [0-9]+ PASS(, [0-9]+ FAIL)?' | head -1)"
   if [ -n "$line" ]; then
     p="$(printf '%s' "$line" | grep -oE '[0-9]+ PASS' | grep -oE '[0-9]+')"
@@ -593,6 +599,12 @@ EOS
   local nAllItems
   nAllItems="$(count_cases "$(printf 'OK: wrote a.json\nOK: wrote b.json\nself-test 全項目 PASS\n')")"
   [ "$nAllItems" = "1" ] && assert_true "読取-全項目要約行" 0 || assert_true "読取-全項目要約行" 1
+
+  # Node標準node:testのTAP要約を読めること。tests/passは同じ件数なので、先に
+  # 現れるtests行を採用する。
+  local nTap
+  nTap="$(count_cases $'# tests 5\n# pass 5')"
+  [ "$nTap" = "5" ] && assert_true "読取-node-test-TAP要約" 0 || assert_true "読取-node-test-TAP要約" 1
 
   # 判定不能-対象0本の集計行: 対象が無い早期return経路でも、通常経路と同じ
   # 順序で「判定不能 0 本」を含む完全な集計行を出し、終了コード0を返すこと。
