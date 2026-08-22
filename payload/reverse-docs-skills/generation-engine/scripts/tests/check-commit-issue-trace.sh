@@ -32,6 +32,8 @@
 #   - コミットメッセージ（件名+本文）が「【マージ】」または「【同期】」を
 #     含む場合はそのコミット全体を免除する
 #   - コミットが変更したファイルのうち docs/tasks/ 配下の .md 以外は対象外
+#   - docs/tasks/指摘改善一覧.md と docs/tasks/作業課題一覧.md は、指示書ではなく
+#     台帳であるため対象外
 #   - 対象ファイルの当該コミット時点の内容（削除の場合は親コミット時点の
 #     内容へフォールバック）に `**元の指摘**:` 行が無ければ対象外
 #   - その行の値が「なし」なら対象外（要求無し）
@@ -134,6 +136,9 @@ run_scan() {
 
     while IFS= read -r f; do
       [ -z "${f}" ] && continue
+      case "${f}" in
+        docs/tasks/指摘改善一覧.md|docs/tasks/作業課題一覧.md) continue ;;
+      esac
 
       local content
       content="$(git -C "${toplevel}" show "${hash}:${f}" 2>/dev/null)"
@@ -246,6 +251,14 @@ run_self_test() {
   git_quiet -C "${repo}" add -A
   git_quiet -C "${repo}" commit -m "【マージ】取り込み"
 
+  # --- ケース5・6: 元の指摘行があっても、台帳2種は対象外 ---
+  printf '**元の指摘**: 1-62\n' > "${repo}/docs/tasks/指摘改善一覧.md"
+  git_quiet -C "${repo}" add -A
+  git_quiet -C "${repo}" commit -m "指摘台帳を更新"
+  printf '**元の指摘**: 1-63\n' > "${repo}/docs/tasks/作業課題一覧.md"
+  git_quiet -C "${repo}" add -A
+  git_quiet -C "${repo}" commit -m "作業課題台帳を更新"
+
   local out
   out="$(run_scan "${repo}" 200)"
 
@@ -271,6 +284,18 @@ run_self_test() {
     report "ケース4: 【マージ】接頭辞は免除される" ok
   else
     report "ケース4: 【マージ】接頭辞は免除される" ng
+  fi
+
+  if ! printf '%s\n' "${out}" | grep -q '指摘改善一覧.md'; then
+    report "ケース5: 指摘改善一覧は対象外" ok
+  else
+    report "ケース5: 指摘改善一覧は対象外" ng
+  fi
+
+  if ! printf '%s\n' "${out}" | grep -q '作業課題一覧.md'; then
+    report "ケース6: 作業課題一覧は対象外" ok
+  else
+    report "ケース6: 作業課題一覧は対象外" ng
   fi
 
   echo "----------------------------------------"
