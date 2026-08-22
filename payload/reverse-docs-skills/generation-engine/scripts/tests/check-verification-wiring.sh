@@ -78,6 +78,16 @@ get_listed_abs() {
   done
 }
 
+# 集約一覧に対象の絶対パスが1行として含まれるかを返す。
+# set -o pipefail 下で `printf | grep -q` を使うと、grep が一致後に早期終了した際の
+# printf の SIGPIPE（終了コード141）をパイプ全体の失敗と誤認するため、標準入力は
+# here-string で渡す。対象179本で、実際には一覧にある4本を未掲載と誤判定した実測に
+# 基づく。部分一致による別パスの誤認も避けるため、1行完全一致で判定する。
+listed_contains() {
+  local listed="$1" target="$2"
+  grep -Fxq "$target" <<< "$listed"
+}
+
 # 検査1本体。引数: repo（リポジトリルート）。戻り値: 不合格なら1。
 #
 # 母集合（checkable）は「集約の実際の --list 出力（listed）」と「自前列挙
@@ -105,7 +115,7 @@ run_check1() {
   while IFS= read -r f; do
     [ -z "$f" ] && continue
     total=$((total + 1))
-    if ! printf '%s\n' "$listed" | grep -qF "$f"; then
+    if ! listed_contains "$listed" "$f"; then
       rel="$f"
       case "$rel" in
         "$repo"/*) rel="${rel#"$repo"/}" ;;
@@ -181,7 +191,7 @@ run_check2() {
     if ! grep -qE -- '--self-test\)|= "--self-test"' "$f" 2>/dev/null; then
       if has_exempt_comment "$f" \
         || called_from_other_self_test "$f" "$repo"; then
-        if [ -n "$listed" ] && printf '%s\n' "$listed" | grep -qF "$f"; then
+        if [ -n "$listed" ] && listed_contains "$listed" "$f"; then
           rel="$f"
           case "$rel" in
             "$repo"/*) rel="${rel#"$repo"/}" ;;
@@ -225,6 +235,24 @@ self_test() {
       fail=$((fail + 1))
     fi
   }
+
+  # 一覧がパイプバッファを超える規模でも、先頭行の一致を見落とさないこと。
+  # 旧実装の `printf | grep -q` は set -o pipefail 下で grep の早期終了により
+  # printf が SIGPIPE（終了コード141）となり、一致済みでも不一致と判定した。
+  local listedMembershipFixture
+  listedMembershipFixture="$(awk 'BEGIN {
+    print "/fixture/target.sh"
+    for (i = 1; i <= 10000; i++) print "/fixture/filler-" i ".sh"
+  }')"
+  listed_contains "$listedMembershipFixture" "/fixture/target.sh"
+  assert_true "一覧所属-大きな一覧の先頭一致" $?
+
+  # パスの一部が一致するだけでは、一覧に載っていると判定しないこと。
+  listed_contains "/fixture/target.sh.backup" "/fixture/target.sh"
+  local partialMembershipRc=$?
+  [ "$partialMembershipRc" -ne 0 ] \
+    && assert_true "一覧所属-部分一致を拒否" 0 \
+    || assert_true "一覧所属-部分一致を拒否" 1
 
   # ケース1: 現状のリポジトリで検査1が合格すること
   local realRoot
