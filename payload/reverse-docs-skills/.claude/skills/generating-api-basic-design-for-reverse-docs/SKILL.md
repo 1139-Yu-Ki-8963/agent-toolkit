@@ -251,7 +251,7 @@ Phase 5の実行直前に `references/phase5-business-vocabulary-check.md` を�
 
 **完了**: 9検査すべてが合格している
 
-### 検査1の合成フィクスチャ検収
+### 検査1の合成フィクスチャ確認
 
 検査規則を変更した場合は、referenceの合成フィクスチャ36項目を実走する。
 
