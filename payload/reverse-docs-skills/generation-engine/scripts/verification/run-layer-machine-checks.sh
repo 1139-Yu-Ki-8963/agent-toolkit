@@ -363,7 +363,7 @@ run_all() {
 
   targets="$(list_targets "$repo" "$self")"
   if [ -z "$targets" ]; then
-    printf '対象 0 本 / 成功 0 本 / 失敗 0 本 / 途中停止の疑い 0 本 / 打ち切り 0 本 / 宣言済み長時間 0 本 / 総ケース数 0 件\n'
+    printf '対象 0 本 / 成功 0 本 / 失敗 0 本 / 判定不能 0 本 / 途中停止の疑い 0 本 / 打ち切り 0 本 / 宣言済み長時間 0 本 / 総ケース数 0 件\n'
     return 0
   fi
 
@@ -593,6 +593,18 @@ EOS
   local nAllItems
   nAllItems="$(count_cases "$(printf 'OK: wrote a.json\nOK: wrote b.json\nself-test 全項目 PASS\n')")"
   [ "$nAllItems" = "1" ] && assert_true "読取-全項目要約行" 0 || assert_true "読取-全項目要約行" 1
+
+  # 判定不能-対象0本の集計行: 対象が無い早期return経路でも、通常経路と同じ
+  # 順序で「判定不能 0 本」を含む完全な集計行を出し、終了コード0を返すこと。
+  local outEmpty rcEmpty
+  outEmpty="$(run_all "$tmp/repo-empty" "/dev/null/no-such-self" 30)"
+  rcEmpty=$?
+  if [ "$rcEmpty" -eq 0 ] \
+    && [ "$outEmpty" = "対象 0 本 / 成功 0 本 / 失敗 0 本 / 判定不能 0 本 / 途中停止の疑い 0 本 / 打ち切り 0 本 / 宣言済み長時間 0 本 / 総ケース数 0 件" ]; then
+    assert_true "判定不能-対象0本の集計行" 0
+  else
+    assert_true "判定不能-対象0本の集計行" 1
+  fi
 
   # --- フィクスチャ準備（repoB: 成功/失敗/継続/終了コードの検証用） ---
   local scanB="$tmp/repoB/generation-engine/scripts"
