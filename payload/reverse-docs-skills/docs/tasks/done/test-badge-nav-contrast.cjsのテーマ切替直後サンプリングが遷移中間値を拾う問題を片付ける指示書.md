@@ -54,9 +54,9 @@
 
 | 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |
 |---|---|---|---|---|
-| 1. 10回連続実行で標準偏差0.1未満 | `node generation-engine/scripts/tests/test-badge-nav-contrast.cjs` | 完了 | 本コミット | 固定4rAFフレーム待機を、対象要素と祖先チェーンのtransition-durationを読み取ったtransitionend購読+タイムアウトフォールバック待機へ変更。10回連続実行し、全9要素×明暗2配色=18項目すべてで標準偏差0.0000（完全に同一値）を確認。`.pt-nav-item.is-active`（現在地項目の文字）の明るい配色は10回とも12.28で安定（2026-08-19） |
-| 2. 終了コードが10回とも同一 | `node generation-engine/scripts/tests/test-badge-nav-contrast.cjs; echo $?` | 完了 | 本コミット | 10回連続実行し、すべて終了コード0（PASS）。FAILとの交互発生なし（2026-08-19） |
-| 3. test-matrix-header-compact-layout.cjsの要否確認 | `node generation-engine/scripts/tests/test-matrix-header-compact-layout.cjs` | 完了 | 本コミット | 計測対象（`thead th.fn-col`・`th.screen-col`・`th.feature-col`）にはCSS上`transition`が一切定義されていないことをtokens.css・shell.css・matrix系3テンプレート全体をgrepして確認（該当なし）。対応不要と判断し、実測でも3回連続実行してすべて左上見出しコントラスト比16.00で完全に安定（終了コード0×3）することを確認した。固定フレーム待機のままだが、遷移そのものが存在しないため欠陥は無い（2026-08-19） |
+| 1. 10回連続実行で標準偏差0.1未満 | `node generation-engine/scripts/tests/test-badge-nav-contrast.cjs` | 完了 | 2ee8749 | 固定4rAFフレーム待機を、対象要素と祖先チェーンのtransition-durationを読み取ったtransitionend購読+タイムアウトフォールバック待機へ変更。10回連続実行し、全9要素×明暗2配色=18項目すべてで標準偏差0.0000（完全に同一値）を確認。`.pt-nav-item.is-active`（現在地項目の文字）の明るい配色は10回とも12.28で安定（2026-08-19） |
+| 2. 終了コードが10回とも同一 | `node generation-engine/scripts/tests/test-badge-nav-contrast.cjs; echo $?` | 完了 | 2ee8749 | 10回連続実行し、すべて終了コード0（PASS）。FAILとの交互発生なし（2026-08-19） |
+| 3. test-matrix-header-compact-layout.cjsの要否確認 | `node generation-engine/scripts/tests/test-matrix-header-compact-layout.cjs` | 完了 | 2ee8749 | 計測対象（`thead th.fn-col`・`th.screen-col`・`th.feature-col`）にはCSS上`transition`が一切定義されていないことをtokens.css・shell.css・matrix系3テンプレート全体をgrepして確認（該当なし）。対応不要と判断し、実測でも3回連続実行してすべて左上見出しコントラスト比16.00で完全に安定（終了コード0×3）することを確認した。固定フレーム待機のままだが、遷移そのものが存在しないため欠陥は無い（2026-08-19） |
 | 4. 終了コード 0 かつ不合格 0 件 | `node generation-engine/scripts/tests/test-badge-nav-contrast.cjs` | 完了 | fd54205a | 2026-08-19 に実測。直す前は終了コード 1・不合格 2 件（明るい配色の通常項目 1.90・現在地項目 1.07）。捨て測りを入れたあとは終了コード 0・不合格 0 件（通常項目 4.97・現在地項目 12.28）。現在地項目は色の値から計算した理論値 12.27 と一致する。判定 1〜3 はばらつきと終了コードの一致だけを見ており、値そのものが基準を満たすかを見ていなかったため、問題が残ったまま完了になっていた。 |
 
 ### 判断の記録
