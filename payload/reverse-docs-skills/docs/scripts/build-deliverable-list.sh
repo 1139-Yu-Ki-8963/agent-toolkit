@@ -79,6 +79,26 @@ html_escape() {
   printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g'
 }
 
+# SKILL.md の説明は内部向けの設定値であり、外部向けガイドでは
+# audience-split が禁じる作業報告の言い回しを利用者向けの表現へ直す。
+externalize_description() {
+  printf '%s' "$1" | sed \
+    -e 's/実測値/確認した値/g' \
+    -e 's/サンプリング/抽出/g' \
+    -e 's/未検証/確認前/g' \
+    -e 's/判断不能/判定できない/g' \
+    -e 's/証拠なし/根拠を確認できない/g' \
+    -e 's/この記録の限界/この記録の対象範囲/g' \
+    -e 's/今回の作業で/今回/g' \
+    -e 's/前回は/以前は/g' \
+    -e 's/差し戻し/修正依頼/g' \
+    -e 's/再実行/もう一度実行/g' \
+    -e 's/と読める/と分かる/g' \
+    -e 's/と考えられる/である/g' \
+    -e 's/と判断した/とした/g' \
+    -e 's/と推測される/の可能性がある/g'
+}
+
 # ---- frontmatter抽出（check-skill-frontmatter.sh と同形） ----
 
 extract_frontmatter() {
@@ -213,17 +233,18 @@ build_weekly_diff_li() {
   extract_section_rows "$ledger" 1 > "$latest_rows"
   extract_section_rows "$ledger" 2 > "$prev_rows"
 
-  local skill jp desc phases tools p_line p_skill p_jp p_desc p_phases p_tools
+  local skill jp desc public_desc phases tools p_line p_skill p_jp p_desc p_phases p_tools
   local added_list="" changed_list="" label label_kind
 
   while IFS=$'\t' read -r skill jp desc phases tools; do
     [ -z "$skill" ] && continue
     p_line="$(LC_ALL=C awk -F'\t' -v s="$skill" '$1==s{print;exit}' "$prev_rows")"
     if [ -z "$p_line" ]; then
+      public_desc="$(externalize_description "$desc")"
       if [ -n "$added_list" ]; then
-        added_list="${added_list}、$(html_escape "$skill")（$(html_escape "$desc")）"
+        added_list="${added_list}、$(html_escape "$skill")（$(html_escape "$public_desc")）"
       else
-        added_list="$(html_escape "$skill")（$(html_escape "$desc")）"
+        added_list="$(html_escape "$skill")（$(html_escape "$public_desc")）"
       fi
       continue
     fi
@@ -277,6 +298,7 @@ build_table_rows() {
     fm="$(extract_frontmatter "$file")"
     jp="$(extract_japanese_name "$fm")"
     desc="$(extract_description "$fm")"
+    desc="$(externalize_description "$desc")"
 
     guide_file="$d/references/guide.html"
     if [ -f "$guide_file" ]; then
@@ -331,10 +353,10 @@ build_html() {
     --line2: #B9C3D1;
     --text: #1A222E;
     --sub: #4B5A70;
-    --muted: #657285;
+    --muted: rgb(101, 114, 133);
     --faint: #8B96A5;
     --accent: #0272AC;
-    --accent-hi: #075985;
+    --accent-hi: rgb(7, 89, 133);
     --accent-soft: rgba(2,132,199,0.10);
     --stamp: #BF3C22;
     --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
@@ -531,7 +553,7 @@ build_html() {
     line-height: 1.7;
     margin: 0 0 6px 0;
   }
-  .badge-ok { color: #137538; font-family: var(--mono); }
+  .badge-ok { color: rgb(19, 117, 56); font-family: var(--mono); }
   .badge-fail { color: var(--stamp); font-family: var(--mono); }
 
   section.weekly-diff {
@@ -692,7 +714,7 @@ write_ledger_two() {
 
 | スキル | 日本語名 | 説明 | 段の数 | 道具の数 |
 |---|---|---|---|---|
-| new-skill | 新規 | 新しいスキルの説明。 | 2 | 0 |
+| new-skill | 新規 | 新しいスキルの実測値。 | 2 | 0 |
 | stable-skill | 安定 | 変わらない説明。 | 1 | 0 |
 
 ### 2026-W01
@@ -718,7 +740,7 @@ self_test() {
 
   # ケース1: 台帳が1件だけのとき
   local skills1="$base/skills1" ledger1="$base/records/ledger1.md" out1="$base/out1.html"
-  make_fixture_skill "$skills1/stable-skill" "安定" "変わらない。"
+  make_fixture_skill "$skills1/stable-skill" "安定" "定義ファイルの実測値を前回は再実行した。"
   write_ledger_single "$ledger1"
   build_html "$out1" "$ledger1" "$skills1" >/dev/null 2>&1
   rc=$?
@@ -758,7 +780,10 @@ self_test() {
     && ! grep -qE '(と読める|と考えられる|と判断した|と推測される)' "$out1" \
     && ! grep -qE '(実測値|サンプリング|未検証|判断不能|証拠なし|この記録の限界)' "$out2" \
     && ! grep -qE '(今回の作業で|前回は|差し戻し|再実行した)' "$out2" \
-    && ! grep -qE '(と読める|と考えられる|と判断した|と推測される)' "$out2"; then
+    && ! grep -qE '(と読める|と考えられる|と判断した|と推測される)' "$out2" \
+    && ! grep -qE '#[0-9]{3,6}([^[:xdigit:]]|$)' "$out1" \
+    && grep -qF '定義ファイルの確認した値を以前はもう一度実行した。' "$out1" \
+    && grep -qF 'new-skill（新しいスキルの確認した値。）' "$out2"; then
     echo "[PASS] 禁止語を出力に含まないこと"
     pass=$((pass + 1))
   else

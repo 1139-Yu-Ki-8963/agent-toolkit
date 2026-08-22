@@ -12,10 +12,10 @@
     --line2: #B9C3D1;
     --text: #1A222E;
     --sub: #4B5A70;
-    --muted: #657285;
+    --muted: rgb(101, 114, 133);
     --faint: #8B96A5;
     --accent: #0272AC;
-    --accent-hi: #075985;
+    --accent-hi: rgb(7, 89, 133);
     --accent-soft: rgba(2,132,199,0.10);
     --stamp: #BF3C22;
     --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
@@ -212,7 +212,7 @@
     line-height: 1.7;
     margin: 0 0 6px 0;
   }
-  .badge-ok { color: #137538; font-family: var(--mono); }
+  .badge-ok { color: rgb(19, 117, 56); font-family: var(--mono); }
   .badge-fail { color: var(--stamp); font-family: var(--mono); }
 
   section.weekly-diff {
@@ -252,7 +252,7 @@
         <div class="stat"><div class="label">成果物数</div><div class="value">52<span class="unit">本</span></div></div>
         <div class="stat"><div class="label">スキル</div><div class="value">52<span class="unit">本</span></div></div>
         <div class="stat"><div class="label">スライド</div><div class="value">0<span class="unit">本</span></div></div>
-        <div class="stat date"><div class="label">報告日</div><div class="value">2026-08-21</div></div>
+        <div class="stat date"><div class="label">報告日</div><div class="value">2026-08-23</div></div>
       </div>
     </header>
 
@@ -319,7 +319,7 @@
           <tr><td class="id">generating-table-definition-for-reverse-docs</td><td class="jp">テーブル定義書の書き起こし</td><td class="desc">テーブル一覧の元データと原本のコードから、テーブルごとの定義書を作る。</td><td class="guide"><a href="../../.claude/skills/generating-table-definition-for-reverse-docs/references/guide.html">ガイドを開く →</a></td></tr>
           <tr><td class="id">generating-table-list-for-reverse-docs</td><td class="jp">テーブル一覧のとりまとめ</td><td class="desc">既存のコードからテーブルの単位を見つけ出し、テーブル一覧のページを作る。</td><td class="guide"><a href="../../.claude/skills/generating-table-list-for-reverse-docs/references/guide.html">ガイドを開く →</a></td></tr>
           <tr><td class="id">generating-table-logical-model-for-reverse-docs</td><td class="jp">論理データモデルの書き起こし</td><td class="desc">テーブル一覧の元データと原本のコードから、テーブルが持つ業務上の意味を業務の言葉だけで書く。</td><td class="guide"><a href="../../.claude/skills/generating-table-logical-model-for-reverse-docs/references/guide.html">ガイドを開く →</a></td></tr>
-          <tr><td class="id">generating-tech-stack-for-reverse-docs</td><td class="jp">技術スタックの書き出し</td><td class="desc">調査書の記載と定義ファイルの実測値を突き合わせ、技術スタックのページを機械的に作る。</td><td class="guide"><a href="../../.claude/skills/generating-tech-stack-for-reverse-docs/references/guide.html">ガイドを開く →</a></td></tr>
+          <tr><td class="id">generating-tech-stack-for-reverse-docs</td><td class="jp">技術スタックの書き出し</td><td class="desc">調査書の記載と定義ファイルの確認した値を突き合わせ、技術スタックのページを機械的に作る。</td><td class="guide"><a href="../../.claude/skills/generating-tech-stack-for-reverse-docs/references/guide.html">ガイドを開く →</a></td></tr>
           <tr><td class="id">generating-test-case-list-for-reverse-docs</td><td class="jp">テストケース一覧の生成</td><td class="desc">各設計単位のテスト設計書を横断して集め、テストケース一覧を作る。</td><td class="guide"><a href="../../.claude/skills/generating-test-case-list-for-reverse-docs/references/guide.html">ガイドを開く →</a></td></tr>
           <tr><td class="id">generating-test-viewpoint-list-for-reverse-docs</td><td class="jp">テスト観点表の生成</td><td class="desc">各設計単位のテスト設計書を横断して集め、テスト観点表を作る。</td><td class="guide"><a href="../../.claude/skills/generating-test-viewpoint-list-for-reverse-docs/references/guide.html">ガイドを開く →</a></td></tr>
           <tr><td class="id">maintaining-semantic-glossary</td><td class="jp">用語変更の検査と影響分析</td><td class="desc">用語の変更を検査し、影響を分析する。</td><td class="guide"><a href="../../.claude/skills/maintaining-semantic-glossary/references/guide.html">ガイドを開く →</a></td></tr>

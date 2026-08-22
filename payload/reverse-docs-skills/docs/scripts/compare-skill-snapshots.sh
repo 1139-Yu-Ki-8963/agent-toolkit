@@ -41,7 +41,9 @@ DEFAULT_LEDGER="$REPO_ROOT/docs/tasks/work-records/週次スナップショッ�
 TMP_FILES=()
 cleanup_tmp() {
   local f
-  for f in "${TMP_FILES[@]}"; do
+  # macOS 標準の Bash 3.2 では、set -u のもとで空配列をそのまま展開すると
+  # unbound variable になる。要素があるときだけ展開する。
+  for f in "${TMP_FILES[@]+"${TMP_FILES[@]}"}"; do
     [ -n "$f" ] && rm -f "$f"
   done
 }
