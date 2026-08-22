@@ -1,10 +1,7 @@
 ---
 name: generating-api-detail-design-for-reverse-docs
 日本語名: 接続窓口の詳細設計書を作る
-description: |
-  接続窓口ごとに原本コードから詳細設計書を作る。
-  TRIGGER when: API詳細設計書を生成・更新するとき。
-  SKIP: API一覧、画面詳細設計書、複数機能の集約設計書を作るとき。
+description: "接続窓口ごとに原本コードから詳細設計書を作る。"
 invocation: generating-api-detail-design-for-reverse-docs
 type: transform
 allowed-tools: [AskUserQuestion, Bash, Glob, Grep, Read, TaskCreate, TaskUpdate, Write]
