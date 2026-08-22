@@ -93,7 +93,7 @@ missing_reason="$tmp/missing-reason.md"
 cp "$doc" "$missing_reason"
 sed -i.bak '/| local-cache-choice |/d' "$missing_reason"
 node "$repo_root/generation-engine/scripts/validate-api-design-decisions.mjs" "$missing_reason" >/dev/null
-if grep -qF '根拠を記録する資料' "$missing_reason"; then
+if grep -qE '根拠資料|根拠を記録する資料|設計単位根拠台帳|共通文書根拠台帳' "$missing_reason"; then
   echo "FAIL: 廃止した根拠資料への参照が残っている" >&2
   exit 1
 fi

@@ -574,23 +574,23 @@ JSON
   local template_root related_count evidence_ref_count old_heading_count old_move_count unit_chapter_count decision_heading_count api_related_rows stale_skill_route_count
   template_root="$REPO_ROOT/delivery-payload/templates/リバース検証"
   related_count="$(grep -R -l -E '^## (§[0-9]+ )?関連資料$' "$template_root" --include='*.md' | wc -l | tr -d ' ')"
-  evidence_ref_count="$(grep -R -l -F '| 根拠を記録する資料 |' "$template_root" --include='*.md' | wc -l | tr -d ' ')"
+  evidence_ref_count="$(grep -R -l -E '根拠資料|根拠を記録する資料|設計単位根拠台帳|共通文書根拠台帳' "$template_root" --include='*.md' | wc -l | tr -d ' ')"
   old_heading_count="$(grep -R -l -E '^## (§[0-9]+ )?要確認事項一覧$' "$template_root" --include='*.md' | wc -l | tr -d ' ')"
   old_move_count="$(grep -R -l -F '要確認事項一覧へ移す' "$template_root" --include='*.md' | wc -l | tr -d ' ')"
   unit_chapter_count="$(grep -R -l -E '^## §[0-9]+ .*単体テスト設計書$' "$template_root" --include='*.md' | wc -l | tr -d ' ')"
   decision_heading_count="$(grep -c '^### 12\.5 設計判断とその理由$' "$template_root/API/API詳細設計書.md")"
-  api_related_rows="$(grep -E -c '^\| (API詳細設計書|API単体テスト設計書|根拠を記録する資料) \|' "$template_root/API/API基本設計書.md")"
+  api_related_rows="$(grep -E -c '^\| (API詳細設計書|API単体テスト設計書) \|' "$template_root/API/API基本設計書.md")"
   stale_skill_route_count="$(grep -E -h '完了条件: §(11|13) が埋まっている|要確認（現場確認事項）|付録 A・B|\^## 関連資料|根拠を記録する資料の「確定できなかった事項」' \
     "$REPO_ROOT/.claude/skills/generating-api-detail-design-for-reverse-docs/SKILL.md" \
     "$REPO_ROOT/.claude/skills/generating-feature-design-for-reverse-docs/SKILL.md" \
     "$REPO_ROOT/.claude/skills/generating-reverse-basic-design/SKILL.md" | wc -l | tr -d ' ')"
   assert_eq "課題1-223-関連資料節を持つテンプレート数" 26 "$related_count"
-  assert_eq "課題1-223-根拠資料参照を持つテンプレート数" 26 "$evidence_ref_count"
+  assert_eq "課題1-223-廃止済み資料名を含む参照の残存数" 0 "$evidence_ref_count"
   assert_eq "課題1-223-要確認事項節の残存数" 0 "$old_heading_count"
   assert_eq "課題1-223-旧回送文言の残存数" 0 "$old_move_count"
   assert_eq "課題1-223-単体テスト設計書独立章の残存数" 0 "$unit_chapter_count"
   assert_eq "課題1-223-設計判断見出しの番号付き件数" 1 "$decision_heading_count"
-  assert_eq "課題1-223-API基本設計書の個別関連資料行数" 3 "$api_related_rows"
+  assert_eq "課題1-223-API基本設計書の個別関連資料行数" 2 "$api_related_rows"
   assert_eq "課題1-223-生成スキルの旧回送契約残存数" 0 "$stale_skill_route_count"
 
   local tmp_7 out_7 rc_7 kind basename source_dir target_dir

@@ -1174,20 +1174,20 @@ EOF
     rm -rf "$test_dir"
     return 1
   fi
-  if [ ! -f "$test_portal/基盤/技術スタック.html" ] \
-    || [ ! -f "$test_portal/基盤/環境構築手順.html" ] \
-    || [ ! -f "$test_portal/一覧/用語辞書/用語辞書.html" ] \
-    || [ ! -f "$test_portal/基盤/AI設定資産.html" ] \
+  if [ ! -f "$test_portal/foundation/技術スタック.html" ] \
+    || [ ! -f "$test_portal/foundation/環境構築手順.html" ] \
+    || [ ! -f "$test_portal/lists/用語辞書/用語辞書.html" ] \
+    || [ ! -f "$test_portal/foundation/AI設定資産.html" ] \
     || [ ! -f "$test_docs/custom/manifests/ai-assets.json" ]; then
     echo "FAIL: --self-test ケース48a（3種の詳細ページまたはAI設定資産が生成されない）" >&2
     rm -rf "$test_dir"
     return 1
   fi
-  if ! grep -q '<div class="pt-brand-name">repo</div>' "$test_portal/基盤/技術スタック.html" \
-    || ! grep -q '<div class="pt-brand-name">repo</div>' "$test_portal/基盤/環境構築手順.html" \
-    || ! grep -q '<div class="pt-brand-name">repo</div>' "$test_portal/一覧/用語辞書/用語辞書.html" \
-    || ! grep -q '<div class="pt-brand-name">repo</div>' "$test_portal/基盤/AI設定資産.html" \
-    || ! grep -q '2026-08-20T00:00:00Z' "$test_portal/基盤/AI設定資産.html"; then
+  if ! grep -q '<div class="pt-brand-name">repo</div>' "$test_portal/foundation/技術スタック.html" \
+    || ! grep -q '<div class="pt-brand-name">repo</div>' "$test_portal/foundation/環境構築手順.html" \
+    || ! grep -q '<div class="pt-brand-name">repo</div>' "$test_portal/lists/用語辞書/用語辞書.html" \
+    || ! grep -q '<div class="pt-brand-name">repo</div>' "$test_portal/foundation/AI設定資産.html" \
+    || ! grep -q '2026-08-20T00:00:00Z' "$test_portal/foundation/AI設定資産.html"; then
     echo "FAIL: --self-test ケース48a（解決したプロジェクト名または生成時刻が全ページへ渡らない）" >&2
     rm -rf "$test_dir"
     return 1
@@ -1234,9 +1234,9 @@ EOF
   if [ -z "$PLAYWRIGHT_AVAILABLE" ]; then
     echo "SKIP: --self-test ケース48d実描画（playwrightパッケージが利用できないため。導入後は3種の生成ページでpageerror=0を検査する）"
   elif ! node "$SCRIPT_DIR/tests/assert-generated-detail-pages-runtime.cjs" \
-      "$test_portal/基盤/技術スタック.html" \
-      "$test_portal/基盤/環境構築手順.html" \
-      "$test_portal/一覧/用語辞書/用語辞書.html"; then
+      "$test_portal/foundation/技術スタック.html" \
+      "$test_portal/foundation/環境構築手順.html" \
+      "$test_portal/lists/用語辞書/用語辞書.html"; then
       echo "FAIL: --self-test ケース48d（生成した3種の詳細ページで実描画例外が発生）" >&2
       rm -rf "$test_dir"
       return 1
@@ -1493,6 +1493,108 @@ if [ "${1:-}" = "--self-test" ]; then
     return 0
   }
 
+  append_required_screen_sections() {
+    local document="$1"
+    cat >> "$document" <<'REQUIRED_SCREEN_SECTIONS'
+
+## §1 画面概要
+
+検証用の最小記述。
+
+## §2 機能一覧
+
+検証用の最小記述。
+
+## §3 画面構造
+
+検証用の最小記述。
+
+## §5 状態管理
+
+検証用の最小記述。
+
+## §6 データフロー
+
+検証用の最小記述。
+
+## §7 ロジック
+
+検証用の最小記述。
+
+## §8 疑似コード
+
+検証用の最小記述。
+
+## §10 データ定義
+
+検証用の最小記述。
+
+## §11 イベント処理
+
+検証用の最小記述。
+
+## §12 領域別仕様
+
+検証用の最小記述。
+
+## §14 エラーハンドリング
+
+検証用の最小記述。
+
+## §15 画面遷移仕様
+
+検証用の最小記述。
+
+## §16 非機能要件
+
+検証用の最小記述。
+
+## §17 共通仕様への準拠
+
+検証用の最小記述。
+
+## §18 実装契約
+
+検証用の最小記述。
+
+## §19 関連資料
+
+検証用の最小記述。
+REQUIRED_SCREEN_SECTIONS
+  }
+
+  write_valid_api_detail_fixture() {
+    local document="$1"
+    sed \
+      -e 's/APIKEY/get-users/g' \
+      -e 's/APIID/api-get-users/g' \
+      -e 's/METHOD/GET/g' \
+      -e 's|PATH|/api/users|g' \
+      -e 's/FEATUREKEY/feature-users/g' \
+      -e 's|SOURCEREF|src/api/users.py|g' \
+      -e 's/<API名>/ユーザー一覧/g' \
+      "$SCRIPT_DIR/../../delivery-payload/templates/リバース検証/API/API詳細設計書.md" \
+      > "$document"
+  }
+
+  append_required_table_sections_after_foreign_keys() {
+    local document="$1"
+    cat >> "$document" <<'REQUIRED_TABLE_SECTIONS'
+
+## §7 データ定義
+
+検証用の最小記述。
+
+## §8 実装契約
+
+検証用の最小記述。
+
+## §9 関連資料
+
+検証用の最小記述。
+REQUIRED_TABLE_SECTIONS
+  }
+
   if [ -d "${TMPDIR:-/tmp}" ]; then
     TMPDIR="$(cd "${TMPDIR:-/tmp}" && pwd -P)"
     export TMPDIR
@@ -1558,8 +1660,8 @@ FIXTURE2
   test3_portal="$test3_dir/portal"
   mkdir -p "$test3_docs" "$test3_portal"
   echo '{"total":100,"fe":50,"be":50,"file_count":10}' > "$test3_docs/code-metrics.json"
-  mkdir -p "$test3_docs/project-portal/一覧/用語辞書"
-  echo '<html><body>test glossary</body></html>' > "$test3_docs/project-portal/一覧/用語辞書/用語辞書.html"
+  mkdir -p "$test3_docs/project-portal/lists/用語辞書"
+  echo '<html><body>test glossary</body></html>' > "$test3_docs/project-portal/lists/用語辞書/用語辞書.html"
   "$SCRIPT_DIR/build-portal.sh" "$test3_dir" "$test3_docs" "$test3_portal" 2>/dev/null
   if grep -q 'href":"[^"]*用語辞書.html"' "$test3_portal/index.html" \
     && grep -q '"kind":"semantic-glossary"' "$DEFAULT_CATALOG" \
@@ -1584,8 +1686,15 @@ JSON
   printf -- '---\ntitle: frontmatter\n---\n# FM後の見出し\n本文' > "$test4_docs/プロジェクト共通/fm-test.md"
   printf -- '---\n# 執筆者向け内部指示: この見出しを文書名に使わない\n---\n# 共通本文タイトル\n本文' > "$test4_docs/プロジェクト共通/title-frontmatter.md"
   printf -- '---\n# 執筆者向け内部指示: この見出しを文書名に使わない\n---\n# 画面本文タイトル\n本文' > "$test4_docs/画面/screen-title/詳細設計/画面詳細設計書.md"
+  append_required_screen_sections "$test4_docs/画面/screen-title/詳細設計/画面詳細設計書.md"
   printf '見出しのない本文' > "$test4_docs/プロジェクト共通/fallback-title.md"
-  "$SCRIPT_DIR/build-portal.sh" "$test4_repo" "$test4_docs" "$test4_portal" 2>/dev/null
+  test4_build_status=0
+  "$SCRIPT_DIR/build-portal.sh" "$test4_repo" "$test4_docs" "$test4_portal" 2>/dev/null \
+    || test4_build_status=$?
+  if [ "$test4_build_status" -ne 0 ]; then
+    echo "FAIL: --self-test ケース4（ポータル生成が終了コード${test4_build_status}で失敗した）" >&2
+    record_self_test_case_failure
+  fi
   bom_ok=0
   fm_ok=0
   grep -q 'BOM付き見出し' "$test4_docs/プロジェクト共通/bom-test.html" 2>/dev/null && bom_ok=1
@@ -1599,7 +1708,7 @@ JSON
   fi
 
   test4_common_html="$test4_docs/プロジェクト共通/title-frontmatter.html"
-  test4_screen_html="$test4_docs/project-portal/画面/screen-title/詳細設計/画面詳細設計書.html"
+  test4_screen_html="$test4_docs/project-portal/screens/screen-title/詳細設計/画面詳細設計書.html"
   test4_fallback_html="$test4_docs/プロジェクト共通/fallback-title.html"
   if ! node -e '
     const fs = require("node:fs");
@@ -1903,8 +2012,8 @@ JSON
   test7_repo="$test7_dir/repo"
   test7_docs="$test7_dir/docs"
   test7_portal="$test7_dir/portal"
-  mkdir -p "$test7_repo" "$test7_docs/project-portal/一覧/API一覧" "$test7_portal"
-  cat > "$test7_docs/project-portal/一覧/API一覧/API一覧.html" <<'TEST7HTML'
+  mkdir -p "$test7_repo" "$test7_docs/project-portal/lists/apis" "$test7_portal"
+  cat > "$test7_docs/project-portal/lists/apis/API一覧.html" <<'TEST7HTML'
 <!DOCTYPE html><html><head><title>API一覧</title></head><body>
 <script type="application/json" id="unit-manifest">
 {
@@ -1933,8 +2042,8 @@ TEST7HTML
   test8_repo="$test8_dir/repo"
   test8_docs="$test8_dir/docs"
   test8_portal="$test8_dir/portal"
-  mkdir -p "$test8_repo" "$test8_docs/project-portal/一覧/画面一覧" "$test8_portal"
-  cat > "$test8_docs/project-portal/一覧/画面一覧/画面一覧.html" <<'TEST8HTML'
+  mkdir -p "$test8_repo" "$test8_docs/project-portal/lists/screens" "$test8_portal"
+  cat > "$test8_docs/project-portal/lists/screens/画面一覧.html" <<'TEST8HTML'
 <!DOCTYPE html><html><head><title>画面一覧</title></head><body>
 <script type="application/json" id="screen-manifest">
 {
@@ -2249,13 +2358,13 @@ TEST10HTML
   test12_repo="$test12_dir/repo"
   test12_docs="$test12_dir/docs"
   test12_portal="$test12_dir/portal"
-  mkdir -p "$test12_repo" "$test12_docs/project-portal/一覧/テスト観点表" "$test12_portal"
-  cat > "$test12_docs/project-portal/一覧/テスト観点表/テスト観点表.html" <<'TEST12HTML'
+  mkdir -p "$test12_repo" "$test12_docs/project-portal/lists/テスト観点表" "$test12_portal"
+  cat > "$test12_docs/project-portal/lists/テスト観点表/テスト観点表.html" <<'TEST12HTML'
 <!DOCTYPE html><html><body><script type="application/json" id="unit-manifest">{"unitKind":"test_viewpoint","detectionSummary":{"unitCount":3,"unresolvedCount":0},"units":[]}</script></body></html>
 TEST12HTML
   "$SCRIPT_DIR/build-portal.sh" "$test12_repo" "$test12_docs" "$test12_portal" 2>/dev/null
   if grep -q '"title":"テスト観点表"' "$test12_portal/index.html" \
-     && grep -q '一覧/テスト観点表/テスト観点表.html' "$test12_portal/index.html"; then
+     && grep -q 'lists/テスト観点表/テスト観点表.html' "$test12_portal/index.html"; then
     echo "PASS: --self-test ケース12（テスト観点表の正本パスを派生一覧カードへ反映）"
   else
     echo "FAIL: --self-test ケース12（テスト観点表の派生一覧カード）" >&2
@@ -2827,7 +2936,7 @@ TEST24CATALOG
   test25_dir="$(create_physical_tmpdir)"
   test25_repo="$test25_dir/repo"
   test25_docs="$test25_dir/docs"
-  mkdir -p "$test25_repo/src/routes" "$test25_docs/project-portal/一覧/API一覧"
+  mkdir -p "$test25_repo/src/routes" "$test25_docs/project-portal/lists/apis"
   echo "export function usersRoute() {}" > "$test25_repo/src/routes/users.ts"
 
   test25_manifest="$test25_dir/manifest-api.json"
@@ -2867,7 +2976,7 @@ TEST24CATALOG
 
   # 手順1: unit-listビルダー単独でAPI一覧ページを生成する（shell_counts_json未指定のため
   # blueprint数のまま焼かれる = discoveryを持たない5経路の実際の挙動を再現）
-  "$SCRIPT_DIR/unit-list/build-unit-list.sh" "$test25_manifest" "$test25_docs/project-portal/一覧/API一覧/API一覧.html" \
+  "$SCRIPT_DIR/unit-list/build-unit-list.sh" "$test25_manifest" "$test25_docs/project-portal/lists/apis/API一覧.html" \
     --unit-kind api --portal-dir "$test25_docs" --project-name test25 >/dev/null 2>&1
 
   # 手順2: build-portal.sh フル生成（discoveryを持つ唯一の経路。末尾でDOCS_ROOT配下の
@@ -2882,7 +2991,7 @@ TEST24CATALOG
   # 末尾のPASSは「このケースの間に新たな不合格が記録されていない」場合
   # にのみ出す。
   test25_fail_snapshot="$SELF_TEST_CASE_FAIL_COUNT"
-  test25_result1="$(compare_shell_state_across_pages "$test25_docs/index.html" "$test25_docs/project-portal/一覧/API一覧/API一覧.html")"
+  test25_result1="$(compare_shell_state_across_pages "$test25_docs/index.html" "$test25_docs/project-portal/lists/apis/API一覧.html")"
   if [ "$test25_result1" != "MATCH" ]; then
     echo "FAIL: --self-test ケース25（フル生成直後に全ページのシェル表示値が一致しない）" >&2
     rm -rf "$test25_dir"
@@ -2894,9 +3003,9 @@ TEST24CATALOG
   # 全ページの表示値は不一致に戻るはずである。不一致にならなければ検査に判別力が無い。
   test25_manifest2="$test25_dir/manifest-api2.json"
   jq '.generatedAt = "2026-07-29T00:00:00Z"' "$test25_manifest" > "$test25_manifest2"
-  "$SCRIPT_DIR/unit-list/build-unit-list.sh" "$test25_manifest2" "$test25_docs/project-portal/一覧/API一覧/API一覧.html" \
+  "$SCRIPT_DIR/unit-list/build-unit-list.sh" "$test25_manifest2" "$test25_docs/project-portal/lists/apis/API一覧.html" \
     --unit-kind api --portal-dir "$test25_docs" --project-name test25 >/dev/null 2>&1
-  test25_result2="$(compare_shell_state_across_pages "$test25_docs/index.html" "$test25_docs/project-portal/一覧/API一覧/API一覧.html")"
+  test25_result2="$(compare_shell_state_across_pages "$test25_docs/index.html" "$test25_docs/project-portal/lists/apis/API一覧.html")"
   if [ "$test25_result2" != "MISMATCH" ]; then
     echo "FAIL: --self-test ケース25（フィクスチャ不備: 一部ページ単独再生成後も不一致を検知できず検査として機能しない）" >&2
     rm -rf "$test25_dir"
@@ -2906,7 +3015,7 @@ TEST24CATALOG
   # 手順4: build-portal.sh を再実行する（一部ページのみ再生成した直後でもPASSすることの
   # 検収方法。バックフィルがDOCS_ROOT配下の全HTMLを再度単一の情報源へ揃え直す）
   "$SCRIPT_DIR/build-portal.sh" "$test25_repo" "$test25_docs" "$test25_docs" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1
-  test25_result3="$(compare_shell_state_across_pages "$test25_docs/index.html" "$test25_docs/project-portal/一覧/API一覧/API一覧.html")"
+  test25_result3="$(compare_shell_state_across_pages "$test25_docs/index.html" "$test25_docs/project-portal/lists/apis/API一覧.html")"
   if [ "$test25_result3" != "MATCH" ]; then
     echo "FAIL: --self-test ケース25（一部ページ再生成後にbuild-portal.shを再実行しても全ページが一致しない）" >&2
     rm -rf "$test25_dir"
@@ -3282,6 +3391,7 @@ source_line_ending: LF
 # 画面A詳細設計書
 本文
 TEST34_A_MD
+  append_required_screen_sections "$test34_docs/画面/screen-a/詳細設計/画面詳細設計書.md"
 
   cat > "$test34_docs/画面/screen-a/基本設計/画面基本設計書.md" <<'TEST34_A_BASIC_MD'
 # 画面A基本設計書
@@ -3298,6 +3408,7 @@ source_line_ending: LF
 # 画面B詳細設計書
 本文
 TEST34_B_MD
+  append_required_screen_sections "$test34_docs/画面/screen-b/詳細設計/画面詳細設計書.md"
 
   cat > "$test34_docs/画面/screen-b/基本設計/画面基本設計書.md" <<'TEST34_B_BASIC_MD'
 # 画面B基本設計書
@@ -3311,6 +3422,7 @@ source_ref: dddddddddddddddddddddddddddddddddddddddd
 ---
 # 集約対象外decoy
 TEST34_DECOY_MD
+  append_required_screen_sections "$test34_docs/画面/archive/詳細設計/画面詳細設計書.md"
 
   # 改善課題1-243: 本ケースはパターン1〜4の複数の独立したガードを経て末尾で
   # 1行のPASSを出す構造を持つ。途中のガードが1つでも不合格になった場合、
@@ -3320,7 +3432,13 @@ TEST34_DECOY_MD
   test34_fail_snapshot="$SELF_TEST_CASE_FAIL_COUNT"
 
   # パターン1: 2画面のsource_refが異なる → index.htmlに「画面ごとに異なる」の注記が出る
-  "$SCRIPT_DIR/build-portal.sh" "$test34_repo" "$test34_docs" "$test34_portal" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1
+  test34_build_status_1=0
+  "$SCRIPT_DIR/build-portal.sh" "$test34_repo" "$test34_docs" "$test34_portal" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1 \
+    || test34_build_status_1=$?
+  if [ "$test34_build_status_1" -ne 0 ]; then
+    echo "FAIL: --self-test ケース34（パターン1の生成が終了コード${test34_build_status_1}で失敗した）" >&2
+    record_self_test_case_failure
+  fi
   if ! grep -q "画面ごとに異なる" "$test34_portal/index.html"; then
     echo "FAIL: --self-test ケース34（値が異なる2画面でindex.htmlに『画面ごとに異なる』の注記が出ない）" >&2
     rm -rf "$test34_dir"
@@ -3357,6 +3475,7 @@ source_line_ending: LF
 本文
 source_ref: ffffffffffffffffffffffffffffffffffffffff
 TEST34_A_SAME_MD
+  append_required_screen_sections "$test34_docs/画面/screen-a/詳細設計/画面詳細設計書.md"
   cat > "$test34_docs/画面/screen-b/詳細設計/画面詳細設計書.md" <<'TEST34_B_SAME_MD'
 ---
 source_repo: sample-repo
@@ -3368,7 +3487,14 @@ source_line_ending: LF
 本文
 source_ref: ffffffffffffffffffffffffffffffffffffffff
 TEST34_B_SAME_MD
-  "$SCRIPT_DIR/build-portal.sh" "$test34_repo" "$test34_docs" "$test34_portal" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1
+  append_required_screen_sections "$test34_docs/画面/screen-b/詳細設計/画面詳細設計書.md"
+  test34_build_status_2=0
+  "$SCRIPT_DIR/build-portal.sh" "$test34_repo" "$test34_docs" "$test34_portal" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1 \
+    || test34_build_status_2=$?
+  if [ "$test34_build_status_2" -ne 0 ]; then
+    echo "FAIL: --self-test ケース34（パターン2の生成が終了コード${test34_build_status_2}で失敗した）" >&2
+    record_self_test_case_failure
+  fi
   if ! grep -q "コミット番号: ccccccc" "$test34_portal/index.html" \
     || grep -q "画面ごとに異なる" "$test34_portal/index.html"; then
     echo "FAIL: --self-test ケース34（値が一致する2画面のccccccc表示にdirect-child decoyが混入）" >&2
@@ -3388,11 +3514,19 @@ TEST34_B_SAME_MD
 # 画面A詳細設計書
 本文
 TEST34_A_NOREF_MD
+  append_required_screen_sections "$test34_docs/画面/screen-a/詳細設計/画面詳細設計書.md"
   cat > "$test34_docs/画面/screen-b/詳細設計/画面詳細設計書.md" <<'TEST34_B_NOREF_MD'
 # 画面B詳細設計書
 本文
 TEST34_B_NOREF_MD
-  "$SCRIPT_DIR/build-portal.sh" "$test34_repo" "$test34_docs" "$test34_portal" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1
+  append_required_screen_sections "$test34_docs/画面/screen-b/詳細設計/画面詳細設計書.md"
+  test34_build_status_4=0
+  "$SCRIPT_DIR/build-portal.sh" "$test34_repo" "$test34_docs" "$test34_portal" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1 \
+    || test34_build_status_4=$?
+  if [ "$test34_build_status_4" -ne 0 ]; then
+    echo "FAIL: --self-test ケース34（パターン4の生成が終了コード${test34_build_status_4}で失敗した）" >&2
+    record_self_test_case_failure
+  fi
   test34_footer="$(grep -o '<span id="pt-footer-commit">[^<]*</span>' "$test34_portal/index.html")"
   if printf '%s' "$test34_footer" | grep -q "番号"; then
     echo "FAIL: --self-test ケース34（source_ref不在後もindex.htmlのコミット表示が空にならない: ${test34_footer}）" >&2
@@ -3548,14 +3682,18 @@ JSON
   # （NR==1限定のawk実装だと検出できない回帰を防ぐフィクスチャ）
   printf '\n# 信頼境界検証画面 画面基本設計書\n本文' > "$test37_docs/画面/screen-trust-boundary/基本設計/画面基本設計書.md"
   printf '\n# 信頼境界検証画面 画面詳細設計書\n本文' > "$test37_docs/画面/screen-trust-boundary/詳細設計/画面詳細設計書.md"
+  append_required_screen_sections "$test37_docs/画面/screen-trust-boundary/詳細設計/画面詳細設計書.md"
 
-  "$SCRIPT_DIR/build-portal.sh" "$test37_repo" "$test37_docs" "$test37_docs" --catalog "$DEFAULT_CATALOG" >/dev/null 2>&1
+  test37_build_status=0
+  "$SCRIPT_DIR/build-portal.sh" "$test37_repo" "$test37_docs" "$test37_docs" --catalog "$DEFAULT_CATALOG" >/dev/null 2>&1 \
+    || test37_build_status=$?
 
   test37_index="$test37_docs/index.html"
   test37_detail_html="$test37_docs/画面/screen-trust-boundary/詳細設計/画面詳細設計書.html"
   test37_base_html="$test37_docs/画面/screen-trust-boundary/基本設計/画面基本設計書.html"
 
   test37_ok=1
+  [ "$test37_build_status" -eq 0 ] || test37_ok=0
   grep -q '現行実装をそのまま記録' "$test37_index" 2>/dev/null || test37_ok=0
   grep -q '現行実装をそのまま記録' "$test37_detail_html" 2>/dev/null || test37_ok=0
   grep -q '現行実装をそのまま記録' "$test37_base_html" 2>/dev/null || test37_ok=0
@@ -3762,18 +3900,7 @@ NODE
   test43_docs="$test43_dir/docs"
   test43_portal="$test43_dir/portal"
   mkdir -p "$test43_repo" "$test43_docs/docs/design/apis/api-get-users/詳細設計" "$test43_portal"
-  cat > "$test43_docs/docs/design/apis/api-get-users/詳細設計/API詳細設計書.md" <<'EOF'
----
-api_key: get-users
-api_id: api-get-users
-method: GET
-path: /api/users
-source_ref: src/api/users.py
-unit_kind: api
----
-
-# ユーザー一覧 API詳細設計書
-EOF
+  write_valid_api_detail_fixture "$test43_docs/docs/design/apis/api-get-users/詳細設計/API詳細設計書.md"
   mkdir -p "$test43_docs/docs/design/tables/table-users/詳細設計"
   cat > "$test43_docs/docs/design/tables/table-users/詳細設計/テーブル定義書.md" <<'EOF'
 ---
@@ -3786,11 +3913,19 @@ unit_kind: table
 
 # ユーザー テーブル定義書
 
+## §1 構成要素
+## §2 処理の定義
+## §3 ロジック
+## §4 疑似コード
+## §5 入出力の値
+## §6 エラー処理
+
 ### 6.3 外部キー
 
 | カラム | 参照先のテーブル | 参照先のカラム | 削除時の動作 | 関連の種別 | 出典参照 |
 |---|---|---|---|---|---|
 EOF
+  append_required_table_sections_after_foreign_keys "$test43_docs/docs/design/tables/table-users/詳細設計/テーブル定義書.md"
   mkdir -p "$test43_docs/docs/design/tables/table-orders/詳細設計"
   cat > "$test43_docs/docs/design/tables/table-orders/詳細設計/テーブル定義書.md" <<'EOF'
 ---
@@ -3803,12 +3938,20 @@ unit_kind: table
 
 # 注文 テーブル定義書
 
+## §1 構成要素
+## §2 処理の定義
+## §3 ロジック
+## §4 疑似コード
+## §5 入出力の値
+## §6 エラー処理
+
 ### 6.3 外部キー
 
 | カラム | 参照先のテーブル | 参照先のカラム | 削除時の動作 | 関連の種別 | 出典参照 |
 |---|---|---|---|---|---|
 | `user_id` | `users` | `id` | `CASCADE` | `一対多` | `src/models/orders.py#L12` |
 EOF
+  append_required_table_sections_after_foreign_keys "$test43_docs/docs/design/tables/table-orders/詳細設計/テーブル定義書.md"
   echo '{"total":100,"fe":50,"be":50,"file_count":10}' > "$test43_portal/code-metrics.json"
   # 改善課題1-66により、method・pathが揃ったAPI文書のkindは"endpoint"へ解決されるため、
   # validate-manifest.shのsourceFile-実在検査(kind!=unresolvedの行のみ検査)がsource_ref
@@ -3827,10 +3970,15 @@ EOF
   # でもFAILとPASSの両方が印字されていた）。ガード開始前の件数を記録し、
   # 末尾のPASSは新たな不合格が記録されていない場合にのみ出す。
   test43_fail_snapshot="$SELF_TEST_CASE_FAIL_COUNT"
+  test43_build_status=0
   "$SCRIPT_DIR/build-portal.sh" "$test43_repo" "$test43_docs" "$test43_portal" \
     --generated-at 2026-07-28T00:00:00Z \
     --build-manifests-from-docs \
-    2>/dev/null
+    2>/dev/null || test43_build_status=$?
+  if [ "$test43_build_status" -ne 0 ]; then
+    echo "FAIL: --self-test ケース43（--build-manifests-from-docs が終了コード${test43_build_status}で失敗した）" >&2
+    record_self_test_case_failure
+  fi
   test43_manifest="$test43_docs/docs/manifests/api-manifest.json"
   if [ ! -f "$test43_manifest" ] || [ "$(jq -r '.units[0].unitKey' "$test43_manifest" 2>/dev/null)" != "get-users" ]; then
     echo "FAIL: --self-test ケース43（--build-manifests-from-docs でマニフェストが組み立てられない）" >&2
@@ -3852,7 +4000,7 @@ EOF
   if [ ! -f "$test43_er_data" ] \
     || [ "$(jq -r '.entities | length' "$test43_er_data" 2>/dev/null)" != "2" ] \
     || [ "$(jq -r '.relations | length' "$test43_er_data" 2>/dev/null)" != "1" ] \
-    || [ ! -f "$test43_portal/図/ER図.html" ]; then
+    || [ ! -f "$test43_portal/diagrams/ER図.html" ]; then
     echo "FAIL: --self-test ケース43（生成連鎖からER図データ2実体・1関係とER図.htmlが生成されない）" >&2
     rm -rf "$test43_dir"
     record_self_test_case_failure
@@ -3868,27 +4016,21 @@ EOF
   test46_docs="$test46_dir/docs"
   test46_portal="$test46_dir/portal"
   mkdir -p "$test46_repo" "$test46_docs/docs/design/apis/api-get-users/詳細設計" "$test46_portal"
-  cat > "$test46_docs/docs/design/apis/api-get-users/詳細設計/API詳細設計書.md" <<'EOF'
----
-api_key: get-users
-api_id: api-get-users
-method: GET
-path: /api/users
-source_ref: src/api/users.py
-unit_kind: api
----
-
-# ユーザー一覧 API詳細設計書
-EOF
+  write_valid_api_detail_fixture "$test46_docs/docs/design/apis/api-get-users/詳細設計/API詳細設計書.md"
   echo '{"total":100,"fe":50,"be":50,"file_count":10}' > "$test46_portal/code-metrics.json"
   # 改善課題1-66の影響でsourceFile-実在検査が効くため、ケース43と同じ理由でダミーの実体を用意する。
   mkdir -p "$test46_docs/docs/manifests/docs/design/apis/src/api"
   : > "$test46_docs/docs/manifests/docs/design/apis/src/api/users.py"
+  test46_build_status=0
   "$SCRIPT_DIR/build-portal.sh" "$test46_repo" "$test46_docs" "$test46_portal" \
     --generated-at 2026-07-28T00:00:00Z \
     --build-manifests-from-docs \
-    2>/dev/null
+    2>/dev/null || test46_build_status=$?
   case46_pass=1
+  if [ "$test46_build_status" -ne 0 ]; then
+    echo "FAIL: --self-test ケース46（--build-manifests-from-docs が終了コード${test46_build_status}で失敗した）" >&2
+    case46_pass=0
+  fi
   for ext46_kind in api table batch report external feature; do
     if [ ! -f "$test46_docs/docs/manifests/${ext46_kind}-manifest.ext.json" ]; then
       echo "FAIL: --self-test ケース46（${ext46_kind}-manifest.ext.jsonが生成されない）" >&2
@@ -3896,10 +4038,10 @@ EOF
     fi
   done
   if [ "$case46_pass" -ne 1 ]; then
-    rm -rf "$test46_dir"
     record_self_test_case_failure
+  else
+    echo "PASS: --self-test ケース46（--build-manifests-from-docs で6種別すべての拡張マニフェストが生成される）"
   fi
-  echo "PASS: --self-test ケース46（--build-manifests-from-docs で6種別すべての拡張マニフェストが生成される）"
   rm -rf "$test46_dir"
 
   echo "--- ケース44: テンプレート先頭の生成情報コメントが除去され、本文中の意味のあるコメントは残る（改善課題1-47） ---"
@@ -4007,6 +4149,8 @@ NODE
   test47_dir="$(create_physical_tmpdir)"
   test47_repo="$test47_dir/repo"
   test47_root="$test47_dir/root"
+  test47_status=0
+  test47_fail_snapshot="$SELF_TEST_CASE_FAIL_COUNT"
   mkdir -p "$test47_repo" "$test47_root/docs/rules/親カテゴリ/子カテゴリ" "$test47_root/project-portal"
   cat > "$test47_root/docs/rules/親カテゴリ/子カテゴリ/rule.md" <<'RULE47'
 ---
@@ -4017,9 +4161,12 @@ status: approved
 
 本文。
 RULE47
-  test47_out="$(bash "$0" "$test47_repo" "$test47_root/docs" "$test47_root/project-portal" 2>&1)"
-  if ! printf '%s' "$test47_out" | grep -q 'output_dir に docs ディレクトリ自体が渡されました'; then
-    echo "FAIL: --self-test ケース47（誤った output_dir（docsディレクトリ自体）を渡しても警告が出ない）" >&2
+  test47_out="$(bash "$SCRIPT_DIR/build-portal.sh" "$test47_repo" "$test47_root/docs" "$test47_root/project-portal" 2>&1)" \
+    || test47_status=$?
+  if [ "$test47_status" -ne 1 ] \
+    || ! grep -qF '<output_dir> には docs ディレクトリ自体ではなく' <<< "$test47_out"; then
+    echo "FAIL: --self-test ケース47（誤った output_dir（docsディレクトリ自体）を渡しても警告が出ない。exit=${test47_status}）" >&2
+    printf '%s\n' "$test47_out" >&2
     rm -rf "$test47_dir"
     record_self_test_case_failure
   fi
@@ -4028,7 +4175,9 @@ RULE47
     rm -rf "$test47_dir"
     record_self_test_case_failure
   fi
-  echo "PASS: --self-test ケース47（output_dir に docs ディレクトリ自体を渡すと警告が出て、規約変換は行われない）"
+  if [ "$SELF_TEST_CASE_FAIL_COUNT" -eq "$test47_fail_snapshot" ]; then
+    echo "PASS: --self-test ケース47（output_dir に docs ディレクトリ自体を渡すと警告が出て、規約変換は行われない）"
+  fi
   rm -rf "$test47_dir"
 
   echo "--- ケース48: 画面設計書のテストケースリンクは新配置を優先し、旧配置へfallbackする ---"
@@ -4037,7 +4186,7 @@ RULE47
   test48_root="$test48_dir/root"
   test48_portal="$test48_root/project-portal"
   test48_screen="$test48_root/docs/design/screens/screen-orders"
-  test48_html="$test48_root/project-portal/画面/screen-orders/基本設計/画面基本設計書.html"
+  test48_html="$test48_root/project-portal/screens/screen-orders/基本設計/画面基本設計書.html"
   mkdir -p "$test48_repo" "$test48_portal" "$test48_screen/基本設計" "$test48_screen/詳細設計" \
     "$test48_screen/テスト設計" "$test48_screen/テスト項目書"
   cat > "$test48_screen/基本設計/画面基本設計書.md" <<'TEST48BASE'
@@ -4046,6 +4195,7 @@ TEST48BASE
   cat > "$test48_screen/詳細設計/画面詳細設計書.md" <<'TEST48DETAIL'
 # 受注一覧 画面詳細設計書
 TEST48DETAIL
+  append_required_screen_sections "$test48_screen/詳細設計/画面詳細設計書.md"
   : > "$test48_screen/テスト設計/画面テスト設計書.md"
   : > "$test48_screen/テスト項目書/単体テスト仕様書.md"
   # 改善課題1-243: 本ケースはパターンa/bの2つの独立したガードを経て末尾で
@@ -4053,17 +4203,25 @@ TEST48DETAIL
   # 両方が印字されていた（実測）ため、ガード開始前の件数を記録し、末尾の
   # PASSは新たな不合格が記録されていない場合にのみ出す。
   test48_fail_snapshot="$SELF_TEST_CASE_FAIL_COUNT"
-  if ! bash "$0" "$test48_repo" "$test48_root" "$test48_portal" >/dev/null 2>&1 \
+  test48_status_a=0
+  test48_out_a="$(bash "$SCRIPT_DIR/build-portal.sh" "$test48_repo" "$test48_root" "$test48_portal" 2>&1)" \
+    || test48_status_a=$?
+  if [ "$test48_status_a" -ne 0 ] \
     || ! grep -q '画面テスト設計書.md' "$test48_html" \
     || grep -q '単体テスト仕様書.md' "$test48_html"; then
-    echo "FAIL: --self-test ケース48a（新配置の画面テスト設計書リンクが旧配置より優先されない）" >&2
+    echo "FAIL: --self-test ケース48a（新配置の画面テスト設計書リンクが旧配置より優先されない。exit=${test48_status_a}）" >&2
+    printf '%s\n' "$test48_out_a" >&2
     rm -rf "$test48_dir"
     record_self_test_case_failure
   fi
   rm -f "$test48_screen/テスト設計/画面テスト設計書.md"
-  if ! bash "$0" "$test48_repo" "$test48_root" "$test48_portal" >/dev/null 2>&1 \
+  test48_status_b=0
+  test48_out_b="$(bash "$SCRIPT_DIR/build-portal.sh" "$test48_repo" "$test48_root" "$test48_portal" 2>&1)" \
+    || test48_status_b=$?
+  if [ "$test48_status_b" -ne 0 ] \
     || ! grep -q '単体テスト仕様書.md' "$test48_html"; then
-    echo "FAIL: --self-test ケース48b（新配置不在時に旧配置のテストケースリンクへfallbackしない）" >&2
+    echo "FAIL: --self-test ケース48b（新配置不在時に旧配置のテストケースリンクへfallbackしない。exit=${test48_status_b}）" >&2
+    printf '%s\n' "$test48_out_b" >&2
     rm -rf "$test48_dir"
     record_self_test_case_failure
   fi
