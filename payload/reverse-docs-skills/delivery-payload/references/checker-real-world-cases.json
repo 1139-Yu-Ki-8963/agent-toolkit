@@ -434,6 +434,133 @@
       }
     },
     {
+      "checker": "check-secret-in-command-args",
+      "label": "引用符で囲んだ値を引数へ置く",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": { "command": "curl --password=\"hunter2\" https://example.com" }
+      }
+    },
+    {
+      "checker": "check-secret-in-command-args",
+      "label": "環境変数から読む（引用符あり）",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": { "command": "curl --password \"$DB_PASSWORD\" https://example.com" }
+      }
+    },
+    {
+      "checker": "check-secret-in-command-args",
+      "label": "環境変数から読む（等号と引用符）",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": { "command": "curl --password=\"$DB_PASSWORD\" https://example.com" }
+      }
+    },
+    {
+      "checker": "check-temp-file-tracked",
+      "label": "許可された場所の通常のファイル",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "docs/notes.md", "content": "本文\n" }
+      }
+    },
+    {
+      "checker": "check-any-type-escape-hatch",
+      "label": "型を明示している",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/api.ts", "content": "const data: UserResponse = await res.json();\n" }
+      }
+    },
+    {
+      "checker": "check-currency-float-type",
+      "label": "金額を整数の最小単位で持つ",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/Order.java", "content": "long priceInMinorUnits = 10050;\n" }
+      }
+    },
+    {
+      "checker": "check-doc-heading-addendum",
+      "label": "内容を表す見出し",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "docs/design.md", "content": "# 設計の方針\n本文\n" }
+      }
+    },
+    {
+      "checker": "check-generated-artifact-staged",
+      "label": "手で書いたファイルを版管理へ入れる",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": { "command": "git add src/index.ts" }
+      }
+    },
+    {
+      "checker": "check-outbound-call-missing-timeout",
+      "label": "待ち時間の上限を付けた呼び出し",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/api.js", "content": "const res = await fetch(url, { signal: AbortSignal.timeout(3000) });\n" }
+      }
+    },
+    {
+      "checker": "check-secret-filename-staged",
+      "label": "雛形として配るファイルを版管理へ入れる",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": { "command": "git add .env.example" }
+      }
+    },
+    {
+      "checker": "check-secret-value-logging",
+      "label": "秘密でない値を記録へ出す",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/auth.js", "content": "console.log('userId=', userId);\n" }
+      }
+    },
+    {
+      "checker": "check-sequential-identifier-naming",
+      "label": "意味の分かる名前",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/form.js", "content": "const firstName = a;\nconst lastName = b;\nconst email = c;\n" }
+      }
+    },
+    {
+      "checker": "check-state-literal-comparison",
+      "label": "状態を定数で比べる",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/order.js", "content": "if (order.status === OrderStatus.Shipped) {\n  ship();\n}\n" }
+      }
+    },
+    {
+      "checker": "check-direct-commit-to-integration-branch",
+      "label": "作業用の枝でコミット",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Bash",
+        "cwd": "REPO_ROOT",
+        "tool_input": { "command": "git commit -m x" }
+      }
+    },
+    {
       "checker": "check-generated-artifact-staged",
       "label": "生成物を版管理へ入れる",
       "expect": "violation",

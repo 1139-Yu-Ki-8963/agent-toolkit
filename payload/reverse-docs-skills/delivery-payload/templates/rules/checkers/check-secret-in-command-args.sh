@@ -73,12 +73,17 @@ judge_secret_in_args() {
   # 標準出力: 判定理由。戻り値: 0=許可・2=拒否
   local cmd="$1"
 
-  if printf '%s' "$cmd" | grep -qE -- "--(${SECRET_FLAG_ALT})=[^\$[:space:]][^[:space:]]*"; then
+  # 値の先頭に引用符が付いていても、その内側が $ で始まれば環境変数から読んで
+  # いる正しい書き方である。引用符を数えずに判定していたため、
+  # --password "$DB_PASSWORD" のような書き方まで違反として止めていた
+  # （実測 2026-08-24: 通してほしい入力を与えて分かった）。
+  # 値の先頭の引用符 1 文字を読み飛ばしてから、$ で始まるかを見る。
+  if printf '%s' "$cmd" | grep -qE -- "--(${SECRET_FLAG_ALT})=[\"']?[^\$\"'[:space:]][^[:space:]]*"; then
     echo "拒否[秘密の値をコマンドの引数に置かない]: コマンド引数に秘密の値らしき文字列が直接書かれています（--<flag>=<値> 形式）"
     return 2
   fi
 
-  if printf '%s' "$cmd" | grep -qE -- "--(${SECRET_FLAG_ALT})[[:space:]]+[^\$-][^[:space:]]*"; then
+  if printf '%s' "$cmd" | grep -qE -- "--(${SECRET_FLAG_ALT})[[:space:]]+[\"']?[^\$\"'-][^[:space:]]*"; then
     echo "拒否[秘密の値をコマンドの引数に置かない]: コマンド引数に秘密の値らしき文字列が直接書かれています（--<flag> <値> 形式）"
     return 2
   fi
