@@ -76,6 +76,29 @@ run_one_case() {
       fi
       return 1
       ;;
+    notify:*|allow:*)
+      # 止める判定を持たず、知らせるだけ・許すだけの検査は終了コードが常に 0
+      # で、規則ごとの結果を出力の判定行（「通知[規則名]:」「許可[規則名]:」）
+      # で示す。終了コードだけを見ると、知らせるべき入力と許すべき入力を
+      # 区別できない（実測 2026-08-24: 定型運用の手順書を見る検査がこの形
+      # だったため、入力集の対象から外れていた）。
+      # expect は notify:<規則名> または allow:<規則名> の形で書く。
+      # 判定行は標準エラーへ出る検査があるため、両方をまとめて受け取る。
+      out="$(printf '%s' "$input" | bash "$path" 2>&1)"
+      actual=$?
+      local want_verb="${expect%%:*}" want_rule="${expect#*:}" want_head
+      case "$want_verb" in notify) want_head="通知" ;; allow) want_head="許可" ;; esac
+      if [ "$actual" -ne 0 ]; then
+        printf 'FAIL     %-42s %s（知らせるだけの検査は終了コード 0 で返すはずが %s）\n' "$checker" "$label" "$actual"
+        return 1
+      fi
+      if printf '%s' "$out" | LC_ALL=en_US.UTF-8 grep -qF "${want_head}[${want_rule}]"; then
+        printf 'PASS     %-42s %s\n' "$checker" "$label"
+        return 0
+      fi
+      printf 'FAIL     %-42s %s（出力に %s[%s] が無い）\n' "$checker" "$label" "$want_head" "$want_rule"
+      return 1
+      ;;
     violation) want=2 ;;
     clean)     want=0 ;;
     *)
@@ -221,6 +244,19 @@ run_self_test() {
 
   run_one_case check-secret-literal-in-code block無し stop-pass "$(cat "$tmp/in-stop2")" >/dev/null
   assert "応答を終える検査でdecisionのblockが無ければ通す期待は合格" 0 $?
+
+  # ケース4c: 知らせるだけの検査は、出力の判定行で規則ごとに見分ける。
+  # 判定行を標準エラーへ出す検査があるため、両方の出力を受け取る
+  # （実測 2026-08-24: 標準出力だけを見ていた頃は4件すべて捕まえられなかった）。
+  local probe_dir="$tmp/notify-probe"
+  mkdir -p "$probe_dir"
+  printf '# 手順書\n\n## 手順\n\n1. 写しを取る\n' > "$probe_dir/バックアップ手順書.md"
+  printf '%s' "{\"tool_name\":\"Bash\",\"cwd\":\"$probe_dir\",\"tool_input\":{\"command\":\"git commit -m x\"}}" > "$tmp/in-notify"
+  run_one_case check-routine-procedure-doc 通知あり "notify:実行の間隔と起点を書く" "$(cat "$tmp/in-notify")" >/dev/null
+  assert "知らせるだけの検査で通知の判定行を見分ける" 0 $?
+
+  run_one_case check-routine-procedure-doc 許可期待 "allow:実行の間隔と起点を書く" "$(cat "$tmp/in-notify")" >/dev/null
+  assert "通知が出ているのに許可を期待すれば不合格" 1 $?
 
   # ケース5: expect の値が不正なら判定不能
   run_one_case check-secret-literal-in-code 不正 maybe '{}' >/dev/null

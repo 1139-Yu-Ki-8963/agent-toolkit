@@ -5,15 +5,11 @@
   "notCovered": [
     {
       "checker": "check-customer-facing-adequacy",
-      "reason": "止める判定と人が見る判定（REVIEW）の 3 値を返し、走査の対象も対象プロジェクトの生成物に依存する。単一の入力で合否を確かめる形に合わない"
+      "reason": "走査の対象が対象プロジェクトの生成物に依存する。見本を置いても、その見本が対象プロジェクトの生成物として妥当かどうかを別に決める必要があり、入力を1つ与えて合否を見る形に収まらない"
     },
     {
       "checker": "check-instruction-writing",
       "reason": "標準入力の JSON ではなく、検査したい指示書のパスをコマンドの引数で受け取る道具である。操作の直前に働く検査ではないため、入力を流して合否を見るこの枠組みの対象にならない"
-    },
-    {
-      "checker": "check-routine-procedure-doc",
-      "reason": "3 つの規則がいずれも通知と許可だけを返し、止めない設計である（実測 2026-08-24: 手順書に実行の間隔も失敗したときの扱いも書かない見本を与えても終了コードは 0）。止まるか通るかで見るこの枠組みでは、止めてほしい入力と通してほしい入力を区別できない"
     }
   ],
   "cases": [
@@ -458,6 +454,46 @@
       "input": {
         "tool_name": "Bash",
         "tool_input": { "command": "curl --password=\"$DB_PASSWORD\" https://example.com" }
+      }
+    },
+    {
+      "checker": "check-routine-procedure-doc",
+      "label": "実行の間隔を書かない手順書",
+      "expect": "notify:実行の間隔と起点を書く",
+      "input": {
+        "tool_name": "Bash",
+        "cwd": "REPO_ROOT/generation-engine/samples/checker-fixtures/routine-sparse",
+        "tool_input": { "command": "git commit -m x" }
+      }
+    },
+    {
+      "checker": "check-routine-procedure-doc",
+      "label": "失敗したときの扱いを書かない手順書",
+      "expect": "notify:失敗したときの扱いを書く",
+      "input": {
+        "tool_name": "Bash",
+        "cwd": "REPO_ROOT/generation-engine/samples/checker-fixtures/routine-sparse",
+        "tool_input": { "command": "git commit -m x" }
+      }
+    },
+    {
+      "checker": "check-routine-procedure-doc",
+      "label": "実行の間隔を書いた手順書",
+      "expect": "allow:実行の間隔と起点を書く",
+      "input": {
+        "tool_name": "Bash",
+        "cwd": "REPO_ROOT/generation-engine/samples/checker-fixtures/routine-complete",
+        "tool_input": { "command": "git commit -m x" }
+      }
+    },
+    {
+      "checker": "check-routine-procedure-doc",
+      "label": "失敗したときの扱いを書いた手順書",
+      "expect": "allow:失敗したときの扱いを書く",
+      "input": {
+        "tool_name": "Bash",
+        "cwd": "REPO_ROOT/generation-engine/samples/checker-fixtures/routine-complete",
+        "tool_input": { "command": "git commit -m x" }
       }
     },
     {
