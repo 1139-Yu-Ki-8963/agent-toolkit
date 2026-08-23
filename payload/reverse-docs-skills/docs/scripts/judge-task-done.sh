@@ -189,14 +189,65 @@ extract_judgment_rows() {
   ' "$1" \
   | LC_ALL=C awk '
       function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+      function is_escaped(s, pos,    j, backslashes) {
+        backslashes = 0
+        for (j = pos - 1; j >= 1 && substr(s, j, 1) == "\\"; j--) backslashes++
+        return backslashes % 2 == 1
+      }
+      function has_matching_delimiter(s, start, wanted_len,    p, candidate_len) {
+        for (p = start; p <= length(s); p++) {
+          if (substr(s, p, 1) != "`" || is_escaped(s, p)) continue
+          candidate_len = 1
+          while (p + candidate_len <= length(s) && substr(s, p + candidate_len, 1) == "`") candidate_len++
+          if (candidate_len == wanted_len) return 1
+          p += candidate_len - 1
+        }
+        return 0
+      }
+      function protect_code_pipes(s,    out, in_code, delimiter_len, i, j, run_len, ch) {
+        out = ""
+        in_code = 0
+        for (i = 1; i <= length(s); i++) {
+          ch = substr(s, i, 1)
+          if (ch == "`" && !is_escaped(s, i)) {
+            run_len = 1
+            while (i + run_len <= length(s) && substr(s, i + run_len, 1) == "`") run_len++
+            if (!in_code && has_matching_delimiter(s, i + run_len, run_len)) {
+              in_code = 1
+              delimiter_len = run_len
+            } else if (run_len == delimiter_len) {
+              in_code = 0
+              delimiter_len = 0
+            }
+            for (j = 1; j < run_len; j++) out = out "`"
+            i += run_len - 1
+          }
+          if (ch == "|" && in_code) ch = "\002"
+          out = out ch
+        }
+        return out
+      }
+      function strip_code_span(s,    open_len, close_len, close_start, i) {
+        if (substr(s, 1, 1) != "`" || is_escaped(s, 1)) return s
+        open_len = 1
+        while (open_len < length(s) && substr(s, open_len + 1, 1) == "`") open_len++
+        close_start = length(s) + 1
+        for (i = length(s); i >= 1 && substr(s, i, 1) == "`"; i--) close_start = i
+        if (close_start <= length(s) && is_escaped(s, close_start)) close_start++
+        close_len = length(s) - close_start + 1
+        if (open_len != close_len || length(s) <= open_len + close_len) return s
+        return substr(s, open_len + 1, length(s) - open_len - close_len)
+      }
       BEGIN { header_seen = 0; sep_seen = 0; confirm_col = 0; state_col = 0; commit_col = 0 }
       {
         # Markdown のセル内エスケープ `\|` は 1 個のパイプ文字として扱い、列の区切りとして
-        # 解釈しない。分割前に `\|` を制御文字へ退避し、分割後に各セルへ `|` として復元する。
+        # 解釈しない。加えて、逆引用符の対応を数え、インラインコード内の未エスケープ `|` も
+        # 列区切りではなくコマンドの一部として扱う。分割前にそれぞれ制御文字へ退避する。
         line = $0
         gsub(/\\\|/, "\001", line)
+        line = protect_code_pipes(line)
         n = split(line, cols, "|")
-        for (i = 1; i <= n; i++) { gsub(/\001/, "|", cols[i]); cols[i] = trim(cols[i]) }
+        for (i = 1; i <= n; i++) { gsub(/[\001\002]/, "|", cols[i]); cols[i] = trim(cols[i]) }
         if (!header_seen) {
           header_seen = 1
           for (i = 2; i < n; i++) {
@@ -215,13 +266,11 @@ extract_judgment_rows() {
         }
         if (confirm_col == 0) next
         c  = cols[confirm_col]
-        # 「確かめる手段」欄は Markdown のインラインコード（単一のバッククォート囲み）で
-        # 書く見本になっている（rule.md の書き方の見本を参照）。囲みのバッククォートは
-        # 表示上の体裁であり、実行するコマンド文字列の一部ではない。両端に1個ずつ
-        # バッククォートがあれば、その対だけを取り除く（中身に別のバッククォートを
-        # 含む多重の囲みは対象外。取り除かないとコマンドの実行結果を bash が
-        # さらにコマンドとして実行してしまい、常に別物を実行する事故になる）。
-        if (c ~ /^`.+`$/) { c = substr(c, 2, length(c) - 2) }
+        # 「確かめる手段」欄の Markdown コードスパンは表示上の体裁であり、実行する
+        # コマンド文字列の一部ではない。表分割と同じく、先頭runと同じ長さの末尾runを
+        # 対として丸ごと取り除く。残すと標準出力が command substitution の結果として
+        # 再実行され、別のコマンドを実行する事故になる。
+        c = strip_code_span(c)
         s  = (state_col  > 0) ? cols[state_col]  : ""
         cm = (commit_col > 0) ? cols[commit_col] : ""
         print "ROW\t" c "\t" s "\t" cm
@@ -562,12 +611,9 @@ write_measurement_states() {
         ;;
       fail)    echo "未着手" >> "$states_tmp" ;;
       indeterminate)
-        # 判定不能は「実行できなかった」であり「不合格だった」ではない。「対象外」
-        # 「判断待ち」はその前提が崩れたことを確かめられていないため元の値のまま残す。
-        case "${MEAS_ORIG_STATE[$i]}" in
-          対象外|判断待ち) echo "${MEAS_ORIG_STATE[$i]}" >> "$states_tmp" ;;
-          *)                echo "未確認" >> "$states_tmp" ;;
-        esac
+        # 判定不能は元の状態を再確認できなかった結果である。既存値に関係なく「未確認」とし、
+        # 「実行できなかった」を「不合格だった」や過去の判断の維持と混同しない。
+        echo "未確認" >> "$states_tmp"
         ;;
       timeout) echo "未確認" >> "$states_tmp" ;;
       *)       echo "${MEAS_ORIG_STATE[$i]}" >> "$states_tmp" ;;
@@ -591,6 +637,44 @@ apply_states_to_file() {
 
   LC_ALL=C awk -v statesfile="$states_file" '
     function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+    function is_escaped(s, pos,    j, backslashes) {
+      backslashes = 0
+      for (j = pos - 1; j >= 1 && substr(s, j, 1) == "\\"; j--) backslashes++
+      return backslashes % 2 == 1
+    }
+    function has_matching_delimiter(s, start, wanted_len,    p, candidate_len) {
+      for (p = start; p <= length(s); p++) {
+        if (substr(s, p, 1) != "`" || is_escaped(s, p)) continue
+        candidate_len = 1
+        while (p + candidate_len <= length(s) && substr(s, p + candidate_len, 1) == "`") candidate_len++
+        if (candidate_len == wanted_len) return 1
+        p += candidate_len - 1
+      }
+      return 0
+    }
+    function protect_code_pipes(s,    out, in_code, delimiter_len, i, j, run_len, ch) {
+      out = ""
+      in_code = 0
+      for (i = 1; i <= length(s); i++) {
+        ch = substr(s, i, 1)
+        if (ch == "`" && !is_escaped(s, i)) {
+          run_len = 1
+          while (i + run_len <= length(s) && substr(s, i + run_len, 1) == "`") run_len++
+          if (!in_code && has_matching_delimiter(s, i + run_len, run_len)) {
+            in_code = 1
+            delimiter_len = run_len
+          } else if (run_len == delimiter_len) {
+            in_code = 0
+            delimiter_len = 0
+          }
+          for (j = 1; j < run_len; j++) out = out "`"
+          i += run_len - 1
+        }
+        if (ch == "|" && in_code) ch = "\002"
+        out = out ch
+      }
+      return out
+    }
     BEGIN {
       rn = 0
       while ((getline sline < statesfile) > 0) { rn++; newstate[rn] = sline }
@@ -620,11 +704,11 @@ apply_states_to_file() {
         next
       }
       if (found_table && line ~ /^\|/) {
-        # Markdown のセル内エスケープ `\|` は 1 個のパイプ文字として扱い、列の区切りとして
-        # 解釈しない。分割前に `\|` を制御文字へ退避し、再構築した行へ書き戻す直前に
-        # 元のエスケープ表記（`\|`）へ復元する（他の列の内容を変えないため）。
+        # Markdown のセル内エスケープ `\|` と、逆引用符内の未エスケープ `|` は列の区切りと
+        # 解釈しない。別々の制御文字へ退避し、再構築時に元の表記を保って復元する。
         esc_line = line
         gsub(/\\\|/, "\001", esc_line)
+        esc_line = protect_code_pipes(esc_line)
         n = split(esc_line, cols, "|")
         if (!header_seen) {
           header_seen = 1
@@ -645,6 +729,7 @@ apply_states_to_file() {
         rebuilt = cols[1]
         for (i = 2; i <= n; i++) { rebuilt = rebuilt "|" cols[i] }
         gsub(/\001/, "\\|", rebuilt)
+        gsub(/\002/, "|", rebuilt)
         print rebuilt
         next
       }
@@ -1054,7 +1139,7 @@ run_self_test() {
     fi
   }
 
-  echo "実行 29 件"
+  echo "実行 33 件"
 
   # 0. 確かめる手段がバッククォート囲み（rule.mdの見本と同じ書き方） -> 中身のコマンドとして実行され満たす
   #    （囲みを剥がさずに実行すると、バッククォート付き文字列がコマンド置換として実行され、
@@ -1115,6 +1200,22 @@ run_self_test() {
   local f7="$tmpdir/case7.md"
   mk_doc "$(printf '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |\n|---|---|---|---|---|\n| 1. 何か | `test "a\|b" = "a\|b"` | 未着手 | — | — |')" > "$f7"
   run_meas_case "確かめる手段のセル内エスケープ\|が1個のパイプとして復元される" "$f7" 5 1
+
+  # 29. 逆引用符内の未エスケープの縦棒は列区切りではない。実測で `||` の途中へ
+  #     状態値が入り、以後コマンドを実行できなくなった形をそのまま再現する。
+  local f29="$tmpdir/case29.md" expected29
+  expected29='| 1. 生の縦棒 | `output=$(printf x 2>&1 || :); printf '\''%s\n'\'' "$output" | grep -q x` | 完了 | abc1234 | 維持 |'
+  mk_doc "$(printf '%s\n' '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |' '|---|---|---|---|---|' '| 1. 生の縦棒 | `output=$(printf x 2>&1 || :); printf '\''%s\n'\'' "$output" | grep -q x` | 未着手 | abc1234 | 維持 |')" > "$f29"
+  write_measurement_states "$f29" 5
+  if grep -qF "$expected29" "$f29"; then
+    echo "[PASS] --writeが逆引用符内の未エスケープ縦棒を壊さない"
+    pass=$((pass + 1))
+  else
+    echo "[FAIL] --writeが逆引用符内の未エスケープ縦棒を壊さない"
+    echo "       中身:"
+    sed 's/^/       /' "$f29"
+    fail=$((fail + 1))
+  fi
 
   # 8. --write は元の状態が「対象外」「判断待ち」の行を、確かめる手段が終了コード0でも
   #    「完了」へ昇格させない（対応の要不要という別軸の判断結果であり、機械的な確認の
@@ -1408,6 +1509,55 @@ run_self_test() {
     echo "[FAIL] --writeがラベルなしを未着手、ラベルありを未確認にする"
     echo "       中身:"
     sed 's/^/       /' "$f21"
+    fail=$((fail + 1))
+  fi
+
+  # 30. サンドボックス等で実行結果を得られず、規約どおり終了コード2と行頭
+  #     [UNKNOWN] を返した行は必ず「未確認」にする。1行目の「完了」は実測された
+  #     書き換え前の形、2行目の「対象外」は元状態を問わない契約の退行防止である。
+  local f30="$tmpdir/case30.md"
+  mk_doc "$(printf '%s\n' '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |' '|---|---|---|---|---|' '| 1. 実測形 | `echo "[UNKNOWN] sandbox restriction"; exit 2` | 完了 | abc1234 | 維持 |' '| 2. 元状態非依存 | `echo "[UNKNOWN] sandbox restriction"; exit 2` | 対象外 | abc1234 | 維持 |')" > "$f30"
+  write_measurement_states "$f30" 5
+  if grep -qF '| 1. 実測形 | `echo "[UNKNOWN] sandbox restriction"; exit 2` | 未確認 | abc1234 | 維持 |' "$f30" \
+    && grep -qF '| 2. 元状態非依存 | `echo "[UNKNOWN] sandbox restriction"; exit 2` | 未確認 | abc1234 | 維持 |' "$f30"; then
+    echo "[PASS] --writeが実行できなかった判定を未確認にする"
+    pass=$((pass + 1))
+  else
+    echo "[FAIL] --writeが実行できなかった判定を未確認にする"
+    echo "       中身:"
+    sed 's/^/       /' "$f30"
+    fail=$((fail + 1))
+  fi
+
+  # 31. Markdown のコードスパンは、開始と同じ長さの逆引用符runで閉じる。
+  #     二重逆引用符内で生の縦棒とエスケープ済み縦棒が同居しても、状態欄だけを書き換える。
+  local f31="$tmpdir/case31.md" expected31
+  expected31='| 1. 二重逆引用符 | ``printf '\''unexpected-command-name\n'\''; raw='\''a|b'\''; escaped='\''c\|d'\''; test "$raw" = '\''a|b'\'' && test "$escaped" = '\''c|d'\''`` | 完了 | abc1234 | 維持 |'
+  mk_doc "$(printf '%s\n' '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |' '|---|---|---|---|---|' '| 1. 二重逆引用符 | ``printf '\''unexpected-command-name\n'\''; raw='\''a|b'\''; escaped='\''c\|d'\''; test "$raw" = '\''a|b'\'' && test "$escaped" = '\''c|d'\''`` | 未着手 | abc1234 | 維持 |')" > "$f31"
+  write_measurement_states "$f31" 5
+  if grep -qF "$expected31" "$f31"; then
+    echo "[PASS] --writeが二重逆引用符内の生縦棒とエスケープ縦棒を壊さない"
+    pass=$((pass + 1))
+  else
+    echo "[FAIL] --writeが二重逆引用符内の生縦棒とエスケープ縦棒を壊さない"
+    echo "       中身:"
+    sed 's/^/       /' "$f31"
+    fail=$((fail + 1))
+  fi
+
+  # 32. 判定名にあるエスケープ済み逆引用符はコードスパン開始と数えない。その後の
+  #     通常コードスパン内の縦棒だけを保護し、状態列以外の表記を維持する。
+  local f32="$tmpdir/case32.md" expected32
+  expected32='| 1. literal \` marker | `printf x | grep -q x` | 完了 | abc1234 | 維持 |'
+  mk_doc "$(printf '%s\n' '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |' '|---|---|---|---|---|' '| 1. literal \` marker | `printf x | grep -q x` | 未着手 | abc1234 | 維持 |')" > "$f32"
+  write_measurement_states "$f32" 5
+  if grep -qF "$expected32" "$f32"; then
+    echo "[PASS] --writeがエスケープ済み逆引用符をコードスパン区切りと誤認しない"
+    pass=$((pass + 1))
+  else
+    echo "[FAIL] --writeがエスケープ済み逆引用符をコードスパン区切りと誤認しない"
+    echo "       中身:"
+    sed 's/^/       /' "$f32"
     fail=$((fail + 1))
   fi
 
