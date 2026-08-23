@@ -349,10 +349,12 @@ EOF
         | .designDocPath == "../docs/users-basic.html"
           and .detailDocPath == "../docs/users-detail.html"' >/dev/null 2>&1; then
     related_docs_ok=0
-  elif ! grep -Fq "{label: '基本設計書', pathField: 'designDocPath', kind: 'basic'}" "$related_docs_out" \
+  elif ! grep -Fq "{label: '基本', docs: [" "$related_docs_out" \
+    || ! grep -Fq "{label: '詳細', docs: [" "$related_docs_out" \
+    || ! grep -Fq "{label: '基本設計書', pathField: 'designDocPath', kind: 'basic'}" "$related_docs_out" \
     || ! grep -Fq "{label: '詳細設計書', pathField: 'detailDocPath', kind: 'detail'}" "$related_docs_out" \
     || ! grep -Fq 'link.href = path;' "$related_docs_out" \
-    || ! grep -Fq 'link.textContent = doc.label;' "$related_docs_out"; then
+    || ! grep -Fq 'link.textContent = index === 0 ? group.label : doc.shortLabel;' "$related_docs_out"; then
     related_docs_ok=0
   fi
   if [ "$related_docs_ok" -eq 1 ]; then

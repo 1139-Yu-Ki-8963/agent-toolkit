@@ -717,9 +717,15 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
   }
   .csv-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
   td.unit-doc-links-cell { white-space: normal; overflow: visible; text-overflow: clip; }
-  .unit-doc-links { display: flex; flex-wrap: wrap; gap: 6px; }
-  .unit-doc-link { color: var(--accent); text-decoration: none; font-size: .78rem; }
+  .unit-doc-links { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+  .unit-doc-slot {
+    min-width: 0; min-height: 24px; display: flex; align-items: center; justify-content: center; gap: 2px;
+    padding: 2px 3px; border: 1px solid var(--border); background: var(--panel-2); font-size: .72rem;
+  }
+  .unit-doc-link { color: var(--accent); text-decoration: none; font-size: .72rem; white-space: nowrap; }
+  .unit-doc-link-secondary { padding-left: 2px; border-left: 1px solid var(--border); }
   .unit-doc-link:hover { text-decoration: underline; }
+  .unit-doc-missing { color: var(--text-muted); }
   table.units tbody tr, table.screens tbody tr { cursor: pointer; }
   .expand-cell { transition: color 0.15s; }
   tr:hover .expand-cell { color: var(--accent); }
@@ -1409,19 +1415,29 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
     var tbody = table.querySelector('tbody');
     var allRows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
 
-    /* 1-65: 読者向け成果物を行末尾の専用「関連資料」列に表示する。行クリックはこれまで通り
+    /* 1-65, 1-250: 読者向け成果物を行末尾の専用「関連資料」列に表示する。行クリックはこれまで通り
        ページ内展開のみを担い、a要素へのクリックは後段の行クリック展開ハンドラが
        ev.target.closest('.copy-btn,a,button') で除外する。 */
     (function () {
-      var DOC_DEFS = [
-        {label: '基本設計書', pathField: 'designDocPath', kind: 'basic'},
-        {label: '詳細設計書', pathField: 'detailDocPath', kind: 'detail'},
-        {label: 'シーケンス図', pathField: 'sequencePath', kind: 'sequence'},
-        {label: 'テストケース', pathField: 'testCasePath', kind: 'test'},
-        {label: '単体テスト観点表', pathField: 'unitTestViewpointPath', kind: 'unit-viewpoint'},
-        {label: '結合テスト観点表', pathField: 'integrationTestViewpointPath', kind: 'integration-viewpoint'},
-        {label: '結合テスト仕様書', pathField: 'integrationTestCasePath', kind: 'integration-case'},
-        {label: '操作シナリオ仕様書', pathField: 'scenarioPath', kind: 'scenario'}
+      var DOC_GROUPS = [
+        {label: '基本', docs: [
+          {label: '基本設計書', pathField: 'designDocPath', kind: 'basic'}
+        ]},
+        {label: '詳細', docs: [
+          {label: '詳細設計書', pathField: 'detailDocPath', kind: 'detail'},
+          {label: 'シーケンス図', shortLabel: '図', pathField: 'sequencePath', kind: 'sequence'}
+        ]},
+        {label: '結合', docs: [
+          {label: '結合テスト仕様書', pathField: 'integrationTestCasePath', kind: 'integration-case'},
+          {label: '結合テスト観点表', shortLabel: '観点', pathField: 'integrationTestViewpointPath', kind: 'integration-viewpoint'}
+        ]},
+        {label: '単体', docs: [
+          {label: 'テストケース', pathField: 'testCasePath', kind: 'test'},
+          {label: '単体テスト観点表', shortLabel: '観点', pathField: 'unitTestViewpointPath', kind: 'unit-viewpoint'}
+        ]},
+        {label: '確認', docs: [
+          {label: '操作シナリオ仕様書', pathField: 'scenarioPath', kind: 'scenario'}
+        ]}
       ];
 
       function isSafeRelativeUrl(v) {
@@ -1435,9 +1451,27 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
       }
 
       var units = (manifest && manifest.units) || [];
-      if (!units.some(function (unit) {
-        return DOC_DEFS.some(function (doc) { return unit && unit[doc.pathField]; });
-      })) return;
+      function safeDocs(unit, group) {
+        if (!unit) return [];
+        return group.docs.filter(function (doc) { return isSafeRelativeUrl(unit[doc.pathField]); });
+      }
+
+      var completeCount = units.filter(function (unit) {
+        return DOC_GROUPS.every(function (group) { return safeDocs(unit, group).length > 0; });
+      }).length;
+      if (completeCount > 0) {
+        var summary = document.querySelector('.summary-tiles');
+        if (summary) {
+          var tile = document.createElement('div');
+          tile.className = 'tile';
+          tile.setAttribute('data-summary', 'complete-docs');
+          var strong = document.createElement('strong');
+          strong.textContent = String(completeCount);
+          tile.appendChild(strong);
+          tile.appendChild(document.createTextNode('資料完備数'));
+          summary.insertBefore(tile, summary.firstChild);
+        }
+      }
 
       var headRow = table.querySelector('thead tr');
       if (!headRow) return;
@@ -1459,18 +1493,29 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
         td.className = 'unit-doc-links-cell';
         var links = document.createElement('div');
         links.className = 'unit-doc-links';
-        if (unit) {
-          DOC_DEFS.forEach(function (doc) {
+        DOC_GROUPS.forEach(function (group) {
+          var slot = document.createElement('div');
+          slot.className = 'unit-doc-slot';
+          var docs = safeDocs(unit, group);
+          if (docs.length === 0) {
+            slot.classList.add('unit-doc-missing');
+            slot.textContent = '—';
+          } else {
+            docs.forEach(function (doc, index) {
             var path = unit[doc.pathField];
-            if (!isSafeRelativeUrl(path)) return;
             var link = document.createElement('a');
             link.href = path;
             link.className = 'unit-doc-link';
+            if (index > 0) link.classList.add('unit-doc-link-secondary');
             link.setAttribute('data-kind', doc.kind);
-            link.textContent = doc.label;
-            links.appendChild(link);
+            link.setAttribute('aria-label', doc.label);
+            link.title = doc.label;
+            link.textContent = index === 0 ? group.label : doc.shortLabel;
+            slot.appendChild(link);
           });
-        }
+          }
+          links.appendChild(slot);
+        });
         td.appendChild(links);
         tr.appendChild(td);
       });
@@ -1533,8 +1578,8 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
     }
 
     table.querySelectorAll('th[data-key]').forEach(function (th) {
-      var colIndex = Array.prototype.indexOf.call(th.parentNode.children, th);
       th.addEventListener('click', function () {
+        var colIndex = Array.prototype.indexOf.call(th.parentNode.children, th);
         if (sortCol === colIndex) { sortAsc = !sortAsc; } else { sortCol = colIndex; sortAsc = true; }
         table.querySelectorAll('th[data-key]').forEach(function (t) { t.removeAttribute('data-asc'); });
         th.setAttribute('data-asc', sortAsc);
