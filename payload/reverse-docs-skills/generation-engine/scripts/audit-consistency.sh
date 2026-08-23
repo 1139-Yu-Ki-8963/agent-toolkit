@@ -1439,6 +1439,58 @@ echo "対象設計書: $DESIGN_DOC"
 VIOLATIONS=0
 WARNINGS=0
 
+# 一時ファイルを作る。
+#
+# 実装判断: プロセス置換（<(...)）を diff・comm など外部コマンドの引数へ
+# 渡すと /dev/fd/N が渡るが、実行環境によってはこれを開けない
+# （実測 2026-08-24: diff: /dev/fd/11: Operation not permitted）。
+# 比較そのものが失敗するため、失敗を「不合格」と読み違えると、中身に問題が
+# 無いのに不合格を報告する。一時ファイルを経由してこの揺れを断つ。
+#
+# 置き場を明示するのは、引数なしの mktemp が既定の置き場へ書こうとして
+# 失敗するためである（実測 2026-08-24:
+# mktemp: mkstemp failed on /var/folders/.../T/tmp.XXXX: Operation not
+# permitted）。TMPDIR を明示すると成功する。
+# この形を素直な mktemp へ戻してはならない。手元で動いても環境が変われば
+# 再び壊れる。
+_mk_tmp() {
+  mktemp "${TMPDIR:-/tmp}/$(basename "${BASH_SOURCE[0]}" .sh).XXXXXX" 2>/dev/null
+}
+
+# 2つの行集合の突合（comm呼び出し）を一時ファイル経由で行う共通処理。
+#
+# 判断: 本スクリプトは (a)(d)(e) の3検査が結果を集約しながら継続する
+# 途中集計方式であり、1箇所の mktemp 失敗で exit すると後続の検査結果が
+# 失われる。既存のこのスクリプトの慣行（データが揃わない場合は WARN を
+# 記録して当該検査だけを飛ばし、他の検査は続ける。例: 「WARN: 結合テスト
+# 観点表が見つからないため検査 d をスキップします」）に倣い、mktemp 失敗時は
+# [UNKNOWN] を出力し WARNINGS を1加算したうえで当該突合だけを飛ばす。
+#
+# 使い方: _comm_pair "<左辺の内容>" "<右辺の内容>"
+# 戻り値: 0=判定できた（グローバル変数 _COMM_ONLY_LEFT / _COMM_ONLY_RIGHT に
+#           左のみ・右のみの行を格納）
+#         1=一時ファイルを作れず判定できなかった（両変数を空にする。
+#           呼び出し側が [UNKNOWN] の記録とWARNINGSの加算を行う）
+_comm_pair() {
+  local left="$1" right="$2" _ta _tb
+  _COMM_ONLY_LEFT=""
+  _COMM_ONLY_RIGHT=""
+  if ! _ta="$(_mk_tmp)" || [ -z "$_ta" ]; then
+    rm -f "${_ta:-}"
+    return 1
+  fi
+  if ! _tb="$(_mk_tmp)" || [ -z "$_tb" ]; then
+    rm -f "$_ta" "${_tb:-}"
+    return 1
+  fi
+  printf '%s\n' "$left" > "$_ta"
+  printf '%s\n' "$right" > "$_tb"
+  _COMM_ONLY_LEFT="$(LC_ALL=C comm -23 "$_ta" "$_tb" || true)"
+  _COMM_ONLY_RIGHT="$(LC_ALL=C comm -13 "$_ta" "$_tb" || true)"
+  rm -f "$_ta" "$_tb"
+  return 0
+}
+
 UNIT_SHEET_REL="$(frontmatter_value unit_test_sheet)"
 INTEG_SHEET_REL="$(frontmatter_value integration_test_sheet)"
 UNIT_SHEET="$(resolve_rel_path "$DESIGN_DIR" "$UNIT_SHEET_REL" || true)"
@@ -1512,21 +1564,26 @@ fi
 if [ -f "$UNIT_SHEET" ] || [ -f "$INTEG_SHEET" ]; then
   ALL_SHEET_KEYS="$(printf '%s\n%s\n' "$UNIT_KEYS" "$INTEG_KEYS" | grep . | LC_ALL=C sort -u || true)"
   FUNC_KEYS_NONEMPTY="$(printf '%s\n' "$FUNC_KEYS" | grep . || true)"
-  MISSING_IN_SHEETS="$(LC_ALL=C comm -23 <(printf '%s\n' "$FUNC_KEYS_NONEMPTY") <(printf '%s\n' "$ALL_SHEET_KEYS") || true)"
-  EXTRA_IN_SHEETS="$(LC_ALL=C comm -13 <(printf '%s\n' "$FUNC_KEYS_NONEMPTY") <(printf '%s\n' "$ALL_SHEET_KEYS") || true)"
+  if _comm_pair "$FUNC_KEYS_NONEMPTY" "$ALL_SHEET_KEYS"; then
+    MISSING_IN_SHEETS="$_COMM_ONLY_LEFT"
+    EXTRA_IN_SHEETS="$_COMM_ONLY_RIGHT"
 
-  if [ -n "$MISSING_IN_SHEETS" ]; then
-    echo "  違反: 観点表未整備のキー（機能一覧章にあるが単体/結合いずれの観点表にも無い）:" >&2
-    printf '%s\n' "$MISSING_IN_SHEETS" | sed 's/^/    - /' >&2
-    VIOLATIONS=$((VIOLATIONS + 1))
-  fi
-  if [ -n "$EXTRA_IN_SHEETS" ]; then
-    echo "  違反: 機能一覧の記載漏れ（観点表にあるが機能一覧章に無いキー）:" >&2
-    printf '%s\n' "$EXTRA_IN_SHEETS" | sed 's/^/    - /' >&2
-    VIOLATIONS=$((VIOLATIONS + 1))
-  fi
-  if [ -z "$MISSING_IN_SHEETS" ] && [ -z "$EXTRA_IN_SHEETS" ]; then
-    echo "  機能一覧章の機能キーと観点表キーの突合 OK（過不足なし）"
+    if [ -n "$MISSING_IN_SHEETS" ]; then
+      echo "  違反: 観点表未整備のキー（機能一覧章にあるが単体/結合いずれの観点表にも無い）:" >&2
+      printf '%s\n' "$MISSING_IN_SHEETS" | sed 's/^/    - /' >&2
+      VIOLATIONS=$((VIOLATIONS + 1))
+    fi
+    if [ -n "$EXTRA_IN_SHEETS" ]; then
+      echo "  違反: 機能一覧の記載漏れ（観点表にあるが機能一覧章に無いキー）:" >&2
+      printf '%s\n' "$EXTRA_IN_SHEETS" | sed 's/^/    - /' >&2
+      VIOLATIONS=$((VIOLATIONS + 1))
+    fi
+    if [ -z "$MISSING_IN_SHEETS" ] && [ -z "$EXTRA_IN_SHEETS" ]; then
+      echo "  機能一覧章の機能キーと観点表キーの突合 OK（過不足なし）"
+    fi
+  else
+    echo "  [UNKNOWN] 一時ファイルを作れないため機能キーと観点表キーの突合を判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    WARNINGS=$((WARNINGS + 1))
   fi
 else
   echo "  観点表が 1 枚も見つからないためキー突合をスキップします（WARN 済み）"
@@ -1625,13 +1682,18 @@ else
     WARNINGS=$((WARNINGS + 1))
   else
     PRESENT_CLASSES="$(extract_table_column "$RECIPROCAL_BODY" 2 | LC_ALL=C sort -u)"
-    MISSING_CLASSES="$(LC_ALL=C comm -23 <(printf '%s\n' "$FAILURE_CLASSES" | LC_ALL=C sort -u) <(printf '%s\n' "$PRESENT_CLASSES" | LC_ALL=C sort -u) || true)"
-    if [ -n "$MISSING_CLASSES" ]; then
-      echo "  WARN: 往復検証観点表に対応失敗クラスの欠落があります:" >&2
-      printf '%s\n' "$MISSING_CLASSES" | sed 's/^/    - /' >&2
-      WARNINGS=$((WARNINGS + 1))
+    if _comm_pair "$(printf '%s\n' "$FAILURE_CLASSES" | LC_ALL=C sort -u)" "$(printf '%s\n' "$PRESENT_CLASSES" | LC_ALL=C sort -u)"; then
+      MISSING_CLASSES="$_COMM_ONLY_LEFT"
+      if [ -n "$MISSING_CLASSES" ]; then
+        echo "  WARN: 往復検証観点表に対応失敗クラスの欠落があります:" >&2
+        printf '%s\n' "$MISSING_CLASSES" | sed 's/^/    - /' >&2
+        WARNINGS=$((WARNINGS + 1))
+      else
+        echo "  往復検証観点表の対応失敗クラス 10 種すべて充足"
+      fi
     else
-      echo "  往復検証観点表の対応失敗クラス 10 種すべて充足"
+      echo "  [UNKNOWN] 一時ファイルを作れないため対応失敗クラスの網羅を判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+      WARNINGS=$((WARNINGS + 1))
     fi
   fi
 fi
@@ -1680,13 +1742,18 @@ else
     else
       SCENARIO_BODY_E="$(extract_heading_body "$OPTEST_SPEC" '^## シナリオ一覧表')"
       SCENARIO_KEYS="$(extract_table_column "$SCENARIO_BODY_E" 2 | sed 's/`//g' | LC_ALL=C sort -u)"
-      MISSING_L5="$(LC_ALL=C comm -23 <(printf '%s\n' "$L5_KEYS") <(printf '%s\n' "$SCENARIO_KEYS") || true)"
-      if [ -n "$MISSING_L5" ]; then
-        echo "  WARN: 往復検証観点表の L5 観点に対応するシナリオが操作シナリオ仕様書に見つかりません:" >&2
-        printf '%s\n' "$MISSING_L5" | sed 's/^/    - /' >&2
-        WARNINGS=$((WARNINGS + 1))
+      if _comm_pair "$L5_KEYS" "$SCENARIO_KEYS"; then
+        MISSING_L5="$_COMM_ONLY_LEFT"
+        if [ -n "$MISSING_L5" ]; then
+          echo "  WARN: 往復検証観点表の L5 観点に対応するシナリオが操作シナリオ仕様書に見つかりません:" >&2
+          printf '%s\n' "$MISSING_L5" | sed 's/^/    - /' >&2
+          WARNINGS=$((WARNINGS + 1))
+        else
+          echo "  往復検証観点表の L5 観点（${L5_COUNT} 件）はすべて操作シナリオ仕様書にシナリオが存在します"
+        fi
       else
-        echo "  往復検証観点表の L5 観点（${L5_COUNT} 件）はすべて操作シナリオ仕様書にシナリオが存在します"
+        echo "  [UNKNOWN] 一時ファイルを作れないためL5観点とシナリオの突合を判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+        WARNINGS=$((WARNINGS + 1))
       fi
     fi
   fi

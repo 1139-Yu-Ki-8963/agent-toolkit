@@ -25,6 +25,25 @@ norm_headings() {
     | LC_ALL=en_US.UTF-8 grep -vE '^## (traced の条件|記入規則|本書の使い方)$'
 }
 
+# 一時ファイルを作る。
+#
+# 実装判断: プロセス置換（<(...)）を diff・comm など外部コマンドの引数へ
+# 渡すと /dev/fd/N が渡るが、実行環境によってはこれを開けない
+# （実測 2026-08-24: diff: /dev/fd/11: Operation not permitted）。
+# 比較そのものが失敗するため、失敗を「不合格」と読み違えると、中身に問題が
+# 無いのに不合格を報告する（実測: 同じ検査が制限下で「ずれ 32 組」、制限を
+# 外すと「ずれ 4 組」を返した）。一時ファイルを経由してこの揺れを断つ。
+#
+# 置き場を明示するのは、引数なしの mktemp が既定の置き場へ書こうとして
+# 失敗するためである（実測 2026-08-24:
+# mktemp: mkstemp failed on /var/folders/.../T/tmp.XXXX: Operation not
+# permitted）。TMPDIR を明示すると成功する。
+# この形を素直な mktemp へ戻してはならない。手元で動いても環境が変われば
+# 再び壊れる。
+_mk_tmp() {
+  mktemp "${TMPDIR:-/tmp}/$(basename "${BASH_SOURCE[0]}" .sh).XXXXXX" 2>/dev/null
+}
+
 pairs=0; mismatch=0; missing=0
 while IFS= read -r t; do
   [ -n "$t" ] || continue
@@ -47,10 +66,18 @@ while IFS= read -r t; do
     continue
   fi
   pairs=$((pairs + 1))
-  if ! diff -q <(norm_headings "$t") <(norm_headings "$s") >/dev/null 2>&1; then
+  if ! _ta="$(_mk_tmp)" || [ -z "$_ta" ] || ! _tb="$(_mk_tmp)" || [ -z "$_tb" ]; then
+    rm -f "${_ta:-}" "${_tb:-}"
+    echo "[UNKNOWN] 一時ファイルを作れないため判定できません（mktemp が一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  norm_headings "$t" > "$_ta"
+  norm_headings "$s" > "$_tb"
+  if ! diff -q "$_ta" "$_tb" >/dev/null 2>&1; then
     mismatch=$((mismatch + 1))
     echo "  節構成のずれ: ${base}"
   fi
+  rm -f "$_ta" "$_tb"
 done < <(find "$T_ROOT" -name '*.md' -type f 2>/dev/null | LC_ALL=C sort)
 
 echo "対応 ${pairs} 組 / ずれ ${mismatch} 組 / 見本なし ${missing} 件"

@@ -74,11 +74,29 @@ add_warning() {
   WARN_COUNT=$((WARN_COUNT + 1))
 }
 
+# 一時ファイルを作る。
+#
+# 実装判断: プロセス置換（<(...)）を diff・comm など外部コマンドの引数へ
+# 渡すと /dev/fd/N が渡るが、実行環境によってはこれを開けない
+# （実測 2026-08-24: diff: /dev/fd/11: Operation not permitted）。
+# 比較そのものが失敗するため、失敗を「不合格」と読み違えると、中身に問題が
+# 無いのに不合格を報告する。一時ファイルを経由してこの揺れを断つ。
+#
+# 置き場を明示するのは、引数なしの mktemp が既定の置き場へ書こうとして
+# 失敗するためである（実測 2026-08-24:
+# mktemp: mkstemp failed on /var/folders/.../T/tmp.XXXX: Operation not
+# permitted）。TMPDIR を明示すると成功する。
+# この形を素直な mktemp へ戻してはならない。手元で動いても環境が変われば
+# 再び壊れる。
+_mk_tmp() {
+  mktemp "${TMPDIR:-/tmp}/$(basename "${BASH_SOURCE[0]}" .sh).XXXXXX" 2>/dev/null
+}
+
 # taxonomy が checker 本体を漏れなく宣言していることを検査する。
 # parents[].children[] は配布する27規約、crossCuttingChecks[] は規約を横断して
 # 顧客提示文書や作業指示書そのものを検査する補助的な宣言として分けて数える。
 validate_checker_declarations() {
-  local actual declared duplicates undeclared missing rc=0
+  local actual declared duplicates undeclared missing rc=0 _ta _tb mktemp_ok=1
 
   # 宣言データが無い環境では、宣言の網羅を判定する材料そのものが無い。
   # 配備先（対象プロジェクトの docs/rules/ 配下）へ配ったこのスクリプトは
@@ -111,22 +129,43 @@ validate_checker_declarations() {
   declared="$(jq -r '(.parents[].children[]), (.crossCuttingChecks[]?) | .checker // empty' "$TAXONOMY_JSON" | LC_ALL=C sort)"
   duplicates="$(printf '%s\n' "$declared" | LC_ALL=C uniq -d)"
   declared="$(printf '%s\n' "$declared" | LC_ALL=C sort -u)"
-  undeclared="$(LC_ALL=C comm -23 <(printf '%s\n' "$actual") <(printf '%s\n' "$declared"))"
-  missing="$(LC_ALL=C comm -13 <(printf '%s\n' "$actual") <(printf '%s\n' "$declared"))"
 
   if [ -n "$duplicates" ]; then
     echo "$TAXONOMY_JSON: [検査-宣言重複] 同じcheckerが複数回宣言されている: $(printf '%s' "$duplicates" | tr '\n' ' ')" >&2
     rc=1
   fi
-  if [ -n "$undeclared" ]; then
-    echo "$TAXONOMY_JSON: [検査-宣言欠落] 宣言の無いchecker: $(printf '%s' "$undeclared" | tr '\n' ' ')" >&2
-    rc=1
+
+  # undeclared/missing の突合は comm を一時ファイル経由で呼ぶ。プロセス置換
+  # （<(...)）を渡すと実行環境によっては /dev/fd/N を開けず失敗し（実測
+  # 2026-08-24: diff: /dev/fd/11: Operation not permitted）、この関数の
+  # 呼び出し元（main の `|| exit 1`・self_test の `|| rc=1`）はどちらも
+  # 「set -e が無効化される文脈」から呼ぶため、comm の失敗はシェルを
+  # 止めずに空文字の undeclared/missing を返し、本来検出すべき欠落を
+  # 「欠落なし」として見逃す。判定できない場合は、この関数の冒頭にある
+  # 「宣言データが無い環境」と同じ扱い（[UNKNOWN] を出し、この検査だけを
+  # 飛ばして呼び出し元の他の検査は続ける）に倣う。
+  if ! _ta="$(_mk_tmp)" || [ -z "$_ta" ] || ! _tb="$(_mk_tmp)" || [ -z "$_tb" ]; then
+    rm -f "${_ta:-}" "${_tb:-}"
+    echo "[UNKNOWN] 一時ファイルを作れないためchecker宣言の欠落・実在を判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    mktemp_ok=0
+  else
+    printf '%s\n' "$actual" > "$_ta"
+    printf '%s\n' "$declared" > "$_tb"
+    undeclared="$(LC_ALL=C comm -23 "$_ta" "$_tb")"
+    missing="$(LC_ALL=C comm -13 "$_ta" "$_tb")"
+    rm -f "$_ta" "$_tb"
+
+    if [ -n "$undeclared" ]; then
+      echo "$TAXONOMY_JSON: [検査-宣言欠落] 宣言の無いchecker: $(printf '%s' "$undeclared" | tr '\n' ' ')" >&2
+      rc=1
+    fi
+    if [ -n "$missing" ]; then
+      echo "$TAXONOMY_JSON: [検査-実在] 宣言したcheckerが実在しない: $(printf '%s' "$missing" | tr '\n' ' ')" >&2
+      rc=1
+    fi
   fi
-  if [ -n "$missing" ]; then
-    echo "$TAXONOMY_JSON: [検査-実在] 宣言したcheckerが実在しない: $(printf '%s' "$missing" | tr '\n' ' ')" >&2
-    rc=1
-  fi
-  if [ "$rc" -eq 0 ]; then
+
+  if [ "$rc" -eq 0 ] && [ "$mktemp_ok" -eq 1 ]; then
     echo "検査宣言合格: $(printf '%s\n' "$actual" | grep -c . | tr -d ' ') 件のchecker本体を宣言済み"
   fi
   return "$rc"

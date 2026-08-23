@@ -64,16 +64,42 @@ DEFAULT_INVENTORY_DEF="$SCRIPT_DIR/../../delivery-payload/references/deliverable
 # shellcheck source=./output-layout.sh
 . "$SCRIPT_DIR/output-layout.sh"
 
+# 一時ファイルを作る。
+#
+# 実装判断: プロセス置換（<(...)）を diff・comm など外部コマンドの引数へ
+# 渡すと /dev/fd/N が渡るが、実行環境によってはこれを開けない
+# （実測 2026-08-24: diff: /dev/fd/11: Operation not permitted）。
+# 比較そのものが失敗するため、失敗を「不合格」と読み違えると、中身に問題が
+# 無いのに不合格を報告する。一時ファイルを経由してこの揺れを断つ。
+#
+# 置き場を明示するのは、引数なしの mktemp が既定の置き場へ書こうとして
+# 失敗するためである（実測 2026-08-24:
+# mktemp: mkstemp failed on /var/folders/.../T/tmp.XXXX: Operation not
+# permitted）。TMPDIR を明示すると成功する。
+# この形を素直な mktemp へ戻してはならない。手元で動いても環境が変われば
+# 再び壊れる。
+_mk_tmp() {
+  mktemp "${TMPDIR:-/tmp}/$(basename "${BASH_SOURCE[0]}" .sh).XXXXXX" 2>/dev/null
+}
+
 # --- カタログと定義の被覆検査(双方向)。1件でも欠けたらERRORで止める ---
 validate_coverage() {
   local catalog="$1" inventory_def="$2"
-  local catalog_kinds inventory_kinds missing_in_def missing_in_catalog
+  local catalog_kinds inventory_kinds missing_in_def missing_in_catalog _ta _tb
 
   catalog_kinds="$(jq -r '[.categories[].blueprints[].kind] | sort | .[]' "$catalog")"
   inventory_kinds="$(jq -r '[.items[].kind] | sort | .[]' "$inventory_def")"
 
-  missing_in_def="$(comm -23 <(printf '%s\n' "$catalog_kinds") <(printf '%s\n' "$inventory_kinds"))"
-  missing_in_catalog="$(comm -13 <(printf '%s\n' "$catalog_kinds") <(printf '%s\n' "$inventory_kinds"))"
+  if ! _ta="$(_mk_tmp)" || [ -z "$_ta" ] || ! _tb="$(_mk_tmp)" || [ -z "$_tb" ]; then
+    rm -f "${_ta:-}" "${_tb:-}"
+    echo "[UNKNOWN] 一時ファイルを作れないためカタログと納品物一覧定義のkind被覆を判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    return 2
+  fi
+  printf '%s\n' "$catalog_kinds" > "$_ta"
+  printf '%s\n' "$inventory_kinds" > "$_tb"
+  missing_in_def="$(comm -23 "$_ta" "$_tb")"
+  missing_in_catalog="$(comm -13 "$_ta" "$_tb")"
+  rm -f "$_ta" "$_tb"
 
   if [ -n "$missing_in_def" ] || [ -n "$missing_in_catalog" ]; then
     echo "ERROR: カタログと納品物一覧定義のkindが一致しない" >&2
