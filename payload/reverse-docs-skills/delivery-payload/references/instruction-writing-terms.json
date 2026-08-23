@@ -1,0 +1,29 @@
+{
+  "specVersion": 1,
+  "description": "指示書の地の文で避けるカタカナ音写と、配布物のテンプレートを参照するときだけ引用を認める章名。term は検査する表記、replacement は本文で使う日本語を表す。",
+  "transliterations": [
+    {"term": "アサイン", "replacement": "担当に割り当てる"},
+    {"term": "イシュー", "replacement": "課題"},
+    {"term": "エビデンス", "replacement": "根拠"},
+    {"term": "コンテキスト", "replacement": "前提"},
+    {"term": "スコープ", "replacement": "範囲"},
+    {"term": "ステータス", "replacement": "状態"},
+    {"term": "チケット", "replacement": "課題"},
+    {"term": "バックログ", "replacement": "未着手の課題一覧"},
+    {"term": "フィードバック", "replacement": "意見"},
+    {"term": "フロー", "replacement": "流れ"},
+    {"term": "プロセス", "replacement": "手順"},
+    {"term": "リソース", "replacement": "資源または余力"},
+    {"term": "ワークフロー", "replacement": "作業の流れ"}
+  ],
+  "quotedTemplateHeadings": [
+    "リクエスト",
+    "レスポンス",
+    "バリデーション",
+    "エンドポイント",
+    "パラメータ",
+    "ヘッダー",
+    "ボディ",
+    "ステータスコード"
+  ]
+}
