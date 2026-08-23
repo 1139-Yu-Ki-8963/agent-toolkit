@@ -24,10 +24,18 @@
 #   書き込み先のファイル名に「単体テスト設計書」が含まれる場合、cwd 配下の
 #   docs/rules/**/rule.md の「## 規則」表から、検査列に「テスト:」を含む
 #   規則の名前を集め、そのいずれかが本文に現れているかを走査する。
+#
+#   （テスト設計書の節の役割）
+#   ファイル名に「テスト設計書」が含まれる場合、§1を全観点、§5・§6を
+#   それぞれ異常・境界の観点の詳細、§2を実行ケースの唯一の一覧として扱う。
+#   §5・§6の第1列が「観点のキー」であること、§5・§6のキーが§1に含まれる
+#   こと、§2の全行が§1の観点を参照すること、§1の全観点に§2のケースが1件
+#   以上あること、§2のケースキーが重複しないことを走査する。
 
 #
 # 既知の限界:
-#   - 見出しの名前・順序・件数を見る。各見出し配下の記述内容の充実度までは判定しない
+#   - 見出しの名前・順序・件数と、§1・§2・§5・§6のキー集合を判定する。
+#     各セルの説明文や期待結果の妥当性までは判定しない
 #   - Markdown の `#` 見出し記法を前提とする。見出し記法を使わない文書形式では
 #     検出できない
 #   - 単体テスト設計書は基本設計フェーズで作る: 製造の着手前に作成されたかどうか
@@ -40,6 +48,9 @@
 #   - 規約が求めるテストを観点へ取り込む: 規則名の文字列が本文に含まれるかの
 #     機械的な一致しか見ない。各規則が求める確認が実際のテスト観点で確かめ
 #     られているかどうかの妥当性まではレビュー（人手）に委ねる
+#   - テスト設計書の節の役割: Markdown表のセル内にパイプ文字を含めない記法を
+#     前提とする。未記入のテンプレート行（山括弧のプレースホルダ）は集合検査から
+#     除外する
 #
 # 除外条件（誤検知回避）:
 #   - tool_name が Write 以外 → 対象外
@@ -191,13 +202,229 @@ judge_required_sections() {
   return 0
 }
 
+# 「テスト設計書の節の役割」の判定
+judge_test_section_roles() {
+  # $1: file_path, $2: content
+  local file_path="$1" content="$2"
+  local base
+  base="$(basename "$file_path")"
+
+  if ! printf '%s' "$base" | grep -qF 'テスト設計書'; then
+    echo "対象外[テスト設計書の節の役割]: テスト設計書ではありません（${base}）"
+    return 0
+  fi
+
+  printf '%s\n' "$content" | awk '
+    function trim(value) {
+      gsub(/^[ \t]+|[ \t]+$/, "", value)
+      return value
+    }
+    function is_separator(value) {
+      value = trim(value)
+      return value ~ /^:?-+:?$/
+    }
+    function is_placeholder(value) {
+      value = trim(value)
+      return value == "" || value == "該当なし" || value ~ /[<>]/
+    }
+    function add_error(message) {
+      errors[++error_count] = message
+    }
+    function fence_run(line,    stripped, char, count, indent) {
+      indent = 0
+      while (substr(line, indent + 1, 1) == " ") indent++
+      if (indent > 3) return ""
+      stripped = substr(line, indent + 1)
+      char = substr(stripped, 1, 1)
+      if (char != "`" && char != "~") return ""
+      count = 0
+      while (substr(stripped, count + 1, 1) == char) count++
+      if (count < 3) return ""
+      return substr(stripped, 1, count)
+    }
+    {
+      marker = fence_run($0)
+      if (fence == "" && marker != "") {
+        fence = marker
+        next
+      }
+      if (fence != "") {
+        if (marker != "" && substr(marker, 1, 1) == substr(fence, 1, 1) && length(marker) >= length(fence)) {
+          remainder = $0
+          sub(/^[[:space:]]*/, "", remainder)
+          remainder = substr(remainder, length(marker) + 1)
+          if (remainder ~ /^[[:space:]]*$/) fence = ""
+        }
+        next
+      }
+    }
+    /^## §1 テスト観点/ { section = 1; in_table = 0; active_table = 0; next }
+    /^## §2 テストケース一覧/ { section = 2; in_table = 0; active_table = 0; next }
+    /^## §5 異常系/ { section = 5; in_table = 0; active_table = 0; next }
+    /^## §6 境界値/ { section = 6; in_table = 0; active_table = 0; next }
+    /^## / { section = 0; in_table = 0; active_table = 0; next }
+    section > 0 && !/^\|/ {
+      in_table = 0
+      active_table = 0
+      next
+    }
+    section > 0 && /^\|/ {
+      count = split($0, raw, "|")
+      for (i = 2; i < count; i++) cols[i - 1] = trim(raw[i])
+      width = count - 2
+
+      if (!in_table) {
+        in_table = 1
+        active_table = 0
+        signature = ""
+        for (i = 1; i <= width; i++) signature = signature (i > 1 ? "|" : "") cols[i]
+        if (section == 1 && cols[1] == "キー") {
+          if (!table_selected[section]) {
+            active_table = 1
+            table_selected[section] = 1
+            role_header[section] = signature
+          } else if (signature == role_header[section]) {
+            active_table = 1
+          }
+        }
+        if (section == 2) {
+          viewpoint_column = 0
+          for (i = 1; i <= width; i++) {
+            normalized = cols[i]
+            gsub(/[ \t]/, "", normalized)
+            if (normalized ~ /^対応(する)?観点(の)?キー$/) viewpoint_column = i
+          }
+          if (cols[1] == "キー" && viewpoint_column > 0) {
+            if (!table_selected[section]) {
+              active_table = 1
+              table_selected[section] = 1
+              role_header[section] = signature
+            } else if (signature == role_header[section]) {
+              active_table = 1
+            } else {
+              case_table_shape_mismatch = 1
+            }
+            if (active_table) case_table_seen = 1
+          }
+        }
+        if (section == 5 || section == 6) {
+          if (!table_selected[section]) {
+            active_table = 1
+            table_selected[section] = 1
+            first_header[section] = cols[1]
+            role_header[section] = signature
+          } else if (signature == role_header[section]) {
+            active_table = 1
+          }
+        }
+        if (active_table) header_seen[section] = 1
+        delete cols
+        next
+      }
+
+      if (!active_table) {
+        delete cols
+        next
+      }
+
+      if (is_separator(cols[1])) {
+        delete cols
+        next
+      }
+
+      key = cols[1]
+      if (key == "キー" || key == "観点のキー" || is_placeholder(key)) {
+        delete cols
+        next
+      }
+
+      if (section == 1) {
+        viewpoint_counts[key]++
+        viewpoints[key] = 1
+      }
+      if (section == 5) {
+        abnormal_viewpoint_counts[key]++
+        abnormal_viewpoints[key] = 1
+      }
+      if (section == 6) {
+        boundary_viewpoint_counts[key]++
+        boundary_viewpoints[key] = 1
+      }
+      if (section == 2) {
+        case_count++
+        case_keys[key]++
+        if (viewpoint_column > 0) {
+          viewpoint_key = cols[viewpoint_column]
+          if (is_placeholder(viewpoint_key)) {
+            add_error("§2のケース「" key "」に対応する観点のキーがありません")
+          } else {
+            case_viewpoints[viewpoint_key] = 1
+          }
+        }
+      }
+      delete cols
+    }
+    END {
+      if (!header_seen[1] || !header_seen[2] || !header_seen[5] || !header_seen[6]) {
+        add_error("§1・§2・§5・§6の表をすべて記載してください")
+      }
+      if (first_header[5] != "観点のキー") add_error("§5の第1列を「観点のキー」にしてください")
+      if (first_header[6] != "観点のキー") add_error("§6の第1列を「観点のキー」にしてください")
+      if (!case_table_seen) add_error("§2に対応する観点のキー列がありません")
+      if (case_table_shape_mismatch) add_error("§2のケース表の列構成が統一されていません")
+
+      for (key in abnormal_viewpoints) {
+        if (!(key in viewpoints)) add_error("§5の観点「" key "」が§1にありません")
+      }
+      for (key in boundary_viewpoints) {
+        if (!(key in viewpoints)) add_error("§6の観点「" key "」が§1にありません")
+      }
+      for (key in case_viewpoints) {
+        if (!(key in viewpoints)) add_error("§2が参照する観点「" key "」が§1にありません")
+      }
+      for (key in viewpoints) {
+        if (!(key in case_viewpoints)) add_error("§1の観点「" key "」に対応するケースが§2にありません")
+      }
+      for (key in case_keys) {
+        if (case_keys[key] > 1) add_error("§2のケースキー「" key "」が重複しています")
+      }
+      for (key in viewpoint_counts) {
+        if (viewpoint_counts[key] > 1) add_error("§1の観点キー「" key "」が重複しています")
+      }
+      for (key in abnormal_viewpoint_counts) {
+        if (abnormal_viewpoint_counts[key] > 1) add_error("§5の観点キー「" key "」が重複しています")
+      }
+      for (key in boundary_viewpoint_counts) {
+        if (boundary_viewpoint_counts[key] > 1) add_error("§6の観点キー「" key "」が重複しています")
+      }
+
+      if (error_count > 0) {
+        printf "拒否[テスト設計書の節の役割]: "
+        for (i = 1; i <= error_count; i++) printf "%s%s", (i > 1 ? "／" : ""), errors[i]
+        printf "\n"
+        exit 2
+      }
+
+      printf "許可[テスト設計書の節の役割]: §1が全観点、§5・§6がその部分集合で、実行するテストは§2の%dケースです\n", case_count
+    }
+  '
+}
+
 run_file_check() {
   local file_path="${1:-}"
   if [ -z "$file_path" ] || [ ! -f "$file_path" ]; then
     echo "検査対象の単体テスト設計書が見つかりません: ${file_path:-（未指定）}" >&2
     return 1
   fi
-  judge_required_sections "$file_path" "$(cat "$file_path")"
+  local content rc=0 msg code
+  content="$(cat "$file_path")"
+  if msg="$(judge_required_sections "$file_path" "$content")"; then code=0; else code=$?; fi
+  echo "$msg"
+  [ "$code" -eq 2 ] && rc=2
+  if msg="$(judge_test_section_roles "$file_path" "$content")"; then code=0; else code=$?; fi
+  echo "$msg"
+  [ "$code" -eq 2 ] && rc=2
+  return "$rc"
 }
 
 # 「単体テスト設計書は基本設計フェーズで作る」規則の判定
@@ -315,6 +542,10 @@ judge() {
   echo "$msg"
   [ "$code" -eq 2 ] && rc=2
 
+  if msg="$(judge_test_section_roles "$file_path" "$content")"; then code=0; else code=$?; fi
+  echo "$msg"
+  [ "$code" -eq 2 ] && rc=2
+
   return "$rc"
 }
 
@@ -370,17 +601,25 @@ API単位で自動化する
 ## 本書が扱わない範囲
 他のAPI
 ## §1 テスト観点
-...
+| キー | 観点 |
+|---|---|
+| `<観点キー>` | `<観点>` |
 ## §2 テストケース一覧
-...
+| キー | 対応する観点のキー | 入力 | 期待結果 |
+|---|---|---|---|
+| `<ケースキー>` | `<観点キー>` | `<入力>` | `<期待結果>` |
 ## §3 入力条件
 ...
 ## §4 期待結果
 ...
 ## §5 異常系
-...
+| 観点のキー | 条件 | 期待結果 |
+|---|---|---|
+| `<観点キー>` | `<条件>` | `<期待結果>` |
 ## §6 境界値
-...
+| 観点のキー | 境界 | 期待結果 |
+|---|---|---|
+| `<観点キー>` | `<境界>` | `<期待結果>` |
 ## §7 網羅基準
 ...
 ## §8 前提条件と終了条件
@@ -659,6 +898,207 @@ EOF
     echo "  [PASS] 系14: 環境変数が空文字なら should_skip_with_reason は skip しない"
   else
     echo "  [FAIL] 系14: 空文字なのに skip した（exit=${skip_code2}）" >&2
+    rc=1
+  fi
+
+  local role_valid='## §1 テスト観点
+| キー | 観点 |
+|---|---|
+| api-失敗 | API失敗 |
+| 金額-境界 | 金額の境界 |
+## §2 テストケース一覧
+| キー | 対応する観点のキー | 入力 | 期待結果 |
+|---|---|---|---|
+| api失敗-タイムアウト | api-失敗 | timeout | error |
+| 金額境界-直前 | 金額-境界 | 0 | reject |
+| 金額境界-一致 | 金額-境界 | 1 | accept |
+## §5 異常系
+| 観点のキー | 発生させる条件 | 期待する例外・エラー |
+|---|---|---|
+| api-失敗 | timeout | error |
+## §6 境界値
+| 観点のキー | 境界の値 | 境界の直前と直後の扱い |
+|---|---|---|
+| 金額-境界 | 1 | 0は拒否、1は許可 |'
+
+  # 系15: 観点の部分集合と全ケースが整合する → §2の行数を実行件数として許可
+  local tmp15 role_file
+  tmp15="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX")"
+  role_file="$tmp15/APIテスト設計書.md"
+  printf '%s\n' "$role_valid" > "$role_file"
+  if msg="$(run_file_check "$role_file")"; then code=0; else code=$?; fi
+  rm -rf "$tmp15"
+  if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '§2の3ケース'; then
+    echo "  [PASS] 系15: §1・§2・§5・§6の集合関係が整合し、実行件数を§2の3ケースと数えられる（${msg}）"
+  else
+    echo "  [FAIL] 系15: 整合する節構造が拒否された、または§2の件数が得られない（exit=${code}, ${msg}）" >&2
+    rc=1
+  fi
+
+  # 系16: §5・§6の第1列が「キー」のまま → 拒否
+  local wrong_headers
+  wrong_headers="$(printf '%s\n' "$role_valid" | sed 's/^| 観点のキー |/| キー |/')"
+  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$wrong_headers")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '第1列'; then
+    echo "  [PASS] 系16: §5・§6の旧見出し「キー」を拒否する（${msg}）"
+  else
+    echo "  [FAIL] 系16: §5・§6の旧見出しを許可した（exit=${code}, ${msg}）" >&2
+    rc=1
+  fi
+
+  # 系17: §5の観点が§1に無い → 拒否
+  local orphan_abnormal
+  orphan_abnormal="$(printf '%s\n' "$role_valid" | sed 's/^| api-失敗 | timeout | error |$/| 未登録-異常 | timeout | error |/')"
+  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$orphan_abnormal")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '§5の観点'; then
+    echo "  [PASS] 系17: §1に無い§5の観点を拒否する（${msg}）"
+  else
+    echo "  [FAIL] 系17: §1に無い§5の観点を許可した（exit=${code}, ${msg}）" >&2
+    rc=1
+  fi
+
+  # 系18: §1の観点に対応するケースが§2に無い → 拒否
+  local missing_case
+  missing_case="$(printf '%s\n' "$role_valid" | grep -v '^| 金額境界-')"
+  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$missing_case")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '対応するケースが§2にありません'; then
+    echo "  [PASS] 系18: §2が網羅しない観点を拒否する（${msg}）"
+  else
+    echo "  [FAIL] 系18: §2が網羅しない観点を許可した（exit=${code}, ${msg}）" >&2
+    rc=1
+  fi
+
+  # 系19: §2のケース表の後に補助データ表がある → 補助表をケースとして数えない
+  local role_with_auxiliary_table
+  role_with_auxiliary_table="$(printf '%s\n' "$role_valid" | awk '
+    /^## §5 異常系/ {
+      print "### テストデータ"
+      print "| キー | データ | 用途 |"
+      print "|---|---|---|"
+      print "| 正常入力 | sample.json | ケース入力 |"
+    }
+    { print }
+  ')"
+  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$role_with_auxiliary_table")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '§2の3ケース'; then
+    echo "  [PASS] 系19: §2の補助データ表をケース件数から除外する（${msg}）"
+  else
+    echo "  [FAIL] 系19: §2の補助データ表をケースとして数えた（exit=${code}, ${msg}）" >&2
+    rc=1
+  fi
+
+  # 系20: §2の実ケースが観点を参照しない → 拒否
+  local missing_viewpoint_reference
+  missing_viewpoint_reference="$(printf '%s\n' "$role_valid" | sed 's/^| 金額境界-直前 | 金額-境界 |/| 金額境界-直前 |  |/')"
+  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$missing_viewpoint_reference")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '対応する観点のキーがありません'; then
+    echo "  [PASS] 系20: 観点を参照しない§2の実ケースを拒否する（${msg}）"
+  else
+    echo "  [FAIL] 系20: 観点を参照しない§2の実ケースを許可した（exit=${code}, ${msg}）" >&2
+    rc=1
+  fi
+
+  # 系21: コードフェンス内の偽の§5表 → 実際の§5として扱わない
+  local fenced_role_example
+  fenced_role_example="$(printf '%s\n' "$role_valid" | awk '
+    /^## §5 異常系/ {
+      print "~~~md"
+      print "## §5 異常系"
+      print "| キー | 条件 | 期待結果 |"
+      print "|---|---|---|"
+      print "| 偽の観点 | timeout | error |"
+      print "~~~"
+    }
+    { print }
+  ')"
+  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$fenced_role_example")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '§2の3ケース'; then
+    echo "  [PASS] 系21: コードフェンス内の偽の節と表を無視する（${msg}）"
+  else
+    echo "  [FAIL] 系21: コードフェンス内の偽の節または表を実データとして扱った（exit=${code}, ${msg}）" >&2
+    rc=1
+  fi
+
+  # 系22: §2にケース表が複数ある → 全てのケースを数える
+  local multiple_case_tables
+  multiple_case_tables="$(printf '%s\n' "$role_valid" | awk '
+    /^## §5 異常系/ {
+      print "### 追加ケース"
+      print "| キー | 対応する観点のキー | 入力 | 期待結果 |"
+      print "|---|---|---|---|"
+      print "| api失敗-再試行 | api-失敗 | retry | success |"
+    }
+    { print }
+  ')"
+  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$multiple_case_tables")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '§2の4ケース'; then
+    echo "  [PASS] 系22: §2に分かれた複数のケース表を全て数える（${msg}）"
+  else
+    echo "  [FAIL] 系22: §2の2表目にあるケースを数えなかった（exit=${code}, ${msg}）" >&2
+    rc=1
+  fi
+
+  # 系23: §2の2つ目のケース表が未登録観点を参照する → 拒否
+  local orphan_in_second_case_table
+  orphan_in_second_case_table="$(printf '%s\n' "$multiple_case_tables" | sed 's/| api失敗-再試行 | api-失敗 |/| api失敗-再試行 | 未登録-観点 |/')"
+  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$orphan_in_second_case_table")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '§2が参照する観点'; then
+    echo "  [PASS] 系23: §2の2表目が参照する未登録観点を拒否する（${msg}）"
+  else
+    echo "  [FAIL] 系23: §2の2表目が参照する未登録観点を許可した（exit=${code}, ${msg}）" >&2
+    rc=1
+  fi
+
+  # 系24: §1の2つ目の同型表に未被覆の観点がある → 拒否
+  local uncovered_in_second_viewpoint_table
+  uncovered_in_second_viewpoint_table="$(printf '%s\n' "$role_valid" | awk '
+    /^## §2 テストケース一覧/ {
+      print "### 追加観点"
+      print "| キー | 観点 |"
+      print "|---|---|"
+      print "| 認証-期限切れ | 認証期限切れ |"
+    }
+    { print }
+  ')"
+  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$uncovered_in_second_viewpoint_table")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '認証-期限切れ'; then
+    echo "  [PASS] 系24: §1の2表目にある未被覆の観点を拒否する（${msg}）"
+  else
+    echo "  [FAIL] 系24: §1の2表目にある未被覆の観点を許可した（exit=${code}, ${msg}）" >&2
+    rc=1
+  fi
+
+  # 系25: §2に似た列を持つ別構成の表 → ケース表の列不一致として拒否
+  local case_like_auxiliary_table
+  case_like_auxiliary_table="$(printf '%s\n' "$role_valid" | awk '
+    /^## §5 異常系/ {
+      print "### 補助対応表"
+      print "| キー | 対応する観点のキー | 備考 |"
+      print "|---|---|---|"
+      print "| 補助-対応 | api-失敗 | 説明用 |"
+    }
+    { print }
+  ')"
+  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$case_like_auxiliary_table")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '§2のケース表の列構成が統一されていません'; then
+    echo "  [PASS] 系25: §2で観点参照列を持つ別構成の表を拒否する（${msg}）"
+  else
+    echo "  [FAIL] 系25: §2で観点参照列を持つ別構成の表を許可した（exit=${code}, ${msg}）" >&2
+    rc=1
+  fi
+
+  # 系26: §1と§5の観点キーが重複する → 拒否
+  local duplicate_viewpoint_keys
+  duplicate_viewpoint_keys="$(printf '%s\n' "$role_valid" | awk '
+    /^## §2 テストケース一覧/ { print "| api-失敗 | API失敗の重複 |" }
+    /^## §6 境界値/ { print "| api-失敗 | timeout | error |" }
+    { print }
+  ')"
+  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$duplicate_viewpoint_keys")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '§1の観点キー' && printf '%s' "$msg" | grep -qF '§5の観点キー'; then
+    echo "  [PASS] 系26: §1と§5の観点キー重複を拒否する（${msg}）"
+  else
+    echo "  [FAIL] 系26: §1または§5の観点キー重複を許可した（exit=${code}, ${msg}）" >&2
     rc=1
   fi
 
