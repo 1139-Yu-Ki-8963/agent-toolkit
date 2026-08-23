@@ -252,7 +252,7 @@
       <div class="stats">
         <div class="stat"><div class="label">成果物数</div><div class="value">52<span class="unit">本</span></div></div>
         <div class="stat"><div class="label">スキル</div><div class="value">52<span class="unit">本</span></div></div>
-        <div class="stat date"><div class="label">報告日</div><div class="value">2026-08-23</div></div>
+        <div class="stat date"><div class="label">報告日</div><div class="value">2026-08-24</div></div>
       </div>
     </header>
 
@@ -322,17 +322,17 @@
           <tr><td class="id">generating-tech-stack-for-reverse-docs</td><td class="jp">技術スタックの書き出し</td><td class="desc">調査書の記載と定義ファイルの確認した値を突き合わせ、技術スタックのページを機械的に作る。</td><td class="guide"><a href="../../.claude/skills/generating-tech-stack-for-reverse-docs/references/guide.html">ガイドを開く →</a></td></tr>
           <tr><td class="id">generating-test-case-list-for-reverse-docs</td><td class="jp">テストケース一覧の生成</td><td class="desc">各設計単位のテスト設計書を横断して集め、テストケース一覧を作る。</td><td class="guide"><a href="../../.claude/skills/generating-test-case-list-for-reverse-docs/references/guide.html">ガイドを開く →</a></td></tr>
           <tr><td class="id">generating-test-viewpoint-list-for-reverse-docs</td><td class="jp">テスト観点表の生成</td><td class="desc">各設計単位のテスト設計書を横断して集め、テスト観点表を作る。</td><td class="guide"><a href="../../.claude/skills/generating-test-viewpoint-list-for-reverse-docs/references/guide.html">ガイドを開く →</a></td></tr>
-          <tr><td class="id">maintaining-semantic-glossary</td><td class="jp">用語変更の検査と影響分析</td><td class="desc">用語の変更を検査し、影響を分析する。</td><td class="guide"><a href="../../.claude/skills/maintaining-semantic-glossary/references/guide.html">ガイドを開く →</a></td></tr>
-          <tr><td class="id">managing-semantic-glossary</td><td class="jp">用語の変更と公開の管理</td><td class="desc">確定した用語の変更と公開を管理する。</td><td class="guide"><a href="../../.claude/skills/managing-semantic-glossary/references/guide.html">ガイドを開く →</a></td></tr>
-          <tr><td class="id">orchestrating-ai-development-setup</td><td class="jp">検証工程全体の統括</td><td class="desc">元のコードと設計書を照合する検証の工程全体を統括する。</td><td class="guide"><a href="../../.claude/skills/orchestrating-ai-development-setup/references/guide.html">ガイドを開く →</a></td></tr>
+          <tr><td class="id">maintaining-semantic-glossary</td><td class="jp">用語変更の検査と影響分析</td><td class="desc">正式用語集、用語候補又は変更提案を検査して影響を調べ、正式用語集を変えずに検査結果又は承認用の変更要求を作る。</td><td class="guide"><a href="../../.claude/skills/maintaining-semantic-glossary/references/guide.html">ガイドを開く →</a></td></tr>
+          <tr><td class="id">managing-semantic-glossary</td><td class="jp">用語の変更と公開の管理</td><td class="desc">正式用語集、用語候補又は変更要求を入力に、指定に応じて照会・審査・試行を行い、役割別の二件の承認がある変更だけを適用して公開する。</td><td class="guide"><a href="../../.claude/skills/managing-semantic-glossary/references/guide.html">ガイドを開く →</a></td></tr>
+          <tr><td class="id">orchestrating-ai-development-setup</td><td class="jp">検証工程全体の統括</td><td class="desc">対象コードと実行範囲を入力に、調査・事実抽出・設計書作成から再構築・原本照合・基準確立までを指定に応じて統括し、選んだ工程の結果を確定する。</td><td class="guide"><a href="../../.claude/skills/orchestrating-ai-development-setup/references/guide.html">ガイドを開く →</a></td></tr>
           <tr><td class="id">prioritizing-improvement-tasks-from-images</td><td class="jp">改善課題の登録と優先順位付け</td><td class="desc">改善課題の画像を書き起こして指示書へ集約し、未解決項目を調査して優先順位を確定する。</td><td class="guide"><a href="../../.claude/skills/prioritizing-improvement-tasks-from-images/references/guide.html">ガイドを開く →</a></td></tr>
           <tr><td class="id">rebuilding-code-from-docs</td><td class="jp">設計書からのコード再構築</td><td class="desc">画面ごとの設計書だけからコードを作り直し、元のコードと突き合わせて欠落を見つける。</td><td class="guide"><a href="../../.claude/skills/rebuilding-code-from-docs/references/guide.html">ガイドを開く →</a></td></tr>
           <tr><td class="id">rebuilding-screen-unit-from-docs</td><td class="jp">単一ファイルの再構築検証</td><td class="desc">設計書だけから対象ファイルを作り直し、元のファイルと突き合わせて欠落を見つける。</td><td class="guide"><a href="../../.claude/skills/rebuilding-screen-unit-from-docs/references/guide.html">ガイドを開く →</a></td></tr>
-          <tr><td class="id">running-reverse-screen-batch</td><td class="jp">画面単位の無人一括検証</td><td class="desc">画面ごとの検証を無人のまとめ処理で自動的に実行する。</td><td class="guide"><a href="../../.claude/skills/running-reverse-screen-batch/references/guide.html">ガイドを開く →</a></td></tr>
+          <tr><td class="id">running-reverse-screen-batch</td><td class="jp">画面単位の無人一括検証</td><td class="desc">対象コード、画面一覧、検証条件、出力先、雛形及び共通資料を入力に、各画面を無人で順に処理して指定工程まで設計書作成・再構築・原本照合を行い、進捗と失敗を記録する。</td><td class="guide"><a href="../../.claude/skills/running-reverse-screen-batch/references/guide.html">ガイドを開く →</a></td></tr>
           <tr><td class="id">surveying-architecture-for-reverse-docs</td><td class="jp">アーキテクチャ調査書の確定</td><td class="desc">既存のリポジトリを調べ、機械による検証を添えてアーキテクチャ調査書を確定する。</td><td class="guide"><a href="../../.claude/skills/surveying-architecture-for-reverse-docs/references/guide.html">ガイドを開く →</a></td></tr>
           <tr><td class="id">surveying-local-environment</td><td class="jp">実行環境の調査</td><td class="desc">使用しているパソコンの基本ソフトや道具の状況を調べ、結果を記録する。</td><td class="guide"><a href="../../.claude/skills/surveying-local-environment/references/guide.html">ガイドを開く →</a></td></tr>
           <tr><td class="id">syncing-reverse-env</td><td class="jp">元コードと設計書の環境をそろえる</td><td class="desc">元のコードと設計書の 2 つの作業場所をそろえ、比べる基準となる時点を記録する。</td><td class="guide"><a href="../../.claude/skills/syncing-reverse-env/references/guide.html">ガイドを開く →</a></td></tr>
-          <tr><td class="id">unlocking-reverse-target-screens</td><td class="jp">対象画面の疑似接続</td><td class="desc">既存の画面を疑似の接続窓口で開通させ、起動モードごとの検証準備を行う。</td><td class="guide"><a href="../../.claude/skills/unlocking-reverse-target-screens/references/guide.html">ガイドを開く →</a></td></tr>
+          <tr><td class="id">unlocking-reverse-target-screens</td><td class="jp">対象画面の疑似接続</td><td class="desc">対象画面と依存先を調べてデータ取得を差し替え、画面を起動して検証用のアドレスを記録し、単独実行では比較の基準を確立する。</td><td class="guide"><a href="../../.claude/skills/unlocking-reverse-target-screens/references/guide.html">ガイドを開く →</a></td></tr>
         </tbody>
       </table>
     </section>
