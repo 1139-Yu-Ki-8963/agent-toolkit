@@ -276,19 +276,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>API詳細設計書生成スキル<br><span class="skill-name">generating-api-detail-design-for-reverse-docs</span></h1>
   <p>既存のバックエンドコードから API 1 本ごとの詳細設計書を、原本コードの読解によって作るスキルの確定仕様。対象はエンドポイント単位であり、複数の API をまとめた機能単位の設計書とは別物である。</p>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>2026-08-20: 合成API詳細設計書3件で、現行テンプレートの全見出しと全表列への一致、および節名・列見出しの逸脱検出を実測</td></tr>
-    <tr><td>依存</td><td>API 一覧の拡張マニフェスト（<code>api-manifest.ext.json</code>）、テンプレート <code>delivery-payload/templates/リバース検証/API/API詳細設計書.md</code>、検査 <code>generation-engine/scripts/tests/check-design-doc-section-consistency.sh</code></td></tr>
-    <tr><td>関連資料</td><td><code>delivery-payload/references/chapter-map.md</code>, <code>delivery-payload/references/納品物フォルダ体系.md</code>, <code>generating-api-list-for-reverse-docs</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>2026-08-20: 合成API詳細設計書3件で、現行テンプレートの全見出しと全表列への一致、および節名・列見出しの逸脱検出を実測</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>API 一覧の拡張マニフェスト（<code>api-manifest.ext.json</code>）、テンプレート <code>delivery-payload/templates/リバース検証/API/API詳細設計書.md</code>、検査 <code>generation-engine/scripts/tests/check-design-doc-section-consistency.sh</code></td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>delivery-payload/references/chapter-map.md</code>, <code>delivery-payload/references/納品物フォルダ体系.md</code>, <code>generating-api-list-for-reverse-docs</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -301,12 +306,10 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s7">制約と既知の限界</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>このスキルは、既存のバックエンドコードから API 1 本ごとの詳細設計書を作る。対象はエンドポイント単位であり、複数の API をまとめた機能単位の設計書とは別物である。情報源は API 一覧の拡張マニフェストと、そのマニフェストが指す原本コードの 2 つに限る。原本から確定できない仕様値は推測で埋めず、要確認事項として残す。設計判断の理由だけは、コードコメントの観測と実装構造からの推定を区別して記録する。</p>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>エンドポイント 1 本につき、以下の 4 点が生まれる。</p>
@@ -321,7 +324,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>付録 B の章マップが、章の役割キーと節番号の対応を持つ。他のスキルや検査がこの設計書の特定の章を指すときに使える。</dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
@@ -331,26 +333,51 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>設計書の執筆役が原本コードを読まず、確定済みの事実表だけを情報源にする進め方。このスキルは採らない。</dd>
   </dl>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>情報源と原本を見ない検証を採らない理由</h2>
   <p>画面詳細設計書は、原本を見ない検証を前提に書かれ、設計書だけからコードを再生成して原本と突き合わせる往復検証が成立する。API 単位ではその前提が置けない。事実表を供給する経路が存在しないためである。したがってこのスキルは原本だけを読み取る種類とし、生成した設計書を往復検証の対象にしない。品質は §6 の 8 つの機械検査で担保する。この違いを表で示す。</p>
   <table class="spec">
-    <tr><th>観点</th><th>画面詳細設計書</th><th>API詳細設計書（本スキル）</th></tr>
-    <tr><td>情報源</td><td>確定済みの事実表のみ</td><td>拡張マニフェストと原本コードの 2 つ</td></tr>
-    <tr><td>執筆時のコード読解</td><td>禁止（原本を見ない検証）</td><td>必須（原本だけを読み取る種類）</td></tr>
-    <tr><td>品質保証の方法</td><td>設計書だけからのコード再生成と原本突合（往復検証）</td><td>§6 の 8 つの機械検査</td></tr>
+    <tr>
+      <th>観点</th>
+      <th>画面詳細設計書</th>
+      <th>API詳細設計書（本スキル）</th></tr>
+    <tr>
+      <td>情報源</td>
+      <td>確定済みの事実表のみ</td>
+      <td>拡張マニフェストと原本コードの 2 つ</td></tr>
+    <tr>
+      <td>執筆時のコード読解</td>
+      <td>禁止（原本を見ない検証）</td>
+      <td>必須（原本だけを読み取る種類）</td></tr>
+    <tr>
+      <td>品質保証の方法</td>
+      <td>設計書だけからのコード再生成と原本突合（往復検証）</td>
+      <td>§6 の 8 つの機械検査</td></tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>動作フロー</h2>
   <table class="spec">
-    <tr><th>Phase</th><th>名前</th><th>完了条件</th></tr>
-    <tr><td>Phase 1</td><td>起動引数の確認と対象確定</td><td>4 引数が実在し、マニフェストが確認済みで、言語プロファイルが確定し、対象ユニットが確定している</td></tr>
-    <tr><td>Phase 2</td><td>原本読解</td><td>対象ユニット全件について、根拠付きの記入材料が揃っている</td></tr>
-    <tr><td>Phase 3</td><td>執筆</td><td>全対象ユニットの設計書が記入済みである</td></tr>
-    <tr><td>Phase 4</td><td>検証</td><td>8 検査すべてが合格している</td></tr>
+    <tr>
+      <th>Phase</th>
+      <th>名前</th>
+      <th>完了条件</th></tr>
+    <tr>
+      <td>Phase 1</td>
+      <td>起動引数の確認と対象確定</td>
+      <td>4 引数が実在し、マニフェストが確認済みで、言語プロファイルが確定し、対象ユニットが確定している</td></tr>
+    <tr>
+      <td>Phase 2</td>
+      <td>原本読解</td>
+      <td>対象ユニット全件について、根拠付きの記入材料が揃っている</td></tr>
+    <tr>
+      <td>Phase 3</td>
+      <td>執筆</td>
+      <td>全対象ユニットの設計書が記入済みである</td></tr>
+    <tr>
+      <td>Phase 4</td>
+      <td>検証</td>
+      <td>8 検査すべてが合格している</td></tr>
   </table>
   <pre class="flow"><span class="cap">── 動作フロー ─────────────────────────────</span>
 
@@ -369,23 +396,39 @@ Phase 4  検証
    ▼
 完了  対象エンドポイントごとに根拠付きの実装契約とテンプレート準拠を持つ設計書</pre>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>検証</h2>
   <p>Phase 4 で実行する 8 つの機械検査。1 つでも不合格なら Phase 3 へ差し戻し、上限 3 回で収束しなければ <code>status=ERROR</code> とする。</p>
   <table class="spec">
-    <tr><th>検査</th><th>内容</th></tr>
-    <tr><td><strong>検査1 章の完備</strong></td><td>生成した各設計書に §1 から §13 と章マップ（付録B）が存在することを確認する</td></tr>
-    <tr><td><strong>検査2 根拠の実在</strong></td><td>記入した <code>file:line</code> 形式の根拠について、ファイルが <code>source_dir</code> 配下に実在することを確認する。実在しない根拠が 1 件でもあれば不合格とする</td></tr>
-    <tr><td><strong>検査3 プレースホルダの残存</strong></td><td><code>APIKEY</code>・<code>APIID</code>・<code>METHOD</code>・<code>PATH</code>・<code>FEATUREKEY</code>・<code>SOURCEREF</code> が本文に残っていないことを確認する</td></tr>
-    <tr><td><strong>検査4 配置と前付け</strong></td><td>宣言された配置に必須ファイルがあり、frontmatter の鍵集合がテンプレートと一致することを確認する</td></tr>
-    <tr><td><strong>検査5 設計判断</strong></td><td>12.5 が存在し、観測と推定の区分、推定の確からしさ、不明な選択肢の表記が規則どおりであることを確認する</td></tr>
-    <tr><td><strong>検査6 単体テスト粒度</strong></td><td>全データ行に関数・メソッド名があり、外部契約のHTTPステータス観点が混在しないことを確認する</td></tr>
-    <tr><td><strong>検査7 単体テスト配置</strong></td><td>API単体テスト設計書が単体テスト設計の配置にだけ存在することを確認する</td></tr>
-    <tr><td><strong>検査8 テンプレート一致</strong></td><td>現行テンプレートの全 <code>##</code> 見出しと、全表の所属節・小節・列見出し・順序・件数が完全一致することを確認する。§2 と §3 の列省略も不合格になる</td></tr>
+    <tr>
+      <th>検査</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><strong>検査1 章の完備</strong></td>
+      <td>生成した各設計書に §1 から §13 と章マップ（付録B）が存在することを確認する</td></tr>
+    <tr>
+      <td><strong>検査2 根拠の実在</strong></td>
+      <td>記入した <code>file:line</code> 形式の根拠について、ファイルが <code>source_dir</code> 配下に実在することを確認する。実在しない根拠が 1 件でもあれば不合格とする</td></tr>
+    <tr>
+      <td><strong>検査3 プレースホルダの残存</strong></td>
+      <td><code>APIKEY</code>・<code>APIID</code>・<code>METHOD</code>・<code>PATH</code>・<code>FEATUREKEY</code>・<code>SOURCEREF</code> が本文に残っていないことを確認する</td></tr>
+    <tr>
+      <td><strong>検査4 配置と前付け</strong></td>
+      <td>宣言された配置に必須ファイルがあり、frontmatter の鍵集合がテンプレートと一致することを確認する</td></tr>
+    <tr>
+      <td><strong>検査5 設計判断</strong></td>
+      <td>12.5 が存在し、観測と推定の区分、推定の確からしさ、不明な選択肢の表記が規則どおりであることを確認する</td></tr>
+    <tr>
+      <td><strong>検査6 単体テスト粒度</strong></td>
+      <td>全データ行に関数・メソッド名があり、外部契約のHTTPステータス観点が混在しないことを確認する</td></tr>
+    <tr>
+      <td><strong>検査7 単体テスト配置</strong></td>
+      <td>API単体テスト設計書が単体テスト設計の配置にだけ存在することを確認する</td></tr>
+    <tr>
+      <td><strong>検査8 テンプレート一致</strong></td>
+      <td>現行テンプレートの全 <code>##</code> 見出しと、全表の所属節・小節・列見出し・順序・件数が完全一致することを確認する。§2 と §3 の列省略も不合格になる</td></tr>
   </table>
 </section>
-
 <section id="s7">
   <h2><span class="sec-num">§7</span>制約と既知の限界</h2>
   <ul>

@@ -277,19 +277,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>画面一覧生成スキル<br><span class="skill-name">generating-screen-list-for-reverse-docs</span></h1>
   <p>既存コードベースを調査して画面単位にファイルをグルーピングし、raw画面正本・raw由来ext・画面一覧HTMLを生成するスキルの確定仕様。画面種別（unit_kind=screen）専用。</p>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>統合スキル generating-unit-list-for-reverse-docs の画面（unit_kind=screen）経路として実プロジェクトで動作実績あり。種別分割後の単独起動は分割時点では未検証</td></tr>
-    <tr><td>依存</td><td>jq / bash（<code>generation-engine/scripts/unit-list/</code> 配下の <code>validate-manifest.sh</code>・<code>build-unit-list.sh</code>・<code>detect-screens.sh</code> が使用）</td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/screen-detection.md</code>, <code>../../../generation-engine/scripts/unit-list/</code> 配下の各スクリプト</td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>統合スキル generating-unit-list-for-reverse-docs の画面（unit_kind=screen）経路として実プロジェクトで動作実績あり。種別分割後の単独起動は分割時点では未検証</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>jq / bash（<code>generation-engine/scripts/unit-list/</code> 配下の <code>validate-manifest.sh</code>・<code>build-unit-list.sh</code>・<code>detect-screens.sh</code> が使用）</td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>references/screen-detection.md</code>, <code>../../../generation-engine/scripts/unit-list/</code> 配下の各スクリプト</td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -303,7 +308,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s8">関連スキル・規約</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>リバース設計で最初に決めるべきは「設計書を何冊に分けるか」＝画面の境界である。本スキルは既存コードベースを、<strong>スタック調査 → 検出戦略の宣言 → 戦略に基づく抽出・分類 → raw正本確定 → 整合検証</strong> の順で調査する。画面詳細設計書の単位と全派生物の入力正本は<code>screen-manifest.json</code>である。</p>
@@ -329,7 +333,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     マニフェストの形式・整合検証・HTML 生成は決定的スクリプトに固定し、プロジェクトごとに異なる「画面境界の検出」だけを可変にする。どの経路で抽出しても、同じ検証（<code>validate-manifest.sh</code>）を通らなければ HTML は生成できない。
   </div>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>スキルを完走すると、以下の成果物が生まれる。</p>
@@ -340,7 +343,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd><code>screen-manifest.json</code>を人が編集できる唯一のraw正本、<code>screen-manifest.ext.json</code>をraw由来の派生物として原子的に保存する。検出情報・既存テスト件数・階層分類をrawへ確定してからSHA-256を算出し、extの<code>manifestContentHash</code>へ伝播する。通常の後続工程と再開実行はrawまたはraw由来extを直接読み、HTML埋込JSONを逆抽出しない。</dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
@@ -352,35 +354,57 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <dd>組み込み検出器が適合しないプロジェクトで、Claude 自身が戦略宣言に沿って専用の抽出手順を設計・実行し、スキーマ準拠のマニフェストを出力する経路。</dd>
 </dl>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>使い方（起動引数と返却）</h2>
   <h3>起動引数（2 つのみ）</h3>
   <table class="spec">
-    <tr><th>引数</th><th>内容</th></tr>
-    <tr><td><code>source_dir</code></td><td>探索対象のソースコードディレクトリ。対象プロジェクトの実コードルート（例: <code>frontend/src</code>）を指定する。モノレポの場合はアーキテクチャ調査書 §10 のサイト一覧で確定した当該サイトのルートディレクトリを渡す</td></tr>
-    <tr><td><code>output_dir</code></td><td>納品物ルート。この配下の<code>一覧/画面一覧/</code>へraw・ext・画面一覧HTMLを書き出す</td></tr>
+    <tr>
+      <th>引数</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>source_dir</code></td>
+      <td>探索対象のソースコードディレクトリ。対象プロジェクトの実コードルート（例: <code>frontend/src</code>）を指定する。モノレポの場合はアーキテクチャ調査書 §10 のサイト一覧で確定した当該サイトのルートディレクトリを渡す</td></tr>
+    <tr>
+      <td><code>output_dir</code></td>
+      <td>納品物ルート。この配下の<code>一覧/画面一覧/</code>へraw・ext・画面一覧HTMLを書き出す</td></tr>
   </table>
   <p class="note">旧統合スキルにあった <code>unit_kind</code> 引数は存在しない。本スキルは screen 固定であり、他種別（API・テーブル・バッチ・帳票・外部連携）は対応する種別別一覧スキルを使う。</p>
-
   <h3>返却（orchestrating-ai-development-setup の契約準拠）</h3>
   <table class="spec">
-    <tr><th>返却キー</th><th>内容</th></tr>
-    <tr><td><code>status</code></td><td><span class="tag pass">DONE</span> または <span class="tag fail">ERROR</span></td></tr>
-    <tr><td><code>artifacts</code></td><td>生成した画面一覧.html のパス。<code>artifacts[0]</code> を汎用名 <code>unit_list_html</code> としても返す</td></tr>
-    <tr><td><code>screen_list_html</code></td><td>従来互換のエイリアス（<code>unit_list_html</code> と同値）</td></tr>
-    <tr><td><code>embedded_json_ref</code></td><td>HTML 内に埋め込んだマニフェスト JSON への参照</td></tr>
-    <tr><td><code>screen_manifest_path</code></td><td>画面一覧フォルダへ永続保存した生マニフェストJSON</td></tr>
-    <tr><td><code>screen_manifest_ext_path</code></td><td>設計書メタデータを付与した永続拡張マニフェストJSON</td></tr>
-    <tr><td><code>unit_kind</code></td><td>固定値 <code>screen</code></td></tr>
+    <tr>
+      <th>返却キー</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>status</code></td>
+      <td><span class="tag pass">DONE</span> または <span class="tag fail">ERROR</span></td></tr>
+    <tr>
+      <td><code>artifacts</code></td>
+      <td>生成した画面一覧.html のパス。<code>artifacts[0]</code> を汎用名 <code>unit_list_html</code> としても返す</td></tr>
+    <tr>
+      <td><code>screen_list_html</code></td>
+      <td>従来互換のエイリアス（<code>unit_list_html</code> と同値）</td></tr>
+    <tr>
+      <td><code>embedded_json_ref</code></td>
+      <td>HTML 内に埋め込んだマニフェスト JSON への参照</td></tr>
+    <tr>
+      <td><code>screen_manifest_path</code></td>
+      <td>画面一覧フォルダへ永続保存した生マニフェストJSON</td></tr>
+    <tr>
+      <td><code>screen_manifest_ext_path</code></td>
+      <td>設計書メタデータを付与した永続拡張マニフェストJSON</td></tr>
+    <tr>
+      <td><code>unit_kind</code></td>
+      <td>固定値 <code>screen</code></td></tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>動作フロー（Phase 1〜4）</h2>
   <p>開始時に TaskCreate で Phase 1〜4 のタスクを登録し、Phase の開始・完了ごとに TaskUpdate で進捗を更新する。</p>
   <table class="spec">
-    <tr><th>Phase</th><th>やること</th><th>完了条件</th></tr>
+    <tr>
+      <th>Phase</th>
+      <th>やること</th>
+      <th>完了条件</th></tr>
     <tr>
       <td><span class="tag mode">Phase 1</span><br>スタック・画面規約の特定</td>
       <td>package.json・lock ファイルからフレームワーク・ルーターライブラリを確定 → ルーティング定義の所在を追跡 → 画面 ID 命名パターン・View 切替関数を調査 → 除外パターンを確定 → 検出の方針の宣言を作成しユーザー承認を取る</td>
@@ -404,11 +428,13 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   </table>
   <p class="note">エンジンスクリプトはいずれもスキルフォルダ相対の <code>../../../generation-engine/scripts/unit-list/</code> 配下にある。正本リポジトリと公開先はフォルダ配置が同一のため、どちらの環境でも同じ相対参照で動く。</p>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>検出の 2 経路</h2>
   <table class="spec">
-    <tr><th>経路</th><th>使える条件</th><th>担い手</th></tr>
+    <tr>
+      <th>経路</th>
+      <th>使える条件</th>
+      <th>担い手</th></tr>
     <tr>
       <td><strong>組み込み検出器</strong>（高速パス）</td>
       <td>Next.js App/Pages Router（<code>next.config.*</code> の実在必須）・React Router（<code>useRoutes</code> 含む）・慣習ディレクトリのいずれかが Phase 1 の調査結果と適合する場合</td>
@@ -432,31 +458,52 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li>diagnostics で entryFile 集中警告が出たら、組み込みパスの継続ではなく個別に組み立てる抽出への切替を検討する</li>
   </ul>
 </section>
-
 <section id="s7">
   <h2><span class="sec-num">§7</span>禁止事項と注意点</h2>
   <table class="spec">
-    <tr><th>禁止・注意</th><th>理由</th></tr>
-    <tr><td><strong>手作業でのプレースホルダ置換の禁止</strong>。HTML 生成は必ず <code>build-unit-list.sh</code> 経由で行う</td><td>過去に手動置換で <code>entryFile=None</code> が 10 件混入した実害がある。決定的スクリプトに固定して手作業経路を根絶する</td></tr>
-    <tr><td><strong>0 件検出時のハード停止</strong>。AskUserQuestion で手動リストを聞き出さない</td><td>誤った画面境界を即興で確定させないため。0 件は戦略の不適合を示す信号であり、Phase 1 へ戻って調査し直す</td></tr>
-    <tr><td><strong>設計書の雛形展開・生成・記入はスコープ外</strong></td><td>本スキルの成果物はraw・raw由来ext・画面一覧HTML。設計書は後続工程の別スキルが担当する</td></tr>
-    <tr><td>Phase 1 の調査を省略して汎用の <code>screen-id-regex</code> を当てない</td><td>命名規約・ナビゲーション方式はプロジェクトごとに異なり、汎用正規表現は境界の取り違えを生む</td></tr>
-    <tr><td>カスタム抽出時はコメントアウトされた定義を除去してから抽出する</td><td>コメント内のルート定義・import 文を実在として誤検出した実害がある</td></tr>
-    <tr><td>jq 未インストール環境では事前に導入する</td><td>検証・生成スクリプトが jq に依存する</td></tr>
+    <tr>
+      <th>禁止・注意</th>
+      <th>理由</th></tr>
+    <tr>
+      <td><strong>手作業でのプレースホルダ置換の禁止</strong>。HTML 生成は必ず <code>build-unit-list.sh</code> 経由で行う</td>
+      <td>過去に手動置換で <code>entryFile=None</code> が 10 件混入した実害がある。決定的スクリプトに固定して手作業経路を根絶する</td></tr>
+    <tr>
+      <td><strong>0 件検出時のハード停止</strong>。AskUserQuestion で手動リストを聞き出さない</td>
+      <td>誤った画面境界を即興で確定させないため。0 件は戦略の不適合を示す信号であり、Phase 1 へ戻って調査し直す</td></tr>
+    <tr>
+      <td><strong>設計書の雛形展開・生成・記入はスコープ外</strong></td>
+      <td>本スキルの成果物はraw・raw由来ext・画面一覧HTML。設計書は後続工程の別スキルが担当する</td></tr>
+    <tr>
+      <td>Phase 1 の調査を省略して汎用の <code>screen-id-regex</code> を当てない</td>
+      <td>命名規約・ナビゲーション方式はプロジェクトごとに異なり、汎用正規表現は境界の取り違えを生む</td></tr>
+    <tr>
+      <td>カスタム抽出時はコメントアウトされた定義を除去してから抽出する</td>
+      <td>コメント内のルート定義・import 文を実在として誤検出した実害がある</td></tr>
+    <tr>
+      <td>jq 未インストール環境では事前に導入する</td>
+      <td>検証・生成スクリプトが jq に依存する</td></tr>
   </table>
 </section>
-
 <section id="s8">
   <h2><span class="sec-num">§8</span>関連スキル・規約</h2>
   <table class="spec">
-    <tr><th>関連</th><th>関係</th></tr>
-    <tr><td><code>orchestrating-ai-development-setup</code></td><td>工程全体の案内役。本スキルの返却契約（status/artifacts/unit_kind）の受け手</td></tr>
-    <tr><td>他の種別別一覧スキル（API・テーブル・バッチ・帳票・外部連携）</td><td>画面以外のユニット種別を担当。本スキルと同じエンジンスクリプト群（<code>generation-engine/scripts/unit-list/</code>）を共用する</td></tr>
-    <tr><td><code>generating-reverse-detailed-design</code> ほか後続工程</td><td>raw画面正本を入力として設計書の単位を決め、執筆・検証を進める</td></tr>
-    <tr><td><code>references/screen-detection.md</code></td><td>Phase 1 の調査項目・マニフェストスキーマの詳細</td></tr>
+    <tr>
+      <th>関連</th>
+      <th>関係</th></tr>
+    <tr>
+      <td><code>orchestrating-ai-development-setup</code></td>
+      <td>工程全体の案内役。本スキルの返却契約（status/artifacts/unit_kind）の受け手</td></tr>
+    <tr>
+      <td>他の種別別一覧スキル（API・テーブル・バッチ・帳票・外部連携）</td>
+      <td>画面以外のユニット種別を担当。本スキルと同じエンジンスクリプト群（<code>generation-engine/scripts/unit-list/</code>）を共用する</td></tr>
+    <tr>
+      <td><code>generating-reverse-detailed-design</code> ほか後続工程</td>
+      <td>raw画面正本を入力として設計書の単位を決め、執筆・検証を進める</td></tr>
+    <tr>
+      <td><code>references/screen-detection.md</code></td>
+      <td>Phase 1 の調査項目・マニフェストスキーマの詳細</td></tr>
   </table>
 </section>
-
 <section>
   <h2>画面単位文書rootと一括再生成</h2>
   <p>呼出側は <code>--output-root</code> の output-layout にある <code>layout.screenUnitRoot</code> を解決し、<code>--design-docs-dir &quot;&lt;output_dir&gt;/&lt;screenUnitRoot&gt;&quot;</code> として明示する。一覧・画面遷移・matrixの配置は変更しない。</p>

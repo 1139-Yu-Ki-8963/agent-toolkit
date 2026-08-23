@@ -276,19 +276,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>外部連携詳細設計生成スキル<br><span class="skill-name">generating-external-detail-design-for-reverse-docs</span></h1>
   <p>外部連携 1 本ごとに、原本コードの電文の項目の定義・変換の処理・タイムアウト・リトライ・冪等性の担保を根拠付きで書き起こした <strong>外部連携詳細設計書.md</strong> を生成するスキルの確定仕様。</p>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>新規作成のため単独実機検証は未実施。Phase 構成と機械検査は型となる generating-api-basic-design-for-reverse-docs から踏襲した。スキル専用のテストスクリプトは持たない</td></tr>
-    <tr><td>依存</td><td>拡張マニフェスト <code>&lt;manifestsRoot&gt;/external-manifest.ext.json</code> ／ テンプレート <code>delivery-payload/templates/リバース検証/外部連携/外部連携詳細設計書.md</code></td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>新規作成のため単独実機検証は未実施。Phase 構成と機械検査は型となる generating-api-basic-design-for-reverse-docs から踏襲した。スキル専用のテストスクリプトは持たない</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>拡張マニフェスト <code>&lt;manifestsRoot&gt;/external-manifest.ext.json</code> ／ テンプレート <code>delivery-payload/templates/リバース検証/外部連携/外部連携詳細設計書.md</code></td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -300,32 +305,49 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s6">関連スキル・資料</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>その外部連携が何のために存在し、誰と連携するかは、外部連携基本設計書が書く。しかし、その連携がどんな電文をどう変換し、どうタイムアウトし、どうリトライするかという実装の詳細には、業務的な意味とは別に答える必要がある。</p>
   <p>本スキルは原本コードを読み、電文の項目の定義・変換の処理・タイムアウト・リトライ・冪等性の担保を各項目に <code>file:line</code> 形式の根拠を付けて記述する。詳細設計は実装用語を使ってよい。</p>
-
   <div class="def">
     <dt>本スキルがやること</dt>
     <dd>外部連携 1 本ごとの電文の項目の定義・変換の処理・タイムアウト・リトライ・冪等性の担保を、原本コードの根拠付きで記入した外部連携詳細設計書の生成</dd>
     <dt>本スキルがやらないこと</dt>
     <dd>連携の方式・連携の契機・責任の分界点・正常時と異常時の応答・再送の可否の記述（外部連携基本設計書の担当）／ 外部連携一覧の生成（generating-external-list-for-reverse-docsの担当）</dd>
   </div>
-
   <h3>起動引数</h3>
   <table class="spec">
-    <tr><th>引数</th><th>必須</th><th>内容</th></tr>
-    <tr><td><code>external_manifest_path</code></td><td>必須</td><td>外部連携一覧の拡張マニフェストの絶対パス</td></tr>
-    <tr><td><code>source_dir</code></td><td>必須</td><td>原本コードのルート</td></tr>
-    <tr><td><code>output_dir</code></td><td>必須</td><td>出力先のルート</td></tr>
-    <tr><td><code>template_root</code></td><td>必須</td><td>テンプレート群のルート</td></tr>
-    <tr><td><code>unit_keys</code></td><td>任意</td><td>対象を絞るキーの配列</td></tr>
-    <tr><td><code>common_docs_root</code></td><td>任意</td><td>共通文書のルート</td></tr>
+    <tr>
+      <th>引数</th>
+      <th>必須</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>external_manifest_path</code></td>
+      <td>必須</td>
+      <td>外部連携一覧の拡張マニフェストの絶対パス</td></tr>
+    <tr>
+      <td><code>source_dir</code></td>
+      <td>必須</td>
+      <td>原本コードのルート</td></tr>
+    <tr>
+      <td><code>output_dir</code></td>
+      <td>必須</td>
+      <td>出力先のルート</td></tr>
+    <tr>
+      <td><code>template_root</code></td>
+      <td>必須</td>
+      <td>テンプレート群のルート</td></tr>
+    <tr>
+      <td><code>unit_keys</code></td>
+      <td>任意</td>
+      <td>対象を絞るキーの配列</td></tr>
+    <tr>
+      <td><code>common_docs_root</code></td>
+      <td>任意</td>
+      <td>共通文書のルート</td></tr>
   </table>
   <p class="note"><code>unit_kind</code> は <code>external</code> 固定であり、引数には取らない。</p>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>外部連携 1 本につき、次の 1 点が生まれる。</p>
@@ -334,7 +356,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>その外部連携の電文の項目の定義・変換の処理・タイムアウト・リトライ・冪等性の担保を、原本コードの <code>file:line</code> 根拠付きで記入した文書。コードから確定できなかった事項は要確認事項一覧へまとめて記載される。</dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
@@ -346,11 +367,13 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>拡張マニフェストの <code>direction</code>・<code>protocol</code>・<code>authMethod</code> と、原本から読み取った内容が食い違わないかを確認すること。食い違いは要確認事項一覧へ記録する。</dd>
   </dl>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー</h2>
   <table class="spec">
-    <tr><th>Phase</th><th>やること</th><th>完了条件</th></tr>
+    <tr>
+      <th>Phase</th>
+      <th>やること</th>
+      <th>完了条件</th></tr>
     <tr>
       <td><strong>Phase 1</strong><br>起動引数の確認と対象の確定</td>
       <td>必須4引数の実在確認、マニフェストの確認（<code>unitKind</code> が <code>external</code>・<code>units</code> が1件以上）、対象ユニットの確定を行う</td>
@@ -373,7 +396,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     </tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>守り（禁止事項と機械検証）</h2>
   <h3>禁止事項</h3>
@@ -386,15 +408,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <h3>機械検証</h3>
   <p>Phase 4 で次の4検査を実行する。検査1はマニフェストの <code>direction</code>・<code>protocol</code>・<code>authMethod</code> のうち値を持つフィールドが生成した本文に反映されていることを確認する。検査2はテンプレートの記入規則を書いた HTML コメントが残っていないことを確認する。検査3は frontmatter の <code>status</code> が <code>authored</code> になっていることを確認する。検査4はテンプレートが持つ全ての章見出しが出力に存在することを確認する。本スキルは実装用語の混入を検査対象としない。1つでも不合格なら Phase 3 へ戻り、上限3回で収束しなければ <code>status=ERROR</code> とする。</p>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>関連スキル・資料</h2>
   <table class="spec">
-    <tr><th>関連</th><th>関係</th></tr>
-    <tr><td><code>SKILL.md</code></td><td>本スキルの確定仕様の定義。本ガイドの内容の出どころ</td></tr>
-    <tr><td><code>references/test-cases.md</code></td><td>本スキルの検証観点の一覧</td></tr>
-    <tr><td><code>generating-external-basic-design-for-reverse-docs</code></td><td>外部連携単位の基本設計書を担う兄弟スキル。根拠を本文に書かない点が本スキルと逆</td></tr>
-    <tr><td><code>generating-external-list-for-reverse-docs</code></td><td>本スキルの入力となる外部連携一覧の拡張マニフェストの生成元</td></tr>
+    <tr>
+      <th>関連</th>
+      <th>関係</th></tr>
+    <tr>
+      <td><code>SKILL.md</code></td>
+      <td>本スキルの確定仕様の定義。本ガイドの内容の出どころ</td></tr>
+    <tr>
+      <td><code>references/test-cases.md</code></td>
+      <td>本スキルの検証観点の一覧</td></tr>
+    <tr>
+      <td><code>generating-external-basic-design-for-reverse-docs</code></td>
+      <td>外部連携単位の基本設計書を担う兄弟スキル。根拠を本文に書かない点が本スキルと逆</td></tr>
+    <tr>
+      <td><code>generating-external-list-for-reverse-docs</code></td>
+      <td>本スキルの入力となる外部連携一覧の拡張マニフェストの生成元</td></tr>
   </table>
 </section>
 

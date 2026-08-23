@@ -277,11 +277,9 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>シーケンス図生成スキル<br><span class="skill-name">generating-sequence-diagram-for-reverse-docs</span></h1>
   <p>画面・API・機能の設計単位について、確定済みfactsまたは設計文書の順序表をシーケンス図へ機械変換するスキルの確定仕様。画面はfactsのcall_order、APIはAPI詳細設計書§4.1、機能は機能設計書§3.1だけを順序の定義元とする。</p>
-
   <div class="def">
     <dt>こんな人向け</dt>
     <dd>
@@ -294,15 +292,21 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       table・batch・report・external・messageの一覧でシーケンス図欄を省くとき
     </dd>
   </div>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>2026-08-19: API・機能の合成ユニットでHTML生成PASS、非対象5種別のテストデータで<code>sequencePath</code>削除後のリンク表示0件、既存data／DOM／SVG各15件・artifact 5件・分割3件PASS</td></tr>
-    <tr><td>依存</td><td><code>render-template.sh</code> / <code>screen-sequence-template.html</code> / <code>sequence-kind-policy.json</code> / 画面factsのcall_order / API§4.1 / 機能§3.1</td></tr>
-    <tr><td>関連資料</td><td><code>generating-entity-state-for-reverse-docs</code>, <code>delivery-payload/references/facts-schema.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>2026-08-19: API・機能の合成ユニットでHTML生成PASS、非対象5種別のテストデータで<code>sequencePath</code>削除後のリンク表示0件、既存data／DOM／SVG各15件・artifact 5件・分割3件PASS</td></tr>
+    <tr>
+      <td>依存</td>
+      <td><code>render-template.sh</code> / <code>screen-sequence-template.html</code> / <code>sequence-kind-policy.json</code> / 画面factsのcall_order / API§4.1 / 機能§3.1</td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>generating-entity-state-for-reverse-docs</code>, <code>delivery-payload/references/facts-schema.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -315,13 +319,11 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s7">関連スキル・規約</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>画面・API・機能の設計単位ごとに、確定済みfactsまたは設計文書の順序表をシーケンス図へ変換する。画面はfactsの<code>call_order</code>、APIはAPI詳細設計書§4.1、機能は機能設計書§3.1を順序の定義元とする。</p>
   <p class="note">テーブル・バッチ・帳票・外部連携・メッセージは順序表を持たないため生成しない。一覧マニフェストから<code>sequencePath</code>を省き、空欄や未作成表示も出さない。</p>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>本スキルを実行すると、順序を導ける対象単位ごとに以下の成果物が生まれる。</p>
@@ -336,17 +338,23 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     </dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>使用タイミング</h2>
   <table class="spec">
-    <tr><th>区分</th><th>内容</th></tr>
-    <tr><td>前提</td><td>screenのfacts.yml、API詳細設計書§4.1、機能設計書§3.1、または手書きpage-dataのいずれかに順序が明示されていること</td></tr>
-    <tr><td>起動引数</td><td><code>output_dir</code>・対象種別（screen/api/feature）・対象ユニットID（複数可）</td></tr>
-    <tr><td>対象外</td><td>table・batch・report・external・message。<code>references/sequence-kind-policy.json</code>を本スキル内の生成可否定義とする</td></tr>
+    <tr>
+      <th>区分</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>前提</td>
+      <td>screenのfacts.yml、API詳細設計書§4.1、機能設計書§3.1、または手書きpage-dataのいずれかに順序が明示されていること</td></tr>
+    <tr>
+      <td>起動引数</td>
+      <td><code>output_dir</code>・対象種別（screen/api/feature）・対象ユニットID（複数可）</td></tr>
+    <tr>
+      <td>対象外</td>
+      <td>table・batch・report・external・message。<code>references/sequence-kind-policy.json</code>を本スキル内の生成可否定義とする</td></tr>
   </table>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>用語・page-data の形状</h2>
   <p>各設計単位のpage-dataは<code>unitKind</code>・<code>unitId</code>・<code>unitLabel</code>を共通キーに持つ。既存画面の<code>screenId</code>・<code>screenLabel</code>も後方互換で受け入れる。</p>
@@ -386,51 +394,96 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   ]
 }</pre>
   <table class="spec">
-    <tr><th>用語</th><th>内容</th></tr>
-    <tr><td>レーン（ライフライン）</td><td><code>operation.lanes</code>、page-data直下の<code>lanes</code>、固定4本（<code>user</code>=利用者 / <code>screen</code>=画面 / <code>api</code>=API / <code>table</code>=テーブル）の順で採用する。page-data直下の定義は後方互換fallback</td></tr>
-    <tr><td><code>kind: "trigger"</code></td><td>各operationの開始step。screenは利用者→画面の「操作開始」、apiはcaller→apiの合成stepで、どちらも<code>sourceRef</code>を持たない。featureはuser→最初の構成要素とし、§3.1の表行を<code>sourceRef</code>に持つ</td></tr>
-    <tr><td>ステップ表示文言</td><td>呼び出し先の業務名（原本の日本語コメント、または関数名・BL 名から導出）。代入式・引数・分類タグは含めない。導出できない場合は識別子のみを使い、根拠のない機能名は作らない</td></tr>
-    <tr><td><code>kind: "return"</code></td><td>破線で描画されるステップ。省略時は実線</td></tr>
-    <tr><td><code>sourceRef</code></td><td>screenの合成triggerを除くfacts由来step、apiの合成triggerを除く設計書由来step、およびfeatureの全stepで省略しない。設計書由来は相対pathと節・表行を記録する。手書きpage-dataで根拠が無い場合のみ省略可</td></tr>
-    <tr><td>sourceRef境界</td><td>「操作開始」を除くstepに存在するsourceRefを行番号除去して正規化する。一意パス数が1ならAPI endpointを<code>internal</code>へ機械置換し「内部処理」レーンを使う。複数ならAPI endpointとレーンを維持する。0なら単一判定を適用せず、手書きpage-data等の既存endpointを変換しない</td></tr>
-    <tr><td>call_order</td><td>facts.yml の⑤handler item が持つ任意フィールド。形式 <code>"&lt;連番&gt;:&lt;api分類のkey&gt;@&lt;file:line&gt;; ..."</code>。<code>delivery-payload/references/facts-schema.md</code> が定義元</td></tr>
-    <tr><td>1 operation あたりの分割上限</td><td>1 handler の <code>call_order</code> が 15 ステップを超える場合、機能単位・コメント区切り・15 ステップ機械区切りの優先順で複数 <code>operations[]</code> へ分割する。分割後のキーは連番禁止で内容要約語とする</td></tr>
+    <tr>
+      <th>用語</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>レーン（ライフライン）</td>
+      <td><code>operation.lanes</code>、page-data直下の<code>lanes</code>、固定4本（<code>user</code>=利用者 / <code>screen</code>=画面 / <code>api</code>=API / <code>table</code>=テーブル）の順で採用する。page-data直下の定義は後方互換fallback</td></tr>
+    <tr>
+      <td><code>kind: "trigger"</code></td>
+      <td>各operationの開始step。screenは利用者→画面の「操作開始」、apiはcaller→apiの合成stepで、どちらも<code>sourceRef</code>を持たない。featureはuser→最初の構成要素とし、§3.1の表行を<code>sourceRef</code>に持つ</td></tr>
+    <tr>
+      <td>ステップ表示文言</td>
+      <td>呼び出し先の業務名（原本の日本語コメント、または関数名・BL 名から導出）。代入式・引数・分類タグは含めない。導出できない場合は識別子のみを使い、根拠のない機能名は作らない</td></tr>
+    <tr>
+      <td><code>kind: "return"</code></td>
+      <td>破線で描画されるステップ。省略時は実線</td></tr>
+    <tr>
+      <td><code>sourceRef</code></td>
+      <td>screenの合成triggerを除くfacts由来step、apiの合成triggerを除く設計書由来step、およびfeatureの全stepで省略しない。設計書由来は相対pathと節・表行を記録する。手書きpage-dataで根拠が無い場合のみ省略可</td></tr>
+    <tr>
+      <td>sourceRef境界</td>
+      <td>「操作開始」を除くstepに存在するsourceRefを行番号除去して正規化する。一意パス数が1ならAPI endpointを<code>internal</code>へ機械置換し「内部処理」レーンを使う。複数ならAPI endpointとレーンを維持する。0なら単一判定を適用せず、手書きpage-data等の既存endpointを変換しない</td></tr>
+    <tr>
+      <td>call_order</td>
+      <td>facts.yml の⑤handler item が持つ任意フィールド。形式 <code>"&lt;連番&gt;:&lt;api分類のkey&gt;@&lt;file:line&gt;; ..."</code>。<code>delivery-payload/references/facts-schema.md</code> が定義元</td></tr>
+    <tr>
+      <td>1 operation あたりの分割上限</td>
+      <td>1 handler の <code>call_order</code> が 15 ステップを超える場合、機能単位・コメント区切り・15 ステップ機械区切りの優先順で複数 <code>operations[]</code> へ分割する。分割後のキーは連番禁止で内容要約語とする</td></tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>Phase 手順</h2>
   <p>スキル開始時に <code>TaskCreate</code> で Phase 1〜3 のタスクを登録する。各 Phase 開始時に該当タスクを <code>in_progress</code> に、完了時に <code>completed</code> へ <code>TaskUpdate</code> で更新する。</p>
   <table class="spec">
-    <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
-    <tr><td>1. page-data の確保</td><td>policyで対象種別を判定し、screenはcall_order、apiは§4.1、featureは§3.1を順番どおり変換する</td><td>順序を導ける単位のjq検証が通過し、導けない単位は生成省略済み</td></tr>
-    <tr><td>2. DOC_NAV の組み立て</td><td>各種別の一覧への戻るリンクと、実在する設計書項目だけを組み立てる</td><td>対象単位ごとにdoc_navが確定済み</td></tr>
-    <tr><td>3. HTML・一覧反映</td><td>api・featureは各UnitRootのunit-dir直下へ生成する。unit-dirはunitIdをそのまま使い、空なら種別prefix＋unitKeyとする。一覧HTMLの親からの相対pathをrawマニフェストへ設定し、派生マニフェストと一覧を再生成する。非対象種別はキーを削除する</td><td>生成対象のリンクが現れ、非対象種別にはシーケンス図欄がない</td></tr>
+    <tr>
+      <th>Phase</th>
+      <th>内容</th>
+      <th>完了条件</th></tr>
+    <tr>
+      <td>1. page-data の確保</td>
+      <td>policyで対象種別を判定し、screenはcall_order、apiは§4.1、featureは§3.1を順番どおり変換する</td>
+      <td>順序を導ける単位のjq検証が通過し、導けない単位は生成省略済み</td></tr>
+    <tr>
+      <td>2. DOC_NAV の組み立て</td>
+      <td>各種別の一覧への戻るリンクと、実在する設計書項目だけを組み立てる</td>
+      <td>対象単位ごとにdoc_navが確定済み</td></tr>
+    <tr>
+      <td>3. HTML・一覧反映</td>
+      <td>api・featureは各UnitRootのunit-dir直下へ生成する。unit-dirはunitIdをそのまま使い、空なら種別prefix＋unitKeyとする。一覧HTMLの親からの相対pathをrawマニフェストへ設定し、派生マニフェストと一覧を再生成する。非対象種別はキーを削除する</td>
+      <td>生成対象のリンクが現れ、非対象種別にはシーケンス図欄がない</td></tr>
   </table>
   <p class="note"><strong>手作業でのプレースホルダ置換（sed・perl 直書き等）は禁止する</strong>。<code>render_template</code> は最短前方一致で置換するため、値の中に他プレースホルダ文字列が偶然含まれても誤爆しない。新規 <code>.sh</code> スクリプトファイルは作らない。</p>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>重要な注意事項・予想を裏切る挙動</h2>
   <div class="constraint">
     <strong>順序を推測しない。</strong>APIは§4.1、機能は§3.1以外の節から順序を補わない。表が空・プレースホルダのみ・順番号不正なら生成しない。非対象種別へ空の図や「未作成」欄を作らない。
   </div>
   <table class="spec">
-    <tr><th>予想を裏切る挙動</th><th>内容</th></tr>
-    <tr><td>出力先の階層</td><td>screenは<code>screenViewRoot</code>、api・featureは各UnitRootの設計単位ディレクトリへ出す。pageKind体系は適用しない</td></tr>
-    <tr><td>DOC_NAV の担当分担</td><td><code>build-portal.sh</code> は画面設計書（基本設計・詳細設計）側の DOC_NAV にのみシーケンス図項目を追加する。シーケンス図.html 自体の DOC_NAV は本スキルの Phase 2/3 が組み立てる（<code>build-portal.sh</code> の担当範囲外）</td></tr>
+    <tr>
+      <th>予想を裏切る挙動</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>出力先の階層</td>
+      <td>screenは<code>screenViewRoot</code>、api・featureは各UnitRootの設計単位ディレクトリへ出す。pageKind体系は適用しない</td></tr>
+    <tr>
+      <td>DOC_NAV の担当分担</td>
+      <td><code>build-portal.sh</code> は画面設計書（基本設計・詳細設計）側の DOC_NAV にのみシーケンス図項目を追加する。シーケンス図.html 自体の DOC_NAV は本スキルの Phase 2/3 が組み立てる（<code>build-portal.sh</code> の担当範囲外）</td></tr>
   </table>
 </section>
-
 <section id="s7">
   <h2><span class="sec-num">§7</span>関連スキル・規約</h2>
   <table class="spec">
-    <tr><th>名前</th><th>関係</th></tr>
-    <tr><td>extracting-unit-facts-from-code</td><td>facts.yml（⑤handler の call_order）を確定させる先行スキル。本スキルは call_order を読み取るのみで書き換えない</td></tr>
-    <tr><td>generating-entity-state-for-reverse-docs</td><td>同じくポータルの将来ページ受け口を担う単独起動可能なスキル。エンジンスクリプト（<code>build-detail-page.sh</code>）は共用しない（シーケンス図は画面ごとの複数生成のため別エンジン）</td></tr>
-    <tr><td>orchestrating-ai-development-setup</td><td>工程全体の呼び出し元</td></tr>
-    <tr><td>delivery-payload/references/facts-schema.md</td><td>call_order（⑤handler の任意フィールド）の形式を定義している</td></tr>
-    <tr><td>delivery-payload/templates/screen-sequence-template.html</td><td>シーケンス図.html のテンプレート本体</td></tr>
+    <tr>
+      <th>名前</th>
+      <th>関係</th></tr>
+    <tr>
+      <td>extracting-unit-facts-from-code</td>
+      <td>facts.yml（⑤handler の call_order）を確定させる先行スキル。本スキルは call_order を読み取るのみで書き換えない</td></tr>
+    <tr>
+      <td>generating-entity-state-for-reverse-docs</td>
+      <td>同じくポータルの将来ページ受け口を担う単独起動可能なスキル。エンジンスクリプト（<code>build-detail-page.sh</code>）は共用しない（シーケンス図は画面ごとの複数生成のため別エンジン）</td></tr>
+    <tr>
+      <td>orchestrating-ai-development-setup</td>
+      <td>工程全体の呼び出し元</td></tr>
+    <tr>
+      <td>delivery-payload/references/facts-schema.md</td>
+      <td>call_order（⑤handler の任意フィールド）の形式を定義している</td></tr>
+    <tr>
+      <td>delivery-payload/templates/screen-sequence-template.html</td>
+      <td>シーケンス図.html のテンプレート本体</td></tr>
   </table>
 </section>
 

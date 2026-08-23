@@ -277,26 +277,30 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>設計書精度検証のためのコード再構築<br><span class="skill-name">rebuilding-code-from-docs</span></h1>
   <p>設計書だけからコードを再生成し、元コードと機械突合して設計書の欠落を発見する往復検証スキル。</p>
-
   <div class="def">
     <dt>こんな人向け</dt>
     <dd>リバースエンジニアリングで作成した画面詳細設計書の品質を、実際にコードが再現できるかどうかで検証したい人。</dd>
     <dt>こんな場面で使う</dt>
     <dd>リバース済み設計書の往復検証・設計書からのコード再生成・設計書の粒度検証や品質検証を行うとき。環境の整備・同期・基準タグ操作、設計書の直接修正や通常実装は本スキルの対象外。</dd>
   </div>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>実機検証済み</td></tr>
-    <tr><td>依存</td><td>起動引数 <code>mode</code>（<code>implement</code> | <code>judge</code>）。環境同期・比較エンジンは管理者が仲介する</td></tr>
-    <tr><td>関連資料</td><td><code>references/phase-details.md</code>, <code>references/ng-classification.md</code>, <code>references/test-item-patterns.md</code>, <code>references/report-format.md</code>, <code><reverse_docs_root>/.claude/skills/orchestrating-ai-development-setup/references/contract.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>実機検証済み</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>起動引数 <code>mode</code>（<code>implement</code> | <code>judge</code>）。環境同期・比較エンジンは管理者が仲介する</td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>references/phase-details.md</code>, <code>references/ng-classification.md</code>, <code>references/test-item-patterns.md</code>, <code>references/report-format.md</code>, <code><reverse_docs_root>/.claude/skills/orchestrating-ai-development-setup/references/contract.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -312,72 +316,123 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s10">関連スキル・規約</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要・検証範囲</h2>
   <p>リバースエンジニアリングで作成した画面詳細設計書（<code>assets/リバース検証/画面/詳細設計/</code> 準拠）は納品物であり、「設計書だけを読んで忠実にコーディングできる」詳細度が求められる。設計書は 16 種類の<strong>章の役割キー</strong>（各章に付けられた意味分類ラベル。例: 機能一覧・状態管理・API通信）で構成される。以下で頻出する「既定 §n」という表記は、各役割キーがテンプレート上で通常割り当てられる章番号を指す注記である（正の識別子は章番号ではなく役割キーであり、個別の設計書では番号がずれる場合がある）。本スキルはその品質を検証するため、<strong>設計書だけからコードを再生成し、元コードと機械突合して設計書の欠落を発見する</strong>往復検証を行う。</p>
-
   <div class="constraint">
     <strong>検証範囲:</strong> 本スキルは単体テスト・結合テストに加え、<strong>Playwright による動的検証</strong>まで行う。動的検証は、起動確認から画面操作結果の突合までを 5 段階に分けた検証レベル（<strong>L1〜L5</strong>。内訳は後述の Phase 7 の表を参照）で構成される。最終段階の L5 は複数の操作をまたぐ操作シーケンス比較であり、<strong>e2e</strong>（end-to-end。実際の利用者の操作の流れを再現して検証する手法）に相当する。ファイル単位の往復検証は前段工程（rebuilding-screen-unit-from-docs）が担い、本スキルは画面単位の結合・動的検証を担う。
   </div>
   <table class="spec">
-    <tr><th>項目</th><th>前段工程（rebuilding-screen-unit-from-docs）</th><th>rebuilding-code-from-docs（本スキル）</th></tr>
-    <tr><td>検証単位</td><td>1 ファイル</td><td>画面単位（結合・e2e を含む）</td></tr>
-    <tr><td>用途</td><td>from-zero 品質ブートストラップ</td><td>リバース済み設計書の往復品質検証</td></tr>
-    <tr><td>対象外</td><td>画面単位結合・e2e 検証（→本スキル）</td><td>—</td></tr>
+    <tr>
+      <th>項目</th>
+      <th>前段工程（rebuilding-screen-unit-from-docs）</th>
+      <th>rebuilding-code-from-docs（本スキル）</th></tr>
+    <tr>
+      <td>検証単位</td>
+      <td>1 ファイル</td>
+      <td>画面単位（結合・e2e を含む）</td></tr>
+    <tr>
+      <td>用途</td>
+      <td>from-zero 品質ブートストラップ</td>
+      <td>リバース済み設計書の往復品質検証</td></tr>
+    <tr>
+      <td>対象外</td>
+      <td>画面単位結合・e2e 検証（→本スキル）</td>
+      <td>—</td></tr>
   </table>
-
   <h3>Phase 2: 設計書内部整合性監査の具体的な突合内容</h3>
   <p>起動引数 <code>audit_script_path</code> のスクリプトによる機械チェック（a・d・e）と、目視突合（b・c）を組み合わせる。突合式の全文は <code>references/phase-details.md</code>「Phase 2: 設計書内部整合性監査の突合式」を参照。</p>
   <table class="spec">
-    <tr><th>突合</th><th>方式</th><th>内容</th></tr>
-    <tr><td>a. 機能一覧表 × 観点表</td><td><span class="tag mode">機械</span></td><td>機能一覧章の機能一覧表（既定 §2.1）のキー集合と観点表の機能キー集合を両方向一致で突合</td></tr>
-    <tr><td>b. API 型 × 実装契約型</td><td><span class="tag mode">目視</span></td><td>API通信章のリクエスト/レスポンス型（既定 §7.2）と実装契約章の型定義（既定 §15.2）のフィールド名・型を完全一致で突合</td></tr>
-    <tr><td>c. 状態変数 × 参照経路</td><td><span class="tag mode">目視</span></td><td>状態管理章の状態変数（既定 §5.3/5.4）が領域別仕様章（既定 §9）または実装契約章（既定 §15.1/15.5）のいずれかから参照されているかを確認</td></tr>
-    <tr><td>d. 意味キー連番検出</td><td><span class="tag mode">機械</span></td><td><code>grep -E '\b[A-Z]{1,4}-[0-9]+\b'</code> 等で連番 ID・「ID」列を検出（WARN）</td></tr>
-    <tr><td>e. 未記入プレースホルダ検出</td><td><span class="tag mode">機械</span></td><td><code>&lt;...&gt;</code> 形式の未記入箇所を本文（HTML コメント外）から検出</td></tr>
+    <tr>
+      <th>突合</th>
+      <th>方式</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>a. 機能一覧表 × 観点表</td>
+      <td><span class="tag mode">機械</span></td>
+      <td>機能一覧章の機能一覧表（既定 §2.1）のキー集合と観点表の機能キー集合を両方向一致で突合</td></tr>
+    <tr>
+      <td>b. API 型 × 実装契約型</td>
+      <td><span class="tag mode">目視</span></td>
+      <td>API通信章のリクエスト/レスポンス型（既定 §7.2）と実装契約章の型定義（既定 §15.2）のフィールド名・型を完全一致で突合</td></tr>
+    <tr>
+      <td>c. 状態変数 × 参照経路</td>
+      <td><span class="tag mode">目視</span></td>
+      <td>状態管理章の状態変数（既定 §5.3/5.4）が領域別仕様章（既定 §9）または実装契約章（既定 §15.1/15.5）のいずれかから参照されているかを確認</td></tr>
+    <tr>
+      <td>d. 意味キー連番検出</td>
+      <td><span class="tag mode">機械</span></td>
+      <td><code>grep -E '\b[A-Z]{1,4}-[0-9]+\b'</code> 等で連番 ID・「ID」列を検出（WARN）</td></tr>
+    <tr>
+      <td>e. 未記入プレースホルダ検出</td>
+      <td><span class="tag mode">機械</span></td>
+      <td><code>&lt;...&gt;</code> 形式の未記入箇所を本文（HTML コメント外）から検出</td></tr>
   </table>
-
   <h3>Phase 5: 自己完結チェックの具体的な検証コマンド</h3>
   <table class="spec">
-    <tr><th>検証</th><th>内容</th></tr>
-    <tr><td>型チェック</td><td><code>tsc --noEmit</code>（solution-style tsconfig の場合は実体 config を <code>-p</code> で指定）。合格条件は「白紙化リスト内ファイルのエラー 0 件」（リポジトリ全体 0 エラーではない）</td></tr>
-    <tr><td>単体/結合テスト</td><td>単体テスト観点表・結合テスト観点表のケースを実装したテストファイルを実行</td></tr>
-    <tr><td>Playwright スモーク</td><td>reverse 側 9110 番台のみ対象（オリジナル側は Phase 7 でのみ起動し、Phase 5 での参照はカンニングとして禁止）</td></tr>
-    <tr><td>発散判定</td><td>同一エラーシグネチャが 3 連続で再発したら発散確定。発散エラー自体を Phase 8 へ設計書欠落候補として引き継ぐ</td></tr>
+    <tr>
+      <th>検証</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>型チェック</td>
+      <td><code>tsc --noEmit</code>（solution-style tsconfig の場合は実体 config を <code>-p</code> で指定）。合格条件は「白紙化リスト内ファイルのエラー 0 件」（リポジトリ全体 0 エラーではない）</td></tr>
+    <tr>
+      <td>単体/結合テスト</td>
+      <td>単体テスト観点表・結合テスト観点表のケースを実装したテストファイルを実行</td></tr>
+    <tr>
+      <td>Playwright スモーク</td>
+      <td>reverse 側 9110 番台のみ対象（オリジナル側は Phase 7 でのみ起動し、Phase 5 での参照はカンニングとして禁止）</td></tr>
+    <tr>
+      <td>発散判定</td>
+      <td>同一エラーシグネチャが 3 連続で再発したら発散確定。発散エラー自体を Phase 8 へ設計書欠落候補として引き継ぐ</td></tr>
   </table>
-
   <h3>Phase 7: 答え合わせ（mode=judge・Playwright L1〜L5）の具体的な判定内容</h3>
   <p>起動引数 <code>compare_result</code>（管理者が比較〔dry-run〕を実行して取得した結果ブロック）が持つ静的 3 分類・env_check・Playwright 動的検証（L1〜L5）を判定根拠とする。比較の自前実装は禁止。起動引数 <code>reverse_worktree</code>・<code>freeze_commit</code> も併せて受け取り、Phase 9 の凍結検証に用いる。L1〜L5 はそれぞれ次を確認する検証レベルである。</p>
   <table class="spec">
-    <tr><th>レベル</th><th>確認内容</th></tr>
-    <tr><td>L1 起動確認</td><td>アプリが起動し、render-ready（初期表示が完了し読み込み中表示が消えた状態）に到達しているか。失敗時は L2 以降を評価せず、後述の <span class="tag mode">DESIGN-INCOMPLETE</span> 等として扱う（単独の失敗クラスとしては計上しない）</td></tr>
-    <tr><td>L2 画面構造スナップショット</td><td>Playwright の構造スナップショット（ARIA。画面上の要素構成を表現した情報）が両環境で完全一致するか</td></tr>
-    <tr><td>L3 画素比較</td><td>画面のスクリーンショットを画素単位で比較し、差分が config.yml の閾値を超えないか</td></tr>
-    <tr><td>L4 コンソールエラー</td><td>ブラウザのコンソールに出力されたエラー集合が両環境で一致するか</td></tr>
-    <tr><td>L5 操作シーケンス比較</td><td>クリック・入力等の一連の操作（<code>operations</code>）を実行した後の画面内容（<code>postContent</code> の tables/texts）が両環境で一致するか。<code>operations</code> を持つ画面のみ評価対象</td></tr>
+    <tr>
+      <th>レベル</th>
+      <th>確認内容</th></tr>
+    <tr>
+      <td>L1 起動確認</td>
+      <td>アプリが起動し、render-ready（初期表示が完了し読み込み中表示が消えた状態）に到達しているか。失敗時は L2 以降を評価せず、後述の <span class="tag mode">DESIGN-INCOMPLETE</span> 等として扱う（単独の失敗クラスとしては計上しない）</td></tr>
+    <tr>
+      <td>L2 画面構造スナップショット</td>
+      <td>Playwright の構造スナップショット（ARIA。画面上の要素構成を表現した情報）が両環境で完全一致するか</td></tr>
+    <tr>
+      <td>L3 画素比較</td>
+      <td>画面のスクリーンショットを画素単位で比較し、差分が config.yml の閾値を超えないか</td></tr>
+    <tr>
+      <td>L4 コンソールエラー</td>
+      <td>ブラウザのコンソールに出力されたエラー集合が両環境で一致するか</td></tr>
+    <tr>
+      <td>L5 操作シーケンス比較</td>
+      <td>クリック・入力等の一連の操作（<code>operations</code>）を実行した後の画面内容（<code>postContent</code> の tables/texts）が両環境で一致するか。<code>operations</code> を持つ画面のみ評価対象</td></tr>
   </table>
   <p class="note">上記とは別軸で、静的比較（ファイル diff の「実差分」判定）も同時に受領する。</p>
   <p class="note">status が <span class="tag mode">DESIGN-INCOMPLETE</span>（両環境とも render-ready 未到達）の場合は、Phase 2で本番とself-test共通の <code>validate-reverse-authoring-inputs.py scenarios</code> を必ず実行し、scenarios の必須キー path/ready を確認する。query/path_params は実測済みの場合だけ必須であり、未開通時の省略だけを失敗理由にしない。実測証跡があるのに不足していればFAILとする。<span class="tag mode">DYNAMIC-UNVERIFIED</span>（MCP・Playwright とも不在）の場合は PASS 扱いにせず往復検証未完了として報告する。</p>
-
   <h3>Phase 8: NG 分類の具体例</h3>
   <p>検出シグナルは <code>references/ng-classification.md</code> 表 A で失敗クラスへ写像し、表 B で設計書の分類先（役割・既定§）を決める。全件は同ファイル参照。以下は代表例。</p>
   <table class="spec">
-    <tr><th>失敗クラス</th><th>分類（役割・既定§）</th></tr>
-    <tr><td>export-import-型不一致</td><td>実装契約（ファイル分割/型定義/依存。既定 §15.1/15.2/15.3）</td></tr>
-    <tr><td>状態変数欠落・初期値差</td><td>状態管理（既定 §5.3/5.9）</td></tr>
-    <tr><td>scenarios必須引数不足</td><td>frontmatter（<code>scenarios[].path</code>/<code>ready</code>）。未開通時のquery/path_params省略は対象外</td></tr>
+    <tr>
+      <th>失敗クラス</th>
+      <th>分類（役割・既定§）</th></tr>
+    <tr>
+      <td>export-import-型不一致</td>
+      <td>実装契約（ファイル分割/型定義/依存。既定 §15.1/15.2/15.3）</td></tr>
+    <tr>
+      <td>状態変数欠落・初期値差</td>
+      <td>状態管理（既定 §5.3/5.9）</td></tr>
+    <tr>
+      <td>scenarios必須引数不足</td>
+      <td>frontmatter（<code>scenarios[].path</code>/<code>ready</code>）。未開通時のquery/path_params省略は対象外</td></tr>
   </table>
-
   <h3>Phase 9: 凍結検証と最終報告の定量欄</h3>
   <p>起動引数 <code>reverse_worktree</code>・<code>freeze_commit</code> を用いて <code>scripts/check-freeze.sh &lt;reverse_worktree&gt; &lt;freeze_commit&gt;</code> を実行し、現状（HEAD・作業ツリー）と突合する。<span class="tag pass">PASS</span> = HEAD 一致かつ作業ツリークリーン、<span class="tag fail">FAIL</span> = 不一致（結果全体を無効宣言）。最終報告には DESIGN.md トークン適用率（n/m）・対象ファイル型エラー数・L3 画素差分値（証跡パス付き）を必須記載する。書式全体は <a href="#s8">§8 報告フォーマット</a> と <code>references/report-format.md</code> を参照。</p>
-
   <div class="constraint">
     <strong>目的の分離:</strong> コードを直すことは目的ではない。フィードバック先は (a) 当該画面設計書の該当章（役割キー）、(b) 欠落が汎用的ならテンプレート自体の記載粒度改善の 2 つ。
   </div>
   <p>環境管理・比較エンジンは管理者が仲介する。本スキルは値を保持せず、起動引数 <code>mode</code>（<code>implement</code> | <code>judge</code>）と mode ごとの args から受け取る。</p>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>画面単位の往復検証を行い、設計書の完全性を判定する。</p>
@@ -386,19 +441,29 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>設計書だけを読んで画面のコードを丸ごと再構築し、オリジナルと突合した結果。「設計書の記述だけでコードを再現できたか」を判定し、再現できなかった箇所を設計書の欠落として具体的に報告する。合格すれば「この設計書は画面を完全に記述している」という証明になる。</dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <table class="spec">
-    <tr><th>用語</th><th>意味</th></tr>
-<tr><td>L1〜L5</td><td>Playwright による動的検証を、起動確認から画面操作結果の突合までの 5 段階に分けた検証レベル（内訳は §1 Phase 7 の表を参照）</td></tr>
-    <tr><td>オリジナルコード環境</td><td>worktree 名 <code>original-code-&lt;scope&gt;</code>。設計書 frontmatter の <code>source_repo</code> / <code>source_ref</code> から用意する読み取り専用コピー（9100 番台）</td></tr>
-    <tr><td>リバースコード環境</td><td>worktree 名 <code>reverse-code-&lt;scope&gt;</code>、ブランチ <code>feature/reverse-code-&lt;scope&gt;</code>。本スキルが Phase 4 で書き込む対象（9110 番台）</td></tr>
-    <tr><td>基準タグ</td><td>annotated tag <code>reverse-baseline/&lt;scope&gt;</code>。基準コミットの唯一の記録</td></tr>
-<tr><td>scenarios</td><td>設計書 frontmatter に置く画面表示状態の配列。<code>path</code>/<code>query</code>/<code>path_params</code> で対象状態を指定し、<code>ready</code>/<code>assert</code>/<code>mask</code> で描画到達（render-ready）判定・内容一致判定・非決定領域マスクを渡す。旧 <code>route: &lt;パス&gt;</code> は <code>scenarios:[{path:&lt;パス&gt;}]</code> 相当として後方互換で解釈される</td></tr>
+    <tr>
+      <th>用語</th>
+      <th>意味</th></tr>
+    <tr>
+      <td>L1〜L5</td>
+      <td>Playwright による動的検証を、起動確認から画面操作結果の突合までの 5 段階に分けた検証レベル（内訳は §1 Phase 7 の表を参照）</td></tr>
+    <tr>
+      <td>オリジナルコード環境</td>
+      <td>worktree 名 <code>original-code-&lt;scope&gt;</code>。設計書 frontmatter の <code>source_repo</code> / <code>source_ref</code> から用意する読み取り専用コピー（9100 番台）</td></tr>
+    <tr>
+      <td>リバースコード環境</td>
+      <td>worktree 名 <code>reverse-code-&lt;scope&gt;</code>、ブランチ <code>feature/reverse-code-&lt;scope&gt;</code>。本スキルが Phase 4 で書き込む対象（9110 番台）</td></tr>
+    <tr>
+      <td>基準タグ</td>
+      <td>annotated tag <code>reverse-baseline/&lt;scope&gt;</code>。基準コミットの唯一の記録</td></tr>
+    <tr>
+      <td>scenarios</td>
+      <td>設計書 frontmatter に置く画面表示状態の配列。<code>path</code>/<code>query</code>/<code>path_params</code> で対象状態を指定し、<code>ready</code>/<code>assert</code>/<code>mask</code> で描画到達（render-ready）判定・内容一致判定・非決定領域マスクを渡す。旧 <code>route: &lt;パス&gt;</code> は <code>scenarios:[{path:&lt;パス&gt;}]</code> 相当として後方互換で解釈される</td></tr>
   </table>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>使い方</h2>
   <p>起動引数は <strong>mode</strong>（<code>implement</code> | <code>judge</code>）と mode ごとの args 全量。設計書・<code>DESIGN.md</code>・共通設計書・メッセージ定義書・テスト観点表は設計書 frontmatter を経由してロードする。</p>
@@ -406,15 +471,26 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <strong>前提条件:</strong> 基準タグ <code>reverse-baseline/&lt;scope&gt;</code> が確立済みであること。未確立の場合、<code>mode=implement</code> は Phase 1 で <span class="tag mode">BLOCKED</span> を返して管理者へ差し戻す。
   </div>
   <table class="spec">
-    <tr><th>項目</th><th>内容</th></tr>
-    <tr><td>mode=implement の起動引数</td><td><code>screen_dir</code>（output-layout の <code>layout.screenUnitRoot</code> 解決済み）・<code>scope</code>・<code>reverse_worktree</code>・<code>ports</code>・<code>baseline_tag_status</code>・<code>output_dir</code>・<code>template_root</code>・<code>audit_script_path</code>・<code>chapter_map_path</code>・<code>user-approved</code></td></tr>
-    <tr><td>mode=judge の起動引数</td><td><code>screen_dir</code>・<code>compare_result</code>・<code>reverse_worktree</code>・<code>freeze_commit</code></td></tr>
-    <tr><td>環境値の取得元</td><td>管理者が事前解決した args（env_block）。本スキルは自ら取得・導出しない</td></tr>
-    <tr><td>比較エンジン</td><td>自前実装しない。<code>mode=judge</code> は起動引数 <code>compare_result</code> のみを判定根拠とする</td></tr>
-    <tr><td>1 起動の単位</td><td>1 起動 = 1 往復（mode どちらか一方のみ）。設計書修正後の再往復は管理者による再起動として扱う</td></tr>
+    <tr>
+      <th>項目</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>mode=implement の起動引数</td>
+      <td><code>screen_dir</code>（output-layout の <code>layout.screenUnitRoot</code> 解決済み）・<code>scope</code>・<code>reverse_worktree</code>・<code>ports</code>・<code>baseline_tag_status</code>・<code>output_dir</code>・<code>template_root</code>・<code>audit_script_path</code>・<code>chapter_map_path</code>・<code>user-approved</code></td></tr>
+    <tr>
+      <td>mode=judge の起動引数</td>
+      <td><code>screen_dir</code>・<code>compare_result</code>・<code>reverse_worktree</code>・<code>freeze_commit</code></td></tr>
+    <tr>
+      <td>環境値の取得元</td>
+      <td>管理者が事前解決した args（env_block）。本スキルは自ら取得・導出しない</td></tr>
+    <tr>
+      <td>比較エンジン</td>
+      <td>自前実装しない。<code>mode=judge</code> は起動引数 <code>compare_result</code> のみを判定根拠とする</td></tr>
+    <tr>
+      <td>1 起動の単位</td>
+      <td>1 起動 = 1 往復（mode どちらか一方のみ）。設計書修正後の再往復は管理者による再起動として扱う</td></tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>動作フロー（Phase 1〜9）</h2>
   <pre class="flow"><span class="cap">mode=implement</span>
@@ -431,19 +507,38 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 <span class="cap">Phase 9</span> 証跡保存 + 最終報告 ── check-freeze.sh(reverse_worktree, freeze_commit)・基準タグ更新は管理者が実施
 </pre>
   <table class="spec">
-    <tr><th>Phase</th><th>完了条件</th></tr>
-    <tr><td>Phase 1</td><td>設計書一式がロード済み・基準タグの存在確認済み（未確立なら BLOCKED で停止）</td></tr>
-    <tr><td>Phase 2</td><td>監査結果が記録済み（内部矛盾なら Phase 8 へ直行）</td></tr>
-    <tr><td>Phase 3</td><td>起動引数 user-approved 確認済み・白紙化コミット完了・カンニング禁止を宣言済み</td></tr>
-    <tr><td>Phase 4</td><td>実装契約章のファイル分割表（既定 §15.1）と実装が過不足なく一致</td></tr>
-    <tr><td>Phase 5</td><td>型チェック・テスト・スモークの結果が記録済み</td></tr>
-    <tr><td>Phase 6</td><td>凍結コミットハッシュが確定・status=NEED-COMPARE と compare_request を返却（mode=implement の終了点）</td></tr>
-    <tr><td>Phase 7</td><td>起動引数 compare_result を受領済み（mode=judge の入口）</td></tr>
-    <tr><td>Phase 8</td><td>修正指示書または「NG なし」の明示が完了</td></tr>
-    <tr><td>Phase 9</td><td>最終報告作成済み・凍結検証の結果が明示済み</td></tr>
+    <tr>
+      <th>Phase</th>
+      <th>完了条件</th></tr>
+    <tr>
+      <td>Phase 1</td>
+      <td>設計書一式がロード済み・基準タグの存在確認済み（未確立なら BLOCKED で停止）</td></tr>
+    <tr>
+      <td>Phase 2</td>
+      <td>監査結果が記録済み（内部矛盾なら Phase 8 へ直行）</td></tr>
+    <tr>
+      <td>Phase 3</td>
+      <td>起動引数 user-approved 確認済み・白紙化コミット完了・カンニング禁止を宣言済み</td></tr>
+    <tr>
+      <td>Phase 4</td>
+      <td>実装契約章のファイル分割表（既定 §15.1）と実装が過不足なく一致</td></tr>
+    <tr>
+      <td>Phase 5</td>
+      <td>型チェック・テスト・スモークの結果が記録済み</td></tr>
+    <tr>
+      <td>Phase 6</td>
+      <td>凍結コミットハッシュが確定・status=NEED-COMPARE と compare_request を返却（mode=implement の終了点）</td></tr>
+    <tr>
+      <td>Phase 7</td>
+      <td>起動引数 compare_result を受領済み（mode=judge の入口）</td></tr>
+    <tr>
+      <td>Phase 8</td>
+      <td>修正指示書または「NG なし」の明示が完了</td></tr>
+    <tr>
+      <td>Phase 9</td>
+      <td>最終報告作成済み・凍結検証の結果が明示済み</td></tr>
   </table>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>設計原則</h2>
   <ol>
@@ -453,34 +548,50 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><strong>検証役と生成役の分離</strong>: <code>mode=implement</code> 実装時点の自己申告では判定しない。判定は <code>mode=judge</code> が受け取る <code>compare_result</code> の決定的出力のみ</li>
   </ol>
 </section>
-
 <section id="s7">
   <h2><span class="sec-num">§7</span>ガード設計</h2>
   <table class="spec">
-    <tr><th>ガード</th><th>方式</th></tr>
-    <tr><td>修正禁止（Phase 7 以降）</td><td>advisory + <code>check-freeze.sh</code> による事後機械検証（不一致 = 結果無効）</td></tr>
-    <tr><td>push 禁止</td><td>SKILL.md に明記。凍結コミットはローカルブランチに留める</td></tr>
-    <tr><td>Phase 5 内側ループ</td><td>上限 3 回・同一エラーシグネチャ 3 連続で発散確定</td></tr>
-    <tr><td>カンニング防止</td><td>Phase 3 白紙化コミット + Phase 4〜Phase 6 での original-code パス Read 禁止の二重化</td></tr>
+    <tr>
+      <th>ガード</th>
+      <th>方式</th></tr>
+    <tr>
+      <td>修正禁止（Phase 7 以降）</td>
+      <td>advisory + <code>check-freeze.sh</code> による事後機械検証（不一致 = 結果無効）</td></tr>
+    <tr>
+      <td>push 禁止</td>
+      <td>SKILL.md に明記。凍結コミットはローカルブランチに留める</td></tr>
+    <tr>
+      <td>Phase 5 内側ループ</td>
+      <td>上限 3 回・同一エラーシグネチャ 3 連続で発散確定</td></tr>
+    <tr>
+      <td>カンニング防止</td>
+      <td>Phase 3 白紙化コミット + Phase 4〜Phase 6 での original-code パス Read 禁止の二重化</td></tr>
   </table>
   <div class="constraint">
     <strong>Phase 8 の制約:</strong> コード・設計書とも修正禁止。修正指示書の作成と <code>test-item-patterns.md</code> への台帳追記のみ許可する。
   </div>
 </section>
-
 <section id="s8">
   <h2><span class="sec-num">§8</span>報告フォーマット</h2>
   <p>書式の正は <code>references/report-format.md</code>。配置先は <code>&lt;verification_dir&gt;/screen-&lt;画面ID&gt;/&lt;timestamp&gt;/</code>（`verification_dir` は docs と同階層の `verification/`）。生証跡（スクリーンショット・テストログ・返却ブロック全文）も同じ <code>&lt;verification_dir&gt;/screen-&lt;画面ID&gt;/&lt;timestamp&gt;/</code> 配下に同梱する。</p>
   <table class="spec">
-    <tr><th>成果物</th><th>作成 Phase</th><th>内容</th></tr>
-    <tr><td>修正指示書</td><td>Phase 8</td><td>対象設計書パス / NG 一覧（失敗クラス・分類章・修正指示・証跡パス）/ テンプレート改善提案</td></tr>
-    <tr><td>最終報告</td><td>Phase 9</td><td>判定（PASS/FAIL/INCOMPLETE/無効）/ 凍結コミットハッシュ / 各 Phase の実行結果 / compare_result 要約（status に DESIGN-INCOMPLETE/DYNAMIC-UNVERIFIED を含む）/ 証跡パス一覧</td></tr>
+    <tr>
+      <th>成果物</th>
+      <th>作成 Phase</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>修正指示書</td>
+      <td>Phase 8</td>
+      <td>対象設計書パス / NG 一覧（失敗クラス・分類章・修正指示・証跡パス）/ テンプレート改善提案</td></tr>
+    <tr>
+      <td>最終報告</td>
+      <td>Phase 9</td>
+      <td>判定（PASS/FAIL/INCOMPLETE/無効）/ 凍結コミットハッシュ / 各 Phase の実行結果 / compare_result 要約（status に DESIGN-INCOMPLETE/DYNAMIC-UNVERIFIED を含む）/ 証跡パス一覧</td></tr>
   </table>
   <div class="constraint">
     <strong>基準タグ更新:</strong> 本スキルは実行しない。PASS かつ凍結検証 PASS の場合、最終報告に「基準タグ更新は管理者が比較エンジンの本番実行（非 dry-run）で行う」旨を明記する。
   </div>
 </section>
-
 <section id="s9">
   <h2><span class="sec-num">§9</span>重要な注意事項・予想を裏切る挙動</h2>
   <div class="constraint">
@@ -501,20 +612,32 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li>生証跡（スクリーンショット・テストログ・返却ブロック全文）は <code>&lt;verification_dir&gt;/screen-&lt;画面ID&gt;/&lt;timestamp&gt;/</code> 配下に同梱し、指示書からは同ディレクトリ内の相対パスで参照する</li>
   </ul>
 </section>
-
 <section id="s10">
   <h2><span class="sec-num">§10</span>関連スキル・規約</h2>
   <table class="spec">
-    <tr><th>資料</th><th>役割</th></tr>
-    <tr><td>orchestrating-ai-development-setup の契約（references/contract.md）</td><td>完全仲介方式の契約正本。本スキルはこの契約に準拠し、mode を含む args 全量指定で単独起動できる</td></tr>
-    <tr><td>起動引数 template_root（実体: delivery-payload/templates/リバース検証）</td><td>画面詳細設計書テンプレート（章の役割キー 16 種、既定 §1〜§16）・プロジェクト共通規約。突合・分類先章の基準</td></tr>
-    <tr><td>references/phase-details.md</td><td>Phase 2 突合式・Phase 4 実装規律・Phase 5 検証コマンド詳細・章の役割キー対応表</td></tr>
-    <tr><td>references/ng-classification.md</td><td>検出シグナル→失敗クラス→章（役割キー）分類のマッピング</td></tr>
-    <tr><td>references/test-item-patterns.md</td><td>失敗クラス台帳（追記型）</td></tr>
-    <tr><td>意味キー規約（semantic-key-rules）</td><td>連番 ID 禁止・意味語キー必須の正本</td></tr>
+    <tr>
+      <th>資料</th>
+      <th>役割</th></tr>
+    <tr>
+      <td>orchestrating-ai-development-setup の契約（references/contract.md）</td>
+      <td>完全仲介方式の契約正本。本スキルはこの契約に準拠し、mode を含む args 全量指定で単独起動できる</td></tr>
+    <tr>
+      <td>起動引数 template_root（実体: delivery-payload/templates/リバース検証）</td>
+      <td>画面詳細設計書テンプレート（章の役割キー 16 種、既定 §1〜§16）・プロジェクト共通規約。突合・分類先章の基準</td></tr>
+    <tr>
+      <td>references/phase-details.md</td>
+      <td>Phase 2 突合式・Phase 4 実装規律・Phase 5 検証コマンド詳細・章の役割キー対応表</td></tr>
+    <tr>
+      <td>references/ng-classification.md</td>
+      <td>検出シグナル→失敗クラス→章（役割キー）分類のマッピング</td></tr>
+    <tr>
+      <td>references/test-item-patterns.md</td>
+      <td>失敗クラス台帳（追記型）</td></tr>
+    <tr>
+      <td>意味キー規約（semantic-key-rules）</td>
+      <td>連番 ID 禁止・意味語キー必須の正本</td></tr>
   </table>
 </section>
-
 <div id="zoom-overlay" class="zoom-overlay" hidden></div>
 <script>
   (function () {

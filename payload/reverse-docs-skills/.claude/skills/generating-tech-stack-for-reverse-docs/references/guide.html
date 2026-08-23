@@ -277,11 +277,9 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>技術スタックページ生成スキル<br><span class="skill-name">generating-tech-stack-for-reverse-docs</span></h1>
   <p>アーキテクチャ調査書と対象リポジトリの定義ファイルを突合し、一致を確認できた項目だけから「技術スタック.html」を機械検証付きで生成するスキルの確定仕様。</p>
-
   <div class="def">
     <dt>こんな人向け</dt>
     <dd>
@@ -294,15 +292,21 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       調査書記載値と `package.json` 等の実測値の乖離を早期に検出したい時
     </dd>
   </div>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>2026-08-20: build-portal.shケース48aで永続page-dataからの再生成を確認。validate-page-data.sh / build-detail-page.shはフィクスチャで動作確認済み</td></tr>
-    <tr><td>依存</td><td>jq ／ <code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>build-detail-page.sh</code>（スキルフォルダ相対 <code>../../../generation-engine/scripts/detail-pages/</code>）／ <code>generation-engine/scripts/build-portal.sh</code>（任意・カード反映時）</td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>../../../generation-engine/scripts/detail-pages/page-data-schema.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>2026-08-20: build-portal.shケース48aで永続page-dataからの再生成を確認。validate-page-data.sh / build-detail-page.shはフィクスチャで動作確認済み</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>jq ／ <code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>build-detail-page.sh</code>（スキルフォルダ相対 <code>../../../generation-engine/scripts/detail-pages/</code>）／ <code>generation-engine/scripts/build-portal.sh</code>（任意・カード反映時）</td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>../../../generation-engine/scripts/detail-pages/page-data-schema.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -314,7 +318,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s6">関連スキル・規約</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>リバースエンジニアリング設計のポータルには、基盤情報ページの受け口がある。本スキルはそのうち技術スタック（T3）専任の生成係として、アーキテクチャ調査書 §2 の記載値を対象リポジトリの定義ファイル実測値と突合し、<strong>技術スタック.html</strong> を機械検証付きで作成する。</p>
@@ -336,7 +339,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   &lt;output_dir&gt;/project-portal/foundation/技術スタック.html（+ 任意で build-portal.sh 再実行）</pre>
   <p class="note">画面一覧・テーブル一覧のようなユニット抽出とは異なり、本スキルは「既に確定した 2 つの一次情報（調査書と定義ファイル）を突合するだけ」の係である。新規の検出の方針の宣言は行わない。</p>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>スキルを実行すると、以下の 3 点が生まれる。</p>
@@ -350,7 +352,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   </div>
   <p class="note">調査書と定義ファイルに乖離がある場合、本スキルは生成を行わず乖離内容の報告のみで終わる。この場合、技術スタック.html は生まれない。</p>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
@@ -364,12 +365,14 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd><code>validate-page-data.sh --target-repo</code> による page-data.json の機械検査。<code>sourceRef</code> が対象リポジトリ上に実在するかを検査する。</dd>
   </dl>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー</h2>
   <p>起動引数は <code>target_repo_path</code>・<code>output_dir</code>（必須）と <code>portal_output_dir</code>（任意）の 3 つ。種別は techstack に固定されているため、種別を選ぶ引数はない。</p>
   <table class="spec">
-    <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
+    <tr>
+      <th>Phase</th>
+      <th>内容</th>
+      <th>完了条件</th></tr>
     <tr>
       <td><strong>Phase 1</strong><br>データ源読込</td>
       <td>アーキテクチャ調査書の実在確認（不在ならハード停止し surveying-architecture-for-reverse-docs の先行実行を案内）、対象リポジトリの定義ファイル列挙</td>
@@ -392,18 +395,28 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     </tr>
   </table>
   <p class="note">エンジンスクリプトはスキルフォルダ相対 <code>../../../generation-engine/scripts/detail-pages/</code> で参照する。</p>
-
   <h3>返却（呼び出し元との契約）</h3>
   <table class="spec">
-    <tr><th>キー</th><th>内容</th></tr>
-    <tr><td><code>status</code></td><td><code>DONE</code> | <code>STOPPED</code>（調査書不在・乖離検出）| <code>ERROR</code></td></tr>
-    <tr><td><code>artifacts</code></td><td>生成した技術スタック.htmlと永続page-dataのパス（<code>STOPPED</code>/<code>ERROR</code>時は空）</td></tr>
-    <tr><td><code>page_kind</code></td><td><code>techstack</code>（固定値）</td></tr>
-    <tr><td><code>portal_rebuilt</code></td><td>build-portal.sh 再実行の有無</td></tr>
-    <tr><td><code>hint</code></td><td>停止理由、または次工程への申し送り</td></tr>
+    <tr>
+      <th>キー</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>status</code></td>
+      <td><code>DONE</code> | <code>STOPPED</code>（調査書不在・乖離検出）| <code>ERROR</code></td></tr>
+    <tr>
+      <td><code>artifacts</code></td>
+      <td>生成した技術スタック.htmlと永続page-dataのパス（<code>STOPPED</code>/<code>ERROR</code>時は空）</td></tr>
+    <tr>
+      <td><code>page_kind</code></td>
+      <td><code>techstack</code>（固定値）</td></tr>
+    <tr>
+      <td><code>portal_rebuilt</code></td>
+      <td>build-portal.sh 再実行の有無</td></tr>
+    <tr>
+      <td><code>hint</code></td>
+      <td>停止理由、または次工程への申し送り</td></tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>制約と禁止事項</h2>
   <div class="constraint">
@@ -420,21 +433,38 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   </div>
   <h3>抽出時の落とし穴</h3>
   <table class="spec">
-    <tr><th>落とし穴</th><th>対処</th></tr>
-    <tr><td>調査書の「実在しない（理由: …）」項目を転記してしまう</td><td>突合対象外とし、rows[] にも含めない</td></tr>
-    <tr><td>sourceRef を文書参照形式にしてしまう</td><td>突合に使った定義ファイルの実パスを使う（文書参照形式は実在検査の対象外になる）</td></tr>
-    <tr><td>jq 未インストール環境での検証・生成失敗</td><td>validate/build 両スクリプトが jq に依存するため事前に導入する</td></tr>
+    <tr>
+      <th>落とし穴</th>
+      <th>対処</th></tr>
+    <tr>
+      <td>調査書の「実在しない（理由: …）」項目を転記してしまう</td>
+      <td>突合対象外とし、rows[] にも含めない</td></tr>
+    <tr>
+      <td>sourceRef を文書参照形式にしてしまう</td>
+      <td>突合に使った定義ファイルの実パスを使う（文書参照形式は実在検査の対象外になる）</td></tr>
+    <tr>
+      <td>jq 未インストール環境での検証・生成失敗</td>
+      <td>validate/build 両スクリプトが jq に依存するため事前に導入する</td></tr>
   </table>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>関連スキル・規約</h2>
   <table class="spec">
-    <tr><th>関連</th><th>関係</th></tr>
-    <tr><td><code>orchestrating-ai-development-setup</code></td><td>工程全体の案内役。本スキルはポータル基盤情報ページの 1 種を担い、単独起動もできる</td></tr>
-    <tr><td><code>surveying-architecture-for-reverse-docs</code></td><td>本スキルのデータ源（アーキテクチャ調査書）を確定する前工程。調査書不在時はこちらの先行実行が必要</td></tr>
-    <tr><td>他の detail-pages 系 4 スキル（用語辞書・画面遷移図・ER図・環境構築手順）</td><td>同じエンジンスクリプト（validate-page-data.sh / build-detail-page.sh）を共用する兄弟スキル</td></tr>
-    <tr><td><code>page-data-schema.md</code></td><td>page-data.json のスキーマ正本</td></tr>
+    <tr>
+      <th>関連</th>
+      <th>関係</th></tr>
+    <tr>
+      <td><code>orchestrating-ai-development-setup</code></td>
+      <td>工程全体の案内役。本スキルはポータル基盤情報ページの 1 種を担い、単独起動もできる</td></tr>
+    <tr>
+      <td><code>surveying-architecture-for-reverse-docs</code></td>
+      <td>本スキルのデータ源（アーキテクチャ調査書）を確定する前工程。調査書不在時はこちらの先行実行が必要</td></tr>
+    <tr>
+      <td>他の detail-pages 系 4 スキル（用語辞書・画面遷移図・ER図・環境構築手順）</td>
+      <td>同じエンジンスクリプト（validate-page-data.sh / build-detail-page.sh）を共用する兄弟スキル</td></tr>
+    <tr>
+      <td><code>page-data-schema.md</code></td>
+      <td>page-data.json のスキーマ正本</td></tr>
   </table>
 </section>
 

@@ -271,26 +271,30 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>リバース対象画面の開通スキル<br><span class="skill-name">unlocking-reverse-target-screens</span></h1>
   <p>standalone は設計書なし画面を基準確立まで、dynamic-only は静的設計後の画面を動的検証準備まで開通する。</p>
-
   <div class="def">
     <dt>こんな人向け</dt>
     <dd>リバース検証工程で、対象画面を開通させ基準タグ確立まで一気通貫で任せたい人。</dd>
     <dt>こんな場面で使う</dt>
     <dd>単独開通、または統括フローで静的リバース後に実測URLと frontmatter を確定するとき。</dd>
   </div>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>2026-07-27: standalone / dynamic-only の適用条件と引き渡し契約を整合確認済み</td></tr>
-    <tr><td>依存</td><td>reverse_worktree 上の対象画面ソースコード一式、<code>manifest.yml</code> の <code>projects.&lt;system&gt;</code> エントリ</td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>manifest.yml</code>, <code>assets/manifest-template.yml</code>, <code>orchestrating-ai-development-setup/references/contract.md</code>, <code>syncing-reverse-env/config.yml</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>2026-07-27: standalone / dynamic-only の適用条件と引き渡し契約を整合確認済み</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>reverse_worktree 上の対象画面ソースコード一式、<code>manifest.yml</code> の <code>projects.&lt;system&gt;</code> エントリ</td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>manifest.yml</code>, <code>assets/manifest-template.yml</code>, <code>orchestrating-ai-development-setup/references/contract.md</code>, <code>syncing-reverse-env/config.yml</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -312,7 +316,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s16">改訂完了時の機械チェック</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>本スキルは <code>standalone</code> と <code>dynamic-only</code> を持つ。前者は基準確立まで、後者は静的著述後の実測URL記録・frontmatter補完までを担当する。</p>
@@ -326,7 +329,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <strong>二重起動経路</strong>: 起動経路は二重である。単独起動時はユーザー自身が起点となり、管理者経由時は <code>orchestrating-ai-development-setup</code> によるS0u（画面未開通）状態の判定が起点となる。これは意図した二重運用であり、単独起動条件・返却ブロック契約への参照は削除すべき旧設計の名残ではない。
   </div>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>設計書がまだ無い画面を、リバース設計の対象として着手できる状態にする。</p>
@@ -335,7 +337,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>モック API やダミーデータを注入して、ブラウザ上で画面が実際に描画・操作できる状態を確立する。API エラーや認証壁で画面が表示できない問題を解消し、「この画面はリバース設計に着手してよい」と判断できる基準タグを付与する。</dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>使用タイミングと起動引数</h2>
   <ul>
@@ -343,20 +344,34 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><code>standalone</code> は設計書なし画面を基準確立まで一気通貫で処理するとき</li>
     <li><code>dynamic-only</code> は設計書が既にある画面を開通し、実測項目を補完するとき</li>
   </ul>
-
   <table class="spec">
-    <tr><th>引数</th><th>内容</th></tr>
-    <tr><td>system</td><td>対象システム名</td></tr>
-    <tr><td>screen_id</td><td>対象画面ID</td></tr>
-    <tr><td>reverse_worktree</td><td>対象画面のソースコードを持つ worktree の絶対パス</td></tr>
-    <tr><td>ports</td><td>動作確認に使うポート情報</td></tr>
-    <tr><td>output_dir</td><td>今後の設計書配置ルート。output-layout の layout.screenUnitRoot を解決し、original.png は &lt;output_dir&gt;/&lt;screenUnitRoot&gt;/screen-&lt;screen_id&gt;/詳細設計へ保存する</td></tr>
-    <tr><td>user-approved</td><td>レジストリ記録の承認情報。<code>standalone</code> のみ Phase 5 で <code>syncing-reverse-env(mode=registry)</code> へ転送する</td></tr>
-    <tr><td>invocation_mode</td><td><code>standalone</code>（既定）または <code>dynamic-only</code></td></tr>
+    <tr>
+      <th>引数</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>system</td>
+      <td>対象システム名</td></tr>
+    <tr>
+      <td>screen_id</td>
+      <td>対象画面ID</td></tr>
+    <tr>
+      <td>reverse_worktree</td>
+      <td>対象画面のソースコードを持つ worktree の絶対パス</td></tr>
+    <tr>
+      <td>ports</td>
+      <td>動作確認に使うポート情報</td></tr>
+    <tr>
+      <td>output_dir</td>
+      <td>今後の設計書配置ルート。output-layout の layout.screenUnitRoot を解決し、original.png は &lt;output_dir&gt;/&lt;screenUnitRoot&gt;/screen-&lt;screen_id&gt;/詳細設計へ保存する</td></tr>
+    <tr>
+      <td>user-approved</td>
+      <td>レジストリ記録の承認情報。<code>standalone</code> のみ Phase 5 で <code>syncing-reverse-env(mode=registry)</code> へ転送する</td></tr>
+    <tr>
+      <td>invocation_mode</td>
+      <td><code>standalone</code>（既定）または <code>dynamic-only</code></td></tr>
   </table>
   <p class="note">全量が管理者から渡される。単独起動時はユーザーから直接取得してよい。対象プロジェクトの <code>manifest.yml</code> に <code>projects.&lt;system&gt;</code> エントリが無い、または未確定キー（<code>&lt;FILL:...&gt;</code>）が残っている場合は <code>assets/manifest-template.yml</code> を複製してまず埋める（前提ゲートで検出・差し戻し）。</p>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>埋め込みビュー画面の開通（ルートを持たない画面）</h2>
   <div class="def">
@@ -372,10 +387,8 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <strong>読み替えの範囲</strong>: この読み替えは実行手順全体に及ぶ。前提ゲートの対象URLマウント確認、Phase 4の実データ表示確認、Phase 5の <code>verification_url</code> 記録は、いずれも「親画面URL＋操作手順」による確認・記録に読み替える。
   </div>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>実行手順（前提ゲート + Phase 1〜5）</h2>
-
   <h3>前提ゲート</h3>
   <p><code>manifest.yml</code> の <code>projects.&lt;system&gt;</code> を読み込む。エントリ不在、または値に未確定トークン（<code>&lt;FILL:...&gt;</code>）が1つでも残っていれば <span class="tag error">ERROR</span> とし、hint に不足キー一覧と <code>assets/manifest-template.yml</code> への案内を記して停止する。値の穴埋めは実行者自身が推測して行わない。人間または呼び出し元が <code>assets/manifest-template.yml</code> を複製して実値を埋めてから前提ゲートを再実行する（本スキルの自己完結性は「開通〜基準タグ確立」の作業範囲に限られ、manifestのブートストラップ自体は対象外）。<code>manifest.&lt;system&gt;.repo_and_launch</code> に従い、対象リポジトリで dev サーバーを自分で起動する（稼働中の他エージェントのサーバーには接続・干渉しない）。</p>
   <p>画面レジストリ（<code>manifest.&lt;system&gt;.handoff.screen_registry_path</code>）を <code>&lt;system&gt;-</code> プレフィックスで検索し、該当エントリが1件も無い（今回が最初の1枚目である）ことを確認できた場合は、次の健全性確認を省略し、devサーバー起動確認のみで前提ゲートを通過してよい。それ以外の場合は <code>manifest.&lt;system&gt;.reference_screen</code>（開通済みの健全性確認用画面）を、自分が起動したサーバー上でブラウザ自動化により表示確認する。合格基準は実データが最低1件表示されること、または空表示が仕様上正当である根拠を確認できることのいずれかとする。失敗したら環境自体の不備として <span class="tag error">ERROR</span> で停止する（この画面自体の開通作業には進まない）。</p>
@@ -383,7 +396,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <p class="note">前提ゲート通過後・Phase 1着手前に、対象URL（画面が埋め込みビュー型の場合は §3「埋め込みビュー画面の開通（ルートを持たない画面）」に従い親経由URL）を1回開き、対象コンポーネントがマウントされることを確認する。マウントが確認できなければAPI調査には進まず <span class="tag mode">BLOCKED</span> とする。</p>
   <p class="note">TaskCreate で本前提ゲートを含む全Phase分のタスクを1つずつ登録し、各Phase開始時にTaskUpdateでin_progressに更新する。</p>
   <p class="note">完了条件: (a) manifest必須キー全確定 (b) devサーバー起動確認 (c) リファレンス画面の健全性確認PASS (d) 対象URL（埋め込みビュー画面の場合は親経由URL）のマウント確認PASS の4点がすべて満たされている（開通済み画面が1件も無い最初の1枚目の場合は(c)を省略可）</p>
-
   <pre class="flow"><span class="cap">Phase 1: API依存の特定</span>
   対象画面のルーティング定義を画面IDで検索する。ルートが1件も見つからない場合は、
   その画面が§3「埋め込みビュー画面の開通」が扱うルートを持たない画面である可能性を疑い、同節に従う
@@ -529,33 +541,58 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   完了条件: レジストリ登録済み、reverse_worktreeの命名規則準拠を確認済み、
             かつ（成功時のみ）git tag -l 等の決定的出力でタグ確立を確認済み</pre>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>完了条件</h2>
   <table class="spec">
-    <tr><th>Phase</th><th>完了条件</th></tr>
-    <tr><td>前提ゲート</td><td>manifest必須キー全確定・devサーバー起動確認・リファレンス画面健全性確認PASS（実データ最低1件表示または空表示の正当性確認。同一業務ドメイン限定。開通済み画面が1件も無い最初の1枚目の場合は省略可）・対象URL（埋め込みビュー画面は親経由URL）のマウント確認PASS</td></tr>
-    <tr><td>Phase 1</td><td>API一覧（画面本体＋共有ゲート部品分・大型複合画面は初期表示最小集合分）・実名対応表・URLパラメータ/ストア値（充足元の二分類付き）/セッションキー（充足タイミング付き）一覧が記録済み。複数画面ID共有時はID固有分岐の洗い出しも完了済み。同一シンボルを複数箇所から呼び出す場合は呼び出し箇所単位のマウント条件記録も完了済み。大型複合画面・新規の共有業務ロジックフック依存時は完了判定フラグの依存関係の洗い出しと既存モック前例有無の確認も完了済み</td></tr>
-    <tr><td>Phase 2</td><td>権限チェック呼び出し有無の事前確認（呼び出さない場合はスキップ判定の根拠を記録）・セッションキー実測結果・識別子フィールド非空確認・権限チェーン構造（単層/二層）の分類キー突合確認・同一分類キーを消費する全系統の横断洗い出しと一括登録・消費先推定の実行時ログ裏取り・各層への登録完了</td></tr>
-    <tr><td>Phase 3</td><td>登録名一覧×実名一覧の突合差分ゼロ（既存共通モックのうち対象画面が依存する分を含む）、サーバー再起動後の反映確認済み</td></tr>
-    <tr><td>Phase 4</td><td>収束条件を満たすか、発散/上限到達で <span class="tag error">BLOCKED</span> 確定</td></tr>
-    <tr><td>Phase 5</td><td><code>dynamic-only</code>: レジストリ登録・frontmatter実測補完・scenarios完全性ゲート通過。<code>standalone</code>: 加えて基準タグ確立を決定的出力で確認</td></tr>
-    <tr><td><strong>Goal</strong></td><td><code>dynamic-only</code> は <span class="tag mode">UNLOCKED</span>、<code>standalone</code> は <span class="tag pass">BASELINE-ESTABLISHED</span>。失敗時は静的成果物を壊さず BLOCKED / ERROR を返す</td></tr>
+    <tr>
+      <th>Phase</th>
+      <th>完了条件</th></tr>
+    <tr>
+      <td>前提ゲート</td>
+      <td>manifest必須キー全確定・devサーバー起動確認・リファレンス画面健全性確認PASS（実データ最低1件表示または空表示の正当性確認。同一業務ドメイン限定。開通済み画面が1件も無い最初の1枚目の場合は省略可）・対象URL（埋め込みビュー画面は親経由URL）のマウント確認PASS</td></tr>
+    <tr>
+      <td>Phase 1</td>
+      <td>API一覧（画面本体＋共有ゲート部品分・大型複合画面は初期表示最小集合分）・実名対応表・URLパラメータ/ストア値（充足元の二分類付き）/セッションキー（充足タイミング付き）一覧が記録済み。複数画面ID共有時はID固有分岐の洗い出しも完了済み。同一シンボルを複数箇所から呼び出す場合は呼び出し箇所単位のマウント条件記録も完了済み。大型複合画面・新規の共有業務ロジックフック依存時は完了判定フラグの依存関係の洗い出しと既存モック前例有無の確認も完了済み</td></tr>
+    <tr>
+      <td>Phase 2</td>
+      <td>権限チェック呼び出し有無の事前確認（呼び出さない場合はスキップ判定の根拠を記録）・セッションキー実測結果・識別子フィールド非空確認・権限チェーン構造（単層/二層）の分類キー突合確認・同一分類キーを消費する全系統の横断洗い出しと一括登録・消費先推定の実行時ログ裏取り・各層への登録完了</td></tr>
+    <tr>
+      <td>Phase 3</td>
+      <td>登録名一覧×実名一覧の突合差分ゼロ（既存共通モックのうち対象画面が依存する分を含む）、サーバー再起動後の反映確認済み</td></tr>
+    <tr>
+      <td>Phase 4</td>
+      <td>収束条件を満たすか、発散/上限到達で <span class="tag error">BLOCKED</span> 確定</td></tr>
+    <tr>
+      <td>Phase 5</td>
+      <td><code>dynamic-only</code>: レジストリ登録・frontmatter実測補完・scenarios完全性ゲート通過。<code>standalone</code>: 加えて基準タグ確立を決定的出力で確認</td></tr>
+    <tr>
+      <td><strong>Goal</strong></td>
+      <td><code>dynamic-only</code> は <span class="tag mode">UNLOCKED</span>、<code>standalone</code> は <span class="tag pass">BASELINE-ESTABLISHED</span>。失敗時は静的成果物を壊さず BLOCKED / ERROR を返す</td></tr>
   </table>
 </section>
-
 <section id="s7">
   <h2><span class="sec-num">§7</span>ループ設計</h2>
   <table class="spec">
-    <tr><th>要素</th><th>内容</th></tr>
-    <tr><td>反復対象</td><td>Phase 4（検証ループ）。差分が見つかればPhase 1/2/3のいずれかへ戻り再実行</td></tr>
-    <tr><td>上限回数</td><td>3回（<code>rebuilding-code-from-docs</code> 外側ループ・<code>syncing-reverse-env/config.yml</code> の <code>max_loop</code> 既定と整合）</td></tr>
-    <tr><td>収束条件</td><td>「画面が要求する値とモックデータの突合差分ゼロ」かつ「ブラウザ自動化での実データ表示確認PASS」が2連続で確認できた場合</td></tr>
-    <tr><td>発散条件</td><td>同一差分（同一クエリ未実行／同一権限エラー／同一エラー境界遷移）が2連続で再発した場合、原因と推定されるPhase（1/2/3）まで巻き戻し、それでも3回目に達したら発散確定</td></tr>
-    <tr><td>上限到達時の報告</td><td><span class="tag error">BLOCKED</span> とし、hintに「未解消の差分内容」「試行履歴（何を変えて何度試したか）の要約」「推定原因Phase」を記してユーザーに報告する。TaskUpdateで該当タスクを進行中断状態に更新する</td></tr>
+    <tr>
+      <th>要素</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>反復対象</td>
+      <td>Phase 4（検証ループ）。差分が見つかればPhase 1/2/3のいずれかへ戻り再実行</td></tr>
+    <tr>
+      <td>上限回数</td>
+      <td>3回（<code>rebuilding-code-from-docs</code> 外側ループ・<code>syncing-reverse-env/config.yml</code> の <code>max_loop</code> 既定と整合）</td></tr>
+    <tr>
+      <td>収束条件</td>
+      <td>「画面が要求する値とモックデータの突合差分ゼロ」かつ「ブラウザ自動化での実データ表示確認PASS」が2連続で確認できた場合</td></tr>
+    <tr>
+      <td>発散条件</td>
+      <td>同一差分（同一クエリ未実行／同一権限エラー／同一エラー境界遷移）が2連続で再発した場合、原因と推定されるPhase（1/2/3）まで巻き戻し、それでも3回目に達したら発散確定</td></tr>
+    <tr>
+      <td>上限到達時の報告</td>
+      <td><span class="tag error">BLOCKED</span> とし、hintに「未解消の差分内容」「試行履歴（何を変えて何度試したか）の要約」「推定原因Phase」を記してユーザーに報告する。TaskUpdateで該当タスクを進行中断状態に更新する</td></tr>
   </table>
 </section>
-
 <section id="s8">
   <h2><span class="sec-num">§8</span>同一条件で成功と失敗が混在する場合の対処</h2>
   <p>「同一条件で成功と失敗が混在する」場合、次の順序で対処する。</p>
@@ -567,7 +604,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li>それでも混在が解消しない場合は <span class="tag error">BLOCKED</span> とし、hintに「モック実装ではなくアプリ側の真のレースコンディションの疑いあり」と明記してユーザーに報告する</li>
   </ol>
 </section>
-
 <section id="s9">
   <h2><span class="sec-num">§9</span>同一条件で常に同じ失敗（決定的クラッシュ）が再現する場合の対処</h2>
   <p>混在（断続的に成功・失敗が入れ替わる）か決定的（同一条件で毎回同一の失敗が再現する）かをまず判定する。混在なら §7「同一条件で成功と失敗が混在する場合の対処」に進み、決定的なら本節に進む。</p>
@@ -577,12 +613,19 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <strong>それでも解消しない場合</strong>: §10「重要な注意事項」に記す事前バグ対応方針（修正せず記録してユーザー判断に委ねる）に従う。
   </div>
 </section>
-
 <section id="s10">
   <h2><span class="sec-num">§10</span>サブエージェント委任仕様</h2>
   <table class="spec">
-    <tr><th>呼び出し箇所</th><th>invocation</th><th>args骨格</th><th>期待返却status</th></tr>
-    <tr><td>Phase 5（standaloneのみ）</td><td>syncing-reverse-env</td><td>mode=registry, system, screen_id, reverse_worktree, ports, user-approved</td><td><span class="tag pass">PASS</span></td></tr>
+    <tr>
+      <th>呼び出し箇所</th>
+      <th>invocation</th>
+      <th>args骨格</th>
+      <th>期待返却status</th></tr>
+    <tr>
+      <td>Phase 5（standaloneのみ）</td>
+      <td>syncing-reverse-env</td>
+      <td>mode=registry, system, screen_id, reverse_worktree, ports, user-approved</td>
+      <td><span class="tag pass">PASS</span></td></tr>
   </table>
   <div class="constraint">
     <strong>ポートスロット上限時の扱い</strong>: ポートスロット上限（<code>max_slots</code>）到達で <code>status=ERROR</code> が返った場合は <span class="tag mode">BLOCKED</span> とし、hintに並行検証の要否再確認・baseline-established済み環境のteardown可否・上限拡張要否のユーザー確認を記す。
@@ -594,7 +637,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <strong>直接起動は standalone のみ</strong>: <code>standalone</code> は基準タグ確立まで単独完走するため syncing-reverse-env を直接起動する。<code>dynamic-only</code> は起動せず管理者へ引き渡す。
   </div>
 </section>
-
 <section id="s11">
   <h2><span class="sec-num">§11</span>重要な注意事項</h2>
   <ul>
@@ -607,13 +649,11 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li>責務は「基準タグ確立まで」。往復検証（設計書との突合精度）自体は本スキルの対象外（それは <code>rebuilding-code-from-docs</code> の責務）</li>
   </ul>
 </section>
-
 <section id="s12">
   <h2><span class="sec-num">§12</span>並列実行時の運用規約</h2>
   <p>複数の実行者が同時に本スキルを走らせる場合、各実行者は <code>manifest.&lt;system&gt;.repo_and_launch.work_repo_path</code> から画面専用の<strong>作業コピー</strong>（git worktree。命名規則 <code>unlock-work-&lt;system&gt;-&lt;screen_id&gt;</code>）を用意し、その上でdevサーバーを起動する。作業コピーは専用ブランチ（<code>unlock/&lt;system&gt;-&lt;screen_id&gt;</code>）と専用ポート（起動引数 <code>ports</code> を画面ごとに変える）で他の実行者と分離する。</p>
   <p>画面レジストリへの記帳（Phase 5）のみを直列化する。記帳の直前に <code>&lt;screen_registry_path&gt;.lock</code> のmkdir原子ロックを取得してから記帳し、完了後に解放する（<code>syncing-reverse-env</code> の <code>.reverse-slot-lock.d</code> と同方式）。開通作業自体（前提ゲート〜Phase 4）は並列実行のままでよく、直列化の対象はレジストリ記帳のみである。</p>
 </section>
-
 <section id="s13">
   <h2><span class="sec-num">§13</span>完了報告</h2>
   <p><code>../../../../delivery-payload/references/完了報告の書き方.md</code> の共通骨格（作業報告型）に従う。</p>
@@ -625,7 +665,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li>Phase 5のレジストリ登録状況と<code>baseline_tag</code>（<code>status=BASELINE-ESTABLISHED</code>到達時のみ）</li>
   </ul>
 </section>
-
 <section id="s14">
   <h2><span class="sec-num">§14</span>予想を裏切る挙動</h2>
   <p class="note">一般的な症状別の切り分け（詰まりパターン）は <code>references/troubleshooting-patterns.md</code> を参照する。以下は同ファイルに寄せていない個別の注意点。</p>
@@ -645,27 +684,40 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li>並列実行時は作業コピー（worktree・ブランチ・ポート）を画面ごとに分離し、画面レジストリへの記帳のみを直列化する</li>
   </ul>
 </section>
-
 <section id="s15">
   <h2><span class="sec-num">§15</span>参照資料</h2>
   <table class="spec">
-    <tr><th>関連</th><th>関係</th></tr>
-    <tr><td><code><reverse_docs_root>/.claude/skills/orchestrating-ai-development-setup/references/contract.md</code></td><td>返却ブロック契約・args仕様・画面レジストリの正本（本スキルの直接記帳・直接起動を正式仕様と定める条項含む）</td></tr>
-    <tr><td><code>manifest.yml</code>（本スキル同梱）</td><td>プロジェクト固有値の正本</td></tr>
-    <tr><td><code>manifest.local.yml</code>（同ディレクトリ・任意）</td><td>存在する場合、<code>manifest.yml</code> を基底として深いマージ（local 優先）で重ねた結果を有効値とする。実プロジェクトの絶対パス入り <code>projects</code> エントリはこちらにのみ記載する（<code>.gitignore</code> 済みのため公開 payload に載らない）。<code>operating_rules</code> 等の枠組みキーの上書きは不可</td></tr>
-    <tr><td><code>assets/manifest-template.yml</code>（本スキル同梱）</td><td>manifest未整備プロジェクト向け雛形</td></tr>
-    <tr><td><code>references/mock-implementation-recipe.md</code>（本スキル同梱）</td><td>Phase 3のモック実装レシピ（正本からの書き写し・消費側からの逆引き特定・型決定基準・同名API分岐の判断基準・既存共通モックの実名突合・共通ヘルパーの必須引数化・分類コードの全系統一括登録）</td></tr>
-    <tr><td><code>references/troubleshooting-patterns.md</code>（本スキル同梱）</td><td>症状・原因・対処の詰まりパターン集（プロジェクト非依存分。プロジェクト固有は <code>manifest.yml</code> の <code>known_gotchas</code>）</td></tr>
-    <tr><td><code><reverse_docs_root>/.claude/skills/syncing-reverse-env/config.yml</code></td><td>Playwright実行系設定（<code>playwright_exec</code> 等）の共有正本。本スキルは重複定義しない。既定のナビゲーションタイムアウト（60000ms）を実際の描画時間が超える実例があるため、Phase 4で未描画と誤認する前に <code>projects.&lt;system&gt;</code> 上書きで延長を試す</td></tr>
+    <tr>
+      <th>関連</th>
+      <th>関係</th></tr>
+    <tr>
+      <td><code><reverse_docs_root>/.claude/skills/orchestrating-ai-development-setup/references/contract.md</code></td>
+      <td>返却ブロック契約・args仕様・画面レジストリの正本（本スキルの直接記帳・直接起動を正式仕様と定める条項含む）</td></tr>
+    <tr>
+      <td><code>manifest.yml</code>（本スキル同梱）</td>
+      <td>プロジェクト固有値の正本</td></tr>
+    <tr>
+      <td><code>manifest.local.yml</code>（同ディレクトリ・任意）</td>
+      <td>存在する場合、<code>manifest.yml</code> を基底として深いマージ（local 優先）で重ねた結果を有効値とする。実プロジェクトの絶対パス入り <code>projects</code> エントリはこちらにのみ記載する（<code>.gitignore</code> 済みのため公開 payload に載らない）。<code>operating_rules</code> 等の枠組みキーの上書きは不可</td></tr>
+    <tr>
+      <td><code>assets/manifest-template.yml</code>（本スキル同梱）</td>
+      <td>manifest未整備プロジェクト向け雛形</td></tr>
+    <tr>
+      <td><code>references/mock-implementation-recipe.md</code>（本スキル同梱）</td>
+      <td>Phase 3のモック実装レシピ（正本からの書き写し・消費側からの逆引き特定・型決定基準・同名API分岐の判断基準・既存共通モックの実名突合・共通ヘルパーの必須引数化・分類コードの全系統一括登録）</td></tr>
+    <tr>
+      <td><code>references/troubleshooting-patterns.md</code>（本スキル同梱）</td>
+      <td>症状・原因・対処の詰まりパターン集（プロジェクト非依存分。プロジェクト固有は <code>manifest.yml</code> の <code>known_gotchas</code>）</td></tr>
+    <tr>
+      <td><code><reverse_docs_root>/.claude/skills/syncing-reverse-env/config.yml</code></td>
+      <td>Playwright実行系設定（<code>playwright_exec</code> 等）の共有正本。本スキルは重複定義しない。既定のナビゲーションタイムアウト（60000ms）を実際の描画時間が超える実例があるため、Phase 4で未描画と誤認する前に <code>projects.&lt;system&gt;</code> 上書きで延長を試す</td></tr>
   </table>
 </section>
-
 <section id="s16">
   <h2><span class="sec-num">§16</span>改訂完了時の機械チェック</h2>
   <p>編集完了後、以下のようなgrepコマンドを実行しゼロヒットを確認する。このリポジトリ自体は具体値を持たないため、実運用では配布先プロジェクトが実際に埋めた値を対象に同種のgrepを実施する。</p>
   <pre class="flow">grep -riE '&lt;実プロジェクト名&gt;|&lt;実ポート番号&gt;|&lt;実API名&gt;|&lt;実画面ID&gt;' .claude/skills/unlocking-reverse-target-screens/SKILL.md .claude/skills/unlocking-reverse-target-screens/references/*.html</pre>
 </section>
-
 <div id="zoom-overlay" class="zoom-overlay" hidden></div>
 <script>
   (function () {

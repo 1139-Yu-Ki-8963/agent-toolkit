@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# スキルガイド HTML（.claude/skills/*/references/guide.html）の <style> 中身を
-# delivery-payload/templates/skill-guide/guide-style.css へ統一するための注入スクリプト。
+# スキルガイド HTML（.claude/skills/*/references/guide.html）の <style> 中身と
+# 本文のブロック要素の改行を統一するための整形スクリプト。
 #
 # 使い方:
 #   apply-guide-style.sh              対象ガイドの一覧表示のみ（書き込みなし）
-#   apply-guide-style.sh --apply      全ガイドの <style>〜</style> の中身を置き換える
+#   apply-guide-style.sh --apply      全ガイドの <style>〜</style> と本文の改行を整形する
 #   apply-guide-style.sh --self-test  統一適用の妥当性を検査する（1件でも外れたら exit 1）
 set -euo pipefail
 
@@ -47,22 +47,266 @@ is_synced() {
 
 # <style>〜</style> の中身を統一定義へ差し替える。awk で行単位に組み立てる
 # （sed 置換は CSS 中の / や () でエスケープ事故を起こしやすいため使わない）。
-apply_one() {
+# 続けて本文を整形する。整形と検査は同じsource-preserving tokenizerを使う。
+# 開きタグや属性・本文はそのままに、対象ブロックの開きタグを行頭へ移す。
+guide_body_processor() {
+  python3 - "$@" <<'PY'
+import os
+import re
+import stat
+import sys
+
+action = sys.argv[1]
+block_tags = {
+    "section", "nav", "header", "main", "footer", "table", "thead", "tbody",
+    "tr", "td", "th", "ol", "ul", "li", "h1", "h2", "h3", "p", "pre", "div",
+}
+format_raw_tags = {"style", "pre", "script", "textarea"}
+validation_raw_tags = {"style", "script", "textarea"}
+name_pattern = re.compile(r"<\s*(/?)\s*([A-Za-z][A-Za-z0-9:-]*)")
+
+
+def tag_parts(value):
+    match = name_pattern.match(value)
+    if not match:
+        return None
+    closing, name = match.groups()
+    return bool(closing), name.lower()
+
+
+def self_closing(value):
+    return value.rstrip().endswith("/>")
+
+
+def tokens(text, raw_tags):
+    """Yield (position, is_markup, source) without interpreting quoted attributes."""
+    position = 0
+    text_start = 0
+    while position < len(text):
+        if text[position] != "<":
+            position += 1
+            continue
+        if position > text_start:
+            yield text_start, False, text[text_start:position]
+        if text.startswith("<!--", position):
+            end = text.find("-->", position + 4)
+            end = len(text) if end == -1 else end + 3
+        else:
+            end = position + 1
+            quote = None
+            while end < len(text):
+                character = text[end]
+                if quote:
+                    if character == quote:
+                        quote = None
+                elif character in "\\\"'":
+                    quote = character
+                elif character == ">":
+                    end += 1
+                    break
+                end += 1
+            else:
+                end = len(text)
+        markup = text[position:end]
+        yield position, True, markup
+        position = end
+        text_start = position
+        parts = tag_parts(markup)
+        if not parts:
+            continue
+        closing, name = parts
+        if closing or name not in raw_tags or self_closing(markup):
+            continue
+        closing_match = re.compile(r"</" + re.escape(name) + r"\s*>", re.IGNORECASE).search(text, position)
+        if closing_match:
+            if position < closing_match.start():
+                yield position, False, text[position:closing_match.start()]
+            closing_start = closing_match.start()
+            closing_end = closing_match.end()
+            yield closing_start, True, text[closing_start:closing_end]
+            position = closing_end
+            text_start = position
+        else:
+            if position < len(text):
+                yield position, False, text[position:]
+            position = len(text)
+            text_start = position
+    if text_start < len(text):
+        yield text_start, False, text[text_start:]
+
+
+def pop_block(stack, name):
+    if stack and stack[-1] == name:
+        stack.pop()
+    elif name in stack:
+        del stack[len(stack) - 1 - stack[::-1].index(name)]
+
+
+def format_source(source):
+    result = []
+    block_stack = []
+
+    def begin_block_line(depth):
+        while result and result[-1].isspace():
+            result.pop()
+        if result:
+            result.append("\n")
+        result.append("  " * depth)
+
+    for _, is_markup, value in tokens(source, format_raw_tags):
+        if not is_markup:
+            result.append(value)
+            continue
+        parts = tag_parts(value)
+        if not parts:
+            result.append(value)
+            continue
+        closing, name = parts
+
+        if closing:
+            result.append(value)
+            if name in block_tags:
+                pop_block(block_stack, name)
+            continue
+
+        if name in block_tags:
+            begin_block_line(len(block_stack))
+            result.append(value)
+            if not self_closing(value):
+                block_stack.append(name)
+        else:
+            result.append(value)
+
+    return "".join(result)
+
+
+def validate_source(source):
+    errors = []
+    block_stack = []
+
+    for position, is_markup, value in tokens(source, validation_raw_tags):
+        if not is_markup:
+            continue
+        parts = tag_parts(value)
+        if not parts:
+            continue
+        closing, name = parts
+
+        if closing:
+            if name in block_tags:
+                pop_block(block_stack, name)
+            continue
+
+        if name in block_tags:
+            line = source.count("\n", 0, position) + 1
+            line_start = source.rfind("\n", 0, position) + 1
+            prefix = source[line_start:position]
+            if prefix.strip(" \t\r"):
+                errors.append((line, f"<{name}> の前に空白以外がある"))
+            else:
+                indentation = prefix.rstrip("\r")
+                expected = "  " * len(block_stack)
+                if "\t" in indentation:
+                    errors.append((line, f"<{name}> のインデントにタブがある"))
+                elif indentation != expected:
+                    errors.append((line, f"<{name}> のインデントが深さ {len(block_stack)} の {len(expected)} 個の空白でない"))
+            if not self_closing(value):
+                block_stack.append(name)
+
+    return errors
+
+
+def run_regressions():
+    invalid_cases = {
+        "nested": "<div><p>x</p></div>",
+        "joined": "<p>x</p> <p>y</p>",
+        "text-before-uppercase": "text <P>x</P>",
+        "one-space-indent": "<div>\n <p>x</p>\n</div>",
+        "three-space-indent": "<div>\n   <p>x</p>\n</div>",
+        "script-raw-followed-by-joined-blocks": "<script>const less = 1 < 2;</script><div><p>x</p></div>",
+        "textarea-raw-followed-by-joined-blocks": "<textarea>const less = 1 < 2;</textarea><div><p>x</p></div>",
+        "pre-contains-real-markup": "<pre><p>x</p></pre>",
+        "tr-contains-td": "<tr><td>x</td></tr>",
+        "joined-td": "<tr><td>a</td><td>b</td></tr>",
+    }
+    valid_case = """<!-- <p>comment</p> -->
+<div data-example=\"<p>attribute</p>\">
+  <script>const less = 1 < 2; const markup = \"<p>script</p>\";</script>
+  <textarea>const less = 1 < 2; <p>textarea</p></textarea>
+  <style>.sample { content: \"<p>style</p>\"; }</style>
+  <p><span>span</span><code>code</code><strong>strong</strong><a href=\"#\">link</a><br><dt>term</dt><dd>description</dd></p>
+</div>"""
+    failures = []
+    for name, source in invalid_cases.items():
+        if not validate_source(source):
+            failures.append(f"invalid case was accepted: {name}")
+    if validate_source(valid_case):
+        failures.append("valid case was rejected")
+    return failures
+
+
+if action == "format":
+    input_path, output_path, mode_source = sys.argv[2:]
+    source = open(input_path, encoding="utf-8").read()
+    with open(output_path, "w", encoding="utf-8", newline="") as output:
+        output.write(format_source(source))
+    os.chmod(output_path, stat.S_IMODE(os.stat(mode_source).st_mode))
+elif action == "check":
+    input_path = sys.argv[2]
+    source = open(input_path, encoding="utf-8").read()
+    for line, reason in validate_source(source):
+        print(f"{input_path}:{line}: {reason}")
+elif action == "regress":
+    failures = run_regressions()
+    if failures:
+        print("FAIL(8-regression): " + "; ".join(failures))
+        sys.exit(1)
+    print("PASS(8-regression): 同一行・raw領域・インデントの回帰ケースが合格")
+else:
+    raise SystemExit(f"unknown action: {action}")
+PY
+}
+
+format_body() {
+  guide_body_processor format "$1" "$2" "$3"
+}
+
+check_body() {
+  guide_body_processor check "$1"
+}
+
+check_body_regressions() {
+  guide_body_processor regress
+}
+
+apply_one() (
   local f="$1"
+  local relative_path="${f#"$repo_root"/}"
+  local tracked_mode
   # 明示テンプレート付きmktemp（"${TMPDIR:-/tmp}/<name>.XXXXXX"）を使う。裸のmktempは
   # $TMPDIRを無視し書き込み許可の外にある既定領域を使うため、サンドボックス実行環境では
   # 失敗する（改善課題「一時ディレクトリ-作成先」。手元の環境で動いても裸の形へ戻すな）。
-  local tmp
-  tmp="$(mktemp "${TMPDIR:-/tmp}/apply-guide-style.XXXXXX")"
+  local css_tmp=""
+  local formatted_tmp=""
+  trap 'rm -f "$css_tmp" "$formatted_tmp"' EXIT
+  # 旧実装が mktemp の 0600 をそのまま mv したガイドは、追跡時の権限へ復元する。
+  # 通常はインデックスと同じモードなので、以降のPython処理は元ファイルの権限を保持する。
+  tracked_mode="$(git -C "$repo_root" ls-files -s -- "$relative_path" | awk 'NR == 1 { print substr($1, 4) }')"
+  if [ -n "$tracked_mode" ]; then
+    chmod "$tracked_mode" "$f"
+  fi
+  css_tmp="$(mktemp "${TMPDIR:-/tmp}/apply-guide-style-css.XXXXXX")"
+  formatted_tmp="$(mktemp "${TMPDIR:-/tmp}/apply-guide-style-body.XXXXXX")"
   awk -v cssfile="$style_css" '
     BEGIN { while ((getline line < cssfile) > 0) css = css line "\n" }
     /^<style>$/ { print; printf "%s", css; instyle=1; next }
     /^<\/style>$/ { instyle=0; print; next }
     instyle { next }
     { print }
-  ' "$f" > "$tmp"
-  mv "$tmp" "$f"
-}
+  ' "$f" > "$css_tmp"
+  format_body "$css_tmp" "$formatted_tmp" "$f"
+  mv "$formatted_tmp" "$f"
+)
 
 case "$mode" in
   list)
@@ -80,12 +324,10 @@ case "$mode" in
   apply)
     applied=0
     for f in "${guides[@]}"; do
-      if ! is_synced "$f"; then
-        apply_one "$f"
-        applied=$((applied + 1))
-      fi
+      apply_one "$f"
+      applied=$((applied + 1))
     done
-    echo "適用: $applied 枚 / 既に統一済み: $(( ${#guides[@]} - applied )) 枚 / 対象: ${#guides[@]} 枚"
+    echo "整形・適用: $applied 枚 / 対象: ${#guides[@]} 枚"
     ;;
 
   self-test)
@@ -209,23 +451,22 @@ case "$mode" in
       echo "PASS(7): 旧名を指すパス参照は 0 件（追跡済みファイルのみ走査）"
     fi
 
-    # 8. ブロック要素が同じ行に連結されていない
-    #    連結されていると差分で行全体が変更として出るため、どこを直したか読めなくなる。
-    #    <style> ブロックは CSS のため対象外にし、本文だけを判定する。
-    blocktags='section|nav|header|main|footer|table|thead|tbody|tr|ol|ul|li|h1|h2|h3|p|pre|div'
+    # 8. ブロック要素の開きタグが行ごとに分かれ、深さどおりにインデントされている。
+    #    コメント・属性値と style/pre/script/textarea のraw領域はHTML要素として扱わない。
     joined_fail=0
     for f in "${guides[@]}"; do
-      body_no_style="$(awk '/^<\/style>$/{s=1;next} s' "$f")"
-      hits="$(printf '%s' "$body_no_style" \
-        | grep -nE "><(${blocktags})[ >]|</(${blocktags})></" || true)"
+      hits="$(check_body "$f")"
       if [ -n "$hits" ]; then
-        echo "FAIL(8): $f のブロック要素が同じ行に連結されている:"
-        printf '%s\n' "$hits" | head -3 | cut -c1-120 | sed 's/^/  /'
+        echo "FAIL(8): $f のブロック要素の改行またはインデントが不正:"
+        printf '%s\n' "$hits" | head -3 | cut -c1-180 | sed 's/^/  /'
         joined_fail=$((joined_fail + 1))
       fi
     done
+    if ! check_body_regressions; then
+      fail=1
+    fi
     if [ "$joined_fail" -eq 0 ]; then
-      echo "PASS(8): 全 ${#guides[@]} 枚がブロック要素を行ごとに分けている"
+      echo "PASS(8): 全 ${#guides[@]} 枚がブロック要素を行ごとに分け、正しくインデントしている"
     else
       fail=1
     fi

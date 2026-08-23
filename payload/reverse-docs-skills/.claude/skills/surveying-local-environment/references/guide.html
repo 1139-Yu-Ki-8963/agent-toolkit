@@ -277,19 +277,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>ローカル環境調査スキル<br><span class="skill-name">surveying-local-environment</span></h1>
   <p>実行環境の OS・パッケージ管理ツール・必要ツールの有無を調査し、env-config.json を生成するスキルの確定仕様。</p>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>surveying-local-environment スキルとして独立動作確認済み</td></tr>
-    <tr><td>依存</td><td>bash、jq</td></tr>
-    <tr><td>関連資料</td><td><code>orchestrating-ai-development-setup</code> SKILL.md（Phase 4A から起動）</td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>surveying-local-environment スキルとして独立動作確認済み</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>bash、jq</td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>orchestrating-ai-development-setup</code> SKILL.md（Phase 4A から起動）</td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -297,7 +302,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s2">出力</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>本スキルは、実行対象 PC の OS 種別・パッケージ管理ツール・開発ツール（cloc／node／python3／jq／git）のインストール有無を調査し、<strong>env-config.json</strong> に出力する。他のスキル（counting-code-lines 等）はこの env-config.json を読み込み、ツールの有無に応じて処理方式を分岐する。</p>
@@ -315,7 +319,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
        ▼
   他スキル（counting-code-lines 等）からの参照</pre>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>スキルを実行すると、以下の 1 点が生まれる。</p>

@@ -1,7 +1,7 @@
 ---
 name: managing-semantic-glossary
 日本語名: 用語の変更と公開の管理
-description: "確定した用語の変更と公開を管理する。"
+description: 正式用語集、用語候補又は変更要求を入力に、指定に応じて照会・審査・試行を行い、役割別の二件の承認がある変更だけを適用して公開する。
 invocation: managing-semantic-glossary
 type: orchestration
 allowed-tools: [Read, Write, Edit, Bash, Grep, Glob, AskUserQuestion]

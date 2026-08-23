@@ -277,11 +277,9 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>テーブル一覧生成スキル<br><span class="skill-name">generating-table-list-for-reverse-docs</span></h1>
   <p>既存コードベースからテーブル定義（マイグレーション・ORM モデル・SQL DDL）を調査し、テーブル単位の一覧である「テーブル一覧.html」を機械検証付きで生成するスキルの確定仕様。</p>
-
   <div class="def">
     <dt>こんな人向け</dt>
     <dd>
@@ -294,15 +292,21 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       マイグレーションが積み重なったプロジェクトで「実テーブルは何個あるか」を機械的に数えたい時
     </dd>
   </div>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>旧統合一覧スキル（unit_kind=table。現在は種別別6スキルへ分割済み）から分割。エンジンスクリプト（validate-manifest.sh / build-unit-list.sh）は分割元でサンプルプロジェクトの動作確認済み。分割後スキル単体の実機検証は未実施</td></tr>
-    <tr><td>依存</td><td>jq ／ <code>generation-engine/scripts/unit-list/validate-manifest.sh</code>・<code>build-unit-list.sh</code>（スキルフォルダ相対 <code>../../../generation-engine/scripts/unit-list/</code>）</td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/table-detection.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>旧統合一覧スキル（unit_kind=table。現在は種別別6スキルへ分割済み）から分割。エンジンスクリプト（validate-manifest.sh / build-unit-list.sh）は分割元でサンプルプロジェクトの動作確認済み。分割後スキル単体の実機検証は未実施</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>jq ／ <code>generation-engine/scripts/unit-list/validate-manifest.sh</code>・<code>build-unit-list.sh</code>（スキルフォルダ相対 <code>../../../generation-engine/scripts/unit-list/</code>）</td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>references/table-detection.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -314,7 +318,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s6">関連スキル・規約</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>リバースエンジニアリング設計では、設計書を書き始める前に「対象は全部で何個あるか」の正本が要る。本スキルはテーブル種別（DB テーブル・ビュー）専任の一覧生成係として、既存コードベースを調査し、<strong>テーブル一覧.html</strong> を機械検証付きで作成する。</p>
@@ -336,7 +339,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   &lt;output_dir&gt;/テーブル一覧/テーブル一覧.html</pre>
   <p class="note">画面種別と違い、テーブル種別に組み込み検出器はない。抽出は常に個別に組み立てる抽出（Claude 自身が戦略宣言に沿って実行）だが、整合検証と HTML 生成は決定的スクリプトに固定されるため、成果物の品質は抽出者に依存しない。</p>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>スキルを実行すると、以下の 2 点が生まれる。</p>
@@ -348,7 +350,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   </div>
   <p class="note">設計書そのもの（テーブル定義書等）の雛形展開・生成・記入は行わない。本スキルの成果物は一覧のみ。</p>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
@@ -362,12 +363,14 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd><code>validate-manifest.sh</code> によるマニフェストの機械検査。抽出者が誰か（どの経路か）に依存せず同一基準で検査し、通過しないマニフェストは一覧 HTML にならない。</dd>
   </dl>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー</h2>
   <p>起動引数は <code>source_dir</code>（探索対象）と <code>output_dir</code>（書き出し先）の 2 つ。種別は table に固定されているため、種別を選ぶ引数はない。開始時に TaskCreate で Phase 1〜4 のタスクを登録し、進捗を TaskUpdate で更新する。</p>
   <table class="spec">
-    <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
+    <tr>
+      <th>Phase</th>
+      <th>内容</th>
+      <th>完了条件</th></tr>
     <tr>
       <td><strong>Phase 1</strong><br>スタック・テーブル規約の特定</td>
       <td>ORM・マイグレーションツール（Prisma/TypeORM/Knex/Alembic 等）の確定、テーブル定義の正本（マイグレーション／モデル／SQL DDL）の特定、命名パターン・除外パターンの調査、検出の方針の宣言の作成</td>
@@ -390,18 +393,28 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     </tr>
   </table>
   <p class="note">エンジンスクリプトはスキルフォルダ相対 <code>../../../generation-engine/scripts/unit-list/</code> で参照する。正本リポジトリと公開先はディレクトリレイアウトが同一のため、この相対参照は両環境でそのまま成立する。</p>
-
   <h3>返却（呼び出し元との契約）</h3>
   <table class="spec">
-    <tr><th>キー</th><th>内容</th></tr>
-    <tr><td><code>status</code></td><td><code>DONE | ERROR</code></td></tr>
-    <tr><td><code>artifacts</code></td><td>生成したテーブル一覧.html のパス</td></tr>
-    <tr><td><code>unit_list_html</code></td><td>artifacts[0] の汎用名</td></tr>
-    <tr><td><code>embedded_json_ref</code></td><td>HTML 内に埋め込んだマニフェスト JSON への参照</td></tr>
-    <tr><td><code>unit_kind</code></td><td><code>table</code>（固定値）</td></tr>
+    <tr>
+      <th>キー</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>status</code></td>
+      <td><code>DONE | ERROR</code></td></tr>
+    <tr>
+      <td><code>artifacts</code></td>
+      <td>生成したテーブル一覧.html のパス</td></tr>
+    <tr>
+      <td><code>unit_list_html</code></td>
+      <td>artifacts[0] の汎用名</td></tr>
+    <tr>
+      <td><code>embedded_json_ref</code></td>
+      <td>HTML 内に埋め込んだマニフェスト JSON への参照</td></tr>
+    <tr>
+      <td><code>unit_kind</code></td>
+      <td><code>table</code>（固定値）</td></tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>制約と禁止事項</h2>
   <div class="constraint">
@@ -418,21 +431,38 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   </div>
   <h3>抽出時の落とし穴</h3>
   <table class="spec">
-    <tr><th>落とし穴</th><th>対処</th></tr>
-    <tr><td>マイグレーションと ORM モデルの二重計上</td><td>どちらを正本とするかを Phase 1 で確定してから抽出する</td></tr>
-    <tr><td>create → alter の積み重ねを別テーブルと誤認</td><td>テーブル単位に集約し、<code>files</code> に関連マイグレーションを列挙する</td></tr>
-    <tr><td>コメントアウトされた DDL の誤検出</td><td>コメント（<code>-- CREATE TABLE ...</code> 等）を除去してから抽出する</td></tr>
-    <tr><td>jq 未インストール環境での検証・生成失敗</td><td>validate/build 両スクリプトが jq に依存するため事前に導入する</td></tr>
+    <tr>
+      <th>落とし穴</th>
+      <th>対処</th></tr>
+    <tr>
+      <td>マイグレーションと ORM モデルの二重計上</td>
+      <td>どちらを正本とするかを Phase 1 で確定してから抽出する</td></tr>
+    <tr>
+      <td>create → alter の積み重ねを別テーブルと誤認</td>
+      <td>テーブル単位に集約し、<code>files</code> に関連マイグレーションを列挙する</td></tr>
+    <tr>
+      <td>コメントアウトされた DDL の誤検出</td>
+      <td>コメント（<code>-- CREATE TABLE ...</code> 等）を除去してから抽出する</td></tr>
+    <tr>
+      <td>jq 未インストール環境での検証・生成失敗</td>
+      <td>validate/build 両スクリプトが jq に依存するため事前に導入する</td></tr>
   </table>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>関連スキル・規約</h2>
   <table class="spec">
-    <tr><th>関連</th><th>関係</th></tr>
-    <tr><td><code>orchestrating-ai-development-setup</code></td><td>工程全体の案内役。本スキルはその一工程（テーブル一覧の確立）を担い、単独起動もできる</td></tr>
-    <tr><td>他の種別別一覧スキル（画面・API・バッチ・帳票・外部連携）</td><td>同じエンジンスクリプトを共用する兄弟スキル。種別が違う一覧はそちらに任せる</td></tr>
-    <tr><td><code>references/table-detection.md</code></td><td>Phase 1 の調査項目とマニフェストスキーマの正本</td></tr>
+    <tr>
+      <th>関連</th>
+      <th>関係</th></tr>
+    <tr>
+      <td><code>orchestrating-ai-development-setup</code></td>
+      <td>工程全体の案内役。本スキルはその一工程（テーブル一覧の確立）を担い、単独起動もできる</td></tr>
+    <tr>
+      <td>他の種別別一覧スキル（画面・API・バッチ・帳票・外部連携）</td>
+      <td>同じエンジンスクリプトを共用する兄弟スキル。種別が違う一覧はそちらに任せる</td></tr>
+    <tr>
+      <td><code>references/table-detection.md</code></td>
+      <td>Phase 1 の調査項目とマニフェストスキーマの正本</td></tr>
   </table>
 </section>
 

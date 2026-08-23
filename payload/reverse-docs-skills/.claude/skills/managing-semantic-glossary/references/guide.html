@@ -277,10 +277,18 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <p>承認済みの意味定義を、候補と混ぜずに変更・検証・公開する統制スキル。</p>
   <div class="def"><dt>こんな人向け</dt><dd>用語steward、業務・技術承認者、基盤保守者</dd><dt>こんな場面で使う</dt><dd>用語の追加・更新・廃止、候補審査、portal公開</dd></div>
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>2026-08-02 指定14列のschema・portal投影CLI・Skill契約テストを実行し、管理手順とai_index境界を照合</td></tr>
-    <tr><td>依存</td><td>Python 3.13、正式validator、portal投影CLI</td></tr>
-    <tr><td>関連資料</td><td>semantic-glossary共通契約、用語管理Skill仕様書、用語運用ルール</td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>2026-08-02 指定14列のschema・portal投影CLI・Skill契約テストを実行し、管理手順とai_index境界を照合</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>Python 3.13、正式validator、portal投影CLI</td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td>semantic-glossary共通契約、用語管理Skill仕様書、用語運用ルール</td></tr>
   </table>
 </header>
 <nav class="toc"><strong>目次</strong>
@@ -311,12 +319,30 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 <section id="s3">
   <h2><span class="sec-num">§3</span>入力とモード</h2>
   <table class="spec">
-    <tr><th>モード</th><th>役割</th><th>定義変更</th></tr>
-    <tr><td>lookup / validate</td><td>検索・検証</td><td>なし</td></tr>
-    <tr><td>review-proposal</td><td>候補の採否材料を確定</td><td>proposal/changeのみ</td></tr>
-    <tr><td>add / update</td><td>承認済み意味定義を変更</td><td>二者承認時のみ</td></tr>
-    <tr><td>deprecate / retire</td><td>移行と履歴保持</td><td>二者承認時のみ</td></tr>
-    <tr><td>publish</td><td>承認済み定義を派生</td><td>派生物のみ</td></tr>
+    <tr>
+      <th>モード</th>
+      <th>役割</th>
+      <th>定義変更</th></tr>
+    <tr>
+      <td>lookup / validate</td>
+      <td>検索・検証</td>
+      <td>なし</td></tr>
+    <tr>
+      <td>review-proposal</td>
+      <td>候補の採否材料を確定</td>
+      <td>proposal/changeのみ</td></tr>
+    <tr>
+      <td>add / update</td>
+      <td>承認済み意味定義を変更</td>
+      <td>二者承認時のみ</td></tr>
+    <tr>
+      <td>deprecate / retire</td>
+      <td>移行と履歴保持</td>
+      <td>二者承認時のみ</td></tr>
+    <tr>
+      <td>publish</td>
+      <td>承認済み定義を派生</td>
+      <td>派生物のみ</td></tr>
   </table>
   <p>review-proposal、add、update、deprecate、retireでは<code>--registry &lt;file-or-dir&gt;</code>が必須。省略時はreview_requiredとして適用を止める。</p>
 </section>
@@ -324,18 +350,32 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <h2><span class="sec-num">§4</span>処理フロー</h2>
   <pre>入力確定 → validator → report schema検証 → 影響確認 → 二者承認 → 適用（任意） → portal投影</pre>
   <table class="spec">
-    <tr><th>exit / status</th><th>扱い</th></tr>
-    <tr><td>0 / valid</td><td>error 0件。review_requiredが1件以上なら適用停止、warningだけなら継続可</td></tr>
-    <tr><td>1 / invalid</td><td>入力・対象を変更せず停止</td></tr>
-    <tr><td>2 / unavailable</td><td>dependency、parse、内部、走査不能として入力・対象を変更せず停止</td></tr>
+    <tr>
+      <th>exit / status</th>
+      <th>扱い</th></tr>
+    <tr>
+      <td>0 / valid</td>
+      <td>error 0件。review_requiredが1件以上なら適用停止、warningだけなら継続可</td></tr>
+    <tr>
+      <td>1 / invalid</td>
+      <td>入力・対象を変更せず停止</td></tr>
+    <tr>
+      <td>2 / unavailable</td>
+      <td>dependency、parse、内部、走査不能として入力・対象を変更せず停止</td></tr>
   </table>
 </section>
 <section id="s5">
   <h2><span class="sec-num">§5</span>二者承認</h2>
   <table class="spec">
-    <tr><th>役割</th><th>判断</th></tr>
-    <tr><td>business approver</td><td>definitionとscopeの業務上の正しさ</td></tr>
-    <tr><td>technical approver</td><td>representation、互換性、移行影響</td></tr>
+    <tr>
+      <th>役割</th>
+      <th>判断</th></tr>
+    <tr>
+      <td>business approver</td>
+      <td>definitionとscopeの業務上の正しさ</td></tr>
+    <tr>
+      <td>technical approver</td>
+      <td>representation、互換性、移行影響</td></tr>
   </table>
   <p>AIは推奨できるが、AIだけをbusiness approverにしない。外部identity provider照合は未実装で、actor/role/decision記録と人のレビューまでを扱う。同一actorが兼任してもrole別承認を要求し、changeのapproved_byへ<code>business_approver:&lt;actor&gt;</code>と<code>technical_approver:&lt;actor&gt;</code>の2件を記録する。</p>
 </section>

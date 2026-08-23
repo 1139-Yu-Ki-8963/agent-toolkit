@@ -276,19 +276,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>意味用語候補生成スキル<br><span class="skill-name">generating-glossary-for-reverse-docs</span></h1>
   <p>コードと既存文書から意味用語の候補を取り出し、<strong>未承認の提案</strong>としてリポジトリ外へ渡す互換スキルの確定仕様。正式な用語集には一切触れない。</p>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td><code>scripts/test-generating-glossary-proposal-contract.sh</code> が外部パス・リポジトリ内への出力拒否・シンボリックリンク拒否・提案の検証・直接 HTML 経路と自動承認文言の不在を確認する</td></tr>
-    <tr><td>依存</td><td><code>python3</code> ／ <code>scripts/write-glossary-proposal-output.py</code>・<code>verify-glossary-proposal-receipt.py</code>・<code>validate-verified-glossary-proposal-bundle.py</code> ／ <code>generation-engine/scripts/glossary/validate-semantic-glossary.sh</code> ／ <code>generation-engine/schemas/semantic-glossary/1.0.0/proposal.schema.yaml</code></td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/glossary-extraction.md</code>, <code>references/test-cases.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td><code>scripts/test-generating-glossary-proposal-contract.sh</code> が外部パス・リポジトリ内への出力拒否・シンボリックリンク拒否・提案の検証・直接 HTML 経路と自動承認文言の不在を確認する</td></tr>
+    <tr>
+      <td>依存</td>
+      <td><code>python3</code> ／ <code>scripts/write-glossary-proposal-output.py</code>・<code>verify-glossary-proposal-receipt.py</code>・<code>validate-verified-glossary-proposal-bundle.py</code> ／ <code>generation-engine/scripts/glossary/validate-semantic-glossary.sh</code> ／ <code>generation-engine/schemas/semantic-glossary/1.0.0/proposal.schema.yaml</code></td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>references/glossary-extraction.md</code>, <code>references/test-cases.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -300,31 +305,39 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s6">関連スキル・資料</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>コードと既存文書には、そのシステムでしか通じない言葉が散らばっている。本スキルはそれらを走査して意味用語の候補を取り出し、観測した事実・推定・根拠を分けた形で提案としてまとめる。</p>
   <p>スキル名に用語集の生成を含むが、生まれるのは未承認の提案だけである。この名前は以前の呼び出し元との互換のために残しているものであり、正式な用語集を作る権限を意味しない。正式な用語集・用語辞書 HTML には一切触れない。</p>
-
   <div class="def">
     <dt>本スキルがやること</dt>
     <dd>コードと既存文書の走査・観測事実と推定の分離・未承認の提案と診断の出力</dd>
     <dt>本スキルがやらないこと</dt>
     <dd>正式な用語集の更新・提案の承認・用語辞書 HTML の生成（いずれも <code>managing-semantic-glossary</code> の担当）</dd>
   </div>
-
   <h3>起動引数</h3>
   <table class="spec">
-    <tr><th>引数</th><th>内容</th></tr>
-    <tr><td><code>target_repo_path</code></td><td>走査対象の実在する絶対パス</td></tr>
-    <tr><td><code>proposal_output_ref</code></td><td>提案の書き出し先。対象リポジトリの外を指す明示的な絶対パスに限る</td></tr>
-    <tr><td><code>target_glossary_key</code></td><td>対象となる用語集の識別キー</td></tr>
-    <tr><td><code>base_content_version</code></td><td>提案の基準となる用語集の版</td></tr>
-    <tr><td><code>source_revision</code></td><td>走査した時点のコードの版</td></tr>
+    <tr>
+      <th>引数</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>target_repo_path</code></td>
+      <td>走査対象の実在する絶対パス</td></tr>
+    <tr>
+      <td><code>proposal_output_ref</code></td>
+      <td>提案の書き出し先。対象リポジトリの外を指す明示的な絶対パスに限る</td></tr>
+    <tr>
+      <td><code>target_glossary_key</code></td>
+      <td>対象となる用語集の識別キー</td></tr>
+    <tr>
+      <td><code>base_content_version</code></td>
+      <td>提案の基準となる用語集の版</td></tr>
+    <tr>
+      <td><code>source_revision</code></td>
+      <td>走査した時点のコードの版</td></tr>
   </table>
   <p class="note">出力先が未指定・相対パス・対象リポジトリ自身またはその配下・シンボリックリンク・既存ファイルのいずれかに該当する場合、本スキルは書き込まずに停止する。</p>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>1 回の実行につき、次の 2 点が対象リポジトリの外に生まれる。</p>
@@ -335,7 +348,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>欠落した書き起こし元・走査できなかった層・未解決の候補・それぞれの件数を持つ JSON。提案ファイルの隣に置かれる</dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <div class="def">
@@ -343,18 +355,26 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>人の審査を待つ状態の候補。承認済みの用語として扱ってはならない</dd>
 </div>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
   <table class="spec">
-    <tr><th>Phase</th><th>内容</th></tr>
-    <tr><td>Phase 1 出力先の検証</td><td><code>write-glossary-proposal-output.py</code> が出力先を検証する。未指定・相対パス・対象リポジトリ内・シンボリックリンク・既存ファイル・親ディレクトリの差し替えを、いずれも書き込まずに拒否する</td></tr>
-    <tr><td>Phase 2 抽出</td><td>コードと既存文書を走査し、観測した事実と推定を分けて候補を取り出す</td></tr>
-    <tr><td>Phase 3 提案の組み立て</td><td>承認の状態を未承認に固定したまま、正式な提案スキーマの形へ組み立てる</td></tr>
-    <tr><td>Phase 4 機械検証と停止</td><td><code>validate-verified-glossary-proposal-bundle.py</code> で検証する。検証を通れば人の審査へ引き渡す状態で停止し、通らなければ 3 回まで修正を試みる</td></tr>
+    <tr>
+      <th>Phase</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>Phase 1 出力先の検証</td>
+      <td><code>write-glossary-proposal-output.py</code> が出力先を検証する。未指定・相対パス・対象リポジトリ内・シンボリックリンク・既存ファイル・親ディレクトリの差し替えを、いずれも書き込まずに拒否する</td></tr>
+    <tr>
+      <td>Phase 2 抽出</td>
+      <td>コードと既存文書を走査し、観測した事実と推定を分けて候補を取り出す</td></tr>
+    <tr>
+      <td>Phase 3 提案の組み立て</td>
+      <td>承認の状態を未承認に固定したまま、正式な提案スキーマの形へ組み立てる</td></tr>
+    <tr>
+      <td>Phase 4 機械検証と停止</td>
+      <td><code>validate-verified-glossary-proposal-bundle.py</code> で検証する。検証を通れば人の審査へ引き渡す状態で停止し、通らなければ 3 回まで修正を試みる</td></tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>守り（禁止事項と機械検証）</h2>
   <h3>禁止事項</h3>
@@ -367,16 +387,27 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <h3>機械検証</h3>
   <p><code>scripts/test-generating-glossary-proposal-contract.sh</code> が、出力先が対象リポジトリの外であること・リポジトリ内への出力が拒否されること・シンボリックリンクが拒否されること・提案が検証を通ること・直接 HTML を生成する経路と自動承認を示す文言が存在しないことを確認する。</p>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>関連スキル・資料</h2>
   <table class="spec">
-    <tr><th>対象</th><th>内容</th></tr>
-    <tr><td><code>SKILL.md</code></td><td>本スキルの手順の定義</td></tr>
-    <tr><td><code>references/glossary-extraction.md</code></td><td>候補の抽出方針</td></tr>
-    <tr><td><code>references/test-cases.md</code></td><td>本スキルの検証観点</td></tr>
-    <tr><td>managing-semantic-glossary</td><td>承認済みの用語集の変更と公開を統制する。提案の審査はこちらの担当</td></tr>
-    <tr><td>maintaining-semantic-glossary</td><td>用語変更の検査と影響分析を担当する</td></tr>
+    <tr>
+      <th>対象</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>SKILL.md</code></td>
+      <td>本スキルの手順の定義</td></tr>
+    <tr>
+      <td><code>references/glossary-extraction.md</code></td>
+      <td>候補の抽出方針</td></tr>
+    <tr>
+      <td><code>references/test-cases.md</code></td>
+      <td>本スキルの検証観点</td></tr>
+    <tr>
+      <td>managing-semantic-glossary</td>
+      <td>承認済みの用語集の変更と公開を統制する。提案の審査はこちらの担当</td></tr>
+    <tr>
+      <td>maintaining-semantic-glossary</td>
+      <td>用語変更の検査と影響分析を担当する</td></tr>
   </table>
 </section>
 

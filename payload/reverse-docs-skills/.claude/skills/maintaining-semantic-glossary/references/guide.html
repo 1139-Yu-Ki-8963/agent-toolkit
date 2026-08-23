@@ -277,10 +277,18 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <p>用語変更の品質と影響を調べ、人が裁定できる変更要求へ整えるスキル。</p>
   <div class="def"><dt>こんな人向け</dt><dd>用語steward、レビュー担当、移行計画担当</dd><dt>こんな場面で使う</dt><dd>追加・更新・廃止の事前検査、重複・未使用調査、影響分析</dd></div>
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>2026-08-02 指定14列の名称別衝突検査契約とSkill契約テストを実行し、保守手順とai_index境界を照合</td></tr>
-    <tr><td>依存</td><td>Python 3.13、正式validator、対象資産の読取権限</td></tr>
-    <tr><td>関連資料</td><td>semantic-glossary共通契約、用語保守Skill仕様書、用語運用ルール</td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>2026-08-02 指定14列の名称別衝突検査契約とSkill契約テストを実行し、保守手順とai_index境界を照合</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>Python 3.13、正式validator、対象資産の読取権限</td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td>semantic-glossary共通契約、用語保守Skill仕様書、用語運用ルール</td></tr>
   </table>
 </header>
 <nav class="toc"><strong>目次</strong>
@@ -311,11 +319,21 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 <section id="s3">
   <h2><span class="sec-num">§3</span>操作</h2>
   <table class="spec">
-    <tr><th>群</th><th>操作</th></tr>
-    <tr><td>変更準備</td><td>add / update / deprecate / retire</td></tr>
-    <tr><td>品質監査</td><td>detect-duplicates / synonyms / forbidden-terms / naming-violations</td></tr>
-    <tr><td>利用監査</td><td>detect-unused-terms / analyze-impact</td></tr>
-    <tr><td>候補・全体</td><td>review-proposal / validate-registry</td></tr>
+    <tr>
+      <th>群</th>
+      <th>操作</th></tr>
+    <tr>
+      <td>変更準備</td>
+      <td>add / update / deprecate / retire</td></tr>
+    <tr>
+      <td>品質監査</td>
+      <td>detect-duplicates / synonyms / forbidden-terms / naming-violations</td></tr>
+    <tr>
+      <td>利用監査</td>
+      <td>detect-unused-terms / analyze-impact</td></tr>
+    <tr>
+      <td>候補・全体</td>
+      <td>review-proposal / validate-registry</td></tr>
   </table>
   <p>deleteモードは持たない。review-proposal、add、update、deprecate、retireでは<code>--registry &lt;file-or-dir&gt;</code>が必須。省略時はreview_requiredとして、変更要求を管理Skillへ渡さない。</p>
 </section>
@@ -327,12 +345,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 <section id="s5">
   <h2><span class="sec-num">§5</span>影響分析</h2>
   <table class="spec">
-    <tr><th>分類</th><th>例</th></tr>
-    <tr><td>直接</td><td>key、API field、DB列</td></tr>
-    <tr><td>派生</td><td>portal、生成文書、将来のAI索引</td></tr>
-    <tr><td>意味</td><td>計算規則、状態遷移</td></tr>
-    <tr><td>互換</td><td>外部API、event、DB契約</td></tr>
-    <tr><td>運用</td><td>FAQ、手順書、教育資料</td></tr>
+    <tr>
+      <th>分類</th>
+      <th>例</th></tr>
+    <tr>
+      <td>直接</td>
+      <td>key、API field、DB列</td></tr>
+    <tr>
+      <td>派生</td>
+      <td>portal、生成文書、将来のAI索引</td></tr>
+    <tr>
+      <td>意味</td>
+      <td>計算規則、状態遷移</td></tr>
+    <tr>
+      <td>互換</td>
+      <td>外部API、event、DB契約</td></tr>
+    <tr>
+      <td>運用</td>
+      <td>FAQ、手順書、教育資料</td></tr>
   </table>
 </section>
 <section id="s6">

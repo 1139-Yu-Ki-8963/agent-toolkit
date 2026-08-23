@@ -1,7 +1,7 @@
 ---
 name: running-reverse-screen-batch
 日本語名: 画面単位の無人一括検証
-description: "画面ごとの検証を無人のまとめ処理で自動的に実行する。"
+description: 対象コード、画面一覧、検証条件、出力先、雛形及び共通資料を入力に、各画面を無人で順に処理して指定工程まで設計書作成・再構築・原本照合を行い、進捗と失敗を記録する。
 invocation: running-reverse-screen-batch
 type: orchestration
 allowed-tools: [Bash, Edit, Read, Write]

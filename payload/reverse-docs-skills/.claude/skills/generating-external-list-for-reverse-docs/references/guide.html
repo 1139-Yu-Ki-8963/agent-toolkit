@@ -276,19 +276,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>外部連携一覧生成スキル<br><span class="skill-name">generating-external-list-for-reverse-docs</span></h1>
   <p>既存コードベースを調査し、外部連携（API クライアント・webhook ハンドラ・メッセージキュー連携等）の単位にファイルをグルーピングして「外部連携一覧.html」を作成するスキルの確定仕様。リバース設計の工程で、設計書をどの単位で書くかを決める判断材料を作る。</p>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>分割元スキル generating-unit-list-for-reverse-docs の external 種別動作（個別に組み立てる抽出）を踏襲。分割後の単独スキルとしての実機検証は未実施</td></tr>
-    <tr><td>依存</td><td>jq / <code>../../../generation-engine/scripts/unit-list/validate-manifest.sh</code> / <code>../../../generation-engine/scripts/unit-list/build-unit-list.sh</code>（スキルフォルダ相対）</td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/external-detection.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>分割元スキル generating-unit-list-for-reverse-docs の external 種別動作（個別に組み立てる抽出）を踏襲。分割後の単独スキルとしての実機検証は未実施</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>jq / <code>../../../generation-engine/scripts/unit-list/validate-manifest.sh</code> / <code>../../../generation-engine/scripts/unit-list/build-unit-list.sh</code>（スキルフォルダ相対）</td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>references/external-detection.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -302,7 +307,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s8">関連スキル・資料</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>リバース設計では、設計書を書き始める前に「対象システムに外部連携がいくつあり、それぞれどのファイル群で実装されているか」の正本が要る。本スキルはこの正本となる<strong>外部連携一覧.html</strong> を、スタック調査 → 検出戦略の宣言 → 戦略に基づく抽出 → 整合検証、の 4 段階で作成する。</p>
@@ -312,7 +316,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <strong>本スキルの仕事は外部連携一覧.html の作成のみ。</strong>設計書の雛形展開・生成・記入は一切行わない（後続工程の担当）。
   </div>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>このスキルを実行すると、以下の 2 点が生まれる。</p>
@@ -323,7 +326,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>一覧の元データ。ユーザー承認済みの検出の方針の宣言と、<code>validate-manifest.sh</code> の全項目 PASS を経た内容だけが埋め込まれる。後続工程はこの埋め込み JSON を機械的に参照できる。</dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
@@ -337,32 +339,47 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd><code>validate-manifest.sh --unit-kind external</code> による機械検証。スキーマ・重複キー・unresolved 隔離などを抽出者非依存で検査し、通過しないマニフェストからは HTML を生成できない。</dd>
   </dl>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>使い方（起動引数と返却）</h2>
   <h3>起動引数（2 つのみ）</h3>
   <table class="spec">
-    <tr><th>引数</th><th>内容</th></tr>
-    <tr><td><code>source_dir</code></td><td>探索対象のソースコードディレクトリ。対象プロジェクトの実コードルート（例: <code>backend/src</code>）を指定する。モノレポの場合はアーキテクチャ調査書 §10 のサイト一覧で確定した当該サイトのルートディレクトリを渡す</td></tr>
-    <tr><td><code>output_dir</code></td><td>外部連携一覧.html の書き出し先ディレクトリ。この配下に <code>外部連携一覧/</code> フォルダが作られる</td></tr>
+    <tr>
+      <th>引数</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>source_dir</code></td>
+      <td>探索対象のソースコードディレクトリ。対象プロジェクトの実コードルート（例: <code>backend/src</code>）を指定する。モノレポの場合はアーキテクチャ調査書 §10 のサイト一覧で確定した当該サイトのルートディレクトリを渡す</td></tr>
+    <tr>
+      <td><code>output_dir</code></td>
+      <td>外部連携一覧.html の書き出し先ディレクトリ。この配下に <code>外部連携一覧/</code> フォルダが作られる</td></tr>
   </table>
   <p class="note">旧スキルにあった <code>unit_kind</code> 引数は持たない（external 固定）。他種別の一覧が必要な場合は対応する種別別一覧スキルを使う。</p>
-
   <h3>返却（orchestrating-ai-development-setup の契約準拠）</h3>
   <table class="spec">
-    <tr><th>キー</th><th>内容</th></tr>
-    <tr><td><code>status</code></td><td><code>DONE</code> / <code>ERROR</code></td></tr>
-    <tr><td><code>artifacts</code></td><td>生成した外部連携一覧.html のパス</td></tr>
-    <tr><td><code>unit_list_html</code></td><td>artifacts[0] の汎用名</td></tr>
-    <tr><td><code>embedded_json_ref</code></td><td>HTML 内に埋め込んだマニフェスト JSON への参照</td></tr>
-    <tr><td><code>unit_kind</code></td><td><code>external</code>（固定値）</td></tr>
+    <tr>
+      <th>キー</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>status</code></td>
+      <td><code>DONE</code> / <code>ERROR</code></td></tr>
+    <tr>
+      <td><code>artifacts</code></td>
+      <td>生成した外部連携一覧.html のパス</td></tr>
+    <tr>
+      <td><code>unit_list_html</code></td>
+      <td>artifacts[0] の汎用名</td></tr>
+    <tr>
+      <td><code>embedded_json_ref</code></td>
+      <td>HTML 内に埋め込んだマニフェスト JSON への参照</td></tr>
+    <tr>
+      <td><code>unit_kind</code></td>
+      <td><code>external</code>（固定値）</td></tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>動作フロー</h2>
   <p>Phase 1〜4 で進む。開始時に TaskCreate で 4 つの Phase タスクを登録し、進行に合わせて TaskUpdate で更新する。</p>
-<pre class="flow"><span class="cap">── 動作フロー（Phase 1〜4）─────────────────────────────</span>
+  <pre class="flow"><span class="cap">── 動作フロー（Phase 1〜4）─────────────────────────────</span>
 
 Phase 1  スタック・連携規約の特定
          依存ライブラリ → 連携定義の所在 → 識別パターン → 除外パターン
@@ -379,24 +396,42 @@ Phase 3  整合検証（機械実行）
 Phase 4  外部連携一覧.html 生成
          build-unit-list.sh（内部でvalidate再実行）
          └─▶ &lt;output_dir&gt;/外部連携一覧/外部連携一覧.html</pre>
-
   <table class="spec">
-    <tr><th>Phase</th><th>完了条件</th></tr>
-    <tr><td>Phase 1</td><td>調査 4 項目（スタック・所在・識別パターン・除外パターン）が完了し、検出の方針の宣言がユーザー承認済み</td></tr>
-    <tr><td>Phase 2</td><td>スキーマ準拠のマニフェスト（配列キー <code>units</code>）が 1 件以上確定、または 0 件検出を報告して停止している</td></tr>
-    <tr><td>Phase 3</td><td><code>validate-manifest.sh --unit-kind external</code> が全項目 PASS（FAIL 時の修正ループは 3 回以内）</td></tr>
-    <tr><td>Phase 4</td><td>外部連携一覧.html が生成され、埋め込み JSON がマニフェストと一致している</td></tr>
+    <tr>
+      <th>Phase</th>
+      <th>完了条件</th></tr>
+    <tr>
+      <td>Phase 1</td>
+      <td>調査 4 項目（スタック・所在・識別パターン・除外パターン）が完了し、検出の方針の宣言がユーザー承認済み</td></tr>
+    <tr>
+      <td>Phase 2</td>
+      <td>スキーマ準拠のマニフェスト（配列キー <code>units</code>）が 1 件以上確定、または 0 件検出を報告して停止している</td></tr>
+    <tr>
+      <td>Phase 3</td>
+      <td><code>validate-manifest.sh --unit-kind external</code> が全項目 PASS（FAIL 時の修正ループは 3 回以内）</td></tr>
+    <tr>
+      <td>Phase 4</td>
+      <td>外部連携一覧.html が生成され、埋め込み JSON がマニフェストと一致している</td></tr>
   </table>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>検出対象と境界の判断基準</h2>
   <table class="spec">
-    <tr><th>調査対象</th><th>検出手法</th></tr>
-    <tr><td>外部連携定義の所在</td><td>API クライアントラッパー、SDK 統合コード、webhook ハンドラ、メッセージキューコンシューマ</td></tr>
-    <tr><td>プロトコル</td><td>REST/GraphQL/gRPC/SOAP/WebSocket/メッセージキュー</td></tr>
-    <tr><td>認証方式</td><td>API キー/OAuth/証明書</td></tr>
-    <tr><td>除外パターン</td><td>モック・スタブ</td></tr>
+    <tr>
+      <th>調査対象</th>
+      <th>検出手法</th></tr>
+    <tr>
+      <td>外部連携定義の所在</td>
+      <td>API クライアントラッパー、SDK 統合コード、webhook ハンドラ、メッセージキューコンシューマ</td></tr>
+    <tr>
+      <td>プロトコル</td>
+      <td>REST/GraphQL/gRPC/SOAP/WebSocket/メッセージキュー</td></tr>
+    <tr>
+      <td>認証方式</td>
+      <td>API キー/OAuth/証明書</td></tr>
+    <tr>
+      <td>除外パターン</td>
+      <td>モック・スタブ</td></tr>
   </table>
   <h3>境界の判断基準</h3>
   <ul>
@@ -406,28 +441,48 @@ Phase 4  外部連携一覧.html 生成
   </ul>
   <p class="note">調査項目の Step 別詳細とマニフェストスキーマの正本は <code>references/external-detection.md</code> を参照。</p>
 </section>
-
 <section id="s7">
   <h2><span class="sec-num">§7</span>制約・禁止事項</h2>
   <table class="spec">
-    <tr><th>制約</th><th>理由</th></tr>
-    <tr><td>HTML の手作業組み立て・プレースホルダの手動置換の禁止</td><td>過去に <code>entryFile=None</code> の混入という実害が発生した。生成は必ず <code>build-unit-list.sh</code> 経由の決定的処理で行う</td></tr>
-    <tr><td>0 件検出時のハード停止</td><td>AskUserQuestion で手動リストを聞き出して誤った境界を即興確定させない。連携を捏造しない</td></tr>
-    <tr><td>設計書の雛形展開・生成・記入はスコープ外</td><td>本スキルの成果物は外部連携一覧.html のみ。設計書は後続工程が担う</td></tr>
-    <tr><td>Phase 1 の調査省略の禁止</td><td>汎用の識別パターンを無条件に当てると境界を取り違える。プロジェクト固有の連携規約を先に確認する</td></tr>
-    <tr><td>モック・スタブの除外</td><td>テスト用の偽クライアントを実連携として数えない。Phase 1 の除外パターンで先に隔離する</td></tr>
+    <tr>
+      <th>制約</th>
+      <th>理由</th></tr>
+    <tr>
+      <td>HTML の手作業組み立て・プレースホルダの手動置換の禁止</td>
+      <td>過去に <code>entryFile=None</code> の混入という実害が発生した。生成は必ず <code>build-unit-list.sh</code> 経由の決定的処理で行う</td></tr>
+    <tr>
+      <td>0 件検出時のハード停止</td>
+      <td>AskUserQuestion で手動リストを聞き出して誤った境界を即興確定させない。連携を捏造しない</td></tr>
+    <tr>
+      <td>設計書の雛形展開・生成・記入はスコープ外</td>
+      <td>本スキルの成果物は外部連携一覧.html のみ。設計書は後続工程が担う</td></tr>
+    <tr>
+      <td>Phase 1 の調査省略の禁止</td>
+      <td>汎用の識別パターンを無条件に当てると境界を取り違える。プロジェクト固有の連携規約を先に確認する</td></tr>
+    <tr>
+      <td>モック・スタブの除外</td>
+      <td>テスト用の偽クライアントを実連携として数えない。Phase 1 の除外パターンで先に隔離する</td></tr>
   </table>
   <p class="note">エンジンスクリプト（<code>validate-manifest.sh</code> / <code>build-unit-list.sh</code>）は jq に依存する。未インストール環境では事前に導入する。スクリプトはスキルフォルダ相対 <code>../../../generation-engine/scripts/unit-list/</code> で参照する（正本リポジトリと公開先はレイアウト同一のため両環境で成立する）。</p>
 </section>
-
 <section id="s8">
   <h2><span class="sec-num">§8</span>関連スキル・資料</h2>
   <table class="spec">
-    <tr><th>関連</th><th>関係</th></tr>
-    <tr><td><code>orchestrating-ai-development-setup</code></td><td>工程全体の案内役。本スキルはその一工程（外部連携一覧の生成）を担い、単独起動もできる</td></tr>
-    <tr><td>種別別一覧スキル群（画面・API・テーブル・バッチ・帳票）</td><td>他ユニット種別の一覧生成はそれぞれの専用スキルが担う。本スキルは external のみ</td></tr>
-    <tr><td><code>references/external-detection.md</code></td><td>外部連携の調査項目・マニフェストスキーマの正本</td></tr>
-    <tr><td><code>SKILL.md</code></td><td>本スキルの実行仕様の正本（Phase 別の完了条件・返却契約を含む）</td></tr>
+    <tr>
+      <th>関連</th>
+      <th>関係</th></tr>
+    <tr>
+      <td><code>orchestrating-ai-development-setup</code></td>
+      <td>工程全体の案内役。本スキルはその一工程（外部連携一覧の生成）を担い、単独起動もできる</td></tr>
+    <tr>
+      <td>種別別一覧スキル群（画面・API・テーブル・バッチ・帳票）</td>
+      <td>他ユニット種別の一覧生成はそれぞれの専用スキルが担う。本スキルは external のみ</td></tr>
+    <tr>
+      <td><code>references/external-detection.md</code></td>
+      <td>外部連携の調査項目・マニフェストスキーマの正本</td></tr>
+    <tr>
+      <td><code>SKILL.md</code></td>
+      <td>本スキルの実行仕様の正本（Phase 別の完了条件・返却契約を含む）</td></tr>
   </table>
 </section>
 

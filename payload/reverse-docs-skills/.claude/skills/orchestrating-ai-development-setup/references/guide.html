@@ -276,7 +276,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>リバース設計書往復検証オーケストレーター<br><span class="skill-name">orchestrating-ai-development-setup</span></h1>
   <p>リバース設計書往復検証フローの進行係（管理者）。自分では検証・比較・実装を行わず、状態判定 → 子スキルを args 全量指定で Skill 起動 → 返却ブロックの status で確認 → 次工程決定、というループで工程全体を統括する。</p>
@@ -287,15 +286,21 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <dt>こんな場面で使う</dt>
   <dd>リバース検証の進行・工程統括、画面一覧から基準確立までを通しで動かしたいとき。個別工程だけを単発で動かしたい場合は本スキルではなく各子スキルを単独起動する（SKIP 対象）。</dd>
   </dl>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>2026-07-28: Phase 1〜7 / global Step 1〜41、条件分岐、Back-edge、35 Skillと26 operational refsの番号整合を構造検査で確認済み</td></tr>
-    <tr><td>依存</td><td>ツール: Read, Bash, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate, Skill, Agent ／ 子スキル: surveying-architecture-for-reverse-docs, 種別別一覧生成スキル6種（generating-screen-list-for-reverse-docs / generating-api-list-for-reverse-docs / generating-table-list-for-reverse-docs / generating-batch-list-for-reverse-docs / generating-report-list-for-reverse-docs / generating-external-list-for-reverse-docs）, generating-reverse-common-docs, syncing-reverse-env, unlocking-reverse-target-screens, extracting-unit-facts-from-code, generating-reverse-detailed-design, rebuilding-screen-unit-from-docs, rebuilding-code-from-docs, generating-api-detail-design-for-reverse-docs, generating-api-basic-design-for-reverse-docs, generating-feature-design-for-reverse-docs, generating-table-logical-model-for-reverse-docs, generating-table-definition-for-reverse-docs, generating-batch-basic-design-for-reverse-docs, generating-batch-detail-design-for-reverse-docs, generating-report-basic-design-for-reverse-docs, generating-report-detail-design-for-reverse-docs, generating-external-basic-design-for-reverse-docs, generating-external-detail-design-for-reverse-docs ／ 統括対象の子スキル群と同一環境で動作する</td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>、<code>references/contract.md</code>（返却ブロック契約・args仕様・状態判定表の正本）、<code>references/chapter-map.md</code>、<code>assets/リバース検証/</code>、<code>scripts/audit-consistency.sh</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>2026-07-28: Phase 1〜7 / global Step 1〜41、条件分岐、Back-edge、35 Skillと26 operational refsの番号整合を構造検査で確認済み</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>ツール: Read, Bash, Grep, Glob, AskUserQuestion, TaskCreate, TaskUpdate, Skill, Agent ／ 子スキル: surveying-architecture-for-reverse-docs, 種別別一覧生成スキル6種（generating-screen-list-for-reverse-docs / generating-api-list-for-reverse-docs / generating-table-list-for-reverse-docs / generating-batch-list-for-reverse-docs / generating-report-list-for-reverse-docs / generating-external-list-for-reverse-docs）, generating-reverse-common-docs, syncing-reverse-env, unlocking-reverse-target-screens, extracting-unit-facts-from-code, generating-reverse-detailed-design, rebuilding-screen-unit-from-docs, rebuilding-code-from-docs, generating-api-detail-design-for-reverse-docs, generating-api-basic-design-for-reverse-docs, generating-feature-design-for-reverse-docs, generating-table-logical-model-for-reverse-docs, generating-table-definition-for-reverse-docs, generating-batch-basic-design-for-reverse-docs, generating-batch-detail-design-for-reverse-docs, generating-report-basic-design-for-reverse-docs, generating-report-detail-design-for-reverse-docs, generating-external-basic-design-for-reverse-docs, generating-external-detail-design-for-reverse-docs ／ 統括対象の子スキル群と同一環境で動作する</td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>、<code>references/contract.md</code>（返却ブロック契約・args仕様・状態判定表の正本）、<code>references/chapter-map.md</code>、<code>assets/リバース検証/</code>、<code>scripts/audit-consistency.sh</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -315,7 +320,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 <!-- ===== §1 概要 ===== -->
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-
   <p>
   <code>orchestrating-ai-development-setup</code> はリバース設計書往復検証フローの進行係（管理者）。
   自分では検証・比較・実装を一切行わず、状態判定 → 子スキルを args 全量指定で <code>Skill</code> 起動 →
@@ -332,7 +336,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <code>rebuilding-code-from-docs</code>）は互いを知らず、
   工程間の受け渡しはすべて本スキルが仲介する（完全仲介方式）。契約の正本は <code>references/contract.md</code>。
   </p>
-
   <div class="constraint">
     <strong>使用タイミング / スキップ条件</strong><br>
     使用する: リバース検証を工程統括したいとき（画面一覧生成から基準タグ確立までの一連の流れ）。<br>
@@ -355,36 +358,81 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 <!-- ===== §3 状態判定表と判定フロー（15状態） ===== -->
 <section id="s3">
   <h2><span class="sec-num">§3</span>状態判定表と判定フロー（15状態）</h2>
-
   <p>
   成果物の実在から現在の状態を15状態で判定し、次に起動する子スキルを機械的に決定する。
   判定はアーキテクチャ調査・一覧・共通の書き起こし・ポータル・任意ページを先に確認し、その後に facts確定、基本設計・詳細設計、画面開通、ファイル単位検証、基準確立、judge の順に降りる。画面未開通でも静的リバースは止めない。
   成果物の実在から毎回評価するので中断後も再開できる。
   </p>
-
   <table class="spec">
     <thead>
-      <tr><th>状態キー</th><th>判定の要点</th><th>次に起動する子スキル</th></tr>
+      <tr>
+        <th>状態キー</th>
+        <th>判定の要点</th>
+        <th>次に起動する子スキル</th></tr>
     </thead>
     <tbody>
-      <tr><td>アーキ未調査</td><td>アーキテクチャ調査書が不在、または調査ゲートの再実行が失敗</td><td>surveying-architecture-for-reverse-docs</td></tr>
-      <tr><td>一覧未生成</td><td>実在種別の一覧HTML、または対象外種別の該当なし記録が不在</td><td>generating-&lt;種別&gt;-list-for-reverse-docs（不在種別のみ）</td></tr>
-      <tr><td>共通未書き起こし</td><td>プロジェクト共通10文書のいずれかが不在、または共通文書ゲートが失敗</td><td>generating-reverse-common-docs</td></tr>
-      <tr><td>ポータル未生成</td><td><code>&lt;output_dir&gt;/index.html</code> が不在</td><td>bash generation-engine/scripts/build-portal.sh</td></tr>
-      <tr><td>基盤ページ未生成（任意）</td><td>基盤ページ群のいずれかが不在。データ源未整備時はスキップ可</td><td>不在ページに対応する基盤ページ生成スキル</td></tr>
-      <tr><td>状態遷移図未生成（任意）</td><td>状態遷移図.html が不在。データ源未整備時はスキップ可</td><td>generating-entity-state-for-reverse-docs</td></tr>
-      <tr><td>シーケンス図未生成（任意）</td><td>画面フォルダのシーケンス図.html が不在。データ源未整備時はスキップ可</td><td>generating-sequence-diagram-for-reverse-docs</td></tr>
-      <tr><td>事実未確定</td><td>facts.lock が不在、または確定検証が失敗</td><td>extracting-unit-facts-from-code</td></tr>
-      <tr><td>基本設計未著述</td><td>画面基本設計書が不在</td><td>generating-reverse-basic-design</td></tr>
-      <tr><td>設計書未著述</td><td>対象ファイル行、完全性ゲート成果物、または現在の facts に対応する著述が不在</td><td>generating-reverse-detailed-design（静的リバースの必須工程）</td></tr>
-      <tr><td>画面未開通</td><td>静的成果物は著述済みだが実レンダリング確認済みの verification_url がない</td><td><code>docs-only</code> は静的リバース完了。<code>single-pass</code> / <code>iterative</code> は unlocking-reverse-target-screens</td></tr>
-      <tr><td>ファイル単位未検証</td><td>検証記録に着手済みで、直近の記録が再現一致でない（任意工程）</td><td>rebuilding-screen-unit-from-docs</td></tr>
-      <tr><td>基準未確立</td><td>設計書有・<code>baseline_tag</code> 未確立</td><td>syncing-reverse-env（mode=setup → sync）</td></tr>
-      <tr><td>往復未検証</td><td><code>baseline_tag</code> 有・judge の直近記録が PASS でない</td><td>rebuilding-code-from-docs（implement）→ syncing-reverse-env（sync,dry-run）→ rebuilding-code-from-docs（judge）</td></tr>
-      <tr><td>検証完了</td><td>judge の <code>status=PASS</code></td><td>syncing-reverse-env（mode=sync 本番 / 依頼時 teardown）</td></tr>
+      <tr>
+        <td>アーキ未調査</td>
+        <td>アーキテクチャ調査書が不在、または調査ゲートの再実行が失敗</td>
+        <td>surveying-architecture-for-reverse-docs</td></tr>
+      <tr>
+        <td>一覧未生成</td>
+        <td>実在種別の一覧HTML、または対象外種別の該当なし記録が不在</td>
+        <td>generating-&lt;種別&gt;-list-for-reverse-docs（不在種別のみ）</td></tr>
+      <tr>
+        <td>共通未書き起こし</td>
+        <td>プロジェクト共通10文書のいずれかが不在、または共通文書ゲートが失敗</td>
+        <td>generating-reverse-common-docs</td></tr>
+      <tr>
+        <td>ポータル未生成</td>
+        <td><code>&lt;output_dir&gt;/index.html</code> が不在</td>
+        <td>bash generation-engine/scripts/build-portal.sh</td></tr>
+      <tr>
+        <td>基盤ページ未生成（任意）</td>
+        <td>基盤ページ群のいずれかが不在。データ源未整備時はスキップ可</td>
+        <td>不在ページに対応する基盤ページ生成スキル</td></tr>
+      <tr>
+        <td>状態遷移図未生成（任意）</td>
+        <td>状態遷移図.html が不在。データ源未整備時はスキップ可</td>
+        <td>generating-entity-state-for-reverse-docs</td></tr>
+      <tr>
+        <td>シーケンス図未生成（任意）</td>
+        <td>画面フォルダのシーケンス図.html が不在。データ源未整備時はスキップ可</td>
+        <td>generating-sequence-diagram-for-reverse-docs</td></tr>
+      <tr>
+        <td>事実未確定</td>
+        <td>facts.lock が不在、または確定検証が失敗</td>
+        <td>extracting-unit-facts-from-code</td></tr>
+      <tr>
+        <td>基本設計未著述</td>
+        <td>画面基本設計書が不在</td>
+        <td>generating-reverse-basic-design</td></tr>
+      <tr>
+        <td>設計書未著述</td>
+        <td>対象ファイル行、完全性ゲート成果物、または現在の facts に対応する著述が不在</td>
+        <td>generating-reverse-detailed-design（静的リバースの必須工程）</td></tr>
+      <tr>
+        <td>画面未開通</td>
+        <td>静的成果物は著述済みだが実レンダリング確認済みの verification_url がない</td>
+        <td><code>docs-only</code> は静的リバース完了。<code>single-pass</code> / <code>iterative</code> は unlocking-reverse-target-screens</td></tr>
+      <tr>
+        <td>ファイル単位未検証</td>
+        <td>検証記録に着手済みで、直近の記録が再現一致でない（任意工程）</td>
+        <td>rebuilding-screen-unit-from-docs</td></tr>
+      <tr>
+        <td>基準未確立</td>
+        <td>設計書有・<code>baseline_tag</code> 未確立</td>
+        <td>syncing-reverse-env（mode=setup → sync）</td></tr>
+      <tr>
+        <td>往復未検証</td>
+        <td><code>baseline_tag</code> 有・judge の直近記録が PASS でない</td>
+        <td>rebuilding-code-from-docs（implement）→ syncing-reverse-env（sync,dry-run）→ rebuilding-code-from-docs（judge）</td></tr>
+      <tr>
+        <td>検証完了</td>
+        <td>judge の <code>status=PASS</code></td>
+        <td>syncing-reverse-env（mode=sync 本番 / 依頼時 teardown）</td></tr>
     </tbody>
   </table>
-
   <p class="note">下図は15状態全体ではなく、画面単位の後段7状態を示す補助図である。S1b が <code>status=差し戻し</code> を返した場合の S1a への差し戻しは <code>verification_mode=iterative</code> のときだけ行う。<code>single-pass</code> は結果を報告して停止し、<code>docs-only</code> は動的検証を起動しない。</p>
 
   <figure class="diagram">
@@ -478,38 +526,57 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 <!-- ===== §4 Phase 1〜7 / global Step 1〜41 ===== -->
 <section id="s4">
   <h2><span class="sec-num">§4</span>Phase 1〜7 / global Step 1〜41</h2>
-
   <table class="spec">
     <thead>
-      <tr><th>Phase</th><th>内容</th><th>実行条件</th></tr>
+      <tr>
+        <th>Phase</th>
+        <th>内容</th>
+        <th>実行条件</th></tr>
     </thead>
     <tbody>
-      <tr><td>Phase 1 / Step 1〜2</td><td>対象・出力先・スコープ・実行モード・状態を確定する。<code>facts_profile=python</code> を明示した場合は画面範囲を求めず、<code>target_file_paths</code>・<code>facts_unit_id</code>・<code>verification_dir</code> を確定して明示Python facts-only経路で終端する</td><td>常時</td></tr>
-      <tr><td>Phase 2 / Step 3〜8</td><td>アーキテクチャ調査と明示的なrevise 戻り方向の依存</td><td>アーキ未調査または検出手がかり不足時</td></tr>
-      <tr><td>Phase 3 / Step 9〜11</td><td>種別別一覧、対象外記録、機能一覧、マトリクス・対応表を確定する</td><td>一覧・派生成果物が未生成時</td></tr>
-      <tr><td>Phase 4 / Step 12〜16</td><td>共通文書、ポータル、任意基盤ページを確定する</td><td>共通未書き起こしまたはポータル未生成時</td></tr>
-      <tr><td>Phase 5 / Step 17〜39</td><td>facts確定、基本設計・詳細設計の静的リバース（29〜39は非画面ユニットの静的著述）</td><td>screen種別。docs-onlyはStep 28で終端。api種別はStep 31、機能はStep 30で終端</td></tr>
-      <tr><td>Phase 6 / Step 40</td><td>unlock→setup→file verify→baseline sync→implement→compare</td><td><code>single-pass</code> / <code>iterative</code>のみ</td></tr>
-      <tr><td>Phase 7 / Step 41</td><td>judge、基準更新、必要時teardown、明示戻り方向の依存</td><td>比較結果取得後</td></tr>
+      <tr>
+        <td>Phase 1 / Step 1〜2</td>
+        <td>対象・出力先・スコープ・実行モード・状態を確定する。<code>facts_profile=python</code> を明示した場合は画面範囲を求めず、<code>target_file_paths</code>・<code>facts_unit_id</code>・<code>verification_dir</code> を確定して明示Python facts-only経路で終端する</td>
+        <td>常時</td></tr>
+      <tr>
+        <td>Phase 2 / Step 3〜8</td>
+        <td>アーキテクチャ調査と明示的なrevise 戻り方向の依存</td>
+        <td>アーキ未調査または検出手がかり不足時</td></tr>
+      <tr>
+        <td>Phase 3 / Step 9〜11</td>
+        <td>種別別一覧、対象外記録、機能一覧、マトリクス・対応表を確定する</td>
+        <td>一覧・派生成果物が未生成時</td></tr>
+      <tr>
+        <td>Phase 4 / Step 12〜16</td>
+        <td>共通文書、ポータル、任意基盤ページを確定する</td>
+        <td>共通未書き起こしまたはポータル未生成時</td></tr>
+      <tr>
+        <td>Phase 5 / Step 17〜39</td>
+        <td>facts確定、基本設計・詳細設計の静的リバース（29〜39は非画面ユニットの静的著述）</td>
+        <td>screen種別。docs-onlyはStep 28で終端。api種別はStep 31、機能はStep 30で終端</td></tr>
+      <tr>
+        <td>Phase 6 / Step 40</td>
+        <td>unlock→setup→file verify→baseline sync→implement→compare</td>
+        <td><code>single-pass</code> / <code>iterative</code>のみ</td></tr>
+      <tr>
+        <td>Phase 7 / Step 41</td>
+        <td>judge、基準更新、必要時teardown、明示戻り方向の依存</td>
+        <td>比較結果取得後</td></tr>
     </tbody>
   </table>
-
   <div class="constraint">
     <strong>facts profileの境界</strong><br>
     起動引数が空の対話実行ではprofileを質問し、<code>python</code>選択時は<code>target_repo_path</code>・<code>output_dir</code>・<code>target_file_paths</code>・<code>facts_unit_id</code>・<code>verification_dir</code>・実行モードを収集する。<code>target_file_paths</code>は対象リポジトリ内に実在する相対<code>.py</code>パスだけを許可し、外部絶対パスは要求しない。フル実行は global Step 3 以降へ進まず、global Step 2 の明示Python facts-only経路へ分岐する。通常の画面ループは対象ファイルの拡張子にかかわらず常に <code>profile=screen</code> を使う。<code>profile=python</code> は明示した経路だけで使う。この経路は <code>survey_doc_path</code> を既存調査書から解決し、不在なら <code>surveying-architecture-for-reverse-docs(mode=survey)</code>、不合格なら <code>mode=revise</code> で確定してからfacts抽出へ進み、facts確定後に終端する。拡張子だけから画面フローをPython facts-onlyへ切り替えない。
   </div>
-
   <div class="constraint">
     <strong>静的完了前の画面一覧更新</strong><br>
     基本設計・詳細設計の著述が合流したら、永続 <code>screen-manifest.json</code> を直接解決する。通常再開で不在なら停止する。rawが無い旧成果物を明示的に移行・復元する場合だけ、既存画面一覧HTMLの <code>#screen-manifest</code> から <code>restore-screen-manifest.sh</code> で復元・検証する。その後、設計書メタデータ抽出と画面一覧生成を再実行し、実在する4成果物のリンク・確定画面名・登録件数と表行数を確認してから、画面レジストリを <code>authored</code> へ更新する。
   </div>
-
   <div class="constraint">
     <strong>global Step 40〜41 の関係</strong><br>
     <code>rebuilding-code-from-docs</code> は <code>mode</code> で2分割される（<code>implement</code>=比較要求を返して停止 / <code>judge</code>=比較結果を受け取り判定）。
     管理者がこの2回を別々に起動し、global Step 40内で sync dry-run を挟む。
   </div>
-
   <div class="constraint">
     <strong>種別ループ</strong><br>
     管理者は excluded-kinds.json の presentKinds に記載された各種別についてループする。screen のみユニット反復〜基準確立〜往復検証へ進む。
@@ -521,28 +588,64 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 <!-- ===== §5 サブエージェント委任仕様 ===== -->
 <section id="s5">
   <h2><span class="sec-num">§5</span>サブエージェント委任仕様</h2>
-
   <p>子スキルは args 全量指定・対話ゼロで起動する（子は <code>AskUserQuestion</code> を発行しない契約）。</p>
-
   <table class="spec">
     <thead>
-      <tr><th>呼び出し箇所</th><th>invocation</th><th>args骨格</th><th>期待返却 status</th></tr>
+      <tr>
+        <th>呼び出し箇所</th>
+        <th>invocation</th>
+        <th>args骨格</th>
+        <th>期待返却 status</th></tr>
     </thead>
     <tbody>
-      <tr><td>global Step 2（明示Python facts-only）</td><td>extracting-unit-facts-from-code</td><td>target_repo_path, target_file_paths, logical screen_dir, verification_dir, profile=python, survey_doc_path, run_id</td><td><span class="tag pass">封印済み→Python facts封印完了</span></td></tr>
-      <tr><td>global Step 3〜7</td><td>surveying-architecture-for-reverse-docs</td><td>target_repo_path, output_dir, template_root, mode</td><td><span class="tag pass">調査確定</span></td></tr>
-      <tr><td>global Step 9</td><td>generating-&lt;種別&gt;-list-for-reverse-docs</td><td>source_dir, output_dir</td><td><span class="tag pass">DONE</span></td></tr>
-      <tr><td>global Step 10〜11</td><td>generating-feature-list-for-reverse-docs / generating-cross-views-for-reverse-docs</td><td>source_dir, target_repo_path, output_dir, portal_output_dir（任意）, sites_path（任意）, site_key（任意）</td><td><span class="tag pass">DONE</span></td></tr>
-      <tr><td>global Step 12〜15</td><td>generating-reverse-common-docs</td><td>target_repo_path, output_dir, template_root, survey_doc_path, mode</td><td><span class="tag pass">採録v0確定 / 追記完了</span></td></tr>
-      <tr><td>global Step 18〜21</td><td>extracting-unit-facts-from-code</td><td>target_repo_path, target_file_paths, screen_dir, profile=screen, survey_doc_path, run_id</td><td><span class="tag pass">封印済み</span></td></tr>
-      <tr><td>global Step 22〜28</td><td>generating-reverse-basic-design / generating-reverse-detailed-design</td><td>facts_ref, common_docs_root, authoring_pass等</td><td><span class="tag pass">基本設計著述完了 / AUTHORED</span></td></tr>
-      <tr><td>global Step 40</td><td>unlocking / syncing / rebuilding-screen-unit / rebuilding-code</td><td>動的検証に必要なargs全量</td><td><span class="tag mode">NEED-COMPARE</span></td></tr>
-      <tr><td>global Step 41</td><td>rebuilding-code-from-docs / syncing-reverse-env</td><td>mode=judge, compare_result, freeze_commit / mode=sync</td><td><span class="tag pass">PASS</span>/<span class="tag fail">FAIL</span></td></tr>
+      <tr>
+        <td>global Step 2（明示Python facts-only）</td>
+        <td>extracting-unit-facts-from-code</td>
+        <td>target_repo_path, target_file_paths, logical screen_dir, verification_dir, profile=python, survey_doc_path, run_id</td>
+        <td><span class="tag pass">封印済み→Python facts封印完了</span></td></tr>
+      <tr>
+        <td>global Step 3〜7</td>
+        <td>surveying-architecture-for-reverse-docs</td>
+        <td>target_repo_path, output_dir, template_root, mode</td>
+        <td><span class="tag pass">調査確定</span></td></tr>
+      <tr>
+        <td>global Step 9</td>
+        <td>generating-&lt;種別&gt;-list-for-reverse-docs</td>
+        <td>source_dir, output_dir</td>
+        <td><span class="tag pass">DONE</span></td></tr>
+      <tr>
+        <td>global Step 10〜11</td>
+        <td>generating-feature-list-for-reverse-docs / generating-cross-views-for-reverse-docs</td>
+        <td>source_dir, target_repo_path, output_dir, portal_output_dir（任意）, sites_path（任意）, site_key（任意）</td>
+        <td><span class="tag pass">DONE</span></td></tr>
+      <tr>
+        <td>global Step 12〜15</td>
+        <td>generating-reverse-common-docs</td>
+        <td>target_repo_path, output_dir, template_root, survey_doc_path, mode</td>
+        <td><span class="tag pass">採録v0確定 / 追記完了</span></td></tr>
+      <tr>
+        <td>global Step 18〜21</td>
+        <td>extracting-unit-facts-from-code</td>
+        <td>target_repo_path, target_file_paths, screen_dir, profile=screen, survey_doc_path, run_id</td>
+        <td><span class="tag pass">封印済み</span></td></tr>
+      <tr>
+        <td>global Step 22〜28</td>
+        <td>generating-reverse-basic-design / generating-reverse-detailed-design</td>
+        <td>facts_ref, common_docs_root, authoring_pass等</td>
+        <td><span class="tag pass">基本設計著述完了 / AUTHORED</span></td></tr>
+      <tr>
+        <td>global Step 40</td>
+        <td>unlocking / syncing / rebuilding-screen-unit / rebuilding-code</td>
+        <td>動的検証に必要なargs全量</td>
+        <td><span class="tag mode">NEED-COMPARE</span></td></tr>
+      <tr>
+        <td>global Step 41</td>
+        <td>rebuilding-code-from-docs / syncing-reverse-env</td>
+        <td>mode=judge, compare_result, freeze_commit / mode=sync</td>
+        <td><span class="tag pass">PASS</span>/<span class="tag fail">FAIL</span></td></tr>
     </tbody>
   </table>
-
   <p class="note"><code>Agent</code>（サブエージェント）は実行前の確認の並行事実確認等に限定して用いる。実検証は子スキルへ委ねる。</p>
-
   <div class="constraint">
     <strong>重要な注意事項</strong><br>
     白紙化などの破壊的操作のユーザー承認は管理者が事前に取り、<code>user-approved</code> として args で渡す（子はユーザーに直接聞かない）。<br>
@@ -554,33 +657,45 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 <!-- ===== §6 返却ブロック契約 ===== -->
 <section id="s6">
   <h2><span class="sec-num">§6</span>返却ブロック契約</h2>
-
   <p>
   正本は <code>references/contract.md</code>。管理者は各子スキルの返却ブロックを共通サブセットで確認し、状態判定表に従って次工程を機械的に決定する。
   これにより管理者と子スキルの間には契約書という単一の仲介点だけが存在し、子スキル同士が互いの内部仕様を知る必要がない完全仲介方式が成立する。
   </p>
-
   <h3>返却ブロック共通サブセット</h3>
-
   <table class="spec">
     <thead>
-      <tr><th>キー</th><th>型</th><th>意味</th></tr>
+      <tr>
+        <th>キー</th>
+        <th>型</th>
+        <th>意味</th></tr>
     </thead>
     <tbody>
-      <tr><td><code>status</code></td><td>enum</td><td>各スキル固有の enum。管理者はこれで go / 差し戻しを判定する</td></tr>
-      <tr><td><code>scope</code></td><td>string</td><td><code>&lt;system&gt;-&lt;画面ID&gt;</code>。工程を跨いだ同一性キー</td></tr>
-      <tr><td><code>artifacts</code></td><td>path[]</td><td>生成物のパス（画面一覧HTML / 修正指示書.md / 最終報告.md / 証跡ディレクトリ 等）</td></tr>
-      <tr><td><code>hint</code></td><td>string</td><td>次工程への申し送り（差し戻し理由・不足引数・後続工程への申し送り 等）</td></tr>
+      <tr>
+        <td><code>status</code></td>
+        <td>enum</td>
+        <td>各スキル固有の enum。管理者はこれで go / 差し戻しを判定する</td></tr>
+      <tr>
+        <td><code>scope</code></td>
+        <td>string</td>
+        <td><code>&lt;system&gt;-&lt;画面ID&gt;</code>。工程を跨いだ同一性キー</td></tr>
+      <tr>
+        <td><code>artifacts</code></td>
+        <td>path[]</td>
+        <td>生成物のパス（画面一覧HTML / 修正指示書.md / 最終報告.md / 証跡ディレクトリ 等）</td></tr>
+      <tr>
+        <td><code>hint</code></td>
+        <td>string</td>
+        <td>次工程への申し送り（差し戻し理由・不足引数・後続工程への申し送り 等）</td></tr>
     </tbody>
   </table>
-
   <p class="note">注記: <code>next_request</code> という語は使わない。<code>syncing-reverse-env</code> の実返却ブロックに存在しないフィールドのため。次工程への依頼内容は <code>hint</code> または各スキル固有の拡張フィールドで表す。</p>
-
   <h3>各スキル固有の status enum と拡張フィールド</h3>
-
   <table class="spec">
     <thead>
-      <tr><th>子スキル</th><th>status enum</th><th>拡張フィールド</th></tr>
+      <tr>
+        <th>子スキル</th>
+        <th>status enum</th>
+        <th>拡張フィールド</th></tr>
     </thead>
     <tbody>
       <tr>
@@ -626,38 +741,56 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 <!-- ===== §7 args 仕様 ===== -->
 <section id="s7">
   <h2><span class="sec-num">§7</span>args 仕様</h2>
-
   <p>管理者と各子スキルが受け取る引数の全量。単独起動時はユーザーが同じ args を手渡しすれば動く。</p>
-
   <table class="spec">
     <thead>
-      <tr><th>子スキル</th><th>args</th></tr>
+      <tr>
+        <th>子スキル</th>
+        <th>args</th></tr>
     </thead>
     <tbody>
-      <tr><td>管理者</td><td><code>verification_mode</code>（<code>docs-only</code> | <code>single-pass</code> | <code>iterative</code>、既定 <code>single-pass</code>）。docs-only は facts・基本設計・詳細設計まで、single-pass は動的検証を1回、iterative は FAIL 後の改善反復も行う</td></tr>
-      <tr><td>各一覧生成スキル（6スキル共通）</td><td>source_dir, output_dir（unit_kind は各スキルの固定値のため args に含めない）</td></tr>
-      <tr><td>syncing-reverse-env</td><td>design-doc, mode（setup|sync|teardown）, dry-run, reset-first, user-approved, scenarios, max-loop（既存契約のまま）</td></tr>
-      <tr><td>generating-reverse-detailed-design</td><td>screen_dir, output_dir, template_root, chapter_map_path, audit_script_path, target_repo_path, target_branch, source_ref, mode, target_file_path（mode=file時）, screenshot_dir（任意）, registry値（任意）</td></tr>
-      <tr><td>rebuilding-screen-unit-from-docs</td><td>screen_dir, target_file_path, output_dir, template_root, audit_script_path, chapter_map_path, env_block, user-approved</td></tr>
-      <tr><td>rebuilding-code-from-docs (mode=implement)</td><td>screen_dir, scope, reverse_worktree, ports, baseline_tag_status, output_dir, template_root, audit_script_path, chapter_map_path, user-approved</td></tr>
-      <tr><td>rebuilding-code-from-docs (mode=judge)</td><td>screen_dir, compare_result, reverse_worktree, freeze_commit</td></tr>
+      <tr>
+        <td>管理者</td>
+        <td><code>verification_mode</code>（<code>docs-only</code> | <code>single-pass</code> | <code>iterative</code>、既定 <code>single-pass</code>）。docs-only は facts・基本設計・詳細設計まで、single-pass は動的検証を1回、iterative は FAIL 後の改善反復も行う</td></tr>
+      <tr>
+        <td>各一覧生成スキル（6スキル共通）</td>
+        <td>source_dir, output_dir（unit_kind は各スキルの固定値のため args に含めない）</td></tr>
+      <tr>
+        <td>syncing-reverse-env</td>
+        <td>design-doc, mode（setup|sync|teardown）, dry-run, reset-first, user-approved, scenarios, max-loop（既存契約のまま）</td></tr>
+      <tr>
+        <td>generating-reverse-detailed-design</td>
+        <td>screen_dir, output_dir, template_root, chapter_map_path, audit_script_path, target_repo_path, target_branch, source_ref, mode, target_file_path（mode=file時）, screenshot_dir（任意）, registry値（任意）</td></tr>
+      <tr>
+        <td>rebuilding-screen-unit-from-docs</td>
+        <td>screen_dir, target_file_path, output_dir, template_root, audit_script_path, chapter_map_path, env_block, user-approved</td></tr>
+      <tr>
+        <td>rebuilding-code-from-docs (mode=implement)</td>
+        <td>screen_dir, scope, reverse_worktree, ports, baseline_tag_status, output_dir, template_root, audit_script_path, chapter_map_path, user-approved</td></tr>
+      <tr>
+        <td>rebuilding-code-from-docs (mode=judge)</td>
+        <td>screen_dir, compare_result, reverse_worktree, freeze_commit</td></tr>
     </tbody>
   </table>
-
   <p class="note">注記: <code>user-approved</code>（白紙化承認）と <code>output_dir</code> は管理者が事前に解決して args で渡す（完全仲介方式のため子スキルはユーザーに直接聞かない）。</p>
 </section>
 
 <!-- ===== §8 ループ設計 ===== -->
 <section id="s8">
   <h2><span class="sec-num">§8</span>ループ設計</h2>
-
   <table class="spec">
     <thead>
-      <tr><th>要素</th><th>内容</th></tr>
+      <tr>
+        <th>要素</th>
+        <th>内容</th></tr>
     </thead>
     <tbody>
-      <tr><td>反復条件</td><td><code>verification_mode=iterative</code> かつglobal Step 40または41がFAILした場合だけ、back_edge_idで明示したStepへ戻す</td></tr>
-      <tr><td>上限回数</td><td>max_loop（既定3。②の max_loop とは別軸の工程ループ）</td></tr>
+      <tr>
+        <td>反復条件</td>
+        <td><code>verification_mode=iterative</code> かつglobal Step 40または41がFAILした場合だけ、back_edge_idで明示したStepへ戻す</td></tr>
+      <tr>
+        <td>上限回数</td>
+        <td>max_loop（既定3。②の max_loop とは別軸の工程ループ）</td></tr>
       <tr>
         <td>停止条件</td>
         <td>
@@ -667,23 +800,32 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
         ④ <code>single-pass</code> はFAILの結果と改善候補を報告して停止、<code>docs-only</code> は外側ループを適用しない
         </td>
       </tr>
-      <tr><td>検証役の分離</td><td>各工程の判定は子スキルの返却ブロック（status）のみで行い、管理者は自然文で判定しない</td></tr>
+      <tr>
+        <td>検証役の分離</td>
+        <td>各工程の判定は子スキルの返却ブロック（status）のみで行い、管理者は自然文で判定しない</td></tr>
     </tbody>
   </table>
-
   <p class="note">この外側ループ（発散判定2連続・上限）はiterativeにだけ適用する。single-passは1回のjudge結果を記録して停止し、docs-onlyはglobal Step 28の静的リバース完了で終端する。</p>
-
   <h3>静的著述とファイル単位検証の戻り方向の依存</h3>
-
   <table class="spec">
     <thead>
-      <tr><th>要素</th><th>内容</th></tr>
+      <tr>
+        <th>要素</th>
+        <th>内容</th></tr>
     </thead>
     <tbody>
-      <tr><td>反復条件</td><td><code>verification_mode=iterative</code> かつ rebuilding-screen-unit-from-docs（S1b）が status=差し戻し を返した場合だけ generating-reverse-detailed-design（S1a）へ戻し、再著述後に S1b を再実行する</td></tr>
-      <tr><td>上限回数</td><td>5回目安（rebuilding-screen-unit-from-docs 自身の内側ループ上限と揃える）</td></tr>
-      <tr><td>停止条件</td><td>① 収束停止: rebuilding-screen-unit-from-docs が status=再現一致 を返す<br>② リソース上限: 5回到達しても差し戻しが続く場合はユーザーに報告する</td></tr>
-      <tr><td>検証役の分離</td><td>S1a（著述）と S1b（原本を見ない検証）は別スキル・別セッションで実行され、S1b の判定は自身の完全性ゲート・6計測の決定的出力のみで行う</td></tr>
+      <tr>
+        <td>反復条件</td>
+        <td><code>verification_mode=iterative</code> かつ rebuilding-screen-unit-from-docs（S1b）が status=差し戻し を返した場合だけ generating-reverse-detailed-design（S1a）へ戻し、再著述後に S1b を再実行する</td></tr>
+      <tr>
+        <td>上限回数</td>
+        <td>5回目安（rebuilding-screen-unit-from-docs 自身の内側ループ上限と揃える）</td></tr>
+      <tr>
+        <td>停止条件</td>
+        <td>① 収束停止: rebuilding-screen-unit-from-docs が status=再現一致 を返す<br>② リソース上限: 5回到達しても差し戻しが続く場合はユーザーに報告する</td></tr>
+      <tr>
+        <td>検証役の分離</td>
+        <td>S1a（著述）と S1b（原本を見ない検証）は別スキル・別セッションで実行され、S1b の判定は自身の完全性ゲート・6計測の決定的出力のみで行う</td></tr>
     </tbody>
   </table>
 </section>
@@ -691,20 +833,37 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 <!-- ===== §9 完了条件一覧 ===== -->
 <section id="s9">
   <h2><span class="sec-num">§9</span>完了条件一覧</h2>
-
   <table class="spec">
     <thead>
-      <tr><th>Phase</th><th>完了条件</th></tr>
+      <tr>
+        <th>Phase</th>
+        <th>完了条件</th></tr>
     </thead>
     <tbody>
-      <tr><td>Phase 1</td><td><code>auto|screen</code>は対象・出力先・スコープ・実行モード・状態キーが確定している。<code>python</code>はtarget_repo_path・output_dir・target_file_paths・facts_unit_id・verification_dir・実行モードが確定し、明示Python facts-only経路で終端している</td></tr>
-      <tr><td>Phase 2</td><td>survey_doc_pathとunit_kinds_presentが確定している</td></tr>
-      <tr><td>Phase 3</td><td>6種別の生成済み/対象外と派生一覧・対応表が確定し、画面一覧がある場合は永続screen-manifest.json / screen-manifest.ext.jsonが検証済み</td></tr>
-      <tr><td>Phase 4</td><td>common_docs_root、ポータル、任意ページ、バッチ経路が確定している</td></tr>
-      <tr><td>Phase 5</td><td>facts・基本設計・詳細設計が完成し、docs-onlyは静的完了している</td></tr>
-      <tr><td>Phase 6</td><td>compare_resultとfreeze_commit、または動的検証保留理由が確定している</td></tr>
-      <tr><td>Phase 7</td><td>PASS / FAIL / 動的検証保留が確定し、PASS時は基準更新済み</td></tr>
-      <tr><td><strong>Goal</strong></td><td><strong><code>docs-only</code> の静的成果物が完成、または動的検証モードで PASS / 結果報告に到達し、最終報告フォーマットの必須フィールドをすべて充足している</strong></td></tr>
+      <tr>
+        <td>Phase 1</td>
+        <td><code>auto|screen</code>は対象・出力先・スコープ・実行モード・状態キーが確定している。<code>python</code>はtarget_repo_path・output_dir・target_file_paths・facts_unit_id・verification_dir・実行モードが確定し、明示Python facts-only経路で終端している</td></tr>
+      <tr>
+        <td>Phase 2</td>
+        <td>survey_doc_pathとunit_kinds_presentが確定している</td></tr>
+      <tr>
+        <td>Phase 3</td>
+        <td>6種別の生成済み/対象外と派生一覧・対応表が確定し、画面一覧がある場合は永続screen-manifest.json / screen-manifest.ext.jsonが検証済み</td></tr>
+      <tr>
+        <td>Phase 4</td>
+        <td>common_docs_root、ポータル、任意ページ、バッチ経路が確定している</td></tr>
+      <tr>
+        <td>Phase 5</td>
+        <td>facts・基本設計・詳細設計が完成し、docs-onlyは静的完了している</td></tr>
+      <tr>
+        <td>Phase 6</td>
+        <td>compare_resultとfreeze_commit、または動的検証保留理由が確定している</td></tr>
+      <tr>
+        <td>Phase 7</td>
+        <td>PASS / FAIL / 動的検証保留が確定し、PASS時は基準更新済み</td></tr>
+      <tr>
+        <td><strong>Goal</strong></td>
+        <td><strong><code>docs-only</code> の静的成果物が完成、または動的検証モードで PASS / 結果報告に到達し、最終報告フォーマットの必須フィールドをすべて充足している</strong></td></tr>
     </tbody>
   </table>
 </section>
@@ -712,44 +871,59 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 <!-- ===== §10 関連スキル・規約・予想を裏切る挙動 ===== -->
 <section id="s10">
   <h2><span class="sec-num">§10</span>関連スキル・規約・予想を裏切る挙動</h2>
-
   <h3>子スキル一覧</h3>
-
   <table class="spec">
     <thead>
-      <tr><th>子スキル</th><th>役割</th></tr>
+      <tr>
+        <th>子スキル</th>
+        <th>役割</th></tr>
     </thead>
     <tbody>
-      <tr><td>一覧生成スキル群（6スキル・種別別）</td><td>①一覧生成（S0 時に不在種別ごとに起動。対応表は <code>references/contract.md</code>）</td></tr>
-      <tr><td>syncing-reverse-env</td><td>②環境同期（setup / sync / sync,dry-run / teardown）</td></tr>
-      <tr><td>rebuilding-screen-unit-from-docs</td><td>③ファイル単位検証（S1 任意工程）</td></tr>
-      <tr><td>rebuilding-code-from-docs</td><td>④画面単位検証（implement / judge の2モード分割）</td></tr>
+      <tr>
+        <td>一覧生成スキル群（6スキル・種別別）</td>
+        <td>①一覧生成（S0 時に不在種別ごとに起動。対応表は <code>references/contract.md</code>）</td></tr>
+      <tr>
+        <td>syncing-reverse-env</td>
+        <td>②環境同期（setup / sync / sync,dry-run / teardown）</td></tr>
+      <tr>
+        <td>rebuilding-screen-unit-from-docs</td>
+        <td>③ファイル単位検証（S1 任意工程）</td></tr>
+      <tr>
+        <td>rebuilding-code-from-docs</td>
+        <td>④画面単位検証（implement / judge の2モード分割）</td></tr>
     </tbody>
   </table>
-
   <h3>予想を裏切る挙動</h3>
-
   <div class="constraint">
     状態判定はアーキテクチャ調査、一覧、共通の書き起こし、facts確定、基本設計・詳細設計、画面開通、ファイル単位検証、基準確立、judge の順に成果物実在から毎回評価する。したがって静的リバースは画面開通より先に完了できる。<br>
     <code>docs-only</code> はPhase 6の静的リバース完了で終端する。動的検証では implement → sync dry-run → judge を別々に起動し、judge FAIL後に反復するのは <code>iterative</code> だけである。<code>single-pass</code> は結果を報告して停止する。
   </div>
-
   <h3>参照資料</h3>
-
   <table class="spec">
     <thead>
-      <tr><th>資料</th><th>内容</th></tr>
+      <tr>
+        <th>資料</th>
+        <th>内容</th></tr>
     </thead>
     <tbody>
-      <tr><td><code>references/contract.md</code></td><td>返却ブロック契約・args仕様・状態判定表の正本</td></tr>
-      <tr><td><code>assets/リバース検証/</code></td><td>移設済みの共有資産（テンプレート一式）</td></tr>
-      <tr><td><code>scripts/audit-consistency.sh</code></td><td>工程間ゲート</td></tr>
-      <tr><td><code>references/chapter-map.md</code></td><td>章役割キー対応表</td></tr>
-      <tr><td><code>&lt;output_dir&gt;/一覧/reverse-screen-registry.yml</code></td><td>画面レジストリ定義（output_dir はスキルフォルダ外のため、スキル同期・上書きコピーの影響を受けない）</td></tr>
+      <tr>
+        <td><code>references/contract.md</code></td>
+        <td>返却ブロック契約・args仕様・状態判定表の正本</td></tr>
+      <tr>
+        <td><code>assets/リバース検証/</code></td>
+        <td>移設済みの共有資産（テンプレート一式）</td></tr>
+      <tr>
+        <td><code>scripts/audit-consistency.sh</code></td>
+        <td>工程間ゲート</td></tr>
+      <tr>
+        <td><code>references/chapter-map.md</code></td>
+        <td>章役割キー対応表</td></tr>
+      <tr>
+        <td><code>&lt;output_dir&gt;/一覧/reverse-screen-registry.yml</code></td>
+        <td>画面レジストリ定義（output_dir はスキルフォルダ外のため、スキル同期・上書きコピーの影響を受けない）</td></tr>
     </tbody>
   </table>
 </section>
-
 <div id="zoom-overlay" class="zoom-overlay" hidden></div>
 <script>
 (function () {
@@ -770,7 +944,6 @@ document.body.style.overflow = '';
 });
 })();
 </script>
-
 <section>
   <h2>画面単位文書の物理root</h2>
   <p><code>output-layout.json</code> の <code>layout.screenUnitRoot</code> を scaffold・画面設計書・集約・ポータル・状態検査で共通利用する。表示用 <code>kindLabels.screen</code>、一覧、画面遷移、matrix、verification には連動させない。</p>

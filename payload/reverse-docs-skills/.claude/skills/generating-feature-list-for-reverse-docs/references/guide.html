@@ -276,19 +276,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>機能一覧生成スキル<br><span class="skill-name">generating-feature-list-for-reverse-docs</span></h1>
   <p>既存の種別別一覧（画面一覧は必須、API・テーブル等の一覧は任意）とソースコード構造を突合し、業務機能の単位（大分類 + 機能の2階層）に画面・API・テーブルをグルーピングした「機能一覧.html」を、機械検証を通したマニフェストだけから生成するスキルの確定仕様。他の種別別一覧を直接検出せず、既存一覧から派生させる点が本スキル固有の性質である。</p>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>実プロジェクト（&lt;project&gt;）で34画面・147APIからの生成検証を実施</td></tr>
-    <tr><td>依存</td><td>jq ／ <code>validate-manifest.sh</code> ／ <code>build-unit-list.sh</code>（<code>build-feature-list.sh</code> へ委譲）</td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/feature-detection.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>実プロジェクト（&lt;project&gt;）で34画面・147APIからの生成検証を実施</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>jq ／ <code>validate-manifest.sh</code> ／ <code>build-unit-list.sh</code>（<code>build-feature-list.sh</code> へ委譲）</td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>references/feature-detection.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -301,16 +306,16 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s7">関連スキル・規約</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>本スキルは「機能一覧」という <strong>派生一覧</strong> を生成する。他の種別別一覧（画面・API・テーブル等）がソースコードから直接ユニットを検出するのに対し、機能一覧は既存の一覧マニフェスト（画面一覧は必須入力、API・テーブル等の一覧は任意入力）とコード構造（ルート定義・ナビメニュー・APIプレフィックス・ディレクトリ構成）を突合し、業務機能の単位でグルーピングし直す。</p>
   <p>機能は 2 階層で構成する。第 1 階層は <strong>大分類</strong>（ルートprefix第1セグメント単位の業務領域）、第 2 階層は <strong>機能</strong>（同一業務対象への操作一式）である。手順は「入力収集 → 大分類候補の導出 → 機能の導出と関連付け → ユーザー承認 → 整合検証とHTML生成」の順で進む。</p>
   <p class="note">派生一覧であるため、アーキテクチャ調査の存在判定（unit_kinds_present）の対象にならない（機能は常に存在するため判定不要）。excluded-kinds.json の allKinds にも含めない。</p>
-
   <h3>責務境界</h3>
   <table class="spec">
-    <tr><th>担当</th><th>責務</th></tr>
+    <tr>
+      <th>担当</th>
+      <th>責務</th></tr>
     <tr>
       <td><strong>本スキル</strong><br><code>generating-feature-list-for-reverse-docs</code></td>
       <td>機能一覧.html の生成のみ。既存一覧マニフェストの読み込み、大分類・機能のグルーピング、related* の突合、整合検証とHTML生成を担う</td>
@@ -321,7 +326,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     </tr>
   </table>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>このスキルを実行すると、以下の 2 点が生まれる。</p>
@@ -332,7 +336,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>一覧の元データである JSON。機械可読な機能ごとのグルーピング結果を持ち、整合検証スクリプトの全項目 PASS と related* 参照実在検査を通過したものだけが HTML に埋め込まれる。後続工程やスクリプトがそのまま読み取れる。</dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
@@ -344,7 +347,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd><code>relatedScreens</code>・<code>relatedApis</code>・<code>relatedTables</code>。機能マニフェストが持つ、他一覧マニフェストのキー（screenKey / unitKey）への参照。解決できないものは空のままとする。</dd>
   </dl>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜5）</h2>
   <pre class="flow"><span class="cap">── 全体の流れ ───────────────────────────────────────────</span>
@@ -357,9 +359,11 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 └────────────┘ └──────────────┘ └──────────────┘ └────────────┘ │ build-unit-   │
                                                                     │ list.sh       │
                                                                     └──────────────┘</pre>
-
   <table class="spec">
-    <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
+    <tr>
+      <th>Phase</th>
+      <th>内容</th>
+      <th>完了条件</th></tr>
     <tr>
       <td><strong>Phase 1</strong><br>入力収集</td>
       <td>canonical raw画面正本を直接読みschema検証する。他種別だけ既存一覧HTMLを列挙して埋め込みマニフェストを抽出する。<code>source_dir</code>からルート定義・ナビ・APIプレフィックス・ディレクトリ構造を特定する</td>
@@ -386,32 +390,52 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>全項目 PASS・related* 参照実在検査 PASS・機能一覧.html 生成済み</td>
     </tr>
   </table>
-
   <h3>入力（起動契約）</h3>
   <table class="spec">
-    <tr><th>引数</th><th>内容</th></tr>
-    <tr><td><code>source_dir</code></td><td>探索対象のソースコードディレクトリ。ルート定義とAPIルーターの両方を読むため、モノレポの場合はアーキテクチャ調査書 §10 のサイト一覧で確定した当該サイトのルートディレクトリを渡す。そのサイト内でフロントエンドとバックエンドをまたぐ場合は両方を含む階層まで広げてよいが、サイト境界は越えない</td></tr>
-    <tr><td><code>output_dir</code></td><td>出力先ディレクトリ。この直下に <code>機能一覧/</code> フォルダが作られる。既存の種別別一覧もこの配下から読み込む</td></tr>
-    <tr><td><code>survey_doc_path</code></td><td>任意。アーキテクチャ調査書。ルート定義等の所在特定の参考にする</td></tr>
+    <tr>
+      <th>引数</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>source_dir</code></td>
+      <td>探索対象のソースコードディレクトリ。ルート定義とAPIルーターの両方を読むため、モノレポの場合はアーキテクチャ調査書 §10 のサイト一覧で確定した当該サイトのルートディレクトリを渡す。そのサイト内でフロントエンドとバックエンドをまたぐ場合は両方を含む階層まで広げてよいが、サイト境界は越えない</td></tr>
+    <tr>
+      <td><code>output_dir</code></td>
+      <td>出力先ディレクトリ。この直下に <code>機能一覧/</code> フォルダが作られる。既存の種別別一覧もこの配下から読み込む</td></tr>
+    <tr>
+      <td><code>survey_doc_path</code></td>
+      <td>任意。アーキテクチャ調査書。ルート定義等の所在特定の参考にする</td></tr>
   </table>
   <p class="note">種別を指定する引数は無い。本スキルは feature 専用であり、種別は固定されている。</p>
-
   <h3>返却（呼び出し元への契約）</h3>
   <table class="spec">
-    <tr><th>項目</th><th>内容</th></tr>
-    <tr><td><code>status</code></td><td><code>DONE | ERROR</code></td></tr>
-    <tr><td><code>artifacts</code></td><td>生成した機能一覧.html のパス</td></tr>
-    <tr><td><code>unit_list_html</code></td><td>artifacts[0] の汎用名</td></tr>
-    <tr><td><code>embedded_json_ref</code></td><td>HTML 内に埋め込んだマニフェスト JSON への参照</td></tr>
-    <tr><td><code>unit_kind</code></td><td><code>feature</code>（固定値）</td></tr>
+    <tr>
+      <th>項目</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>status</code></td>
+      <td><code>DONE | ERROR</code></td></tr>
+    <tr>
+      <td><code>artifacts</code></td>
+      <td>生成した機能一覧.html のパス</td></tr>
+    <tr>
+      <td><code>unit_list_html</code></td>
+      <td>artifacts[0] の汎用名</td></tr>
+    <tr>
+      <td><code>embedded_json_ref</code></td>
+      <td>HTML 内に埋め込んだマニフェスト JSON への参照</td></tr>
+    <tr>
+      <td><code>unit_kind</code></td>
+      <td><code>feature</code>（固定値）</td></tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>検証内容</h2>
   <p>グルーピングが Claude の手作業であっても品質を機械保証するため、HTML になる前に必ず 3 段の検証を通す。</p>
   <table class="spec">
-    <tr><th>段</th><th>実行主体</th><th>検査内容</th></tr>
+    <tr>
+      <th>段</th>
+      <th>実行主体</th>
+      <th>検査内容</th></tr>
     <tr>
       <td><strong>整合検証</strong></td>
       <td><code>validate-manifest.sh --unit-kind feature</code></td>
@@ -432,29 +456,53 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <strong>エンジンスクリプトの参照方法:</strong> エンジンスクリプトはスキルフォルダからの相対パス <code>../../../generation-engine/scripts/unit-list/</code> で参照する。正本リポジトリと公開先はディレクトリレイアウトが同一のため、この相対参照は両環境でそのまま成立する。jq が必要（未導入環境では事前に導入する）。
   </div>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>禁止事項と注意点</h2>
   <table class="spec">
-    <tr><th>項目</th><th>内容</th></tr>
-    <tr><td><strong>手作業HTML組み立ての禁止</strong></td><td>HTML はスクリプト経由の決定的処理でのみ生成する。<code>build-unit-list.sh</code> を必ず経由する</td></tr>
-    <tr><td><strong>機能・大分類の捏造禁止</strong></td><td>すべての割当に手がかり①〜④いずれかの根拠を持たせる。根拠ゼロは unresolved とする</td></tr>
-    <tr><td><strong>related* の推測埋め禁止</strong></td><td>突合で解決できないものは空のままとする。推測で埋めない</td></tr>
-    <tr><td><strong>ナビを境界決定に使わない</strong></td><td>大分類の境界はルートprefix（手がかり①）のみで引く。ナビメニューの表示文言は名前付けのみに使い、境界の決定根拠にはしない（ナビは全機能を網羅しないため）</td></tr>
-    <tr><td><strong>unresolved 残置は完了扱い</strong></td><td>unresolved が残った状態も status=DONE で完了とする（既存6種の「要手動確認」と同じ扱い。ERROR ではない）</td></tr>
-    <tr><td><strong>設計書の雛形展開はスコープ外</strong></td><td>本スキルの成果物は機能一覧.html のみ。設計書の生成・記入は後続工程が担う</td></tr>
-    <tr><td><strong>画面一覧が空の場合のハード停止</strong></td><td>画面一覧が空（screens が 0 件）の場合はハード停止しユーザーに報告する。手動リストを聞き出さない</td></tr>
+    <tr>
+      <th>項目</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><strong>手作業HTML組み立ての禁止</strong></td>
+      <td>HTML はスクリプト経由の決定的処理でのみ生成する。<code>build-unit-list.sh</code> を必ず経由する</td></tr>
+    <tr>
+      <td><strong>機能・大分類の捏造禁止</strong></td>
+      <td>すべての割当に手がかり①〜④いずれかの根拠を持たせる。根拠ゼロは unresolved とする</td></tr>
+    <tr>
+      <td><strong>related* の推測埋め禁止</strong></td>
+      <td>突合で解決できないものは空のままとする。推測で埋めない</td></tr>
+    <tr>
+      <td><strong>ナビを境界決定に使わない</strong></td>
+      <td>大分類の境界はルートprefix（手がかり①）のみで引く。ナビメニューの表示文言は名前付けのみに使い、境界の決定根拠にはしない（ナビは全機能を網羅しないため）</td></tr>
+    <tr>
+      <td><strong>unresolved 残置は完了扱い</strong></td>
+      <td>unresolved が残った状態も status=DONE で完了とする（既存6種の「要手動確認」と同じ扱い。ERROR ではない）</td></tr>
+    <tr>
+      <td><strong>設計書の雛形展開はスコープ外</strong></td>
+      <td>本スキルの成果物は機能一覧.html のみ。設計書の生成・記入は後続工程が担う</td></tr>
+    <tr>
+      <td><strong>画面一覧が空の場合のハード停止</strong></td>
+      <td>画面一覧が空（screens が 0 件）の場合はハード停止しユーザーに報告する。手動リストを聞き出さない</td></tr>
   </table>
 </section>
-
 <section id="s7">
   <h2><span class="sec-num">§7</span>関連スキル・規約</h2>
   <table class="spec">
-    <tr><th>名前</th><th>関係</th></tr>
-    <tr><td><code>generating-screen-list-for-reverse-docs</code></td><td>本スキルの前提入力。<code>&lt;output_dir&gt;/&lt;manifestsRoot&gt;/screen-manifest.json</code>が生成・schema検証済みであることを必須とする</td></tr>
-    <tr><td><code>orchestrating-ai-development-setup</code></td><td>工程全体の進行役。画面一覧生成（Step 3-1）完了後、Step 3-2 で本スキルを起動する。返却契約（status / artifacts / unit_list_html / embedded_json_ref / unit_kind）の受け手</td></tr>
-    <tr><td><code>references/feature-detection.md</code></td><td>大分類・機能のグルーピング規約（手がかり優先度・競合解決フロー・マニフェストスキーマ）の正本</td></tr>
-    <tr><td><code>generation-engine/scripts/unit-list/</code></td><td>整合検証・HTML 生成のエンジンスクリプト置き場（リポジトリ共通）</td></tr>
+    <tr>
+      <th>名前</th>
+      <th>関係</th></tr>
+    <tr>
+      <td><code>generating-screen-list-for-reverse-docs</code></td>
+      <td>本スキルの前提入力。<code>&lt;output_dir&gt;/&lt;manifestsRoot&gt;/screen-manifest.json</code>が生成・schema検証済みであることを必須とする</td></tr>
+    <tr>
+      <td><code>orchestrating-ai-development-setup</code></td>
+      <td>工程全体の進行役。画面一覧生成（Step 3-1）完了後、Step 3-2 で本スキルを起動する。返却契約（status / artifacts / unit_list_html / embedded_json_ref / unit_kind）の受け手</td></tr>
+    <tr>
+      <td><code>references/feature-detection.md</code></td>
+      <td>大分類・機能のグルーピング規約（手がかり優先度・競合解決フロー・マニフェストスキーマ）の正本</td></tr>
+    <tr>
+      <td><code>generation-engine/scripts/unit-list/</code></td>
+      <td>整合検証・HTML 生成のエンジンスクリプト置き場（リポジトリ共通）</td></tr>
   </table>
 </section>
 

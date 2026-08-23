@@ -276,19 +276,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>デザインシステム生成スキル<br><span class="skill-name">generating-design-system-for-reverse-docs</span></h1>
   <p>共通 DESIGN.md に書かれた CSS トークンをそのまま転記し、<strong>デザインシステム.html</strong> を生成する基盤ページ生成スキルの確定仕様。</p>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>共有エンジン（<code>validate-page-data.sh</code>・<code>build-detail-page.sh</code>）は他の詳細ページ生成スキルで動作確認済み。CSS トークン抽出（<code>extract-design-tokens-from-designmd.sh</code>）の単独実機検証は未実施。スキル専用のテストスクリプトは持たない</td></tr>
-    <tr><td>依存</td><td>共有スクリプト <code>generation-engine/scripts/extract/extract-design-tokens-from-designmd.sh</code>・<code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>generation-engine/scripts/detail-pages/build-detail-page.sh</code> ／ 任意 <code>generation-engine/scripts/build-portal.sh</code></td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>共有エンジン（<code>validate-page-data.sh</code>・<code>build-detail-page.sh</code>）は他の詳細ページ生成スキルで動作確認済み。CSS トークン抽出（<code>extract-design-tokens-from-designmd.sh</code>）の単独実機検証は未実施。スキル専用のテストスクリプトは持たない</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>共有スクリプト <code>generation-engine/scripts/extract/extract-design-tokens-from-designmd.sh</code>・<code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>generation-engine/scripts/detail-pages/build-detail-page.sh</code> ／ 任意 <code>generation-engine/scripts/build-portal.sh</code></td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -300,28 +305,30 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s6">関連スキル・資料</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>画面の見た目を支える色・余白・文字サイズといった値は、共通 DESIGN.md に文章として書かれている。本スキルはその記述から CSS トークンを取り出し、一覧として読めるデザインシステム.html を作成する。</p>
   <p>やることは転記だけである。値が適切か、命名が揃っているか、使われていないトークンがあるかといった判定は一切行わない。DESIGN.md に書かれていない値を推測して補うこともしない。</p>
-
   <div class="def">
     <dt>本スキルがやること</dt>
     <dd>共通 DESIGN.md からの CSS トークン抽出・デザインシステム.html の生成</dd>
     <dt>本スキルがやらないこと</dt>
     <dd>トークンの値・命名の良否判定・未使用トークンの指摘（いずれも人間の判断） ／ 共通 DESIGN.md 自体の作成（generating-reverse-common-docs の担当）</dd>
   </div>
-
   <h3>起動引数</h3>
   <table class="spec">
-    <tr><th>引数</th><th>内容</th></tr>
-    <tr><td><code>output_dir</code></td><td>共通 DESIGN.md の所在であり、デザインシステム.html の書き出し先でもあるディレクトリ</td></tr>
-    <tr><td><code>portal_output_dir</code></td><td>任意。渡された場合のみポータルへ反映する</td></tr>
+    <tr>
+      <th>引数</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>output_dir</code></td>
+      <td>共通 DESIGN.md の所在であり、デザインシステム.html の書き出し先でもあるディレクトリ</td></tr>
+    <tr>
+      <td><code>portal_output_dir</code></td>
+      <td>任意。渡された場合のみポータルへ反映する</td></tr>
   </table>
   <p class="note"><code>output_dir</code> に共通 DESIGN.md が存在しない場合、本スキルは生成せず SKIP を返す。</p>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>対象リポジトリ 1 つにつき、次の 1 点が生まれる。</p>
@@ -330,7 +337,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>共通 DESIGN.md から取り出した CSS トークンの一覧。トークン名と値を、DESIGN.md に書かれたままの形で持つ。<code>output_dir</code> の直下に置かれる</dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
@@ -338,18 +344,26 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>色・余白・文字サイズ・角丸といった見た目の値に名前を付けたもの。CSS カスタムプロパティとして書かれることが多い</dd>
 </dl>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
   <table class="spec">
-    <tr><th>Phase</th><th>内容</th></tr>
-    <tr><td>Phase 1 原本の確認</td><td><code>output_dir</code> に共通 DESIGN.md が存在するかを確認する。無ければ生成せず SKIP を返す</td></tr>
-    <tr><td>Phase 2 抽出</td><td><code>extract-design-tokens-from-designmd.sh</code> が CSS トークンを取り出し、ページデータの JSON を組み立てる</td></tr>
-    <tr><td>Phase 3 整合検証（機械実行）</td><td><code>validate-page-data.sh</code> を実行する。全項目 PASS が次へ進む条件。FAIL は 3 回まで修正を試み、超過したら Phase 2 へ差し戻す</td></tr>
-    <tr><td>Phase 4 生成</td><td><code>build-detail-page.sh</code> がデザインシステム.html を出力する。<code>portal_output_dir</code> が渡されていれば <code>build-portal.sh</code> でポータルへ反映する</td></tr>
+    <tr>
+      <th>Phase</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>Phase 1 原本の確認</td>
+      <td><code>output_dir</code> に共通 DESIGN.md が存在するかを確認する。無ければ生成せず SKIP を返す</td></tr>
+    <tr>
+      <td>Phase 2 抽出</td>
+      <td><code>extract-design-tokens-from-designmd.sh</code> が CSS トークンを取り出し、ページデータの JSON を組み立てる</td></tr>
+    <tr>
+      <td>Phase 3 整合検証（機械実行）</td>
+      <td><code>validate-page-data.sh</code> を実行する。全項目 PASS が次へ進む条件。FAIL は 3 回まで修正を試み、超過したら Phase 2 へ差し戻す</td></tr>
+    <tr>
+      <td>Phase 4 生成</td>
+      <td><code>build-detail-page.sh</code> がデザインシステム.html を出力する。<code>portal_output_dir</code> が渡されていれば <code>build-portal.sh</code> でポータルへ反映する</td></tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>守り（禁止事項と機械検証）</h2>
   <h3>禁止事項</h3>
@@ -361,15 +375,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <h3>機械検証</h3>
   <p>Phase 3 の <code>validate-page-data.sh</code> が全項目 PASS しない限り HTML は生成されない。3 回の修正で PASS しない場合は Phase 2 へ差し戻し、原因が抽出側にあることを明示して止まる。</p>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>関連スキル・資料</h2>
   <table class="spec">
-    <tr><th>対象</th><th>内容</th></tr>
-    <tr><td><code>SKILL.md</code></td><td>本スキルの手順の定義</td></tr>
-    <tr><td><code>references/test-cases.md</code></td><td>本スキルの検証観点</td></tr>
-    <tr><td>generating-reverse-common-docs</td><td>本スキルが読む共通 DESIGN.md を書き起こす</td></tr>
-    <tr><td>generating-icon-catalog-for-reverse-docs</td><td>同じ基盤ページ群。アイコン参照の抽出を担当する</td></tr>
+    <tr>
+      <th>対象</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>SKILL.md</code></td>
+      <td>本スキルの手順の定義</td></tr>
+    <tr>
+      <td><code>references/test-cases.md</code></td>
+      <td>本スキルの検証観点</td></tr>
+    <tr>
+      <td>generating-reverse-common-docs</td>
+      <td>本スキルが読む共通 DESIGN.md を書き起こす</td></tr>
+    <tr>
+      <td>generating-icon-catalog-for-reverse-docs</td>
+      <td>同じ基盤ページ群。アイコン参照の抽出を担当する</td></tr>
   </table>
 </section>
 

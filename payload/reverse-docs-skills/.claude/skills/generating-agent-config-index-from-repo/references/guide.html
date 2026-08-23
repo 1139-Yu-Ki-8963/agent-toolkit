@@ -276,19 +276,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>AGENTS索引生成スキル<br><span class="skill-name">generating-agent-config-index-from-repo</span></h1>
   <p>対象リポジトリを分析し、そこで確認できた事実だけから <strong>AGENTS.md</strong> と <strong>CLAUDE.md</strong> の前半索引を生成するリバース生成スキルの確定仕様。</p>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>生成物の検査は Phase 3 で 5 項目（前半項目の一致・RULES-INDEX マーカーの単一存在・CLAUDE.md への規約本文の非混入・プレースホルダーの残留なし・出力先の逸脱なし）を手順内で確認する。スキル専用のテストスクリプトは持たない</td></tr>
-    <tr><td>依存</td><td>外部ツール・共有スクリプトへの依存を持たない</td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>生成物の検査は Phase 3 で 5 項目（前半項目の一致・RULES-INDEX マーカーの単一存在・CLAUDE.md への規約本文の非混入・プレースホルダーの残留なし・出力先の逸脱なし）を手順内で確認する。スキル専用のテストスクリプトは持たない</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>外部ツール・共有スクリプトへの依存を持たない</td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -300,31 +305,39 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s6">関連スキル・資料</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>AGENTS.md と CLAUDE.md は、AI エージェントが対象リポジトリで作業するときに最初に読む案内である。本スキルは対象リポジトリを分析し、そこで実際に確認できた事実だけを使って両ファイルの前半索引を生成する。</p>
   <p>規約の本文をコードから発明することはしない。書けるのは、リポジトリの構成と、既に存在する規約ファイルへの参照パスだけである。AGENTS.md の後半（規約一覧）は <code>RULES-INDEX</code> のマーカーだけを置き、中身は複製しない。</p>
-
   <div class="def">
     <dt>本スキルがやること</dt>
     <dd>リポジトリ構成の分析・前半索引の生成・既存規約への参照パスの確定</dd>
     <dt>本スキルがやらないこと</dt>
     <dd>規約本文の新規作成・既存規約の編集（いずれも人間の判断） ／ CLAUDE.md への規約一覧の記載</dd>
   </div>
-
   <h3>起動引数</h3>
   <table class="spec">
-    <tr><th>引数</th><th>内容</th></tr>
-    <tr><td><code>target_repo_path</code></td><td>分析対象のリポジトリルート</td></tr>
-    <tr><td><code>template_root</code></td><td>雛形の所在ディレクトリ</td></tr>
-    <tr><td><code>output_dir</code></td><td>AGENTS.md・CLAUDE.md の書き出し先ディレクトリ</td></tr>
-    <tr><td><code>rules_root</code></td><td>任意。既存規約の所在を明示する場合に渡す</td></tr>
-    <tr><td><code>mode</code></td><td>任意。生成の動作を切り替える場合に渡す</td></tr>
+    <tr>
+      <th>引数</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>target_repo_path</code></td>
+      <td>分析対象のリポジトリルート</td></tr>
+    <tr>
+      <td><code>template_root</code></td>
+      <td>雛形の所在ディレクトリ</td></tr>
+    <tr>
+      <td><code>output_dir</code></td>
+      <td>AGENTS.md・CLAUDE.md の書き出し先ディレクトリ</td></tr>
+    <tr>
+      <td><code>rules_root</code></td>
+      <td>任意。既存規約の所在を明示する場合に渡す</td></tr>
+    <tr>
+      <td><code>mode</code></td>
+      <td>任意。生成の動作を切り替える場合に渡す</td></tr>
   </table>
   <p class="note">根拠が確認できない項目は、推測で埋めずに「根拠不足」として返す。</p>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>対象リポジトリ 1 つにつき、次の 3 点が生まれる。</p>
@@ -337,7 +350,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>根拠パス・規約参照の実在・両ファイルの重複状態を確認した結果</dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <div class="def">
@@ -345,18 +357,26 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>分析で確認できなかった項目に与える扱い。推測で埋めない</dd>
   </div>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
   <table class="spec">
-    <tr><th>Phase</th><th>内容</th></tr>
-    <tr><td>Phase 1 分析</td><td><code>target_repo_path</code> を走査し、リポジトリ構成と既存規約の所在を確認する</td></tr>
-    <tr><td>Phase 2 規約参照の確定</td><td>確認できた規約ファイルの参照パスを確定する。実在しないパスは索引に載せない</td></tr>
-    <tr><td>Phase 3 生成と検証</td><td>雛形から AGENTS.md と CLAUDE.md を生成し、5 項目（前半項目の一致・<code>RULES-INDEX</code> マーカーの単一存在・CLAUDE.md への規約本文の非混入・プレースホルダーの残留なし・出力先の逸脱なし）を確認する</td></tr>
-    <tr><td>Phase 4 報告</td><td>検証結果を報告する。確認できなかった項目は「根拠不足」として明示する</td></tr>
+    <tr>
+      <th>Phase</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>Phase 1 分析</td>
+      <td><code>target_repo_path</code> を走査し、リポジトリ構成と既存規約の所在を確認する</td></tr>
+    <tr>
+      <td>Phase 2 規約参照の確定</td>
+      <td>確認できた規約ファイルの参照パスを確定する。実在しないパスは索引に載せない</td></tr>
+    <tr>
+      <td>Phase 3 生成と検証</td>
+      <td>雛形から AGENTS.md と CLAUDE.md を生成し、5 項目（前半項目の一致・<code>RULES-INDEX</code> マーカーの単一存在・CLAUDE.md への規約本文の非混入・プレースホルダーの残留なし・出力先の逸脱なし）を確認する</td></tr>
+    <tr>
+      <td>Phase 4 報告</td>
+      <td>検証結果を報告する。確認できなかった項目は「根拠不足」として明示する</td></tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>守り（禁止事項と機械検証）</h2>
   <h3>禁止事項</h3>
@@ -369,15 +389,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <h3>機械検証</h3>
   <p>Phase 3 の 5 項目の確認を通らない限り生成物を完成として扱わない。確認できない項目があれば「根拠不足」として返し、推測で埋めることはしない。</p>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>関連スキル・資料</h2>
   <table class="spec">
-    <tr><th>対象</th><th>内容</th></tr>
-    <tr><td><code>SKILL.md</code></td><td>本スキルの手順の定義</td></tr>
-    <tr><td><code>references/test-cases.md</code></td><td>本スキルの検証観点</td></tr>
-    <tr><td>generating-rule-proposals-for-reverse-docs</td><td>実装慣行から規約の提案を作る。本スキルは提案の取り込みを行わない</td></tr>
-    <tr><td>surveying-architecture-for-reverse-docs</td><td>リバース設計の前提となるアーキテクチャ調査書を確定する</td></tr>
+    <tr>
+      <th>対象</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>SKILL.md</code></td>
+      <td>本スキルの手順の定義</td></tr>
+    <tr>
+      <td><code>references/test-cases.md</code></td>
+      <td>本スキルの検証観点</td></tr>
+    <tr>
+      <td>generating-rule-proposals-for-reverse-docs</td>
+      <td>実装慣行から規約の提案を作る。本スキルは提案の取り込みを行わない</td></tr>
+    <tr>
+      <td>surveying-architecture-for-reverse-docs</td>
+      <td>リバース設計の前提となるアーキテクチャ調査書を確定する</td></tr>
   </table>
 </section>
 

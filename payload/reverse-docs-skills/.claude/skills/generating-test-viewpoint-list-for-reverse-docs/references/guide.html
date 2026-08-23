@@ -276,19 +276,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>テスト観点表生成スキル<br><span class="skill-name">generating-test-viewpoint-list-for-reverse-docs</span></h1>
   <p>全設計種別の各単位にある2つのテスト設計書を横断集約し、整合検証を通過したデータだけから <strong>テスト観点表.html</strong> を生成する派生一覧スキルの確定仕様。</p>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>2026-08-23 に横断集約・専用検証・一覧生成の self-test と、APIのみ・画面rootなしの一時入力による結合確認を実施済み</td></tr>
-    <tr><td>依存</td><td>共有スクリプト <code>generation-engine/scripts/extract/aggregate-test-viewpoints.sh</code>・<code>generation-engine/scripts/unit-list/validate-test-viewpoint-manifest.sh</code>・<code>generation-engine/scripts/unit-list/build-unit-list.sh</code> ／ 任意 <code>generation-engine/scripts/build-portal.sh</code></td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>2026-08-23 に横断集約・専用検証・一覧生成の self-test と、APIのみ・画面rootなしの一時入力による結合確認を実施済み</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>共有スクリプト <code>generation-engine/scripts/extract/aggregate-test-viewpoints.sh</code>・<code>generation-engine/scripts/unit-list/validate-test-viewpoint-manifest.sh</code>・<code>generation-engine/scripts/unit-list/build-unit-list.sh</code> ／ 任意 <code>generation-engine/scripts/build-portal.sh</code></td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -300,28 +305,30 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s6">関連スキル・資料</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>テストの観点は画面・API・テーブル・バッチ・帳票・外部連携・機能の各単位に分かれて書かれるため、システム全体で何をどこまで見ているかが分からなくなる。本スキルは各単位のテスト設計書を 1 か所へ集め、横断で引けるテスト観点表.html を作成する。</p>
   <p>いずれかの種別に2種類のテスト設計書の一方が存在するときだけ起動する。テスト設計書が存在していて確定行が 0 件の場合は、空であることを示すページを生成する。</p>
-
   <div class="def">
     <dt>本スキルがやること</dt>
     <dd>各設計単位のテスト設計書の横断集約・整合検証・テスト観点表.html の生成</dd>
     <dt>本スキルがやらないこと</dt>
     <dd>各設計単位のテスト設計書そのものの執筆 ／ 観点の網羅性の評価</dd>
   </div>
-
   <h3>起動引数</h3>
   <table class="spec">
-    <tr><th>引数</th><th>内容</th></tr>
-    <tr><td><code>output_dir</code></td><td>各設計単位のテスト設計書の所在であり、テスト観点表.html の書き出し先でもあるディレクトリ</td></tr>
-    <tr><td><code>portal_output_dir</code></td><td>任意。渡された場合のみポータルへ反映する</td></tr>
+    <tr>
+      <th>引数</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>output_dir</code></td>
+      <td>各設計単位のテスト設計書の所在であり、テスト観点表.html の書き出し先でもあるディレクトリ</td></tr>
+    <tr>
+      <td><code>portal_output_dir</code></td>
+      <td>任意。渡された場合のみポータルへ反映する</td></tr>
   </table>
   <p class="note"><code>output_dir</code> が存在しない場合は SKIP、2種類のテスト設計書が全種別で 0 件の場合はHTMLを生成せず STOPPED を返す。</p>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>対象リポジトリ 1 つにつき、次の 1 点が生まれる。</p>
@@ -330,24 +337,31 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>各設計単位の観点を横断集約し、集約元を「種別」列で示す一覧。テスト設計書は存在するが確定行が 0 件の場合は空であることを示すページになる。<code>output_dir</code> 配下の <code>一覧/テスト観点表/</code> に置かれる</dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
 </dl>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
   <table class="spec">
-    <tr><th>Phase</th><th>内容</th></tr>
-    <tr><td>Phase 1 集約対象の確認</td><td><code>output_dir</code> 配下の全設計種別に2種類のテスト設計書の一方が存在するか確認する。0 件ならHTMLを生成せず STOPPED を返す</td></tr>
-    <tr><td>Phase 2 横断集約（機械実行）</td><td><code>aggregate-test-viewpoints.sh</code> が全設計種別の各単位にある2テスト設計書を走査し、マニフェストの JSON を組み立てる</td></tr>
-    <tr><td>Phase 3 整合検証（機械実行）</td><td><code>validate-test-viewpoint-manifest.sh</code> を実行する。全項目 PASS が次へ進む条件。FAIL は 3 回まで修正を試み、超過したら Phase 2 へ差し戻す</td></tr>
-    <tr><td>Phase 4 生成</td><td><code>build-unit-list.sh</code> がテスト観点表.html を出力する。<code>portal_output_dir</code> が渡されていれば <code>build-portal.sh</code> でポータルへ反映する</td></tr>
+    <tr>
+      <th>Phase</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>Phase 1 集約対象の確認</td>
+      <td><code>output_dir</code> 配下の全設計種別に2種類のテスト設計書の一方が存在するか確認する。0 件ならHTMLを生成せず STOPPED を返す</td></tr>
+    <tr>
+      <td>Phase 2 横断集約（機械実行）</td>
+      <td><code>aggregate-test-viewpoints.sh</code> が全設計種別の各単位にある2テスト設計書を走査し、マニフェストの JSON を組み立てる</td></tr>
+    <tr>
+      <td>Phase 3 整合検証（機械実行）</td>
+      <td><code>validate-test-viewpoint-manifest.sh</code> を実行する。全項目 PASS が次へ進む条件。FAIL は 3 回まで修正を試み、超過したら Phase 2 へ差し戻す</td></tr>
+    <tr>
+      <td>Phase 4 生成</td>
+      <td><code>build-unit-list.sh</code> がテスト観点表.html を出力する。<code>portal_output_dir</code> が渡されていれば <code>build-portal.sh</code> でポータルへ反映する</td></tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>守り（禁止事項と機械検証）</h2>
   <h3>禁止事項</h3>
@@ -359,15 +373,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <h3>機械検証</h3>
   <p>Phase 3 の <code>validate-test-viewpoint-manifest.sh</code> が全項目 PASS しない限り HTML は生成されない。3 回の修正で PASS しない場合は Phase 2 へ差し戻し、原因が集約側にあることを明示して止まる。</p>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>関連スキル・資料</h2>
   <table class="spec">
-    <tr><th>対象</th><th>内容</th></tr>
-    <tr><td><code>SKILL.md</code></td><td>本スキルの手順の定義</td></tr>
-    <tr><td><code>references/test-cases.md</code></td><td>本スキルの検証観点</td></tr>
-    <tr><td>generating-test-case-list-for-reverse-docs</td><td>同じ派生一覧群。テストケースの横断集約を担当する</td></tr>
-    <tr><td>各種別の設計書生成スキル</td><td>本スキルが集約する各設計単位のテスト設計書を執筆する</td></tr>
+    <tr>
+      <th>対象</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>SKILL.md</code></td>
+      <td>本スキルの手順の定義</td></tr>
+    <tr>
+      <td><code>references/test-cases.md</code></td>
+      <td>本スキルの検証観点</td></tr>
+    <tr>
+      <td>generating-test-case-list-for-reverse-docs</td>
+      <td>同じ派生一覧群。テストケースの横断集約を担当する</td></tr>
+    <tr>
+      <td>各種別の設計書生成スキル</td>
+      <td>本スキルが集約する各設計単位のテスト設計書を執筆する</td></tr>
   </table>
 </section>
 

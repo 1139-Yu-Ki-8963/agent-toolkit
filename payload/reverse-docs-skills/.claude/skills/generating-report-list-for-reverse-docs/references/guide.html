@@ -276,19 +276,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>帳票一覧生成スキル<br><span class="skill-name">generating-report-list-for-reverse-docs</span></h1>
   <p>既存コードベースを調査して帳票の単位を洗い出し、整合検証を通過したマニフェストだけから <strong>帳票一覧.html</strong> を生成する帳票専用スキルの確定仕様。</p>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>共有エンジン（<code>validate-manifest.sh</code>・<code>build-unit-list.sh</code>）は分割元スキルの画面一覧生成で動作確認済み。帳票専用スキルとしての単独実機検証は分割直後のため未実施</td></tr>
-    <tr><td>依存</td><td>jq ／ 共有スクリプト <code>generation-engine/scripts/unit-list/validate-manifest.sh</code>・<code>build-unit-list.sh</code></td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/report-detection.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>共有エンジン（<code>validate-manifest.sh</code>・<code>build-unit-list.sh</code>）は分割元スキルの画面一覧生成で動作確認済み。帳票専用スキルとしての単独実機検証は分割直後のため未実施</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>jq ／ 共有スクリプト <code>generation-engine/scripts/unit-list/validate-manifest.sh</code>・<code>build-unit-list.sh</code></td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>references/report-detection.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -300,28 +305,30 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s6">関連スキル・資料</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>リバース設計の出発点は「このシステムには帳票が何枚あり、それぞれどのファイルでできているか」を正確に確定させることにある。本スキルは既存コードベースを <strong>スタック調査 → 検出戦略の宣言 → 戦略に基づく抽出 → 整合検証</strong> の順で調べ、帳票の単位にファイルをグルーピングした帳票一覧.html を作成する。</p>
   <p>帳票はプロジェクトごとに実現方式が大きく異なる（テンプレートファイル主体・生成コード主体・両者の複合）。そのため画面一覧のような機械的な組み込み検出器は持たず、対象プロジェクト固有の帳票規約を先に調査・宣言してから、その宣言に沿って Claude 自身が抽出する<strong>個別に組み立てる抽出</strong>だけを使う。抽出結果は共有の検証スクリプトが機械検査し、検証を通らないデータからは一覧を生成できない。</p>
-
   <div class="def">
     <dt>本スキルがやること</dt>
     <dd>帳票の洗い出し・マニフェスト作成・整合検証・帳票一覧.html の生成</dd>
     <dt>本スキルがやらないこと</dt>
     <dd>帳票設計書の雛形展開・生成・記入（後続工程の担当）／ 他種別（画面・API 等）の一覧生成（各種別別一覧スキルの担当）</dd>
   </div>
-
   <h3>起動引数</h3>
   <table class="spec">
-    <tr><th>引数</th><th>内容</th></tr>
-    <tr><td><code>source_dir</code></td><td>探索対象のソースコードディレクトリ。モノレポの場合は対象アプリのディレクトリのみを渡す</td></tr>
-    <tr><td><code>output_dir</code></td><td>帳票一覧.html の書き出し先ディレクトリ</td></tr>
+    <tr>
+      <th>引数</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>source_dir</code></td>
+      <td>探索対象のソースコードディレクトリ。モノレポの場合は対象アプリのディレクトリのみを渡す</td></tr>
+    <tr>
+      <td><code>output_dir</code></td>
+      <td>帳票一覧.html の書き出し先ディレクトリ</td></tr>
   </table>
   <p class="note">種別を切り替える引数は無い。本スキルは帳票（<code>unit_kind=report</code>）固定で動作する。</p>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>このスキルを実行すると、帳票 1 種別につき以下の 2 点が生まれる。</p>
@@ -332,7 +339,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>一覧の元データである JSON。整合検証スクリプトの全項目を通過したものだけが HTML に埋め込まれるため、一覧の各行は「機械検査済みの事実」として後続工程（設計書執筆・往復検証）から参照できる。</dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
@@ -344,7 +350,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>抽出結果の JSON。配列キーは <code>units</code> で、各要素が 1 帳票（<code>unitKey</code>・<code>sourceFile</code>・<code>kind</code>・<code>files</code> 等）。スキーマの全文は <code>references/report-detection.md</code> を参照。</dd>
 </dl>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
   <pre class="flow"><span class="cap">── 帳票一覧ができるまで ─────────────────────────────</span>
@@ -364,9 +369,11 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   Phase 4  帳票一覧.html 生成
            build-unit-list.sh（内部で validate を再実行）
            └─▶ &lt;output_dir&gt;/帳票一覧/帳票一覧.html</pre>
-
   <table class="spec">
-    <tr><th>Phase</th><th>やること</th><th>完了条件</th></tr>
+    <tr>
+      <th>Phase</th>
+      <th>やること</th>
+      <th>完了条件</th></tr>
     <tr>
       <td><strong>Phase 1</strong><br>調査と戦略宣言</td>
       <td>package.json・lock ファイルから帳票生成ライブラリを確定し、帳票定義の所在（テンプレート／生成コード／定義設定）・ID 命名パターン・除外パターンを調査する。調査項目の正本は <code>references/report-detection.md</code></td>
@@ -390,7 +397,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   </table>
   <p class="note">進捗は TaskCreate/TaskUpdate で Phase 1〜4 を登録・更新しながら進める。完了時は orchestrating-ai-development-setup の契約に沿って status（DONE ／ ERROR）・artifacts・unit_list_html・embedded_json_ref・unit_kind=report を返す。</p>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>守り（禁止事項と機械検証）</h2>
   <div class="constraint">
@@ -407,22 +413,41 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   </div>
   <h3>そのほかの注意</h3>
   <table class="spec">
-    <tr><th>注意</th><th>理由</th></tr>
-    <tr><td>共有エンジンは jq に依存する</td><td>未インストール環境では事前導入が必要</td></tr>
-    <tr><td>コメントアウトされた帳票定義は抽出前に除去する</td><td>コメント内の定義を実在として誤検出した実害がある</td></tr>
-    <tr><td>汎用の <code>unitIdRegex</code> を無調査で当てない</td><td>帳票の命名規約・生成方式はプロジェクトごとに異なる</td></tr>
-    <tr><td>マニフェストの配列キーは <code>units</code></td><td><code>screens</code> は画面一覧専用の後方互換キー</td></tr>
+    <tr>
+      <th>注意</th>
+      <th>理由</th></tr>
+    <tr>
+      <td>共有エンジンは jq に依存する</td>
+      <td>未インストール環境では事前導入が必要</td></tr>
+    <tr>
+      <td>コメントアウトされた帳票定義は抽出前に除去する</td>
+      <td>コメント内の定義を実在として誤検出した実害がある</td></tr>
+    <tr>
+      <td>汎用の <code>unitIdRegex</code> を無調査で当てない</td>
+      <td>帳票の命名規約・生成方式はプロジェクトごとに異なる</td></tr>
+    <tr>
+      <td>マニフェストの配列キーは <code>units</code></td>
+      <td><code>screens</code> は画面一覧専用の後方互換キー</td></tr>
   </table>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>関連スキル・資料</h2>
   <table class="spec">
-    <tr><th>関連</th><th>関係</th></tr>
-    <tr><td><code>orchestrating-ai-development-setup</code></td><td>工程全体の案内役。本スキルはその一工程（帳票一覧生成）を担い、契約準拠の返却を行う</td></tr>
-    <tr><td>他の種別別一覧スキル（画面・API・テーブル・バッチ・外部連携）</td><td>兄弟スキル。共有エンジンを共用し、種別だけが異なる</td></tr>
-    <tr><td><code>references/report-detection.md</code></td><td>帳票の調査項目・マニフェストスキーマ・kind 区分値の正本</td></tr>
-    <tr><td><code>generation-engine/scripts/unit-list/</code></td><td>共有エンジン（validate-manifest.sh・build-unit-list.sh）の置き場</td></tr>
+    <tr>
+      <th>関連</th>
+      <th>関係</th></tr>
+    <tr>
+      <td><code>orchestrating-ai-development-setup</code></td>
+      <td>工程全体の案内役。本スキルはその一工程（帳票一覧生成）を担い、契約準拠の返却を行う</td></tr>
+    <tr>
+      <td>他の種別別一覧スキル（画面・API・テーブル・バッチ・外部連携）</td>
+      <td>兄弟スキル。共有エンジンを共用し、種別だけが異なる</td></tr>
+    <tr>
+      <td><code>references/report-detection.md</code></td>
+      <td>帳票の調査項目・マニフェストスキーマ・kind 区分値の正本</td></tr>
+    <tr>
+      <td><code>generation-engine/scripts/unit-list/</code></td>
+      <td>共有エンジン（validate-manifest.sh・build-unit-list.sh）の置き場</td></tr>
   </table>
 </section>
 

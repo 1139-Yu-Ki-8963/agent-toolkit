@@ -276,19 +276,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>アイコンカタログ生成スキル<br><span class="skill-name">generating-icon-catalog-for-reverse-docs</span></h1>
   <p>対象リポジトリの JSX・HTML に現れるアイコン参照を 3 つのパターンで抽出し、<strong>アイコンカタログ.html</strong> を生成する基盤ページ生成スキルの確定仕様。</p>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>共有エンジン（<code>validate-page-data.sh</code>・<code>build-detail-page.sh</code>）は他の詳細ページ生成スキルで動作確認済み。アイコン抽出（<code>extract-icon-usage.sh</code>）の単独実機検証は未実施。スキル専用のテストスクリプトは持たない</td></tr>
-    <tr><td>依存</td><td>共有スクリプト <code>generation-engine/scripts/extract/extract-icon-usage.sh</code>・<code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>generation-engine/scripts/detail-pages/build-detail-page.sh</code> ／ 任意 <code>generation-engine/scripts/build-portal.sh</code></td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>共有エンジン（<code>validate-page-data.sh</code>・<code>build-detail-page.sh</code>）は他の詳細ページ生成スキルで動作確認済み。アイコン抽出（<code>extract-icon-usage.sh</code>）の単独実機検証は未実施。スキル専用のテストスクリプトは持たない</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>共有スクリプト <code>generation-engine/scripts/extract/extract-icon-usage.sh</code>・<code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>generation-engine/scripts/detail-pages/build-detail-page.sh</code> ／ 任意 <code>generation-engine/scripts/build-portal.sh</code></td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -300,29 +305,33 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s6">関連スキル・資料</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>アイコンは画面の意味を担う要素でありながら、コード上は import 文や文字列として散在するため、全体像がつかみにくい。本スキルは対象リポジトリの JSX・HTML を走査し、アイコンの参照箇所を 1 か所に集めたアイコンカタログ.html を作成する。</p>
   <p>抽出の対象は Material Icons の参照・SVG ファイルの import・React のアイコンコンポーネントの 3 パターンに限る。使い方が妥当か、同じ意味のアイコンが重複していないかといった評価は行わない。</p>
-
   <div class="def">
     <dt>本スキルがやること</dt>
     <dd>3 パターンのアイコン参照の抽出・参照元と行番号の記録・アイコンカタログ.html の生成</dd>
     <dt>本スキルがやらないこと</dt>
     <dd>アイコン選定の妥当性の評価・重複の指摘（いずれも人間の判断） ／ UI 部品そのものの棚卸し（generating-component-inventory-for-reverse-docs の担当）</dd>
   </div>
-
   <h3>起動引数</h3>
   <table class="spec">
-    <tr><th>引数</th><th>内容</th></tr>
-    <tr><td><code>target_repo_path</code></td><td>走査対象のリポジトリルート</td></tr>
-    <tr><td><code>output_dir</code></td><td>アイコンカタログ.html の書き出し先ディレクトリ</td></tr>
-    <tr><td><code>portal_output_dir</code></td><td>任意。渡された場合のみポータルへ反映する</td></tr>
+    <tr>
+      <th>引数</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>target_repo_path</code></td>
+      <td>走査対象のリポジトリルート</td></tr>
+    <tr>
+      <td><code>output_dir</code></td>
+      <td>アイコンカタログ.html の書き出し先ディレクトリ</td></tr>
+    <tr>
+      <td><code>portal_output_dir</code></td>
+      <td>任意。渡された場合のみポータルへ反映する</td></tr>
   </table>
   <p class="note">対象リポジトリにアイコン参照が 1 件も無い場合、本スキルは生成せず SKIP を返す。</p>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>対象リポジトリ 1 つにつき、次の 1 点が生まれる。</p>
@@ -331,24 +340,31 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>検出したアイコン参照の一覧。アイコン名・参照元のファイルパス・行番号・参照件数を持つ。<code>output_dir</code> の直下に置かれる</dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <div class="def">
 </div>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
   <table class="spec">
-    <tr><th>Phase</th><th>内容</th></tr>
-    <tr><td>Phase 1 走査対象の確認</td><td><code>target_repo_path</code> 配下の JSX・HTML にアイコン参照が存在するかを確認する。0 件なら生成せず SKIP を返す</td></tr>
-    <tr><td>Phase 2 抽出</td><td><code>extract-icon-usage.sh</code> が 3 パターンのアイコン参照を抽出し、ページデータの JSON を組み立てる</td></tr>
-    <tr><td>Phase 3 整合検証（機械実行）</td><td><code>validate-page-data.sh --target-repo</code> を実行する。全項目 PASS が次へ進む条件。FAIL は 3 回まで修正を試み、超過したら Phase 2 へ差し戻す</td></tr>
-    <tr><td>Phase 4 生成</td><td><code>build-detail-page.sh</code> がアイコンカタログ.html を出力する。<code>portal_output_dir</code> が渡されていれば <code>build-portal.sh</code> でポータルへ反映する</td></tr>
+    <tr>
+      <th>Phase</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>Phase 1 走査対象の確認</td>
+      <td><code>target_repo_path</code> 配下の JSX・HTML にアイコン参照が存在するかを確認する。0 件なら生成せず SKIP を返す</td></tr>
+    <tr>
+      <td>Phase 2 抽出</td>
+      <td><code>extract-icon-usage.sh</code> が 3 パターンのアイコン参照を抽出し、ページデータの JSON を組み立てる</td></tr>
+    <tr>
+      <td>Phase 3 整合検証（機械実行）</td>
+      <td><code>validate-page-data.sh --target-repo</code> を実行する。全項目 PASS が次へ進む条件。FAIL は 3 回まで修正を試み、超過したら Phase 2 へ差し戻す</td></tr>
+    <tr>
+      <td>Phase 4 生成</td>
+      <td><code>build-detail-page.sh</code> がアイコンカタログ.html を出力する。<code>portal_output_dir</code> が渡されていれば <code>build-portal.sh</code> でポータルへ反映する</td></tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>守り（禁止事項と機械検証）</h2>
   <h3>禁止事項</h3>
@@ -360,15 +376,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <h3>機械検証</h3>
   <p>Phase 3 の <code>validate-page-data.sh</code> が全項目 PASS しない限り HTML は生成されない。3 回の修正で PASS しない場合は Phase 2 へ差し戻し、原因が抽出側にあることを明示して止まる。</p>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>関連スキル・資料</h2>
   <table class="spec">
-    <tr><th>対象</th><th>内容</th></tr>
-    <tr><td><code>SKILL.md</code></td><td>本スキルの手順の定義</td></tr>
-    <tr><td><code>references/test-cases.md</code></td><td>本スキルの検証観点</td></tr>
-    <tr><td>generating-component-inventory-for-reverse-docs</td><td>同じ基盤ページ群。UI 部品の棚卸しを担当する</td></tr>
-    <tr><td>generating-design-system-for-reverse-docs</td><td>同じ基盤ページ群。CSS トークンの転記を担当する</td></tr>
+    <tr>
+      <th>対象</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>SKILL.md</code></td>
+      <td>本スキルの手順の定義</td></tr>
+    <tr>
+      <td><code>references/test-cases.md</code></td>
+      <td>本スキルの検証観点</td></tr>
+    <tr>
+      <td>generating-component-inventory-for-reverse-docs</td>
+      <td>同じ基盤ページ群。UI 部品の棚卸しを担当する</td></tr>
+    <tr>
+      <td>generating-design-system-for-reverse-docs</td>
+      <td>同じ基盤ページ群。CSS トークンの転記を担当する</td></tr>
   </table>
 </section>
 

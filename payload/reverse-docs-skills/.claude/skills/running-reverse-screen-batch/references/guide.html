@@ -277,11 +277,9 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>画面単位リバース検証バッチスキル<br><span class="skill-name">running-reverse-screen-batch</span></h1>
   <p>画面単位のリバース設計検証を claude CLI のヘッドレスモード（<code>claude -p</code>、対話画面を介さず1回の呼び出しで完結する実行方式）による無人バッチループで実行するスキルの確定仕様。</p>
-
   <div class="def">
     <dt>こんな人向け</dt>
     <dd>
@@ -294,15 +292,21 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       夜間などの無人運転で残ゼロまで自動継続させたい時
     </dd>
   </div>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>2026-07-27: docs-only の静的終端、未開通時の静的リバース継続、single-pass / iterative 分岐を契約・雛形で整合確認済み</td></tr>
-    <tr><td>依存</td><td>claude CLI（<code>claude -p</code> ヘッドレスモード）、orchestrating-ai-development-setup（起動元）</td></tr>
-    <tr><td>関連資料</td><td>orchestrating-ai-development-setup SKILL.md、<code>references/gotchas.md</code>、<code>references/loop-design.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>2026-07-27: docs-only の静的終端、未開通時の静的リバース継続、single-pass / iterative 分岐を契約・雛形で整合確認済み</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>claude CLI（<code>claude -p</code> ヘッドレスモード）、orchestrating-ai-development-setup（起動元）</td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td>orchestrating-ai-development-setup SKILL.md、<code>references/gotchas.md</code>、<code>references/loop-design.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -314,7 +318,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s6">関連スキル・規約</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>画面単位のリバース設計検証（facts 確定〜設計書著述〜コード再生成〜往復検証）は、通常セッションでは1画面ずつの逐次処理になる。対象画面数が多いプロジェクトでは、この逐次処理が全体の完了を大きく遅らせる。本スキルは <code>claude -p</code> の無人バッチループにより、1画面=1呼び出しの単位で全対象画面を機械的に処理し続ける係である。</p>
@@ -339,7 +342,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   verification_dir 配下の検証結果 + バッチ運転記録 + progress.jsonl</pre>
   <p class="note"><code>docs-only</code> は前半（facts→著述モード判定→標準著述または大規模2パス）を1回だけ実行し、<code>STATIC_COMPLETE</code> で終端する。大規模ユニットは詳細設計を先に完成させ、基本設計・観点表・テスト仕様書をパス2で作る。<code>single-pass</code> / <code>iterative</code> は原本を見ない検証を保つ分離のため、前半（著述）・後半（ファイル単位の原本を見ない検証・往復検証）の2回に分けて呼び出す。</p>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>スキルを実行すると、以下の3点が生まれる。</p>
@@ -353,7 +355,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   </div>
   <p class="note">周回ループに上限はない（意図的な設計判断）。停止するのは全画面確定（収束）または画面ごとの連続失敗上限到達（発散検知）のいずれかであり、対象画面数が有限である限り必ず有限回で終了する。</p>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
@@ -363,12 +364,14 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>他プロセスが同一画面の作業コピー・dev サーバー等を使用中で開通できなかった場合の退避区分。失敗（failed）とは別区分で扱われ、連続失敗カウント（<code>fail_limit_k</code>）には加算しない。</dd>
   </dl>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>実行フロー</h2>
   <p>起動引数は <code>target_repo_path</code>・<code>output_dir</code>・<code>screen_ids</code>・<code>template_root</code>・<code>common_docs_root</code>・<code>survey_doc_path</code> が必須。<code>model</code>・<code>wait_seconds</code>・<code>fail_limit_k</code>・<code>log_path</code>・<code>lane_id</code>・<code>deadline</code> は任意。</p>
   <table class="spec">
-    <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
+    <tr>
+      <th>Phase</th>
+      <th>内容</th>
+      <th>完了条件</th></tr>
     <tr>
       <td><strong>Phase 1</strong><br>引数検証と対象一覧生成</td>
       <td>全必須引数の存在と参照先パスの実在を確認。<code>screen_ids</code> が "all" の場合は画面一覧HTMLのマニフェストから全画面IDを抽出し、<code>batch-targets.txt</code> に書き出す</td>
@@ -397,7 +400,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   </table>
   <p class="note">Phase 3 で使うループ本体はディスク保存せず、Phase 実行のたびに雛形からインライン展開する。これにより生成されたループはスキルディレクトリの存在に依存せず、呼び出し元セッション終了後もバックグラウンドプロセス単体で完走できる。</p>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>注意事項</h2>
   <div class="constraint">
@@ -418,24 +420,47 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   </div>
   <h3>その他の落とし穴</h3>
   <table class="spec">
-    <tr><th>落とし穴</th><th>対処</th></tr>
-    <tr><td>画面ID一覧との文字列比較・レジストリ検索が原因不明に失敗する（CRLF・エンコーディング混入）</td><td>Phase 1 の一覧生成で <code>tr -d '\r'</code>・空行除去による正規化を省略しない</td></tr>
-    <tr><td><code>~/.claude/projects/</code> が肥大化し Claude Code の起動が遅くなる</td><td><code>--no-session-persistence</code> を必ず付ける</td></tr>
-    <tr><td>1周回あたりの所要時間が長い（画面数 × 実測60分程度）</td><td>想定時間を事前に計算し、夜間運転で余裕を持たせる。Mac のスリープ無効を確認する</td></tr>
-    <tr><td>macOS 標準 bash（3.2系）で <code>declare -A</code> が <code>invalid option</code> で落ちる</td><td>連想配列を使わず、<code>awk</code> によるファイルベースのカウンタで失敗回数を管理する</td></tr>
-    <tr><td>周回ループに上限がなく暴走に見える</td><td><code>verification_mode=iterative</code> の場合だけの設計判断。画面単位の <code>FAIL_LIMIT_K</code> で担保する。既定の <code>single-pass</code> は各画面を1回だけ処理し、再試行しない</td></tr>
+    <tr>
+      <th>落とし穴</th>
+      <th>対処</th></tr>
+    <tr>
+      <td>画面ID一覧との文字列比較・レジストリ検索が原因不明に失敗する（CRLF・エンコーディング混入）</td>
+      <td>Phase 1 の一覧生成で <code>tr -d '\r'</code>・空行除去による正規化を省略しない</td></tr>
+    <tr>
+      <td><code>~/.claude/projects/</code> が肥大化し Claude Code の起動が遅くなる</td>
+      <td><code>--no-session-persistence</code> を必ず付ける</td></tr>
+    <tr>
+      <td>1周回あたりの所要時間が長い（画面数 × 実測60分程度）</td>
+      <td>想定時間を事前に計算し、夜間運転で余裕を持たせる。Mac のスリープ無効を確認する</td></tr>
+    <tr>
+      <td>macOS 標準 bash（3.2系）で <code>declare -A</code> が <code>invalid option</code> で落ちる</td>
+      <td>連想配列を使わず、<code>awk</code> によるファイルベースのカウンタで失敗回数を管理する</td></tr>
+    <tr>
+      <td>周回ループに上限がなく暴走に見える</td>
+      <td><code>verification_mode=iterative</code> の場合だけの設計判断。画面単位の <code>FAIL_LIMIT_K</code> で担保する。既定の <code>single-pass</code> は各画面を1回だけ処理し、再試行しない</td></tr>
   </table>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>関連スキル・規約</h2>
   <table class="spec">
-    <tr><th>関連</th><th>関係</th></tr>
-    <tr><td><code>orchestrating-ai-development-setup</code></td><td>工程全体の案内役。画面数4件以上の画面バッチ Phase から本スキルを起動する</td></tr>
-    <tr><td><code>extracting-unit-facts-from-code</code> / <code>generating-reverse-basic-design</code> / <code>generating-reverse-detailed-design</code></td><td>全モードの前半で静的リバースを行う子スキル群。docs-only はここで終端する</td></tr>
-    <tr><td><code>unlocking-reverse-target-screens(invocation_mode=dynamic-only)</code> / <code>rebuilding-screen-unit-from-docs</code> / <code>syncing-reverse-env</code> / <code>rebuilding-code-from-docs</code></td><td>single-pass / iterative のみで、開通後のファイル単位の原本を見ない検証・往復検証を行う子スキル群</td></tr>
-    <tr><td><code>references/loop-design.md</code></td><td>ループ雛形・プレースホルダ定義・limit検知パターンの正本</td></tr>
-    <tr><td><code>references/gotchas.md</code></td><td>落とし穴集（本ガイド §5 の元資料）</td></tr>
+    <tr>
+      <th>関連</th>
+      <th>関係</th></tr>
+    <tr>
+      <td><code>orchestrating-ai-development-setup</code></td>
+      <td>工程全体の案内役。画面数4件以上の画面バッチ Phase から本スキルを起動する</td></tr>
+    <tr>
+      <td><code>extracting-unit-facts-from-code</code> / <code>generating-reverse-basic-design</code> / <code>generating-reverse-detailed-design</code></td>
+      <td>全モードの前半で静的リバースを行う子スキル群。docs-only はここで終端する</td></tr>
+    <tr>
+      <td><code>unlocking-reverse-target-screens(invocation_mode=dynamic-only)</code> / <code>rebuilding-screen-unit-from-docs</code> / <code>syncing-reverse-env</code> / <code>rebuilding-code-from-docs</code></td>
+      <td>single-pass / iterative のみで、開通後のファイル単位の原本を見ない検証・往復検証を行う子スキル群</td></tr>
+    <tr>
+      <td><code>references/loop-design.md</code></td>
+      <td>ループ雛形・プレースホルダ定義・limit検知パターンの正本</td></tr>
+    <tr>
+      <td><code>references/gotchas.md</code></td>
+      <td>落とし穴集（本ガイド §5 の元資料）</td></tr>
   </table>
 </section>
 

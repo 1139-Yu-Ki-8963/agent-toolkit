@@ -1,7 +1,7 @@
 ---
 name: unlocking-reverse-target-screens
 日本語名: 対象画面の疑似接続
-description: "既存の画面を疑似の接続窓口で開通させ、起動モードごとの検証準備を行う。"
+description: 対象画面と依存先を調べてデータ取得を差し替え、画面を起動して検証用のアドレスを記録し、単独実行では比較の基準を確立する。
 invocation: unlocking-reverse-target-screens
 type: orchestration
 allowed-tools: [Bash, Edit, Glob, Grep, Read, Skill, TaskUpdate, Write]

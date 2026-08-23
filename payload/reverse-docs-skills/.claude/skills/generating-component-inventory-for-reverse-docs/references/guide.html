@@ -276,19 +276,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>コンポーネント棚卸し生成スキル<br><span class="skill-name">generating-component-inventory-for-reverse-docs</span></h1>
   <p>対象リポジトリの UI 部品ファイルを走査し、ディレクトリ由来の分類だけを付けた <strong>コンポーネント棚卸し.html</strong> を生成する基盤ページ生成スキルの確定仕様。</p>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>共有エンジン（<code>validate-page-data.sh</code>・<code>build-detail-page.sh</code>）は他の詳細ページ生成スキルで動作確認済み。コンポーネント抽出（<code>extract-component-inventory.sh</code>）の単独実機検証は未実施。スキル専用のテストスクリプトは持たない</td></tr>
-    <tr><td>依存</td><td>共有スクリプト <code>generation-engine/scripts/extract/extract-component-inventory.sh</code>・<code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>generation-engine/scripts/detail-pages/build-detail-page.sh</code> ／ 任意 <code>generation-engine/scripts/build-portal.sh</code></td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>共有エンジン（<code>validate-page-data.sh</code>・<code>build-detail-page.sh</code>）は他の詳細ページ生成スキルで動作確認済み。コンポーネント抽出（<code>extract-component-inventory.sh</code>）の単独実機検証は未実施。スキル専用のテストスクリプトは持たない</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>共有スクリプト <code>generation-engine/scripts/extract/extract-component-inventory.sh</code>・<code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>generation-engine/scripts/detail-pages/build-detail-page.sh</code> ／ 任意 <code>generation-engine/scripts/build-portal.sh</code></td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -300,29 +305,33 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s6">関連スキル・資料</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>リバース設計で UI の実装状況を把握するには、どの部品がどこに定義され、どれだけの数があるかを最初に確定させる必要がある。本スキルは対象リポジトリの <code>.tsx</code>・<code>.jsx</code>・<code>.vue</code> を走査し、ファイル単位で UI 部品を洗い出してコンポーネント棚卸し.html を作成する。</p>
   <p>分類はディレクトリのパスから機械的に導く。責務が適切か、再利用できているか、重複していないかといった評価は一切行わない。良し悪しの判断は人間の担当であり、本スキルは事実の棚卸しに徹する。</p>
-
   <div class="def">
     <dt>本スキルがやること</dt>
     <dd>UI 部品ファイルの走査・ディレクトリ由来の分類付け・コンポーネント棚卸し.html の生成</dd>
     <dt>本スキルがやらないこと</dt>
     <dd>コンポーネント設計の良否判定・重複の指摘・統合の提案（いずれも人間の判断） ／ アイコン参照の抽出（generating-icon-catalog-for-reverse-docs の担当）</dd>
   </div>
-
   <h3>起動引数</h3>
   <table class="spec">
-    <tr><th>引数</th><th>内容</th></tr>
-    <tr><td><code>target_repo_path</code></td><td>走査対象のリポジトリルート。ここから下の .tsx・.jsx・.vue を探す</td></tr>
-    <tr><td><code>output_dir</code></td><td>コンポーネント棚卸し.html の書き出し先ディレクトリ</td></tr>
-    <tr><td><code>portal_output_dir</code></td><td>任意。渡された場合のみポータルへ反映する</td></tr>
+    <tr>
+      <th>引数</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>target_repo_path</code></td>
+      <td>走査対象のリポジトリルート。ここから下の .tsx・.jsx・.vue を探す</td></tr>
+    <tr>
+      <td><code>output_dir</code></td>
+      <td>コンポーネント棚卸し.html の書き出し先ディレクトリ</td></tr>
+    <tr>
+      <td><code>portal_output_dir</code></td>
+      <td>任意。渡された場合のみポータルへ反映する</td></tr>
   </table>
   <p class="note">対象リポジトリに <code>.tsx</code>・<code>.jsx</code>・<code>.vue</code> が 1 件も無い場合、本スキルは生成せず SKIP を返す。</p>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>対象リポジトリ 1 つにつき、次の 1 点が生まれる。</p>
@@ -331,7 +340,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>検出した UI 部品の一覧。部品名・定義ファイルのパス・ディレクトリ由来の分類・総件数を持つ。<code>output_dir</code> の直下に置かれる</dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <div class="def">
@@ -339,18 +347,26 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd><code>.tsx</code>・<code>.jsx</code>・<code>.vue</code> のファイル単位で検出した UI 部品。1 ファイルを 1 件として数える</dd>
 </div>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
   <table class="spec">
-    <tr><th>Phase</th><th>内容</th></tr>
-    <tr><td>Phase 1 走査対象の確認</td><td><code>target_repo_path</code> 配下に対象拡張子のファイルが存在するかを確認する。0 件なら生成せず SKIP を返す</td></tr>
-    <tr><td>Phase 2 抽出</td><td><code>extract-component-inventory.sh</code> が UI 部品を抽出し、ページデータの JSON を組み立てる</td></tr>
-    <tr><td>Phase 3 整合検証（機械実行）</td><td><code>validate-page-data.sh --target-repo</code> を実行する。全項目 PASS が次へ進む条件。FAIL は 3 回まで修正を試み、超過したら Phase 2 へ差し戻す</td></tr>
-    <tr><td>Phase 4 生成</td><td><code>build-detail-page.sh</code> がコンポーネント棚卸し.html を出力する。<code>portal_output_dir</code> が渡されていれば <code>build-portal.sh</code> でポータルへ反映する</td></tr>
+    <tr>
+      <th>Phase</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>Phase 1 走査対象の確認</td>
+      <td><code>target_repo_path</code> 配下に対象拡張子のファイルが存在するかを確認する。0 件なら生成せず SKIP を返す</td></tr>
+    <tr>
+      <td>Phase 2 抽出</td>
+      <td><code>extract-component-inventory.sh</code> が UI 部品を抽出し、ページデータの JSON を組み立てる</td></tr>
+    <tr>
+      <td>Phase 3 整合検証（機械実行）</td>
+      <td><code>validate-page-data.sh --target-repo</code> を実行する。全項目 PASS が次へ進む条件。FAIL は 3 回まで修正を試み、超過したら Phase 2 へ差し戻す</td></tr>
+    <tr>
+      <td>Phase 4 生成</td>
+      <td><code>build-detail-page.sh</code> がコンポーネント棚卸し.html を出力する。<code>portal_output_dir</code> が渡されていれば <code>build-portal.sh</code> でポータルへ反映する</td></tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>守り（禁止事項と機械検証）</h2>
   <h3>禁止事項</h3>
@@ -362,15 +378,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <h3>機械検証</h3>
   <p>Phase 3 の <code>validate-page-data.sh</code> が全項目 PASS しない限り HTML は生成されない。3 回の修正で PASS しない場合は Phase 2 へ差し戻し、原因が抽出側にあることを明示して止まる。</p>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>関連スキル・資料</h2>
   <table class="spec">
-    <tr><th>対象</th><th>内容</th></tr>
-    <tr><td><code>SKILL.md</code></td><td>本スキルの手順の定義</td></tr>
-    <tr><td><code>references/test-cases.md</code></td><td>本スキルの検証観点</td></tr>
-    <tr><td>generating-icon-catalog-for-reverse-docs</td><td>同じ基盤ページ群。アイコン参照の抽出を担当する</td></tr>
-    <tr><td>generating-design-system-for-reverse-docs</td><td>同じ基盤ページ群。CSS トークンの転記を担当する</td></tr>
+    <tr>
+      <th>対象</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>SKILL.md</code></td>
+      <td>本スキルの手順の定義</td></tr>
+    <tr>
+      <td><code>references/test-cases.md</code></td>
+      <td>本スキルの検証観点</td></tr>
+    <tr>
+      <td>generating-icon-catalog-for-reverse-docs</td>
+      <td>同じ基盤ページ群。アイコン参照の抽出を担当する</td></tr>
+    <tr>
+      <td>generating-design-system-for-reverse-docs</td>
+      <td>同じ基盤ページ群。CSS トークンの転記を担当する</td></tr>
   </table>
 </section>
 

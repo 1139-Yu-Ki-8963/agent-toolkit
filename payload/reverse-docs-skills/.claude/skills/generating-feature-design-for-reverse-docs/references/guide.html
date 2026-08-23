@@ -276,19 +276,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>機能設計書生成スキル<br><span class="skill-name">generating-feature-design-for-reverse-docs</span></h1>
   <p>機能一覧マニフェストと配下ユニットの拡張マニフェストから、機能単位の集約設計書を執筆するスキルの確定仕様。機能一覧の生成スキルは一覧HTMLのみを担い、設計書の雛形展開・生成・記入をしないと明記しており、本スキルがその先を引き受ける。</p>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>合成フィクスチャで実走確認済み。実在リポジトリでの実行実績はまだない</td></tr>
-    <tr><td>依存</td><td>機能一覧マニフェスト（<code>feature-manifest.json</code>）、配下ユニットの拡張マニフェスト、テンプレート <code>delivery-payload/templates/リバース検証/機能/機能設計書.md</code></td></tr>
-    <tr><td>関連資料</td><td><code>delivery-payload/references/chapter-map.md</code>, <code>delivery-payload/references/納品物フォルダ体系.md</code>, <code>generating-feature-list-for-reverse-docs</code>, <code>generating-api-detail-design-for-reverse-docs</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>合成フィクスチャで実走確認済み。実在リポジトリでの実行実績はまだない</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>機能一覧マニフェスト（<code>feature-manifest.json</code>）、配下ユニットの拡張マニフェスト、テンプレート <code>delivery-payload/templates/リバース検証/機能/機能設計書.md</code></td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>delivery-payload/references/chapter-map.md</code>, <code>delivery-payload/references/納品物フォルダ体系.md</code>, <code>generating-feature-list-for-reverse-docs</code>, <code>generating-api-detail-design-for-reverse-docs</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -301,12 +306,10 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s7">制約と既知の限界</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>このスキルは、機能単位の集約設計書を書く。機能一覧の生成スキルは一覧 HTML だけを担い、設計書の雛形展開・生成・記入をしないと明記している。本スキルがその先を引き受け、機能設計書のテンプレートを展開して記入する。情報源は機能一覧マニフェストと配下ユニットのマニフェスト、そして構成要素の個別設計書の 3 つに限り、原本コードは読まない。</p>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>機能 1 つにつき、以下の 3 点が生まれる。</p>
@@ -319,7 +322,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>個別設計書が存在しない構成要素や、マニフェストと突合できなかった参照が、推測で埋められずに列挙される。</dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
@@ -327,26 +329,48 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>構成要素の個別設計書から値を再掲せず、パスで参照する設計書。構成要素をまたいで初めて意味を持つ事項だけを正として持つ。</dd>
 </dl>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>集約設計書としての書き分け</h2>
   <p>機能設計書は集約設計書である。構成要素（API・画面・実行ファイル）の個別仕様は各構成要素の設計書を正とし、本書は値を再掲せずパスで参照する。1 つの機能に複数のエンドポイントが同居する構成を前提とし、本書が担う固有の役割は次の 2 つで、いずれも機能側に 1 箇所だけ記述する。</p>
   <table class="spec">
-    <tr><th>対象</th><th>記述先</th><th>規約</th></tr>
-    <tr><td>共通処理</td><td>§7.1 機能内の呼び出し一覧</td><td>複数の構成要素が同じ内部ヘルパーを呼ぶ場合、そのヘルパーを機能設計書に 1 回だけ記述する。各構成要素の個別設計書には重複して書かず、参照に留める</td></tr>
-    <tr><td>共有状態</td><td>§6.2 共有ストア・共有領域</td><td>複数の構成要素が同じ記憶域（セッションテーブル・共有ストア・一時領域）を介して連携する場合、その受け渡しを機能設計書に 1 回だけ記述する</td></tr>
+    <tr>
+      <th>対象</th>
+      <th>記述先</th>
+      <th>規約</th></tr>
+    <tr>
+      <td>共通処理</td>
+      <td>§7.1 機能内の呼び出し一覧</td>
+      <td>複数の構成要素が同じ内部ヘルパーを呼ぶ場合、そのヘルパーを機能設計書に 1 回だけ記述する。各構成要素の個別設計書には重複して書かず、参照に留める</td></tr>
+    <tr>
+      <td>共有状態</td>
+      <td>§6.2 共有ストア・共有領域</td>
+      <td>複数の構成要素が同じ記憶域（セッションテーブル・共有ストア・一時領域）を介して連携する場合、その受け渡しを機能設計書に 1 回だけ記述する</td></tr>
   </table>
   <p class="note">同じ内容を機能設計書と個別設計書の両方へ書くことを禁止する。2 つ目の実体を作ると、片方だけが更新される穴が生まれる。</p>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>動作フロー</h2>
   <table class="spec">
-    <tr><th>Phase</th><th>名前</th><th>完了条件</th></tr>
-    <tr><td>Phase 1</td><td>起動引数の確認と対象確定</td><td>3 引数が実在し、マニフェストが確認済みで、配下ユニットと対象機能が確定している</td></tr>
-    <tr><td>Phase 2</td><td>集約材料の収集</td><td>対象機能全件について、構成要素一覧と集約対象が揃っている</td></tr>
-    <tr><td>Phase 3</td><td>執筆</td><td>全対象機能の設計書が記入済みである</td></tr>
-    <tr><td>Phase 4</td><td>検証</td><td>4 検査すべてが合格している</td></tr>
+    <tr>
+      <th>Phase</th>
+      <th>名前</th>
+      <th>完了条件</th></tr>
+    <tr>
+      <td>Phase 1</td>
+      <td>起動引数の確認と対象確定</td>
+      <td>3 引数が実在し、マニフェストが確認済みで、配下ユニットと対象機能が確定している</td></tr>
+    <tr>
+      <td>Phase 2</td>
+      <td>集約材料の収集</td>
+      <td>対象機能全件について、構成要素一覧と集約対象が揃っている</td></tr>
+    <tr>
+      <td>Phase 3</td>
+      <td>執筆</td>
+      <td>全対象機能の設計書が記入済みである</td></tr>
+    <tr>
+      <td>Phase 4</td>
+      <td>検証</td>
+      <td>4 検査すべてが合格している</td></tr>
   </table>
   <pre class="flow"><span class="cap">── 動作フロー ─────────────────────────────</span>
 
@@ -365,19 +389,27 @@ Phase 4  検証
    ▼
 完了  機能ごとに構成要素の参照と、機能側に1箇所だけ集約した共通処理・共有状態を持つ設計書</pre>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>検証</h2>
   <p>Phase 4 で実行する 4 つの機械検査。1 つでも不合格なら Phase 3 へ差し戻し、上限 3 回で収束しなければ <code>status=ERROR</code> とする。</p>
   <table class="spec">
-    <tr><th>検査</th><th>内容</th></tr>
-    <tr><td><strong>検査1 章の完備</strong></td><td>生成した各設計書に §1 から §11 が存在し、あわせて付録 A・B も存在する。§ の章は <code>grep -c '^## §'</code> が 11 を返すことで確認し、付録は <code>grep -c '^## 関連資料\|^## 章マップ'</code> が 2 を返すことで確認する</td></tr>
-    <tr><td><strong>検査2 全章の充足</strong></td><td>§1 から §11 の各章について、表の本文行が 1 行以上あるか、または当該章に対応する項目が §11 要確認事項へ回っているかのいずれかを満たす。どちらも満たさない空章があれば不合格とする</td></tr>
-    <tr><td><strong>検査3 参照実在</strong></td><td>§2.1 に記載した個別設計書のパスが実在する。<code>design_docs_root</code> が渡されていない場合は本検査を skip し、その旨を返却の hint に記録する</td></tr>
-    <tr><td><strong>検査4 プレースホルダの残存</strong></td><td><code>FEATUREKEY</code>・<code>FEATUREID</code>・<code>CATEGORY</code>・<code>SOURCEREF</code> が本文に残っていない</td></tr>
+    <tr>
+      <th>検査</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><strong>検査1 章の完備</strong></td>
+      <td>生成した各設計書に §1 から §11 が存在し、あわせて付録 A・B も存在する。§ の章は <code>grep -c '^## §'</code> が 11 を返すことで確認し、付録は <code>grep -c '^## 関連資料\|^## 章マップ'</code> が 2 を返すことで確認する</td></tr>
+    <tr>
+      <td><strong>検査2 全章の充足</strong></td>
+      <td>§1 から §11 の各章について、表の本文行が 1 行以上あるか、または当該章に対応する項目が §11 要確認事項へ回っているかのいずれかを満たす。どちらも満たさない空章があれば不合格とする</td></tr>
+    <tr>
+      <td><strong>検査3 参照実在</strong></td>
+      <td>§2.1 に記載した個別設計書のパスが実在する。<code>design_docs_root</code> が渡されていない場合は本検査を skip し、その旨を返却の hint に記録する</td></tr>
+    <tr>
+      <td><strong>検査4 プレースホルダの残存</strong></td>
+      <td><code>FEATUREKEY</code>・<code>FEATUREID</code>・<code>CATEGORY</code>・<code>SOURCEREF</code> が本文に残っていない</td></tr>
   </table>
 </section>
-
 <section id="s7">
   <h2><span class="sec-num">§7</span>制約と既知の限界</h2>
   <ul>

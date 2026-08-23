@@ -277,11 +277,9 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>画面遷移図生成スキル<br><span class="skill-name">generating-screen-transition-for-reverse-docs</span></h1>
   <p>永続正本 screen-manifest.json、そこから生成した screen-manifest.ext.json、対象リポジトリのルーティング定義を突合し、「画面遷移図.html」を機械検証付きで生成するスキルの確定仕様。</p>
-
   <div class="def">
     <dt>こんな人向け</dt>
     <dd>
@@ -294,15 +292,21 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       route 情報を持たない旧形式の画面や宛先未解決の遷移を可視化したい時
     </dd>
   </div>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>エンジンスクリプト（validate-page-data.sh / build-detail-page.sh）はフィクスチャでの動作確認済み。スキル単体の実機検証は未実施</td></tr>
-    <tr><td>依存</td><td>jq ／ <code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>build-detail-page.sh</code>（スキルフォルダ相対 <code>../../../generation-engine/scripts/detail-pages/</code>）／ <code>generation-engine/scripts/build-portal.sh</code>（任意・カード反映時）</td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/transition-detection.md</code>, <code>../../../generation-engine/scripts/detail-pages/page-data-schema.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>エンジンスクリプト（validate-page-data.sh / build-detail-page.sh）はフィクスチャでの動作確認済み。スキル単体の実機検証は未実施</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>jq ／ <code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>build-detail-page.sh</code>（スキルフォルダ相対 <code>../../../generation-engine/scripts/detail-pages/</code>）／ <code>generation-engine/scripts/build-portal.sh</code>（任意・カード反映時）</td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>references/transition-detection.md</code>, <code>../../../generation-engine/scripts/detail-pages/page-data-schema.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -314,7 +318,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s6">関連スキル・規約</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>リバースエンジニアリング設計のポータルには、将来ページの受け口（<code>output_dir</code> 直下に該当 HTML が実在するときだけカード化される仕組み）がある。本スキルはそのうち画面遷移図（T4）専任の生成係として、<code>&lt;output_dir&gt;/一覧/画面一覧/screen-manifest.json</code> と、それから生成した <code>screen-manifest.ext.json</code> を対象リポジトリのルーティング定義と突合し、<strong>画面遷移図.html</strong> を機械検証付きで作成する。</p>
@@ -338,7 +341,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   &lt;output_dir&gt;/画面遷移図.html（+ 任意で build-portal.sh 再実行）</pre>
   <p class="note">テーブル一覧のような組み込み検出器はなく、Router 種別の判別から個別に組み立てる抽出で進める点はテーブル一覧生成スキルと同型である。</p>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>スキルを実行すると、以下の 2 点が生まれる。</p>
@@ -350,7 +352,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   </div>
   <p class="note">永続raw正本またはraw由来extが不在の場合、本スキルは生成を行わず先行実行の案内のみで終わる。画面一覧HTMLからの逆抽出は、旧成果物を明示的に移行・復元する工程でだけ使用し、通常生成では行わない。</p>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
@@ -364,12 +365,14 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd><code>validate-page-data.sh --target-repo</code> による page-data.json の機械検査。<code>sourceRef</code> が対象リポジトリ上に実在するかを検査する。</dd>
   </dl>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー</h2>
   <p>起動引数は <code>target_repo_path</code>・<code>output_dir</code>（必須）と <code>portal_output_dir</code>（任意）の 3 つ。通常生成では <code>output_dir</code> 配下の正本raw/extを直接解決する。種別は transition に固定されているため、種別を選ぶ引数はない。</p>
   <table class="spec">
-    <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
+    <tr>
+      <th>Phase</th>
+      <th>内容</th>
+      <th>完了条件</th></tr>
     <tr>
       <td><strong>Phase 1</strong><br>前提確認・検出戦略の宣言</td>
       <td>永続raw正本とraw由来extの実在確認（不在ならハード停止し generating-screen-list-for-reverse-docs の先行実行を案内）、rawにhashが無いこと・extのhashがraw正規化内容と一致することの確認、Router 種別の判別、検出戦略の AskUserQuestion 承認</td>
@@ -392,18 +395,28 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     </tr>
   </table>
   <p class="note">エンジンスクリプトはスキルフォルダ相対 <code>../../../generation-engine/scripts/detail-pages/</code> で参照する。</p>
-
   <h3>返却（呼び出し元との契約）</h3>
   <table class="spec">
-    <tr><th>キー</th><th>内容</th></tr>
-    <tr><td><code>status</code></td><td><code>DONE</code> | <code>STOPPED</code>（永続raw正本またはraw由来ext不在）| <code>ERROR</code></td></tr>
-    <tr><td><code>artifacts</code></td><td>生成した画面遷移図.html のパス（<code>STOPPED</code>/<code>ERROR</code> 時は空）</td></tr>
-    <tr><td><code>page_kind</code></td><td><code>transition</code>（固定値）</td></tr>
-    <tr><td><code>portal_rebuilt</code></td><td>build-portal.sh 再実行の有無</td></tr>
-    <tr><td><code>hint</code></td><td>停止理由、旧形式画面・宛先未解決件数、または次工程への申し送り</td></tr>
+    <tr>
+      <th>キー</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>status</code></td>
+      <td><code>DONE</code> | <code>STOPPED</code>（永続raw正本またはraw由来ext不在）| <code>ERROR</code></td></tr>
+    <tr>
+      <td><code>artifacts</code></td>
+      <td>生成した画面遷移図.html のパス（<code>STOPPED</code>/<code>ERROR</code> 時は空）</td></tr>
+    <tr>
+      <td><code>page_kind</code></td>
+      <td><code>transition</code>（固定値）</td></tr>
+    <tr>
+      <td><code>portal_rebuilt</code></td>
+      <td>build-portal.sh 再実行の有無</td></tr>
+    <tr>
+      <td><code>hint</code></td>
+      <td>停止理由、旧形式画面・宛先未解決件数、または次工程への申し送り</td></tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>制約と禁止事項</h2>
   <div class="constraint">
@@ -424,25 +437,50 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   </div>
   <h3>抽出時の落とし穴</h3>
   <table class="spec">
-    <tr><th>落とし穴</th><th>対処</th></tr>
-    <tr><td>route を持たない旧形式画面を nodes に含めてしまう</td><td>nodes[] から除外し unresolved[] へ登録する</td></tr>
-    <tr><td>変数のみで静的解決できない遷移先に無理に confidence を付ける</td><td>解決不能として unresolved[] へ回す（<code>references/transition-detection.md</code> 参照）</td></tr>
-    <tr><td>page-data の nodes[] に route を持ち込んでしまう</td><td>route は Phase 2 の解決処理でのみ使う一時情報とし、page-data には持ち込まない</td></tr>
-    <tr><td>jq 未インストール環境での検証・生成失敗</td><td>validate/build 両スクリプトが jq に依存するため事前に導入する</td></tr>
-    <tr><td>ブラウザバック edge の to を既存画面に無理に解決する</td><td>to を空文字列にし triggerType を「ブラウザバック」にする</td></tr>
-    <tr><td>ガード条件を triggerType として新設する</td><td>既存の triggerType（リダイレクト等）を使い condition フィールドに条件を記述する</td></tr>
+    <tr>
+      <th>落とし穴</th>
+      <th>対処</th></tr>
+    <tr>
+      <td>route を持たない旧形式画面を nodes に含めてしまう</td>
+      <td>nodes[] から除外し unresolved[] へ登録する</td></tr>
+    <tr>
+      <td>変数のみで静的解決できない遷移先に無理に confidence を付ける</td>
+      <td>解決不能として unresolved[] へ回す（<code>references/transition-detection.md</code> 参照）</td></tr>
+    <tr>
+      <td>page-data の nodes[] に route を持ち込んでしまう</td>
+      <td>route は Phase 2 の解決処理でのみ使う一時情報とし、page-data には持ち込まない</td></tr>
+    <tr>
+      <td>jq 未インストール環境での検証・生成失敗</td>
+      <td>validate/build 両スクリプトが jq に依存するため事前に導入する</td></tr>
+    <tr>
+      <td>ブラウザバック edge の to を既存画面に無理に解決する</td>
+      <td>to を空文字列にし triggerType を「ブラウザバック」にする</td></tr>
+    <tr>
+      <td>ガード条件を triggerType として新設する</td>
+      <td>既存の triggerType（リダイレクト等）を使い condition フィールドに条件を記述する</td></tr>
   </table>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>関連スキル・規約</h2>
   <table class="spec">
-    <tr><th>関連</th><th>関係</th></tr>
-    <tr><td><code>orchestrating-ai-development-setup</code></td><td>工程全体の案内役。本スキルはポータル基盤情報ページの 1 種を担い、単独起動もできる</td></tr>
-    <tr><td><code>generating-screen-list-for-reverse-docs</code></td><td>本スキルのデータ源（永続raw正本とraw由来ext）を確定する前工程。不在時はこちらの先行実行が必要</td></tr>
-    <tr><td>他の detail-pages 系 4 スキル（用語辞書・技術スタック・ER図・環境構築手順）</td><td>同じエンジンスクリプト（validate-page-data.sh / build-detail-page.sh）を共用する兄弟スキル</td></tr>
-    <tr><td><code>page-data-schema.md</code></td><td>page-data.json のスキーマ正本</td></tr>
-    <tr><td><code>references/transition-detection.md</code></td><td>Router 種別ごとの検出戦略ガイダンス</td></tr>
+    <tr>
+      <th>関連</th>
+      <th>関係</th></tr>
+    <tr>
+      <td><code>orchestrating-ai-development-setup</code></td>
+      <td>工程全体の案内役。本スキルはポータル基盤情報ページの 1 種を担い、単独起動もできる</td></tr>
+    <tr>
+      <td><code>generating-screen-list-for-reverse-docs</code></td>
+      <td>本スキルのデータ源（永続raw正本とraw由来ext）を確定する前工程。不在時はこちらの先行実行が必要</td></tr>
+    <tr>
+      <td>他の detail-pages 系 4 スキル（用語辞書・技術スタック・ER図・環境構築手順）</td>
+      <td>同じエンジンスクリプト（validate-page-data.sh / build-detail-page.sh）を共用する兄弟スキル</td></tr>
+    <tr>
+      <td><code>page-data-schema.md</code></td>
+      <td>page-data.json のスキーマ正本</td></tr>
+    <tr>
+      <td><code>references/transition-detection.md</code></td>
+      <td>Router 種別ごとの検出戦略ガイダンス</td></tr>
   </table>
 </section>
 

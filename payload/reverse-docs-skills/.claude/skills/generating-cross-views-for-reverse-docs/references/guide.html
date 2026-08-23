@@ -276,19 +276,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>マトリクス・対応表生成スキル<br><span class="skill-name">generating-cross-views-for-reverse-docs</span></h1>
   <p>既存のマニフェスト群を突き合わせ、<strong>5 つの横断ページ</strong>を機械生成する交差ビュー生成スキルの確定仕様。</p>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>生成エンジン（<code>build-matrix-pages.sh</code>）が必須トップレベルキーの検査を内部で兼ねる。5 ページ横断での単独実機検証は未実施。スキル専用のテストスクリプトは持たない</td></tr>
-    <tr><td>依存</td><td>共有スクリプト <code>generation-engine/scripts/</code> 配下の <code>extract-screen-metadata.sh</code>・<code>extract-api-metadata.sh</code>・<code>build-matrix-data.sh</code>・<code>build-permission-function-data.sh</code>・<code>extract-ai-assets.sh</code>・<code>build-matrix-pages.sh</code> ／ 任意 <code>build-portal.sh</code></td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>生成エンジン（<code>build-matrix-pages.sh</code>）が必須トップレベルキーの検査を内部で兼ねる。5 ページ横断での単独実機検証は未実施。スキル専用のテストスクリプトは持たない</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>共有スクリプト <code>generation-engine/scripts/</code> 配下の <code>extract-screen-metadata.sh</code>・<code>extract-api-metadata.sh</code>・<code>build-matrix-data.sh</code>・<code>build-permission-function-data.sh</code>・<code>extract-ai-assets.sh</code>・<code>build-matrix-pages.sh</code> ／ 任意 <code>build-portal.sh</code></td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -300,31 +305,39 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s6">関連スキル・資料</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>画面・API・テーブル・機能の一覧は、それぞれ単独では「何があるか」しか答えない。誰がどの画面を使えるのか、どの API がどのテーブルを触るのかといった問いに答えるには、複数の一覧を突き合わせる必要がある。本スキルは既存のマニフェスト群を交差させ、横断で引ける 5 つのページを機械生成する。</p>
   <p>生成できるのは、元になるマニフェストが揃っているページだけである。必要な一覧が未生成なら該当ページは作らず、作れなかった事実を報告する。欠けた情報を推測で埋めることはしない。</p>
-
   <div class="def">
     <dt>本スキルがやること</dt>
     <dd>既存マニフェストの突き合わせ・交差データの導出・5 ページの機械生成</dd>
     <dt>本スキルがやらないこと</dt>
     <dd>元になる画面・API・テーブル・機能の各一覧の作成（それぞれの一覧生成スキルの担当） ／ 権限設計の良否判定</dd>
   </div>
-
   <h3>起動引数</h3>
   <table class="spec">
-    <tr><th>引数</th><th>内容</th></tr>
-    <tr><td><code>target_repo_path</code></td><td>メタデータ抽出の対象となるリポジトリルート</td></tr>
-    <tr><td><code>output_dir</code></td><td>5 ページの書き出し先ディレクトリ。既存マニフェストの所在でもある</td></tr>
-    <tr><td><code>portal_output_dir</code></td><td>任意。渡された場合のみポータルへ反映する</td></tr>
-    <tr><td><code>sites_path</code></td><td>任意。AI 設定資産の抽出に使う</td></tr>
-    <tr><td><code>site_key</code></td><td>任意。AI 設定資産の抽出に使う</td></tr>
+    <tr>
+      <th>引数</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>target_repo_path</code></td>
+      <td>メタデータ抽出の対象となるリポジトリルート</td></tr>
+    <tr>
+      <td><code>output_dir</code></td>
+      <td>5 ページの書き出し先ディレクトリ。既存マニフェストの所在でもある</td></tr>
+    <tr>
+      <td><code>portal_output_dir</code></td>
+      <td>任意。渡された場合のみポータルへ反映する</td></tr>
+    <tr>
+      <td><code>sites_path</code></td>
+      <td>任意。AI 設定資産の抽出に使う</td></tr>
+    <tr>
+      <td><code>site_key</code></td>
+      <td>任意。AI 設定資産の抽出に使う</td></tr>
   </table>
   <p class="note">元になるマニフェストが揃っていないページは生成されない。5 ページのうち一部だけが生まれることは正常な結果である。</p>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>元になるマニフェストが揃っている分だけ、次の 5 点が生まれる。</p>
@@ -341,7 +354,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>対象リポジトリが持つ AI エージェント向け設定資産の一覧</dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <div class="def">
@@ -351,18 +363,26 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>各一覧生成スキルが出力した JSON。本スキルはこれを入力として読む</dd>
   </div>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
   <table class="spec">
-    <tr><th>Phase</th><th>内容</th></tr>
-    <tr><td>Phase 1 入力の確認</td><td><code>output_dir</code> 配下の各マニフェストの実在を確認し、生成できるページを確定する</td></tr>
-    <tr><td>Phase 2 メタデータ抽出（機械実行）</td><td><code>extract-screen-metadata.sh</code>・<code>extract-api-metadata.sh</code>・<code>extract-ai-assets.sh</code> が交差に必要なメタデータを取り出す</td></tr>
-    <tr><td>Phase 3 交差データの導出（機械実行）</td><td><code>build-matrix-data.sh</code>・<code>build-permission-function-data.sh</code> が交差表のデータを組み立てる</td></tr>
-    <tr><td>Phase 4 生成</td><td><code>build-matrix-pages.sh</code> が 5 ページを出力する。このスクリプトは出力前に必須トップレベルキーの検査を兼ねる。<code>portal_output_dir</code> が渡されていれば <code>build-portal.sh</code> でポータルへ反映する</td></tr>
+    <tr>
+      <th>Phase</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>Phase 1 入力の確認</td>
+      <td><code>output_dir</code> 配下の各マニフェストの実在を確認し、生成できるページを確定する</td></tr>
+    <tr>
+      <td>Phase 2 メタデータ抽出（機械実行）</td>
+      <td><code>extract-screen-metadata.sh</code>・<code>extract-api-metadata.sh</code>・<code>extract-ai-assets.sh</code> が交差に必要なメタデータを取り出す</td></tr>
+    <tr>
+      <td>Phase 3 交差データの導出（機械実行）</td>
+      <td><code>build-matrix-data.sh</code>・<code>build-permission-function-data.sh</code> が交差表のデータを組み立てる</td></tr>
+    <tr>
+      <td>Phase 4 生成</td>
+      <td><code>build-matrix-pages.sh</code> が 5 ページを出力する。このスクリプトは出力前に必須トップレベルキーの検査を兼ねる。<code>portal_output_dir</code> が渡されていれば <code>build-portal.sh</code> でポータルへ反映する</td></tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>守り（禁止事項と機械検証）</h2>
   <h3>禁止事項</h3>
@@ -374,16 +394,27 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <h3>機械検証</h3>
   <p>Phase 4 の <code>build-matrix-pages.sh</code> が必須トップレベルキーの検査を内部で行い、検査を通らないデータからはページを出力しない。</p>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>関連スキル・資料</h2>
   <table class="spec">
-    <tr><th>対象</th><th>内容</th></tr>
-    <tr><td><code>SKILL.md</code></td><td>本スキルの手順の定義</td></tr>
-    <tr><td><code>references/test-cases.md</code></td><td>本スキルの検証観点</td></tr>
-    <tr><td>generating-screen-list-for-reverse-docs</td><td>本スキルが読む画面一覧マニフェストを作る</td></tr>
-    <tr><td>generating-api-list-for-reverse-docs</td><td>本スキルが読む API 一覧マニフェストを作る</td></tr>
-    <tr><td>generating-table-list-for-reverse-docs</td><td>本スキルが読むテーブル一覧マニフェストを作る</td></tr>
+    <tr>
+      <th>対象</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>SKILL.md</code></td>
+      <td>本スキルの手順の定義</td></tr>
+    <tr>
+      <td><code>references/test-cases.md</code></td>
+      <td>本スキルの検証観点</td></tr>
+    <tr>
+      <td>generating-screen-list-for-reverse-docs</td>
+      <td>本スキルが読む画面一覧マニフェストを作る</td></tr>
+    <tr>
+      <td>generating-api-list-for-reverse-docs</td>
+      <td>本スキルが読む API 一覧マニフェストを作る</td></tr>
+    <tr>
+      <td>generating-table-list-for-reverse-docs</td>
+      <td>本スキルが読むテーブル一覧マニフェストを作る</td></tr>
   </table>
 </section>
 

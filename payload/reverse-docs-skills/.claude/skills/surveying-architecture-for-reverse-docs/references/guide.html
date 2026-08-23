@@ -271,26 +271,30 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>アーキテクチャ調査スキル<br><span class="skill-name">surveying-architecture-for-reverse-docs</span></h1>
   <p>既存リポジトリを走査し、アーキテクチャ調査書を機械検証付きで確定する。仕事はアーキテクチャ調査書.mdの確定のみで、対象リポジトリへの書き込み・変更は一切行わない。</p>
-
   <div class="def">
     <dt>こんな人向け</dt>
     <dd>リバース設計に着手する前に、対象リポジトリの技術スタック・ディレクトリ責務・ユニット種別の実在有無を確定したい人。</dd>
     <dt>こんな場面で使う</dt>
     <dd>後続工程（共通文書の書き起こし・facts抽出・詳細設計執筆）の前提として、決定的な根拠に基づくアーキテクチャ調査書が必要なとき。既存の調査書に検出手がかりの欠落が見つかり、該当節のみ改訂したいとき（mode=revise）。</dd>
   </div>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>サンプルプロジェクトで動作確認済み</td></tr>
-    <tr><td>依存</td><td>find / grep / ls 等の決定的コマンド、機械ゲート実行に scripts/check-architecture-survey.sh を使用</td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>scripts/check-architecture-survey.sh</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>サンプルプロジェクトで動作確認済み</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>find / grep / ls 等の決定的コマンド、機械ゲート実行に scripts/check-architecture-survey.sh を使用</td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>scripts/check-architecture-survey.sh</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -307,7 +311,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s11">関連スキル・資料</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>既存リポジトリを決定的コマンドで走査し、その結果を<strong>アーキテクチャ調査書.md</strong>として確定する。</p>
@@ -318,7 +321,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <strong>読み取り専用</strong>: 対象リポジトリへの書き込み・変更は一切行わない。出力は output_dir 配下の1ファイル（アーキテクチャ調査書.md）のみ。
   </div>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>リバース設計の全工程が前提として参照する、プロジェクトの技術的な地図が 1 本生まれる。</p>
@@ -327,7 +329,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>対象アプリケーションの技術スタック・ディレクトリ構成・ルーティング方式・状態管理パターン・API 通信手法・認証方式・ビルド設定を調査し、体系的にまとめた文書。後続の共通文書の書き起こし・facts 抽出・設計書執筆の全工程が、この調査書の記述を前提として作業する。</dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
@@ -337,34 +338,67 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>差し戻し改訂モード。差し戻し元が指摘した欠落節・欠落理由（revise_findings）を受け取り、該当節のみ改訂して全ゲートを再実行する。</dd>
   </dl>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>使い方（起動引数）</h2>
   <p class="note">全量指定・対話ゼロ。単独起動時は下表の args をユーザーから直接取得する。</p>
   <table class="spec">
-    <tr><th>引数</th><th>必須</th><th>内容</th></tr>
-    <tr><td>target_repo_path</td><td>必須</td><td>調査対象リポジトリの絶対パス</td></tr>
-    <tr><td>output_dir</td><td>必須</td><td>出力先ルート。調査書は <code>&lt;output_dir&gt;/プロジェクト共通/アーキテクチャ調査書.md</code> に出力する</td></tr>
-    <tr><td>template_root</td><td>必須</td><td>テンプレ一式のルート。この配下の <code>プロジェクト共通/アーキテクチャ調査書.md</code> を雛形に使う</td></tr>
-    <tr><td>target_branch</td><td>任意</td><td>調査時点の対象ブランチ。調査メタ節に記録する</td></tr>
-    <tr><td>source_ref</td><td>任意</td><td>調査時点のコミット参照。調査メタ節に記録する</td></tr>
-    <tr><td>mode</td><td>任意（既定 survey）</td><td>survey（新規）／revise（差し戻し改訂。revise_findings を受け取り該当節のみ改訂して全ゲートを再実行）</td></tr>
-    <tr><td>revise_findings</td><td>mode=revise 時のみ必須</td><td>差し戻し元が指摘した欠落節・欠落理由の一覧</td></tr>
+    <tr>
+      <th>引数</th>
+      <th>必須</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>target_repo_path</td>
+      <td>必須</td>
+      <td>調査対象リポジトリの絶対パス</td></tr>
+    <tr>
+      <td>output_dir</td>
+      <td>必須</td>
+      <td>出力先ルート。調査書は <code>&lt;output_dir&gt;/プロジェクト共通/アーキテクチャ調査書.md</code> に出力する</td></tr>
+    <tr>
+      <td>template_root</td>
+      <td>必須</td>
+      <td>テンプレ一式のルート。この配下の <code>プロジェクト共通/アーキテクチャ調査書.md</code> を雛形に使う</td></tr>
+    <tr>
+      <td>target_branch</td>
+      <td>任意</td>
+      <td>調査時点の対象ブランチ。調査メタ節に記録する</td></tr>
+    <tr>
+      <td>source_ref</td>
+      <td>任意</td>
+      <td>調査時点のコミット参照。調査メタ節に記録する</td></tr>
+    <tr>
+      <td>mode</td>
+      <td>任意（既定 survey）</td>
+      <td>survey（新規）／revise（差し戻し改訂。revise_findings を受け取り該当節のみ改訂して全ゲートを再実行）</td></tr>
+    <tr>
+      <td>revise_findings</td>
+      <td>mode=revise 時のみ必須</td>
+      <td>差し戻し元が指摘した欠落節・欠落理由の一覧</td></tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>設計原則</h2>
   <table class="spec">
-    <tr><th>原則</th><th>内容</th></tr>
-    <tr><td>読み取り専用</td><td>対象リポジトリへの書き込み・変更は一切行わない。出力は output_dir 配下のみ</td></tr>
-    <tr><td>決定的根拠のみ</td><td>全記述は find / grep / ls 等の決定的コマンドの実出力を根拠とする。推測での埋め合わせを禁止する</td></tr>
-    <tr><td>空欄禁止・理由必須</td><td>判定不能・実在しない項目は空欄にせず「実在しない（理由: …）」で必ず埋める</td></tr>
-    <tr><td>固定と可変の分離</td><td>ゲート（check-architecture-survey.sh）は決定的スクリプトに固定する。調査そのもの（何をどう調べるか）はプロジェクトごとに可変であり、Phase 2〜3 で都度 Bash/Grep/Glob を用いて実行する</td></tr>
-    <tr><td>合格判定はスクリプトのexit codeのみ</td><td>自然文の自己申告での合格判定を行わない</td></tr>
+    <tr>
+      <th>原則</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>読み取り専用</td>
+      <td>対象リポジトリへの書き込み・変更は一切行わない。出力は output_dir 配下のみ</td></tr>
+    <tr>
+      <td>決定的根拠のみ</td>
+      <td>全記述は find / grep / ls 等の決定的コマンドの実出力を根拠とする。推測での埋め合わせを禁止する</td></tr>
+    <tr>
+      <td>空欄禁止・理由必須</td>
+      <td>判定不能・実在しない項目は空欄にせず「実在しない（理由: …）」で必ず埋める</td></tr>
+    <tr>
+      <td>固定と可変の分離</td>
+      <td>ゲート（check-architecture-survey.sh）は決定的スクリプトに固定する。調査そのもの（何をどう調べるか）はプロジェクトごとに可変であり、Phase 2〜3 で都度 Bash/Grep/Glob を用いて実行する</td></tr>
+    <tr>
+      <td>合格判定はスクリプトのexit codeのみ</td>
+      <td>自然文の自己申告での合格判定を行わない</td></tr>
   </table>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>動作フロー（Phase 1〜6）</h2>
   <pre class="flow"><span class="cap">Phase 1: 前提確認</span>
@@ -416,47 +450,83 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   status=中断: hintにPhase 5で未収束のまま残った検査項目・理由を記す
   完了条件: statusが確定している</pre>
 </section>
-
 <section id="s7">
   <h2><span class="sec-num">§7</span>機械ゲート5検査</h2>
   <p><code>check-architecture-survey.sh</code>は合否を exit code のみで判定する（自然文の自己申告は用いない）。</p>
   <table class="spec">
-    <tr><th>検査</th><th>内容</th></tr>
-    <tr><td>パス実在検査</td><td>調査書に記載された相対パス（backtick囲みで「/」を含むもの）の実在を確認する。URL・glob・プレースホルダ・絶対パス・空白や正規表現記号を含むトークンは対象外</td></tr>
-    <tr><td>種別網羅検査</td><td>ユニット6種別すべてに判定行（種別名と判定語「実在する」または「実在しない（」が同一行）が存在するかを確認する</td></tr>
-    <tr><td>推測語検査</td><td>調査書ファイル全体（テンプレ由来の固定文・HTMLコメントを含む）を走査し、「おそらく」「と思われ」「かもしれ」「推測」「たぶん」「恐らく」「でしょう」「のはず」等の推測語の不在を確認する</td></tr>
-    <tr><td>テンプレ残存検査</td><td>プレースホルダ（<code>&lt;実測: …&gt;</code>等）の残存ゼロを確認する</td></tr>
-    <tr><td>ディレクトリ網羅検査</td><td>§1のfindコマンドから走査範囲を決定的に再現し、直接ファイルを持つディレクトリがすべて§4（責務マップ本体・対象外ディレクトリ）またはその子ディレクトリとして網羅されていることを確認する。§4の<code>.</code>（プロジェクトルート）行が網羅済みとするのはルート直下の直接ファイルのみで、子ディレクトリへは波及しない</td></tr>
+    <tr>
+      <th>検査</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>パス実在検査</td>
+      <td>調査書に記載された相対パス（backtick囲みで「/」を含むもの）の実在を確認する。URL・glob・プレースホルダ・絶対パス・空白や正規表現記号を含むトークンは対象外</td></tr>
+    <tr>
+      <td>種別網羅検査</td>
+      <td>ユニット6種別すべてに判定行（種別名と判定語「実在する」または「実在しない（」が同一行）が存在するかを確認する</td></tr>
+    <tr>
+      <td>推測語検査</td>
+      <td>調査書ファイル全体（テンプレ由来の固定文・HTMLコメントを含む）を走査し、「おそらく」「と思われ」「かもしれ」「推測」「たぶん」「恐らく」「でしょう」「のはず」等の推測語の不在を確認する</td></tr>
+    <tr>
+      <td>テンプレ残存検査</td>
+      <td>プレースホルダ（<code>&lt;実測: …&gt;</code>等）の残存ゼロを確認する</td></tr>
+    <tr>
+      <td>ディレクトリ網羅検査</td>
+      <td>§1のfindコマンドから走査範囲を決定的に再現し、直接ファイルを持つディレクトリがすべて§4（責務マップ本体・対象外ディレクトリ）またはその子ディレクトリとして網羅されていることを確認する。§4の<code>.</code>（プロジェクトルート）行が網羅済みとするのはルート直下の直接ファイルのみで、子ディレクトリへは波及しない</td></tr>
   </table>
 </section>
-
 <section id="s8">
   <h2><span class="sec-num">§8</span>返却ブロック</h2>
   <p>orchestrating-ai-development-setup の契約（返却ブロック共通サブセット: status/scope/artifacts/hint）に準拠する。</p>
   <table class="spec">
-    <tr><th>キー</th><th>値</th></tr>
-    <tr><td>status</td><td><span class="tag pass">調査確定</span> または <span class="tag fail">中断</span></td></tr>
-    <tr><td>scope</td><td>target_repo_path のbasename</td></tr>
-    <tr><td>artifacts</td><td>調査書の絶対パス（配列）</td></tr>
-    <tr><td>hint</td><td>次工程への申し送り、または中断理由</td></tr>
-    <tr><td>survey_doc_path（拡張）</td><td>調査書の絶対パス（artifacts[0] と同値）</td></tr>
-    <tr><td>unit_kinds_present（拡張）</td><td>実在判定が「実在する」だった種別の一覧</td></tr>
+    <tr>
+      <th>キー</th>
+      <th>値</th></tr>
+    <tr>
+      <td>status</td>
+      <td><span class="tag pass">調査確定</span> または <span class="tag fail">中断</span></td></tr>
+    <tr>
+      <td>scope</td>
+      <td>target_repo_path のbasename</td></tr>
+    <tr>
+      <td>artifacts</td>
+      <td>調査書の絶対パス（配列）</td></tr>
+    <tr>
+      <td>hint</td>
+      <td>次工程への申し送り、または中断理由</td></tr>
+    <tr>
+      <td>survey_doc_path（拡張）</td>
+      <td>調査書の絶対パス（artifacts[0] と同値）</td></tr>
+    <tr>
+      <td>unit_kinds_present（拡張）</td>
+      <td>実在判定が「実在する」だった種別の一覧</td></tr>
   </table>
 </section>
-
 <section id="s9">
   <h2><span class="sec-num">§9</span>ループ設計</h2>
   <table class="spec">
-    <tr><th>要素</th><th>内容</th></tr>
-    <tr><td>反復対象</td><td>Phase 5（機械ゲート）exit 1 → Phase 4（調査書執筆）へ戻る</td></tr>
-    <tr><td>上限回数</td><td>5回</td></tr>
-    <tr><td>収束条件</td><td>check-architecture-survey.sh が exit 0</td></tr>
-    <tr><td>発散条件</td><td>同一のNG理由（同一検査項目の同一違反）が2回連続で再発した場合、発散として即中断する（上限回数消化前でも中断してよい）</td></tr>
-    <tr><td>上限到達時の報告</td><td>status=中断とし、hintに未解消の検査項目・違反内容・試行回数を記録する</td></tr>
-    <tr><td>検証役の分離</td><td>合否判定は check-architecture-survey.sh の exit code のみで行う。自然文の自己申告での合格判定は行わない</td></tr>
+    <tr>
+      <th>要素</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>反復対象</td>
+      <td>Phase 5（機械ゲート）exit 1 → Phase 4（調査書執筆）へ戻る</td></tr>
+    <tr>
+      <td>上限回数</td>
+      <td>5回</td></tr>
+    <tr>
+      <td>収束条件</td>
+      <td>check-architecture-survey.sh が exit 0</td></tr>
+    <tr>
+      <td>発散条件</td>
+      <td>同一のNG理由（同一検査項目の同一違反）が2回連続で再発した場合、発散として即中断する（上限回数消化前でも中断してよい）</td></tr>
+    <tr>
+      <td>上限到達時の報告</td>
+      <td>status=中断とし、hintに未解消の検査項目・違反内容・試行回数を記録する</td></tr>
+    <tr>
+      <td>検証役の分離</td>
+      <td>合否判定は check-architecture-survey.sh の exit code のみで行う。自然文の自己申告での合格判定は行わない</td></tr>
   </table>
 </section>
-
 <section id="s10">
   <h2><span class="sec-num">§10</span>予想を裏切る挙動</h2>
   <ul>
@@ -481,17 +551,23 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li>§4の<code>.</code>（プロジェクトルート）行が網羅済みとするのはルート直下の直接ファイルのみ。子ディレクトリは<code>.</code>行では網羅されず、個別行・層の親行・対象外ディレクトリ表のいずれかへの記載が必要</li>
   </ul>
 </section>
-
 <section id="s11">
   <h2><span class="sec-num">§11</span>関連スキル・資料</h2>
   <table class="spec">
-    <tr><th>関連</th><th>関係</th></tr>
-    <tr><td>orchestrating-ai-development-setup</td><td>工程全体を案内する管理者スキル。本スキルは他スキル名を参照せず単独起動できるが、返却する status / artifacts はこの管理者スキルの契約に準拠する</td></tr>
-    <tr><td>generating-&lt;種別&gt;-list-for-reverse-docs（種別別一覧スキル6つ）</td><td>種別ごとの一覧生成を担う姉妹スキル群。本スキルのスコープ外（TRIGGER条件のSKIP対象）</td></tr>
-    <tr><td>リバース工程設計.md</td><td>Phase/Step×スキル対応の正本。本スキルの位置づけはPhase 2 / Step 3-7</td></tr>
+    <tr>
+      <th>関連</th>
+      <th>関係</th></tr>
+    <tr>
+      <td>orchestrating-ai-development-setup</td>
+      <td>工程全体を案内する管理者スキル。本スキルは他スキル名を参照せず単独起動できるが、返却する status / artifacts はこの管理者スキルの契約に準拠する</td></tr>
+    <tr>
+      <td>generating-&lt;種別&gt;-list-for-reverse-docs（種別別一覧スキル6つ）</td>
+      <td>種別ごとの一覧生成を担う姉妹スキル群。本スキルのスコープ外（TRIGGER条件のSKIP対象）</td></tr>
+    <tr>
+      <td>リバース工程設計.md</td>
+      <td>Phase/Step×スキル対応の正本。本スキルの位置づけはPhase 2 / Step 3-7</td></tr>
   </table>
 </section>
-
 <div id="zoom-overlay" class="zoom-overlay" hidden></div>
 <script>
   (function () {

@@ -276,19 +276,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>要件定義5文書生成スキル<br><span class="skill-name">generating-requirement-definitions-for-reverse-docs</span></h1>
   <p>対象コードを直接読まず、既存の一覧マニフェストと個別基本設計書から観測できる事実だけで、機能要件一覧・帳票要件・バッチ要件・外部連携要件・ビジネス概要の要件定義5文書を生成するスキルの確定仕様。</p>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>Phase 4 の機械検査6件は grep とファイル実在確認による決定的な検査として定義済みだが、本スキル専用のテストスクリプトは持たない。<code>references/test-cases.md</code> の観点のうち複数は手動確認（合成フィクスチャを要する）と記載されており、実機検証は未実施</td></tr>
-    <tr><td>依存</td><td>宣言ファイル <code>delivery-payload/references/output-layout.json</code>・<code>delivery-payload/references/design-unit-layout.json</code> を Read で参照する。生成・検証専用の外部スクリプトへの依存は持たない（Phase 4 の検査は grep と <code>test -f</code> のみで完結する）</td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>Phase 4 の機械検査6件は grep とファイル実在確認による決定的な検査として定義済みだが、本スキル専用のテストスクリプトは持たない。<code>references/test-cases.md</code> の観点のうち複数は手動確認（合成フィクスチャを要する）と記載されており、実機検証は未実施</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>宣言ファイル <code>delivery-payload/references/output-layout.json</code>・<code>delivery-payload/references/design-unit-layout.json</code> を Read で参照する。生成・検証専用の外部スクリプトへの依存は持たない（Phase 4 の検査は grep と <code>test -f</code> のみで完結する）</td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -300,29 +305,33 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s6">関連スキル・資料</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>要件定義の5文書（機能要件一覧・帳票要件・バッチ要件・外部連携要件・ビジネス概要）は、業務の目的や利用者像を扱う文書でありながら、対象コードそのものには現れない。本スキルは対象コードを一切読まず、既に生成済みの一覧マニフェストと個別基本設計書、つまり他スキルの成果物だけを情報源として、観測できる事実と業務の意図を分離しながら5文書を組み立てる。</p>
   <p>本スキルは orchestrating-ai-development-setup の統括フローへは結線されておらず、単独起動でのみ動く。起動引数を渡せば動く。</p>
-
   <div class="def">
     <dt>本スキルがやること</dt>
     <dd>一覧マニフェストと個別基本設計書からの観測事実の記入、業務の意図の要確認事項一覧への分離、要件定義5文書の生成と機械検査</dd>
     <dt>本スキルがやらないこと</dt>
     <dd>個別ユニットの基本設計書・詳細設計書の生成（各 generating-*-basic-design-for-reverse-docs / generating-*-detail-design-for-reverse-docs の担当） ／ 一覧マニフェスト自体の生成（各 generating-*-list-for-reverse-docs の担当） ／ 対象コード・原本ファイルパス・関数名・変数名の参照 ／ 業務の意図の推測や一般的な内容での補完</dd>
   </div>
-
   <h3>起動引数</h3>
   <table class="spec">
-    <tr><th>引数</th><th>内容</th></tr>
-    <tr><td><code>output_dir</code></td><td>納品物ルートの絶対パス。一覧マニフェスト・個別基本設計書・出力先は、それぞれ <code>output-layout.json</code> の物理配置キーから解決する</td></tr>
-    <tr><td><code>template_root</code></td><td><code>&lt;template_root&gt;/リバース検証/プロジェクト共通/</code> の要件定義5文書を雛形に使う</td></tr>
-    <tr><td><code>target_docs</code></td><td>任意。既定は5件すべて。<code>functional-requirements</code>／<code>report-requirements</code>／<code>batch-requirements</code>／<code>external-requirements</code>／<code>business-overview</code> の doc_id で絞り込む</td></tr>
+    <tr>
+      <th>引数</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>output_dir</code></td>
+      <td>納品物ルートの絶対パス。一覧マニフェスト・個別基本設計書・出力先は、それぞれ <code>output-layout.json</code> の物理配置キーから解決する</td></tr>
+    <tr>
+      <td><code>template_root</code></td>
+      <td><code>&lt;template_root&gt;/リバース検証/プロジェクト共通/</code> の要件定義5文書を雛形に使う</td></tr>
+    <tr>
+      <td><code>target_docs</code></td>
+      <td>任意。既定は5件すべて。<code>functional-requirements</code>／<code>report-requirements</code>／<code>batch-requirements</code>／<code>external-requirements</code>／<code>business-overview</code> の doc_id で絞り込む</td></tr>
   </table>
   <p class="note">本スキルはユーザーに直接確認しない（AskUserQuestion 不使用）。単独起動時は起動引数をユーザーから直接取得する。</p>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>対象リポジトリ1つにつき、次の最大5点が生まれる。<code>target_docs</code> で絞り込める。個別基本設計書が未生成のユニットがある場合、該当する観測列は空欄のまま残る。</p>
@@ -340,7 +349,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   </div>
   <p class="note">生成された文書は <code>&lt;output_dir&gt;/&lt;commonRoot&gt;/&lt;ファイル名&gt;</code>（既定値 <code>docs/design/common</code>）に置かれる。「入力なし」と判定された文書は生成されない。</p>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
@@ -348,18 +356,26 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>一覧生成エンジンが読む JSON。定義書や画面等の記述を機械が扱える形へ写したもの。種別ごとに <code>&lt;kind&gt;-manifest.json</code> または <code>&lt;kind&gt;-manifest.ext.json</code> として置かれる</dd>
 </dl>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
   <table class="spec">
-    <tr><th>Phase</th><th>内容</th></tr>
-    <tr><td>Phase 1 起動引数の確認と対象文書の確定</td><td><code>output_dir</code>・<code>template_root</code> の実在を確認する。要件定義5文書のテンプレートの実在を確認する。<code>target_docs</code> から対象文書の doc_id 集合を確定する</td></tr>
-    <tr><td>Phase 2 入力の特定</td><td>機能・帳票・バッチ・外部連携要件は一覧マニフェストの入力状態（マニフェスト有／該当なし／入力なし）を判定する。帳票・バッチ・外部連携要件は個別基本設計書の有無を確認し、実在すれば該当章を読む。ビジネス概要は7種別の件数または「対象外（入力なし）」を確定する</td></tr>
-    <tr><td>Phase 3 執筆</td><td>テンプレートを出力先へ配置する。§2 の観測事実を記入する。§3 要確認事項一覧へ業務の意図と空欄理由を記入する。§2 に空欄が無ければ frontmatter の <code>status</code> を <code>draft</code> から <code>traced</code> へ更新する</td></tr>
-    <tr><td>Phase 4 機械検査（機械実行）</td><td>6つの検査を実行する。1つでも不合格なら Phase 3 へ差し戻す。上限3回で収束しなければ <code>status=ERROR</code> とする</td></tr>
+    <tr>
+      <th>Phase</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>Phase 1 起動引数の確認と対象文書の確定</td>
+      <td><code>output_dir</code>・<code>template_root</code> の実在を確認する。要件定義5文書のテンプレートの実在を確認する。<code>target_docs</code> から対象文書の doc_id 集合を確定する</td></tr>
+    <tr>
+      <td>Phase 2 入力の特定</td>
+      <td>機能・帳票・バッチ・外部連携要件は一覧マニフェストの入力状態（マニフェスト有／該当なし／入力なし）を判定する。帳票・バッチ・外部連携要件は個別基本設計書の有無を確認し、実在すれば該当章を読む。ビジネス概要は7種別の件数または「対象外（入力なし）」を確定する</td></tr>
+    <tr>
+      <td>Phase 3 執筆</td>
+      <td>テンプレートを出力先へ配置する。§2 の観測事実を記入する。§3 要確認事項一覧へ業務の意図と空欄理由を記入する。§2 に空欄が無ければ frontmatter の <code>status</code> を <code>draft</code> から <code>traced</code> へ更新する</td></tr>
+    <tr>
+      <td>Phase 4 機械検査（機械実行）</td>
+      <td>6つの検査を実行する。1つでも不合格なら Phase 3 へ差し戻す。上限3回で収束しなければ <code>status=ERROR</code> とする</td></tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>守り（禁止事項と機械検証）</h2>
   <h3>禁止事項</h3>
@@ -372,31 +388,68 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <h3>機械検証</h3>
   <p>Phase 4 で次の6検査を実行する。1つでも不合格なら Phase 3 へ戻り、上限3回で収束しなければ <code>status=ERROR</code> とする。</p>
   <table class="spec">
-    <tr><th>検査</th><th>内容</th></tr>
-    <tr><td>検査1 業務語彙</td><td>本文に実装用語・内部成果物名（型構文・フレームワーク用語・原本の拡張子・<code>unitId</code>・<code>unitKey</code>・<code>detectionMethod</code>・<code>sourceFile</code>・<code>unitNameGuess</code>・<code>manifest.ext.json</code> 等）が無いことを grep で確認する</td></tr>
-    <tr><td>検査2 注記の残存</td><td>テンプレートの記入規則を書いた HTML コメント（<code>&lt;!-- --&gt;</code>）が残っていないことを確認する</td></tr>
-    <tr><td>検査3 frontmatter</td><td><code>status</code> が <code>draft</code> または <code>traced</code> のいずれかであり、Step 3-4 の判定結果と一致していることを確認する</td></tr>
-    <tr><td>検査4 章の完備</td><td>テンプレートが持つ全ての章見出し（§1〜§3）が出力に存在することを確認する</td></tr>
-    <tr><td>検査5 §3行数</td><td>機能・帳票・バッチ・外部連携要件は §3 の行数が対象ユニット数以上であることを確認する。ビジネス概要は事業概要・システム役割・対象利用者の3キーの残存を確認する</td></tr>
-    <tr><td>検査6 配置</td><td>対象文書が <code>&lt;output_dir&gt;/&lt;commonRoot&gt;/&lt;ファイル名&gt;</code> に実在することを確認する</td></tr>
+    <tr>
+      <th>検査</th>
+      <th>内容</th></tr>
+    <tr>
+      <td>検査1 業務語彙</td>
+      <td>本文に実装用語・内部成果物名（型構文・フレームワーク用語・原本の拡張子・<code>unitId</code>・<code>unitKey</code>・<code>detectionMethod</code>・<code>sourceFile</code>・<code>unitNameGuess</code>・<code>manifest.ext.json</code> 等）が無いことを grep で確認する</td></tr>
+    <tr>
+      <td>検査2 注記の残存</td>
+      <td>テンプレートの記入規則を書いた HTML コメント（<code>&lt;!-- --&gt;</code>）が残っていないことを確認する</td></tr>
+    <tr>
+      <td>検査3 frontmatter</td>
+      <td><code>status</code> が <code>draft</code> または <code>traced</code> のいずれかであり、Step 3-4 の判定結果と一致していることを確認する</td></tr>
+    <tr>
+      <td>検査4 章の完備</td>
+      <td>テンプレートが持つ全ての章見出し（§1〜§3）が出力に存在することを確認する</td></tr>
+    <tr>
+      <td>検査5 §3行数</td>
+      <td>機能・帳票・バッチ・外部連携要件は §3 の行数が対象ユニット数以上であることを確認する。ビジネス概要は事業概要・システム役割・対象利用者の3キーの残存を確認する</td></tr>
+    <tr>
+      <td>検査6 配置</td>
+      <td>対象文書が <code>&lt;output_dir&gt;/&lt;commonRoot&gt;/&lt;ファイル名&gt;</code> に実在することを確認する</td></tr>
   </table>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>関連スキル・資料</h2>
   <table class="spec">
-    <tr><th>対象</th><th>内容</th></tr>
-    <tr><td><code>SKILL.md</code></td><td>本スキルの手順の定義</td></tr>
-    <tr><td><code>references/test-cases.md</code></td><td>本スキルの検証観点</td></tr>
-    <tr><td>orchestrating-ai-development-setup</td><td>統括フロー。本スキルはここへ結線されておらず、単独起動でのみ動く</td></tr>
-    <tr><td>generating-feature-list-for-reverse-docs</td><td>機能要件一覧の入力となる機能一覧マニフェストの生成元</td></tr>
-    <tr><td>generating-report-list-for-reverse-docs</td><td>帳票要件の入力となる帳票一覧マニフェストの生成元</td></tr>
-    <tr><td>generating-batch-list-for-reverse-docs</td><td>バッチ要件の入力となるバッチ一覧マニフェストの生成元</td></tr>
-    <tr><td>generating-external-list-for-reverse-docs</td><td>外部連携要件の入力となる外部連携一覧マニフェストの生成元</td></tr>
-    <tr><td>generating-report-basic-design-for-reverse-docs</td><td>帳票要件の入力となる個別基本設計書の生成元</td></tr>
-    <tr><td>generating-batch-basic-design-for-reverse-docs</td><td>バッチ要件の入力となる個別基本設計書の生成元</td></tr>
-    <tr><td>generating-external-basic-design-for-reverse-docs</td><td>外部連携要件の入力となる個別基本設計書の生成元</td></tr>
-    <tr><td>generating-reverse-common-docs</td><td>出力先配置の踏襲元。同じ <code>&lt;output_dir&gt;/&lt;commonRoot&gt;/</code> へ出力する先行スキル</td></tr>
+    <tr>
+      <th>対象</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>SKILL.md</code></td>
+      <td>本スキルの手順の定義</td></tr>
+    <tr>
+      <td><code>references/test-cases.md</code></td>
+      <td>本スキルの検証観点</td></tr>
+    <tr>
+      <td>orchestrating-ai-development-setup</td>
+      <td>統括フロー。本スキルはここへ結線されておらず、単独起動でのみ動く</td></tr>
+    <tr>
+      <td>generating-feature-list-for-reverse-docs</td>
+      <td>機能要件一覧の入力となる機能一覧マニフェストの生成元</td></tr>
+    <tr>
+      <td>generating-report-list-for-reverse-docs</td>
+      <td>帳票要件の入力となる帳票一覧マニフェストの生成元</td></tr>
+    <tr>
+      <td>generating-batch-list-for-reverse-docs</td>
+      <td>バッチ要件の入力となるバッチ一覧マニフェストの生成元</td></tr>
+    <tr>
+      <td>generating-external-list-for-reverse-docs</td>
+      <td>外部連携要件の入力となる外部連携一覧マニフェストの生成元</td></tr>
+    <tr>
+      <td>generating-report-basic-design-for-reverse-docs</td>
+      <td>帳票要件の入力となる個別基本設計書の生成元</td></tr>
+    <tr>
+      <td>generating-batch-basic-design-for-reverse-docs</td>
+      <td>バッチ要件の入力となる個別基本設計書の生成元</td></tr>
+    <tr>
+      <td>generating-external-basic-design-for-reverse-docs</td>
+      <td>外部連携要件の入力となる個別基本設計書の生成元</td></tr>
+    <tr>
+      <td>generating-reverse-common-docs</td>
+      <td>出力先配置の踏襲元。同じ <code>&lt;output_dir&gt;/&lt;commonRoot&gt;/</code> へ出力する先行スキル</td></tr>
   </table>
 </section>
 

@@ -1,7 +1,7 @@
 ---
 name: maintaining-semantic-glossary
 日本語名: 用語変更の検査と影響分析
-description: "用語の変更を検査し、影響を分析する。"
+description: 正式用語集、用語候補又は変更提案を検査して影響を調べ、正式用語集を変えずに検査結果又は承認用の変更要求を作る。
 invocation: maintaining-semantic-glossary
 type: orchestration
 allowed-tools: [Read, Write, Bash, Grep, Glob, AskUserQuestion]

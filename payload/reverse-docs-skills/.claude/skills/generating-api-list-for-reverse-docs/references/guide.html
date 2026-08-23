@@ -276,19 +276,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>API一覧生成スキル<br><span class="skill-name">generating-api-list-for-reverse-docs</span></h1>
   <p>既存コードベースを調査し、API エンドポイントの単位にファイルをグルーピングした「API一覧.html」を、機械検証を通したマニフェストだけから生成するスキルの確定仕様。リバース設計で API 単位の設計書をどう分けるかを決めるための正本を作る。</p>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>分割元スキル generating-unit-list-for-reverse-docs（unit_kind=api）の枠組みを踏襲。エンジンスクリプト（validate-manifest.sh・build-unit-list.sh）はサンプルプロジェクトで動作確認済み</td></tr>
-    <tr><td>依存</td><td>jq ／ <code>generation-engine/scripts/unit-list/validate-manifest.sh</code> ／ <code>generation-engine/scripts/unit-list/build-unit-list.sh</code></td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/api-detection.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>分割元スキル generating-unit-list-for-reverse-docs（unit_kind=api）の枠組みを踏襲。エンジンスクリプト（validate-manifest.sh・build-unit-list.sh）はサンプルプロジェクトで動作確認済み</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>jq ／ <code>generation-engine/scripts/unit-list/validate-manifest.sh</code> ／ <code>generation-engine/scripts/unit-list/build-unit-list.sh</code></td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>references/api-detection.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -301,16 +306,16 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s7">関連スキル・規約</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>リバース設計では、設計書を書き始める前に「何を 1 冊の設計書の単位とするか」を確定させる必要がある。本スキルはその API 版を担い、既存コードベースから <strong>API エンドポイントの一覧</strong> を調査・抽出し、機械検証済みの一覧 HTML として確定させる。</p>
   <p>手順は「スタック調査 → 検出戦略の宣言（ユーザー承認）→ 戦略に基づく抽出 → 整合検証 → HTML 生成」の順で進む。抽出は Claude が対象プロジェクト固有の API 規約を調べてから行い、その結果は必ず検証スクリプトを通してから HTML になる。汎用の正規表現を無条件に当てて境界を取り違えることを防ぐ設計である。</p>
   <p class="note">本スキルの守備範囲は API一覧.html の作成まで。設計書（API 詳細設計書等）の雛形展開・生成・記入は一切行わない。画面・テーブル等の他種別は、それぞれの種別別一覧スキルが担当する。</p>
-
   <h3>責務境界</h3>
   <table class="spec">
-    <tr><th>担当</th><th>責務</th></tr>
+    <tr>
+      <th>担当</th>
+      <th>責務</th></tr>
     <tr>
       <td><strong>本スキル</strong><br><code>generating-api-list-for-reverse-docs</code></td>
       <td>① プロジェクト固有の API 規約の調査と検出戦略の宣言<br>② 戦略に沿ったエンドポイント抽出とマニフェスト JSON の出力<br>③ 整合検証（機械実行）と API一覧.html の生成</td>
@@ -321,7 +326,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     </tr>
   </table>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>このスキルを実行すると、以下の 2 点が生まれる。</p>
@@ -332,7 +336,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>一覧の元データである JSON。検出戦略（ユーザーが承認した抽出方針）と全エンドポイントの構造化データを持ち、整合検証スクリプトの全項目 PASS を通過したものだけが HTML に埋め込まれる。機械可読なので、後続工程やスクリプトがそのまま読み取れる。</dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
@@ -350,7 +353,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>定義の存在は確認できたが、メソッド・パス・実装ファイルのいずれかを確定できなかった行。捏造して endpoint にせず、未解決のまま可視化する。</dd>
   </dl>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
   <pre class="flow"><span class="cap">── 全体の流れ ───────────────────────────────────────────</span>
@@ -364,9 +366,11 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 └──────────────┘   └──────────────┘   └──────┬──────┘   └─────────────┘
                           ▲                  │ FAIL（3回まで修正）
                           └──────────────────┘</pre>
-
   <table class="spec">
-    <tr><th>Phase</th><th>内容</th><th>完了条件</th></tr>
+    <tr>
+      <th>Phase</th>
+      <th>内容</th>
+      <th>完了条件</th></tr>
     <tr>
       <td><strong>Phase 1</strong><br>スタック・API規約の特定</td>
       <td>フレームワークの確定 → エンドポイント定義の所在特定 → ID 命名パターン・ミドルウェア方式の調査 → 除外パターンの確定 → 検出の方針の宣言の作成と承認取得。調査項目の詳細は <code>references/api-detection.md</code></td>
@@ -388,31 +392,49 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>HTML が生成され、埋め込み JSON がマニフェストと一致</td>
     </tr>
   </table>
-
   <h3>入力（起動契約）</h3>
   <table class="spec">
-    <tr><th>引数</th><th>内容</th></tr>
-    <tr><td><code>source_dir</code></td><td>探索対象のソースコードディレクトリ。対象プロジェクトの実コードルート（例: <code>backend/src</code>）を指定する。モノレポでは対象アプリのディレクトリのみを渡す</td></tr>
-    <tr><td><code>output_dir</code></td><td>出力先ディレクトリ。この直下に <code>API一覧/</code> フォルダが作られる</td></tr>
+    <tr>
+      <th>引数</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>source_dir</code></td>
+      <td>探索対象のソースコードディレクトリ。対象プロジェクトの実コードルート（例: <code>backend/src</code>）を指定する。モノレポでは対象アプリのディレクトリのみを渡す</td></tr>
+    <tr>
+      <td><code>output_dir</code></td>
+      <td>出力先ディレクトリ。この直下に <code>API一覧/</code> フォルダが作られる</td></tr>
   </table>
   <p class="note">種別を指定する引数は無い。本スキルは api 専用であり、種別は固定されている。</p>
-
   <h3>返却（呼び出し元への契約）</h3>
   <table class="spec">
-    <tr><th>項目</th><th>内容</th></tr>
-    <tr><td><code>status</code></td><td><code>DONE | ERROR</code></td></tr>
-    <tr><td><code>artifacts</code></td><td>生成した API一覧.html のパス</td></tr>
-    <tr><td><code>unit_list_html</code></td><td>artifacts[0] の汎用名</td></tr>
-    <tr><td><code>embedded_json_ref</code></td><td>HTML 内に埋め込んだマニフェスト JSON への参照</td></tr>
-    <tr><td><code>unit_kind</code></td><td><code>api</code>（固定値）</td></tr>
+    <tr>
+      <th>項目</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>status</code></td>
+      <td><code>DONE | ERROR</code></td></tr>
+    <tr>
+      <td><code>artifacts</code></td>
+      <td>生成した API一覧.html のパス</td></tr>
+    <tr>
+      <td><code>unit_list_html</code></td>
+      <td>artifacts[0] の汎用名</td></tr>
+    <tr>
+      <td><code>embedded_json_ref</code></td>
+      <td>HTML 内に埋め込んだマニフェスト JSON への参照</td></tr>
+    <tr>
+      <td><code>unit_kind</code></td>
+      <td><code>api</code>（固定値）</td></tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>検証内容</h2>
   <p>抽出が Claude の手作業であっても品質を機械保証するため、HTML になる前に必ず 2 段の検証を通す。</p>
   <table class="spec">
-    <tr><th>段</th><th>実行主体</th><th>検査内容</th></tr>
+    <tr>
+      <th>段</th>
+      <th>実行主体</th>
+      <th>検査内容</th></tr>
     <tr>
       <td><strong>整合検証</strong></td>
       <td><code>validate-manifest.sh --unit-kind api</code></td>
@@ -428,29 +450,53 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <strong>エンジンスクリプトの参照方法:</strong> 両スクリプトはスキルフォルダからの相対パス <code>../../../generation-engine/scripts/unit-list/</code> で参照する。正本リポジトリと公開先はディレクトリレイアウトが同一のため、この相対参照は両環境でそのまま成立する。jq が必要（未導入環境では事前に導入する）。
   </div>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>禁止事項と注意点</h2>
   <table class="spec">
-    <tr><th>項目</th><th>内容</th></tr>
-    <tr><td><strong>手作業プレースホルダ置換の禁止</strong></td><td>HTML はスクリプト経由の決定的処理でのみ生成する。手作業の置換で <code>entryFile=None</code> が混入した実害があるため</td></tr>
-    <tr><td><strong>0 件検出時のハード停止</strong></td><td>エンドポイントが 1 件も見つからなければ停止して報告する。手動リストを聞き出して誤った境界を即興確定させない。エンドポイントを捏造しない</td></tr>
-    <tr><td><strong>設計書の雛形展開はスコープ外</strong></td><td>本スキルの成果物は API一覧.html のみ。設計書の生成・記入は後続工程が担う</td></tr>
-    <tr><td><strong>汎用正規表現の禁止</strong></td><td>Phase 1 の調査を省略して汎用の ID 命名パターンを当てない。命名規約・ルーティング方式はプロジェクトごとに異なる</td></tr>
-    <tr><td><strong>コメント内定義の除去</strong></td><td>コメントアウトされたルート定義・import 文を除去してから抽出する（コメント内の定義を実在として誤検出した実害がある）</td></tr>
-    <tr><td><strong>動的ルートの扱い</strong></td><td>変数結合・ループ登録で組み立てられるパスは静的走査で取りこぼしやすい。展開ロジックを追跡して確定できなければ unresolved へ扱いを下げる</td></tr>
-    <tr><td><strong>ミドルウェアの数え方</strong></td><td>認証・バリデーション等の共通処理はエンドポイントとして数えず、<code>kind: middleware</code> の別区分で記録する</td></tr>
+    <tr>
+      <th>項目</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><strong>手作業プレースホルダ置換の禁止</strong></td>
+      <td>HTML はスクリプト経由の決定的処理でのみ生成する。手作業の置換で <code>entryFile=None</code> が混入した実害があるため</td></tr>
+    <tr>
+      <td><strong>0 件検出時のハード停止</strong></td>
+      <td>エンドポイントが 1 件も見つからなければ停止して報告する。手動リストを聞き出して誤った境界を即興確定させない。エンドポイントを捏造しない</td></tr>
+    <tr>
+      <td><strong>設計書の雛形展開はスコープ外</strong></td>
+      <td>本スキルの成果物は API一覧.html のみ。設計書の生成・記入は後続工程が担う</td></tr>
+    <tr>
+      <td><strong>汎用正規表現の禁止</strong></td>
+      <td>Phase 1 の調査を省略して汎用の ID 命名パターンを当てない。命名規約・ルーティング方式はプロジェクトごとに異なる</td></tr>
+    <tr>
+      <td><strong>コメント内定義の除去</strong></td>
+      <td>コメントアウトされたルート定義・import 文を除去してから抽出する（コメント内の定義を実在として誤検出した実害がある）</td></tr>
+    <tr>
+      <td><strong>動的ルートの扱い</strong></td>
+      <td>変数結合・ループ登録で組み立てられるパスは静的走査で取りこぼしやすい。展開ロジックを追跡して確定できなければ unresolved へ扱いを下げる</td></tr>
+    <tr>
+      <td><strong>ミドルウェアの数え方</strong></td>
+      <td>認証・バリデーション等の共通処理はエンドポイントとして数えず、<code>kind: middleware</code> の別区分で記録する</td></tr>
   </table>
 </section>
-
 <section id="s7">
   <h2><span class="sec-num">§7</span>関連スキル・規約</h2>
   <table class="spec">
-    <tr><th>名前</th><th>関係</th></tr>
-    <tr><td><code>orchestrating-ai-development-setup</code></td><td>工程全体の進行役。本スキルの返却契約（status / artifacts / unit_list_html / embedded_json_ref / unit_kind）の受け手</td></tr>
-    <tr><td>種別別一覧スキル群（画面・テーブル・バッチ・帳票・外部連携）</td><td>API 以外の種別の一覧生成を担当する兄弟スキル。出力フォルダは種別ごとに独立する</td></tr>
-    <tr><td><code>references/api-detection.md</code></td><td>Phase 1 の調査項目・マニフェストスキーマ・<code>kind</code> 値の使い分けの正本</td></tr>
-    <tr><td><code>generation-engine/scripts/unit-list/</code></td><td>整合検証・HTML 生成のエンジンスクリプト置き場（リポジトリ共通）</td></tr>
+    <tr>
+      <th>名前</th>
+      <th>関係</th></tr>
+    <tr>
+      <td><code>orchestrating-ai-development-setup</code></td>
+      <td>工程全体の進行役。本スキルの返却契約（status / artifacts / unit_list_html / embedded_json_ref / unit_kind）の受け手</td></tr>
+    <tr>
+      <td>種別別一覧スキル群（画面・テーブル・バッチ・帳票・外部連携）</td>
+      <td>API 以外の種別の一覧生成を担当する兄弟スキル。出力フォルダは種別ごとに独立する</td></tr>
+    <tr>
+      <td><code>references/api-detection.md</code></td>
+      <td>Phase 1 の調査項目・マニフェストスキーマ・<code>kind</code> 値の使い分けの正本</td></tr>
+    <tr>
+      <td><code>generation-engine/scripts/unit-list/</code></td>
+      <td>整合検証・HTML 生成のエンジンスクリプト置き場（リポジトリ共通）</td></tr>
   </table>
 </section>
 

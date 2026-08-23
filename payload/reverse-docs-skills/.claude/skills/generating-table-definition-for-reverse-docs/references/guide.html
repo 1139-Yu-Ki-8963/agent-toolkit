@@ -276,19 +276,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </style>
 </head>
 <body>
-
 <header>
   <h1>テーブル定義書生成スキル<br><span class="skill-name">generating-table-definition-for-reverse-docs</span></h1>
   <p>テーブル 1 本ごとに、カラムの名前・型・長さ・必須の別・既定値・制約・索引・外部キーの参照先を原本の schema 定義から書き起こした <strong>テーブル定義書.md</strong> を生成するスキルの確定仕様。業務上の意味は書かない。</p>
-
   <table class="meta-table">
-    <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>新規作成のため単独実機検証は未実施。Phase 構成と機械検査は型となる generating-api-basic-design-for-reverse-docs から踏襲した。スキル専用のテストスクリプトは持たない</td></tr>
-    <tr><td>依存</td><td>拡張マニフェスト <code>&lt;manifestsRoot&gt;/table-manifest.ext.json</code> ／ テンプレート <code>delivery-payload/templates/リバース検証/テーブル/テーブル定義書.md</code></td></tr>
-    <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>新規作成のため単独実機検証は未実施。Phase 構成と機械検査は型となる generating-api-basic-design-for-reverse-docs から踏襲した。スキル専用のテストスクリプトは持たない</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>拡張マニフェスト <code>&lt;manifestsRoot&gt;/table-manifest.ext.json</code> ／ テンプレート <code>delivery-payload/templates/リバース検証/テーブル/テーブル定義書.md</code></td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
   </table>
 </header>
-
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
@@ -300,32 +305,49 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s6">関連スキル・資料</a></li>
   </ol>
 </nav>
-
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>そのテーブルが業務上の何を表すかは、論理データモデルが書く。しかし、カラムの名前・型・長さ・必須の別・既定値・制約・索引・外部キーの参照先という実装の定義には、業務的な意味とは別に答える必要がある。</p>
   <p>本スキルは原本の schema 定義からテーブル定義書を書く。業務上の意味は抽出しない。読み手は実装の詳細を確認する担当者である。</p>
-
   <div class="def">
     <dt>本スキルがやること</dt>
     <dd>テーブル 1 件ごとのカラムの名前・型・長さ・必須の別・既定値・制約・索引・外部キーの参照先を、根拠付きで記入したテーブル定義書の生成</dd>
     <dt>本スキルがやらないこと</dt>
     <dd>業務上の何を表すか・どの業務で使われるか・どのエンティティと関係するかの記述（論理データモデルの担当）／テーブル一覧の生成（generating-table-list-for-reverse-docsの担当）</dd>
   </div>
-
   <h3>起動引数</h3>
   <table class="spec">
-    <tr><th>引数</th><th>必須</th><th>内容</th></tr>
-    <tr><td><code>table_manifest_path</code></td><td>必須</td><td>テーブル一覧の拡張マニフェストの絶対パス</td></tr>
-    <tr><td><code>source_dir</code></td><td>必須</td><td>原本コードのルート</td></tr>
-    <tr><td><code>output_dir</code></td><td>必須</td><td>出力先のルート</td></tr>
-    <tr><td><code>template_root</code></td><td>必須</td><td>テンプレート群のルート</td></tr>
-    <tr><td><code>unit_keys</code></td><td>任意</td><td>対象を絞るキーの配列</td></tr>
-    <tr><td><code>common_docs_root</code></td><td>任意</td><td>共通文書のルート</td></tr>
+    <tr>
+      <th>引数</th>
+      <th>必須</th>
+      <th>内容</th></tr>
+    <tr>
+      <td><code>table_manifest_path</code></td>
+      <td>必須</td>
+      <td>テーブル一覧の拡張マニフェストの絶対パス</td></tr>
+    <tr>
+      <td><code>source_dir</code></td>
+      <td>必須</td>
+      <td>原本コードのルート</td></tr>
+    <tr>
+      <td><code>output_dir</code></td>
+      <td>必須</td>
+      <td>出力先のルート</td></tr>
+    <tr>
+      <td><code>template_root</code></td>
+      <td>必須</td>
+      <td>テンプレート群のルート</td></tr>
+    <tr>
+      <td><code>unit_keys</code></td>
+      <td>任意</td>
+      <td>対象を絞るキーの配列</td></tr>
+    <tr>
+      <td><code>common_docs_root</code></td>
+      <td>任意</td>
+      <td>共通文書のルート</td></tr>
   </table>
   <p class="note"><code>unit_kind</code> は <code>table</code> 固定であり、引数には取らない。</p>
 </section>
-
 <section id="s2">
   <h2><span class="sec-num">§2</span>出力</h2>
   <p>テーブル 1 件につき、次の 1 点が生まれる。</p>
@@ -334,7 +356,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>カラムの名前・型・長さ・必須の別・既定値・制約・索引・外部キーの参照先を、原本の <code>file:line</code> 形式の根拠付きで記入した文書。根拠を付けられない項目は要確認事項一覧へ回される。</dd>
   </div>
 </section>
-
 <section id="s3">
   <h2><span class="sec-num">§3</span>用語</h2>
   <dl class="def">
@@ -346,11 +367,13 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dd>コードから確定できない事項を推測で埋めず、確認事項として記録したもの。キーは連番を禁じ、内容を要約した意味語で付ける。</dd>
   </dl>
 </section>
-
 <section id="s4">
   <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
   <table class="spec">
-    <tr><th>Phase</th><th>やること</th><th>完了条件</th></tr>
+    <tr>
+      <th>Phase</th>
+      <th>やること</th>
+      <th>完了条件</th></tr>
     <tr>
       <td><strong>Phase 1</strong><br>起動引数の確認と対象の確定</td>
       <td>必須4引数の実在確認、マニフェストの確認（<code>unitKind</code> が <code>table</code>・<code>units</code> が1件以上）、対象ユニットの確定を行う</td>
@@ -373,7 +396,6 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     </tr>
   </table>
 </section>
-
 <section id="s5">
   <h2><span class="sec-num">§5</span>守り（禁止事項と機械検証）</h2>
   <h3>禁止事項</h3>
@@ -386,15 +408,24 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <h3>機械検証</h3>
   <p>Phase 4 で次の4検査を実行する。検査1はマニフェストの <code>columnCount</code> と、生成した本文に書き出したカラムの件数が一致することを確認する。検査2はテンプレートの記入規則を書いた HTML コメントが残っていないことを確認する。検査3は frontmatter の <code>status</code> が <code>authored</code> になっていることを確認する。検査4はテンプレートが持つ全ての章見出しが出力に存在することを確認する。1つでも不合格なら Phase 3 へ戻り、上限3回で収束しなければ <code>status=ERROR</code> とする。本スキルは実装用語の混入を検査対象としない。</p>
 </section>
-
 <section id="s6">
   <h2><span class="sec-num">§6</span>関連スキル・資料</h2>
   <table class="spec">
-    <tr><th>関連</th><th>関係</th></tr>
-    <tr><td><code>SKILL.md</code></td><td>本スキルの確定仕様の定義。本ガイドの内容の出どころ</td></tr>
-    <tr><td><code>references/test-cases.md</code></td><td>本スキルの検証観点の一覧</td></tr>
-    <tr><td><code>generating-table-logical-model-for-reverse-docs</code></td><td>テーブル単位の基本設計書を担う兄弟スキル。業務語彙限定・根拠を本文に書かない点が本スキルと逆</td></tr>
-    <tr><td><code>generating-table-list-for-reverse-docs</code></td><td>本スキルの入力となるテーブル一覧の拡張マニフェストの生成元</td></tr>
+    <tr>
+      <th>関連</th>
+      <th>関係</th></tr>
+    <tr>
+      <td><code>SKILL.md</code></td>
+      <td>本スキルの確定仕様の定義。本ガイドの内容の出どころ</td></tr>
+    <tr>
+      <td><code>references/test-cases.md</code></td>
+      <td>本スキルの検証観点の一覧</td></tr>
+    <tr>
+      <td><code>generating-table-logical-model-for-reverse-docs</code></td>
+      <td>テーブル単位の基本設計書を担う兄弟スキル。業務語彙限定・根拠を本文に書かない点が本スキルと逆</td></tr>
+    <tr>
+      <td><code>generating-table-list-for-reverse-docs</code></td>
+      <td>本スキルの入力となるテーブル一覧の拡張マニフェストの生成元</td></tr>
   </table>
 </section>
 
