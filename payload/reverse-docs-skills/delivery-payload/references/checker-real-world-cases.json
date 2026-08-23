@@ -1,12 +1,8 @@
 {
   "schemaVersion": 1,
   "purpose": "配る検査が、実際に書かれるコードで違反を止めるかを確かめるための入力集。各検査の自己テストとは別に、現場で書かれる書き方を与えて素通りしないことを見る。",
-  "note": "expect は止めてほしいものが violation、通してほしいものが clean。exitCode は違反時に検査が返すべき値で、PreToolUse の block は 2。やり取りの記録を見る検査は transcript に 1 行 1 件の JSON の並びを書く。実行時に一時ファイルへ流し込み、transcript_path として渡す。",
+  "note": "expect は止めてほしいものが violation、通してほしいものが clean。exitCode は違反時に検査が返すべき値で、PreToolUse の block は 2。応答を終える時点で働く検査（Stop hook）は止めるときも終了コードが 0 のままで、出力の JSON の decision へ block と書いて返すため、stop-block と stop-pass を使う。やり取りの記録を見る検査は transcript に 1 行 1 件の JSON の並びを書く。実行時に一時ファイルへ流し込み、transcript_path として渡す。",
   "notCovered": [
-    {
-      "checker": "check-completion-evidence",
-      "reason": "Stop hook の作法に従い、止めるときも終了コードは 0 のまま JSON の decision:block で返す。終了コードで合否を見るこの入力集の枠組みでは扱えない。別の見分け方（出力に decision:block を含むか）を足すまで対象外とする"
-    },
     {
       "checker": "check-customer-facing-adequacy",
       "reason": "止める判定と人が見る判定（REVIEW）の 3 値を返し、走査の対象も対象プロジェクトの生成物に依存する。単一の入力で合否を確かめる形に合わない"
@@ -310,6 +306,30 @@
       "input": {
         "tool_name": "Write",
         "tool_input": { "file_path": "docs/業務規則.md", "content": "| 名前 | 条件 | 結果 | 例外 |\n|---|---|---|---|\n| 送料無料の判定 | 金額が1万円以上 | 送料無料 | 離島は対象外 |\n" }
+      }
+    },
+    {
+      "checker": "check-completion-evidence",
+      "label": "実行結果を添えずに完了を述べる",
+      "expect": "stop-block",
+      "input": {
+        "transcript": [{ "type": "assistant", "message": { "content": [{ "type": "text", "text": "修正が完了しました。" }] } }]
+      }
+    },
+    {
+      "checker": "check-completion-evidence",
+      "label": "実行結果を添えて完了を述べる",
+      "expect": "stop-pass",
+      "input": {
+        "transcript": [{ "type": "assistant", "message": { "content": [{ "type": "text", "text": "修正が完了しました。\n\n```\nnpm test\nPASS 12 tests\n```\n" }] } }]
+      }
+    },
+    {
+      "checker": "check-completion-evidence",
+      "label": "完了を述べていない応答",
+      "expect": "stop-pass",
+      "input": {
+        "transcript": [{ "type": "assistant", "message": { "content": [{ "type": "text", "text": "次はどちらを進めますか。" }] } }]
       }
     },
     {

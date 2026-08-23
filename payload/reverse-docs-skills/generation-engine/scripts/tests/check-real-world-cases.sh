@@ -39,14 +39,43 @@ unknown() {
 run_one_case() {
   local checker="$1" label="$2" expect="$3" input="$4"
   local path="${CHECKER_DIR}/${checker}.sh"
-  local want actual
+  local want actual out
 
   if [ ! -f "$path" ]; then
     printf 'UNKNOWN  %-42s %s（検査が見つからない）\n' "$checker" "$label"
     return 2
   fi
 
+  # 応答を終える時点で働く検査（Stop hook）は、止めるときも終了コードは 0 の
+  # まま、出力の JSON の decision へ block と書いて返す作法を持つ。終了コード
+  # だけを見ると素通りと区別がつかないため、この形を expect の stop-block と
+  # stop-pass で扱う（実測 2026-08-24: 完了報告の実行結果を見る検査がこの形
+  # だったため、入力集の対象から外れていた）。
   case "$expect" in
+    stop-block|stop-pass)
+      out="$(printf '%s' "$input" | bash "$path" 2>/dev/null)"
+      actual=$?
+      local blocked=0
+      printf '%s' "$out" | LC_ALL=C grep -q '"decision"[[:space:]]*:[[:space:]]*"block"' && blocked=1
+      if [ "$actual" -ne 0 ]; then
+        printf 'FAIL     %-42s %s（応答を終える検査は終了コード 0 で返すはずが %s）\n' "$checker" "$label" "$actual"
+        return 1
+      fi
+      if [ "$expect" = stop-block ] && [ "$blocked" -eq 1 ]; then
+        printf 'PASS     %-42s %s\n' "$checker" "$label"
+        return 0
+      fi
+      if [ "$expect" = stop-pass ] && [ "$blocked" -eq 0 ]; then
+        printf 'PASS     %-42s %s\n' "$checker" "$label"
+        return 0
+      fi
+      if [ "$expect" = stop-block ]; then
+        printf 'FAIL     %-42s %s（止まらなかった。出力に decision の block が無い）\n' "$checker" "$label"
+      else
+        printf 'FAIL     %-42s %s（通らなかった。出力に decision の block がある）\n' "$checker" "$label"
+      fi
+      return 1
+      ;;
     violation) want=2 ;;
     clean)     want=0 ;;
     *)
@@ -178,6 +207,20 @@ run_self_test() {
   # ケース4: 検査が無ければ判定不能
   run_one_case check-does-not-exist 不在 violation '{}' >/dev/null
   assert "検査が無ければ判定不能" 2 $?
+
+  # ケース4b: 応答を終える検査は、終了コードではなく出力の decision で見る。
+  # 終了コードだけを見ていた頃はこの形の検査を扱えず、入力集の対象から
+  # 外していた（実測 2026-08-24）。
+  printf '%s' '{"tool_name":"Write","tool_input":{"file_path":"a.js","content":"const key = \"AKIAIOSFODNN7EXAMPLE\";\n"}}' > "$tmp/in-stop"
+  run_one_case check-secret-literal-in-code 終了コード非0 stop-block "$(cat "$tmp/in-stop")" >/dev/null
+  assert "応答を終える検査で終了コードが0でなければ不合格" 1 $?
+
+  printf '%s' '{"tool_name":"Write","tool_input":{"file_path":"a.js","content":"const x = 1;\n"}}' > "$tmp/in-stop2"
+  run_one_case check-secret-literal-in-code block無し stop-block "$(cat "$tmp/in-stop2")" >/dev/null
+  assert "応答を終える検査でdecisionのblockが無ければ不合格" 1 $?
+
+  run_one_case check-secret-literal-in-code block無し stop-pass "$(cat "$tmp/in-stop2")" >/dev/null
+  assert "応答を終える検査でdecisionのblockが無ければ通す期待は合格" 0 $?
 
   # ケース5: expect の値が不正なら判定不能
   run_one_case check-secret-literal-in-code 不正 maybe '{}' >/dev/null
