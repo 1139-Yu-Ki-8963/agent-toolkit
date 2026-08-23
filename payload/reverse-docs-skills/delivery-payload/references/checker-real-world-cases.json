@@ -516,6 +516,96 @@
     },
     {
       "checker": "check-currency-float-type",
+      "label": "桁数を名前に含む小数の型で金額を持つ",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/order.go", "content": "var totalAmount float64 = 100.5\n" }
+      }
+    },
+    {
+      "checker": "check-currency-float-type",
+      "label": "金額でない値を小数で持つ",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/geo.go", "content": "var latitude float64 = 35.6\n" }
+      }
+    },
+    {
+      "checker": "check-secret-literal-in-code",
+      "label": "秘密鍵の始まりをコードへ書く",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/key.js", "content": "const pem = \"-----BEGIN RSA PRIVATE KEY-----\";\n" }
+      }
+    },
+    {
+      "checker": "check-any-type-escape-hatch",
+      "label": "型の検査を抑える注記",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/a.ts", "content": "// @ts-ignore\nconst x = f();\n" }
+      }
+    },
+    {
+      "checker": "check-secret-value-logging",
+      "label": "別の言語で秘密の値を記録へ出す",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/auth.py", "content": "logger.info(\"password=%s\", password)\n" }
+      }
+    },
+    {
+      "checker": "check-state-literal-comparison",
+      "label": "不等号で状態を直接比べる",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/order.js", "content": "if (order.state != \"draft\") { go(); }\n" }
+      }
+    },
+    {
+      "checker": "check-outbound-call-missing-timeout",
+      "label": "別の言語で待ち時間の上限がない",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/api.py", "content": "r = requests.get(url)\n" }
+      }
+    },
+    {
+      "checker": "check-temp-file-tracked",
+      "label": "末尾に印の付いた控え",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "docs/note.md~", "content": "x\n" }
+      }
+    },
+    {
+      "checker": "check-secret-filename-staged",
+      "label": "秘密鍵のファイルを版管理へ入れる",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": { "command": "git add config/id_rsa" }
+      }
+    },
+    {
+      "checker": "check-sequential-identifier-naming",
+      "label": "関数の名前が通し番号だけで違う",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/flow.js", "content": "function step1() {}\nfunction step2() {}\nfunction step3() {}\n" }
+      }
+    },
+    {
+      "checker": "check-currency-float-type",
       "label": "金額を整数の最小単位で持つ",
       "expect": "clean",
       "input": {

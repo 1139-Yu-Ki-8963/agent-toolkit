@@ -107,7 +107,11 @@
 set -uo pipefail
 export LC_ALL=C
 
-TYPE_RE='\<(float|double)\>'
+# 桁数を名前に含む型（Go の float64 / float32、C# の Single/Double 相当の
+# 別名など）も誤差の出る小数である。桁数を許さない形にしていたため、
+# Go でよく書かれる float64 が素通りしていた
+# （実測 2026-08-24: 別の言語の書き方を与えて分かった）。
+TYPE_RE='\<(float|double)[0-9]*\>'
 MONEY_RE='(amount|price|cost|fee|total|balance|payment|charge|salary)'
 
 BASIC_DESIGN_DOC_NEEDLE='基本設計書'
