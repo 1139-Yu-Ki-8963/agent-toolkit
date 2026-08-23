@@ -226,6 +226,14 @@ run_loop() {
   echo
 
   echo "[実行中] 前回との比較"
+  # 比較は台帳の最新2件を読む。記録を飛ばした場合、今回の結果は台帳に無く、
+  # 過去2件どうしを比べることになる。そのまま「変わらない」と出ると、
+  # 今回の結果がそう出たかのように読める（実測 2026-08-24: --no-record で
+  # 走らせた際、8日前の記録2件を比べた表が今回の結果として並んだ）。
+  # 何を比べたのかを先に書く。
+  if [ "$no_record" -eq 1 ]; then
+    echo "注意: 今回の結果は台帳へ記録していないため、下の表は台帳に残る過去 2 件どうしの比較である。今回の結果は含まれない"
+  fi
   local cmp_out cmp_rc
   cmp_out="$(bash "${repo}/generation-engine/scripts/verification/compare-with-previous.sh" --ledger "$ledger" 2>&1)"
   cmp_rc=$?
@@ -293,6 +301,14 @@ DEPS
   # --- 引数-記録の抑止 ---
   local plan_no_record
   plan_no_record="$(loop_plan 0 1)"
+  # 記録を飛ばしたとき、比較が何を比べたのかを断る文が出ることを確かめる。
+  # 断りが無いと、過去 2 件どうしの比較が今回の結果として読める。
+  if LC_ALL=C grep -qF '注意: 今回の結果は台帳へ記録していないため' "${BASH_SOURCE[0]}"; then
+    _case_pass "比較-記録を飛ばしたときの断り" "何を比べたのかを先に書く"
+  else
+    _case_fail "比較-記録を飛ばしたときの断り" "断りの文が見当たらない"
+  fi
+
   if printf '%s\n' "$plan_no_record" | grep -qx "record"; then
     _case_fail "引数-記録の抑止" "--no-record 相当でも record 段に到達する"
   else
