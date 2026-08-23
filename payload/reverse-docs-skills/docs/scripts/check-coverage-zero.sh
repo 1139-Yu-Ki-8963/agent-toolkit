@@ -7,7 +7,7 @@
 #
 # 網羅の判定は生成物のディレクトリを要する。第3層を1回走らせてから判定する。
 set -uo pipefail
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 V="${REPO_ROOT}/generation-engine/scripts/verification"
 
 if ! out_base="$(bash -c "source '${V}/verification-env.sh'; id=\"\$(verification_env_new_id)\"; verification_env_setup \"\$id\"" 2>/dev/null)" || [ -z "$out_base" ]; then
