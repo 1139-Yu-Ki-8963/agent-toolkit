@@ -392,6 +392,7 @@ else
       -not -path '*/docs/design/portal/ポータル設計基盤.html' \
       -not -path '*/docs/guides/スキル一覧.html' \
       -not -path '*/docs/guides/スキルの変遷.html' \
+      -not -path '*/docs/guides/週次レポート-*.html' \
       -not -path '*/docs/portal/index.html' \
       | sort)
       # 除外はいずれもポータルのページではないものである
