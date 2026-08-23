@@ -48,6 +48,9 @@ set -euo pipefail
 # macOS bash 3.2 互換（連想配列・mapfileは不使用）。
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+TAXONOMY_JSON="${REPO_ROOT}/delivery-payload/references/rule-taxonomy.json"
+CHECKERS_DIR="${REPO_ROOT}/delivery-payload/templates/rules/checkers"
 
 EXPECTED_KEYS="key title parent summary scope paths enforcement checkable checker uncheckableReason formatter status origin"
 
@@ -69,6 +72,53 @@ add_warning() {
   WARNINGS="${WARNINGS}${1}: [${2}] ${3}
 "
   WARN_COUNT=$((WARN_COUNT + 1))
+}
+
+# taxonomy が checker 本体を漏れなく宣言していることを検査する。
+# parents[].children[] は配布する27規約、crossCuttingChecks[] は規約を横断して
+# 顧客提示文書や作業指示書そのものを検査する補助的な宣言として分けて数える。
+validate_checker_declarations() {
+  local actual declared duplicates undeclared missing rc=0
+
+  if ! jq -e '
+    (.crossCuttingChecks | type == "array") and
+    (.crossCuttingChecks | all(
+      (.key | type == "string" and length > 0) and
+      (.title | type == "string" and length > 0) and
+      (.rules | type == "array" and length > 0 and all(type == "string" and length > 0)) and
+      (.checker | type == "string" and length > 0) and
+      (.scope == "always" or .scope == "scoped") and
+      (.paths | type == "array") and
+      (.phases | type == "array" and length > 0)
+    ))
+  ' "$TAXONOMY_JSON" >/dev/null 2>&1; then
+    echo "$TAXONOMY_JSON: [検査-宣言形式] crossCuttingChecks の必須項目または値域が不正" >&2
+    return 1
+  fi
+
+  actual="$(find "$CHECKERS_DIR" -maxdepth 1 -type f -name 'check-*.sh' ! -name '*.test.sh' -exec basename {} \; | LC_ALL=C sort -u)"
+  declared="$(jq -r '(.parents[].children[]), (.crossCuttingChecks[]?) | .checker // empty' "$TAXONOMY_JSON" | LC_ALL=C sort)"
+  duplicates="$(printf '%s\n' "$declared" | LC_ALL=C uniq -d)"
+  declared="$(printf '%s\n' "$declared" | LC_ALL=C sort -u)"
+  undeclared="$(LC_ALL=C comm -23 <(printf '%s\n' "$actual") <(printf '%s\n' "$declared"))"
+  missing="$(LC_ALL=C comm -13 <(printf '%s\n' "$actual") <(printf '%s\n' "$declared"))"
+
+  if [ -n "$duplicates" ]; then
+    echo "$TAXONOMY_JSON: [検査-宣言重複] 同じcheckerが複数回宣言されている: $(printf '%s' "$duplicates" | tr '\n' ' ')" >&2
+    rc=1
+  fi
+  if [ -n "$undeclared" ]; then
+    echo "$TAXONOMY_JSON: [検査-宣言欠落] 宣言の無いchecker: $(printf '%s' "$undeclared" | tr '\n' ' ')" >&2
+    rc=1
+  fi
+  if [ -n "$missing" ]; then
+    echo "$TAXONOMY_JSON: [検査-実在] 宣言したcheckerが実在しない: $(printf '%s' "$missing" | tr '\n' ' ')" >&2
+    rc=1
+  fi
+  if [ "$rc" -eq 0 ]; then
+    echo "検査宣言合格: $(printf '%s\n' "$actual" | grep -c . | tr -d ' ') 件のchecker本体を宣言済み"
+  fi
+  return "$rc"
 }
 
 # front matter本体（1行目と2行目の "---" に挟まれた範囲）を取り出す。
@@ -674,6 +724,7 @@ st_case() {
 
 self_test() {
   local rc=0
+  validate_checker_declarations || rc=1
   st_case "pass" 0 "" || rc=1
   st_case "key-consistency" 1 "鍵-対応整合" || rc=1
   st_case "test-companion" 1 "検査-テスト同伴" || rc=1
@@ -707,13 +758,15 @@ main() {
     self_test
     exit $?
   fi
-  if [ "$#" -ne 1 ]; then
+  if [ "$#" -gt 1 ]; then
     echo "使い方: $(basename "$0") <docs/rules のルート>" >&2
     echo "        $(basename "$0") --self-test" >&2
     exit 1
   fi
-  check_rules_root_hint "$1"
-  run_validate "$1"
+  local rules_root="${1:-${REPO_ROOT}/generation-engine/samples/docs/rules}"
+  validate_checker_declarations || exit 1
+  check_rules_root_hint "$rules_root"
+  run_validate "$rules_root"
   exit $?
 }
 

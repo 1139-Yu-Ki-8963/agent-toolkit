@@ -14,6 +14,37 @@
       "verification": "不可: 対象の有無は解析結果に依存し、静的解析で判定できない"
     }
   },
+  "crossCuttingChecks": [
+    {
+      "key": "customer-facing-adequacy",
+      "title": "顧客へ提示する文書の適合を確かめる",
+      "rules": [
+        "作る側の指示を顧客向け文書へ残さない",
+        "読み手を第三者として呼ばない",
+        "作る側の事情を顧客向け文書へ書かない",
+        "顧客が対応できない確認先を指定しない",
+        "実装言語の用語と略語を説明する",
+        "指示語だけに頼らず内容を自己完結させる"
+      ],
+      "checker": "check-customer-facing-adequacy.sh",
+      "scope": "scoped",
+      "paths": ["docs/**/*.md", "docs/**/*.html", "project-portal/**"],
+      "phases": ["2-基本設計", "3-詳細設計"]
+    },
+    {
+      "key": "instruction-writing",
+      "title": "作業指示書の書き方を確かめる",
+      "rules": [
+        "対象プロジェクトの固有名を指示書へ直書きしない",
+        "実装識別子を指示書の地の文へ直書きしない",
+        "配布物が定める語彙と引用表記を使う"
+      ],
+      "checker": "check-instruction-writing.sh",
+      "scope": "scoped",
+      "paths": ["docs/tasks/*.md"],
+      "phases": ["フロー外"]
+    }
+  ],
   "parents": [
     {
       "key": "agent-operations",

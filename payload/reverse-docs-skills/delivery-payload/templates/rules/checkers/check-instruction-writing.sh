@@ -47,12 +47,12 @@ run_check() {
     return 1
   fi
   if [ ! -f "$dictionary" ]; then
-    echo "ERROR: グローバル辞書が存在しません: $dictionary" >&2
-    return 1
+    echo "[UNKNOWN] 辞書が存在しないため判定できません（参照したパス: ${dictionary}。配布先へ辞書が配置されていないか、--dictionary の指定先が誤っている可能性があります）" >&2
+    return 2
   fi
   if [ ! -f "$terms_file" ]; then
-    echo "ERROR: 配布物の語彙一覧が存在しません: $terms_file" >&2
-    return 1
+    echo "[UNKNOWN] 配布物の語彙一覧が存在しないため判定できません（参照したパス: ${terms_file}。配布先へ語彙一覧が配置されていないか、--terms の指定先が誤っている可能性があります）" >&2
+    return 2
   fi
 
   node - "$instruction_file" "$project_config" "$dictionary" "$terms_file" <<'NODE'
@@ -257,6 +257,38 @@ JSON
   assert_case "語彙一覧の音写" 1 'バックログへ追加する。'
   assert_case "引用した章名" 0 '配布物の「リクエスト」章へ入力項目を記す。'
   assert_case "地の文の章名" 1 'リクエストの入力項目を記す。'
+
+  local missing_dictionary_file missing_dictionary_out missing_dictionary_rc
+  missing_dictionary_file="$tmp/missing-dictionary.md"
+  printf '%s\n' '配布物の確認方法を日本語で記す。' > "$missing_dictionary_file"
+  if missing_dictionary_out="$(run_check "$missing_dictionary_file" "$tmp/project" "" "$tmp/存在しない辞書.yml" "$tmp/terms.json" 2>&1)"; then
+    missing_dictionary_rc=0
+  else
+    missing_dictionary_rc=$?
+  fi
+  if [ "$missing_dictionary_rc" -eq 2 ] && printf '%s' "$missing_dictionary_out" | grep -qF '[UNKNOWN]'; then
+    echo "  [PASS] 辞書欠落は判定不能（exit=2）"
+    pass=$((pass + 1))
+  else
+    echo "  [FAIL] 辞書欠落を判定不能として区別できない（期待=2 実際=${missing_dictionary_rc} 出力=${missing_dictionary_out}）" >&2
+    fail=$((fail + 1))
+  fi
+
+  local missing_terms_file missing_terms_out missing_terms_rc
+  missing_terms_file="$tmp/missing-terms.md"
+  printf '%s\n' '配布物の確認方法を日本語で記す。' > "$missing_terms_file"
+  if missing_terms_out="$(run_check "$missing_terms_file" "$tmp/project" "" "$tmp/prh.yml" "$tmp/存在しない語彙一覧.json" 2>&1)"; then
+    missing_terms_rc=0
+  else
+    missing_terms_rc=$?
+  fi
+  if [ "$missing_terms_rc" -eq 2 ] && printf '%s' "$missing_terms_out" | grep -qF '[UNKNOWN]'; then
+    echo "  [PASS] 語彙一覧欠落は判定不能（exit=2）"
+    pass=$((pass + 1))
+  else
+    echo "  [FAIL] 語彙一覧欠落を判定不能として区別できない（期待=2 実際=${missing_terms_rc} 出力=${missing_terms_out}）" >&2
+    fail=$((fail + 1))
+  fi
 
   echo "self-test: PASS=$pass FAIL=$fail"
   [ "$fail" -eq 0 ]
