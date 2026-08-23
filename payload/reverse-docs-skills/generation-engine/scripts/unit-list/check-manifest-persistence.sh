@@ -119,7 +119,8 @@ run_check() {
   done
 
   if [ "$checked_count" -eq 0 ]; then
-    echo "  検査対象の一覧フォルダが見つからなかった（HTML未生成、または対応表外のみ）"
+    echo "  [UNKNOWN] 実行できたが判定対象が無かった（HTML未生成、または対応表外のみ）。合格・不合格を判定しない" >&2
+    return 2
   fi
 
   echo "=== $((checked_count - fail_count))/$checked_count PASS, ${fail_count}/$checked_count FAIL ==="
@@ -131,7 +132,10 @@ run_check() {
 # ---------------------------------------------------------------------------
 self_test() {
   local tmp
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-manifest-persistence-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-manifest-persistence-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] mktemp で自己テスト用の一時ディレクトリを作成できず判定できない（実行環境のサンドボックス制約等が原因である可能性があります）" >&2
+    return 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
 
   local rc=0
@@ -159,59 +163,103 @@ self_test() {
     rc=1
   fi
 
+  # ケース2: 判定対象が0件の output_dir は合否を判定できず、終了コード2になる。
+  local empty_dir empty_output empty_rc
+  empty_dir="$tmp/empty-output"
+  mkdir -p "$empty_dir/$self_test_units_root"
+  if empty_output=$(run_check "$empty_dir" 2>&1); then
+    echo "  [FAIL] 判定対象0件なのにPASSした" >&2
+    rc=1
+  else
+    empty_rc=$?
+    if [ "$empty_rc" -eq 2 ] \
+      && printf '%s' "$empty_output" | grep -q '\[UNKNOWN\]' \
+      && printf '%s' "$empty_output" | grep -q '判定対象が無かった'; then
+      echo "  [PASS] 判定対象0件を[UNKNOWN]・終了コード2として区別"
+    else
+      echo "  [FAIL] 判定対象0件の[UNKNOWN]・終了コード2を確認できない" >&2
+      printf '%s\n' "$empty_output" | sed 's/^/    /' >&2
+      rc=1
+    fi
+  fi
+
+  # ケース3: mktemp が失敗した場合は実行環境による判定不能として終了コード2になる。
+  local mktemp_output mktemp_rc
+  if mktemp_output=$(TMPDIR=/dev/null bash "$0" --self-test 2>&1); then
+    echo "  [FAIL] mktemp 失敗を強制したのにPASSした" >&2
+    rc=1
+  else
+    mktemp_rc=$?
+    if [ "$mktemp_rc" -eq 2 ] \
+      && printf '%s' "$mktemp_output" | grep -q '\[UNKNOWN\]' \
+      && printf '%s' "$mktemp_output" | grep -q 'mktemp' \
+      && printf '%s' "$mktemp_output" | grep -q '判定できない'; then
+      echo "  [PASS] mktemp 失敗を[UNKNOWN]・終了コード2として区別"
+    else
+      echo "  [FAIL] mktemp 失敗の[UNKNOWN]・終了コード2・判定不能理由を確認できない（実際の終了コード: $mktemp_rc）" >&2
+      printf '%s\n' "$mktemp_output" | sed 's/^/    /' >&2
+      rc=1
+    fi
+  fi
+
   # ケース4: 拡張マニフェスト自体はあるが追加項目が無い場合は不合格になる
   local emptyext_dir="$tmp/emptyext-output"
   mkdir -p "$emptyext_dir/$self_test_units_root/画面一覧" "$emptyext_dir/$self_test_manifests_root"
   echo '<html></html>' > "$emptyext_dir/$self_test_units_root/画面一覧/画面一覧.html"
   echo '{"screens":[{"screenKey":"s1"}]}' > "$emptyext_dir/$self_test_manifests_root/screen-manifest.json"
   echo '{"screens":[{"screenKey":"s1"}]}' > "$emptyext_dir/$self_test_manifests_root/screen-manifest.ext.json"
-  local emptyext_output
+  local emptyext_output emptyext_rc
   if emptyext_output=$(run_check "$emptyext_dir" 2>&1); then
     echo "  [FAIL] 陰性: 追加項目なしの拡張マニフェストがPASSした" >&2
     rc=1
-  elif printf '%s' "$emptyext_output" | grep -q "追加項目がない"; then
-    echo "  [PASS] 陰性: 追加項目なしの拡張マニフェストを検出"
   else
-    echo "  [FAIL] 陰性: 追加項目なしで不合格だが理由が確認できない" >&2
-    rc=1
+    emptyext_rc=$?
+    if [ "$emptyext_rc" -eq 1 ] && printf '%s' "$emptyext_output" | grep -q "追加項目がない"; then
+      echo "  [PASS] 陰性: 追加項目なしの拡張マニフェストを終了コード1で検出"
+    else
+      echo "  [FAIL] 陰性: 追加項目なしの終了コード1と理由を確認できない（実際の終了コード: $emptyext_rc）" >&2
+      rc=1
+    fi
   fi
 
-  # ケース2: HTMLはあるがマニフェストが一時ディレクトリにしか無い合成 output_dir で
+  # ケース5: HTMLはあるがマニフェストが一時ディレクトリにしか無い合成 output_dir で
   # 終了コード 1 になり、不足が列挙される
   local ng_dir="$tmp/ng-output"
   mkdir -p "$ng_dir/$self_test_units_root/画面一覧" "$ng_dir/tmp"
   echo '<html></html>' > "$ng_dir/$self_test_units_root/画面一覧/画面一覧.html"
   echo '{}' > "$ng_dir/tmp/screen-manifest.json"
 
-  local ng_output
+  local ng_output ng_rc
   if ng_output=$(run_check "$ng_dir" 2>&1); then
     echo "  [FAIL] 陰性: マニフェスト不在なのにPASSした" >&2
     rc=1
   else
-    if printf '%s' "$ng_output" | grep -q "screen-manifest.json"; then
+    ng_rc=$?
+    if [ "$ng_rc" -eq 1 ] && printf '%s' "$ng_output" | grep -q "screen-manifest.json"; then
       echo "  [PASS] 陰性: マニフェスト不在で終了コード1・不足が列挙される"
     else
-      echo "  [FAIL] 陰性: 終了コード1だが不足の列挙が確認できない" >&2
+      echo "  [FAIL] 陰性: マニフェスト不在の終了コード1と不足の列挙を確認できない（実際の終了コード: $ng_rc）" >&2
       rc=1
     fi
   fi
 
-  # ケース3: HTMLと基本マニフェストはあるが拡張マニフェストが無い合成 output_dir で
+  # ケース6: HTMLと基本マニフェストはあるが拡張マニフェストが無い合成 output_dir で
   # 終了コード 1 になり、拡張マニフェストの不足が列挙される
   local extng_dir="$tmp/extng-output"
   mkdir -p "$extng_dir/$self_test_units_root/画面一覧" "$extng_dir/$self_test_manifests_root"
   echo '<html></html>' > "$extng_dir/$self_test_units_root/画面一覧/画面一覧.html"
   echo '{}' > "$extng_dir/$self_test_manifests_root/screen-manifest.json"
 
-  local extng_output
+  local extng_output extng_rc
   if extng_output=$(run_check "$extng_dir" 2>&1); then
     echo "  [FAIL] 拡張マニフェスト不在なのにPASSした" >&2
     rc=1
   else
-    if printf '%s' "$extng_output" | grep -q "screen-manifest.ext.json"; then
+    extng_rc=$?
+    if [ "$extng_rc" -eq 1 ] && printf '%s' "$extng_output" | grep -q "screen-manifest.ext.json"; then
       echo "  [PASS] 拡張マニフェスト不在で終了コード1・不足が列挙される"
     else
-      echo "  [FAIL] 終了コード1だが拡張マニフェスト不足の列挙が確認できない" >&2
+      echo "  [FAIL] 拡張マニフェスト不在の終了コード1と不足の列挙を確認できない（実際の終了コード: $extng_rc）" >&2
       rc=1
     fi
   fi
