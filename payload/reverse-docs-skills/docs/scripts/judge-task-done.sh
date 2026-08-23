@@ -414,7 +414,68 @@ create_confirm_output_file() {
   mktemp "${TMPDIR:-/tmp}/judge-task-done-cmd.XXXXXX" 2>/dev/null
 }
 
+# 同じ「確かめる手段」を 1 回の実行の中で使い回す。
+# 判定の行ごとに同じコマンドを走らせるため、10 分規模の集約を呼ぶ行が
+# 4 行あると片付け 1 回が 40 分規模になっていた（実測 2026-08-24）。
+# 覚える単位はコマンド文字列そのもので、1 文字でも違えば別のものとして扱う。
+# 覚えるのは 1 回の実行の中だけで、実行をまたいで残さない。
+CONFIRM_CACHE_N=0
+CONFIRM_CACHE_KEYS=()
+CONFIRM_CACHE_RC=()
+CONFIRM_CACHE_ORIGIN=()
+CONFIRM_CACHE_UNKNOWN_FLAG=()
+CONFIRM_CACHE_UNKNOWN_LINE=()
+CONFIRM_CACHE_HIT=-1
+CONFIRM_FROM_CACHE=0
+
+confirm_cache_reset() {
+  CONFIRM_CACHE_N=0
+  CONFIRM_CACHE_KEYS=()
+  CONFIRM_CACHE_RC=()
+  CONFIRM_CACHE_ORIGIN=()
+  CONFIRM_CACHE_UNKNOWN_FLAG=()
+  CONFIRM_CACHE_UNKNOWN_LINE=()
+  CONFIRM_CACHE_HIT=-1
+  CONFIRM_FROM_CACHE=0
+}
+
+confirm_cache_find() {
+  local i
+  CONFIRM_CACHE_HIT=-1
+  [ "$CONFIRM_CACHE_N" -eq 0 ] && return 1
+  for ((i = 0; i < CONFIRM_CACHE_N; i++)); do
+    if [ "${CONFIRM_CACHE_KEYS[$i]}" = "$1" ]; then
+      CONFIRM_CACHE_HIT="$i"
+      return 0
+    fi
+  done
+  return 1
+}
+
 run_confirm_command() {
+  local cmd="$1" timeout_sec="$2"
+
+  CONFIRM_FROM_CACHE=0
+  if confirm_cache_find "$cmd"; then
+    CONFIRM_RC="${CONFIRM_CACHE_RC[$CONFIRM_CACHE_HIT]}"
+    CONFIRM_ORIGIN="${CONFIRM_CACHE_ORIGIN[$CONFIRM_CACHE_HIT]}"
+    CONFIRM_HAS_UNKNOWN_LABEL="${CONFIRM_CACHE_UNKNOWN_FLAG[$CONFIRM_CACHE_HIT]}"
+    CONFIRM_UNKNOWN_LINE="${CONFIRM_CACHE_UNKNOWN_LINE[$CONFIRM_CACHE_HIT]}"
+    CONFIRM_FROM_CACHE=1
+    return
+  fi
+
+  run_confirm_command_uncached "$cmd" "$timeout_sec"
+
+  CONFIRM_CACHE_KEYS[$CONFIRM_CACHE_N]="$cmd"
+  CONFIRM_CACHE_RC[$CONFIRM_CACHE_N]="$CONFIRM_RC"
+  CONFIRM_CACHE_ORIGIN[$CONFIRM_CACHE_N]="$CONFIRM_ORIGIN"
+  CONFIRM_CACHE_UNKNOWN_FLAG[$CONFIRM_CACHE_N]="$CONFIRM_HAS_UNKNOWN_LABEL"
+  CONFIRM_CACHE_UNKNOWN_LINE[$CONFIRM_CACHE_N]="$CONFIRM_UNKNOWN_LINE"
+  CONFIRM_CACHE_N=$((CONFIRM_CACHE_N + 1))
+}
+
+run_confirm_command_uncached() {
   local cmd="$1" timeout_sec="$2"
   local out_file pid ticks max_ticks finished prev_monitor
 
@@ -533,6 +594,9 @@ judge_measurement() {
       continue
     fi
     run_confirm_command "$confirm" "$timeout_sec"
+    if [ "$CONFIRM_FROM_CACHE" -eq 1 ]; then
+      echo "  （前の結果を使った）$(printf '%s' "$confirm" | cut -c1-60)" >&2
+    fi
     rc="$CONFIRM_RC"
     if [ "$rc" -eq 0 ]; then
       MEAS_RESULT+=("pass")
@@ -1139,7 +1203,7 @@ run_self_test() {
     fi
   }
 
-  echo "実行 33 件"
+  echo "実行 35 件"
 
   # 0. 確かめる手段がバッククォート囲み（rule.mdの見本と同じ書き方） -> 中身のコマンドとして実行され満たす
   #    （囲みを剥がさずに実行すると、バッククォート付き文字列がコマンド置換として実行され、
@@ -1560,6 +1624,41 @@ run_self_test() {
     sed 's/^/       /' "$f32"
     fail=$((fail + 1))
   fi
+
+  # 33. 同じ「確かめる手段」を持つ判定行が 2 つあるとき、コマンドは 1 回だけ
+  #     実行し、2 行目は覚えた結果を使う。10 分規模の集約を呼ぶ行が並ぶと
+  #     片付け 1 回が 40 分規模になっていたため（実測 2026-08-24）。
+  local counter33="$tmpdir/case33.count" f33="$tmpdir/case33.md" cmd33 n33
+  : > "$counter33"
+  cmd33="printf x >> $counter33"
+  confirm_cache_reset
+  mk_doc "$(printf '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |\n|---|---|---|---|---|\n| 1. 一度目 | `%s` | 未着手 | — | — |\n| 2. 二度目 | `%s` | 未着手 | — | — |\n| 3. 三度目 | `%s` | 未着手 | — | — |' "$cmd33" "$cmd33" "$cmd33")" > "$f33"
+  judge_measurement "$f33" 5
+  n33="$(wc -c < "$counter33" | tr -d '[:space:]')"
+  if [ "$n33" = "1" ] && [ "$MEAS_OK" = "1" ]; then
+    echo "[PASS] 同じ確かめる手段は行数によらず1回だけ実行する"
+    pass=$((pass + 1))
+  else
+    echo "[FAIL] 同じ確かめる手段は行数によらず1回だけ実行する（実行回数=${n33} MEAS_OK=${MEAS_OK}）"
+    fail=$((fail + 1))
+  fi
+
+  # 34. 覚える単位はコマンド文字列そのもの。1 文字でも違えば別のものとして
+  #     扱い、それぞれ実行する。
+  local counter34="$tmpdir/case34.count" f34="$tmpdir/case34.md" n34
+  : > "$counter34"
+  confirm_cache_reset
+  mk_doc "$(printf '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |\n|---|---|---|---|---|\n| 1. 片方 | `printf a >> %s` | 未着手 | — | — |\n| 2. もう片方 | `printf b >> %s` | 未着手 | — | — |' "$counter34" "$counter34")" > "$f34"
+  judge_measurement "$f34" 5
+  n34="$(wc -c < "$counter34" | tr -d '[:space:]')"
+  if [ "$n34" = "2" ]; then
+    echo "[PASS] コマンド文字列が違えば別のものとして実行する"
+    pass=$((pass + 1))
+  else
+    echo "[FAIL] コマンド文字列が違えば別のものとして実行する（実行回数=${n34}）"
+    fail=$((fail + 1))
+  fi
+  confirm_cache_reset
 
   # 23. 判定器の out_file 用 mktemp 失敗は runner 由来の判定不能になり、
   #     --only は行頭ラベルを出して終了コード2になる。
