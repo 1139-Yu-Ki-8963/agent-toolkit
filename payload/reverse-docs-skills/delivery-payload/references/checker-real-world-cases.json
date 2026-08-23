@@ -395,6 +395,70 @@
     },
     {
       "checker": "check-review-viewpoints-list",
+      "label": "検査の欄が空の規則の表",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "docs/rules/always/foo/rule.md", "content": "# 規約\n\n## 規則\n\n| 規則 | 内容 | 根拠 | 検査 |\n|---|---|---|---|\n| 名前を付ける | 名前を付ける | 読みやすさ |  |\n" }
+      }
+    },
+    {
+      "checker": "check-review-viewpoints-list",
+      "label": "テストで確かめると書いた規則の表",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "docs/rules/always/foo/rule.md", "content": "# 規約\n\n## 規則\n\n| 規則 | 内容 | 根拠 | 検査 |\n|---|---|---|---|\n| 名前を付ける | 名前を付ける | 読みやすさ | テスト: 名前の欄を確かめる |\n" }
+      }
+    },
+    {
+      "checker": "check-doc-heading-addendum",
+      "label": "補足の見出しを足す",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "docs/design.md", "content": "## 補足\n本文\n" }
+      }
+    },
+    {
+      "checker": "check-generated-artifact-staged",
+      "label": "組み立てた結果を版管理へ入れる",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": { "command": "git add dist/bundle.js" }
+      }
+    },
+    {
+      "checker": "check-release-changelog-entry",
+      "label": "版の印を付けて公開する",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Bash",
+        "cwd": "/",
+        "tool_input": { "command": "git tag v1.2.0" }
+      }
+    },
+    {
+      "checker": "check-ai-config-derivative-manual-edit",
+      "label": "別のツール向けの派生を直接編集",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": ".cursor/rules/foo.mdc", "content": "x" }
+      }
+    },
+    {
+      "checker": "check-glossary-missing-forbidden-terms",
+      "label": "識別子の欄が空の用語一覧",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "docs/用語.md", "content": "| 用語 | 識別子 | 定義 | 使わない語 |\n|---|---|---|---|\n| 受注 |  | 注文を受けることである | オーダー |\n" }
+      }
+    },
+    {
+      "checker": "check-review-viewpoints-list",
       "label": "検査の手段を書かない規則の表",
       "expect": "violation",
       "input": {
