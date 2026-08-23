@@ -31,8 +31,8 @@
 #
 # 出力: 各段の結果に続けて、末尾に全体の合否と直った・壊れた・変わらないの件数を出す。
 #
-# 終了コード: 壊れたものが1件でもあれば1。それ以外で判定に不合格があれば1。
-#   すべて合格なら0。
+# 終了コード: 壊れたもの、または第1層・4判定の不合格が1件でもあれば1。
+#   不合格がなく判定不能だけなら2。すべて合格なら0。
 #
 # 出力先には verification-env.sh の verification_env_setup が発番する、
 # git リポジトリの外かつシンボリックリンクを含まない実体パスを使う。
@@ -114,6 +114,24 @@ LEDGER_REL="docs/tasks/work-records/実行記録.md"
 # 実行本体
 # ---------------------------------------------------------------------------
 
+emit_child_output() {
+  printf '%s\n' "$1"
+}
+
+# 第1層と4判定の終了コード、および比較で壊れた件数を集約する。
+# 1を2より優先し、2だけなら判定不能として保持する。
+verification_loop_result_rc() {
+  local layer1_rc="$1" cov_rc="$2" sc_rc="$3" rep_rc="$4" snd_rc="$5" broken="$6" rc
+  [ "$broken" -gt 0 ] && return 1
+  for rc in "$layer1_rc" "$cov_rc" "$sc_rc" "$rep_rc" "$snd_rc"; do
+    [ "$rc" -ne 0 ] && [ "$rc" -ne 2 ] && return 1
+  done
+  for rc in "$layer1_rc" "$cov_rc" "$sc_rc" "$rep_rc" "$snd_rc"; do
+    [ "$rc" -eq 2 ] && return 2
+  done
+  return 0
+}
+
 run_loop() {
   local repo="$1" skip_layer1="$2" layer1_timeout="$3" no_record="$4"
   local ledger="${repo}/${LEDGER_REL}"
@@ -123,7 +141,7 @@ run_loop() {
   echo "版: ${version}"
   echo
 
-  local layer1_line="" layer3_line=""
+  local layer1_line="" layer3_line="" layer1_rc=0
 
   if [ "$skip_layer1" -eq 1 ]; then
     echo "[飛ばす] 第1層の実行（--skip-layer1）"
@@ -131,7 +149,8 @@ run_loop() {
     echo "[実行中] 第1層の実行"
     local out1
     out1="$(bash "${repo}/generation-engine/scripts/verification/run-layer-machine-checks.sh" --repo "$repo" --timeout "$layer1_timeout" 2>&1)"
-    echo "$out1"
+    layer1_rc=$?
+    emit_child_output "$out1"
     layer1_line="$(printf '%s\n' "$out1" | tail -1)"
   fi
   echo
@@ -167,34 +186,28 @@ run_loop() {
   local cov_out cov_rc sc_out sc_rc rep_out rep_rc snd_out snd_rc
   cov_out="$(bash "${repo}/generation-engine/scripts/verification/check-coverage.sh" --output "$out_dir1" --repo "$repo" 2>&1)"
   cov_rc=$?
-  echo "$cov_out"
+  emit_child_output "$cov_out"
   local coverage_line
   coverage_line="$(printf '%s\n' "$cov_out" | tail -1)"
 
   sc_out="$(bash "${repo}/generation-engine/scripts/verification/check-self-contained.sh" --repo "$repo" 2>&1)"
   sc_rc=$?
-  echo "$sc_out"
+  emit_child_output "$sc_out"
   local self_contained_line
   self_contained_line="$(printf '%s\n' "$sc_out" | tail -1)"
 
   rep_out="$(bash "${repo}/generation-engine/scripts/verification/check-reproducible.sh" --first "$out_dir1" --second "$out_dir2" --ignore-timestamps 2>&1)"
   rep_rc=$?
-  echo "$rep_out"
+  emit_child_output "$rep_out"
   local reproducible_line
   reproducible_line="$(printf '%s\n' "$rep_out" | tail -1)"
 
   snd_out="$(bash "${repo}/generation-engine/scripts/verification/check-sound.sh" --output "$out_dir1" --repo "$repo" 2>&1)"
   snd_rc=$?
-  echo "$snd_out"
+  emit_child_output "$snd_out"
   local sound_line
   sound_line="$(printf '%s\n' "$snd_out" | tail -1)"
   echo
-
-  local judge_fail=0
-  [ "$cov_rc" -ne 0 ] && judge_fail=1
-  [ "$sc_rc" -ne 0 ] && judge_fail=1
-  [ "$rep_rc" -ne 0 ] && judge_fail=1
-  [ "$snd_rc" -ne 0 ] && judge_fail=1
 
   if [ "$no_record" -eq 1 ]; then
     echo "[飛ばす] 台帳への記録（--no-record）"
@@ -229,13 +242,14 @@ run_loop() {
   kowareta="$(printf '%s\n' "$cmp_out" | grep -oE '壊れた: [0-9]+ 件' | head -1 | grep -oE '[0-9]+')"
   [ -n "$kowareta" ] || kowareta=0
 
-  local overall_rc=0
-  if [ "$judge_fail" -ne 0 ] || [ "$kowareta" -gt 0 ]; then
-    overall_rc=1
-  fi
+  local overall_rc
+  verification_loop_result_rc "$layer1_rc" "$cov_rc" "$sc_rc" "$rep_rc" "$snd_rc" "$kowareta"
+  overall_rc=$?
 
   if [ "$overall_rc" -eq 0 ]; then
     echo "全体の合否: 合格"
+  elif [ "$overall_rc" -eq 2 ]; then
+    echo "全体の合否: 判定不能"
   else
     echo "全体の合否: 不合格"
   fi
@@ -303,6 +317,35 @@ DEPS
   else
     _case_pass "破棄-既定" "出力先の破棄が既定で行われる（keep 系の引数分岐が存在しない）"
   fi
+
+  # --- 集約-判定不能のみは2 ---
+  verification_loop_result_rc 0 2 0 0 0 0
+  local unknown_only_rc=$?
+  [ "$unknown_only_rc" -eq 2 ] \
+    && _case_pass "集約-判定不能のみは2" "4判定の終了コード2を保持した" \
+    || _case_fail "集約-判定不能のみは2" "終了コード2を保持できない（rc=${unknown_only_rc}）"
+
+  # --- 集約-第1層の判定不能も2 ---
+  verification_loop_result_rc 2 0 0 0 0 0
+  local layer1_unknown_rc=$?
+  [ "$layer1_unknown_rc" -eq 2 ] \
+    && _case_pass "集約-第1層の判定不能も2" "第1層の終了コード2を保持した" \
+    || _case_fail "集約-第1層の判定不能も2" "第1層の終了コード2を失った（rc=${layer1_unknown_rc}）"
+
+  # --- 集約-不合格と判定不能の混在は1 ---
+  verification_loop_result_rc 2 1 0 0 0 0
+  local mixed_rc=$?
+  [ "$mixed_rc" -eq 1 ] \
+    && _case_pass "集約-不合格と判定不能の混在は1" "不合格を優先した" \
+    || _case_fail "集約-不合格と判定不能の混在は1" "優先順位が不正（rc=${mixed_rc}）"
+
+  # --- 出力-判定不能理由を保持 ---
+  local reason_fixture reason_output
+  reason_fixture='[UNKNOWN] 子検査を実行できません 操作: mktemp / 想定原因: fixture'
+  reason_output="$(emit_child_output "$reason_fixture")"
+  [ "$reason_output" = "$reason_fixture" ] \
+    && _case_pass "出力-判定不能理由を保持" "子のUNKNOWN理由をそのまま出力した" \
+    || _case_fail "出力-判定不能理由を保持" "子のUNKNOWN理由が欠落した"
 
   echo "実行 ${run} 件 / 成功 ${ok} 件 / 失敗 ${ng} 件"
   [ "$ng" -eq 0 ]

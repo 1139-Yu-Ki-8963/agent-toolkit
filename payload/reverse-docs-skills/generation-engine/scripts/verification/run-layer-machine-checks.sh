@@ -41,9 +41,9 @@
 # 出力（一括実行時）:
 #   スクリプトごとに1行:
 #     [PASS|FAIL|UNKNOWN|SUSPECT] <相対パス> — 実行 <N> 件 / 終了コード <C>
-#   [UNKNOWN] は終了コード2（実行できなかった）を表す。不合格と区別する。
+#   [UNKNOWN] は終了コード2かつ子出力が判定不能契約を満たす場合だけを表す。
 #   実行の環境に道具が無い等で走れなかった場合であり、成果物の欠陥ではない。
-#   終了コードへ反映しない。
+#   [UNKNOWN] だけなら終了コード2、失敗等と混在すれば終了コード1へ反映する。
 #   [FAIL] の場合のみ、対象スクリプトの標準出力・標準エラー出力（run_one() が
 #   捨てずに RUN_OUTPUT へ保持しているもの）を、2文字インデントで直後に
 #   そのまま添える。失敗の理由をその場で読めるようにするための出力であり、
@@ -60,7 +60,7 @@
 #     打ち切り <TO> 本 / 宣言済み長時間 <DL> 本 / 総ケース数 <TC> 件
 #
 # 終了コード: 失敗・途中停止の疑い・打ち切りのいずれかが1本でもあれば1。
-# すべて成功なら0。
+# UNKNOWNだけなら2、すべて成功なら0。
 #
 # 時間上限の実装: `timeout`/`gtimeout` コマンドに依存しない。対象スクリプトを
 # バックグラウンドで起動し、0.2秒間隔でポーリングして生存確認する。上限に
@@ -118,6 +118,25 @@ list_targets() {
     [ "$abs" = "$self" ] && continue
     printf '%s\n' "$abs"
   done | sort -u
+}
+
+# 子検査の終了コード2を判定不能として受け入れる前に、判定不能規約が求める
+# ラベル・実際に失敗した操作名・想定原因を同じ [UNKNOWN] 行で確認する。
+# 形だけの終了コード2（未知引数など）は呼出し失敗であり、不合格として扱う。
+has_indeterminate_contract() {
+  local output="$1" unknown_line body operation cause
+  printf '%s\n' "$output" | grep -qiE '^[[:space:]]*(\[UNKNOWN\][[:space:]]*)?(error([:[:space:]]|$)|usage([:[:space:]]|$)|unknown[[:space:]]+(argument|option)([:[:space:]]|$)|invalid[[:space:]]+(argument|option)([:[:space:]]|$)|bad[[:space:]]+option([:[:space:]]|$)|未知の引数|不明な引数)' && return 1
+  unknown_line="$(printf '%s\n' "$output" | grep '^\[UNKNOWN\]' | head -1)"
+  [ -n "$unknown_line" ] || return 1
+
+  # 操作名と原因は構造化フィールドを必須とする。集約器が検証できるのは非空値
+  # という構文までであり、子が申告した意味の真偽は子検査自身が担保する。
+  # 例えば false は実在するコマンドなので、操作名のallowlist化は行わない。
+  body="${unknown_line#\[UNKNOWN\]}"
+  operation="$(printf '%s\n' "$body" | sed -n 's/.*操作:[[:space:]]*\(.*\)[[:space:]]\/[[:space:]]*想定原因:.*/\1/p')"
+  cause="$(printf '%s\n' "$body" | sed -n 's/.*[[:space:]]\/[[:space:]]*想定原因:[[:space:]]*\(.*\)$/\1/p')"
+  [ -n "$(printf '%s' "$operation" | tr -d '[:space:]')" ] \
+    && [ -n "$(printf '%s' "$cause" | tr -d '[:space:]')" ]
 }
 
 # 出力から実行ケース数を読み取る。次の順で試し、最初に一致した形式の値を採る。
@@ -291,10 +310,14 @@ run_one() {
   local script="$1" timeout_sec="$2"
   local out_file pid ticks max_ticks finished prev_monitor
 
-  out_file="$(mktemp "${TMPDIR:-/tmp}/run-layer-check.XXXXXX" 2>/dev/null)"
+  if [ "${RUN_LAYER_MACHINE_CHECKS_TEST_MKTEMP_FAIL:-0}" = "1" ]; then
+    out_file=""
+  else
+    out_file="$(mktemp "${TMPDIR:-/tmp}/run-layer-check.XXXXXX" 2>/dev/null)"
+  fi
   if [ -z "$out_file" ] || [ ! -f "$out_file" ]; then
-    RUN_OUTPUT="(一時ファイルを作成できないため実行不可)"
-    RUN_RC=1
+    RUN_OUTPUT="[UNKNOWN] 子検査の出力先を作成できないため実行できません 操作: mktemp / 想定原因: 一時ディレクトリが存在しない、または書き込み権限がありません"
+    RUN_RC=2
     RUN_TIMED_OUT=0
     return
   fi
@@ -361,7 +384,8 @@ run_one() {
 }
 
 # 対象スクリプト群を順に実行し、結果を標準出力へ書く。戻り値: 失敗・
-# 途中停止の疑い・打ち切りのいずれかが1本でもあれば1、すべて成功なら0。
+# 途中停止の疑い・打ち切りのいずれかが1本でもあれば1、UNKNOWNだけなら2、
+# すべて成功なら0。
 run_all() {
   local repo="$1" self="$2" timeout_sec="${3:-120}"
   local targets total=0 passed=0 failed=0 suspect=0 timed_out=0 total_cases=0 declared_long=0 unknown=0
@@ -369,8 +393,9 @@ run_all() {
 
   targets="$(list_targets "$repo" "$self")"
   if [ -z "$targets" ]; then
+    printf '[UNKNOWN] 集約対象を列挙できないため機械検証を判定できません 操作: list_targets / 想定原因: 走査起点の欠落、対象リポジトリの指定誤り、または検査ファイルの全消失\n'
     printf '対象 0 本 / 成功 0 本 / 失敗 0 本 / 判定不能 0 本 / 途中停止の疑い 0 本 / 打ち切り 0 本 / 宣言済み長時間 0 本 / 総ケース数 0 件\n'
-    return 0
+    return 2
   fi
 
   while IFS= read -r script; do
@@ -416,16 +441,19 @@ run_all() {
     elif [ "$RUN_RC" -eq 0 ]; then
       status="PASS"
       passed=$((passed + 1))
-    elif [ "$RUN_RC" -eq 2 ]; then
+    elif [ "$RUN_RC" -eq 2 ] && has_indeterminate_contract "$RUN_OUTPUT"; then
       status="UNKNOWN"
       unknown=$((unknown + 1))
+    elif [ "$RUN_RC" -eq 2 ]; then
+      status="FAIL"
+      failed=$((failed + 1))
     else
       status="FAIL"
       failed=$((failed + 1))
     fi
     total_cases=$((total_cases + n))
     printf '[%s] %s — 実行 %s 件 / 終了コード %s\n' "$status" "$rel" "$n" "$RUN_RC"
-    if [ "$status" = "FAIL" ] && [ -n "$RUN_OUTPUT" ]; then
+    if { [ "$status" = "FAIL" ] || [ "$status" = "UNKNOWN" ]; } && [ -n "$RUN_OUTPUT" ]; then
       printf '%s\n' "$RUN_OUTPUT" | sed 's/^/  /'
     fi
   done <<TARGETS
@@ -443,11 +471,13 @@ TARGETS
   printf '対象 %s 本 / 成功 %s 本 / 失敗 %s 本 / 判定不能 %s 本 / 途中停止の疑い %s 本 / 打ち切り %s 本 / 宣言済み長時間 %s 本 / 総ケース数 %s 件\n' \
     "$total" "$passed" "$failed" "$unknown" "$suspect" "$timed_out" "$declared_long" "$total_cases"
 
-  # 判定不能は終了コードへ反映しない。実行できなかったことであり、成果物が
-  # 不合格だったことではない。反映すると、道具が無い環境で必ず失敗になり、
-  # 成果物の欠陥と区別できなくなる（判定不能の規約と同じ考え方）。
+  # 判定不能だけなら終了コード2を返し、失敗等との混在では1を優先する。
+  # 実行不能と成果物の不合格を区別しつつ、実在する失敗を隠さない。
   if [ "$failed" -gt 0 ] || [ "$suspect" -gt 0 ] || [ "$timed_out" -gt 0 ]; then
     return 1
+  fi
+  if [ "$unknown" -gt 0 ]; then
+    return 2
   fi
   return 0
 }
@@ -606,13 +636,27 @@ EOS
   nTap="$(count_cases $'# tests 5\n# pass 5')"
   [ "$nTap" = "5" ] && assert_true "読取-node-test-TAP要約" 0 || assert_true "読取-node-test-TAP要約" 1
 
-  # 判定不能-対象0本の集計行: 対象が無い早期return経路でも、通常経路と同じ
-  # 順序で「判定不能 0 本」を含む完全な集計行を出し、終了コード0を返すこと。
+  # 実行-mktemp失敗: 子出力を保存できない場合は不合格へ変換せず、構造化した
+  # 判定不能として呼出し側へ返す。
+  RUN_LAYER_MACHINE_CHECKS_TEST_MKTEMP_FAIL=1 run_one "/dev/null/no-such-script" 30
+  if [ "$RUN_RC" -eq 2 ] \
+    && [ "$RUN_TIMED_OUT" -eq 0 ] \
+    && has_indeterminate_contract "$RUN_OUTPUT" \
+    && printf '%s\n' "$RUN_OUTPUT" | grep -qF '操作: mktemp / 想定原因:'; then
+    assert_true "実行-mktemp失敗を判定不能にする" 0
+  else
+    assert_true "実行-mktemp失敗を判定不能にする" 1
+  fi
+
+  # 判定不能-対象0本: 対象が無い早期return経路を合格と読み替えないこと。
   local outEmpty rcEmpty
   outEmpty="$(run_all "$tmp/repo-empty" "/dev/null/no-such-self" 30)"
   rcEmpty=$?
-  if [ "$rcEmpty" -eq 0 ] \
-    && [ "$outEmpty" = "対象 0 本 / 成功 0 本 / 失敗 0 本 / 判定不能 0 本 / 途中停止の疑い 0 本 / 打ち切り 0 本 / 宣言済み長時間 0 本 / 総ケース数 0 件" ]; then
+  if [ "$rcEmpty" -eq 2 ] \
+    && has_indeterminate_contract "$outEmpty" \
+    && printf '%s\n' "$outEmpty" | grep -q '^\[UNKNOWN\].*集約対象' \
+    && printf '%s\n' "$outEmpty" | grep -qF '操作: list_targets / 想定原因:' \
+    && printf '%s\n' "$outEmpty" | grep -q '対象 0 本'; then
     assert_true "判定不能-対象0本の集計行" 0
   else
     assert_true "判定不能-対象0本の集計行" 1
@@ -650,7 +694,7 @@ EOS
   cat > "$scanB/b-unknown.sh" <<'EOS'
 #!/usr/bin/env bash
 if [ "${1:-}" = "--self-test" ]; then
-  echo "[UNKNOWN] 一時領域を作れないため判定できません"
+  echo "[UNKNOWN] 一時領域を作れないため判定できません 操作: mktemp -d / 想定原因: fixtureの実行環境が未準備"
   exit 2
 fi
 exit 0
@@ -665,10 +709,97 @@ EOS
   # 判定不能-不合格と区別: 終了コード2の対象が [FAIL] ではなく [UNKNOWN] として
   # 報告され、集計行の「判定不能」に数えられること。
   if printf '%s' "$outB" | grep -qF "[UNKNOWN] generation-engine/scripts/b-unknown.sh" \
+    && printf '%s' "$outB" | grep -qF '操作: mktemp -d / 想定原因: fixtureの実行環境が未準備' \
     && printf '%s' "$outB" | grep -qE '判定不能 [1-9][0-9]* 本'; then
     assert_true "判定不能-不合格と区別" 0
   else
     assert_true "判定不能-不合格と区別" 1
+  fi
+  if [ "$rcB" -eq 1 ] \
+    && printf '%s' "$outB" | grep -qF '[FAIL] generation-engine/scripts/a-fail.sh' \
+    && printf '%s' "$outB" | grep -qF '[UNKNOWN] generation-engine/scripts/b-unknown.sh' \
+    && printf '%s' "$outB" | grep -qF '操作: mktemp -d / 想定原因: fixtureの実行環境が未準備'; then
+    assert_true "判定不能-不合格混在は1を優先し理由を保持" 0
+  else
+    assert_true "判定不能-不合格混在は1を優先し理由を保持" 1
+  fi
+
+  # 終了コード2でも [UNKNOWN]・操作名・原因のいずれかを欠けば呼出し失敗である。
+  local scanInvalid outInvalid rcInvalid
+  scanInvalid="$tmp/repo-invalid/generation-engine/scripts"
+  mkdir -p "$scanInvalid"
+  cat > "$scanInvalid/invalid-unknown.sh" <<'EOS'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--self-test" ]; then
+  echo "[UNKNOWN] 判定できません"
+  exit 2
+fi
+exit 0
+EOS
+  cat > "$scanInvalid/abc-unknown.sh" <<'EOS'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--self-test" ]; then
+  echo "[UNKNOWN] abc 原因"
+  exit 2
+fi
+exit 0
+EOS
+  cat > "$scanInvalid/unknown-argument.sh" <<'EOS'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--self-test" ]; then
+  echo "[UNKNOWN] 未知の引数です: --help 操作: false / 想定原因: fixture"
+  exit 2
+fi
+exit 0
+EOS
+  cat > "$scanInvalid/error-unknown.sh" <<'EOS'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--self-test" ]; then
+  echo "[UNKNOWN] ERROR: 呼出し失敗 操作: false / 想定原因: fixture"
+  exit 2
+fi
+exit 0
+EOS
+  cat > "$scanInvalid/lowercase-error.sh" <<'EOS'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--self-test" ]; then
+  echo "[UNKNOWN] error 操作: false / 想定原因: fixture"
+  exit 2
+fi
+exit 0
+EOS
+  cat > "$scanInvalid/lowercase-usage.sh" <<'EOS'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--self-test" ]; then
+  echo "[UNKNOWN] usage: tool 操作: false / 想定原因: fixture"
+  exit 2
+fi
+exit 0
+EOS
+  cat > "$scanInvalid/unknown-option.sh" <<'EOS'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--self-test" ]; then
+  echo "[UNKNOWN] unknown option --bad 操作: false / 想定原因: fixture"
+  exit 2
+fi
+exit 0
+EOS
+  chmod +x "$scanInvalid/invalid-unknown.sh"
+  chmod +x "$scanInvalid/abc-unknown.sh" "$scanInvalid/unknown-argument.sh" "$scanInvalid/error-unknown.sh" \
+    "$scanInvalid/lowercase-error.sh" "$scanInvalid/lowercase-usage.sh" "$scanInvalid/unknown-option.sh"
+  outInvalid="$(run_all "$tmp/repo-invalid" "/dev/null/no-such-self" 30)"
+  rcInvalid=$?
+  if [ "$rcInvalid" -eq 1 ] \
+    && printf '%s' "$outInvalid" | grep -qF '[FAIL] generation-engine/scripts/invalid-unknown.sh' \
+    && printf '%s' "$outInvalid" | grep -qF '[FAIL] generation-engine/scripts/abc-unknown.sh' \
+    && printf '%s' "$outInvalid" | grep -qF '[FAIL] generation-engine/scripts/unknown-argument.sh' \
+    && printf '%s' "$outInvalid" | grep -qF '[FAIL] generation-engine/scripts/error-unknown.sh' \
+    && printf '%s' "$outInvalid" | grep -qF '[FAIL] generation-engine/scripts/lowercase-error.sh' \
+    && printf '%s' "$outInvalid" | grep -qF '[FAIL] generation-engine/scripts/lowercase-usage.sh' \
+    && printf '%s' "$outInvalid" | grep -qF '[FAIL] generation-engine/scripts/unknown-option.sh'; then
+    assert_true "判定不能-契約違反の終了コード2を不合格にする" 0
+  else
+    assert_true "判定不能-契約違反の終了コード2を不合格にする" 1
   fi
 
   if printf '%s' "$outB" | grep -qF "[PASS] generation-engine/scripts/z-after.sh"; then
@@ -705,12 +836,21 @@ EOS
   fi
   [ "$rcB" -eq 1 ] && assert_true "終了コード-失敗時" 0 || assert_true "終了コード-失敗時" 1
 
-  # 判定不能-集約の終了コードに影響しない: 判定不能だけがあり失敗が無い場合、
-  # 集約は0を返すこと。実行できなかったことを不合格として扱わないための検証。
+  # 判定不能-集約の終了コードを保持: 判定不能だけがあり失敗が無い場合、
+  # 集約は2を返すこと。実行できなかったことを合格にも不合格にも変換しない。
   local scanBU outBU rcBU
   scanBU="$tmp/repoBU/generation-engine/scripts"
   mkdir -p "$scanBU"
   cp "$scanB/b-unknown.sh" "$scanBU/b-unknown.sh"
+  cat > "$scanBU/c-benign-error-words.sh" <<'EOS'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--self-test" ]; then
+  echo "[UNKNOWN] 権限を確認できません 操作: test -w / 想定原因: permission error in fixture"
+  echo "diagnostic: 0 errors"
+  exit 2
+fi
+exit 0
+EOS
   cat > "$scanBU/z-ok.sh" <<'EOS'
 #!/usr/bin/env bash
 if [ "${1:-}" = "--self-test" ]; then
@@ -722,10 +862,13 @@ EOS
   chmod +x "$scanBU"/*.sh
   outBU="$(run_all "$tmp/repoBU" "/dev/null/no-such-self" 30)"
   rcBU=$?
-  if [ "$rcBU" -eq 0 ] && printf '%s' "$outBU" | grep -qE '判定不能 1 本'; then
-    assert_true "判定不能-集約の終了コードに影響しない" 0
+  if [ "$rcBU" -eq 2 ] \
+    && printf '%s' "$outBU" | grep -qE '判定不能 2 本' \
+    && printf '%s' "$outBU" | grep -qF '[UNKNOWN] generation-engine/scripts/c-benign-error-words.sh' \
+    && printf '%s' "$outBU" | grep -qF 'diagnostic: 0 errors'; then
+    assert_true "判定不能-集約の終了コード2を保持" 0
   else
-    assert_true "判定不能-集約の終了コードに影響しない" 1
+    assert_true "判定不能-集約の終了コード2を保持" 1
   fi
 
   # --- フィクスチャ準備（repoC: 途中停止の疑いの検証用） ---

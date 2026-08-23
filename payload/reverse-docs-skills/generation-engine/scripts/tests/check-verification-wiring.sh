@@ -26,7 +26,7 @@
 #     引き続き検出するために和集合へ残す。
 #     node_modules 配下・.venv 配下・run-layer-machine-checks.sh 自身は除外する。
 #
-#   検査2（不合格にしない。警告として列挙するのみ）:
+#   検査2（候補があれば exit 1。警告として列挙する）:
 #     generation-engine/scripts/ 配下の check-*.sh / validate-*.sh / test-*.sh
 #     （*.test.sh を除く。node_modules・.venv 配下も除く）のうち、
 #     --self-test を持たないものを件数とともに列挙する（WARN）。
@@ -69,10 +69,13 @@ list_checkable_files() {
 # 唯一の情報源として使う。ここを経由せず自前で --list を呼び直す・自前の
 # 列挙で代用することを禁じる（2026-08-19 の乖離の再発防止）。
 get_listed_abs() {
-  local repo="$1" agg
+  local repo="$1" agg raw rc
   agg="$repo/generation-engine/scripts/verification/run-layer-machine-checks.sh"
   [ -f "$agg" ] || return 0
-  bash "$agg" --list 2>/dev/null | while IFS= read -r r; do
+  raw="$(bash "$agg" --list 2>/dev/null)"
+  rc=$?
+  [ "$rc" -eq 0 ] || return 2
+  printf '%s\n' "$raw" | while IFS= read -r r; do
     [ -z "$r" ] && continue
     printf '%s/%s\n' "$repo" "$r"
   done
@@ -88,7 +91,7 @@ listed_contains() {
   grep -Fxq "$target" <<< "$listed"
 }
 
-# 検査1本体。引数: repo（リポジトリルート）。戻り値: 不合格なら1。
+# 検査1本体。引数: repo（リポジトリルート）。戻り値: 不合格なら1、対象不在なら2。
 #
 # 母集合（checkable）は「集約の実際の --list 出力（listed）」と「自前列挙
 # （self_built）」の和集合とする。listed をそのまま母集合に採る（自前列挙を
@@ -101,16 +104,42 @@ run_check1() {
   local repo="$1" agg
   agg="$repo/generation-engine/scripts/verification/run-layer-machine-checks.sh"
   if [ ! -f "$agg" ]; then
-    echo "SKIP: 集約スクリプトが見つからない: $agg"
-    return 0
+    echo "[UNKNOWN] 集約スクリプトを確認できないため配線を判定できません（test -f が ${agg} を確認できませんでした。リポジトリパスの指定誤り、または集約器の欠落が原因である可能性があります）"
+    return 2
   fi
   local agg_abs
   agg_abs="$(cd "$(dirname "$agg")" && pwd)/$(basename "$agg")"
 
-  local self_built listed checkable missing=0 total=0 f rel
+  local self_built listed listed_rc checkable missing=0 broken=0 total=0 f rel
   self_built="$(list_checkable_files "$repo" | grep -vF "$agg_abs" || true)"
   listed="$(get_listed_abs "$repo")"
+  listed_rc=$?
+  if [ "$listed_rc" -ne 0 ]; then
+    echo "[UNKNOWN] 集約一覧を取得できないため配線を判定できません（run-layer-machine-checks.sh --list が終了コード ${listed_rc} を返しました。集約器の呼出し失敗、または実行環境の不足が原因である可能性があります）"
+    return 2
+  fi
+
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    if [ ! -f "$f" ]; then
+      rel="$f"
+      case "$rel" in "$repo"/*) rel="${rel#"$repo"/}" ;; esac
+      echo "FAIL: 集約が存在しない検査を列挙: $rel"
+      broken=$((broken + 1))
+    fi
+  done <<LISTED
+$listed
+LISTED
+  if [ "$broken" -gt 0 ]; then
+    echo "検査1: 存在しない列挙 $broken 件"
+    return 1
+  fi
   checkable="$(printf '%s\n%s\n' "$listed" "$self_built" | grep -v '^$' | sort -u)"
+
+  if [ -z "$checkable" ]; then
+    echo "[UNKNOWN] 配線の母集合を列挙できないため判定できません（集約器の --list と list_checkable_files が対象を1件も返しませんでした。走査条件の破損、または検査ファイルの全消失が原因である可能性があります）"
+    return 2
+  fi
 
   while IFS= read -r f; do
     [ -z "$f" ] && continue
@@ -163,7 +192,7 @@ called_from_other_self_test() {
       done | grep -q .
 }
 
-# 検査2本体。引数: repo（リポジトリルート）。常に成功として扱う（警告のみ）。
+# 検査2本体。引数: repo（リポジトリルート）。配線漏れ候補があれば1、対象不在なら2。
 #
 # 目印（条件1・条件2）は「実行そのものが判定である独立した検査（または重複）」
 # を警告から外すためのものだが、目印の有無は文字列の一致でしか判定できない。
@@ -173,15 +202,19 @@ called_from_other_self_test() {
 # ロジックには手を入れず、目印で continue する直前に分岐を追加するだけに
 # とどめる。
 run_check2() {
-  local repo="$1" dir count=0 count2=0 f rel listed
+  local repo="$1" dir count=0 count2=0 f rel listed listed_rc
   dir="$repo/generation-engine/scripts"
   [ -d "$dir" ] || {
-    echo "検査2: 自己テストを持たない判定スクリプト 0 件"
-    echo "検査2b: 目印を持ちながら集約に含まれるもの 0 件"
-    return 0
+    echo "[UNKNOWN] 検査スクリプトの走査対象を確認できないため配線を判定できません（test -d が ${dir} を確認できませんでした。リポジトリ構成の欠落が原因である可能性があります）"
+    return 2
   }
 
   listed="$(get_listed_abs "$repo")"
+  listed_rc=$?
+  if [ "$listed_rc" -ne 0 ]; then
+    echo "[UNKNOWN] 集約一覧を取得できないため自己テストなし検査の配線を判定できません（run-layer-machine-checks.sh --list が終了コード ${listed_rc} を返しました。集約器の呼出し失敗、または実行環境の不足が原因である可能性があります）"
+    return 2
+  fi
 
   while IFS= read -r f; do
     [ -z "$f" ] && continue
@@ -201,6 +234,11 @@ run_check2() {
         fi
         continue
       fi
+      # 名前で集約される一発実行テストは、--self-test を持たなくても実際の
+      # 集約一覧にあること自体が配線済みの証拠になる。
+      if [ -n "$listed" ] && listed_contains "$listed" "$f"; then
+        continue
+      fi
       rel="$f"
       case "$rel" in
         "$repo"/*) rel="${rel#"$repo"/}" ;;
@@ -213,6 +251,17 @@ run_check2() {
 
   echo "検査2: 自己テストを持たない判定スクリプト $count 件"
   echo "検査2b: 目印を持ちながら集約に含まれるもの $count2 件"
+  [ "$count" -eq 0 ] && return 0
+  return 1
+}
+
+# 2検査の結果を集約する。構成不備（1）と判定不能（2）が混在する場合は、
+# 実在する不備を隠さないため1を優先する。
+wiring_result_rc() {
+  local rc1="$1" rc2="$2"
+  if [ "$rc1" -eq 1 ] || [ "$rc2" -eq 1 ]; then return 1; fi
+  if [ "$rc1" -eq 2 ] || [ "$rc2" -eq 2 ]; then return 2; fi
+  if [ "$rc1" -ne 0 ] || [ "$rc2" -ne 0 ]; then return 1; fi
   return 0
 }
 
@@ -318,11 +367,13 @@ EOS
   chmod +x "$repoC/generation-engine/scripts/check-no-self-test.sh"
   local outC
   outC="$(run_check2 "$repoC")"
-  if printf '%s\n' "$outC" | grep -q 'WARN' \
+  run_check2 "$repoC" >/dev/null
+  local rcC=$?
+  if [ "$rcC" -eq 1 ] && printf '%s\n' "$outC" | grep -q 'WARN' \
     && printf '%s\n' "$outC" | grep -qE '検査2: 自己テストを持たない判定スクリプト [0-9]+ 件'; then
-    assert_true "検査2-警告と件数の出力" 0
+    assert_true "検査2-配線漏れ候補を不合格にする" 0
   else
-    assert_true "検査2-警告と件数の出力" 1
+    assert_true "検査2-配線漏れ候補を不合格にする" 1
   fi
 
   # ケース4: 検査2の除外条件1（自己宣言コメント）が働くこと
@@ -438,6 +489,78 @@ EOS
     assert_true "検査2-目印付きだが集約に含まれると別警告" 1
   fi
 
+  # ケース8: 集約器が実在しても、自前列挙と --list の母集合がともに0件なら判定不能。
+  local repoH="$tmp/repoH"
+  mkdir -p "$repoH/generation-engine/scripts/verification"
+  cat > "$repoH/generation-engine/scripts/verification/run-layer-machine-checks.sh" <<'EOS'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--list" ]; then exit 0; fi
+exit 0
+EOS
+  chmod +x "$repoH/generation-engine/scripts/verification/run-layer-machine-checks.sh"
+  local outH rcH
+  outH="$(run_check1 "$repoH")"
+  rcH=$?
+  if [ "$rcH" -eq 2 ] && printf '%s\n' "$outH" | grep -q '^\[UNKNOWN\].*母集合'; then
+    assert_true "検査1-母集合0件を判定不能にする" 0
+  else
+    assert_true "検査1-母集合0件を判定不能にする" 1
+  fi
+
+  # ケース9: 集約の --list 自体が失敗した場合は、空一覧として扱わず判定不能。
+  local repoI="$tmp/repoI" outI rcI outI2 rcI2
+  mkdir -p "$repoI/generation-engine/scripts/verification"
+  cat > "$repoI/generation-engine/scripts/verification/run-layer-machine-checks.sh" <<'EOS'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--list" ]; then exit 7; fi
+exit 0
+EOS
+  chmod +x "$repoI/generation-engine/scripts/verification/run-layer-machine-checks.sh"
+  outI="$(run_check1 "$repoI")"
+  rcI=$?
+  outI2="$(run_check2 "$repoI")"
+  rcI2=$?
+  if [ "$rcI" -eq 2 ] && [ "$rcI2" -eq 2 ] \
+    && printf '%s\n' "$outI" | grep -q '^\[UNKNOWN\].*終了コード 2' \
+    && printf '%s\n' "$outI2" | grep -q '^\[UNKNOWN\].*終了コード 2'; then
+    assert_true "配線検査-集約一覧の失敗を判定不能にする" 0
+  else
+    assert_true "配線検査-集約一覧の失敗を判定不能にする" 1
+  fi
+
+  wiring_result_rc "$rcI" "$rcI2"
+  local bothUnknownRc=$?
+  [ "$bothUnknownRc" -eq 2 ] \
+    && assert_true "集約-両検査の判定不能は2を保持" 0 \
+    || assert_true "集約-両検査の判定不能は2を保持" 1
+
+  # ケース10: 自前母集合が空でも、集約が架空の1件を列挙したら壊れた配線として不合格。
+  local repoJ="$tmp/repoJ" outJ rcJ
+  mkdir -p "$repoJ/generation-engine/scripts/verification"
+  cat > "$repoJ/generation-engine/scripts/verification/run-layer-machine-checks.sh" <<'EOS'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--list" ]; then
+  echo "generation-engine/scripts/missing-check.sh"
+  exit 0
+fi
+exit 0
+EOS
+  chmod +x "$repoJ/generation-engine/scripts/verification/run-layer-machine-checks.sh"
+  outJ="$(run_check1 "$repoJ")"
+  rcJ=$?
+  if [ "$rcJ" -eq 1 ] && printf '%s\n' "$outJ" | grep -qF 'FAIL: 集約が存在しない検査を列挙'; then
+    assert_true "検査1-存在しない列挙を不合格にする" 0
+  else
+    assert_true "検査1-存在しない列挙を不合格にする" 1
+  fi
+
+  # ケース11: 不合格と判定不能が混在した場合は、不合格を優先する。
+  wiring_result_rc 1 2
+  local mixedRc=$?
+  [ "$mixedRc" -eq 1 ] \
+    && assert_true "集約-不合格と判定不能の混在は1を優先" 0 \
+    || assert_true "集約-不合格と判定不能の混在は1を優先" 1
+
   rm -rf "$tmp"
   trap - EXIT
   echo "実行 $((pass + fail)) 件 / 成功 $pass 件 / 失敗 $fail 件"
@@ -466,10 +589,13 @@ main() {
     root="$(cd "$SCRIPT_DIR/../../.." && pwd)"
   fi
 
-  local rc=0
-  run_check1 "$root" || rc=1
+  local rc1 rc2
+  run_check1 "$root"
+  rc1=$?
   run_check2 "$root"
-  exit "$rc"
+  rc2=$?
+  wiring_result_rc "$rc1" "$rc2"
+  exit $?
 }
 
 main "$@"

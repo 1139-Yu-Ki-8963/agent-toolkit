@@ -26,7 +26,8 @@
 #   --ignore-timestamps 指定時は [SAME-EXCEPT-TIME] <相対パス> の行が追加で出力され、
 #   サマリ行にも 時刻を除き一致 <ST> 件 が挿入される。
 #
-# 終了コード: 相違または片側のみが1件でもあれば1、全件一致なら0（SAME-EXCEPT-TIMEは不合格にしない）。引数不備は2。
+# 終了コード: 相違または片側のみが1件でもあれば1、全件一致なら0（SAME-EXCEPT-TIMEは不合格にしない）。
+# 比較対象が0件、同じ生成物を二度指定した場合は [UNKNOWN]・2。引数不備は2。
 #
 # 保守責任者: 人手（ユーザー）。macOS bash 3.2 互換（連想配列は使わない。
 # 空配列を "${arr[@]}" で展開する箇所は set -u 下の未定義変数エラーを避けるため
@@ -92,6 +93,23 @@ _checkrepro_is_excluded() {
   return 1
 }
 
+# ディレクトリの別名（symlink、macOS の firmlink 等）を同一生成物として検出する。
+# まず pwd -P で symlink を解決し、それでも表記が異なる場合は device/inode を比べる。
+_checkrepro_dir_identity() {
+  local dir="$1"
+  stat -f '%d:%i' "$dir" 2>/dev/null || stat -c '%d:%i' "$dir" 2>/dev/null
+}
+
+_checkrepro_same_directory() {
+  local first="$1" second="$2" first_physical second_physical first_id second_id
+  first_physical="$(cd "$first" && pwd -P)" || return 1
+  second_physical="$(cd "$second" && pwd -P)" || return 1
+  [ "$first_physical" = "$second_physical" ] && return 0
+  first_id="$(_checkrepro_dir_identity "$first")"
+  second_id="$(_checkrepro_dir_identity "$second")"
+  [ -n "$first_id" ] && [ "$first_id" = "$second_id" ]
+}
+
 # ディレクトリ配下の全ファイルの相対パス一覧をソートして返す（改行区切り）。除外glob適用。
 _checkrepro_list_files() {
   local dir="$1"
@@ -107,9 +125,23 @@ _checkrepro_list_files() {
 checkrepro_compare() {
   local first="$1" second="$2"
   local tmp_first tmp_second tmp_union
-  tmp_first="$(mktemp "${TMPDIR:-/tmp}/checkrepro-first.XXXXXX")"
-  tmp_second="$(mktemp "${TMPDIR:-/tmp}/checkrepro-second.XXXXXX")"
-  tmp_union="$(mktemp "${TMPDIR:-/tmp}/checkrepro-union.XXXXXX")"
+  tmp_first="$(mktemp "${TMPDIR:-/tmp}/checkrepro-first.XXXXXX" 2>/dev/null)" || tmp_first=""
+  if [ -z "$tmp_first" ] || [ ! -f "$tmp_first" ]; then
+    echo "[UNKNOWN] 比較一覧の一時ファイルを作成できないため再現性を判定できません 操作: mktemp / 想定原因: 一時ディレクトリが存在しない、または書き込み権限がありません"
+    return 2
+  fi
+  tmp_second="$(mktemp "${TMPDIR:-/tmp}/checkrepro-second.XXXXXX" 2>/dev/null)" || tmp_second=""
+  if [ -z "$tmp_second" ] || [ ! -f "$tmp_second" ]; then
+    rm -f "$tmp_first"
+    echo "[UNKNOWN] 比較一覧の一時ファイルを作成できないため再現性を判定できません 操作: mktemp / 想定原因: 一時ディレクトリが存在しない、または書き込み権限がありません"
+    return 2
+  fi
+  tmp_union="$(mktemp "${TMPDIR:-/tmp}/checkrepro-union.XXXXXX" 2>/dev/null)" || tmp_union=""
+  if [ -z "$tmp_union" ] || [ ! -f "$tmp_union" ]; then
+    rm -f "$tmp_first" "$tmp_second"
+    echo "[UNKNOWN] 比較一覧の一時ファイルを作成できないため再現性を判定できません 操作: mktemp / 想定原因: 一時ディレクトリが存在しない、または書き込み権限がありません"
+    return 2
+  fi
 
   _checkrepro_list_files "$first" > "$tmp_first"
   _checkrepro_list_files "$second" > "$tmp_second"
@@ -155,6 +187,11 @@ checkrepro_compare() {
   done < "$tmp_union"
 
   rm -f "$tmp_first" "$tmp_second" "$tmp_union"
+
+  if [ "$total" -eq 0 ]; then
+    echo "[UNKNOWN] 比較対象を列挙できないため再現性を判定できません（find が両方の生成物から比較対象ファイルを1件も見つけませんでした。生成が未実行、または出力先の指定誤りが原因である可能性があります）"
+    return 2
+  fi
 
   if [ "$IGNORE_TIMESTAMPS" -eq 1 ]; then
     echo "対象 ${total} 件 / 一致 ${same} 件 / 時刻を除き一致 ${same_time} 件 / 相違 ${diff} 件 / 片側のみ ${only} 件"
@@ -256,6 +293,37 @@ _checkrepro_self_test() {
     _case_fail "終了コード-一致時" "終了コードが0でない（rc=${rc}）"
   fi
 
+  # 判定不能-対象0件
+  mkdir -p "$tmp/empty-a" "$tmp/empty-b"
+  out="$(checkrepro_compare "$tmp/empty-a" "$tmp/empty-b")"
+  rc=$?
+  if [ "$rc" -eq 2 ] && echo "$out" | grep -q '^\[UNKNOWN\].*比較対象'; then
+    _case_pass "判定不能-対象0件" "比較対象が無い場合を [UNKNOWN]・終了コード2で区別した"
+  else
+    _case_fail "判定不能-対象0件" "期待通りにならなかった: rc=${rc} ${out}"
+  fi
+
+  # 判定不能-TMPDIR不正: mktemp失敗を対象0件の原因へ誤分類せず、作成済みの
+  # 一時ファイルを残さないこと。存在しないパスは自己テスト領域内に限定する。
+  local invalid_tmp="$tmp/missing-tmpdir" invalid_tmp_out
+  invalid_tmp_out="$(TMPDIR="$invalid_tmp" checkrepro_compare "$tmp/a" "$tmp/b")"
+  rc=$?
+  if [ "$rc" -eq 2 ] \
+    && echo "$invalid_tmp_out" | grep -q '^\[UNKNOWN\].*操作: mktemp / 想定原因:' \
+    && [ ! -e "$invalid_tmp" ]; then
+    _case_pass "判定不能-TMPDIR不正" "mktemp失敗を構造化UNKNOWN・終了コード2で返した"
+  else
+    _case_fail "判定不能-TMPDIR不正" "mktemp失敗の理由または終了コードが不正（rc=${rc} ${invalid_tmp_out}）"
+  fi
+
+  # 独立性-同一物理ディレクトリの別名を拒否
+  ln -s "$tmp/a" "$tmp/a-link"
+  if _checkrepro_same_directory "$tmp/a" "$tmp/a-link"; then
+    _case_pass "独立性-同一物理ディレクトリの別名を拒否" "symlink経由でも同一生成物と判定した"
+  else
+    _case_fail "独立性-同一物理ディレクトリの別名を拒否" "symlink経由の同一生成物を検出できなかった"
+  fi
+
   # 時刻除外-一致判定
   echo '{"generatedAt":"2026-08-14T07:20:47Z","v":1}' > "$tmp/a/ts.json"
   echo '{"generatedAt":"2026-08-14T07:26:59Z","v":1}' > "$tmp/b/ts.json"
@@ -344,8 +412,13 @@ fi
 [ -d "$FIRST_DIR" ] || { echo "ERROR: --first のディレクトリが存在しません: ${FIRST_DIR}" >&2; exit 2; }
 [ -d "$SECOND_DIR" ] || { echo "ERROR: --second のディレクトリが存在しません: ${SECOND_DIR}" >&2; exit 2; }
 
-FIRST_DIR="$(cd "$FIRST_DIR" && pwd)"
-SECOND_DIR="$(cd "$SECOND_DIR" && pwd)"
+if _checkrepro_same_directory "$FIRST_DIR" "$SECOND_DIR"; then
+  echo "[UNKNOWN] 独立した2回の生成物を確認できないため再現性を判定できません（--first と --second が同じ物理パスを指しています。2回の生成を別の出力先へ実行して指定してください）" >&2
+  exit 2
+fi
+
+FIRST_DIR="$(cd "$FIRST_DIR" && pwd -P)"
+SECOND_DIR="$(cd "$SECOND_DIR" && pwd -P)"
 
 checkrepro_compare "$FIRST_DIR" "$SECOND_DIR"
 exit $?

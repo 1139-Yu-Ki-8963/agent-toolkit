@@ -45,8 +45,8 @@
 #   [UNKNOWN] を出力し終了コード2で終わる
 #   （.claude/rules/always/verification/indeterminate-result/rule.md の規約）。
 #
-# 終了コード: 違反が1件以上あれば1。無ければ0。--self-test は失敗ケースが
-#   1件以上あれば1、mktemp 失敗時は2。
+# 終了コード: 違反が1件以上あれば1。無ければ0。対象リポジトリ・対象履歴が
+#   無い場合は [UNKNOWN]・2。--self-test は失敗ケースが1件以上あれば1、mktemp失敗時は2。
 #
 # 保守責任者: 人手（ユーザー）。`**元の指摘**:` 行の形式・免除接頭辞
 #   （【マージ】・【同期】）を変更する場合は、本ファイルと
@@ -102,19 +102,19 @@ run_scan() {
 
   toplevel="$(git -C "${repo}" rev-parse --show-toplevel 2>/dev/null)"
   if [ -z "${toplevel}" ]; then
-    echo "対象外: ${repo} は git リポジトリではありません" >&2
-    return 0
+    echo "[UNKNOWN] 対象リポジトリを確認できないため追跡を判定できません（git rev-parse が ${repo} を git リポジトリとして解決できませんでした。パスの指定誤り、またはリポジトリの欠落が原因である可能性があります）" >&2
+    return 2
   fi
   if [ ! -d "${toplevel}/docs/tasks" ]; then
-    echo "対象外: ${toplevel} は docs/tasks/ を持ちません" >&2
-    return 0
+    echo "[UNKNOWN] 指示書の走査対象を確認できないため追跡を判定できません（test -d が ${toplevel}/docs/tasks を確認できませんでした。対象リポジトリの構成不足が原因である可能性があります）" >&2
+    return 2
   fi
 
   local hashes
   hashes="$(git -c core.quotepath=false -C "${toplevel}" log --format=%H -n "${max}" 2>/dev/null)"
   if [ -z "${hashes}" ]; then
-    echo "対象コミットが0件です"
-    return 0
+    echo "[UNKNOWN] 対象コミットを列挙できないため追跡を判定できません（git log が最大 ${max} 件の対象コミットを1件も返しませんでした。履歴が空、または走査件数の指定が0であることが原因である可能性があります）"
+    return 2
   fi
 
   local violations="" checked=0 hits=0
@@ -340,6 +340,17 @@ main() {
         ;;
     esac
   done
+
+  case "${max}" in
+    ''|*[!0-9]*)
+      echo "ERROR: --max-commits には0以上の整数を指定してください: ${max}" >&2
+      exit 2
+      ;;
+  esac
+  if [ "${max}" -eq 0 ]; then
+    echo "[UNKNOWN] 対象コミットを列挙できないため追跡を判定できません（--max-commits に0が指定されました。走査を実行するには1以上を指定してください）" >&2
+    exit 2
+  fi
 
   if [ -z "${repo}" ]; then
     repo="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
