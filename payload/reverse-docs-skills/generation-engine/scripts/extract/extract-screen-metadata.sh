@@ -90,6 +90,11 @@
 
 set -euo pipefail
 
+_DOCUMENT_PATHS_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=document-paths.sh
+source "$_DOCUMENT_PATHS_SCRIPT_DIR/document-paths.sh"
+DOC_EXTRACTION_FILE="$_DOCUMENT_PATHS_SCRIPT_DIR/../../../delivery-payload/references/doc-extraction.json"
+
 # ---------------------------------------------------------------------------
 # sha256 コマンド解決(macOS: shasum -a 256 / Linux: sha256sum)
 # ---------------------------------------------------------------------------
@@ -463,6 +468,7 @@ EOF
   : > "$docs_root/screen-user-admin/詳細設計/結合テスト観点表.md"
   : > "$docs_root/screen-user-admin/テスト項目書/結合テスト仕様書.md"
   : > "$docs_root/screen-user-admin/テスト項目書/操作シナリオ仕様書.md"
+  : > "$docs_root/screen-user-admin/要確認事項台帳.json"
   # --- 旧配置fallback: 新体系がないときは実在する旧ファイルだけを採用 ---
   : > "$docs_root/screen-partial-screen/基本設計/画面基本設計書.html"
   : > "$docs_root/screen-partial-screen/テスト項目書/結合テスト仕様書.md"
@@ -516,6 +522,7 @@ EOF
       and .screens[0].integrationTestViewpointPath == "../../画面/screen-user-admin/テスト設計/画面テスト設計書.md"
       and .screens[0].integrationTestCasePath == "../../画面/screen-user-admin/テスト設計/画面テスト設計書.md"
       and .screens[0].scenarioPath == "../../画面/screen-user-admin/テスト設計/操作シナリオ仕様書.md"
+      and .screens[0].confirmationPath == "../../画面/screen-user-admin/要確認事項台帳.json"
       and (.screens[1] | has("designDocPath") | not)
       and (.screens[1] | has("detailDocPath") | not)
       and (.screens[1] | has("sequencePath") | not)
@@ -524,6 +531,7 @@ EOF
       and (.screens[1] | has("integrationTestViewpointPath") | not)
       and (.screens[1] | has("integrationTestCasePath") | not)
       and (.screens[1] | has("scenarioPath") | not)
+      and (.screens[1] | has("confirmationPath") | not)
     ' "$out_b"
     check "1-41: 設計書見出しの確定画面名を書き戻し、推定名は保持" '
       .screens[0].confirmedScreenName == "確定ユーザー管理"
@@ -861,15 +869,15 @@ while IFS= read -r row; do
       if [ -n "$DOC_VIEW_LINK_PREFIX" ]; then
         view_link_folder="${DOC_VIEW_LINK_PREFIX%/}/$view_folder_rel"
       fi
-      if [ -f "$view_folder/基本設計/画面基本設計書.html" ]; then
-        add="$(jq --arg v "$view_link_folder/基本設計/画面基本設計書.html" '. + {designDocPath: $v}' <<<"$add")"
-      fi
-      if [ -f "$view_folder/詳細設計/画面詳細設計書.html" ]; then
-        add="$(jq --arg v "$view_link_folder/詳細設計/画面詳細設計書.html" '. + {detailDocPath: $v}' <<<"$add")"
-      fi
-      if [ -f "$view_folder/シーケンス図.html" ]; then
-        add="$(jq --arg v "$view_link_folder/シーケンス図.html" '. + {sequencePath: $v}' <<<"$add")"
-      fi
+      add="$(document_paths_add_existing "$add" \
+        "$view_folder/基本設計/画面基本設計書.html" \
+        "$view_link_folder/基本設計/画面基本設計書.html" designDocPath)"
+      add="$(document_paths_add_existing "$add" \
+        "$view_folder/詳細設計/画面詳細設計書.html" \
+        "$view_link_folder/詳細設計/画面詳細設計書.html" detailDocPath)"
+      add="$(document_paths_add_existing "$add" \
+        "$view_folder/シーケンス図.html" \
+        "$view_link_folder/シーケンス図.html" sequencePath)"
     fi
   fi
 
@@ -890,30 +898,48 @@ while IFS= read -r row; do
       if [ -n "$DESIGN_DOCS_LINK_PREFIX" ]; then
         link_folder="${DESIGN_DOCS_LINK_PREFIX%/}/$screen_folder_rel"
       fi
+      confirmation_file_name="$(jq -r '
+        .separateKindContracts.screen.documents[]
+        | select(.role == "confirmation")
+        | .fileName
+      ' "$DOC_EXTRACTION_FILE")"
+      add="$(document_paths_add_existing "$add" \
+        "$screen_folder/$confirmation_file_name" \
+        "$link_folder/$confirmation_file_name" confirmationPath)"
       if [ -f "$screen_folder/テスト設計/画面単体テスト設計書.md" ]; then
-        add="$(jq --arg v "$link_folder/テスト設計/画面単体テスト設計書.md" '. + {testCasePath: $v, unitTestViewpointPath: $v}' <<<"$add")"
+        add="$(document_paths_add_existing "$add" \
+          "$screen_folder/テスト設計/画面単体テスト設計書.md" \
+          "$link_folder/テスト設計/画面単体テスト設計書.md" \
+          testCasePath unitTestViewpointPath)"
       else
-        if [ -f "$screen_folder/テスト項目書/単体テスト仕様書.md" ]; then
-          add="$(jq --arg v "$link_folder/テスト項目書/単体テスト仕様書.md" '. + {testCasePath: $v}' <<<"$add")"
-        fi
-        if [ -f "$screen_folder/詳細設計/単体テスト観点表.md" ]; then
-          add="$(jq --arg v "$link_folder/詳細設計/単体テスト観点表.md" '. + {unitTestViewpointPath: $v}' <<<"$add")"
-        fi
+        add="$(document_paths_add_existing "$add" \
+          "$screen_folder/テスト項目書/単体テスト仕様書.md" \
+          "$link_folder/テスト項目書/単体テスト仕様書.md" testCasePath)"
+        add="$(document_paths_add_existing "$add" \
+          "$screen_folder/詳細設計/単体テスト観点表.md" \
+          "$link_folder/詳細設計/単体テスト観点表.md" unitTestViewpointPath)"
       fi
       if [ -f "$screen_folder/テスト設計/画面テスト設計書.md" ]; then
-        add="$(jq --arg v "$link_folder/テスト設計/画面テスト設計書.md" '. + {integrationTestViewpointPath: $v, integrationTestCasePath: $v}' <<<"$add")"
+        add="$(document_paths_add_existing "$add" \
+          "$screen_folder/テスト設計/画面テスト設計書.md" \
+          "$link_folder/テスト設計/画面テスト設計書.md" \
+          integrationTestViewpointPath integrationTestCasePath)"
       else
-        if [ -f "$screen_folder/詳細設計/結合テスト観点表.md" ]; then
-          add="$(jq --arg v "$link_folder/詳細設計/結合テスト観点表.md" '. + {integrationTestViewpointPath: $v}' <<<"$add")"
-        fi
-        if [ -f "$screen_folder/テスト項目書/結合テスト仕様書.md" ]; then
-          add="$(jq --arg v "$link_folder/テスト項目書/結合テスト仕様書.md" '. + {integrationTestCasePath: $v}' <<<"$add")"
-        fi
+        add="$(document_paths_add_existing "$add" \
+          "$screen_folder/詳細設計/結合テスト観点表.md" \
+          "$link_folder/詳細設計/結合テスト観点表.md" integrationTestViewpointPath)"
+        add="$(document_paths_add_existing "$add" \
+          "$screen_folder/テスト項目書/結合テスト仕様書.md" \
+          "$link_folder/テスト項目書/結合テスト仕様書.md" integrationTestCasePath)"
       fi
       if [ -f "$screen_folder/テスト設計/操作シナリオ仕様書.md" ]; then
-        add="$(jq --arg v "$link_folder/テスト設計/操作シナリオ仕様書.md" '. + {scenarioPath: $v}' <<<"$add")"
+        add="$(document_paths_add_existing "$add" \
+          "$screen_folder/テスト設計/操作シナリオ仕様書.md" \
+          "$link_folder/テスト設計/操作シナリオ仕様書.md" scenarioPath)"
       elif [ -f "$screen_folder/テスト項目書/操作シナリオ仕様書.md" ]; then
-        add="$(jq --arg v "$link_folder/テスト項目書/操作シナリオ仕様書.md" '. + {scenarioPath: $v}' <<<"$add")"
+        add="$(document_paths_add_existing "$add" \
+          "$screen_folder/テスト項目書/操作シナリオ仕様書.md" \
+          "$link_folder/テスト項目書/操作シナリオ仕様書.md" scenarioPath)"
       fi
 
       confirmed_name=""

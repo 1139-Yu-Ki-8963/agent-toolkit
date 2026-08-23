@@ -28,7 +28,11 @@ JSON
      | .screens[0].confirmedScreenName = "ホーム画面"
      | .screens[0].valueProvenance = {permissions: "measured"}
      | .screens[0].confirmedPermissions = ["admin"]
-     | .screens[0].confirmedSchedule = {cron: "0 3 * * *", readable: "毎日 3:00"}' \
+     | .screens[0].confirmedSchedule = {cron: "0 3 * * *", readable: "毎日 3:00"}
+     | .screens[0].integrationTestViewpointPath = "../../画面/home/結合テスト観点表.md"
+     | .screens[0].integrationTestCasePath = "../../画面/home/結合テスト仕様書.md"
+     | .screens[0].scenarioPath = "../../画面/home/操作シナリオ仕様書.md"
+     | .screens[0].confirmationPath = "../../画面/home/要確認事項台帳.json"' \
     "$tmp/raw.json" > "$tmp/ext.json"
   jq -n --arg h "$expected" \
     '{manifestContentHash: $h, nodes: [{unitKey: "home", label: "ホーム画面"}], unresolved: []}' \
@@ -129,7 +133,7 @@ jq -e -n \
     | .screens = [(.screens // [])[] | del(
         .category,.permissions,.relatedApis,.designDocStatus,.confirmedScreenName,
         .designDocPath,.detailDocPath,.sequencePath,.testCasePath,.unitTestViewpointPath,.sourceHash,
-        .designDocSourceHash,
+        .designDocSourceHash,.integrationTestViewpointPath,.integrationTestCasePath,.scenarioPath,.confirmationPath,
         .valueProvenance,.confirmedPermissions,.confirmedSchedule
       )];
   ($raw[0] | applicable) as $raw_screens

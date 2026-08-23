@@ -275,6 +275,21 @@ Material Symbols OutlinedのGoogle Fonts CDNだけは、アイコン表示に必
 **保守責任者**: 人手（ユーザー）。種別を増減する場合は本スクリプトと `delivery-payload/references/doc-extraction.json` と本節と self-test を同時に更新する。
 
 **廃棄条件**: 設計文書からのマニフェスト抽出を廃止した時、または frontmatter からの入力データ組み立てをビルド基盤が標準で提供するようになった時。
+
+### document-paths.sh
+
+**必要性**: 画面とAPI・テーブル・バッチ・帳票・外部連携・機能の7種別は、マニフェストへ資料Pathを加える前に同じ「通常ファイルとして実在する」条件で判定する必要がある。判定を1本へ集約し、画面メタデータ抽出と設計文書からのマニフェスト生成が同じ条件を使うことで、欠落・改名済み資料へのリンクを作らない。
+
+**代替案を採用しなかった理由**:
+- Bashツール直叩き: 生成のたびに実在判定とJSONフィールド追加を手で組み立てると、7種別で判定条件がずれ、繰り返し利用できない
+- 各抽出スクリプトへの同じ処理の複製: 画面側だけ判定が更新され他種別が追従しない事故を再発させる
+- `build-manifests-from-docs.sh` への内包: 画面の `extract-screen-metadata.sh` から共用できず、全種別で同じ判定にする目的を満たさない
+- Makefile / package.json scripts追加: このリポジトリはどちらも持たず、生成コマンドの入口ではなくsourceされる共通関数なので代替にならない
+
+**保守責任者**: 人手（ユーザー）。資料Pathの実在条件または追加方法を変える場合は、本スクリプト、両呼び出し元、`doc-extraction.json`、本節と自己試験を同時に更新する。
+
+**廃棄条件**: 全7種別が単一の宣言駆動抽出器へ統合され、`document_paths_add_existing` の呼び出し元が無くなった時。
+
 ### check-screen-api-linkage-contract.sh
 
 **必要性**: 「画面とAPIの対応づけ-担当不在」（改善課題）は、画面拡張マニフェスト35件すべてに`relatedApis`が無く、画面-API-テーブル対応表の画面軸が0件になった事故である。原因は`extract-screen-metadata.sh`が`--api-manifest`を受け取ればrelatedApisを解決できるにも関わらず、api-manifestがまだ存在しない実行順でも解決し直す担当がどのSKILL.mdにも記述されていなかったこと。担当の所在そのものは実装ではなく記述であり、記述の有無は機械で検査できる。`orchestrating-ai-development-setup`のStep 3-1が`rebuild-screen-derived-pages.sh --api-manifest`によるrelatedApis解決を明記しているか、`generating-screen-list-for-reverse-docs`のStep 2-4がapi-manifest既存時に`--api-manifest`を付与する旨を明記しているかを、該当Stepの見出し区間だけを抜き出してgrepする。SKILL.mdの改訂で担当の記述が再び失われた場合に検知するため、繰り返し実行する自己テストとして固定する。

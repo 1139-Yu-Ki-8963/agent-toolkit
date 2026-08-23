@@ -616,7 +616,7 @@ run_validate() {
             | select(has($f) and (.[$f] != null)) | select((.[$f] | type) != "string")
             | $f + "が文字列でない" ]
         + [ ("designDocPath","detailDocPath","sequencePath","testCasePath",
-             "unitTestViewpointPath","integrationTestViewpointPath","integrationTestCasePath","scenarioPath") as $f
+             "unitTestViewpointPath","integrationTestViewpointPath","integrationTestCasePath","scenarioPath","confirmationPath") as $f
             | select(has($f) and (.[$f] != null))
             | select((.[$f] | is_safe_relative_url) | not)
             | $f + "が安全な相対URLでない" ]
@@ -1393,7 +1393,8 @@ JSON
         unitTestViewpointPath: "../../画面/home/単体テスト観点表.html",
         integrationTestViewpointPath: "../../画面/home/結合テスト観点表.html",
         integrationTestCasePath: "../../画面/home/結合テスト仕様書.html",
-        scenarioPath: "../../画面/home/操作シナリオ仕様書.html"
+        scenarioPath: "../../画面/home/操作シナリオ仕様書.html",
+        confirmationPath: "../../画面/home/要確認事項台帳.json"
       }' "$screen_pass" > "$screen_safe_doc_urls"
   if _rv_out="$(run_validate "$screen_safe_doc_urls" "" "screen" 2>&1)"; then
     echo "  [PASS] 設計書URL陽性: 安全な相対URLを受け入れる"
@@ -1412,6 +1413,7 @@ JSON
         integrationTestViewpointPath: "https://attacker.invalid/viewpoint.html",
         integrationTestCasePath: "//attacker.invalid/integration.html",
         scenarioPath: "/absolute/scenario.html",
+        confirmationPath: "data:application/json,unsafe",
         testCasePath: "unsafe\u000aurl.html"
       }' "$screen_pass" > "$screen_bad_doc_urls"
   if _rv_out="$(run_validate "$screen_bad_doc_urls" "" "screen" 2>&1)"; then
@@ -1791,6 +1793,28 @@ JSON
     rc=1
   else
     echo "  [PASS] 1-170: confirmedPermissions/confirmedScheduleの型違反でFAIL"
+  fi
+
+  # confirmationPathはscreen以外も同じ安全な相対URL契約で検査する。
+  local api_confirmation_safe="$tmp/api-confirmation-safe.json"
+  jq '.units[0].confirmationPath = "../../API/api-users/要確認事項台帳.json"' \
+    "$api_pass" > "$api_confirmation_safe"
+  if _rv_out="$(run_validate "$api_confirmation_safe" "" "api" 2>&1)"; then
+    echo "  [PASS] confirmationPath陽性(api): 安全な相対JSONパスを受け入れる"
+  else
+    echo "  [FAIL] confirmationPath陽性(api): 安全な相対JSONパスを拒否した" >&2
+    printf '%s\n' "$_rv_out" | sed 's/^/    /' >&2
+    rc=1
+  fi
+
+  local api_confirmation_bad="$tmp/api-confirmation-bad.json"
+  jq '.units[0].confirmationPath = "https://attacker.invalid/ledger.json"' \
+    "$api_pass" > "$api_confirmation_bad"
+  if _rv_out="$(run_validate "$api_confirmation_bad" "" "api" 2>&1)"; then
+    echo "  [FAIL] confirmationPath陰性(api): scheme付きURLを受け入れた" >&2
+    rc=1
+  else
+    echo "  [PASS] confirmationPath陰性(api): scheme付きURLをFAIL"
   fi
 
   # ---- 検査10(実装参照-統合候補)の確認(1-54) ----

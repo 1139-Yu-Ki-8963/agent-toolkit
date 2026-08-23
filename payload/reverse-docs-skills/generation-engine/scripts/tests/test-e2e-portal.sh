@@ -40,8 +40,8 @@
 #   絶対パス断片-0件  全ページ内容に実行環境の絶対パス断片(/Users/... または /home/...)が
 #                     残存していないか（改善課題1-102: 実行環境の絶対パスの焼き込み防止）
 #   フッター-空確認   全ページの <footer> 内にスキル名・生成ツール名が含まれていないか
-#   リンク-文書存在確認 画面一覧の screens[].designDocPath/detailDocPath/sequencePath/testCasePath
-#                     が指す全ファイルが実在するか（値が有る画面のみ検査）
+#   リンク-文書存在確認 全ページの埋め込みJSONにある名前がPathで終わる文字列フィールドを
+#                     ページ基準で解決し、指す実体がすべて存在するか
 #   整合-リンク設計   画面一覧サンプル・テンプレートの詳細行 JS が item[doc.pathField] で
 #                     リンク有効/無効を制御しているか（固定パターン screenDir が残存しないか）
 #
@@ -132,7 +132,7 @@ for f in "${ALL_PAGES[@]}"; do
 done
 
 MATRIX_PAGES=()
-for f in "${CROSS_PAGES[@]}"; do
+for f in ${CROSS_PAGES[@]+"${CROSS_PAGES[@]}"}; do
   case "$(basename "$f")" in
     権限画面マトリクス.html|権限機能マトリクス.html|CRUD図.html) MATRIX_PAGES+=("$f") ;;
   esac
@@ -208,29 +208,48 @@ done
 # ---- 検査キー: json-埋め込み妥当 ----
 extract_json_blocks() { # <file> <outdir> — application/json ブロックを個別ファイルに書き出す
   # HTML コメント内のタグ言及を誤検出しないよう、コメント除去後に抽出する。
-  # タグ行・終了行と同一行に JSON 本文がある形（1 行完結含む）にも対応する。
-  perl -0777 -pe 's/<!--.*?-->//gs' "$1" | awk -v outdir="$2" '
-    !inblock && /<script type="application\/json"/ {
-      inblock = 1; n++
-      out = outdir "/block_" n ".json"
-      line = $0
-      sub(/.*<script type="application\/json"[^>]*>/, "", line)
-      if (line ~ /<\/script>/) {
-        sub(/<\/script>.*/, "", line)
-        print line > out; close(out); inblock = 0; next
-      }
-      if (length(line) > 0) print line > out
-      next
-    }
-    inblock && /<\/script>/ {
-      line = $0
-      sub(/<\/script>.*/, "", line)
-      if (length(line) > 0) print line > out
-      close(out); inblock = 0; next
-    }
-    inblock { print > out }
-    END { print n + 0 > (outdir "/count") }
-  '
+  # HTML全体を走査し、開始タグの改行・属性順・単二重引用・同一行の複数scriptに対応する。
+  # data-type等の部分属性は、独立したtype属性ではないため対象外にする。
+  perl -0777 - "$1" "$2" <<'PERL'
+use strict;
+use warnings;
+
+my ($file, $outdir) = @ARGV;
+open my $input, '<', $file or die "open $file: $!";
+local $/;
+my $html = <$input>;
+close $input;
+$html =~ s/<!--.*?-->//gs;
+
+sub has_application_json_type {
+  my ($attributes) = @_;
+  pos($attributes) = 0;
+  while ($attributes =~ /\G\s*([^\s=\/>]+)(?:\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+)))?/gc) {
+    my ($name, $double_quoted, $single_quoted, $unquoted) = ($1, $2, $3, $4);
+    my $value = defined $double_quoted ? $double_quoted
+      : defined $single_quoted ? $single_quoted
+      : defined $unquoted ? $unquoted
+      : '';
+    return 1 if lc($name) eq 'type' && lc($value) eq 'application/json';
+  }
+  return 0;
+}
+
+my $count = 0;
+while ($html =~ m{<script(?=[\s>])((?:"[^"]*"|'[^']*'|[^'"<>])*)>(.*?)</script\s*>}gis) {
+  my ($attributes, $body) = ($1, $2);
+  next unless has_application_json_type($attributes);
+  $count++;
+  my $output = "$outdir/block_$count.json";
+  open my $block, '>', $output or die "open $output: $!";
+  print {$block} $body;
+  close $block;
+}
+
+open my $count_file, '>', "$outdir/count" or die "open count: $!";
+print {$count_file} $count;
+close $count_file;
+PERL
 }
 
 for f in "${ALL_PAGES[@]}"; do
@@ -256,7 +275,7 @@ for f in "${ALL_PAGES[@]}"; do
 done
 
 # ---- 検査キー: 整合-行数一致 ----
-for f in "${LIST_PAGES[@]}"; do
+for f in ${LIST_PAGES[@]+"${LIST_PAGES[@]}"}; do
   page="$(rel "$f")"
   blockdir="$TMP_DIR/manifest_$TOTAL"
   mkdir -p "$blockdir"
@@ -315,7 +334,7 @@ has_initial_q_handoff() { # <file> — initialQ の?q=取得から同一条件�
   ' "$1"
 }
 
-for f in "${LIST_PAGES[@]}"; do
+for f in ${LIST_PAGES[@]+"${LIST_PAGES[@]}"}; do
   page="$(rel "$f")"
   missing=""
   for token in "copy-btn" "filter-chips" "row-detail" "URLSearchParams"; do
@@ -380,7 +399,7 @@ css_td_has() { # <file> <property-regex> — td を含むセレクタのルー�
   ' "$1"
 }
 
-for f in "${LIST_PAGES[@]}"; do
+for f in ${LIST_PAGES[@]+"${LIST_PAGES[@]}"}; do
   page="$(rel "$f")"
   missing=""
   css_td_has "$f" "white-space:[[:space:]]*nowrap" || missing="$missing white-space:nowrap"
@@ -433,8 +452,14 @@ for f in "${ALL_PAGES[@]}"; do
   ' "$f" | grep -vE '^[[:space:]]*//' > "$stripped"
   probs=""
   for tag in table script details; do
-    open="$(grep -oE "<${tag}[ >]" "$stripped" | wc -l | tr -d ' ')"
-    close="$(grep -oE "</${tag}>" "$stripped" | wc -l | tr -d ' ')"
+    counts="$(perl -0777 -ne '
+      BEGIN { $tag = shift @ARGV }
+      $open += () = /<\Q$tag\E(?:\s|>)/g;
+      $close += () = m{</\Q$tag\E\s*>}g;
+      END { print(($open || 0) . " " . ($close || 0)) }
+    ' "$tag" "$stripped")"
+    open="${counts%% *}"
+    close="${counts##* }"
     [ "$open" -ne "$close" ] && probs="$probs ${tag}(開${open}/閉${close})"
   done
   if [ -n "$probs" ]; then
@@ -547,46 +572,51 @@ for f in "${ALL_PAGES[@]}"; do
   fi
 done
 
-# ---- 検査キー: リンク-文書存在確認（画面一覧固有）----
+# ---- 検査キー: リンク-文書存在確認（全ページの埋め込みJSON）----
 SCREEN_LIST_PAGE=""
 for f in ${LIST_PAGES[@]+"${LIST_PAGES[@]}"}; do
   case "$(basename "$f")" in "画面一覧.html") SCREEN_LIST_PAGE="$f" ;; esac
 done
-if [ -z "$SCREEN_LIST_PAGE" ]; then
-  report SKIP "リンク-文書存在確認" "画面一覧" "ページ不在（生成フロー未対応のため検査対象外）"
-else
-  page="$(rel "$SCREEN_LIST_PAGE")"
-  dir="$(dirname "$SCREEN_LIST_PAGE")"
-  blockdir="$TMP_DIR/screenlist_docpaths"
+for f in "${ALL_PAGES[@]}"; do
+  page="$(rel "$f")"
+  dir="$(dirname "$f")"
+  blockdir="$TMP_DIR/json_paths_$TOTAL"
   mkdir -p "$blockdir"
-  extract_json_blocks "$SCREEN_LIST_PAGE" "$blockdir"
-  doc_json=""
+  extract_json_blocks "$f" "$blockdir"
+  paths_file="$blockdir/paths.txt"
+  : > "$paths_file"
   for b in "$blockdir"/block_*.json; do
     [ -f "$b" ] || continue
-    if jq -e 'type=="object" and has("screens")' "$b" >/dev/null 2>&1; then
-      doc_json="$b"
-      break
-    fi
+    jq -r '
+      .. | objects | to_entries[]
+      | select(.key | test("^[a-zA-Z]+Path$"))
+      | .value | strings
+    ' "$b" 2>/dev/null >> "$paths_file" || true
   done
-  if [ -z "$doc_json" ]; then
-    report FAIL "リンク-文書存在確認" "$page" "screens を持つマニフェストが見つからない"
-  else
-    broken=""
-    checked=0
-    while IFS= read -r path; do
-      [ -z "$path" ] && continue
-      checked=$((checked + 1))
-      if [ ! -f "$dir/$path" ]; then
-        broken="$broken $path"
-      fi
-    done < <(jq -r '.screens[] | (.designDocPath, .detailDocPath, .sequencePath, .testCasePath) | select(. != null)' "$doc_json" 2>/dev/null | LC_ALL=C sort -u)
-    if [ -n "$broken" ]; then
-      report FAIL "リンク-文書存在確認" "$page" "文書パス切れ:$broken"
+  broken=""
+  checked=0
+  while IFS= read -r path; do
+    case "$path" in
+      ''|'#'*) continue ;;
+    esac
+    target="${path%%\#*}"; target="${target%%\?*}"
+    [ -n "$target" ] || continue
+    checked=$((checked + 1))
+    if [ "${target#/}" != "$target" ]; then
+      resolved="$SAMPLES_DIR/${target#/}"
     else
-      report PASS "リンク-文書存在確認" "$page" "designDocPath/detailDocPath/sequencePath/testCasePath ${checked} 件すべて実在"
+      resolved="$dir/$target"
     fi
+    if [ ! -f "$resolved" ]; then
+      broken="$broken $path"
+    fi
+  done < <(LC_ALL=C sort -u "$paths_file")
+  if [ -n "$broken" ]; then
+    report FAIL "リンク-文書存在確認" "$page" "埋め込みJSONの文書パス切れ:$broken"
+  else
+    report PASS "リンク-文書存在確認" "$page" "埋め込みJSONの*Path ${checked} 件すべて実在"
   fi
-fi
+done
 
 # ---- 検査キー: 整合-リンク設計 ----
 LINK_DESIGN_TARGETS=()
@@ -597,7 +627,7 @@ TEMPLATE_SCREEN_LIST="$SCRIPT_DIR/../../../delivery-payload/templates/unit-list/
 if [ "${#LINK_DESIGN_TARGETS[@]}" -eq 0 ]; then
   report SKIP "整合-リンク設計" "画面一覧" "検査対象ページ・テンプレート不在（生成フロー未対応のため検査対象外）"
 else
-  for f in "${LINK_DESIGN_TARGETS[@]}"; do
+  for f in ${LINK_DESIGN_TARGETS[@]+"${LINK_DESIGN_TARGETS[@]}"}; do
     case "$f" in
       "$SAMPLES_DIR"/*) page="$(rel "$f")" ;;
       *) page="$(basename "$(dirname "$f")")/$(basename "$f")" ;;

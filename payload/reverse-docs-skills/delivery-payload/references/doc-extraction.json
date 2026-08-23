@@ -11,7 +11,14 @@
         "functionUnit": "画面単体テスト設計書.md",
         "screenOnly": ["操作シナリオ仕様書.md"],
         "directoryKey": "unitTestDesignDir"
-      }
+      },
+      "documents": [
+        {"role":"basic","fileName":"画面基本設計書.md","pathFields":["designDocPath"],"outputExtension":".html"},
+        {"role":"detail","fileName":"画面詳細設計書.md","pathFields":["detailDocPath"],"outputExtension":".html"},
+        {"role":"externalBehavior","fileName":"画面テスト設計書.md","pathFields":["integrationTestViewpointPath","integrationTestCasePath"]},
+        {"role":"functionUnit","fileName":"画面単体テスト設計書.md","pathFields":["testCasePath","unitTestViewpointPath"]},
+        {"role":"confirmation","fileName":"要確認事項台帳.json","pathFields":["confirmationPath"]}
+      ]
     }
   },
   "kinds": {
@@ -19,6 +26,13 @@
       "unitRootKey": "apiUnitRoot",
       "docFileName": "API詳細設計書.md",
       "testDocuments": {"externalBehavior": "APIテスト設計書.md", "functionUnit": "API単体テスト設計書.md", "directoryKey": "unitTestDesignDir"},
+      "documents": [
+        {"role":"basic","fileName":"API基本設計書.md","pathFields":["designDocPath"],"outputExtension":".html"},
+        {"role":"detail","fileName":"API詳細設計書.md","pathFields":["detailDocPath"],"outputExtension":".html"},
+        {"role":"externalBehavior","fileName":"APIテスト設計書.md","pathFields":["integrationTestViewpointPath","integrationTestCasePath"]},
+        {"role":"functionUnit","fileName":"API単体テスト設計書.md","pathFields":["testCasePath","unitTestViewpointPath"]},
+        {"role":"confirmation","fileName":"要確認事項台帳.json","pathFields":["confirmationPath"]}
+      ],
       "mapping": {
         "unitKey": "api_key",
         "unitId": "api_id",
@@ -46,6 +60,13 @@
       "unitRootKey": "tableUnitRoot",
       "docFileName": "テーブル定義書.md",
       "testDocuments": {"externalBehavior": "テーブルテスト設計書.md", "functionUnit": "テーブル単体テスト設計書.md", "directoryKey": "unitTestDesignDir"},
+      "documents": [
+        {"role":"basic","fileName":"論理データモデル.md","pathFields":["designDocPath"],"outputExtension":".html"},
+        {"role":"detail","fileName":"テーブル定義書.md","pathFields":["detailDocPath"],"outputExtension":".html"},
+        {"role":"externalBehavior","fileName":"テーブルテスト設計書.md","pathFields":["integrationTestViewpointPath","integrationTestCasePath"]},
+        {"role":"functionUnit","fileName":"テーブル単体テスト設計書.md","pathFields":["testCasePath","unitTestViewpointPath"]},
+        {"role":"confirmation","fileName":"要確認事項台帳.json","pathFields":["confirmationPath"]}
+      ],
       "aggregateDocumentExtraction": {
         "documentPath": "docs/design/tables/テーブル一覧.md",
         "sectionStartRegex": "^##[[:space:]]+テーブル[[:space:]]*:",
@@ -82,6 +103,13 @@
       "unitRootKey": "batchUnitRoot",
       "docFileName": "バッチ詳細設計書.md",
       "testDocuments": {"externalBehavior": "バッチテスト設計書.md", "functionUnit": "バッチ単体テスト設計書.md", "directoryKey": "unitTestDesignDir"},
+      "documents": [
+        {"role":"basic","fileName":"バッチ基本設計書.md","pathFields":["designDocPath"],"outputExtension":".html"},
+        {"role":"detail","fileName":"バッチ詳細設計書.md","pathFields":["detailDocPath"],"outputExtension":".html"},
+        {"role":"externalBehavior","fileName":"バッチテスト設計書.md","pathFields":["integrationTestViewpointPath","integrationTestCasePath"]},
+        {"role":"functionUnit","fileName":"バッチ単体テスト設計書.md","pathFields":["testCasePath","unitTestViewpointPath"]},
+        {"role":"confirmation","fileName":"要確認事項台帳.json","pathFields":["confirmationPath"]}
+      ],
       "aggregateDocumentExtraction": {
         "documentPath": "docs/design/batches/バッチ一覧.md",
         "sectionStartRegex": "^##[[:space:]]+バッチ[[:space:]]*:",
@@ -118,6 +146,13 @@
       "unitRootKey": "reportUnitRoot",
       "docFileName": "帳票詳細設計書.md",
       "testDocuments": {"externalBehavior": "帳票テスト設計書.md", "functionUnit": "帳票単体テスト設計書.md", "directoryKey": "unitTestDesignDir"},
+      "documents": [
+        {"role":"basic","fileName":"帳票基本設計書.md","pathFields":["designDocPath"],"outputExtension":".html"},
+        {"role":"detail","fileName":"帳票詳細設計書.md","pathFields":["detailDocPath"],"outputExtension":".html"},
+        {"role":"externalBehavior","fileName":"帳票テスト設計書.md","pathFields":["integrationTestViewpointPath","integrationTestCasePath"]},
+        {"role":"functionUnit","fileName":"帳票単体テスト設計書.md","pathFields":["testCasePath","unitTestViewpointPath"]},
+        {"role":"confirmation","fileName":"要確認事項台帳.json","pathFields":["confirmationPath"]}
+      ],
       "mapping": {
         "unitKey": "report_key",
         "unitId": "report_id",
@@ -143,6 +178,13 @@
       "unitRootKey": "externalUnitRoot",
       "docFileName": "外部連携詳細設計書.md",
       "testDocuments": {"externalBehavior": "外部連携テスト設計書.md", "functionUnit": "外部連携単体テスト設計書.md", "directoryKey": "unitTestDesignDir"},
+      "documents": [
+        {"role":"basic","fileName":"外部連携基本設計書.md","pathFields":["designDocPath"],"outputExtension":".html"},
+        {"role":"detail","fileName":"外部連携詳細設計書.md","pathFields":["detailDocPath"],"outputExtension":".html"},
+        {"role":"externalBehavior","fileName":"外部連携テスト設計書.md","pathFields":["integrationTestViewpointPath","integrationTestCasePath"]},
+        {"role":"functionUnit","fileName":"外部連携単体テスト設計書.md","pathFields":["testCasePath","unitTestViewpointPath"]},
+        {"role":"confirmation","fileName":"要確認事項台帳.json","pathFields":["confirmationPath"]}
+      ],
       "aggregateDocumentExtraction": {
         "documentPath": "docs/design/externals/外部連携一覧.md",
         "sectionStartRegex": "^##[[:space:]]+外部連携[[:space:]]*:",
@@ -187,6 +229,12 @@
         "description": "機能の設計書はdocFileNameで定める1ファイルに全節を収め、分割しない。表題の形式検査で使う役割名は、docFileNameから拡張子を除いた文字列とする。"
       },
       "testDocuments": {"externalBehavior": "機能テスト設計書.md", "functionUnit": "機能単体テスト設計書.md", "directoryKey": "unitTestDesignDir"},
+      "documents": [
+        {"role":"design","fileName":"機能設計書.md","pathFields":["designDocPath"],"outputExtension":".html"},
+        {"role":"externalBehavior","fileName":"機能テスト設計書.md","pathFields":["integrationTestViewpointPath","integrationTestCasePath"]},
+        {"role":"functionUnit","fileName":"機能単体テスト設計書.md","pathFields":["testCasePath","unitTestViewpointPath"]},
+        {"role":"confirmation","fileName":"要確認事項台帳.json","pathFields":["confirmationPath"]}
+      ],
       "mapping": {
         "unitKey": "feature_key",
         "unitId": "feature_id",

@@ -31,7 +31,8 @@ JSON
      | .screens[0].confirmedScreenName = "ホーム画面"
      | .screens[0].valueProvenance = {permissions: "measured"}
      | .screens[0].confirmedPermissions = ["admin"]
-     | .screens[0].confirmedSchedule = {cron: "0 3 * * *", readable: "毎日 3:00"}' \
+     | .screens[0].confirmedSchedule = {cron: "0 3 * * *", readable: "毎日 3:00"}
+     | .screens[0].confirmationPath = "../../画面/home/要確認事項台帳.json"' \
     "$tmp/raw.json" > "$tmp/ext.json"
 
   root="$tmp/output-root"
@@ -57,10 +58,11 @@ JSON
   embed "$root/画面遷移図.html" "page-data"
 
   pass=0 fail=0
-  if bash "${BASH_SOURCE[0]}" --raw-manifest "$tmp/raw.json" --ext-manifest "$tmp/ext.json" --output-root "$root" >/dev/null 2>&1; then
+  if _csm_out="$(bash "${BASH_SOURCE[0]}" --raw-manifest "$tmp/raw.json" --ext-manifest "$tmp/ext.json" --output-root "$root" 2>&1)"; then
     echo "PASS: 正常系（raw/ext/13派生出力がhash共有・任意4HTMLはSKIP）で終了コード0"; pass=$((pass + 1))
   else
     echo "FAIL: 正常系で終了コード0になるべき"; fail=$((fail + 1))
+    printf '%s\n' "$_csm_out" | sed 's/^/  /'
   fi
 
   jq '.manifestContentHash = "0000000000000000000000000000000000000000000000000000000000000000"' \
@@ -100,7 +102,7 @@ fi
 [ "$(jq -r '.manifestContentHash // ""' "$ext")" = "$expected" ] \
   || { echo "ERROR: ext manifestContentHash mismatch" >&2; exit 1; }
 
-allowed='["category","permissions","relatedApis","designDocStatus","confirmedScreenName","designDocPath","detailDocPath","sequencePath","testCasePath","unitTestViewpointPath","integrationTestViewpointPath","integrationTestCasePath","scenarioPath","sourceHash","designDocSourceHash","valueProvenance","confirmedPermissions","confirmedSchedule"]'
+allowed='["category","permissions","relatedApis","designDocStatus","confirmedScreenName","designDocPath","detailDocPath","sequencePath","testCasePath","unitTestViewpointPath","integrationTestViewpointPath","integrationTestCasePath","scenarioPath","confirmationPath","sourceHash","designDocSourceHash","valueProvenance","confirmedPermissions","confirmedSchedule"]'
 jq -S --argjson allowed "$allowed" '
   del(.generatedAt,.manifestContentHash,.detectionSummary.diagnostics)
   | .screens = [(.screens // [])[] | delpaths([$allowed[] | [.]])]

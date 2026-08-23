@@ -40,6 +40,8 @@ DOC_EXTRACTION_DEFAULT="$SCRIPT_DIR/../../../delivery-payload/references/doc-ext
 VALIDATE_MANIFEST_SH="$SCRIPT_DIR/../unit-list/validate-manifest.sh"
 # shellcheck source=../output-layout.sh
 . "$SCRIPT_DIR/../output-layout.sh"
+# shellcheck source=../extract/document-paths.sh
+. "$SCRIPT_DIR/../extract/document-paths.sh"
 
 # 宣言JSONを読み、妥当性を検査してから中身をstdoutへ返す。
 doc_extraction_load() {
@@ -77,6 +79,137 @@ doc_extraction_file_names() {
       else empty
       end
   '
+}
+
+# doc-extraction.json の documents 宣言に従い、設計単位フォルダ内で実在する資料だけを
+# 一覧マニフェストのPathフィールドへ追加する。outputExtension宣言のある設計書はリンク値だけ
+# 拡張子を変換するが、実在判定は変換元の実ファイルで行う。確認台帳JSONは実体を直接指す。
+append_declared_document_paths() {
+  local unit_obj="$1" decl_json="$2" layout_json="$3" kind="$4" unit_dir="$5" unit_list_dir_abs="$6"
+  local document role file_name output_extension actual_file link_target link_value field
+  local basic_dir detail_dir test_dir candidate
+  local path_fields=()
+
+  [ -d "$unit_dir" ] || { printf '%s' "$unit_obj"; return 0; }
+  basic_dir="$(printf '%s' "$layout_json" | jq -r '.unitPhaseDirNames.basic // empty')"
+  detail_dir="$(printf '%s' "$layout_json" | jq -r '.unitPhaseDirNames.detail // empty')"
+  test_dir="$(output_layout_get "$layout_json" unitTestDesignDir)" || return 1
+  while IFS= read -r document; do
+    [ -n "$document" ] || continue
+    role="$(printf '%s' "$document" | jq -r '.role // empty')"
+    file_name="$(printf '%s' "$document" | jq -r '.fileName // empty')"
+    output_extension="$(printf '%s' "$document" | jq -r '.outputExtension // empty')"
+    [ -n "$file_name" ] || continue
+
+    actual_file=""
+    case "$role" in
+      basic)
+        for candidate in "$unit_dir/$basic_dir/$file_name" "$unit_dir/基本設計/$file_name"; do
+          if [ -f "$candidate" ]; then actual_file="$candidate"; break; fi
+        done
+        ;;
+      detail)
+        for candidate in "$unit_dir/$detail_dir/$file_name" "$unit_dir/詳細設計/$file_name"; do
+          if [ -f "$candidate" ]; then actual_file="$candidate"; break; fi
+        done
+        ;;
+      externalBehavior|functionUnit)
+        candidate="$unit_dir/$test_dir/$file_name"
+        [ ! -f "$candidate" ] || actual_file="$candidate"
+        ;;
+      design|confirmation)
+        candidate="$unit_dir/$file_name"
+        [ ! -f "$candidate" ] || actual_file="$candidate"
+        ;;
+    esac
+    [ -n "$actual_file" ] || continue
+    link_target="$actual_file"
+    if [ -n "$output_extension" ]; then
+      link_target="${actual_file%.*}${output_extension}"
+    fi
+    link_value="$(python3 -c 'import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]).replace(os.sep, "/"))' \
+      "$link_target" "$unit_list_dir_abs" 2>/dev/null)" || link_value=""
+
+    path_fields=()
+    while IFS= read -r field; do
+      [ -n "$field" ] && path_fields+=("$field")
+    done < <(printf '%s' "$document" | jq -r '.pathFields[]?')
+    unit_obj="$(document_paths_add_existing "$unit_obj" "$actual_file" "$link_value" "${path_fields[@]}")" || return 1
+  done < <(printf '%s' "$decl_json" | jq -c --arg k "$kind" '.kinds[$k].documents[]?')
+  printf '%s' "$unit_obj"
+}
+
+document_path_safe_unit_segment() {
+  local value="$1"
+  [ -n "$value" ] && [ "$value" != "." ] && [ "$value" != ".." ] || return 1
+  printf '%s' "$value" | jq -Rse '
+    (contains("/") or contains("\\") or test("\\s")
+      or (explode | any(. < 32 or . == 127))) | not
+  ' >/dev/null 2>&1
+}
+
+# scaffold-design-unit.sh が作る <kind>-<unit_id> 形式の、root直下の単位ディレクトリだけを許可する。
+document_path_canonical_unit_dir() {
+  local kind="$1" unit_dir="$2" base
+  base="$(basename "$unit_dir")"
+  document_path_safe_unit_segment "$base" || return 1
+  case "$base" in
+    "$kind"-?*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# frontmatter抽出元は、種別root直下の正規単位ディレクトリにある所定roleの文書だけに限る。
+# 再帰findにするとarchive等の退避領域にある同名文書まで別単位として抽出してしまう。
+individual_document_files() {
+  local root_dir="$1" kind="$2" doc_file_names="$3" layout_json="$4"
+  local detail_dir unit_dir fname candidate
+  detail_dir="$(printf '%s' "$layout_json" | jq -r '.unitPhaseDirNames.detail // empty')"
+
+  while IFS= read -r unit_dir; do
+    [ -n "$unit_dir" ] || continue
+    document_path_canonical_unit_dir "$kind" "$unit_dir" || continue
+    while IFS= read -r fname; do
+      [ -n "$fname" ] || continue
+      if [ "$kind" = "feature" ]; then
+        candidate="$unit_dir/$fname"
+        [ ! -f "$candidate" ] || printf '%s\n' "$candidate"
+      else
+        for candidate in "$unit_dir/$detail_dir/$fname" "$unit_dir/詳細設計/$fname"; do
+          if [ -f "$candidate" ]; then
+            printf '%s\n' "$candidate"
+            break
+          fi
+        done
+      fi
+    done <<< "$doc_file_names"
+  done < <(find "$root_dir" -mindepth 1 -maxdepth 1 -type d | LC_ALL=C sort)
+}
+
+# 集約文書から組み立てた行は単位文書そのものを走査していないため、unitIdまたは
+# <kind>-<unitKey> と一致する実在フォルダがある場合だけ、その資料パスを補う。
+append_aggregate_document_paths() {
+  local units_json="$1" decl_json="$2" layout_json="$3" kind="$4" root_dir="$5" unit_list_dir_abs="$6"
+  local enriched="[]" unit_obj unit_id unit_key unit_dir
+  while IFS= read -r unit_obj; do
+    [ -n "$unit_obj" ] || continue
+    unit_id="$(printf '%s' "$unit_obj" | jq -r '.unitId // empty')"
+    unit_key="$(printf '%s' "$unit_obj" | jq -r '.unitKey // empty')"
+    unit_dir=""
+    if document_path_safe_unit_segment "$unit_id"; then
+      if [ -d "$root_dir/$unit_id" ] && document_path_canonical_unit_dir "$kind" "$root_dir/$unit_id"; then
+        unit_dir="$root_dir/$unit_id"
+      elif document_path_safe_unit_segment "$unit_key" && [ -d "$root_dir/$kind-$unit_key" ]; then
+        unit_dir="$root_dir/$kind-$unit_key"
+      fi
+    elif [ -z "$unit_id" ] && document_path_safe_unit_segment "$unit_key" \
+      && [ -d "$root_dir/$kind-$unit_key" ]; then
+      unit_dir="$root_dir/$kind-$unit_key"
+    fi
+    unit_obj="$(append_declared_document_paths "$unit_obj" "$decl_json" "$layout_json" "$kind" "$unit_dir" "$unit_list_dir_abs")" || return 1
+    enriched="$(printf '%s' "$enriched" | jq --argjson unit "$unit_obj" '. + [$unit]')"
+  done < <(printf '%s' "$units_json" | jq -c '.[]')
+  printf '%s' "$enriched"
 }
 
 # frontmatter(YAML先頭の --- 区切りブロック)から指定キーの値を1行取り出す。
@@ -158,7 +291,7 @@ extract_aggregate_unit_values() {
 # 集約文書の1行から既存マニフェストと同じ項目を組み立てる。kind判定は既存の
 # kindMapping宣言を使うので、集約経路用に値域や種別をコードへ重ねて持たない。
 build_aggregate_units() {
-  local decl_json="$1" kind="$2" document="$3" design_doc_path="$4"
+  local decl_json="$1" kind="$2" document="$3"
   local mapping_keys unresolved_kind unresolved_confidence unresolved_detection unresolved_identifier
   local unresolved_unit_key unresolved_source_file kind_mapping_value_from kind_mapping_allowed_values
   mapping_keys="$(printf '%s' "$decl_json" | jq -r --arg k "$kind" '.kinds[$k].mapping | keys[]')"
@@ -189,8 +322,6 @@ build_aggregate_units() {
       unit_obj="$(printf '%s' "$unit_obj" | jq --arg v "$unresolved_source_file" '.sourceFile = $v')"
       unit_needs_unresolved_kind=1
     fi
-    [ -z "$design_doc_path" ] || unit_obj="$(printf '%s' "$unit_obj" | jq --arg v "$design_doc_path" '.designDocPath = $v')"
-
     local final_kind="$unresolved_kind" final_confidence="$unresolved_confidence" final_detection="$unresolved_detection"
     if [ "$unit_needs_unresolved_kind" -eq 0 ] && [ -n "$kind_mapping_value_from" ]; then
       value="$(printf '%s' "$raw" | jq -r --arg f "$kind_mapping_value_from" '.[$f] // empty')"
@@ -274,18 +405,6 @@ build_manifest_for_kind() {
   unit_list_dir_rel="$(output_layout_get "$layout_json" unitListDir "$kind_label")" || return 1
   unit_list_dir_abs="$output_dir/$unit_list_dir_rel"
 
-  # docFileNameの候補一覧(1件以上)からfindの-name条件を組み立てる(bash 3.2互換の通常配列)。
-  local find_name_args=() find_first=1 fname
-  while IFS= read -r fname; do
-    [ -z "$fname" ] && continue
-    if [ "$find_first" -eq 1 ]; then
-      find_name_args+=(-name "$fname")
-      find_first=0
-    else
-      find_name_args+=(-o -name "$fname")
-    fi
-  done <<< "$doc_file_names"
-
   local mapping_keys
   mapping_keys="$(printf '%s' "$decl_json" | jq -r --arg k "$kind" '.kinds[$k].mapping | keys[]')"
 
@@ -316,22 +435,27 @@ build_manifest_for_kind() {
   kind_mapping_allowed_values="$(printf '%s' "$decl_json" | jq -r --arg k "$kind" '.kinds[$k].kindMapping.allowedValues[]? // empty')"
 
   local units_json="[]" extraction_method="document-frontmatter"
-  local aggregate_doc_rel aggregate_doc design_doc_path=""
+  local aggregate_doc_rel aggregate_doc
   aggregate_doc_rel="$(printf '%s' "$decl_json" | jq -r --arg k "$kind" '.kinds[$k].aggregateDocumentExtraction.documentPath // empty')"
   aggregate_doc="$output_dir/$aggregate_doc_rel"
   # 集約宣言の文書が実在する場合だけ集約経路を使う。無い場合は従来の単位別文書を
   # 探すので、既存プロジェクトの出力内容・探索規則は変わらない。
   if [ -n "$aggregate_doc_rel" ] && [ -f "$aggregate_doc" ]; then
     extraction_method="document-aggregate-table"
+    units_json="$(build_aggregate_units "$decl_json" "$kind" "$aggregate_doc")"
     if command -v python3 >/dev/null 2>&1; then
-      design_doc_path="$(python3 -c 'import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))' \
-        "${aggregate_doc%.md}.html" "$unit_list_dir_abs" 2>/dev/null)" || design_doc_path=""
+      units_json="$(append_aggregate_document_paths "$units_json" "$decl_json" "$layout_json" "$kind" "$root_dir" "$unit_list_dir_abs")" || return 1
     fi
-    units_json="$(build_aggregate_units "$decl_json" "$kind" "$aggregate_doc" "$design_doc_path")"
   elif [ -d "$root_dir" ]; then
     local file
     while IFS= read -r file; do
       [ -z "$file" ] && continue
+
+      local file_rel unit_dir
+      file_rel="${file#"$root_dir"/}"
+      unit_dir="$root_dir/${file_rel%%/*}"
+      # root直下のarchive等やprefix無しディレクトリを、設計単位として受理しない。
+      document_path_canonical_unit_dir "$kind" "$unit_dir" || continue
 
       local unit_obj field
       unit_obj="$(jq -n '{}')"
@@ -392,25 +516,8 @@ build_manifest_for_kind() {
         unit_needs_unresolved_kind=1
       fi
 
-      # 1-36: この時点で$file自体が実在確認済みの設計書単位文書(findで見つかった本体)
-      # なので、その相対パスをdesignDocPathへ供給する。変換先(.html)はbuild-portal.sh
-      # 側でこのUnitRootをcommon_rootsへ合流させたmd→html変換が担う。python3が無い場合
-      # はfail-safeでフィールド自体を付けない(捏造しない)。
-      #
-      # `command -v python3` の判定は素通しの冗長チェックではない。bash自体には
-      # 相対パス計算の標準機能が無くpython3のos.path.relpathへ委ねているため、
-      # python3の有無は実行環境(対象リポジトリを処理する側の環境)に依存する。
-      # 手元の開発機に常にpython3が入っていることを理由にこの判定を外すな。外すと
-      # python3不在の環境でこの関数自体が失敗するか、または不正確な値を
-      # designDocPathへ書き込みかねない(実測値なし。過去に消えて再発した記録もなし)。
       if command -v python3 >/dev/null 2>&1; then
-        local design_doc_html design_doc_path
-        design_doc_html="${file%.md}.html"
-        design_doc_path="$(python3 -c 'import os,sys; print(os.path.relpath(sys.argv[1], sys.argv[2]))' \
-          "$design_doc_html" "$unit_list_dir_abs" 2>/dev/null)" || design_doc_path=""
-        if [ -n "$design_doc_path" ]; then
-          unit_obj="$(printf '%s' "$unit_obj" | jq --arg v "$design_doc_path" '.designDocPath = $v')"
-        fi
+        unit_obj="$(append_declared_document_paths "$unit_obj" "$decl_json" "$layout_json" "$kind" "$unit_dir" "$unit_list_dir_abs")" || return 1
       fi
 
       local identifier_value
@@ -491,7 +598,7 @@ build_manifest_for_kind() {
         '.identifier = $idv | .kind = $kindv | .confidence = $conf | .detectionMethod = $dm | .fileCount = null')"
 
       units_json="$(printf '%s' "$units_json" | jq --argjson u "$unit_obj" '. + [$u]')"
-    done < <(find "$root_dir" -type f \( "${find_name_args[@]}" \) | sort)
+    done < <(individual_document_files "$root_dir" "$kind" "$doc_file_names" "$layout_json")
   fi
 
   local unit_count unresolved_count
@@ -540,6 +647,7 @@ build_manifest_for_kind() {
 self_test() {
   local tmp pass=0 fail=0
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/build-manifests-from-docs-selftest.XXXXXX")"
+  tmp="$(cd "$tmp" && pwd -P)"
   trap 'rm -rf "$tmp"' RETURN
 
   mkdir -p "$tmp/docs/design/apis/api-get-users/詳細設計"
@@ -571,6 +679,37 @@ unit_kind: api
 |---|---|---|---|
 | `audit_logs` | INSERT | 監査記録 | `src/api/users.py` |
 EOF
+
+  # 正規単位内の退避領域にある同名文書は、別単位として抽出しない。
+  mkdir -p "$tmp/docs/design/apis/api-get-users/archive/詳細設計"
+  cat > "$tmp/docs/design/apis/api-get-users/archive/詳細設計/API詳細設計書.md" <<'EOF'
+---
+api_key: nested-archive
+api_id: api-nested-archive
+method: DELETE
+path: /api/archive
+source_ref: src/api/archive.py
+unit_kind: api
+---
+
+# 退避API詳細設計書
+EOF
+
+  # root直下の非正規archiveは、同名の詳細・基本資料を持っても設計単位ではない。
+  mkdir -p "$tmp/docs/design/apis/archive/詳細設計" "$tmp/docs/design/apis/archive/基本設計"
+  cat > "$tmp/docs/design/apis/archive/詳細設計/API詳細設計書.md" <<'EOF'
+---
+api_key: archived
+api_id: api-archived
+method: GET
+path: /api/archived
+source_ref: src/api/archived.py
+unit_kind: api
+---
+
+# archive API詳細設計書
+EOF
+  : > "$tmp/docs/design/apis/archive/基本設計/API基本設計書.md"
 
   mkdir -p "$tmp/docs/design/tables/table-users/詳細設計"
   cat > "$tmp/docs/design/tables/table-users/詳細設計/テーブル定義書.md" <<'EOF'
@@ -646,6 +785,38 @@ unit_kind: feature
 # 会員管理 機能設計書
 EOF
 
+  # 改善課題1-249: 全6種別に、宣言された資料を実在させる。見本は変更せず一時領域だけを使う。
+  mkdir -p \
+    "$tmp/docs/design/apis/api-get-users/基本設計" "$tmp/docs/design/apis/api-get-users/テスト設計" \
+    "$tmp/docs/design/tables/table-users/基本設計" "$tmp/docs/design/tables/table-users/テスト設計" \
+    "$tmp/docs/design/batches/batch-cleanup/基本設計" "$tmp/docs/design/batches/batch-cleanup/テスト設計" \
+    "$tmp/docs/design/reports/report-sales/基本設計" "$tmp/docs/design/reports/report-sales/テスト設計" \
+    "$tmp/docs/design/externals/external-payment/基本設計" "$tmp/docs/design/externals/external-payment/テスト設計" \
+    "$tmp/docs/design/features/feature-user-management/テスト設計"
+  : > "$tmp/docs/design/apis/api-get-users/基本設計/API基本設計書.md"
+  : > "$tmp/docs/design/apis/api-get-users/テスト設計/APIテスト設計書.md"
+  : > "$tmp/docs/design/apis/api-get-users/テスト設計/API単体テスト設計書.md"
+  : > "$tmp/docs/design/apis/api-get-users/要確認事項台帳.json"
+  : > "$tmp/docs/design/tables/table-users/基本設計/論理データモデル.md"
+  : > "$tmp/docs/design/tables/table-users/テスト設計/テーブルテスト設計書.md"
+  : > "$tmp/docs/design/tables/table-users/テスト設計/テーブル単体テスト設計書.md"
+  : > "$tmp/docs/design/tables/table-users/要確認事項台帳.json"
+  : > "$tmp/docs/design/batches/batch-cleanup/基本設計/バッチ基本設計書.md"
+  : > "$tmp/docs/design/batches/batch-cleanup/テスト設計/バッチテスト設計書.md"
+  : > "$tmp/docs/design/batches/batch-cleanup/テスト設計/バッチ単体テスト設計書.md"
+  : > "$tmp/docs/design/batches/batch-cleanup/要確認事項台帳.json"
+  : > "$tmp/docs/design/reports/report-sales/基本設計/帳票基本設計書.md"
+  : > "$tmp/docs/design/reports/report-sales/テスト設計/帳票テスト設計書.md"
+  : > "$tmp/docs/design/reports/report-sales/テスト設計/帳票単体テスト設計書.md"
+  : > "$tmp/docs/design/reports/report-sales/要確認事項台帳.json"
+  : > "$tmp/docs/design/externals/external-payment/基本設計/外部連携基本設計書.md"
+  : > "$tmp/docs/design/externals/external-payment/テスト設計/外部連携テスト設計書.md"
+  : > "$tmp/docs/design/externals/external-payment/テスト設計/外部連携単体テスト設計書.md"
+  : > "$tmp/docs/design/externals/external-payment/要確認事項台帳.json"
+  : > "$tmp/docs/design/features/feature-user-management/テスト設計/機能テスト設計書.md"
+  : > "$tmp/docs/design/features/feature-user-management/テスト設計/機能単体テスト設計書.md"
+  : > "$tmp/docs/design/features/feature-user-management/要確認事項台帳.json"
+
   local out="$tmp/out"
   mkdir -p "$out"
 
@@ -696,6 +867,9 @@ EOF
   [ "$(jq -r '.units[0].unitId' "$out/api-manifest.json" 2>/dev/null)" = "api-get-users" ] || ok1=0
   [ "$(jq -r '.units[0].sourceFile' "$out/api-manifest.json" 2>/dev/null)" = "src/api/users.py" ] || ok1=0
   [ "$(jq -r '.units[0].identifier' "$out/api-manifest.json" 2>/dev/null)" = "GET /api/users" ] || ok1=0
+  [ "$(jq -r '.detectionSummary.unitCount' "$out/api-manifest.json" 2>/dev/null)" = "1" ] || ok1=0
+  jq -e '[.units[] | select(.unitKey == "archived")] | length == 0' \
+    "$out/api-manifest.json" >/dev/null 2>&1 || ok1=0
   [ "$(jq -c '.units[0].targetTables' "$out/api-manifest.json" 2>/dev/null)" = '["users","audit_logs"]' ] || ok1=0
   [ "$(jq -r '.units[0].unitKey' "$out/table-manifest.json" 2>/dev/null)" = "users" ] || ok1=0
   [ "$(jq -r '.units[0].sourceFile' "$out/table-manifest.json" 2>/dev/null)" = "src/models/users.py" ] || ok1=0
@@ -706,6 +880,83 @@ EOF
     pass=$((pass + 1))
   else
     echo "  [FAIL] 検査1: frontmatterまたはAPI詳細設計書から導ける項目に不一致がある" >&2
+    fail=$((fail + 1))
+  fi
+
+  # 検査1b(改善課題1-249): 6種別すべてで、実在する宣言資料だけがPathフィールドへ入ること。
+  local ok1b=1
+  for k in api table batch report external; do
+    jq -e '.units[0]
+      | [.designDocPath, .detailDocPath, .integrationTestViewpointPath,
+         .integrationTestCasePath, .testCasePath, .unitTestViewpointPath, .confirmationPath]
+      | all(type == "string" and length > 0)' "$out/${k}-manifest.json" >/dev/null 2>&1 || ok1b=0
+  done
+  jq -e '.units[0]
+    | ([.designDocPath, .integrationTestViewpointPath, .integrationTestCasePath,
+        .testCasePath, .unitTestViewpointPath, .confirmationPath]
+       | all(type == "string" and length > 0))
+      and (.confirmationPath | endswith("要確認事項台帳.json"))
+      and (has("detailDocPath") | not)' "$out/feature-manifest.json" >/dev/null 2>&1 || ok1b=0
+  for k in api table batch report external; do
+    jq -e '.units[0].confirmationPath | endswith("要確認事項台帳.json")' \
+      "$out/${k}-manifest.json" >/dev/null 2>&1 || ok1b=0
+  done
+  if [ "$ok1b" -eq 1 ]; then
+    echo "  [PASS] 検査1b(1-249): 6種別で実在する宣言資料のPathフィールドを付与" >&2
+    pass=$((pass + 1))
+  else
+    echo "  [FAIL] 検査1b(1-249): 宣言資料のPathフィールドに不足または非実在資料の値がある" >&2
+    fail=$((fail + 1))
+  fi
+
+  # 検査1c(改善課題1-249): 資料を削除して再生成すると、対応するPathだけが消えること。
+  # archiveに同名資料があっても、所定phase外なので代わりに拾わない。
+  local ok1c=1
+  rm -f "$tmp/docs/design/apis/api-get-users/テスト設計/API単体テスト設計書.md"
+  rm -f "$tmp/docs/design/apis/api-get-users/基本設計/API基本設計書.md"
+  mkdir -p "$tmp/docs/design/apis/api-get-users/archive"
+  : > "$tmp/docs/design/apis/api-get-users/archive/API基本設計書.md"
+  if ! bash "$self_path" "$tmp" "$out" --unit-kind api >/dev/null 2>&1; then
+    ok1c=0
+  fi
+  jq -e '.units[0]
+    | (has("testCasePath") | not)
+      and (has("unitTestViewpointPath") | not)
+      and (has("designDocPath") | not)
+      and (.detailDocPath | type == "string")' "$out/api-manifest.json" >/dev/null 2>&1 || ok1c=0
+  if [ "$ok1c" -eq 1 ]; then
+    echo "  [PASS] 検査1c(1-249): 資料削除後にPathが消え、archiveの同名資料を拾わない" >&2
+    pass=$((pass + 1))
+  else
+    echo "  [FAIL] 検査1c(1-249): 削除した資料のPathが残るか再生成に失敗" >&2
+    fail=$((fail + 1))
+  fi
+
+  # 検査1d(改善課題1-249): scaffoldが許可する日本語・underscoreを含む識別子を
+  # builder独自の文字種制約で除外しない。root直下のprefix無しarchive除外も維持する。
+  local jp_root="$tmp/scaffold-japanese-id" jp_out="$tmp/scaffold-japanese-id-out" ok1d=1
+  mkdir -p "$jp_root" "$jp_out"
+  if ! bash "$SCRIPT_DIR/../scaffold-design-unit.sh" api detail "$jp_root" \
+    "日本語_ID" "日本語 API" >/dev/null 2>&1; then
+    ok1d=0
+  fi
+  mkdir -p "$jp_root/docs/design/apis/archive/詳細設計"
+  cp "$jp_root/docs/design/apis/api-日本語_ID/詳細設計/API詳細設計書.md" \
+    "$jp_root/docs/design/apis/archive/詳細設計/API詳細設計書.md" 2>/dev/null || ok1d=0
+  mkdir -p "$jp_out/docs/design/apis"
+  : > "$jp_out/docs/design/apis/SOURCEREF"
+  if ! bash "$self_path" "$jp_root" "$jp_out" --unit-kind api >/dev/null 2>&1; then
+    ok1d=0
+  fi
+  jq -e '.detectionSummary.unitCount == 1
+    and (.units | length == 1)
+    and (.units[0].detailDocPath | type == "string" and length > 0)' \
+    "$jp_out/api-manifest.json" >/dev/null 2>&1 || ok1d=0
+  if [ "$ok1d" -eq 1 ]; then
+    echo "  [PASS] 検査1d(1-249): scaffold合法の日本語_IDをPath付きで抽出し、archiveは除外" >&2
+    pass=$((pass + 1))
+  else
+    echo "  [FAIL] 検査1d(1-249): scaffold合法IDの抽出またはarchive除外が不正" >&2
     fail=$((fail + 1))
   fi
 
@@ -1027,13 +1278,38 @@ EOF
     [ "$(jq -r '.strategy.extractionMethod' "$t10_out/${k}-manifest.json" 2>/dev/null)" = "document-aggregate-table" ] || ok10=0
   done
   [ "$(jq -r '[.units[].unitKey] | sort | join(",")' "$t10_out/table-manifest.json" 2>/dev/null)" = "audit-logs,orders,users" ] || ok10=0
-  [ "$(jq -r '.units[0].designDocPath' "$t10_out/table-manifest.json" 2>/dev/null)" != "null" ] || ok10=0
+  # 集約一覧は単位資料ではない。単位フォルダを置かないこのケースでは、実在しない
+  # 単位資料へのPathを作らないことを確認する。
+  jq -e '[.units[] | to_entries[] | select(.key | test("Path$"))] | length == 0' \
+    "$t10_out/table-manifest.json" >/dev/null 2>&1 || ok10=0
+  # 安全なunitIdが所定の単位フォルダに一致する正常系では資料Pathを補う。
+  mkdir -p "$t10_root/docs/design/tables/table-users/基本設計" "$t10_root/list"
+  : > "$t10_root/docs/design/tables/table-users/基本設計/論理データモデル.md"
+  local t10_layout valid_units valid_enriched
+  t10_layout="$(resolve_output_layout "$t10_root")"
+  valid_units='[{"unitId":"table-users","unitKey":"users"}]'
+  valid_enriched="$(append_aggregate_document_paths "$valid_units" "$(doc_extraction_load)" \
+    "$t10_layout" table "$t10_root/docs/design/tables" "$t10_root/list")" || ok10=0
+  jq -e '.[0].designDocPath | type == "string" and length > 0' \
+    <<<"$valid_enriched" >/dev/null 2>&1 || ok10=0
+  # 不正なunitIdがroot外の同名資料を指し、unitKey fallback先にも別単位の同名資料が
+  # ある場合でも、どちらも参照しない。
+  mkdir -p "$t10_root/docs/design/escape/基本設計" \
+    "$t10_root/docs/design/tables/table-escape/基本設計" "$t10_root/list"
+  : > "$t10_root/docs/design/escape/基本設計/論理データモデル.md"
+  : > "$t10_root/docs/design/tables/table-escape/基本設計/論理データモデル.md"
+  local malicious_units malicious_enriched
+  malicious_units='[{"unitId":"../escape","unitKey":"escape"}]'
+  malicious_enriched="$(append_aggregate_document_paths "$malicious_units" "$(doc_extraction_load)" \
+    "$t10_layout" table "$t10_root/docs/design/tables" "$t10_root/list")" || ok10=0
+  jq -e '[.[] | to_entries[] | select(.key | test("Path$"))] | length == 0' \
+    <<<"$malicious_enriched" >/dev/null 2>&1 || ok10=0
   rm -rf "$t10_root"
   if [ "$ok10" -eq 1 ]; then
-    echo "  [PASS] 検査10(1-68): 集約文書3種別から各3件を抽出し、個別文書経路の検査も維持" >&2
+    echo "  [PASS] 検査10(1-68/1-249): 集約3種別を抽出し、不正unitIdのroot外・別単位資料Pathは付与しない" >&2
     pass=$((pass + 1))
   else
-    echo "  [FAIL] 検査10(1-68): 集約文書からの抽出件数・抽出方式または設計書参照が不正" >&2
+    echo "  [FAIL] 検査10(1-68/1-249): 集約文書からの抽出件数・抽出方式または単位資料Pathが不正" >&2
     fail=$((fail + 1))
   fi
 
