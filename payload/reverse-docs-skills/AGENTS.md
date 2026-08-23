@@ -29,3 +29,13 @@
 ### 未確定事項
 
 - 対象リポジトリへ生成する場合、上記パスは対象側の実在確認済みパスへ置換する。
+
+<!-- RULES-INDEX:START -->
+<!-- 生成物: build-derived-rules.sh により docs/rules/ から自動生成。直接編集しないこと -->
+
+## ポータル
+- **ポータル HTML 規約**: リバース設計ポータルの生成 HTML に適用する合格基準。テンプレートから生成された全ページが統一されたデザインシステムと構造規約に準拠していることを検証する。（参照: docs/rules/portal/page-conventions/rule.md）
+
+## 検証
+- **リバース検証運用規約**: リバース設計スキル群の検証手順を実行側リポジトリの散文から本規約へ移し、判定の基準を機械が読める形で定義する。（参照: docs/rules/verification/reverse-verification/rule.md）
+<!-- RULES-INDEX:END -->

@@ -58,7 +58,7 @@ artifact_is_affected() {
 
 detect_freshness() {
   local target_repo="$1" output_root="$2" declaration="$3" affected_file="$4"
-  local display_commit head resolved_commit changed_file artifact_count index artifact_id artifact_name matched
+  local display_commit display_commit_status head resolved_commit changed_file artifact_count index artifact_id artifact_name matched
 
   if ! portal_exists "$output_root" "$declaration"; then
     echo "[SKIP] 入口のページが無いため鮮度判定の対象外です"
@@ -73,6 +73,11 @@ detect_freshness() {
   if display_commit="$(find_display_commit "$output_root" "$declaration")"; then
     :
   else
+    display_commit_status=$?
+    if [ "$display_commit_status" -eq 2 ]; then
+      unknown "jqで表示コミット元JSONを読めないため判定できません（JSONの破損等が原因である可能性があります）"
+      return $?
+    fi
     echo "[STALE] 入口のページに比較できる表示コミットが無いため作り直しが必要です"
     jq -r '.artifacts[].id' "$declaration" > "$affected_file"
     return 0
@@ -135,12 +140,14 @@ regenerate_affected() {
     [ "$missing" -eq 0 ] || continue
     command="$(jq -r --arg id "$artifact_id" '.artifacts[] | select(.id == $id) | .rebuildCommand' "$declaration")"
     echo "[REBUILD] $artifact_id"
+    # 宣言JSONの再生成コマンドはこの3変数名を契約として参照するため、任意のコマンド文字列へ
+    # 位置引数を埋め込まず、子シェルへ明示的に渡す。これによりパスを文字列連結せずに扱える。
     TARGET_REPO="$target_repo" OUTPUT_ROOT="$output_root" REVERSE_DOCS_ENGINE="${REVERSE_DOCS_ENGINE:-$(cd "$SCRIPT_DIR/../.." && pwd)}" sh -c "$command" || return $?
   done < "$affected_file"
 }
 
 self_test() {
-  local tmp repo output declaration base affected rc
+  local tmp repo output declaration base affected result result_status rc
   if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-portal-entry-freshness.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
     unknown "self-test用mktempが一時領域へ書き込めないため判定できません"
     return $?
@@ -196,6 +203,17 @@ self_test() {
     rc=1
   fi
 
+  printf '<div class="pm-hero-commit">コミット番号: %s</div>\n' "${base%?????????????????????????????????}" > "$output/project-portal/index.html"
+  printf '{broken\n' > "$output/code-metrics.json"
+  result="$(detect_freshness "$repo" "$output" "$declaration" "$affected" 2>&1)"
+  result_status=$?
+  if [ "$result_status" -eq 2 ] && printf '%s\n' "$result" | grep -q '^\[UNKNOWN\]'; then
+    echo "  [PASS] 表示コミット元JSONを読めない場合はUNKNOWN"
+  else
+    echo "  [FAIL] 表示コミット元JSONを読めない場合の判定（exit ${result_status}）" >&2
+    rc=1
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   fi
@@ -228,6 +246,10 @@ main() {
     unknown "mktempが一時領域へ書き込めないため判定できません"
     return $?
   fi
+  # 鮮度判定と再生成の関数間で共有する成果物ID一覧は、判定メッセージと混ぜず逐次読めるよう
+  # 一時ファイルに置く。Bash 3.2で使えないmapfileや、サブシェルで失われる変数へ依存しない。
+  # EXIT trapは文字列として再評価されるため、パスの空白やメタ文字を安全に保つ引用済みの
+  # trap文字列をprintf %qで先に組み立てる。
   trap "$(printf 'rm -f -- %q' "$affected_file")" EXIT
   detect_freshness "$target_repo" "$output_root" "$declaration" "$affected_file"
   status=$?
