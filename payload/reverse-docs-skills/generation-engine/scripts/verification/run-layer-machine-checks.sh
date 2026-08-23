@@ -124,19 +124,35 @@ list_targets() {
 # ラベル・実際に失敗した操作名・想定原因を同じ [UNKNOWN] 行で確認する。
 # 形だけの終了コード2（未知引数など）は呼出し失敗であり、不合格として扱う。
 has_indeterminate_contract() {
-  local output="$1" unknown_line body operation cause
+  local output="$1" unknown_line body operation cause parenthetical
   printf '%s\n' "$output" | grep -qiE '^[[:space:]]*(\[UNKNOWN\][[:space:]]*)?(error([:[:space:]]|$)|usage([:[:space:]]|$)|unknown[[:space:]]+(argument|option)([:[:space:]]|$)|invalid[[:space:]]+(argument|option)([:[:space:]]|$)|bad[[:space:]]+option([:[:space:]]|$)|未知の引数|不明な引数)' && return 1
   unknown_line="$(printf '%s\n' "$output" | grep '^\[UNKNOWN\]' | head -1)"
   [ -n "$unknown_line" ] || return 1
 
-  # 操作名と原因は構造化フィールドを必須とする。集約器が検証できるのは非空値
-  # という構文までであり、子が申告した意味の真偽は子検査自身が担保する。
+  # 操作名と原因は非空を必須とする。集約器が検証できるのは非空値という構文まで
+  # であり、子が申告した意味の真偽は子検査自身が担保する。
   # 例えば false は実在するコマンドなので、操作名のallowlist化は行わない。
+  #
+  # 受け入れる書き方は 2 通りある。
+  #   1. キー付き: [UNKNOWN] 〜 操作: <操作名> / 想定原因: <原因>
+  #   2. 括弧書き: [UNKNOWN] 〜（<操作名と原因を述べた文>）
+  # 2 を受け入れるのは、判定不能規約
+  # （.claude/rules/always/verification/indeterminate-result/rule.md）の
+  # 「具体例」節が示す書き方が括弧書きだからである。キー付きだけを認めていた
+  # ため、規約の見本どおりに書いた子検査が不合格として数えられていた
+  # （実測 2026-08-24: 2 本が [FAIL] に混ざり、実行できなかったことと
+  # 不合格だったことの区別が失われていた）。
+  # 括弧の中身が非空であることを、操作名と原因を述べたことの代わりとする。
   body="${unknown_line#\[UNKNOWN\]}"
   operation="$(printf '%s\n' "$body" | sed -n 's/.*操作:[[:space:]]*\(.*\)[[:space:]]\/[[:space:]]*想定原因:.*/\1/p')"
   cause="$(printf '%s\n' "$body" | sed -n 's/.*[[:space:]]\/[[:space:]]*想定原因:[[:space:]]*\(.*\)$/\1/p')"
-  [ -n "$(printf '%s' "$operation" | tr -d '[:space:]')" ] \
-    && [ -n "$(printf '%s' "$cause" | tr -d '[:space:]')" ]
+  if [ -n "$(printf '%s' "$operation" | tr -d '[:space:]')" ] \
+     && [ -n "$(printf '%s' "$cause" | tr -d '[:space:]')" ]; then
+    return 0
+  fi
+
+  parenthetical="$(printf '%s\n' "$body" | LC_ALL=en_US.UTF-8 sed -n 's/.*（\(.*\)）.*/\1/p')"
+  [ -n "$(printf '%s' "$parenthetical" | tr -d '[:space:]')" ]
 }
 
 # 出力から実行ケース数を読み取る。次の順で試し、最初に一致した形式の値を採る。
@@ -800,6 +816,39 @@ EOS
     assert_true "判定不能-契約違反の終了コード2を不合格にする" 0
   else
     assert_true "判定不能-契約違反の終了コード2を不合格にする" 1
+  fi
+
+  # 判定不能規約（.claude/rules/always/verification/indeterminate-result/rule.md）の
+  # 「具体例」節が示す括弧書きの [UNKNOWN] を判定不能として受け入れる。
+  # キー付き（操作: / 想定原因:）だけを認めていたため、規約の見本どおりに
+  # 書いた子検査 2 本が不合格として数えられていた（実測 2026-08-24）。
+  local scanParen outParen rcParen
+  scanParen="$tmp/repo-paren/generation-engine/scripts"
+  mkdir -p "$scanParen"
+  cat > "$scanParen/paren-unknown.sh" <<'EOS'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--self-test" ]; then
+  echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境のサンドボックス制約等が原因である可能性があります）"
+  exit 2
+fi
+exit 0
+EOS
+  cat > "$scanParen/paren-empty.sh" <<'EOS'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--self-test" ]; then
+  echo "[UNKNOWN] 判定できません（）"
+  exit 2
+fi
+exit 0
+EOS
+  chmod +x "$scanParen/paren-unknown.sh" "$scanParen/paren-empty.sh"
+  outParen="$(run_all "$tmp/repo-paren" "/dev/null/no-such-self" 30)"
+  rcParen=$?
+  if printf '%s' "$outParen" | grep -qF '[UNKNOWN] generation-engine/scripts/paren-unknown.sh' \
+    && printf '%s' "$outParen" | grep -qF '[FAIL] generation-engine/scripts/paren-empty.sh'; then
+    assert_true "判定不能-括弧書きを受け入れ括弧が空なら不合格にする" 0
+  else
+    assert_true "判定不能-括弧書きを受け入れ括弧が空なら不合格にする" 1
   fi
 
   if printf '%s' "$outB" | grep -qF "[PASS] generation-engine/scripts/z-after.sh"; then
