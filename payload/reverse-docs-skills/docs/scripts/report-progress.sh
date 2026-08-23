@@ -143,12 +143,12 @@ run_full_report() {
 
 run_self_test() {
   local pass=0 fail=0 total=0
-  local tmpdir
+  local tmpdir=""
   if ! tmpdir="$(mktemp -d 2>/dev/null)" || [ -z "$tmpdir" ]; then
     echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境のサンドボックス制約等が原因である可能性があります）"
     exit 2
   fi
-  trap 'rm -rf "$tmpdir"' EXIT
+  trap 'if [ -n "${tmpdir:-}" ]; then rm -rf "$tmpdir"; fi' EXIT
 
   cat > "$tmpdir/case1.md" << 'EOF'
 ### 1-1. 見出しA
@@ -226,10 +226,14 @@ EOF
   if [ -f "$LEDGER" ]; then
     local bad_values
     bad_values="$(extract_issue_states "$LEDGER" | sed -E 's/^[^\t]*\t\*\*状態\*\*: ([^（。]*).*/\1/' | LC_ALL=C sort -u | while IFS= read -r v; do
-      case " $ALLOWED_STATES " in
-        *" $v "*) ;;
-        *) echo "$v" ;;
-      esac
+      local allowed=0 state
+      for state in $ALLOWED_STATES; do
+        if [ "$v" = "$state" ]; then
+          allowed=1
+          break
+        fi
+      done
+      [ "$allowed" -eq 1 ] || echo "$v"
     done)"
     if [ -n "$bad_values" ]; then
       echo "  [INFO] 規約外の状態値が実台帳に残っています（別途手動での是正が必要）: $(echo "$bad_values" | tr '\n' ' ')"
@@ -237,7 +241,12 @@ EOF
   fi
 
   echo "実行 ${total} 件 / 成功 ${pass} 件 / 失敗 ${fail} 件"
-  [ "$fail" -eq 0 ]
+  local result=0
+  [ "$fail" -eq 0 ] || result=1
+  rm -rf "$tmpdir"
+  tmpdir=""
+  trap - EXIT
+  return "$result"
 }
 
 case "${1:-}" in
