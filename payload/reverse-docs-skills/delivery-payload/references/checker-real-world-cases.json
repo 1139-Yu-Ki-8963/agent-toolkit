@@ -1,7 +1,25 @@
 {
   "schemaVersion": 1,
   "purpose": "配る検査が、実際に書かれるコードで違反を止めるかを確かめるための入力集。各検査の自己テストとは別に、現場で書かれる書き方を与えて素通りしないことを見る。",
-  "note": "expect は止めてほしいものが violation、通してほしいものが clean。exitCode は違反時に検査が返すべき値で、PreToolUse の block は 2。",
+  "note": "expect は止めてほしいものが violation、通してほしいものが clean。exitCode は違反時に検査が返すべき値で、PreToolUse の block は 2。やり取りの記録を見る検査は transcript に 1 行 1 件の JSON の並びを書く。実行時に一時ファイルへ流し込み、transcript_path として渡す。",
+  "notCovered": [
+    {
+      "checker": "check-completion-evidence",
+      "reason": "Stop hook の作法に従い、止めるときも終了コードは 0 のまま JSON の decision:block で返す。終了コードで合否を見るこの入力集の枠組みでは扱えない。別の見分け方（出力に decision:block を含むか）を足すまで対象外とする"
+    },
+    {
+      "checker": "check-customer-facing-adequacy",
+      "reason": "止める判定と人が見る判定（REVIEW）の 3 値を返し、走査の対象も対象プロジェクトの生成物に依存する。単一の入力で合否を確かめる形に合わない"
+    },
+    {
+      "checker": "check-instruction-writing",
+      "reason": "timing の宣言を持たず、どの操作で呼ばれるかが定まっていない"
+    },
+    {
+      "checker": "check-routine-procedure-doc",
+      "reason": "対象プロジェクトの手順書を cwd から探して判定する。手順書の実体を用意しないと合否が定まらない"
+    }
+  ],
   "cases": [
     {
       "checker": "check-secret-literal-in-code",
@@ -292,6 +310,98 @@
       "input": {
         "tool_name": "Write",
         "tool_input": { "file_path": "docs/業務規則.md", "content": "| 名前 | 条件 | 結果 | 例外 |\n|---|---|---|---|\n| 送料無料の判定 | 金額が1万円以上 | 送料無料 | 離島は対象外 |\n" }
+      }
+    },
+    {
+      "checker": "check-direct-circular-import",
+      "label": "2つのファイルが互いを取り込む",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "REPO_ROOT/generation-engine/samples/checker-fixtures/circular/a.js", "content": "import { b } from \"./b\";\nexport const a = b;\n" }
+      }
+    },
+    {
+      "checker": "check-direct-circular-import",
+      "label": "互いを取り込まない",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "REPO_ROOT/generation-engine/samples/checker-fixtures/circular/c.js", "content": "export const c = 1;\n" }
+      }
+    },
+    {
+      "checker": "check-read-before-overwrite",
+      "label": "既存を読まずに上書き",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "transcript": [{ "type": "assistant", "message": { "content": [{ "type": "text", "text": "書き換えます" }] } }],
+        "tool_input": { "file_path": "REPO_ROOT/README.md", "content": "書き換えた" }
+      }
+    },
+    {
+      "checker": "check-read-before-overwrite",
+      "label": "既存を読んでから上書き",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "transcript": [{ "type": "assistant", "message": { "content": [{ "type": "tool_use", "name": "Read", "input": { "file_path": "REPO_ROOT/README.md" } }] } }],
+        "tool_input": { "file_path": "REPO_ROOT/README.md", "content": "書き換えた" }
+      }
+    },
+    {
+      "checker": "check-delegation-completion-criteria",
+      "label": "完了条件を渡さずに委任",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Agent",
+        "tool_input": { "subagent_type": "worker-sonnet", "prompt": "このファイルを直して" }
+      }
+    },
+    {
+      "checker": "check-delegation-completion-criteria",
+      "label": "完了条件を渡して委任",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Agent",
+        "tool_input": { "subagent_type": "worker-sonnet", "prompt": "src/a.ts を直す。\n\n## 完了条件\n\nnpm test が終了コード0を返す" }
+      }
+    },
+    {
+      "checker": "check-delegation-completion-criteria",
+      "label": "外への公開を自分で行う",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": { "command": "git push origin main" }
+      }
+    },
+    {
+      "checker": "check-review-viewpoints-list",
+      "label": "検査の手段を書かない規則の表",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "docs/rules/always/foo/rule.md", "content": "# 規約\n\n## 規則\n\n| 規則 | 内容 | 根拠 | 検査 |\n|---|---|---|---|\n| 名前を付ける | 名前を付ける | 読みやすさ | 目で見る |\n" }
+      }
+    },
+    {
+      "checker": "check-review-viewpoints-list",
+      "label": "検査の手段を書いた規則の表",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "docs/rules/always/foo/rule.md", "content": "# 規約\n\n## 規則\n\n| 規則 | 内容 | 根拠 | 検査 |\n|---|---|---|---|\n| 名前を付ける | 名前を付ける | 読みやすさ | 静的解析: 名前の欄が空でないかを走査する |\n" }
+      }
+    },
+    {
+      "checker": "check-unit-test-design-doc-sections",
+      "label": "必須の節が欠けたテスト設計書",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "docs/design/単体テスト設計書.md", "content": "# 単体テスト設計書\n\n## §1 観点一覧\n\n本文\n" }
       }
     },
     {

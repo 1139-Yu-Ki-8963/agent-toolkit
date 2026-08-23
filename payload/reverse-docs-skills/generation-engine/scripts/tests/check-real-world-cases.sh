@@ -105,8 +105,26 @@ run_check() {
               else . end)' \
       "$cases_json")"
 
+    # やり取りの記録を見る検査（完了報告に実行結果を添えているか、上書きの
+    # 前に既存を読んだか）は transcript_path を要する。入力集へ記録の中身を
+    # transcript として書き、ここで一時ファイルへ流し込んで差し込む。
+    # 記録は 1 行 1 件の JSON の並びで書く。
+    local tr_lines tr_file
+    tr_lines="$(printf '%s' "$input" | jq -r 'if has("transcript") then .transcript[] | tostring else empty end' 2>/dev/null)"
+    tr_file=""
+    if [ -n "$tr_lines" ]; then
+      if ! tr_file="$(mktemp "${TMPDIR:-/tmp}/real-world-transcript.XXXXXX" 2>/dev/null)" || [ -z "$tr_file" ]; then
+        printf 'UNKNOWN  %-42s %s（記録の一時ファイルを作れない。操作: mktemp）\n' "$checker" "$label"
+        total=$((total + 1)); unknown_n=$((unknown_n + 1))
+        continue
+      fi
+      printf '%s\n' "$tr_lines" > "$tr_file"
+      input="$(printf '%s' "$input" | jq -c --arg p "$tr_file" 'del(.transcript) | .transcript_path = $p')"
+    fi
+
     run_one_case "$checker" "$label" "$expect" "$input"
     rc=$?
+    [ -n "$tr_file" ] && rm -f "$tr_file"
     total=$((total + 1))
     case "$rc" in
       0) pass=$((pass + 1)) ;;
