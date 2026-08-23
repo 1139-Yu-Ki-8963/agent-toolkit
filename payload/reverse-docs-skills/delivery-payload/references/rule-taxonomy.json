@@ -43,7 +43,7 @@
       "children": [
         { "key": "coding-style", "title": "コードの書き方と分割の決まり", "summary": "コードの書き方・関数分割・ファイル行数など実装スタイルの取り決め。", "toolDefined": true, "checker": "check-any-type-escape-hatch.sh", "scope": "scoped", "paths": ["src/**"], "phases": ["5-実装と動作確認"] },
         { "key": "naming", "title": "名前の付け方の決まり", "summary": "変数・関数・ファイル・ディレクトリなど識別子の命名パターン。", "toolDefined": true, "checker": "check-sequential-identifier-naming.sh", "scope": "scoped", "paths": ["docs/**/detailed-design/**", "src/**"], "phases": ["3-詳細設計", "5-実装と動作確認"] },
-        { "key": "directory-structure", "title": "どこに何を置くかの決まり", "summary": "リポジトリのディレクトリ配置とレイヤー構成の取り決め。", "toolDefined": true, "checker": "check-temp-file-tracked.sh", "scope": "scoped", "paths": ["src/**"], "phases": ["4-実装プラン策定"] },
+        { "key": "directory-structure", "title": "どこに何を置くかの決まり", "summary": "リポジトリのディレクトリ配置とレイヤー構成の取り決め。", "toolDefined": true, "checker": "check-temp-file-tracked.sh", "scope": "scoped", "paths": ["docs/**", "src/**"], "phases": ["4-実装プラン策定"] },
         { "key": "component-architecture", "title": "部品の分け方と依存の決まり", "summary": "コンポーネントの分割方針・責務分担・依存関係の設計指針。", "toolDefined": true, "checker": "check-direct-circular-import.sh", "scope": "scoped", "paths": ["docs/**/detailed-design/**", "src/**"], "phases": ["3-詳細設計", "5-実装と動作確認"] }
       ]
     },
