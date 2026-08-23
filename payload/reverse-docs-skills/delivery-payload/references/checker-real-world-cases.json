@@ -19,7 +19,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/config.js", "content": "const key = \"AKIAIOSFODNN7EXAMPLE\";\n" }
+        "tool_input": {
+          "file_path": "src/config.js",
+          "content": "const key = \"AKIAIOSFODNN7EXAMPLE\";\n"
+        }
       }
     },
     {
@@ -28,7 +31,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/config.js", "content": "const key = process.env.AWS_KEY;\n" }
+        "tool_input": {
+          "file_path": "src/config.js",
+          "content": "const key = process.env.AWS_KEY;\n"
+        }
       }
     },
     {
@@ -37,7 +43,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/Order.java", "content": "double price = 100.5;\n" }
+        "tool_input": {
+          "file_path": "src/Order.java",
+          "content": "double price = 100.5;\n"
+        }
       }
     },
     {
@@ -46,7 +55,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/repo.js", "content": "for (let i = 0; i < n; i++) {\n  db.query(sql);\n}\n" }
+        "tool_input": {
+          "file_path": "src/repo.js",
+          "content": "for (let i = 0; i < n; i++) {\n  db.query(sql);\n}\n"
+        }
       }
     },
     {
@@ -55,7 +67,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/repo.js", "content": "for (const item of items) {\n  await db.query(sql, item.id);\n}\n" }
+        "tool_input": {
+          "file_path": "src/repo.js",
+          "content": "for (const item of items) {\n  await db.query(sql, item.id);\n}\n"
+        }
       }
     },
     {
@@ -64,7 +79,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/repo.js", "content": "for (const k in map) {\n  db.query(sql, k);\n}\n" }
+        "tool_input": {
+          "file_path": "src/repo.js",
+          "content": "for (const k in map) {\n  db.query(sql, k);\n}\n"
+        }
       }
     },
     {
@@ -73,7 +91,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/repo.js", "content": "const rows = await db.query(sql);\nfor (const r of rows) {\n  use(r);\n}\n" }
+        "tool_input": {
+          "file_path": "src/repo.js",
+          "content": "const rows = await db.query(sql);\nfor (const r of rows) {\n  use(r);\n}\n"
+        }
       }
     },
     {
@@ -82,7 +103,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/repo.js", "content": "const r = xs.map((x) => db.query(sql, x.id));\n" }
+        "tool_input": {
+          "file_path": "src/repo.js",
+          "content": "const r = xs.map((x) => db.query(sql, x.id));\n"
+        }
       }
     },
     {
@@ -91,7 +115,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/repo.js", "content": "xs.forEach((x) => fetch(x.url));\n" }
+        "tool_input": {
+          "file_path": "src/repo.js",
+          "content": "xs.forEach((x) => fetch(x.url));\n"
+        }
       }
     },
     {
@@ -100,7 +127,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/repo.js", "content": "const r = xs.map((x) => x.id);\n" }
+        "tool_input": {
+          "file_path": "src/repo.js",
+          "content": "const r = xs.map((x) => x.id);\n"
+        }
       }
     },
     {
@@ -109,7 +139,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/repo.js", "content": "for (const x of db.rows) {\n  use(x);\n}\n" }
+        "tool_input": {
+          "file_path": "src/repo.js",
+          "content": "for (const x of db.rows) {\n  use(x);\n}\n"
+        }
       }
     },
     {
@@ -119,7 +152,9 @@
       "input": {
         "tool_name": "Bash",
         "cwd": "REPO_ROOT",
-        "tool_input": { "command": "git commit -m x" }
+        "tool_input": {
+          "command": "git commit -m x"
+        }
       }
     },
     {
@@ -128,7 +163,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/api.js", "content": "const res = await fetch(url);\n" }
+        "tool_input": {
+          "file_path": "src/api.js",
+          "content": "const res = await fetch(url);\n"
+        }
       }
     },
     {
@@ -137,7 +175,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/auth.js", "content": "console.log('token=', token);\n" }
+        "tool_input": {
+          "file_path": "src/auth.js",
+          "content": "console.log('token=', token);\n"
+        }
       }
     },
     {
@@ -146,7 +187,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/order.js", "content": "if (order.status === \"shipped\") {\n  ship();\n}\n" }
+        "tool_input": {
+          "file_path": "src/order.js",
+          "content": "if (order.status === \"shipped\") {\n  ship();\n}\n"
+        }
       }
     },
     {
@@ -155,7 +199,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/api.ts", "content": "const data: any = await res.json();\n" }
+        "tool_input": {
+          "file_path": "src/api.ts",
+          "content": "const data: any = await res.json();\n"
+        }
       }
     },
     {
@@ -164,7 +211,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "scratch-note.tmp", "content": "memo\n" }
+        "tool_input": {
+          "file_path": "scratch-note.tmp",
+          "content": "memo\n"
+        }
       }
     },
     {
@@ -173,7 +223,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/form.js", "content": "const item1 = a;\nconst item2 = b;\nconst item3 = c;\n" }
+        "tool_input": {
+          "file_path": "src/form.js",
+          "content": "const item1 = a;\nconst item2 = b;\nconst item3 = c;\n"
+        }
       }
     },
     {
@@ -182,7 +235,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "docs/design.md", "content": "# 追記\n本文\n" }
+        "tool_input": {
+          "file_path": "docs/design.md",
+          "content": "# 追記\n本文\n"
+        }
       }
     },
     {
@@ -191,7 +247,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/repo.ts", "content": "const all = await repo.findAll();\nconst active = all.filter((x) => x.active);\n" }
+        "tool_input": {
+          "file_path": "src/repo.ts",
+          "content": "const all = await repo.findAll();\nconst active = all.filter((x) => x.active);\n"
+        }
       }
     },
     {
@@ -200,7 +259,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/repo.js", "content": "const rows = db.query(\"SELECT * FROM users\");\nconst hit = rows.filter(f);\n" }
+        "tool_input": {
+          "file_path": "src/repo.js",
+          "content": "const rows = db.query(\"SELECT * FROM users\");\nconst hit = rows.filter(f);\n"
+        }
       }
     },
     {
@@ -209,7 +271,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/repo.ts", "content": "const active = await repo.find({ where: { active: true } });\n" }
+        "tool_input": {
+          "file_path": "src/repo.ts",
+          "content": "const active = await repo.find({ where: { active: true } });\n"
+        }
       }
     },
     {
@@ -218,7 +283,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "REPO_ROOT/generation-engine/samples/project-portal/図/状態遷移図.html", "content": "<html>手で書き換えた</html>" }
+        "tool_input": {
+          "file_path": "REPO_ROOT/generation-engine/samples/project-portal/図/状態遷移図.html",
+          "content": "<html>手で書き換えた</html>"
+        }
       }
     },
     {
@@ -227,7 +295,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "REPO_ROOT/docs/no-such-new-page.html", "content": "<html>新規</html>" }
+        "tool_input": {
+          "file_path": "REPO_ROOT/docs/no-such-new-page.html",
+          "content": "<html>新規</html>"
+        }
       }
     },
     {
@@ -236,7 +307,11 @@
       "expect": "violation",
       "input": {
         "tool_name": "Edit",
-        "tool_input": { "file_path": ".claude/rules/always/foo/rule.md", "old_string": "a", "new_string": "b" }
+        "tool_input": {
+          "file_path": ".claude/rules/always/foo/rule.md",
+          "old_string": "a",
+          "new_string": "b"
+        }
       }
     },
     {
@@ -245,7 +320,11 @@
       "expect": "clean",
       "input": {
         "tool_name": "Edit",
-        "tool_input": { "file_path": "docs/rules/always/foo/rule.md", "old_string": "a", "new_string": "b" }
+        "tool_input": {
+          "file_path": "docs/rules/always/foo/rule.md",
+          "old_string": "a",
+          "new_string": "b"
+        }
       }
     },
     {
@@ -255,7 +334,9 @@
       "input": {
         "tool_name": "Bash",
         "cwd": "/",
-        "tool_input": { "command": "npm publish" }
+        "tool_input": {
+          "command": "npm publish"
+        }
       }
     },
     {
@@ -265,7 +346,9 @@
       "input": {
         "tool_name": "Bash",
         "cwd": "/",
-        "tool_input": { "command": "npm install" }
+        "tool_input": {
+          "command": "npm install"
+        }
       }
     },
     {
@@ -274,7 +357,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "docs/用語.md", "content": "| 用語 | 識別子 | 定義 |\n|---|---|---|\n| 受注 | order | 注文を受けることである |\n" }
+        "tool_input": {
+          "file_path": "docs/用語.md",
+          "content": "| 用語 | 識別子 | 定義 |\n|---|---|---|\n| 受注 | order | 注文を受けることである |\n"
+        }
       }
     },
     {
@@ -283,7 +369,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "docs/用語.md", "content": "| 用語 | 識別子 | 定義 | 使わない語 |\n|---|---|---|---|\n| 受注 | order | 注文を受けることである | オーダー |\n" }
+        "tool_input": {
+          "file_path": "docs/用語.md",
+          "content": "| 用語 | 識別子 | 定義 | 使わない語 |\n|---|---|---|---|\n| 受注 | order | 注文を受けることである | オーダー |\n"
+        }
       }
     },
     {
@@ -292,7 +381,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "docs/業務規則.md", "content": "| 名前 | 条件 | 結果 | 例外 |\n|---|---|---|---|\n| 送料無料の判定 | 金額が1万円以上 | 送料無料 |  |\n" }
+        "tool_input": {
+          "file_path": "docs/業務規則.md",
+          "content": "| 名前 | 条件 | 結果 | 例外 |\n|---|---|---|---|\n| 送料無料の判定 | 金額が1万円以上 | 送料無料 |  |\n"
+        }
       }
     },
     {
@@ -301,7 +393,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "docs/業務規則.md", "content": "| 名前 | 条件 | 結果 | 例外 |\n|---|---|---|---|\n|  | 金額が1万円以上 | 送料無料 | 離島は対象外 |\n" }
+        "tool_input": {
+          "file_path": "docs/業務規則.md",
+          "content": "| 名前 | 条件 | 結果 | 例外 |\n|---|---|---|---|\n|  | 金額が1万円以上 | 送料無料 | 離島は対象外 |\n"
+        }
       }
     },
     {
@@ -310,7 +405,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "docs/業務規則.md", "content": "| 名前 | 条件 | 結果 | 例外 |\n| :--- | :---: | ---: | --- |\n| 送料無料の判定 | 金額が1万円以上 | 送料無料 | 離島は対象外 |\n" }
+        "tool_input": {
+          "file_path": "docs/業務規則.md",
+          "content": "| 名前 | 条件 | 結果 | 例外 |\n| :--- | :---: | ---: | --- |\n| 送料無料の判定 | 金額が1万円以上 | 送料無料 | 離島は対象外 |\n"
+        }
       }
     },
     {
@@ -319,7 +417,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "docs/design/単体テスト設計書.md", "content": "# 単体テスト設計書\n\n## §1 観点一覧\n\n本文\n\n## §2 実行ケース一覧\n\n本文\n" }
+        "tool_input": {
+          "file_path": "docs/design/単体テスト設計書.md",
+          "content": "# 単体テスト設計書\n\n## §1 観点一覧\n\n本文\n\n## §2 実行ケース一覧\n\n本文\n"
+        }
       }
     },
     {
@@ -328,7 +429,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "docs/業務規則.md", "content": "| 名前 | 条件 | 結果 |\n|---|---|---|\n| 送料無料の判定 | 金額が1万円以上 | 送料無料 |\n" }
+        "tool_input": {
+          "file_path": "docs/業務規則.md",
+          "content": "| 名前 | 条件 | 結果 |\n|---|---|---|\n| 送料無料の判定 | 金額が1万円以上 | 送料無料 |\n"
+        }
       }
     },
     {
@@ -337,7 +441,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "docs/業務規則.md", "content": "| 名前 | 条件 | 結果 | 例外 |\n|---|---|---|---|\n| 送料無料の判定 | 金額が1万円以上 | 送料無料 | 離島は対象外 |\n" }
+        "tool_input": {
+          "file_path": "docs/業務規則.md",
+          "content": "| 名前 | 条件 | 結果 | 例外 |\n|---|---|---|---|\n| 送料無料の判定 | 金額が1万円以上 | 送料無料 | 離島は対象外 |\n"
+        }
       }
     },
     {
@@ -345,7 +452,19 @@
       "label": "実行結果を添えずに完了を述べる",
       "expect": "stop-block",
       "input": {
-        "transcript": [{ "type": "assistant", "message": { "content": [{ "type": "text", "text": "修正が完了しました。" }] } }]
+        "transcript": [
+          {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "修正が完了しました。"
+                }
+              ]
+            }
+          }
+        ]
       }
     },
     {
@@ -353,7 +472,19 @@
       "label": "実行結果を添えて完了を述べる",
       "expect": "stop-pass",
       "input": {
-        "transcript": [{ "type": "assistant", "message": { "content": [{ "type": "text", "text": "修正が完了しました。\n\n```\nnpm test\nPASS 12 tests\n```\n" }] } }]
+        "transcript": [
+          {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "修正が完了しました。\n\n```\nnpm test\nPASS 12 tests\n```\n"
+                }
+              ]
+            }
+          }
+        ]
       }
     },
     {
@@ -361,7 +492,84 @@
       "label": "完了を述べていない応答",
       "expect": "stop-pass",
       "input": {
-        "transcript": [{ "type": "assistant", "message": { "content": [{ "type": "text", "text": "次はどちらを進めますか。" }] } }]
+        "transcript": [
+          {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "次はどちらを進めますか。"
+                }
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "checker": "check-direct-circular-import",
+      "label": "再輸出で互いを取り込む",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": {
+          "file_path": "REPO_ROOT/generation-engine/samples/checker-fixtures/circular/e.ts",
+          "content": "export * from \"./f\";\n"
+        }
+      }
+    },
+    {
+      "checker": "check-generated-html-manual-edit",
+      "label": "一覧の目印を持つHTMLを手で直す",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Edit",
+        "tool_input": {
+          "file_path": "REPO_ROOT/generation-engine/samples/project-portal/lists/tables/テーブル一覧.html",
+          "old_string": "a",
+          "new_string": "b"
+        }
+      }
+    },
+    {
+      "checker": "check-generated-html-manual-edit",
+      "label": "目印のないHTMLを上書き",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": {
+          "file_path": "REPO_ROOT/docs/guides/成果物一覧.html",
+          "content": "<html>x</html>"
+        }
+      }
+    },
+    {
+      "checker": "check-read-before-overwrite",
+      "label": "別のファイルだけを読んで上書き",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "transcript": [
+          {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "type": "tool_use",
+                  "name": "Read",
+                  "input": {
+                    "file_path": "REPO_ROOT/CLAUDE.md"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "tool_input": {
+          "file_path": "REPO_ROOT/README.md",
+          "content": "書き換えた"
+        }
       }
     },
     {
@@ -370,7 +578,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "REPO_ROOT/generation-engine/samples/checker-fixtures/circular/a.js", "content": "import { b } from \"./b\";\nexport const a = b;\n" }
+        "tool_input": {
+          "file_path": "REPO_ROOT/generation-engine/samples/checker-fixtures/circular/a.js",
+          "content": "import { b } from \"./b\";\nexport const a = b;\n"
+        }
       }
     },
     {
@@ -379,7 +590,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "REPO_ROOT/generation-engine/samples/checker-fixtures/circular/c.js", "content": "export const c = 1;\n" }
+        "tool_input": {
+          "file_path": "REPO_ROOT/generation-engine/samples/checker-fixtures/circular/c.js",
+          "content": "export const c = 1;\n"
+        }
       }
     },
     {
@@ -388,8 +602,23 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "transcript": [{ "type": "assistant", "message": { "content": [{ "type": "text", "text": "書き換えます" }] } }],
-        "tool_input": { "file_path": "REPO_ROOT/README.md", "content": "書き換えた" }
+        "transcript": [
+          {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "type": "text",
+                  "text": "書き換えます"
+                }
+              ]
+            }
+          }
+        ],
+        "tool_input": {
+          "file_path": "REPO_ROOT/README.md",
+          "content": "書き換えた"
+        }
       }
     },
     {
@@ -398,8 +627,26 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "transcript": [{ "type": "assistant", "message": { "content": [{ "type": "tool_use", "name": "Read", "input": { "file_path": "REPO_ROOT/README.md" } }] } }],
-        "tool_input": { "file_path": "REPO_ROOT/README.md", "content": "書き換えた" }
+        "transcript": [
+          {
+            "type": "assistant",
+            "message": {
+              "content": [
+                {
+                  "type": "tool_use",
+                  "name": "Read",
+                  "input": {
+                    "file_path": "REPO_ROOT/README.md"
+                  }
+                }
+              ]
+            }
+          }
+        ],
+        "tool_input": {
+          "file_path": "REPO_ROOT/README.md",
+          "content": "書き換えた"
+        }
       }
     },
     {
@@ -408,7 +655,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Agent",
-        "tool_input": { "subagent_type": "worker-sonnet", "prompt": "このファイルを直して" }
+        "tool_input": {
+          "subagent_type": "worker-sonnet",
+          "prompt": "このファイルを直して"
+        }
       }
     },
     {
@@ -417,7 +667,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Agent",
-        "tool_input": { "subagent_type": "worker-sonnet", "prompt": "src/a.ts を直す。\n\n## 完了条件\n\nnpm test が終了コード0を返す" }
+        "tool_input": {
+          "subagent_type": "worker-sonnet",
+          "prompt": "src/a.ts を直す。\n\n## 完了条件\n\nnpm test が終了コード0を返す"
+        }
       }
     },
     {
@@ -426,7 +679,9 @@
       "expect": "violation",
       "input": {
         "tool_name": "Bash",
-        "tool_input": { "command": "git push origin main" }
+        "tool_input": {
+          "command": "git push origin main"
+        }
       }
     },
     {
@@ -435,7 +690,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "docs/rules/always/foo/rule.md", "content": "# 規約\n\n## 規則\n\n| 規則 | 内容 | 根拠 | 検査 |\n|---|---|---|---|\n| 名前を付ける | 名前を付ける | 読みやすさ |  |\n" }
+        "tool_input": {
+          "file_path": "docs/rules/always/foo/rule.md",
+          "content": "# 規約\n\n## 規則\n\n| 規則 | 内容 | 根拠 | 検査 |\n|---|---|---|---|\n| 名前を付ける | 名前を付ける | 読みやすさ |  |\n"
+        }
       }
     },
     {
@@ -444,7 +702,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "docs/rules/always/foo/rule.md", "content": "# 規約\n\n## 規則\n\n| 規則 | 内容 | 根拠 | 検査 |\n|---|---|---|---|\n| 名前を付ける | 名前を付ける | 読みやすさ | テスト: 名前の欄を確かめる |\n" }
+        "tool_input": {
+          "file_path": "docs/rules/always/foo/rule.md",
+          "content": "# 規約\n\n## 規則\n\n| 規則 | 内容 | 根拠 | 検査 |\n|---|---|---|---|\n| 名前を付ける | 名前を付ける | 読みやすさ | テスト: 名前の欄を確かめる |\n"
+        }
       }
     },
     {
@@ -453,7 +714,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "docs/design.md", "content": "## 補足\n本文\n" }
+        "tool_input": {
+          "file_path": "docs/design.md",
+          "content": "## 補足\n本文\n"
+        }
       }
     },
     {
@@ -462,7 +726,9 @@
       "expect": "violation",
       "input": {
         "tool_name": "Bash",
-        "tool_input": { "command": "git add dist/bundle.js" }
+        "tool_input": {
+          "command": "git add dist/bundle.js"
+        }
       }
     },
     {
@@ -472,7 +738,9 @@
       "input": {
         "tool_name": "Bash",
         "cwd": "/",
-        "tool_input": { "command": "git tag v1.2.0" }
+        "tool_input": {
+          "command": "git tag v1.2.0"
+        }
       }
     },
     {
@@ -481,7 +749,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": ".cursor/rules/foo.mdc", "content": "x" }
+        "tool_input": {
+          "file_path": ".cursor/rules/foo.mdc",
+          "content": "x"
+        }
       }
     },
     {
@@ -490,7 +761,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "docs/用語.md", "content": "| 用語 | 識別子 | 定義 | 使わない語 |\n|---|---|---|---|\n| 受注 |  | 注文を受けることである | オーダー |\n" }
+        "tool_input": {
+          "file_path": "docs/用語.md",
+          "content": "| 用語 | 識別子 | 定義 | 使わない語 |\n|---|---|---|---|\n| 受注 |  | 注文を受けることである | オーダー |\n"
+        }
       }
     },
     {
@@ -499,7 +773,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "docs/rules/always/foo/rule.md", "content": "# 規約\n\n## 規則\n\n| 規則 | 内容 | 根拠 | 検査 |\n|---|---|---|---|\n| 名前を付ける | 名前を付ける | 読みやすさ | 目で見る |\n" }
+        "tool_input": {
+          "file_path": "docs/rules/always/foo/rule.md",
+          "content": "# 規約\n\n## 規則\n\n| 規則 | 内容 | 根拠 | 検査 |\n|---|---|---|---|\n| 名前を付ける | 名前を付ける | 読みやすさ | 目で見る |\n"
+        }
       }
     },
     {
@@ -508,7 +785,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "docs/rules/always/foo/rule.md", "content": "# 規約\n\n## 規則\n\n| 規則 | 内容 | 根拠 | 検査 |\n|---|---|---|---|\n| 名前を付ける | 名前を付ける | 読みやすさ | 静的解析: 名前の欄が空でないかを走査する |\n" }
+        "tool_input": {
+          "file_path": "docs/rules/always/foo/rule.md",
+          "content": "# 規約\n\n## 規則\n\n| 規則 | 内容 | 根拠 | 検査 |\n|---|---|---|---|\n| 名前を付ける | 名前を付ける | 読みやすさ | 静的解析: 名前の欄が空でないかを走査する |\n"
+        }
       }
     },
     {
@@ -517,7 +797,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "docs/design/単体テスト設計書.md", "content": "# 単体テスト設計書\n\n## §1 観点一覧\n\n本文\n" }
+        "tool_input": {
+          "file_path": "docs/design/単体テスト設計書.md",
+          "content": "# 単体テスト設計書\n\n## §1 観点一覧\n\n本文\n"
+        }
       }
     },
     {
@@ -526,7 +809,9 @@
       "expect": "violation",
       "input": {
         "tool_name": "Bash",
-        "tool_input": { "command": "curl -H 'x' --password hunter2 https://example.com" }
+        "tool_input": {
+          "command": "curl -H 'x' --password hunter2 https://example.com"
+        }
       }
     },
     {
@@ -535,7 +820,9 @@
       "expect": "violation",
       "input": {
         "tool_name": "Bash",
-        "tool_input": { "command": "curl --password=\"hunter2\" https://example.com" }
+        "tool_input": {
+          "command": "curl --password=\"hunter2\" https://example.com"
+        }
       }
     },
     {
@@ -544,7 +831,9 @@
       "expect": "clean",
       "input": {
         "tool_name": "Bash",
-        "tool_input": { "command": "curl --password \"$DB_PASSWORD\" https://example.com" }
+        "tool_input": {
+          "command": "curl --password \"$DB_PASSWORD\" https://example.com"
+        }
       }
     },
     {
@@ -553,7 +842,9 @@
       "expect": "clean",
       "input": {
         "tool_name": "Bash",
-        "tool_input": { "command": "curl --password=\"$DB_PASSWORD\" https://example.com" }
+        "tool_input": {
+          "command": "curl --password=\"$DB_PASSWORD\" https://example.com"
+        }
       }
     },
     {
@@ -563,7 +854,9 @@
       "input": {
         "tool_name": "Bash",
         "cwd": "REPO_ROOT/generation-engine/samples/checker-fixtures/routine-sparse",
-        "tool_input": { "command": "git commit -m x" }
+        "tool_input": {
+          "command": "git commit -m x"
+        }
       }
     },
     {
@@ -573,7 +866,9 @@
       "input": {
         "tool_name": "Bash",
         "cwd": "REPO_ROOT/generation-engine/samples/checker-fixtures/routine-sparse",
-        "tool_input": { "command": "git commit -m x" }
+        "tool_input": {
+          "command": "git commit -m x"
+        }
       }
     },
     {
@@ -583,7 +878,9 @@
       "input": {
         "tool_name": "Bash",
         "cwd": "REPO_ROOT/generation-engine/samples/checker-fixtures/routine-complete",
-        "tool_input": { "command": "git commit -m x" }
+        "tool_input": {
+          "command": "git commit -m x"
+        }
       }
     },
     {
@@ -593,7 +890,9 @@
       "input": {
         "tool_name": "Bash",
         "cwd": "REPO_ROOT/generation-engine/samples/checker-fixtures/routine-complete",
-        "tool_input": { "command": "git commit -m x" }
+        "tool_input": {
+          "command": "git commit -m x"
+        }
       }
     },
     {
@@ -602,7 +901,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "docs/notes.md", "content": "本文\n" }
+        "tool_input": {
+          "file_path": "docs/notes.md",
+          "content": "本文\n"
+        }
       }
     },
     {
@@ -611,7 +913,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/api.ts", "content": "const data: UserResponse = await res.json();\n" }
+        "tool_input": {
+          "file_path": "src/api.ts",
+          "content": "const data: UserResponse = await res.json();\n"
+        }
       }
     },
     {
@@ -620,7 +925,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/order.go", "content": "var totalAmount float64 = 100.5\n" }
+        "tool_input": {
+          "file_path": "src/order.go",
+          "content": "var totalAmount float64 = 100.5\n"
+        }
       }
     },
     {
@@ -629,7 +937,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/geo.go", "content": "var latitude float64 = 35.6\n" }
+        "tool_input": {
+          "file_path": "src/geo.go",
+          "content": "var latitude float64 = 35.6\n"
+        }
       }
     },
     {
@@ -638,7 +949,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/key.js", "content": "const pem = \"-----BEGIN RSA PRIVATE KEY-----\";\n" }
+        "tool_input": {
+          "file_path": "src/key.js",
+          "content": "const pem = \"-----BEGIN RSA PRIVATE KEY-----\";\n"
+        }
       }
     },
     {
@@ -647,7 +961,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/a.ts", "content": "// @ts-ignore\nconst x = f();\n" }
+        "tool_input": {
+          "file_path": "src/a.ts",
+          "content": "// @ts-ignore\nconst x = f();\n"
+        }
       }
     },
     {
@@ -656,7 +973,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/auth.py", "content": "logger.info(\"password=%s\", password)\n" }
+        "tool_input": {
+          "file_path": "src/auth.py",
+          "content": "logger.info(\"password=%s\", password)\n"
+        }
       }
     },
     {
@@ -665,7 +985,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/order.js", "content": "if (order.state != \"draft\") { go(); }\n" }
+        "tool_input": {
+          "file_path": "src/order.js",
+          "content": "if (order.state != \"draft\") { go(); }\n"
+        }
       }
     },
     {
@@ -674,7 +997,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/api.py", "content": "r = requests.get(url)\n" }
+        "tool_input": {
+          "file_path": "src/api.py",
+          "content": "r = requests.get(url)\n"
+        }
       }
     },
     {
@@ -683,7 +1009,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "docs/note.md~", "content": "x\n" }
+        "tool_input": {
+          "file_path": "docs/note.md~",
+          "content": "x\n"
+        }
       }
     },
     {
@@ -692,7 +1021,9 @@
       "expect": "violation",
       "input": {
         "tool_name": "Bash",
-        "tool_input": { "command": "git add config/id_rsa" }
+        "tool_input": {
+          "command": "git add config/id_rsa"
+        }
       }
     },
     {
@@ -701,7 +1032,10 @@
       "expect": "violation",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/flow.js", "content": "function step1() {}\nfunction step2() {}\nfunction step3() {}\n" }
+        "tool_input": {
+          "file_path": "src/flow.js",
+          "content": "function step1() {}\nfunction step2() {}\nfunction step3() {}\n"
+        }
       }
     },
     {
@@ -710,7 +1044,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/Order.java", "content": "long priceInMinorUnits = 10050;\n" }
+        "tool_input": {
+          "file_path": "src/Order.java",
+          "content": "long priceInMinorUnits = 10050;\n"
+        }
       }
     },
     {
@@ -719,7 +1056,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "docs/design.md", "content": "# 設計の方針\n本文\n" }
+        "tool_input": {
+          "file_path": "docs/design.md",
+          "content": "# 設計の方針\n本文\n"
+        }
       }
     },
     {
@@ -728,7 +1068,9 @@
       "expect": "clean",
       "input": {
         "tool_name": "Bash",
-        "tool_input": { "command": "git add src/index.ts" }
+        "tool_input": {
+          "command": "git add src/index.ts"
+        }
       }
     },
     {
@@ -737,7 +1079,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/api.js", "content": "const res = await fetch(url, { signal: AbortSignal.timeout(3000) });\n" }
+        "tool_input": {
+          "file_path": "src/api.js",
+          "content": "const res = await fetch(url, { signal: AbortSignal.timeout(3000) });\n"
+        }
       }
     },
     {
@@ -746,7 +1091,9 @@
       "expect": "clean",
       "input": {
         "tool_name": "Bash",
-        "tool_input": { "command": "git add .env.example" }
+        "tool_input": {
+          "command": "git add .env.example"
+        }
       }
     },
     {
@@ -755,7 +1102,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/auth.js", "content": "console.log('userId=', userId);\n" }
+        "tool_input": {
+          "file_path": "src/auth.js",
+          "content": "console.log('userId=', userId);\n"
+        }
       }
     },
     {
@@ -764,7 +1114,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/form.js", "content": "const firstName = a;\nconst lastName = b;\nconst email = c;\n" }
+        "tool_input": {
+          "file_path": "src/form.js",
+          "content": "const firstName = a;\nconst lastName = b;\nconst email = c;\n"
+        }
       }
     },
     {
@@ -773,7 +1126,10 @@
       "expect": "clean",
       "input": {
         "tool_name": "Write",
-        "tool_input": { "file_path": "src/order.js", "content": "if (order.status === OrderStatus.Shipped) {\n  ship();\n}\n" }
+        "tool_input": {
+          "file_path": "src/order.js",
+          "content": "if (order.status === OrderStatus.Shipped) {\n  ship();\n}\n"
+        }
       }
     },
     {
@@ -783,7 +1139,9 @@
       "input": {
         "tool_name": "Bash",
         "cwd": "REPO_ROOT",
-        "tool_input": { "command": "git commit -m x" }
+        "tool_input": {
+          "command": "git commit -m x"
+        }
       }
     },
     {
@@ -792,7 +1150,9 @@
       "expect": "violation",
       "input": {
         "tool_name": "Bash",
-        "tool_input": { "command": "git add node_modules/left-pad/index.js" }
+        "tool_input": {
+          "command": "git add node_modules/left-pad/index.js"
+        }
       }
     },
     {
@@ -801,7 +1161,33 @@
       "expect": "violation",
       "input": {
         "tool_name": "Bash",
-        "tool_input": { "command": "git add .env" }
+        "tool_input": {
+          "command": "git add .env"
+        }
+      }
+    },
+    {
+      "checker": "check-unit-test-design-doc-sections",
+      "label": "必須の節と表が揃ったテスト設計書",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": {
+          "file_path": "docs/design/単体テスト設計書.md",
+          "content": "# 単体テスト設計書\n\n## テスト対象\n\n送料の判定\n\n## テストの粒度と自動化の方針\n\n関数の単位で自動で確かめる\n\n## 本書が扱わない範囲\n\n画面の見え方\n\n## §1 テスト観点\n\n| キー | 観点 |\n|---|---|\n| 金額-下限境界 | 下限の金額で通るか |\n| 金額-上限境界 | 上限の金額で通るか |\n\n## §2 テストケース一覧\n\n| キー | 対応する観点のキー | 入力 | 期待結果 |\n|---|---|---|---|\n| 金額-下限境界-通常 | 金額-下限境界 | 1万円 | 送料無料 |\n| 金額-上限境界-通常 | 金額-上限境界 | 10万円 | 送料無料 |\n\n## §3 入力条件\n\n金額は整数の最小単位で与える\n\n## §4 期待結果\n\n送料の値を返す\n\n## §5 異常系\n\n| 観点のキー | 条件 | 期待結果 |\n|---|---|---|\n| 金額-下限境界 | 下限を下回る金額 | 送料を課す |\n\n## §6 境界値\n\n| 観点のキー | 境界 | 期待結果 |\n|---|---|---|\n| 金額-上限境界 | 上限ちょうど | 送料無料 |\n\n## §7 網羅基準\n\n観点をすべて通す\n\n## §8 前提条件と終了条件\n\n事前に会員の情報を用意する\n\n## §9 要確認事項一覧\n\nなし"
+        }
+      }
+    },
+    {
+      "checker": "check-direct-commit-to-integration-branch",
+      "label": "統合先でない枝へ押し出す",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Bash",
+        "cwd": "REPO_ROOT",
+        "tool_input": {
+          "command": "git push origin fix/cases8"
+        }
       }
     }
   ]
