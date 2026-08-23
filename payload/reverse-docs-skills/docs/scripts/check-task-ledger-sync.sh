@@ -41,7 +41,7 @@ check_ledger() {
     elif [ "$direct_exists" -eq 0 ] && [ "$done_exists" -eq 1 ]; then
       expected="完了"
       if [ "$state" != "$expected" ]; then
-        echo "[FAIL] done/ にあるのに状態が完了ではありません: $name（状態=${state:-なし}）"
+        echo "[FAIL] done/ にあるのに状態が完了ではありません: ${name}（状態=${state:-なし}）"
         mismatches=$((mismatches + 1))
       fi
     elif [ "$direct_exists" -eq 1 ] && [ "$done_exists" -eq 1 ]; then
@@ -92,7 +92,7 @@ record_self_test() {
     echo "  [PASS] $name"
     SELF_TEST_PASS=$((SELF_TEST_PASS + 1))
   else
-    echo "  [FAIL] $name（終了コード=${actual}、期待=${expected}）"
+    echo "  [FAIL] ${name}（終了コード=${actual}、期待=${expected}）"
     SELF_TEST_FAIL=$((SELF_TEST_FAIL + 1))
   fi
 }
