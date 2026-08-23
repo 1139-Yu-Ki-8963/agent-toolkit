@@ -206,12 +206,14 @@ build_weekly_diff_li() {
     return 0
   fi
 
+  local latest_count prev_count diff sign
   if [ "$section_count" -eq 1 ]; then
-    printf '<li>今週から記録を始めました。</li>\n'
+    latest_count="$(extract_section_count "$ledger" 1)"
+    [ -n "$latest_count" ] || latest_count=0
+    printf '<li>掲載スキル: %s本</li>\n' "$(html_escape "$latest_count")"
     return 0
   fi
 
-  local latest_count prev_count diff sign
   latest_count="$(extract_section_count "$ledger" 1)"
   prev_count="$(extract_section_count "$ledger" 2)"
   [ -z "$latest_count" ] && latest_count=0
@@ -343,6 +345,7 @@ build_html() {
 <html lang="ja">
 <head>
 <meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>成果物一覧</title>
 <style>
   :root {
@@ -594,7 +597,6 @@ HEAD_EOF
 
     printf '        <div class="stat"><div class="label">成果物数</div><div class="value">%s<span class="unit">本</span></div></div>\n' "$skill_count"
     printf '        <div class="stat"><div class="label">スキル</div><div class="value">%s<span class="unit">本</span></div></div>\n' "$skill_count"
-    printf '        <div class="stat"><div class="label">スライド</div><div class="value">0<span class="unit">本</span></div></div>\n'
     printf '        <div class="stat date"><div class="label">報告日</div><div class="value">%s</div></div>\n' "$report_date"
 
     cat << 'MID_EOF'
@@ -746,7 +748,7 @@ self_test() {
   rc=$?
   if [ "$rc" -eq 0 ] \
     && [ -f "$out1" ] \
-    && grep -qF "今週から記録を始めました。" "$out1" \
+    && grep -qF "掲載スキル: 1本" "$out1" \
     && grep -qF ">stable-skill<" "$out1"; then
     echo "[PASS] 台帳が1件だけのとき"
     pass=$((pass + 1))
