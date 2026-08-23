@@ -1,0 +1,206 @@
+{
+  "schemaVersion": 1,
+  "purpose": "配る検査が、実際に書かれるコードで違反を止めるかを確かめるための入力集。各検査の自己テストとは別に、現場で書かれる書き方を与えて素通りしないことを見る。",
+  "note": "expect は止めてほしいものが violation、通してほしいものが clean。exitCode は違反時に検査が返すべき値で、PreToolUse の block は 2。",
+  "cases": [
+    {
+      "checker": "check-secret-literal-in-code",
+      "label": "認証の鍵をコードへ直書き",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/config.js", "content": "const key = \"AKIAIOSFODNN7EXAMPLE\";\n" }
+      }
+    },
+    {
+      "checker": "check-secret-literal-in-code",
+      "label": "環境変数から読む正しい書き方",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/config.js", "content": "const key = process.env.AWS_KEY;\n" }
+      }
+    },
+    {
+      "checker": "check-currency-float-type",
+      "label": "金額を小数の型で持つ",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/Order.java", "content": "double price = 100.5;\n" }
+      }
+    },
+    {
+      "checker": "check-loop-query-call",
+      "label": "添字の繰り返しの中で問い合わせ",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/repo.js", "content": "for (let i = 0; i < n; i++) {\n  db.query(sql);\n}\n" }
+      }
+    },
+    {
+      "checker": "check-loop-query-call",
+      "label": "of の繰り返しの中で問い合わせ",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/repo.js", "content": "for (const item of items) {\n  await db.query(sql, item.id);\n}\n" }
+      }
+    },
+    {
+      "checker": "check-loop-query-call",
+      "label": "in の繰り返しの中で問い合わせ",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/repo.js", "content": "for (const k in map) {\n  db.query(sql, k);\n}\n" }
+      }
+    },
+    {
+      "checker": "check-loop-query-call",
+      "label": "繰り返しの外で1回だけ問い合わせ",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/repo.js", "content": "const rows = await db.query(sql);\nfor (const r of rows) {\n  use(r);\n}\n" }
+      }
+    },
+    {
+      "checker": "check-loop-query-call",
+      "label": "1行の map の中で問い合わせ",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/repo.js", "content": "const r = xs.map((x) => db.query(sql, x.id));\n" }
+      }
+    },
+    {
+      "checker": "check-loop-query-call",
+      "label": "1行の forEach の中で外部呼び出し",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/repo.js", "content": "xs.forEach((x) => fetch(x.url));\n" }
+      }
+    },
+    {
+      "checker": "check-loop-query-call",
+      "label": "1行の map の中は素の計算",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/repo.js", "content": "const r = xs.map((x) => x.id);\n" }
+      }
+    },
+    {
+      "checker": "check-loop-query-call",
+      "label": "繰り返しの対象を1回だけ取る",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/repo.js", "content": "for (const x of db.rows) {\n  use(x);\n}\n" }
+      }
+    },
+    {
+      "checker": "check-direct-commit-to-integration-branch",
+      "label": "作業用の枝の上でコミット",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Bash",
+        "cwd": "REPO_ROOT",
+        "tool_input": { "command": "git commit -m x" }
+      }
+    },
+    {
+      "checker": "check-outbound-call-missing-timeout",
+      "label": "外部への呼び出しに待ち時間の上限がない",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/api.js", "content": "const res = await fetch(url);\n" }
+      }
+    },
+    {
+      "checker": "check-secret-value-logging",
+      "label": "秘密の値を記録へ出す",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/auth.js", "content": "console.log('token=', token);\n" }
+      }
+    },
+    {
+      "checker": "check-state-literal-comparison",
+      "label": "状態を文字列の直接比較で扱う",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/order.js", "content": "if (order.status === \"shipped\") {\n  ship();\n}\n" }
+      }
+    },
+    {
+      "checker": "check-any-type-escape-hatch",
+      "label": "型の検査を骨抜きにする",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/api.ts", "content": "const data: any = await res.json();\n" }
+      }
+    },
+    {
+      "checker": "check-temp-file-tracked",
+      "label": "一時ファイルを置く",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "scratch-note.tmp", "content": "memo\n" }
+      }
+    },
+    {
+      "checker": "check-sequential-identifier-naming",
+      "label": "通し番号だけで区別する名前",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/form.js", "content": "const item1 = a;\nconst item2 = b;\nconst item3 = c;\n" }
+      }
+    },
+    {
+      "checker": "check-doc-heading-addendum",
+      "label": "追記の見出しを足す",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "docs/design.md", "content": "# 追記\n本文\n" }
+      }
+    },
+    {
+      "checker": "check-secret-in-command-args",
+      "label": "秘密の値をコマンドの引数へ置く",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": { "command": "curl -H 'x' --password hunter2 https://example.com" }
+      }
+    },
+    {
+      "checker": "check-generated-artifact-staged",
+      "label": "生成物を版管理へ入れる",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": { "command": "git add node_modules/left-pad/index.js" }
+      }
+    },
+    {
+      "checker": "check-secret-filename-staged",
+      "label": "秘密を含むファイルを版管理へ入れる",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Bash",
+        "tool_input": { "command": "git add .env" }
+      }
+    }
+  ]
+}

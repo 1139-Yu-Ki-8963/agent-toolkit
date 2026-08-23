@@ -74,7 +74,10 @@ should_skip_with_reason() {
   return 1
 }
 
-LOOP_RE='^[[:space:]]*(for[[:space:]]*\(|for[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]+(in|of)[[:space:]]|while[[:space:]]*\(|[A-Za-z_.]+\.(forEach|map)\()'
+LOOP_RE='^[[:space:]]*(for[[:space:]]*\(|for[[:space:]]+[A-Za-z_][A-Za-z0-9_]*[[:space:]]+(in|of)[[:space:]]|while[[:space:]]*\(|.*[A-Za-z_.]+\.(forEach|map|filter|flatMap|some|every)\()'
+# コールバックを渡す形（.map( 等）だけを取り出す。この形は繰り返しの本体が
+# 開始行と同じ行に書かれうるため、次の行から見る窓とは別に照合する。
+CALLBACK_LOOP_RE='[A-Za-z_.]+\.(forEach|map|filter|flatMap|some|every)\('
 QUERY_RE='\.(query|find|findOne|findAll|execute)\(|SELECT[[:space:]]|INSERT[[:space:]]INTO|db\.|Model\.|prisma\.|fetch\(|axios\.|requests\.(get|post)\('
 WINDOW=15
 
@@ -105,10 +108,28 @@ judge() {
   total=$(wc -l < "$tmp" | tr -d '[:space:]')
   loop_lines=$(grep -nE "$LOOP_RE" "$tmp" | cut -d: -f1)
 
-  local ln hit
+  local ln hit body
   for ln in $loop_lines; do
     local end=$((ln + WINDOW))
     [ "$end" -gt "$total" ] && end="$total"
+
+    # コールバックを渡す形（.map( / .forEach( 等）は、繰り返しの本体が開始行と
+    # 同じ行に書かれることがある（xs.map((x) => db.query(sql)) の形）。1 行で
+    # 完結するため、次の行から見る窓では本体が窓の外に落ち、素通りしていた
+    # （実測 2026-08-24: 実際の書き方 10 通りのうち、この 1 行の形だけが
+    # 止まらなかった）。開始行のうち、渡した関数の中身にあたる部分
+    # （=> または function より後ろ）だけを本体として先に照合する。
+    # 開始行の全体を見ないのは、for (const x of db.rows) のように繰り返しの
+    # 「対象」を取る呼び出しまで違反として拾ってしまうため。
+    if sed -n "${ln}p" "$tmp" | grep -qE "$CALLBACK_LOOP_RE"; then
+      body="$(sed -n "${ln}p" "$tmp" | grep -oE '(=>|function[[:space:]]*\().*' || :)"
+      if [ -n "$body" ] && printf '%s' "$body" | grep -qE "$QUERY_RE"; then
+        echo "拒否[繰り返しの中で問い合わせを発行しない]: ${ln}行目の繰り返しに渡した関数の中で問い合わせ呼び出しがある"
+        rm -f "$tmp"
+        return 2
+      fi
+    fi
+
     hit=$(sed -n "$((ln + 1)),${end}p" "$tmp" | grep -nE "$QUERY_RE" | head -1)
     if [ -n "$hit" ]; then
       echo "拒否[繰り返しの中で問い合わせを発行しない]: ${ln}行目付近の繰り返しの内側に問い合わせ呼び出しがある（${hit}）"

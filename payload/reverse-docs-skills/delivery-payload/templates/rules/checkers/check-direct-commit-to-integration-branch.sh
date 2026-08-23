@@ -180,6 +180,11 @@ run_hook() {
   cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
   [ -z "$cmd" ] && exit 0
   cwd=$(printf '%s' "$input" | jq -r '.cwd // empty' 2>/dev/null)
+  # 入力に作業ディレクトリが無ければ、この検査を動かしている側の作業
+  # ディレクトリを使う。フックの入力には通常 .cwd が入るが、入らない
+  # 呼び出し方をされたときに枝の判定ごと落ちて素通りするのを防ぐ
+  # （実測 2026-08-24: .cwd を渡さずに試すと、統合先の枝の上でも通った）。
+  [ -z "$cwd" ] && cwd="$PWD"
 
   if msg="$(judge "$cwd" "$cmd")"; then code=0; else code=$?; fi
 

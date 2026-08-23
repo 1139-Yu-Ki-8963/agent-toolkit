@@ -1433,6 +1433,21 @@ Material Symbols OutlinedのGoogle Fonts CDNだけは、アイコン表示に必
 2. テンプレート（`delivery-payload/templates/` 配下）の該当箇所を修正する
 3. サンプルを再生成して再検証する
 
+### check-real-world-cases.sh
+
+**必要性**: 配る検査 29 本はそれぞれ `--self-test` を持つが、その入力はその検査を書いた本人が用意したものである。書いた本人が思いつかなかった書き方は入力に入らないため、素通りしても自己テストは合格を返す。実測（2026-08-24）で、`check-loop-query-call` は繰り返しと問い合わせを同じ行に書く形（`xs.map((x) => db.query(sql))`）だけを素通りしており、自己テスト 12 件はすべて合格していた。`check-direct-commit-to-integration-branch` も入力に `.cwd` が無いと枝の判定ごと落ちて素通りし、自己テスト 11 件はすべて合格していた。検査とは別に用意した入力集を全検査へ横断で流し、止めてほしいものが止まるかを一覧にする仕組みが要る。入力集は今後も増えるため、繰り返し実行できるスクリプトへ固定する。
+
+**代替案を採用しなかった理由**:
+- 各検査の `--self-test` へ入力を足す: 入力を足すのは検査を書いた本人であり、思いつかない書き方は足されない。同じ盲点が同じ形で残る。検査とは別の場所に入力集を置き、別の担当が足せる形にすることが目的そのものである
+- Bash ツール直叩き: 検査 29 本へ入力を流す作業を対話のたびに手で組み立てると、流す入力も判定の基準も実行のたびにぶれる
+- 既存 `run-layer-machine-checks.sh` への機能追加: あちらは各検査の `--self-test` を集めて走らせる集約であり、検査とは別に用意した入力を流すという関心が異なる。本スクリプトは `generation-engine/scripts/tests/` へ置くことで、あちらの動的な収集に自動的に載る
+- 既存 Makefile ターゲット拡張: このリポジトリに Makefile は存在せず、新規導入は本スクリプト専用の依存を増やすだけになる
+- package.json scripts 追加: 同様に、このリポジトリはビルド設定を持たない
+
+**保守責任者**: 人手（ユーザー）。検査の素通りを見つけたら、直すのと同じコミットで `delivery-payload/references/checker-real-world-cases.json` へ回帰の標本を足す。標本の形式（`checker`・`label`・`expect`・`input`）を変える場合は本スクリプトと自己テストを同時に更新する。
+
+**廃棄条件**: 配る検査を廃止した時、または実際の書き方での確認を別の仕組み（各検査への入力自動生成等）が標準で提供するようになった時。
+
 ## プロジェクト上書き
 
 - 上書き可否: プロジェクト固有規約（reverse-docs-skills 専用）
@@ -1440,6 +1455,7 @@ Material Symbols OutlinedのGoogle Fonts CDNだけは、アイコン表示に必
 
 ## 関連
 
+- `delivery-payload/references/checker-real-world-cases.json` — 実際の書き方の入力集（本スクリプトが読む唯一の正本）
 - `delivery-payload/templates/tokens.css` — カラートークンの正本
 - `generation-engine/scripts/tests/test-portal-conventions.sh` — 本規約の自動検証スクリプト
 
