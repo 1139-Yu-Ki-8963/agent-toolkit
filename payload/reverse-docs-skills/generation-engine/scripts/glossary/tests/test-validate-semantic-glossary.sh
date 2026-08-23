@@ -17,7 +17,7 @@ VALIDATOR="$GLOSSARY_DIR/validate-semantic-glossary.sh"
 VALIDATOR_PY="$GLOSSARY_DIR/validate-semantic-glossary.py"
 FIXTURES="$GLOSSARY_DIR/fixtures"
 SCHEMA="$GLOSSARY_DIR/../../schemas/semantic-glossary/1.0.0/validation-report.schema.yaml"
-PYTHON="$GLOSSARY_DIR/.venv/bin/python"
+PYTHON="${GLOSSARY_PYTHON:-$GLOSSARY_DIR/.venv/bin/python}"
 
 if [ ! -x "$VALIDATOR" ]; then
   echo "FAIL: validator is missing or not executable: $VALIDATOR" >&2
@@ -28,11 +28,14 @@ if [ ! -x "$PYTHON" ]; then
   # 隔離環境が無いのは実行できなかったことであり、検査の対象が不合格だった
   # ことではない。判定不能の決まり（indeterminate-result）に従い終了コード 2 を
   # 返す。集約はこれを [UNKNOWN] として不合格と区別する（2026-08-19）。
-  echo "[UNKNOWN] 隔離環境が無いため判定できません: $PYTHON" >&2
+  echo "[UNKNOWN] 隔離環境のPython実行系を確認できないため判定できません（test -x で $PYTHON を実行可能なファイルとして確認できませんでした。worktreeの隔離環境が未構築である可能性があります）" >&2
   exit 2
 fi
 
-tmp="$(mktemp -d "${TMPDIR:-/tmp}/semantic-glossary-validator.XXXXXX")"
+if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/semantic-glossary-validator.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+  echo "[UNKNOWN] 一時ディレクトリを作成できないため判定できません（mktemp -d が一時領域へ書き込めませんでした。実行環境のサンドボックス制約等が原因である可能性があります）" >&2
+  exit 2
+fi
 trap 'rm -rf "$tmp"' EXIT
 passed=0
 
@@ -87,6 +90,13 @@ run_case() {
   "$VALIDATOR" "$@" --report "$report" >"$stdout" 2>"$stderr"
   actual_exit=$?
   set -e
+  if [ "$actual_exit" -eq 2 ] && [ "$expected_exit" -ne 2 ] \
+    && { grep -q '"code": "SGD_DEPENDENCY"' "$report" 2>/dev/null \
+      || grep -qE 'SGD_DEPENDENCY|required dependency is unavailable|Python 3\.13 is required' "$stderr" 2>/dev/null; }; then
+    echo "[UNKNOWN] 用語辞書検証器の依存を利用できないため判定できません（$VALIDATOR が終了コード2を返し、SGD_DEPENDENCYを報告しました。Python 3.13またはrequirements.txtの依存が不足している可能性があります）" >&2
+    cat "$stderr" >&2
+    exit 2
+  fi
   if [ "$actual_exit" -ne "$expected_exit" ]; then
     echo "FAIL: $name expected exit $expected_exit, got $actual_exit" >&2
     cat "$stdout" >&2

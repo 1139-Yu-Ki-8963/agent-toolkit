@@ -41,11 +41,14 @@ if ! "$real_python" -c 'import yaml' >/dev/null 2>&1; then
   # PyYAMLがこの環境（$real_python）に無いのは実行できなかったことであり、検査対象
   # （TOCTOU対策）が不合格だったことではない。判定不能の決まり（indeterminate-result）
   # に従い、test-validate-semantic-glossary.shと同じ書式で終了コード2を返す。
-  echo "[UNKNOWN] PyYAMLが利用できないため判定できません: $real_python" >&2
+  echo "[UNKNOWN] PyYAMLの読み込みに失敗したため判定できません（$real_python で import yaml を実行できませんでした。PyYAMLが未導入、または選択したPython実行系から参照できない可能性があります）" >&2
   exit 2
 fi
 
-tmp="$(mktemp -d "${TMPDIR:-/tmp}/semantic-glossary-projector-race.XXXXXX")"
+if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/semantic-glossary-projector-race.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+  echo "[UNKNOWN] 一時ディレクトリを作成できないため判定できません（mktemp -d が一時領域へ書き込めませんでした。実行環境のサンドボックス制約等が原因である可能性があります）" >&2
+  exit 2
+fi
 trap 'rm -rf "$tmp"' EXIT
 original="$tmp/original.yaml"
 replacement="$tmp/replacement.yaml"
@@ -65,7 +68,23 @@ GLOSSARY_PYTHON="$wrapper" \
 REAL_PYTHON="$real_python" \
 RACE_ORIGINAL="$original" \
 RACE_REPLACEMENT="$replacement" \
-  "$real_python" "$projector" --input "$original" --registry "$registry" --output "$output" >/dev/null
+  "$real_python" "$projector" --input "$original" --registry "$registry" --output "$output" \
+  >/dev/null 2>"$tmp/projector.stderr" && projector_exit=0 || projector_exit=$?
+
+if [ "$projector_exit" -eq 2 ]; then
+  if ! grep -qE 'PyYAML is unavailable|required dependency is unavailable|Python 3\.13 is required|PyYAML>=6,<7 is required|jsonschema>=4\.23,<5 is required' "$tmp/projector.stderr"; then
+    echo "FAIL: 投影器が固定した検査入力に対して終了コード2を返しました" >&2
+    cat "$tmp/projector.stderr" >&2
+    exit 1
+  fi
+  echo "[UNKNOWN] 投影器の依存を利用できないため判定できません（$real_python $projector が依存不足を報告して終了コード2を返しました。Pythonの版数または依存パッケージが原因です）" >&2
+  cat "$tmp/projector.stderr" >&2
+  exit 2
+fi
+if [ "$projector_exit" -ne 0 ]; then
+  cat "$tmp/projector.stderr" >&2
+  exit "$projector_exit"
+fi
 
 "$real_python" - "$output" "$original" <<'PY'
 import json
