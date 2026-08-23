@@ -88,11 +88,21 @@ run_check() {
     checker="$(jq -r ".cases[$i].checker" "$cases_json")"
     label="$(jq -r ".cases[$i].label" "$cases_json")"
     expect="$(jq -r ".cases[$i].expect" "$cases_json")"
-    # 作業ディレクトリを要する検査のために、入力集の REPO_ROOT を
-    # 実行時のリポジトリのルートへ置き換える。入力集は配る対象であり、
-    # このマシンの絶対パスを書き込めないため。
+    # 作業ディレクトリや実在ファイルを要する検査のために、入力集の
+    # REPO_ROOT を実行時のリポジトリのルートへ置き換える。入力集は配る
+    # 対象であり、このマシンの絶対パスを書き込めないため。
+    # 完全一致だけでなく接頭辞も置き換える。ファイルの実在を見る検査
+    # （生成物の目印を持つ HTML の上書き等）は、REPO_ROOT に続けて
+    # リポジトリ内の相対パスを書いた形を使うためである（実測 2026-08-24:
+    # 完全一致だけの置換では実在するファイルを指せず、新規作成として
+    # 素通りしていた）。
     input="$(jq -c --arg root "$REPO_ROOT" \
-      '.cases['"$i"'].input | walk(if type == "string" and . == "REPO_ROOT" then $root else . end)' \
+      '.cases['"$i"'].input
+       | walk(if type == "string" then
+                if . == "REPO_ROOT" then $root
+                elif startswith("REPO_ROOT/") then $root + ltrimstr("REPO_ROOT")
+                else . end
+              else . end)' \
       "$cases_json")"
 
     run_one_case "$checker" "$label" "$expect" "$input"
@@ -163,6 +173,28 @@ run_self_test() {
   echo '{"cases":[]}' > "$tmp/empty.json"
   ( run_check "$tmp/empty.json" >/dev/null 2>&1 )
   assert "入力集が空なら判定不能" 2 $?
+
+  # ケース8: REPO_ROOT はパスの接頭辞としても置き換わる。
+  # 完全一致だけの置換では、ファイルの実在を見る検査が実在するファイルを
+  # 指せず素通りしていた（実測 2026-08-24）。
+  # このスクリプト自身の実在を、接頭辞の形で指せることで確かめる。
+  cat > "$tmp/prefix.json" <<'JSON'
+{"cases":[{"checker":"probe-exists","label":"接頭辞の置換","expect":"clean",
+  "input":{"path":"REPO_ROOT/generation-engine/scripts/tests/check-real-world-cases.sh"}}]}
+JSON
+  local substituted
+  substituted="$(jq -c --arg root "$REPO_ROOT" \
+    '.cases[0].input
+     | walk(if type == "string" then
+              if . == "REPO_ROOT" then $root
+              elif startswith("REPO_ROOT/") then $root + ltrimstr("REPO_ROOT")
+              else . end
+            else . end)' "$tmp/prefix.json" | jq -r '.path')"
+  if [ -f "$substituted" ]; then
+    assert "REPO_ROOT が接頭辞としても置き換わる" 0 0
+  else
+    assert "REPO_ROOT が接頭辞としても置き換わる（解決先: ${substituted}）" 0 1
+  fi
 
   echo "---"
   echo "SELF-TEST SUMMARY: 実行 $((n_pass + n_fail)) 件 合格 ${n_pass} 件 不合格 ${n_fail} 件"

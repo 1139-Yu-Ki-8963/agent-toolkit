@@ -176,6 +176,125 @@
       }
     },
     {
+      "checker": "check-full-scan-then-filter",
+      "label": "全件取得の直後に絞り込み",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/repo.ts", "content": "const all = await repo.findAll();\nconst active = all.filter((x) => x.active);\n" }
+      }
+    },
+    {
+      "checker": "check-full-scan-then-filter",
+      "label": "SELECT * のあとで絞り込み",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/repo.js", "content": "const rows = db.query(\"SELECT * FROM users\");\nconst hit = rows.filter(f);\n" }
+      }
+    },
+    {
+      "checker": "check-full-scan-then-filter",
+      "label": "絞り込みを問い合わせ側で行う",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "src/repo.ts", "content": "const active = await repo.find({ where: { active: true } });\n" }
+      }
+    },
+    {
+      "checker": "check-generated-html-manual-edit",
+      "label": "生成物の目印を持つHTMLを手で上書き",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "REPO_ROOT/generation-engine/samples/project-portal/図/状態遷移図.html", "content": "<html>手で書き換えた</html>" }
+      }
+    },
+    {
+      "checker": "check-generated-html-manual-edit",
+      "label": "新しいHTMLを作る",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "REPO_ROOT/docs/no-such-new-page.html", "content": "<html>新規</html>" }
+      }
+    },
+    {
+      "checker": "check-ai-config-derivative-manual-edit",
+      "label": "派生した規約を直接編集",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Edit",
+        "tool_input": { "file_path": ".claude/rules/always/foo/rule.md", "old_string": "a", "new_string": "b" }
+      }
+    },
+    {
+      "checker": "check-ai-config-derivative-manual-edit",
+      "label": "定義の側を編集",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Edit",
+        "tool_input": { "file_path": "docs/rules/always/foo/rule.md", "old_string": "a", "new_string": "b" }
+      }
+    },
+    {
+      "checker": "check-release-changelog-entry",
+      "label": "変更の履歴なしで公開する",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Bash",
+        "cwd": "/",
+        "tool_input": { "command": "npm publish" }
+      }
+    },
+    {
+      "checker": "check-release-changelog-entry",
+      "label": "公開ではないコマンド",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Bash",
+        "cwd": "/",
+        "tool_input": { "command": "npm install" }
+      }
+    },
+    {
+      "checker": "check-glossary-missing-forbidden-terms",
+      "label": "使わない語の区分が無い用語一覧",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "docs/用語.md", "content": "| 用語 | 識別子 | 定義 |\n|---|---|---|\n| 受注 | order | 注文を受けることである |\n" }
+      }
+    },
+    {
+      "checker": "check-glossary-missing-forbidden-terms",
+      "label": "使わない語の区分がある用語一覧",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "docs/用語.md", "content": "| 用語 | 識別子 | 定義 | 使わない語 |\n|---|---|---|---|\n| 受注 | order | 注文を受けることである | オーダー |\n" }
+      }
+    },
+    {
+      "checker": "check-business-rule-table-missing-exception",
+      "label": "例外の欄が無い判定表",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "docs/業務規則.md", "content": "| 名前 | 条件 | 結果 |\n|---|---|---|\n| 送料無料の判定 | 金額が1万円以上 | 送料無料 |\n" }
+      }
+    },
+    {
+      "checker": "check-business-rule-table-missing-exception",
+      "label": "名前と例外の欄がある判定表",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "docs/業務規則.md", "content": "| 名前 | 条件 | 結果 | 例外 |\n|---|---|---|---|\n| 送料無料の判定 | 金額が1万円以上 | 送料無料 | 離島は対象外 |\n" }
+      }
+    },
+    {
       "checker": "check-secret-in-command-args",
       "label": "秘密の値をコマンドの引数へ置く",
       "expect": "violation",
