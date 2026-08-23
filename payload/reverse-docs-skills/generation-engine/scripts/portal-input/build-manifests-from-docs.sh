@@ -207,7 +207,11 @@ append_aggregate_document_paths() {
       unit_dir="$root_dir/$kind-$unit_key"
     fi
     unit_obj="$(append_declared_document_paths "$unit_obj" "$decl_json" "$layout_json" "$kind" "$unit_dir" "$unit_list_dir_abs")" || return 1
-    enriched="$(printf '%s' "$enriched" | jq --argjson unit "$unit_obj" '. + [$unit]')"
+    # unit_objはfields/document Pathsとともに伸びるため、直接--argjsonを採らずjq -sを使う。
+    # この値での失敗実測はないが、900列での失敗と単一引数131,071バイトの実測がある。
+    # 引数長の上限は環境依存である。直接--argjsonへ戻してはならない。
+    # checkerが2026-08-23に許可リスト外使用を報告し、この箇所では初回対策となる（1-249）。
+    enriched="$(printf '%s\n%s\n' "$enriched" "$unit_obj" | jq -s '.[0] + [.[1]]')"
   done < <(printf '%s' "$units_json" | jq -c '.[]')
   printf '%s' "$enriched"
 }

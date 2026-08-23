@@ -17,7 +17,12 @@ document_paths_add_existing() {
 
   local fields_json
   fields_json="$(jq -cn '$ARGS.positional' --args "$@")" || return 1
-  printf '%s' "$input_json" | jq --arg value "$link_value" --argjson fields "$fields_json" '
-    reduce $fields[] as $field (. ; .[$field] = $value)
+  # fieldsは増加するため直接--argjsonを採らず、jq -sで両JSONを標準入力から読む。
+  # この値での失敗実測はないが、900列での失敗と単一引数131,071バイトの実測がある。
+  # 引数長の上限は環境依存である。直接--argjsonへ戻してはならない。
+  # checkerが2026-08-23に許可リスト外使用を報告し、この箇所では初回対策となる（1-249）。
+  printf '%s\n%s\n' "$input_json" "$fields_json" | jq -s --arg value "$link_value" '
+    .[0] as $input | .[1] as $fields
+    | reduce $fields[] as $field ($input; .[$field] = $value)
   '
 }
