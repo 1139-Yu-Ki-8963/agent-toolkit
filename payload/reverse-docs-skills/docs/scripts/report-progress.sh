@@ -34,6 +34,14 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 LEDGER="${REPO_ROOT}/docs/tasks/指摘改善一覧.md"
 ALLOWED_STATES="未着手 対応中 完了 対象外 未確認"
+self_test_tmpdir=""
+
+is_allowed_state() {
+  case " $ALLOWED_STATES " in
+    *" $1 "*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
 
 extract_issue_states() {
   local ledger="$1"
@@ -143,14 +151,13 @@ run_full_report() {
 
 run_self_test() {
   local pass=0 fail=0 total=0
-  local tmpdir=""
-  if ! tmpdir="$(mktemp -d 2>/dev/null)" || [ -z "$tmpdir" ]; then
+  if ! self_test_tmpdir="$(mktemp -d 2>/dev/null)" || [ -z "$self_test_tmpdir" ]; then
     echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境のサンドボックス制約等が原因である可能性があります）"
     exit 2
   fi
-  trap 'if [ -n "${tmpdir:-}" ]; then rm -rf "$tmpdir"; fi' EXIT
+  trap 'if [ -n "${self_test_tmpdir:-}" ]; then rm -rf "$self_test_tmpdir"; fi' EXIT
 
-  cat > "$tmpdir/case1.md" << 'EOF'
+  cat > "$self_test_tmpdir/case1.md" << 'EOF'
 ### 1-1. 見出しA
 **状態**: 完了
 
@@ -162,7 +169,7 @@ run_self_test() {
 EOF
   total=$((total + 1))
   local out1
-  out1="$(print_state_summary "$tmpdir/case1.md")"
+  out1="$(print_state_summary "$self_test_tmpdir/case1.md")"
   if echo "$out1" | grep -q "総数: 3件" && echo "$out1" | grep -q "完了: 1件" && echo "$out1" | grep -q "未着手: 1件" && echo "$out1" | grep -q "対応中: 1件"; then
     echo "  [PASS] 単純ケース-集計一致"
     pass=$((pass + 1))
@@ -172,7 +179,7 @@ EOF
     fail=$((fail + 1))
   fi
 
-  cat > "$tmpdir/case2.md" << 'EOF'
+  cat > "$self_test_tmpdir/case2.md" << 'EOF'
 ### 1-1. 見出しA
 **状態**: 未着手
 
@@ -185,7 +192,7 @@ EOF
 EOF
   total=$((total + 1))
   local out2
-  out2="$(print_state_summary "$tmpdir/case2.md")"
+  out2="$(print_state_summary "$self_test_tmpdir/case2.md")"
   if echo "$out2" | grep -q "総数: 2件" && echo "$out2" | grep -q "完了: 1件" && echo "$out2" | grep -q "未着手: 1件"; then
     echo "  [PASS] 複数状態行-二重カウントなし"
     pass=$((pass + 1))
@@ -197,7 +204,7 @@ EOF
 
   total=$((total + 1))
   local dupcount
-  dupcount="$(count_state_lines_per_heading "$tmpdir/case2.md" | awk -F'\t' '$2>1' | wc -l | tr -d ' ')"
+  dupcount="$(count_state_lines_per_heading "$self_test_tmpdir/case2.md" | awk -F'\t' '$2>1' | wc -l | tr -d ' ')"
   if [ "$dupcount" = "1" ]; then
     echo "  [PASS] 1見出し複数状態行の検出"
     pass=$((pass + 1))
@@ -226,14 +233,7 @@ EOF
   if [ -f "$LEDGER" ]; then
     local bad_values
     bad_values="$(extract_issue_states "$LEDGER" | sed -E 's/^[^\t]*\t\*\*状態\*\*: ([^（。]*).*/\1/' | LC_ALL=C sort -u | while IFS= read -r v; do
-      local allowed=0 state
-      for state in $ALLOWED_STATES; do
-        if [ "$v" = "$state" ]; then
-          allowed=1
-          break
-        fi
-      done
-      [ "$allowed" -eq 1 ] || echo "$v"
+      is_allowed_state "$v" || echo "$v"
     done)"
     if [ -n "$bad_values" ]; then
       echo "  [INFO] 規約外の状態値が実台帳に残っています（別途手動での是正が必要）: $(echo "$bad_values" | tr '\n' ' ')"
@@ -243,9 +243,13 @@ EOF
   echo "実行 ${total} 件 / 成功 ${pass} 件 / 失敗 ${fail} 件"
   local result=0
   [ "$fail" -eq 0 ] || result=1
-  rm -rf "$tmpdir"
-  tmpdir=""
-  trap - EXIT
+  if rm -rf "$self_test_tmpdir"; then
+    self_test_tmpdir=""
+    trap - EXIT
+  else
+    echo "[FAIL] 一時ディレクトリを削除できません: $self_test_tmpdir" >&2
+    result=1
+  fi
   return "$result"
 }
 
