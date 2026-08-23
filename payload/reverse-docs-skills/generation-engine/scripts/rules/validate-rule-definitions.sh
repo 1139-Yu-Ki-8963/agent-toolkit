@@ -80,6 +80,17 @@ add_warning() {
 validate_checker_declarations() {
   local actual declared duplicates undeclared missing rc=0
 
+  # 宣言データが無い環境では、宣言の網羅を判定する材料そのものが無い。
+  # 配備先（対象プロジェクトの docs/rules/ 配下）へ配ったこのスクリプトは
+  # delivery-payload を持たないため、この経路を必ず通る。
+  # 材料が無いことを「値が不正」と報告すると、対象の欠陥と実行環境の不足を
+  # 取り違える。宣言の検査だけを飛ばし、他の検査は続ける。
+  # 判定不能の規約: .claude/rules/always/verification/indeterminate-result/rule.md
+  if [ ! -f "$TAXONOMY_JSON" ]; then
+    echo "[UNKNOWN] 宣言データが無いため checker の宣言を判定できません（参照したパス: ${TAXONOMY_JSON}。配備先には delivery-payload が無いため、この経路では宣言の検査を行いません）" >&2
+    return 0
+  fi
+
   if ! jq -e '
     (.crossCuttingChecks | type == "array") and
     (.crossCuttingChecks | all(
