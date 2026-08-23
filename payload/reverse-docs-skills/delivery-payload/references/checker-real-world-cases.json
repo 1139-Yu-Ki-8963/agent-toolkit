@@ -288,6 +288,42 @@
     },
     {
       "checker": "check-business-rule-table-missing-exception",
+      "label": "例外の欄はあるが中身が空",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "docs/業務規則.md", "content": "| 名前 | 条件 | 結果 | 例外 |\n|---|---|---|---|\n| 送料無料の判定 | 金額が1万円以上 | 送料無料 |  |\n" }
+      }
+    },
+    {
+      "checker": "check-business-rule-table-missing-exception",
+      "label": "名前の欄はあるが中身が空",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "docs/業務規則.md", "content": "| 名前 | 条件 | 結果 | 例外 |\n|---|---|---|---|\n|  | 金額が1万円以上 | 送料無料 | 離島は対象外 |\n" }
+      }
+    },
+    {
+      "checker": "check-business-rule-table-missing-exception",
+      "label": "揃えの印を含む区切りの表",
+      "expect": "clean",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "docs/業務規則.md", "content": "| 名前 | 条件 | 結果 | 例外 |\n| :--- | :---: | ---: | --- |\n| 送料無料の判定 | 金額が1万円以上 | 送料無料 | 離島は対象外 |\n" }
+      }
+    },
+    {
+      "checker": "check-unit-test-design-doc-sections",
+      "label": "節が途中までのテスト設計書",
+      "expect": "violation",
+      "input": {
+        "tool_name": "Write",
+        "tool_input": { "file_path": "docs/design/単体テスト設計書.md", "content": "# 単体テスト設計書\n\n## §1 観点一覧\n\n本文\n\n## §2 実行ケース一覧\n\n本文\n" }
+      }
+    },
+    {
+      "checker": "check-business-rule-table-missing-exception",
       "label": "例外の欄が無い判定表",
       "expect": "violation",
       "input": {

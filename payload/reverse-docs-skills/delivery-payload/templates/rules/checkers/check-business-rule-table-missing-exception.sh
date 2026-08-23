@@ -214,6 +214,53 @@ EOF
   local header_hit
   header_hit=$(printf '%s\n' "$content" | grep -E '^\|' 2>/dev/null | grep -E '条件' 2>/dev/null | grep -E '結果' 2>/dev/null | head -1)
 
+  # 見出し行から目的の欄の位置を割り出し、データ行の同じ位置が空でないかを見る。
+  # 空の行が見つかれば、その行の先頭の欄（規則の名前にあたる部分）を返す。
+  #
+  # ここは全角文字どうしの完全一致比較（h == want）であるため LC_ALL=C を
+  # 明示する。UTF-8 のロケールでは macOS 標準の awk が多バイト文字列の ==
+  # を誤り、「例外」を探しているのに「名前」の位置を返した
+  # （実測 2026-08-24）。文字クラスでの照合には UTF-8 が要るが、完全一致には
+  # C が要る。両者を取り違えると逆の結果になる
+  # （.claude/rules/always/design-record/implementation-decision/rule.md の
+  # 「ロケールの使い分け」節）。
+  scan_blank_cell() {
+    local body="$1" header="$2" want="$3"
+    printf '%s\n' "$body" | LC_ALL=C awk -v hdr="$header" -v want="$want" '
+      BEGIN {
+        hn = split(hdr, hc, "|")
+        col = 0
+        for (i = 2; i < hn; i++) {
+          h = hc[i]; gsub(/^[ \t]+|[ \t]+$/, "", h)
+          if (h == want) { col = i; break }
+        }
+      }
+      col == 0 { exit }
+      /^\|/ {
+        if ($0 == hdr) next
+        # 区切り行の判定に空白を許すと、先頭の欄が空のデータ行（|  | 値 |）
+        # まで区切りと読み違え、その行を検査しないまま通していた
+        # （実測 2026-08-24: 名前の欄を空にした行が素通りした）。
+        # 区切り行は横棒を必ず含む。横棒の有無で見分ける。
+        if ($0 ~ /^\|[-: ]*-[-: ]*\|/) next
+        n = split($0, c, "|")
+        if (n <= col) next
+        v = c[col]; gsub(/^[ \t]+|[ \t]+$/, "", v)
+        if (v != "") next
+        # 空の欄を見つけた行を、他の欄の値で指し示す。名前の欄そのものが
+        # 空の場合は先頭から順に埋まっている欄を探す。名前が空のときに
+        # 名前で行を指すと、指す先が無くなるため。
+        label = ""
+        for (j = 2; j < n; j++) {
+          w = c[j]; gsub(/^[ \t]+|[ \t]+$/, "", w)
+          if (w != "") { label = w; break }
+        }
+        print (label == "" ? "すべての欄が空の行" : label)
+        exit
+      }
+    '
+  }
+
   if [ -z "$header_hit" ]; then
     echo "対象外[例外と境界を明示する]: 業務の判定表（条件・結果の見出しを持つ表）が見当たりません"
     echo "対象外[規則に名前を付けて参照する]: 業務の判定表（条件・結果の見出しを持つ表）が見当たりません"
@@ -223,6 +270,26 @@ EOF
   local missing=()
   printf '%s' "$header_hit" | grep -qE '例外' 2>/dev/null || missing+=("拒否[例外と境界を明示する]: 例外の欄が見当たりません（${header_hit}）")
   printf '%s' "$header_hit" | grep -qE '名前' 2>/dev/null || missing+=("拒否[規則に名前を付けて参照する]: 名前の欄が見当たりません（${header_hit}）")
+
+  if [ "${#missing[@]}" -gt 0 ]; then
+    printf '%s\n' "${missing[@]}"
+    return 2
+  fi
+
+  # 見出しがあっても、行の欄が空なら書いていないのと同じである。
+  # 見出しの有無だけを見ていたため、欄を用意して中身を空のままにした表が
+  # 通っていた（実測 2026-08-24: 例外・名前のいずれの欄を空にしても
+  # 終了コードは 0 だった）。見出しを足すだけで通せるのでは、境界条件を
+  # 書かせる目的も、規則に名前を付けさせる目的も果たせない。
+  local blank_ex blank_name
+  blank_ex="$(scan_blank_cell "$content" "$header_hit" '例外')"
+  blank_name="$(scan_blank_cell "$content" "$header_hit" '名前')"
+  if [ -n "$blank_ex" ]; then
+    missing+=("拒否[例外と境界を明示する]: 例外の欄が空の行があります（${blank_ex}）")
+  fi
+  if [ -n "$blank_name" ]; then
+    missing+=("拒否[規則に名前を付けて参照する]: 名前の欄が空の行があります（${blank_name}）")
+  fi
 
   if [ "${#missing[@]}" -gt 0 ]; then
     printf '%s\n' "${missing[@]}"
