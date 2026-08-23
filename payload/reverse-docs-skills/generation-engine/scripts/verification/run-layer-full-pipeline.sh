@@ -421,11 +421,27 @@ stage_type_extraction() {
 stage_unit_lists() {
   local any_fail=0 detail=""
 
+  # 一覧の出力先は配置の定義（output-layout.json）から解決する。
+  # 直に書いていたため、設計書のテンプレートが書く戻りリンクの指す先
+  # （定義どおりの英字のパス）と、実際の出力先（日本語のパス）が食い違い、
+  # 生成物のリンクが切れていた（実測 2026-08-24: 検証ループを通しで走らせ、
+  # 画面の基本設計書と詳細設計書から画面一覧への戻りが 2 件切れていた）。
+  local ul_layout ul_screen_dir ul_screen_html ul_units_root
+  ul_layout="$(resolve_output_layout "${OUTPUT_DIR}")" || ul_layout=""
+  if [ -n "${ul_layout}" ]; then
+    ul_screen_dir="$(output_layout_get "${ul_layout}" screenListDir 2>/dev/null)" || ul_screen_dir=""
+    ul_screen_html="$(output_layout_get "${ul_layout}" screenListHtml 2>/dev/null)" || ul_screen_html=""
+    ul_units_root="$(output_layout_get "${ul_layout}" unitsRoot 2>/dev/null)" || ul_units_root=""
+  fi
+  [ -n "${ul_screen_dir}" ] || ul_screen_dir="project-portal/lists/screens"
+  [ -n "${ul_screen_html}" ] || ul_screen_html="project-portal/lists/screens/画面一覧.html"
+  [ -n "${ul_units_root}" ] || ul_units_root="project-portal/lists"
+
   local screen_manifest="${MANIFESTS_DIR}/screen-manifest.json"
   local screen_script="${REPO_SELF}/generation-engine/scripts/unit-list/build-screen-list.sh"
   if [ -f "${screen_script}" ] && [ -f "${screen_manifest}" ]; then
-    mkdir -p "${PORTAL_DIR}/一覧/画面一覧"
-    run_cmd bash "${screen_script}" "${screen_manifest}" "${PORTAL_DIR}/一覧/画面一覧/画面一覧.html"
+    mkdir -p "${OUTPUT_DIR}/${ul_screen_dir}"
+    run_cmd bash "${screen_script}" "${screen_manifest}" "${OUTPUT_DIR}/${ul_screen_html}"
     [ "${LAST_RC}" -ne 0 ] && any_fail=1
     detail="${detail}screen=${LAST_RC}; "
   else
@@ -435,8 +451,8 @@ stage_unit_lists() {
   local feature_manifest="${MANIFESTS_DIR}/feature-manifest.json"
   local feature_script="${REPO_SELF}/generation-engine/scripts/unit-list/build-feature-list.sh"
   if [ -f "${feature_script}" ] && [ -f "${feature_manifest}" ]; then
-    mkdir -p "${PORTAL_DIR}/一覧/機能一覧"
-    run_cmd bash "${feature_script}" "${feature_manifest}" "${PORTAL_DIR}/一覧/機能一覧/機能一覧.html"
+    mkdir -p "${OUTPUT_DIR}/${ul_units_root}/features"
+    run_cmd bash "${feature_script}" "${feature_manifest}" "${OUTPUT_DIR}/${ul_units_root}/features/機能一覧.html"
     [ "${LAST_RC}" -ne 0 ] && any_fail=1
     detail="${detail}feature=${LAST_RC}; "
   else
@@ -454,9 +470,16 @@ stage_unit_lists() {
       external) label="外部連携" ;;
     esac
     manifest="${MANIFESTS_DIR}/${kind}-manifest.json"
+    # 一覧を置くフォルダの名前も定義（kindDirNames）から取る。
+    # 表示に使う日本語の名前をそのままフォルダ名にしていたため、設計書の
+    # 戻りリンクが指す先と食い違っていた。
+    local kind_dir
+    kind_dir="$(LC_ALL=C jq -r --arg k "${kind}" '.kindDirNames[$k] // empty' \
+      "${REPO_SELF}/delivery-payload/references/output-layout.json" 2>/dev/null)" || kind_dir=""
+    [ -n "${kind_dir}" ] || kind_dir="${kind}s"
     if [ -f "${unit_script}" ] && [ -f "${manifest}" ]; then
-      mkdir -p "${PORTAL_DIR}/一覧/${label}一覧"
-      run_cmd bash "${unit_script}" "${manifest}" "${PORTAL_DIR}/一覧/${label}一覧/${label}一覧.html" --unit-kind "${kind}"
+      mkdir -p "${OUTPUT_DIR}/${ul_units_root}/${kind_dir}"
+      run_cmd bash "${unit_script}" "${manifest}" "${OUTPUT_DIR}/${ul_units_root}/${kind_dir}/${label}一覧.html" --unit-kind "${kind}"
       [ "${LAST_RC}" -ne 0 ] && any_fail=1
       detail="${detail}${kind}=${LAST_RC}; "
     else
@@ -466,8 +489,8 @@ stage_unit_lists() {
 
   local message_manifest="${MANIFESTS_DIR}/message-manifest.json"
   if [ -f "${unit_script}" ] && [ -f "${message_manifest}" ]; then
-    mkdir -p "${PORTAL_DIR}/一覧/メッセージ一覧"
-    run_cmd bash "${unit_script}" "${message_manifest}" "${PORTAL_DIR}/一覧/メッセージ一覧/メッセージ一覧.html" --unit-kind message
+    mkdir -p "${OUTPUT_DIR}/${ul_units_root}/messages"
+    run_cmd bash "${unit_script}" "${message_manifest}" "${OUTPUT_DIR}/${ul_units_root}/messages/メッセージ一覧.html" --unit-kind message
     [ "${LAST_RC}" -ne 0 ] && any_fail=1
     detail="${detail}message=${LAST_RC}; "
   else
@@ -476,8 +499,8 @@ stage_unit_lists() {
 
   local viewpoint_manifest="${MANIFESTS_DIR}/test_viewpoint-manifest.json"
   if [ -f "${unit_script}" ] && [ -f "${viewpoint_manifest}" ]; then
-    mkdir -p "${PORTAL_DIR}/一覧/テスト観点表"
-    run_cmd bash "${unit_script}" "${viewpoint_manifest}" "${PORTAL_DIR}/一覧/テスト観点表/テスト観点表.html" --unit-kind test_viewpoint
+    mkdir -p "${OUTPUT_DIR}/${ul_units_root}/test-viewpoints"
+    run_cmd bash "${unit_script}" "${viewpoint_manifest}" "${OUTPUT_DIR}/${ul_units_root}/test-viewpoints/テスト観点表.html" --unit-kind test_viewpoint
     [ "${LAST_RC}" -ne 0 ] && any_fail=1
     detail="${detail}test-viewpoint=${LAST_RC}; "
   else
@@ -486,8 +509,8 @@ stage_unit_lists() {
 
   local testcase_manifest="${MANIFESTS_DIR}/test_case-manifest.json"
   if [ -f "${unit_script}" ] && [ -f "${testcase_manifest}" ]; then
-    mkdir -p "${PORTAL_DIR}/一覧/テストケース一覧"
-    run_cmd bash "${unit_script}" "${testcase_manifest}" "${PORTAL_DIR}/一覧/テストケース一覧/テストケース一覧.html" --unit-kind test_case
+    mkdir -p "${OUTPUT_DIR}/${ul_units_root}/test-cases"
+    run_cmd bash "${unit_script}" "${testcase_manifest}" "${OUTPUT_DIR}/${ul_units_root}/test-cases/テストケース一覧.html" --unit-kind test_case
     [ "${LAST_RC}" -ne 0 ] && any_fail=1
     detail="${detail}test-case=${LAST_RC}; "
   else
