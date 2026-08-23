@@ -19,7 +19,7 @@
   - generating-icon-catalog-for-reverse-docs
   - managing-semantic-glossary（承認済み用語YAMLのportal publish）
 - 図ページ生成1: generating-entity-state-for-reverse-docs（状態遷移図.html。基盤ページとは出力先が異なる派生ページ）
-- 派生一覧2: generating-message-list-for-reverse-docs（メッセージ一覧）・generating-test-viewpoint-list-for-reverse-docs（テスト観点表一覧）。種別ループ対象外、前提条件成立時のみ任意工程として起動
+- 派生一覧3: generating-message-list-for-reverse-docs（メッセージ一覧）・generating-test-viewpoint-list-for-reverse-docs（テスト観点表一覧）・generating-test-case-list-for-reverse-docs（テストケース一覧）。種別ループ対象外、前提条件成立時のみ任意工程として起動
 - 用語候補生成互換1:
   - generating-glossary-for-reverse-docs（対象repo外への `detected` proposal生成だけを行い、`NEEDS_REVIEW` で停止）
 - 任意計測1: counting-code-lines（Step 4-4でsurveying-local-environmentと共に必要時起動）
@@ -66,7 +66,7 @@
 
 ### generating-<種別>-list-for-reverse-docs（種別別一覧スキル6つ共通）
 
-- status: `DONE | ERROR`
+- status: `DONE | STOPPED | ERROR`
 - 拡張: unit_list_html（= artifacts[0]）、embedded_json_ref（HTML内埋め込みマニフェストJSONへの参照）、unit_kind（生成した種別）
 - `unit_kind=screen` の場合、screen_list_html は unit_list_html のエイリアスとして有効
 - `unit_kind=screen` かつ複雑度プロファイリング（Phase 5・`--profile`）を実行した場合のみ、拡張フィールド complexity_profile_path（複雑度プロファイル.json の絶対パス）を返す。未実行の場合は本フィールドを含めない
@@ -90,7 +90,14 @@
 - status: `DONE | ERROR`
 - 拡張: unit_list_html（= artifacts[0]）、embedded_json_ref（HTML内埋め込みマニフェストJSONへの参照）、unit_kind（`test_viewpoint` 固定）
 - テスト観点表一覧は既存文書の派生グルーピング（派生一覧）であり、unit_kinds_present の存在判定対象外。excluded-kinds.json の allKinds にも含めない
-- 入力前提: 各画面の `<screen_dir>/詳細設計/単体テスト観点表.md` が1件以上存在すること（不在時は status=ERROR で hint に前提工程を記録して返す）
+- 入力前提: いずれかの種別の `<kindUnitRoot>/<kind>-*/テスト設計/<種別>テスト設計書.md` または `<種別>単体テスト設計書.md` が1件以上存在すること。画面は新配置がない既存生成物に限り旧観点表へfallbackする（不在時は起動しない）
+
+### generating-test-case-list-for-reverse-docs（テストケース一覧・派生一覧）
+
+- status: `DONE | STOPPED | ERROR`
+- 拡張: unit_list_html（= artifacts[0]）、embedded_json_ref（HTML内埋め込みマニフェストJSONへの参照）、unit_kind（`test_case` 固定）
+- テストケース一覧は既存文書の派生グルーピング（派生一覧）であり、unit_kinds_present の存在判定対象外。excluded-kinds.json の allKinds にも含めない
+- 入力前提: いずれかの種別の `<kindUnitRoot>/<kind>-*/テスト設計/<種別>テスト設計書.md` または `<種別>単体テスト設計書.md` が1件以上存在すること。画面が存在する場合は操作シナリオ仕様書も集約元へ加え、新配置がない既存生成物に限り旧テスト仕様書へfallbackする（不在時は起動しない）
 
 ### generating-cross-views-for-reverse-docs（マトリクス・対応表生成・派生補完）
 
@@ -179,6 +186,7 @@
 - surveying-architecture-for-reverse-docs: target_repo_path, output_dir, template_root, target_branch（任意）, source_ref（任意）, mode（`survey`|`revise`、既定 `survey`）, revise_findings（mode=revise 時のみ必須）
 - generating-<種別>-list-for-reverse-docs（種別別一覧スキル6つ共通）: source_dir, output_dir（unit_kind はスキル名で固定されるため引数に無い。管理者は output_dir に `<output_dir>` を渡す。一覧HTMLは `<output_dir>/<unitListHtml>`（{label} に種別ラベルを代入）に出力され、ポータル `<output_dir>/index.html` への戻るリンクが張られる）, survey_doc_path（任意。unit_kind=screen のみ、Phase 1 共有ファイル・エイリアス調査の裏取り元として使用。他種別は未使用）
 - generating-feature-list-for-reverse-docs: source_dir, output_dir（管理者は `<output_dir>` を渡す。出力は `<output_dir>/<unitListHtml>`。{label}=「機能」）, survey_doc_path（任意。ルート定義等の所在特定の参考）
+- generating-test-viewpoint-list-for-reverse-docs / generating-test-case-list-for-reverse-docs: output_dir, portal_output_dir（任意。指定時は生成後に build-portal.sh を再実行してカードへ反映する）
 - generating-cross-views-for-reverse-docs: target_repo_path, output_dir, portal_output_dir（任意。指定時は生成後に build-portal.sh を再実行してカードへ反映する）, sites_path（任意）, site_key（任意）
 - generating-reverse-common-docs: target_repo_path, output_dir, template_root, survey_doc_path, mode（`v0`|`append`、既定 `v0`）, append_findings（mode=append 時のみ必須）
 - syncing-reverse-env: design-doc, mode（setup|sync|teardown）, dry-run, reset-first, user-approved, scenarios, max-loop（既存契約のまま）
@@ -377,7 +385,7 @@ screen 以外の種別も、api と table と batch と report と external は�
 
 feature（機能一覧）は種別ループの対象外である。派生一覧のため presentKinds にも excludedKinds にも載らず、global Step 10（画面一覧確立後）で生成される。到達状態の報告は 生成済み / 未生成 の2値で行う（表1に feature（派生）行として記載する）。
 
-メッセージ一覧・テスト観点表一覧（状態キー: 「派生一覧未生成（任意）」）も feature と同じ扱いで種別ループの対象外である。派生一覧のため presentKinds にも excludedKinds にも載らず、前提条件（メッセージ定義書.md（message）または per-画面の単体テスト観点表（test_viewpoint）が output_dir に存在すること）を満たした場合にのみ、任意工程として generating-message-list-for-reverse-docs / generating-test-viewpoint-list-for-reverse-docs を起動する。到達状態の報告は 生成済み / 未生成 の2値で行う（表1に派生一覧（メッセージ/テスト観点表）行として記載する）。
+メッセージ一覧・テスト観点表一覧・テストケース一覧（状態キー: 「派生一覧未生成（任意）」）も feature と同じ扱いで種別ループの対象外である。派生一覧のため presentKinds にも excludedKinds にも載せない。メッセージ定義書.md が存在する場合だけ generating-message-list-for-reverse-docs を起動する。いずれかの種別の `テスト設計/` 配下に2種類のテスト設計書の一方が存在する場合だけ、generating-test-viewpoint-list-for-reverse-docs と generating-test-case-list-for-reverse-docs を続けて起動し、画面が存在する場合だけテストケース一覧の集約元へ操作シナリオ仕様書を加える。到達状態の報告は 生成済み / 未生成 の2値で行う（表1に派生一覧（メッセージ/テスト観点表/テストケース一覧）行として記載する）。
 
 マトリクス・対応表4ページ・AI設定資産ページ（generating-cross-views-for-reverse-docs）も種別ループの対象外である。派生補完のため presentKinds にも excludedKinds にも載らず、global Step 11（機能一覧確立後）で生成される。到達状態の報告は 生成済み / 未生成 の2値で行う（表1にマトリクス・対応表（派生補完）行として記載する）。permission-function のみデータ形状ギャップにより個別に未生成となりうるため、報告時は5ページ中の生成数（例: 4/5）を併記する。
 

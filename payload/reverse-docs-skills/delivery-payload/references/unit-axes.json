@@ -114,6 +114,21 @@
     { "key": "sourceFile", "label": "抽出元", "appliesTo": ["message"], "order": 10 },
     { "key": "usedScreen", "label": "使用画面", "appliesTo": ["message"], "order": 20 },
 
+    {
+      "key": "sourceKind",
+      "label": "種別",
+      "appliesTo": ["test_case", "test_viewpoint"],
+      "order": 5,
+      "values": [
+        { "key": "screen", "label": "画面" },
+        { "key": "api", "label": "API" },
+        { "key": "table", "label": "テーブル" },
+        { "key": "batch", "label": "バッチ" },
+        { "key": "report", "label": "帳票" },
+        { "key": "external", "label": "外部連携" },
+        { "key": "feature", "label": "機能" }
+      ]
+    },
     { "key": "testType", "label": "テスト種別", "appliesTo": ["test_case", "test_viewpoint"], "order": 10 },
 
     { "key": "operationClass", "label": "操作区分", "appliesTo": ["feature"], "order": 10 },

@@ -398,7 +398,7 @@ EOF
   local viewpoint_manifest="$tmp/viewpoint.json" viewpoint_out="$tmp/viewpoint.html"
   jq -n '{
     unitKind:"test_viewpoint", generatedAt:"2026-01-01T00:00:00Z",
-    units:[{unitKey:"screen-login-unit-1",screenKey:"screen-login",testType:"unit",category:"入力",viewpoint:"必須入力"}],
+    units:[{unitKey:"screen-login-unit-1",screenKey:"screen-login",sourceKind:"screen",testType:"unit",category:"入力",viewpoint:"必須入力"}],
     summary:{totalCount:1,byTestType:{unit:1},byScreen:{"screen-login":1}}
   }' > "$viewpoint_manifest"
   if ! bash "$script_path" "$viewpoint_manifest" "$viewpoint_out" --unit-kind test_viewpoint >/dev/null 2>&1 \
@@ -413,7 +413,7 @@ EOF
   local test_case_manifest="$tmp/test-case.json" test_case_out="$tmp/test-case.html"
   jq -n '{
     unitKind:"test_case", generatedAt:"2026-01-01T00:00:00Z",
-    units:[{unitKey:"screen-login-unit-1",screenKey:"screen-login",testType:"unit",unitNameGuess:"合計0円-登録不可",kind:"unit",caseKey:"合計0円-登録不可",viewpointKey:"金額-下限境界",input:"total: 0",steps:"",expected:"isRegisterableがfalseを返す"}],
+    units:[{unitKey:"screen-login-unit-1",screenKey:"screen-login",sourceKind:"screen",testType:"unit",unitNameGuess:"合計0円-登録不可",kind:"unit",caseKey:"合計0円-登録不可",viewpointKey:"金額-下限境界",input:"total: 0",steps:"",expected:"isRegisterableがfalseを返す"}],
     summary:{totalCount:1,byTestType:{unit:1},byScreen:{"screen-login":1}}
   }' > "$test_case_manifest"
   if ! bash "$script_path" "$test_case_manifest" "$test_case_out" --unit-kind test_case >/dev/null 2>&1 \
@@ -437,9 +437,9 @@ EOF
   jq -n '{
     unitKind:"test_case", generatedAt:"2026-01-01T00:00:00Z",
     units:[
-      {unitKey:"screen-login-unit-1",screenKey:"screen-login",testType:"unit",unitNameGuess:"合計0円-登録不可",kind:"unit",caseKey:"合計0円-登録不可",viewpointKey:"金額-下限境界",input:"total: 0",steps:"",expected:"isRegisterableがfalseを返す"},
-      {unitKey:"screen-login-integration-1",screenKey:"screen-login",testType:"integration",unitNameGuess:"登録実行-一覧反映",kind:"integration",caseKey:"登録実行-一覧反映",viewpointKey:"登録-一覧反映",input:"必須項目入力済み",steps:"登録ボタンを押す",expected:"一覧に新規行が追加される"},
-      {unitKey:"screen-login-scenario-1",screenKey:"screen-login",testType:"scenario",unitNameGuess:"検索条件の絞り込み",kind:"scenario",caseKey:"検索条件の絞り込み",viewpointKey:"操作後-画面反映",input:"一覧に複数件表示中",steps:"",expected:"検索実行後、一覧テーブルが即座に更新される。"}
+      {unitKey:"screen-login-unit-1",screenKey:"screen-login",sourceKind:"screen",testType:"unit",unitNameGuess:"合計0円-登録不可",kind:"unit",caseKey:"合計0円-登録不可",viewpointKey:"金額-下限境界",input:"total: 0",steps:"",expected:"isRegisterableがfalseを返す"},
+      {unitKey:"screen-login-integration-1",screenKey:"screen-login",sourceKind:"screen",testType:"integration",unitNameGuess:"登録実行-一覧反映",kind:"integration",caseKey:"登録実行-一覧反映",viewpointKey:"登録-一覧反映",input:"必須項目入力済み",steps:"登録ボタンを押す",expected:"一覧に新規行が追加される"},
+      {unitKey:"screen-login-scenario-1",screenKey:"screen-login",sourceKind:"screen",testType:"scenario",unitNameGuess:"検索条件の絞り込み",kind:"scenario",caseKey:"検索条件の絞り込み",viewpointKey:"操作後-画面反映",input:"一覧に複数件表示中",steps:"",expected:"検索実行後、一覧テーブルが即座に更新される。"}
     ],
     summary:{totalCount:3,byTestType:{unit:1,integration:1,scenario:1},byScreen:{"screen-login":3}}
   }' > "$test_case_all_manifest"
@@ -455,8 +455,8 @@ EOF
   jq -n '{
     unitKind:"test_case", generatedAt:"2026-01-01T00:00:00Z",
     units:[
-      {unitKey:"screen-login-unit-1",screenKey:"screen-login",testType:"unit",unitNameGuess:"合計0円-登録不可",kind:"unit",caseKey:"合計0円-登録不可",viewpointKey:"金額-下限境界",input:"total: 0",steps:"",expected:"isRegisterableがfalseを返す"},
-      {unitKey:"screen-login-integration-1",screenKey:"screen-login",testType:"integration",unitNameGuess:"登録実行-一覧反映",kind:"integration",caseKey:"登録実行-一覧反映",viewpointKey:"登録-一覧反映",input:"必須項目入力済み",steps:"登録ボタンを押す",expected:"一覧に新規行が追加される"}
+      {unitKey:"screen-login-unit-1",screenKey:"screen-login",sourceKind:"screen",testType:"unit",unitNameGuess:"合計0円-登録不可",kind:"unit",caseKey:"合計0円-登録不可",viewpointKey:"金額-下限境界",input:"total: 0",steps:"",expected:"isRegisterableがfalseを返す"},
+      {unitKey:"screen-login-integration-1",screenKey:"screen-login",sourceKind:"screen",testType:"integration",unitNameGuess:"登録実行-一覧反映",kind:"integration",caseKey:"登録実行-一覧反映",viewpointKey:"登録-一覧反映",input:"必須項目入力済み",steps:"登録ボタンを押す",expected:"一覧に新規行が追加される"}
     ],
     summary:{totalCount:2,byTestType:{unit:1,integration:1,scenario:0},byScreen:{"screen-login":2}}
   }' > "$test_case_zero_manifest"

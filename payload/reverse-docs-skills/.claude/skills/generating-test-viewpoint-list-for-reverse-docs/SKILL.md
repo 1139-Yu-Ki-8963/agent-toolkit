@@ -13,7 +13,7 @@ orchestrating-ai-development-setup の派生一覧状態キーから起動され
 
 ## いつ使わないか
 
-output_dir 自体が存在しない時は使わない。
+output_dir 自体が存在しない時、またはいずれの設計種別にも2種類のテスト設計書の一方が存在しない時は使わない。
 
 # 正本: reverse-docs-skills
 
@@ -25,7 +25,7 @@ output_dir 自体が存在しない時は使わない。
 
 ## 使用タイミング
 
-- ポータルにテスト観点表カードを追加したいとき（観点表が 0 件でも空状態のページを生成する）
+- 1単位以上で2種類のテスト設計書の一方が確定済みで、ポータルにテスト観点表カードを追加したいとき
 - 起動引数: `output_dir`（設計単位ごとのテスト設計書の所在かつ出力先）・`portal_output_dir`（任意）
 - `portal_output_dir` を指定した場合、生成後に `build-portal.sh` を再実行してカードへ反映する
 
@@ -34,7 +34,7 @@ output_dir 自体が存在しない時は使わない。
 
 ## 設計原則
 
-- **転記のみ** — 観点の妥当性・網羅性は判定しない。設計単位ごとのテスト設計書に記載された事実（単位・由来章・観点文言）のみを転記する
+- **転記のみ** — 観点の妥当性・網羅性は判定しない。設計単位ごとのテスト設計書に記載された事実（種別・単位・由来章・観点文言）のみを転記する
 - **固定と可変の分離** — 抽出・整合検証・HTML 生成は、それぞれ決定的スクリプトに固定する。画面横断の走査と種別判定も、抽出スクリプト側の機械的パターンマッチに閉じる
 
 ## エンジンスクリプトの所在
@@ -63,9 +63,9 @@ output_dir 自体が存在しない時は使わない。
   jq '.summary.scannedByTestType // .summary.byTestType' <manifest.json>
   ```
 
-- **Step 2** — 件数が 0 でも停止しない。0 件は「観点表が 1 件も無い」という事実として後続へ引き渡し、Phase 4 で空状態のページを生成する。完了条件: 件数（0 を含む）が確定している
+- **Step 2** — 2種類のテスト設計書が全種別で 0 件なら、HTMLを生成せず `STOPPED` を返す。テスト設計書が1件以上存在するが確定行が0件の場合は後続へ進み、空状態のページを生成する。完了条件: 1件以上の実在確認済み、または不在を報告して停止している
 
-**完了**: 新配置優先・旧配置fallbackで有効なテスト設計書の件数（0 件を含む）が確定している
+**完了**: 新配置優先・旧配置fallbackで有効なテスト設計書の1件以上の実在確認済み、または不在を報告して停止している
 
 ## Phase 2: manifest JSON 横断集約（機械実行）
 
@@ -79,7 +79,7 @@ output_dir 自体が存在しない時は使わない。
   ../../../generation-engine/scripts/extract/aggregate-test-viewpoints.sh <output_dir> <manifest.json>
   ```
 
-- **Step 2** — `summary.totalCount`・`summary.byTestType`・`summary.byScreen` を確認する。0 件の場合もエラーにせず（本スクリプトは fail-safe 設計）、0 件である旨を Phase 4 完了報告の注記に残す。完了条件: 集約結果を確認済み
+- **Step 2** — `summary.totalCount`・`summary.byTestType`・`summary.byScreen` と各行の `sourceKind` を確認する。0 件の場合もエラーにせず（本スクリプトは fail-safe 設計）、0 件である旨を Phase 4 完了報告の注記に残す。完了条件: 集約結果を確認済み
 
 manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-viewpoint-manifest.json` とする。未設定時は `${TMPDIR:-/tmp}/claude-job-${session}/tmp/` 配下に置く。
 
@@ -97,7 +97,7 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-viewpoint-manifest.json`
   ../../../generation-engine/scripts/unit-list/validate-test-viewpoint-manifest.sh <manifest.json>
   ```
 
-- **Step 2** — FAIL 時は指摘に応じて manifest を修正し Step 1 を再実行する。3 回失敗したら Phase 2（集約スクリプトの入力＝per-screen 観点表.md の記法）の見直しへ差し戻す。完了条件: exit 0
+- **Step 2** — FAIL 時は指摘に応じて manifest を修正し Step 1 を再実行する。3 回失敗したら Phase 2（集約スクリプトの入力＝各設計単位のテスト設計書、または画面の旧観点表の記法）の見直しへ差し戻す。完了条件: exit 0
 
 **完了**: `validate-test-viewpoint-manifest.sh` が全項目 PASS
 
@@ -107,7 +107,7 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-viewpoint-manifest.json`
 
 **使用ツール**: Bash / Write
 
-- **Step 1** — HTML 生成スクリプトを実行する。集約結果が 0 件でも実行し、0 件である旨が読み手に伝わる空状態のページを生成する。完了条件: `<output_dir>/<unitsRoot>/テスト観点表/テスト観点表.html` が生成済み
+- **Step 1** — Phase 1 の前提が成立している場合にHTML生成スクリプトを実行する。テスト設計書は存在するが集約結果が 0 件の場合も実行し、0 件である旨が読み手に伝わる空状態のページを生成する。完了条件: `<output_dir>/<unitsRoot>/テスト観点表/テスト観点表.html` が生成済み
 
   ```
   ../../../generation-engine/scripts/unit-list/build-unit-list.sh <manifest.json> <output_dir>/<unitsRoot>/テスト観点表/テスト観点表.html --unit-kind test_viewpoint --portal-dir <output_dir>
@@ -127,11 +127,11 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-viewpoint-manifest.json`
 
 | Phase | 完了条件 |
 |---|---|
-| Phase 1 | 新配置優先・旧配置fallbackで有効なテスト設計書の件数（0 件を含む）が確定している |
+| Phase 1 | 新配置優先・旧配置fallbackで有効なテスト設計書の1件以上の実在確認済み、または不在を報告して停止している |
 | Phase 2 | manifest JSON が横断集約済み、集約結果（件数・種別内訳・画面内訳）を確認済み |
 | Phase 3 | `validate-test-viewpoint-manifest.sh` が全項目 PASS |
 | Phase 4 | `<output_dir>/<unitsRoot>/テスト観点表/テスト観点表.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
-| **Goal** | 設計単位ごとの2テスト設計書（既存生成物は旧観点表fallback）の事実のみからテスト観点表.html が横断生成され、0 件の場合もその旨が可視化されている |
+| **Goal** | 1件以上存在する設計単位ごとの2テスト設計書（既存生成物は旧観点表fallback）の事実のみからテスト観点表.html が横断生成され、確定行が0件の場合もその旨が可視化されている |
 
 ## 返却ブロック
 
@@ -139,11 +139,11 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-viewpoint-manifest.json`
 
 | キー | 値 |
 |---|---|
-| status | `DONE`（生成完了。観点表 0 件でも空状態ページを生成して `DONE`）\| `ERROR` |
-| artifacts | 生成したテスト観点表.html のパス（`ERROR` 時は空） |
+| status | `DONE`（生成完了）\| `STOPPED`（テスト設計書が1件も不在）\| `ERROR` |
+| artifacts | 生成したテスト観点表.html のパス（`STOPPED`/`ERROR` 時は空） |
 | unit_kind | `test_viewpoint`（固定値） |
 | portal_rebuilt | `true`（build-portal.sh 再実行済み）\| `false`（`portal_output_dir` 未指定のため省略） |
-| hint | 観点表が 0 件だった場合はその旨、または次工程への申し送り |
+| hint | 停止理由（テスト設計書不在）、確定行が 0 件だった場合はその旨、または次工程への申し送り |
 
 ## 重要な注意事項
 
@@ -154,8 +154,9 @@ manifest.json の保存先は `$CLAUDE_JOB_DIR/tmp/test-viewpoint-manifest.json`
 ## 予想を裏切る挙動
 
 - `aggregate-test-viewpoints.sh` は観点表が 1 件も見つからない場合もエラーにせず `units:[]` で正常終了する（fail-safe）。0 件を異常とみなしてリトライしない
-- 観点表が 0 件でも本スキルは停止せず、空状態のページを生成して `DONE` を返す。0 件は異常ではなく「まだ観点表が無い」という事実として成果物に残す
+- テスト設計書が1件も存在しない場合はHTMLを生成せず `STOPPED` を返す。テスト設計書は存在するが確定行が0件の場合だけ、空状態のページを生成して `DONE` を返す
 - `screenKey` はパス中の `screen-` で始まるディレクトリ名をそのまま使う。画面一覧の `screenKey` 命名と食い違う場合があっても本スキルは正規化しない（画面一覧側の命名を正とし、乖離は集約結果の `byScreen` から目視確認する）
+- 全行に集約元を示す `sourceKind` を持たせ、HTMLでは「種別」列として日本語表示する
 - `build-unit-list.sh` の `--unit-kind` は `screen` の場合のみ `build-screen-list.sh` へ委譲される。`test_viewpoint` は汎用テンプレート経路で生成される
 
 ## 完了報告

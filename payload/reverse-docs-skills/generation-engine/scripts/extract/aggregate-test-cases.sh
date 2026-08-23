@@ -16,7 +16,7 @@
 #   {
 #     unitKind: "test_case",
 #     generatedAt: string(UTC ISO8601),
-#     units: [{ unitKey, screenKey, testType, unitNameGuess, kind, caseKey, viewpointKey, input, steps, expected, screenTestCaseKey }],
+#     units: [{ unitKey, screenKey, sourceKind, testType, unitNameGuess, kind, caseKey, viewpointKey, input, steps, expected, screenTestCaseKey }],
 #     summary: {
 #       totalCount: number,
 #       byTestType: {unit, integration, scenario}(3種固定キー。検出0件も0で出力し、キーは脱落させない),
@@ -519,7 +519,7 @@ EOF
       and ([.units[].unitKey] | unique | length) == 2
       and any(.units[]; .caseKey == "認証-期限切れ拒否" and .viewpointKey == "認証-トークン期限切れ")
       and any(.units[]; .caseKey == "認証関数-期限切れ判定" and .viewpointKey == "認証関数-期限切れ")
-      and all(.units[]; .screenKey == "api-login" and .testType == "unit" and .input == "" and .steps == "" and .expected == "")' "$api_manifest" >/dev/null 2>&1; then
+      and all(.units[]; .screenKey == "api-login" and .sourceKind == "api" and .testType == "unit" and .input == "" and .steps == "" and .expected == "")' "$api_manifest" >/dev/null 2>&1; then
     echo "self-test PASS: API外部契約・関数単位の二文書を重複キーなしで集約"
   else
     echo "self-test FAIL: 非画面種別(API)のテストケース集約が不正" >&2
@@ -534,7 +534,9 @@ EOF
   cp -R "$docs/$screen_unit_root/screen-orders/テスト項目書/." "$mixed_docs/$screen_unit_root/screen-orders/テスト項目書/"
   cp "$api_docs/$api_unit_root/api-login/テスト設計/"*テスト設計書.md "$mixed_docs/$api_unit_root/api-login/テスト設計/"
   if bash "$script_path" "$mixed_docs" "$mixed_manifest" >/dev/null 2>&1 \
-    && jq -e '.summary.totalCount == 5 and ([.units[] | select(.screenKey == "api-login")] | length) == 2' "$mixed_manifest" >/dev/null 2>&1; then
+    && jq -e '.summary.totalCount == 5
+      and ([.units[] | select(.screenKey == "api-login" and .sourceKind == "api")] | length) == 2
+      and ([.units[] | select(.screenKey == "screen-orders" and .sourceKind == "screen")] | length) == 3' "$mixed_manifest" >/dev/null 2>&1; then
     echo "self-test PASS: 画面と非画面(API)のテストケースが両方集約される"
   else
     echo "self-test FAIL: 画面と非画面の混在集約が不正" >&2
@@ -606,7 +608,7 @@ screen_test_section_slice_awk='
   }
 '
 
-# テストケース: screenKey \t testType \t unitKey \t caseKey \t viewpointKey \t input \t steps \t expected \t screenTestCaseKey
+# テストケース: ownerKey \t testType \t unitKey \t caseKey \t viewpointKey \t input \t steps \t expected \t screenTestCaseKey \t sourceKind
 while IFS= read -r -d '' file; do
   relative_file="${file#"$output_dir/$screen_unit_root"/}"
   screen_key="${relative_file%%/*}"
@@ -668,7 +670,7 @@ while IFS= read -r -d '' file; do
         viewpointKey = $2; steps = ""; input = $3; expected = $4
       }
       scopeSuffix = (documentScope != "") ? "-" documentScope : ""
-      printf "%s\t%s\t%s-%s%s-%d\t%s\t%s\t%s\t%s\t%s\t\n", screenKey, testType, screenKey, testType, scopeSuffix, rownum, caseKey, viewpointKey, input, steps, expected
+      printf "%s\t%s\t%s-%s%s-%d\t%s\t%s\t%s\t%s\t%s\t\tscreen\n", screenKey, testType, screenKey, testType, scopeSuffix, rownum, caseKey, viewpointKey, input, steps, expected
     }
   ' "$tmp_rows" >> "$tmp_tsv"
   rm -f "$tmp_rows"
@@ -681,7 +683,7 @@ while IFS= read -r -d '' file; do
 done < <(find "$output_dir/$screen_unit_root" -mindepth 3 -maxdepth 3 -type f \
   \( -path "*/screen-*/テスト設計/画面単体テスト設計書.md" -o -path "*/screen-*/テスト設計/画面テスト設計書.md" \
      -o -path "*/screen-*/テスト項目書/単体テスト仕様書.md" -o -path "*/screen-*/テスト項目書/結合テスト仕様書.md" \) \
-  -print0)
+  -print0 2>/dev/null)
 
 # 操作シナリオ: シナリオ一覧表 + 各節の期待結果 + YAML契約を screenKey ごとに突合する
 scenario_contract_error=0
@@ -736,12 +738,12 @@ while IFS= read -r -d '' file; do
     [ -z "$scene_name" ] && continue
     expected="$(LC_ALL=C awk -F'\t' -v s="$scene_name" '$1 == s { print $2; exit }' "$tmp_expected")"
     scenario_rownum=$((scenario_rownum + 1))
-    printf '%s\tscenario\t%s-scenario-%d\t%s\t%s\t%s\t%s\t%s\t%s\n' \
+    printf '%s\tscenario\t%s-scenario-%d\t%s\t%s\t%s\t%s\t%s\t%s\tscreen\n' \
       "$screen_key" "$screen_key" "$scenario_rownum" "$scene_name" "$viewpoint_key" "$precondition" "" "$expected" "$screen_test_case_key" >> "$tmp_tsv"
   done < "$tmp_top"
   rm -f "$tmp_top" "$tmp_expected" "$tmp_yaml"
 done < <(find "$output_dir/$screen_unit_root" -mindepth 3 -maxdepth 3 -type f \
-  \( -path "*/screen-*/テスト設計/操作シナリオ仕様書.md" -o -path "*/screen-*/テスト項目書/操作シナリオ仕様書.md" \) -print0)
+  \( -path "*/screen-*/テスト設計/操作シナリオ仕様書.md" -o -path "*/screen-*/テスト項目書/操作シナリオ仕様書.md" \) -print0 2>/dev/null)
 
 if [ "$scenario_contract_error" -ne 0 ]; then
   exit 1
@@ -786,10 +788,10 @@ while IFS= read -r root_key; do
 
     LC_ALL=C awk -v startRe='^## §2 テストケース一覧[ \t]*$' "$section_slice_awk" "$file" \
       | LC_ALL=C awk -v firstHeader="キー" -v wantNames="対応する観点のキー" "$extract_named_table_awk" 2>"$tmp_excl" \
-      | awk -v ownerKey="$unit_key" -v documentScope="$document_scope" -F'\t' '
+      | awk -v ownerKey="$unit_key" -v documentScope="$document_scope" -v sourceKind="$kind" -F'\t' '
         {
           rownum++
-          printf "%s\tunit\t%s-%s-unit-%d\t%s\t%s\t\t\t\t\n", ownerKey, ownerKey, documentScope, rownum, $1, $2
+          printf "%s\tunit\t%s-%s-unit-%d\t%s\t%s\t\t\t\t\t%s\n", ownerKey, ownerKey, documentScope, rownum, $1, $2, sourceKind
         }
       ' >> "$tmp_tsv"
     excl_n="$(cat "$tmp_excl" 2>/dev/null || true)"
@@ -831,7 +833,8 @@ units_json="$(jq -R -s '
     input: .[5],
     steps: .[6],
     expected: .[7],
-    screenTestCaseKey: .[8]
+    screenTestCaseKey: .[8],
+    sourceKind: .[9]
   })
 ' < "$tmp_tsv")"
 

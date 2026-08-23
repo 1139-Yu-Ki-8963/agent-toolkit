@@ -15,7 +15,7 @@
 #   {
 #     unitKind: "test_viewpoint",
 #     generatedAt: string(UTC ISO8601),
-#     units: [{ unitKey, screenKey, testType, category, viewpoint }],
+#     units: [{ unitKey, screenKey, sourceKind, testType, category, viewpoint }],
 #     summary: { totalCount: number, byTestType: {...}, byScreen: {...} }
 #   }
 #
@@ -232,6 +232,7 @@ EOF
     && bash "$script_dir/../unit-list/validate-test-viewpoint-manifest.sh" "$api_manifest" >/dev/null 2>&1 \
     && jq -e '.summary.totalCount == 2
       and ([.units[].unitKey] | unique | length) == 2
+      and all(.units[]; .sourceKind == "api")
       and any(.units[]; .category == "外部仕様" and .viewpoint == "期限切れトークンで401を返す")
       and any(.units[]; .category == "§6 エラー処理" and .viewpoint == "期限切れを判定する")' "$api_manifest" >/dev/null 2>&1; then
     echo "self-test PASS: API外部契約・関数単位の由来章を重複キーなしで集約"
@@ -248,7 +249,9 @@ EOF
   cp "$docs/$screen_unit_root/screen-orders/詳細設計/単体テスト観点表.md" "$mixed_docs/$screen_unit_root/screen-orders/詳細設計/"
   cp "$api_docs/$api_unit_root/api-login/テスト設計/"*テスト設計書.md "$mixed_docs/$api_unit_root/api-login/テスト設計/"
   if bash "$script_path" "$mixed_docs" "$mixed_manifest" >/dev/null 2>&1 \
-    && jq -e '.summary.totalCount == 3 and ([.units[] | select(.screenKey == "api-login")] | length) == 2' "$mixed_manifest" >/dev/null 2>&1; then
+    && jq -e '.summary.totalCount == 3
+      and ([.units[] | select(.screenKey == "api-login" and .sourceKind == "api")] | length) == 2
+      and ([.units[] | select(.screenKey == "screen-orders" and .sourceKind == "screen")] | length) == 1' "$mixed_manifest" >/dev/null 2>&1; then
     echo "self-test PASS: 画面と非画面(API)のテスト観点が両方集約される"
   else
     echo "self-test FAIL: 画面と非画面の混在集約が不正" >&2
@@ -340,7 +343,7 @@ awk_program='
       if (pcols[1] !~ /^<.*>$/ && pcols[viewpointIdx] != "") {
         rownum++
         scopeSuffix = (documentScope != "") ? "-" documentScope : ""
-        printf "%s\t%s\t%s-%s%s-%d\t%s\t%s\n", screenKey, testType, screenKey, testType, scopeSuffix, rownum, category, pcols[viewpointIdx]
+        printf "%s\t%s\t%s-%s%s-%d\t%s\t%s\tscreen\n", screenKey, testType, screenKey, testType, scopeSuffix, rownum, category, pcols[viewpointIdx]
       }
     }
     pending = 0
@@ -443,7 +446,7 @@ while IFS= read -r -d '' file; do
 done < <(find "$output_dir/$screen_unit_root" -mindepth 3 -maxdepth 3 -type f \
   \( -path "*/screen-*/テスト設計/画面単体テスト設計書.md" -o -path "*/screen-*/テスト設計/画面テスト設計書.md" \
      -o -path "*/screen-*/詳細設計/単体テスト観点表.md" -o -path "*/screen-*/詳細設計/結合テスト観点表.md" \) \
-  -print0)
+  -print0 2>/dev/null)
 
 # --- 非画面種別(API・テーブル・バッチ・帳票・外部連携等)のテスト設計書「§1 テスト観点」の集約 ---
 # 対象種別は screenUnitRoot 以外の全 <種別>UnitRoot キーを output-layout.json から動的に導く
@@ -530,11 +533,11 @@ while IFS= read -r root_key; do
 
     awk -v startRe='^## §1 テスト観点[ \t]*$' "$section_slice_awk" "$file" \
       | LC_ALL=C awk -v firstHeader="キー" -v wantNames="観点,由来する基本設計書の章,由来する詳細設計書の章" "$named_table_awk" \
-      | awk -v ownerKey="$unit_key" -v documentScope="$document_scope" -F'\t' '
+      | awk -v ownerKey="$unit_key" -v documentScope="$document_scope" -v sourceKind="$kind" -F'\t' '
         {
           rownum++
           sourceChapter = ($4 != "") ? $4 : $3
-          printf "%s\tunit\t%s-%s-unit-%d\t%s\t%s\n", ownerKey, ownerKey, documentScope, rownum, sourceChapter, $2
+          printf "%s\tunit\t%s-%s-unit-%d\t%s\t%s\t%s\n", ownerKey, ownerKey, documentScope, rownum, sourceChapter, $2, sourceKind
         }
       ' >> "$tmp_tsv"
   done < <(find "$output_dir/$kind_root" -mindepth 3 -maxdepth 3 -type f \
@@ -557,7 +560,8 @@ units_json="$(jq -R -s '
     testType: .[1],
     unitKey: .[2],
     category: .[3],
-    viewpoint: .[4]
+    viewpoint: .[4],
+    sourceKind: .[5]
   })
 ' < "$tmp_tsv")"
 

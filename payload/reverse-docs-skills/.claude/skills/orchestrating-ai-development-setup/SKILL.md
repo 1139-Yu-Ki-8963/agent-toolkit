@@ -368,7 +368,7 @@ bash generation-engine/scripts/build-portal.sh \
 
 generating-entity-state-for-reverse-docs は基盤ページではなく図ページであり、raw画面正本とraw由来extが確定済みのときに `<output_dir>/project-portal/diagrams/状態遷移図.html` を生成する。
 
-メッセージ一覧・テスト観点表一覧は種別ループの対象外の派生一覧である。`references/contract.md`「種別ループ」節が定める前提条件（メッセージ定義書.md、または per-画面の単体テスト観点表が output_dir に存在すること）を満たす場合にのみ、任意工程として generating-message-list-for-reverse-docs / generating-test-viewpoint-list-for-reverse-docs を起動し、到達状態を生成済み/未生成の2値で記録する（状態キー「派生一覧未生成（任意）」）。
+メッセージ一覧・テスト観点表一覧・テストケース一覧は種別ループの対象外の派生一覧である。メッセージ定義書.md が存在する場合だけ generating-message-list-for-reverse-docs を起動する。いずれかの種別の `テスト設計/` 配下に2種類のテスト設計書の一方が存在する場合だけ、generating-test-viewpoint-list-for-reverse-docs と generating-test-case-list-for-reverse-docs を続けて起動し、画面が存在する場合だけテストケース一覧の集約元へ操作シナリオ仕様書を加える。到達状態は生成済み/未生成の2値で記録する（状態キー「派生一覧未生成（任意）」）。
 
 対象画面が4件以上なら running-reverse-screen-batch に global Step 17〜28・40〜41の実行を委譲し、3件以下は本スキルが同じglobal Stepを逐次仲介する。global Step 29〜39（API・機能・テーブル・バッチ・帳票・外部連携の各設計書著述）は画面ループの外・画面バッチへの委譲の外で1回だけ実行する非画面の工程であり、この委譲範囲に含めない。条件分岐は新しいPhase番号を作らない。
 

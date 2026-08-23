@@ -279,11 +279,11 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 
 <header>
   <h1>テストケース一覧生成スキル<br><span class="skill-name">generating-test-case-list-for-reverse-docs</span></h1>
-  <p>画面ごとの単体・結合・操作シナリオの 3 種のテスト仕様書を横断集約し、整合検証を通過したデータだけから <strong>テストケース一覧.html</strong> を生成する派生一覧スキルの確定仕様。</p>
+  <p>全設計種別の各単位にある2つのテスト設計書を横断集約し、画面がある場合だけ操作シナリオ仕様書も加え、整合検証を通過したデータから <strong>テストケース一覧.html</strong> を生成する派生一覧スキルの確定仕様。</p>
 
   <table class="meta-table">
     <tr><td>対応 OS</td><td>Windows WSL2 環境</td></tr>
-    <tr><td>検証状況</td><td>一覧生成エンジン（<code>build-unit-list.sh</code>）は画面一覧生成で実プロジェクト動作確認済み。3 種の横断集約と専用検証（<code>aggregate-test-cases.sh</code>・<code>validate-test-case-manifest.sh</code>）の単独実機検証は未実施。スキル専用のテストスクリプトは持たない</td></tr>
+    <tr><td>検証状況</td><td>2026-08-23 に横断集約・専用検証・一覧生成の self-test と、APIのみ・画面rootなしの一時入力による結合確認を実施済み</td></tr>
     <tr><td>依存</td><td>共有スクリプト <code>generation-engine/scripts/extract/aggregate-test-cases.sh</code>・<code>generation-engine/scripts/unit-list/validate-test-case-manifest.sh</code>・<code>generation-engine/scripts/unit-list/build-unit-list.sh</code> ／ 任意 <code>generation-engine/scripts/build-portal.sh</code></td></tr>
     <tr><td>関連資料</td><td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
   </table>
@@ -303,23 +303,23 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
-  <p>テストケースは画面ごとの仕様書に分かれて書かれるうえ、単体・結合・操作シナリオの 3 種に分かれている。システム全体で何件のケースがあり、どの画面が手薄かは、この状態では分からない。本スキルは 3 種を横断で集約し、1 つの表として引けるテストケース一覧.html を作成する。</p>
-  <p>出力はタブを持たない単一の表である。3 種を切り替えて見るのではなく、種別を列として持つ 1 枚の表にまとめることで、種別をまたいだ比較を可能にする。</p>
+  <p>テストケースは画面・API・テーブル・バッチ・帳票・外部連携・機能の各単位に分かれて書かれる。システム全体で何件のケースがあり、どの設計種別が手薄かは、この状態では分からない。本スキルは各単位の2テスト設計書を横断集約し、1 つの表として引けるテストケース一覧.html を作成する。</p>
+  <p>出力はタブを持たない単一の表である。集約元は「種別」列、単体・結合・操作シナリオは「テスト種別」列で区別し、種別をまたいだ比較を可能にする。</p>
 
   <div class="def">
     <dt>本スキルがやること</dt>
     <dd>3 種のテスト仕様書の横断集約・整合検証・テストケース一覧.html の生成</dd>
     <dt>本スキルがやらないこと</dt>
-    <dd>画面ごとのテスト仕様書の執筆（画面詳細設計書の生成工程の担当） ／ 観点の網羅性の評価（generating-test-viewpoint-list-for-reverse-docs の担当）</dd>
+    <dd>各設計単位のテスト設計書の執筆 ／ 観点の網羅性の評価（generating-test-viewpoint-list-for-reverse-docs の担当）</dd>
   </div>
 
   <h3>起動引数</h3>
   <table class="spec">
     <tr><th>引数</th><th>内容</th></tr>
-    <tr><td><code>output_dir</code></td><td>画面ごとのテスト仕様書の所在であり、テストケース一覧.html の書き出し先でもあるディレクトリ</td></tr>
+    <tr><td><code>output_dir</code></td><td>各設計単位のテスト設計書の所在であり、テストケース一覧.html の書き出し先でもあるディレクトリ</td></tr>
     <tr><td><code>portal_output_dir</code></td><td>任意。渡された場合のみポータルへ反映する</td></tr>
   </table>
-  <p class="note">画面ごとのテスト仕様書が 1 件も存在しない場合、本スキルは生成せず SKIP を返す。</p>
+  <p class="note">いずれの設計種別にもテスト設計書が 1 件も存在しない場合、本スキルは生成せず STOPPED を返す。</p>
 </section>
 
 <section id="s2">
@@ -341,8 +341,8 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
   <table class="spec">
     <tr><th>Phase</th><th>内容</th></tr>
-    <tr><td>Phase 1 集約対象の確認</td><td><code>output_dir</code> 配下に画面ごとのテスト仕様書が存在するかを確認する。0 件なら生成せず SKIP を返す</td></tr>
-    <tr><td>Phase 2 横断集約（機械実行）</td><td><code>aggregate-test-cases.sh</code> が 3 種の仕様書を走査し、マニフェストの JSON を組み立てる。確定行が 0 件の種別も、集約対象として走査した記録を残す</td></tr>
+    <tr><td>Phase 1 集約対象の確認</td><td><code>output_dir</code> 配下の全設計種別にテスト設計書が存在するかを確認する。0 件なら生成せず STOPPED を返す</td></tr>
+    <tr><td>Phase 2 横断集約（機械実行）</td><td><code>aggregate-test-cases.sh</code> が各単位の2テスト設計書を走査し、画面がある場合だけ操作シナリオ仕様書を加えてマニフェストの JSON を組み立てる。確定行が 0 件のテスト種別も、集約対象として走査した記録を残す</td></tr>
     <tr><td>Phase 3 整合検証（機械実行）</td><td><code>validate-test-case-manifest.sh</code> を実行する。全項目 PASS が次へ進む条件。FAIL は 3 回まで修正を試み、超過したら Phase 2 へ差し戻す</td></tr>
     <tr><td>Phase 4 生成</td><td><code>build-unit-list.sh</code> がテストケース一覧.html を出力する。<code>portal_output_dir</code> が渡されていれば <code>build-portal.sh</code> でポータルへ反映する</td></tr>
   </table>
@@ -368,7 +368,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <tr><td><code>SKILL.md</code></td><td>本スキルの手順の定義</td></tr>
     <tr><td><code>references/test-cases.md</code></td><td>本スキルの検証観点</td></tr>
     <tr><td>generating-test-viewpoint-list-for-reverse-docs</td><td>同じ派生一覧群。テスト観点の横断集約を担当する</td></tr>
-    <tr><td>generating-reverse-detailed-design</td><td>本スキルが集約する画面ごとのテスト仕様書を執筆する</td></tr>
+    <tr><td>各種別の設計書生成スキル</td><td>本スキルが集約する各設計単位のテスト設計書を執筆する</td></tr>
   </table>
 </section>
 

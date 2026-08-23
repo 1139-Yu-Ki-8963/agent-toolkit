@@ -7,7 +7,7 @@
 #        validate-test-case-manifest.sh --self-test
 set -euo pipefail
 
-REQUIRED_UNIT_KEYS="unitKey screenKey testType unitNameGuess kind caseKey viewpointKey input steps expected"
+REQUIRED_UNIT_KEYS="unitKey screenKey sourceKind testType unitNameGuess kind caseKey viewpointKey input steps expected"
 
 # ---------------------------------------------------------------------------
 # 検証本体
@@ -65,6 +65,7 @@ run_validate() {
   if ! jq -e '[.units[]? | select(
     (.unitKey | type) != "string"
     or (.screenKey | type) != "string"
+    or (.sourceKind | type) != "string"
     or (.testType | type) != "string"
     or (.unitNameGuess | type) != "string"
     or (.kind | type) != "string"
@@ -79,7 +80,15 @@ run_validate() {
   fi
   report "schema-ユニット必須" "$item_ok"
 
-  # 4. testType-許容値
+  # 4. sourceKind-許容値
+  local source_kind_ok=0
+  if ! jq -e '[.units[]? | select((.sourceKind == "screen" or .sourceKind == "api" or .sourceKind == "table" or .sourceKind == "batch" or .sourceKind == "report" or .sourceKind == "external" or .sourceKind == "feature") | not)] | length == 0' "$manifest" >/dev/null 2>&1; then
+    echo "    sourceKind must be one of screen/api/table/batch/report/external/feature" >&2
+    source_kind_ok=1
+  fi
+  report "sourceKind-許容値" "$source_kind_ok"
+
+  # 5. testType-許容値
   local type_ok=0
   if ! jq -e '[.units[]? | select((.testType == "unit" or .testType == "integration" or .testType == "scenario") | not)] | length == 0' "$manifest" >/dev/null 2>&1; then
     echo "    testType must be one of unit/integration/scenario" >&2
@@ -87,7 +96,7 @@ run_validate() {
   fi
   report "testType-許容値" "$type_ok"
 
-  # 5. 重複-unitKey
+  # 6. 重複-unitKey
   local dup_ok=0
   local total_keys unique_keys
   total_keys=$(jq '[.units[]?.unitKey] | length' "$manifest" 2>/dev/null || echo 0)
@@ -98,7 +107,7 @@ run_validate() {
   fi
   report "重複-unitKey" "$dup_ok"
 
-  # 6. summary-一致
+  # 7. summary-一致
   local sum_ok=0
   local declared_total actual_total declared_by_test_type actual_by_test_type declared_by_screen actual_by_screen
   declared_total=$(jq '.summary.totalCount // -1' "$manifest" 2>/dev/null || echo -1)
@@ -127,7 +136,7 @@ run_validate() {
   fi
   report "summary-一致" "$sum_ok"
 
-  echo "=== $((6 - fail_count))/6 PASS, ${fail_count}/6 FAIL ==="
+  echo "=== $((7 - fail_count))/7 PASS, ${fail_count}/7 FAIL ==="
   [ "$fail_count" -eq 0 ]
 }
 
@@ -143,11 +152,11 @@ self_test() {
 
   local pass_fixture="$tmp/pass.json"
   cat > "$pass_fixture" <<'JSON'
-{"unitKind":"test_case","generatedAt":"2026-01-01T00:00:00Z","units":[{"unitKey":"screen-login-unit-1","screenKey":"screen-login","testType":"unit","unitNameGuess":"合計0円-登録不可","kind":"unit","caseKey":"合計0円-登録不可","viewpointKey":"金額-下限境界","input":"total: 0","steps":"","expected":"isRegisterableがfalseを返す"},{"unitKey":"screen-login-integration-1","screenKey":"screen-login","testType":"integration","unitNameGuess":"登録実行-一覧反映","kind":"integration","caseKey":"登録実行-一覧反映","viewpointKey":"登録-一覧反映","input":"必須項目入力済み","steps":"登録ボタンを押す","expected":"一覧に新規行が追加される"}],"summary":{"totalCount":2,"byTestType":{"unit":1,"integration":1},"byScreen":{"screen-login":2}}}
+{"unitKind":"test_case","generatedAt":"2026-01-01T00:00:00Z","units":[{"unitKey":"screen-login-unit-1","screenKey":"screen-login","sourceKind":"screen","testType":"unit","unitNameGuess":"合計0円-登録不可","kind":"unit","caseKey":"合計0円-登録不可","viewpointKey":"金額-下限境界","input":"total: 0","steps":"","expected":"isRegisterableがfalseを返す"},{"unitKey":"screen-login-integration-1","screenKey":"screen-login","sourceKind":"screen","testType":"integration","unitNameGuess":"登録実行-一覧反映","kind":"integration","caseKey":"登録実行-一覧反映","viewpointKey":"登録-一覧反映","input":"必須項目入力済み","steps":"登録ボタンを押す","expected":"一覧に新規行が追加される"}],"summary":{"totalCount":2,"byTestType":{"unit":1,"integration":1},"byScreen":{"screen-login":2}}}
 JSON
 
   if _gt_out4="$(run_validate "$pass_fixture" 2>&1)"; then
-    echo "  [PASS] 陽性: 正当なtest_caseマニフェストで全6項目PASS"
+    echo "  [PASS] 陽性: 正当なtest_caseマニフェストで全7項目PASS"
   else
     echo "  [FAIL] 陽性: 正当なマニフェストがFAILした" >&2
     printf '%s\n' "$_gt_out4" | sed 's/^/    /' >&2
@@ -186,6 +195,26 @@ JSON
       echo "  [PASS] 陰性(ユニットキー欠落): ${required_key}欠落でFAIL"
     fi
   done
+
+  local null_source_kind="$tmp/null-source-kind.json"
+  jq '.units[0].sourceKind = null' "$pass_fixture" > "$null_source_kind"
+  if _gt_out_null_source_kind="$(run_validate "$null_source_kind" 2>&1)"; then
+    echo "  [FAIL] 陰性(sourceKind型): sourceKind=nullなのにPASSした" >&2
+    printf '%s\n' "$_gt_out_null_source_kind" | sed 's/^/    /' >&2
+    rc=1
+  else
+    echo "  [PASS] 陰性(sourceKind型): sourceKind=nullでFAIL"
+  fi
+
+  local bad_source_kind="$tmp/bad-source-kind.json"
+  jq '.units[0].sourceKind = "unknown"' "$pass_fixture" > "$bad_source_kind"
+  if _gt_out_source_kind="$(run_validate "$bad_source_kind" 2>&1)"; then
+    echo "  [FAIL] 陰性(sourceKind許容値): 未知のsourceKindなのにPASSした" >&2
+    printf '%s\n' "$_gt_out_source_kind" | sed 's/^/    /' >&2
+    rc=1
+  else
+    echo "  [PASS] 陰性(sourceKind許容値): 未知のsourceKindでFAIL"
+  fi
 
   local bad_type_value="$tmp/bad-type-value.json"
   jq '.units[0].testType = "manual"' "$pass_fixture" > "$bad_type_value"
