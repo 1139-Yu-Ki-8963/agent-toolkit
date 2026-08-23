@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "portalPaths": [
+    "project-portal/index.html"
+  ],
+  "displayCommitSources": [
+    "code-metrics.json",
+    "docs/manifests/code-metrics.json"
+  ],
+  "artifacts": [
+    {
+      "id": "screen-list",
+      "artifact": "画面一覧",
+      "requiredInputs": ["docs/manifests/screen-manifest.ext.json"],
+      "inputPrefixes": ["src/", "app/", "pages/", "frontend/", "client/", "web/"],
+      "rebuildCommand": "bash \"$REVERSE_DOCS_ENGINE/generation-engine/scripts/unit-list/build-unit-list.sh\" \"$OUTPUT_ROOT/docs/manifests/screen-manifest.ext.json\" \"$OUTPUT_ROOT/project-portal/lists/screens/画面一覧.html\" --unit-kind screen --portal-dir \"$OUTPUT_ROOT\""
+    },
+    {
+      "id": "api-list",
+      "artifact": "API一覧",
+      "requiredInputs": ["docs/manifests/api-manifest.ext.json"],
+      "inputPrefixes": ["src/", "app/", "api/", "server/", "backend/", "routes/"],
+      "rebuildCommand": "bash \"$REVERSE_DOCS_ENGINE/generation-engine/scripts/unit-list/build-unit-list.sh\" \"$OUTPUT_ROOT/docs/manifests/api-manifest.ext.json\" \"$OUTPUT_ROOT/project-portal/lists/apis/API一覧.html\" --unit-kind api --portal-dir \"$OUTPUT_ROOT\""
+    },
+    {
+      "id": "table-list",
+      "artifact": "テーブル一覧",
+      "requiredInputs": ["docs/manifests/table-manifest.ext.json"],
+      "inputPrefixes": ["src/", "db/", "database/", "migrations/", "schema/", "backend/"],
+      "rebuildCommand": "bash \"$REVERSE_DOCS_ENGINE/generation-engine/scripts/unit-list/build-unit-list.sh\" \"$OUTPUT_ROOT/docs/manifests/table-manifest.ext.json\" \"$OUTPUT_ROOT/project-portal/lists/tables/テーブル一覧.html\" --unit-kind table --portal-dir \"$OUTPUT_ROOT\""
+    },
+    {
+      "id": "feature-list",
+      "artifact": "機能一覧",
+      "requiredInputs": ["docs/manifests/feature-manifest.ext.json"],
+      "inputPrefixes": ["src/", "app/", "packages/", "frontend/", "backend/"],
+      "rebuildCommand": "bash \"$REVERSE_DOCS_ENGINE/generation-engine/scripts/unit-list/build-unit-list.sh\" \"$OUTPUT_ROOT/docs/manifests/feature-manifest.ext.json\" \"$OUTPUT_ROOT/project-portal/lists/features/機能一覧.html\" --unit-kind feature --portal-dir \"$OUTPUT_ROOT\""
+    },
+    {
+      "id": "portal-index",
+      "artifact": "入口のページの件数・更新日・技術情報",
+      "requiredInputs": [],
+      "inputPrefixes": ["src/", "app/", "pages/", "api/", "server/", "backend/", "frontend/", "client/", "web/", "packages/", "db/", "database/", "migrations/", "schema/", "config/"],
+      "rebuildCommand": "bash \"$REVERSE_DOCS_ENGINE/generation-engine/scripts/build-portal.sh\" \"$TARGET_REPO\" \"$OUTPUT_ROOT\" \"$OUTPUT_ROOT/project-portal\""
+    }
+  ]
+}
