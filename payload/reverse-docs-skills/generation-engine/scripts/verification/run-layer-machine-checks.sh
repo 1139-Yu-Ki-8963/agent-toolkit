@@ -278,6 +278,13 @@ declared_long_running_timeout() {
   esac
   case "$rel" in
     generation-engine/scripts/audit-consistency.sh) echo 200 ;;
+    # 実測 2026-08-24: --self-test は 122 秒（パイプ無し・出力破棄）。既定の
+    # 上限 120 秒では、見張りの誤差を入れた実時間の打ち切り点（約 124 秒）まで
+    # 2 秒しか余裕が無く、負荷が少し上がるだけで打ち切られていた。検査の内容に
+    # 問題が無いのに第 1 層の合否が実行環境の混み具合で変わるため、余裕を持つ
+    # 上限を与える。所要時間を縮める道は、内訳が 1 秒未満の多数のケースへ薄く
+    # 分散しており 1 箇所を直しても届かないと実測で分かっている。
+    generation-engine/scripts/build-portal.sh) echo 200 ;;
     generation-engine/scripts/extract/extract-batch-metadata.sh) echo 300 ;;
     generation-engine/scripts/extract/extract-table-metadata.sh) echo 300 ;;
     generation-engine/scripts/unit-list/detect-screens.sh) echo 260 ;;
@@ -1055,6 +1062,21 @@ EOS
       return 0
     fi
     return 1
+  }
+
+  # 上限の宣言も同じ理由で override する。fixture は本番と同じ相対パスを使う
+  # ため、本番側で build-portal.sh へ長い上限を登録すると、この fixture の
+  # sleep が完走してしまい打ち切りが起きず、分類ロジックを検証できなくなる
+  # （実測 2026-08-24: 本番へ 200 秒を登録した際にこのケースだけが落ちた）。
+  # fixture には既定の上限を使わせ、本番の登録から独立に検証する。
+  declared_long_running_timeout() {
+    local repo="$1" abs="$2" rel
+    rel="$abs"
+    case "$rel" in
+      "$repo"/*) rel="${rel#"$repo"/}" ;;
+    esac
+    [ "$rel" = "$self_test_declared_rel" ] && return 0
+    return 0
   }
 
   local outF rcF
