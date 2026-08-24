@@ -13,19 +13,37 @@
 #   同種の混入は今後も起こりうる。同期の前後どちらでも繰り返し確認できる、
 #   決定的なスクリプトとして1本に閉じる必要がある。
 #
-#   さらに、除外の定義（.names）はフォルダ・ファイルの実在は防ぐが、
-#   その名前を「本文の中で言及する」ことまでは防げない。実際に、除外済みの
-#   非公開スキルが1件あり、そのスキル本体はフォルダごと除外されていた
-#   一方、その名前と用途が複数件の公開ファイルの本文に残っていた実測がある
-#   （スキル本体は無いのに、無いはずのものの存在と役割だけが読み取れる状態）。
-#   check_no_forbidden_mentions はこの穴を、除外名を識別子・パスの1トークン
-#   として本文から検出することで塞ぐ。除外名そのものは .names 定義ファイルに
-#   だけ置き、本ファイルのソースへ直接書き込まない（本ファイル自身が
-#   payload 経由で配布されるため、直接書くと自分自身を不合格にする）。
+#   除外名（.names）には2つの性質があり、扱いを分ける。1つは非公開の
+#   「スキル」の名前（このリポジトリ固有の改善課題管理スキル等）。
+#   このマシンの .claude/skills/ 配下に同名のフォルダが実在する名前を
+#   スキルとみなす（forbidden_skill_names が判定）。スキルは存在自体を
+#   見せないため、フォルダ・ファイルとしての実在に加え、本文中の言及も
+#   禁止する（check_no_forbidden_mentions が担当）。もう1つは除外した
+#   「フォルダ・ファイル」の名前（例: work-records・session-prompts・
+#   .port-slot）。これらは中身さえ配らなければ、名前がパス参照として
+#   本文に出ても実害が無いため、フォルダ・ファイルとしての実在だけを
+#   検査し（check_no_forbidden_dirs が担当）、本文中の言及は許す。
+#   一律に本文言及を禁止していた旧版では、docs/tasks/done/ 配下の
+#   指示書がフォルダの名前へパス参照として言及しているだけの箇所まで
+#   過検出していた実測がある。
+#
+#   check_no_forbidden_mentions・check_no_local_paths・check_no_account_name は
+#   いずれも target を再帰的に grep するため、本ファイル自身が payload 経由で
+#   配布されると、自分が持つ判定用の文字列（除外名の既定値・自己テストの
+#   フィクスチャ等）で自分自身を誤って不合格にする実測がある。この自己一致を
+#   避けるため、自分自身のファイル名（BASH_SOURCE から導出。ハードコード
+#   しない）を grep の --exclude で走査対象から外す。除外名そのものは
+#   .names 定義ファイルにだけ置き、本ファイルのソースへ直接書き込まない
+#   （本ファイル自身が payload 経由で配布されるため、直接書くと自分自身を
+#   不合格にする）。
 #
 # 代替案を採用しなかった理由:
 #   - Bash ツール直叩き: 公開のたびに grep を手で組み立てて確認すると、検出パターンや
 #     走査範囲が実行のたびにぶれる
+#   - 除外名を一律に本文言及禁止のままにする: フォルダ・ファイルの名前
+#     （work-records 等）がパス参照として本文に出るのは実害が無いにも
+#     かかわらず、一律禁止だと過検出になる。実際に docs/tasks/done/ 配下の
+#     指示書4本・このスクリプト自身の2箇所が実害の無いまま不合格になっていた
 #   - 既存 check-publish-sync-gate.sh への機能追加: あちらは正本と origin/main の内容が
 #     一致しているか（乖離の有無）を見る検査であり、内容そのものに機密・固有情報が
 #     混入していないかという観点とは判定式が異なる
@@ -58,6 +76,23 @@ NAMES_FILE="${PAYLOAD_SAFETY_FORBIDDEN_NAMES_FILE:-$DEFAULT_NAMES_FILE}"
 HOME_PATH_PATTERN='/Users/MacPr[o]'
 GH_ACCOUNT_PATTERN='1139-Yu-K''i-896[3]'
 
+# 本ファイル自身を grep の走査対象から除外するための basename。
+# ファイル名を直接書き込まず、BASH_SOURCE から導く（自己一致の回避）。
+SELF_BASENAME="$(basename "${BASH_SOURCE[0]}")"
+
+# 除外名のうち「非公開のスキル」を判定するための基準ディレクトリ。
+# 除外名と同じ名前のフォルダが .claude/skills/ 配下に実在するかどうかで、
+# スキル（本文の言及も禁止）とフォルダ・ファイル（実在のみ禁止）を区別する。
+# 本スクリプトの配置（<repo>/docs/scripts/check-payload-safety.sh）から
+# リポジトリルートを導出する。
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+REPO_ROOT=""
+if [ -n "$SCRIPT_DIR" ]; then
+  REPO_ROOT="$(cd "$SCRIPT_DIR/../.." >/dev/null 2>&1 && pwd)"
+fi
+DEFAULT_SKILLS_DIR="${REPO_ROOT:+$REPO_ROOT/.claude/skills}"
+SKILLS_DIR="${PAYLOAD_SAFETY_SKILLS_DIR:-$DEFAULT_SKILLS_DIR}"
+
 unknown_missing_target() {
   local target="$1"
   echo "[UNKNOWN] 検査対象が見つからないため判定できません: ${target}（同期をまだ一度も実行していない可能性があります）" >&2
@@ -81,10 +116,30 @@ forbidden_names() {
   default_forbidden_names
 }
 
+# 除外名のうち、指定したスキルディレクトリ配下に同名のフォルダが
+# 実在するものだけを「非公開のスキル」として判定する。
+is_private_skill_name() {
+  local name="$1" skills_dir="$2"
+  [ -n "$skills_dir" ] && [ -d "$skills_dir/$name" ]
+}
+
+# 除外名のうち、非公開のスキルに該当するものだけを返す。
+# フォルダ・ファイルの名前（work-records 等）はここに含めない。
+forbidden_skill_names() {
+  local names_file="$1" skills_dir="$2"
+  local name
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    if is_private_skill_name "$name" "$skills_dir"; then
+      printf '%s\n' "$name"
+    fi
+  done < <(forbidden_names "$names_file")
+}
+
 check_no_local_paths() {
   local target="$1"
   local hits
-  hits="$(grep -rnE "$HOME_PATH_PATTERN" "$target" 2>/dev/null || true)"
+  hits="$(grep -rnE --exclude="$SELF_BASENAME" "$HOME_PATH_PATTERN" "$target" 2>/dev/null || true)"
   if [ -n "$hits" ]; then
     echo "[FAIL] 実行環境の固有パスが含まれています:"
     printf '%s\n' "$hits" | sed 's/^/  /'
@@ -96,7 +151,7 @@ check_no_local_paths() {
 check_no_account_name() {
   local target="$1"
   local hits
-  hits="$(grep -rnE "$GH_ACCOUNT_PATTERN" "$target" 2>/dev/null || true)"
+  hits="$(grep -rnE --exclude="$SELF_BASENAME" "$GH_ACCOUNT_PATTERN" "$target" 2>/dev/null || true)"
   if [ -n "$hits" ]; then
     echo "[FAIL] GitHubのアカウント名が含まれています:"
     printf '%s\n' "$hits" | sed 's/^/  /'
@@ -141,32 +196,36 @@ escape_ere() {
           -e 's/|/\\|/g'
 }
 
-# 名前が識別子・パスの1トークンとして本文に現れているかを検査する。
-# 前後がASCII英数字・ハイフン・アンダースコアでない（＝行頭/行末を含む）
-# 場合だけ一致とみなす。これにより surveying-local-environment のような、
-# 除外名を部分文字列として含むだけの正当な複合語を誤検出しない。
+# 非公開のスキルの名前が、識別子・パスの1トークンとして本文に現れて
+# いないかを検査する。前後がASCII英数字・ハイフン・アンダースコアでない
+# （＝行頭/行末を含む）場合だけ一致とみなす。これにより
+# surveying-local-environment のような、除外名を部分文字列として含むだけの
+# 正当な複合語を誤検出しない。対象は除外名のうち「非公開のスキル」だけで
+# あり、除外した「フォルダ・ファイル」の名前（work-records 等）は
+# パス参照として本文に出ても実害が無いため対象に含めない
+# （forbidden_skill_names が絞り込む）。
 check_no_forbidden_mentions() {
-  local target="$1" names_file="$2"
+  local target="$1" names_file="$2" skills_dir="$3"
   local failed=0 name escaped pattern hits examined=0
   while IFS= read -r name; do
     [ -n "$name" ] || continue
     examined=$((examined + 1))
     escaped="$(escape_ere "$name")"
     pattern="(^|[^A-Za-z0-9_-])${escaped}([^A-Za-z0-9_-]|\$)"
-    hits="$(grep -rnE "$pattern" "$target" 2>/dev/null || true)"
+    hits="$(grep -rnE --exclude="$SELF_BASENAME" "$pattern" "$target" 2>/dev/null || true)"
     if [ -n "$hits" ]; then
-      echo "[FAIL] 除外すべき名前が本文に含まれています: ${name}"
+      echo "[FAIL] 非公開のスキルの名前が本文に含まれています: ${name}"
       printf '%s\n' "$hits" | sed 's/^/  /'
       failed=1
     fi
-  done < <(forbidden_names "$names_file")
-  echo "[INFO] 除外名 ${examined} 件すべてについて本文の言及を調べました" >&2
+  done < <(forbidden_skill_names "$names_file" "$skills_dir")
+  echo "[INFO] 除外名のうち非公開のスキル ${examined} 件について本文の言及を調べました" >&2
   FORBIDDEN_MENTIONS_EXAMINED="$examined"
   return "$failed"
 }
 
 run_check() {
-  local target="$1" names_file="$2"
+  local target="$1" names_file="$2" skills_dir="${3:-$SKILLS_DIR}"
   [ -d "$target" ] || { unknown_missing_target "$target"; return 2; }
 
   local failed=0
@@ -175,10 +234,10 @@ run_check() {
   check_no_local_paths "$target" || failed=1
   check_no_account_name "$target" || failed=1
   check_no_forbidden_dirs "$target" "$names_file" || failed=1
-  check_no_forbidden_mentions "$target" "$names_file" || failed=1
+  check_no_forbidden_mentions "$target" "$names_file" "$skills_dir" || failed=1
 
   if [ "$failed" -eq 0 ]; then
-    echo "[PASS] payloadの安全性検査（4件。うち本文の言及検査は除外名${FORBIDDEN_MENTIONS_EXAMINED}件すべてを調査）に合格しました: ${target}"
+    echo "[PASS] payloadの安全性検査（4件。うち本文の言及検査は非公開のスキル${FORBIDDEN_MENTIONS_EXAMINED}件を調査）に合格しました: ${target}"
     return 0
   fi
   return 1
@@ -257,8 +316,9 @@ run_self_test() {
   mkdir -p "$tmp/forbidden-dir/docs/tasks/work-records"
   printf 'dummy\n' > "$tmp/forbidden-dir/docs/tasks/work-records/note.md"
 
-  # ケース6: 除外すべき名前がフォルダとしては実在しないが、本文の中で
-  # 独立した識別子として言及されている（本課題の主眼）。
+  # ケース6: 除外したフォルダの名前がフォルダとしては実在しないが、
+  # パス参照として本文の中で言及されている。フォルダ・ファイルの名前は
+  # 中身さえ配らなければ言及自体に実害が無いため、合格になるべきである。
   mkdir -p "$tmp/mention/docs"
   printf 'この節は work-records の使い方を説明する。\n' > "$tmp/mention/docs/guide.md"
 
@@ -276,16 +336,51 @@ run_self_test() {
   local names_file="$tmp/forbidden-names.json"
   printf '{"names":["work-records","session-prompts"]}\n' > "$names_file"
 
-  record_self_test "正常系は合格" 0 run_check "$tmp/clean" "$names_file"
-  record_self_test "固有パスの混入を検出" 1 run_check "$tmp/local-path" "$names_file"
-  record_self_test "汎用の/Users/だけでは誤検出しない" 0 run_check "$tmp/generic-users-path" "$names_file"
-  record_self_test "アカウント名の混入を検出" 1 run_check "$tmp/account" "$names_file"
-  record_self_test "除外フォルダの残存を検出" 1 run_check "$tmp/forbidden-dir" "$names_file"
-  record_self_test "対象不在を判定不能として区別" 2 run_check "$missing_target" "$names_file"
-  record_self_test "本文の言及を検出" 1 run_check "$tmp/mention" "$names_file"
-  record_self_test "部分文字列だけの複合語は誤検出しない" 0 run_check "$tmp/substring-only" "$names_file"
-  record_self_test_output "除外名の調査件数を報告する" "除外名 2 件すべて" \
-    run_check "$tmp/clean" "$names_file"
+  # 非公開のスキルとフォルダ・ファイルの両方を含む定義ファイルと、
+  # 「非公開のスキル」を模した一時スキルディレクトリを用意する。
+  # secret-skill という名前は、この一時ディレクトリの中にだけ実在する
+  # フォルダとして .claude/skills/ 配下にあるスキルを模す。
+  local mixed_names_file="$tmp/mixed-forbidden-names.json"
+  printf '{"names":["work-records","session-prompts","secret-skill"]}\n' \
+    > "$mixed_names_file"
+  local skills_tmp="$tmp/skills"
+  mkdir -p "$skills_tmp/secret-skill"
+  # フォルダ・ファイル型の名前に対する検査結果が、スキルディレクトリの
+  # 有無に依存しないことを確認するため、スキルを1件も持たない基準
+  # ディレクトリも別に用意する。
+  local skills_empty="$tmp/skills-empty"
+  mkdir -p "$skills_empty"
+
+  # ケース8: 非公開のスキルの名前が、フォルダとしては実在しないが
+  # 本文の中で独立した識別子として言及されている（本課題の主眼）。
+  mkdir -p "$tmp/skill-mention/docs"
+  printf 'この節は secret-skill というスキルの使い方を説明する。\n' \
+    > "$tmp/skill-mention/docs/guide.md"
+
+  # ケース9: 非公開のスキルのフォルダ自体が誤って実在する。
+  mkdir -p "$tmp/skill-dir-exists/some/nested/secret-skill"
+  printf 'dummy\n' > "$tmp/skill-dir-exists/some/nested/secret-skill/SKILL.md"
+
+  # ケース10: 検査自身（本ファイルと同じ basename）が持つ文字列（除外名の
+  # 既定値・自己テストのフィクスチャ等）で、自分自身を誤って不合格にしない
+  # ことを確認する。
+  mkdir -p "$tmp/self-exclude/docs/scripts"
+  printf '# secret-skill という語を含む自己言及のダミー\n' \
+    > "$tmp/self-exclude/docs/scripts/$SELF_BASENAME"
+
+  record_self_test "正常系は合格" 0 run_check "$tmp/clean" "$names_file" "$skills_empty"
+  record_self_test "固有パスの混入を検出" 1 run_check "$tmp/local-path" "$names_file" "$skills_empty"
+  record_self_test "汎用の/Users/だけでは誤検出しない" 0 run_check "$tmp/generic-users-path" "$names_file" "$skills_empty"
+  record_self_test "アカウント名の混入を検出" 1 run_check "$tmp/account" "$names_file" "$skills_empty"
+  record_self_test "除外フォルダの残存を検出" 1 run_check "$tmp/forbidden-dir" "$names_file" "$skills_empty"
+  record_self_test "対象不在を判定不能として区別" 2 run_check "$missing_target" "$names_file" "$skills_empty"
+  record_self_test "フォルダ名の言及は合格になる" 0 run_check "$tmp/mention" "$mixed_names_file" "$skills_tmp"
+  record_self_test "部分文字列だけの複合語は誤検出しない" 0 run_check "$tmp/substring-only" "$names_file" "$skills_empty"
+  record_self_test "非公開スキルの名前の言及を検出" 1 run_check "$tmp/skill-mention" "$mixed_names_file" "$skills_tmp"
+  record_self_test "除外した非公開スキルのフォルダが実在すると不合格になる" 1 run_check "$tmp/skill-dir-exists" "$mixed_names_file" "$skills_tmp"
+  record_self_test "検査自身のファイルは走査から除外される" 0 run_check "$tmp/self-exclude" "$mixed_names_file" "$skills_tmp"
+  record_self_test_output "本文の言及検査は非公開のスキルだけを調べる" "非公開のスキル 1 件" \
+    run_check "$tmp/clean" "$mixed_names_file" "$skills_tmp"
 
   echo "実行 ${total} 件 / 成功 ${pass} 件 / 失敗 ${fail} 件"
   local result=0
