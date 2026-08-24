@@ -42,7 +42,7 @@ set -euo pipefail
 #      行は復号可否検査の対象外とする（UNKNOWNは明示的な判定不能の申告であり、検証不能な
 #      値との復号照合はできないため）。
 #
-#   いずれか1件でも違反があれば exit 1（fail-closed）。全件PASSでexit 0。
+#   いずれか1件でも違反があれば exit 1（fail-closed）。実行不能だけならexit 2、全件PASSでexit 0。
 #   --self-test は合成フィクスチャで陽性exit 0・陰性(検査ごと)exit 1を自己検証する。
 #
 # 設計判断（ADR）の正本は本スキルの SKILL.md「## 設計判断」に記載する。
@@ -58,6 +58,50 @@ PLACEHOLDER_RE='<実測|<FILL|TBD|TODO|調査結果を記入'
 # 実在しないことを述べるための否定文脈マーカー（改善課題1-115）。backtickトークンの先頭に
 # このマーカーを付けると（例: `非実在:src/legacy/old.ts`）、検査1の実在チェックを免除する。
 NOT_EXIST_MARKER="非実在:"
+MIRROR_MAX_BYTES_DEFAULT=1073741824
+MIRROR_TMP_ROOT="${TMPDIR:-/tmp}"
+REGISTERED_MIRRORS=""
+PREPARED_MIRROR=""
+CHECK_PASS_COUNT=0
+CHECK_FAIL_COUNT=0
+CHECK_UNKNOWN_COUNT=0
+MIRROR_ACTIVE_CHILD_PID=""
+
+# 一時ミラーは、このプロセスがmktemp直後に登録したarchitecture-survey-mirrorだけを
+# 削除する。単純なrm -rf "${TMPDIR:-/tmp}"やglobを使わないのは、過去の残留物や
+# 他プロセスのミラーを巻き込まず、TERM/INT時にも所有権を証明できる対象だけを消すため。
+cleanup_registered_mirrors() {
+  registered="$REGISTERED_MIRRORS"
+  while IFS= read -r registered_mirror; do
+    [ -z "$registered_mirror" ] && continue
+    case "$registered_mirror" in
+      "$MIRROR_TMP_ROOT"/architecture-survey-mirror.*)
+        if [ -d "$registered_mirror" ] && [ ! -L "$registered_mirror" ]; then
+          rm -rf -- "$registered_mirror"
+        fi
+        ;;
+    esac
+  done <<CLEANUP_MIRRORS
+$registered
+CLEANUP_MIRRORS
+  REGISTERED_MIRRORS=""
+}
+
+handle_mirror_signal() {
+  signal_status="$1"
+  if [ -n "$MIRROR_ACTIVE_CHILD_PID" ]; then
+    kill -TERM "$MIRROR_ACTIVE_CHILD_PID" 2>/dev/null || true
+    wait "$MIRROR_ACTIVE_CHILD_PID" 2>/dev/null || true
+    MIRROR_ACTIVE_CHILD_PID=""
+  fi
+  cleanup_registered_mirrors
+  trap - EXIT INT TERM
+  exit "$signal_status"
+}
+
+trap cleanup_registered_mirrors EXIT
+trap 'handle_mirror_signal 130' INT
+trap 'handle_mirror_signal 143' TERM
 
 # backtick囲みトークンのうち「相対パス」とみなせるもの以外を除外する判定。
 # 除外: 「/」を含まない / URL / glob / プレースホルダ / 絶対パス / 空白・正規表現記号を含む /
@@ -110,7 +154,7 @@ table_col() {
 }
 
 # コマンド文字列のうち、シングル/ダブルクオート内ではない位置にシェル連結記号
-# （; & | ` $( ）があるかを判定する。クオート内の同じ文字（grepのOR条件 `|` 等）は
+# （; & | < > ` $( ）があるかを判定する。クオート内の同じ文字（grepのOR条件 `|` 等）は
 # コマンド連結とみなさない。真（連結あり）なら0、偽（連結なし）なら1を返す。
 has_unquoted_shell_chain() {
   cmd="$1"
@@ -124,7 +168,7 @@ has_unquoted_shell_chain() {
     else
       case "$c" in
         "'"|'"') q="$c" ;;
-        ';'|'&'|'|'|'`') return 0 ;;
+        ';'|'&'|'|'|'<'|'>'|'`') return 0 ;;
         '$')
           nc="${cmd:$((i + 1)):1}"
           [ "$nc" = "(" ] && return 0
@@ -166,26 +210,294 @@ extract_section8() {
   LC_ALL=C awk '/^## .*後続工程への申し送り/{f=1;next} /^## [^#]|^---$/{if(f)exit} f' "$1"
 }
 
-# repo を丸ごとコピーし、非UTF-8ファイルを detect-encoding.sh でUTF-8へ変換した
-# 一時ミラーを作る（1-140: 検出手がかりコマンドの再実行を非UTF-8原本に対しても
-# 正しく行うため）。呼び出し元がミラーパスをrm -rfで片付ける。
+# 実測では3.9GiB・96,660ファイルの全体複製が9分半でも検査1から進まず、判定を
+# 返せなかった。したがって、この処理を全体cpへ戻さず、grep/rg/findの引数をshlexで
+# 分解して実際に読む相対パスだけを抽出する。
+# オプション値をパスと誤認すると無関係な範囲を複製するため、未対応・曖昧な構文は
+# 全体複製へ倒さず判定不能にする。親パスが含まれる子パスはここで除き、同じ木を1回だけ扱う。
+extract_hint_paths() {
+  python3 - "$1" <<'PY'
+import posixpath
+import shlex
+import sys
+
+cmd = sys.argv[1]
+try:
+    tokens = shlex.split(cmd, posix=True)
+except ValueError:
+    sys.exit(2)
+if not tokens or tokens[0] not in {"grep", "rg", "find"}:
+    sys.exit(2)
+
+command = tokens[0]
+args = tokens[1:]
+paths = []
+if command == "find":
+    i = 0
+    while i < len(args):
+        arg = args[i]
+        if arg in {"-H", "-L", "-P"} or arg.startswith("-O"):
+            i += 1
+            continue
+        if arg == "-D":
+            if i + 1 >= len(args):
+                sys.exit(2)
+            i += 2
+            continue
+        break
+    for arg in args[i:]:
+        if arg == "--":
+            continue
+        if arg.startswith("-") or arg in {"!", "(", ")"}:
+            break
+        paths.append(arg)
+    if not paths:
+        paths = ["."]
+else:
+    value_options = {
+        "--after-context", "--before-context", "--binary-files",
+        "--color", "--colors", "--context", "--context-separator",
+        "--dfa-size-limit", "--directories", "--encoding", "--engine",
+        "--exclude", "--exclude-dir", "--field-context-separator",
+        "--field-match-separator", "--file", "--glob", "--iglob",
+        "--ignore-file", "--include", "--label", "--max-columns",
+        "--max-count", "--max-depth", "--max-filesize", "--path-separator",
+        "--pre", "--pre-glob", "--regex-size-limit", "--regexp", "--replace",
+        "--sort", "--sortr", "--threads", "--type", "--type-add", "--type-clear"
+    }
+    boolean_options = {
+        "--binary", "--block-buffered", "--byte-offset", "--column",
+        "--count", "--count-matches", "--debug", "--files",
+        "--files-with-matches", "--files-without-match", "--fixed-strings",
+        "--follow", "--glob-case-insensitive", "--heading", "--hidden",
+        "--invert-match", "--json", "--line-buffered", "--line-number",
+        "--max-columns-preview", "--messages", "--mmap", "--multiline",
+        "--multiline-dotall", "--no-config", "--no-filename", "--no-heading",
+        "--no-ignore", "--no-ignore-dot", "--no-ignore-exclude",
+        "--no-ignore-files", "--no-ignore-global", "--no-ignore-parent",
+        "--no-ignore-vcs", "--no-line-number", "--no-messages", "--null",
+        "--null-data", "--one-file-system", "--only-matching", "--passthru",
+        "--pcre2", "--pretty", "--quiet", "--recursive", "--search-zip",
+        "--smart-case", "--stats", "--stop-on-nonmatch", "--text", "--trim",
+        "--type-list", "--unrestricted", "--version", "--vimgrep",
+        "--with-filename", "--word-regexp", "--extended-regexp",
+        "--basic-regexp", "--perl-regexp", "--line-regexp", "--files-without-match"
+    }
+    grep_value_short = set("ABCdefm")
+    grep_boolean_short = set("EFGHILPRUVZabchilnoqrsuvwxyz")
+    rg_value_short = set("ABCEefgjmMrtT")
+    rg_boolean_short = set("FHILNPSUTVclnopsqtuvwxz")
+    pattern_from_option = False
+    files_mode = False
+    operands = []
+    i = 0
+    options_done = False
+    while i < len(args):
+        arg = args[i]
+        if not options_done and arg == "--":
+            options_done = True
+            i += 1
+            continue
+        if not options_done and arg.startswith("--"):
+            opt = arg.split("=", 1)[0]
+            if command == "rg" and opt == "--files":
+                files_mode = True
+            if opt in {"-e", "--regexp", "-f", "--file"}:
+                pattern_from_option = True
+            if opt in value_options and "=" not in arg:
+                if i + 1 >= len(args):
+                    sys.exit(2)
+                i += 2
+            elif opt in value_options or opt in boolean_options:
+                i += 1
+            else:
+                sys.exit(2)
+            continue
+        if not options_done and arg.startswith("-") and arg != "-":
+            value_short = grep_value_short if command == "grep" else rg_value_short
+            boolean_short = grep_boolean_short if command == "grep" else rg_boolean_short
+            short = arg[1:]
+            pos = 0
+            consumed_next = False
+            while pos < len(short):
+                flag = short[pos]
+                if flag in value_short:
+                    if flag in {"e", "f"}:
+                        pattern_from_option = True
+                    if pos + 1 == len(short):
+                        if i + 1 >= len(args):
+                            sys.exit(2)
+                        consumed_next = True
+                    break
+                if flag not in boolean_short:
+                    sys.exit(2)
+                pos += 1
+            i += 2 if consumed_next else 1
+            continue
+        operands.append(arg)
+        i += 1
+    if files_mode:
+        paths = operands or ["."]
+    elif pattern_from_option:
+        paths = operands
+    elif operands:
+        paths = operands[1:]
+    if not paths:
+        sys.exit(2)
+
+normalized = []
+for path in paths:
+    if (not path or path.startswith("/") or "\n" in path
+            or any(marker in path for marker in ("*", "?", "[", "$", "~"))):
+        sys.exit(2)
+    norm = posixpath.normpath(path)
+    if norm == ".." or norm.startswith("../"):
+        sys.exit(2)
+    if norm not in normalized:
+        normalized.append(norm)
+
+selected = []
+for path in sorted(normalized, key=lambda p: (p.count("/"), len(p), p)):
+    if any(parent == "." or path == parent or path.startswith(parent + "/") for parent in selected):
+        continue
+    selected.append(path)
+for path in selected:
+    print(path)
+PY
+}
+
+# 外部cp・エンコーディング変換はバックグラウンド子として待つ。bashは同期実行中の
+# 外部コマンドが終わるまでtrapを遅延するため、wait builtinを割り込み点にし、signal時は
+# 所有する子だけを止めてからミラーを削除する。
+run_mirror_child() {
+  "$@" &
+  MIRROR_ACTIVE_CHILD_PID=$!
+  if wait "$MIRROR_ACTIVE_CHILD_PID"; then
+    child_status=0
+  else
+    child_status=$?
+  fi
+  MIRROR_ACTIVE_CHILD_PID=""
+  return "$child_status"
+}
+
+logical_file_size() {
+  size_path="$1"
+  if stat -f '%z' "$size_path" >/dev/null 2>&1; then
+    stat -f '%z' "$size_path"
+  elif stat -c '%s' "$size_path" >/dev/null 2>&1; then
+    stat -c '%s' "$size_path"
+  else
+    return 2
+  fi
+}
+
+# 重複除去済みの対象木だけを走査し、通常ファイルの論理バイト数を測る。
+# 疎ファイルも実サイズでなく論理サイズによって1GiB上限へ掛ける必要がある。findは
+# シンボリックリンクをたどらず、環境依存差を隠さないためstatはDarwin/Linuxを明示分岐する。
+measure_hint_paths() {
+  measure_repo="$1"
+  measure_paths="$2"
+  total_bytes=0
+  while IFS= read -r measure_path; do
+    [ -z "$measure_path" ] && continue
+    full_measure_path="$measure_repo/$measure_path"
+    if [ -f "$full_measure_path" ] && [ ! -L "$full_measure_path" ]; then
+      file_bytes="$(logical_file_size "$full_measure_path")" || return 2
+      total_bytes=$((total_bytes + file_bytes))
+    elif [ -d "$full_measure_path" ] && [ ! -L "$full_measure_path" ]; then
+      if stat -f '%z' "$0" >/dev/null 2>&1; then
+        subtree_bytes="$(find "$full_measure_path" -type f -exec stat -f '%z' {} \; 2>/dev/null | awk '{s += $1} END {printf "%.0f", s + 0}')"
+      else
+        subtree_bytes="$(find "$full_measure_path" -type f -exec stat -c '%s' {} \; 2>/dev/null | awk '{s += $1} END {printf "%.0f", s + 0}')"
+      fi
+      case "$subtree_bytes" in ''|*[!0-9]*) return 2 ;; esac
+      total_bytes=$((total_bytes + subtree_bytes))
+    fi
+  done <<MEASURE_PATHS
+$measure_paths
+MEASURE_PATHS
+  printf '%s\n' "$total_bytes"
+}
+
+create_utf8_mirror() {
+  if ! mirror="$(mktemp -d "$MIRROR_TMP_ROOT/architecture-survey-mirror.XXXXXX")" || [ -z "$mirror" ]; then
+    echo "[UNKNOWN] mktempによる一時ミラー作成に失敗したため判定できません（一時領域への書き込み権限またはサンドボックス制約を確認してください）: $MIRROR_TMP_ROOT" >&2
+    return 2
+  fi
+  case "$mirror" in
+    "$MIRROR_TMP_ROOT"/architecture-survey-mirror.*) ;;
+    *)
+      echo "[UNKNOWN] mktempが想定外のパスを返しました: $mirror" >&2
+      return 2
+      ;;
+  esac
+  # コマンド置換の子で作らず、親が複製開始前に登録することでシグナルとの隙間を無くす。
+  REGISTERED_MIRRORS="${REGISTERED_MIRRORS}${REGISTERED_MIRRORS:+
+}$mirror"
+  PREPARED_MIRROR="$mirror"
+}
+
+unregister_and_remove_mirror() {
+  remove_mirror="$1"
+  case "$remove_mirror" in
+    "$MIRROR_TMP_ROOT"/architecture-survey-mirror.*)
+      [ -d "$remove_mirror" ] && [ ! -L "$remove_mirror" ] && rm -rf -- "$remove_mirror"
+      ;;
+  esac
+  kept_mirrors=""
+  while IFS= read -r kept_mirror; do
+    [ -z "$kept_mirror" ] && continue
+    [ "$kept_mirror" = "$remove_mirror" ] && continue
+    kept_mirrors="${kept_mirrors}${kept_mirrors:+
+}$kept_mirror"
+  done <<REGISTERED_LIST
+$REGISTERED_MIRRORS
+REGISTERED_LIST
+  REGISTERED_MIRRORS="$kept_mirrors"
+}
+
 prepare_utf8_mirror() {
   src="$1"
-  mirror="$(mktemp -d "${TMPDIR:-/tmp}/architecture-survey-mirror.XXXXXX")"
-  cp -R "$src/." "$mirror/" 2>/dev/null || true
+  mirror="$2"
+  selected_paths="$3"
+  copied_count=0
+  while IFS= read -r selected_path; do
+    [ -z "$selected_path" ] && continue
+    source_path="$src/$selected_path"
+    target_path="$mirror/$selected_path"
+    if [ -d "$source_path" ] && [ ! -L "$source_path" ]; then
+      mkdir -p "$target_path" || return 2
+      mirror_cp_command="${ARCHITECTURE_SURVEY_MIRROR_TEST_CP_COMMAND:-cp}"
+      run_mirror_child "$mirror_cp_command" -R -P "$source_path/." "$target_path/" || return 2
+    elif [ -e "$source_path" ] || [ -L "$source_path" ]; then
+      mkdir -p "$(dirname "$target_path")" || return 2
+      mirror_cp_command="${ARCHITECTURE_SURVEY_MIRROR_TEST_CP_COMMAND:-cp}"
+      run_mirror_child "$mirror_cp_command" -P "$source_path" "$target_path" || return 2
+    fi
+    copied_count=$((copied_count + 1))
+  done <<COPY_PATHS
+$selected_paths
+COPY_PATHS
+
   files="$(find "$mirror" -type f 2>/dev/null || true)"
   while IFS= read -r f; do
     [ -z "$f" ] && continue
-    enc="$(bash "$DETECT_ENCODING_SH" encoding "$f" 2>/dev/null || true)"
+    encoding_result_file="${f}.encodingcheck"
+    if run_mirror_child bash "$DETECT_ENCODING_SH" encoding "$f" >"$encoding_result_file" 2>/dev/null; then
+      enc="$(awk 'NR==1 {print; exit}' "$encoding_result_file")"
+    else
+      enc=""
+    fi
+    rm -f "$encoding_result_file"
     if [ -n "$enc" ] && [ "$enc" != "UTF-8" ]; then
-      if bash "$DETECT_ENCODING_SH" to-utf8 "$f" "${f}.utf8mirrortmp" 2>/dev/null; then
-        mv "${f}.utf8mirrortmp" "$f"
+      if run_mirror_child bash "$DETECT_ENCODING_SH" to-utf8 "$f" "${f}.utf8mirrortmp" 2>/dev/null; then
+        mv "${f}.utf8mirrortmp" "$f" || return 2
       fi
     fi
   done <<MIRRORFILES
 $files
 MIRRORFILES
-  echo "$mirror"
 }
 
 # 検査1: 記載パス実在100%
@@ -243,9 +555,27 @@ check_unit_kinds() {
   fi
 
   hint_bad=0
+  hint_unknown=0
+  LAST_UNKNOWN_COUNT=0
   if [ -n "$hint_repo" ]; then
+    mirror_max_raw="${ARCHITECTURE_SURVEY_MIRROR_MAX_BYTES:-$MIRROR_MAX_BYTES_DEFAULT}"
+    # シェル算術の範囲外を比較すると上限判定を迂回するため、正の符号付き64bit整数へ正規化する。
+    if ! mirror_max_bytes="$(python3 - "$mirror_max_raw" <<'PY'
+import sys
+raw = sys.argv[1]
+if not raw.isascii() or not raw.isdigit():
+    sys.exit(2)
+value = int(raw)
+if value <= 0 or value > 9223372036854775807:
+    sys.exit(2)
+print(value)
+PY
+)" || [ -z "$mirror_max_bytes" ]; then
+      echo "[UNKNOWN] 検査2: ARCHITECTURE_SURVEY_MIRROR_MAX_BYTESは1以上9223372036854775807以下の整数で指定してください: ${mirror_max_raw}" >&2
+      LAST_UNKNOWN_COUNT=1
+      return 2
+    fi
     s6="$(extract_section6 "$survey")"
-    mirror_dir=""
     while IFS= read -r line6; do
       [ -z "$line6" ] && continue
       case "$line6" in '|'*) ;; *) continue ;; esac
@@ -309,11 +639,39 @@ check_unit_kinds() {
         continue
       fi
 
-      if [ -z "$mirror_dir" ]; then
-        mirror_dir="$(prepare_utf8_mirror "$hint_repo")"
+      if ! hint_paths="$(extract_hint_paths "$hint_cmd")" || [ -z "$hint_paths" ]; then
+        echo "[SKIP] 種別=${kind_cell} 対象パス=抽出不能 実測バイト数=不明 上限=${mirror_max_bytes} 理由=検出手がかりから安全に参照パスを抽出できないため" >&2
+        hint_unknown=$((hint_unknown + 1))
+        continue
+      fi
+      display_paths="$(printf '%s\n' "$hint_paths" | awk 'BEGIN{ORS=""} NR>1{printf ","} {printf "%s", $0}')"
+      if ! measured_bytes="$(measure_hint_paths "$hint_repo" "$hint_paths")"; then
+        echo "[SKIP] 種別=${kind_cell} 対象パス=${display_paths} 実測バイト数=不明 上限=${mirror_max_bytes} 理由=通常ファイルの論理サイズを測定できないため" >&2
+        hint_unknown=$((hint_unknown + 1))
+        continue
+      fi
+      if [ "$measured_bytes" -gt "$mirror_max_bytes" ]; then
+        echo "[SKIP] 種別=${kind_cell} 対象パス=${display_paths} 実測バイト数=${measured_bytes} 上限=${mirror_max_bytes} 理由=複製対象が規模上限を超えたため" >&2
+        hint_unknown=$((hint_unknown + 1))
+        continue
+      fi
+
+      PREPARED_MIRROR=""
+      if ! create_utf8_mirror; then
+        echo "[SKIP] 種別=${kind_cell} 対象パス=${display_paths} 実測バイト数=${measured_bytes} 上限=${mirror_max_bytes} 理由=一時ミラーを作成できないため" >&2
+        hint_unknown=$((hint_unknown + 1))
+        continue
+      fi
+      mirror_dir="$PREPARED_MIRROR"
+      if ! prepare_utf8_mirror "$hint_repo" "$mirror_dir" "$hint_paths"; then
+        echo "[SKIP] 種別=${kind_cell} 対象パス=${display_paths} 実測バイト数=${measured_bytes} 上限=${mirror_max_bytes} 理由=限定複製またはUTF-8変換に失敗したため" >&2
+        unregister_and_remove_mirror "$mirror_dir"
+        hint_unknown=$((hint_unknown + 1))
+        continue
       fi
 
       hint_output="$( (cd "$mirror_dir" && eval "$hint_cmd") 2>/dev/null || true )"
+      unregister_and_remove_mirror "$mirror_dir"
       if [ -n "$hint_output" ]; then
         result="positive"
       else
@@ -327,14 +685,16 @@ check_unit_kinds() {
     done <<S6END
 $s6
 S6END
-    if [ -n "$mirror_dir" ]; then
-      rm -rf "$mirror_dir"
-    fi
   fi
 
+  LAST_UNKNOWN_COUNT="$hint_unknown"
   if [ "$hint_bad" -gt 0 ]; then
     echo "検査2失敗: 検出手がかりの再実行結果が判定語と $hint_bad 件不整合です" >&2
     return 1
+  fi
+  if [ "$hint_unknown" -gt 0 ]; then
+    echo "検査2判定不能: 検出手がかり $hint_unknown 件を再実行できませんでした（他の検査は継続）" >&2
+    return 2
   fi
 
   echo "検査2通過: 6種別すべてに判定行あり（検出手がかり再実行の整合確認込み）"
@@ -688,24 +1048,54 @@ CHECK_NAMES="check_paths_exist check_unit_kinds check_no_guess_words check_no_pl
 run_all_checks() {
   survey="$1"
   repo="$2"
-  rc=0
   count=0
+  CHECK_PASS_COUNT=0
+  CHECK_FAIL_COUNT=0
+  CHECK_UNKNOWN_COUNT=0
   for name in $CHECK_NAMES; do
     count=$((count + 1))
+    LAST_UNKNOWN_COUNT=0
     case "$name" in
       check_no_guess_words|check_no_placeholder)
-        "$name" "$survey" || rc=1 ;;
+        if "$name" "$survey"; then check_status=0; else check_status=$?; fi
+        ;;
       *)
-        "$name" "$survey" "$repo" || rc=1 ;;
+        if "$name" "$survey" "$repo"; then check_status=0; else check_status=$?; fi
+        ;;
     esac
+    case "$check_status" in
+      0) CHECK_PASS_COUNT=$((CHECK_PASS_COUNT + 1)) ;;
+      1) CHECK_FAIL_COUNT=$((CHECK_FAIL_COUNT + 1)) ;;
+      2)
+        if [ "${LAST_UNKNOWN_COUNT:-0}" -eq 0 ]; then
+          CHECK_UNKNOWN_COUNT=$((CHECK_UNKNOWN_COUNT + 1))
+        fi
+        ;;
+      *)
+        echo "[UNKNOWN] ${name} が未定義の終了コード ${check_status} を返しました" >&2
+        CHECK_UNKNOWN_COUNT=$((CHECK_UNKNOWN_COUNT + 1))
+        ;;
+    esac
+    if [ "${LAST_UNKNOWN_COUNT:-0}" -gt 0 ]; then
+      CHECK_UNKNOWN_COUNT=$((CHECK_UNKNOWN_COUNT + LAST_UNKNOWN_COUNT))
+    fi
   done
   CHECK_COUNT="$count"
-  return "$rc"
+  if [ "$CHECK_FAIL_COUNT" -gt 0 ]; then
+    return 1
+  fi
+  if [ "$CHECK_UNKNOWN_COUNT" -gt 0 ]; then
+    return 2
+  fi
+  return 0
 }
 
-# 合成フィクスチャによる自己テスト（陽性1件・検査ごとの陰性6件＝計7ケース）。
+# 合成フィクスチャによる自己テスト。既存7検査の正負例に加え、課題別の回帰例も実行する。
 self_test() {
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/architecture-survey-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/architecture-survey-self-test.XXXXXX")" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] mktempによるself-test用一時ディレクトリ作成に失敗したため判定できません（一時領域への書き込み権限またはサンドボックス制約を確認してください）: ${TMPDIR:-/tmp}" >&2
+    return 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
 
   repo="$tmp/repo"
@@ -1176,9 +1566,14 @@ $chain_kinds
 MD
 
   if check_unit_kinds "$tmp/chain-skip.md" "$tmp/repo" >/dev/null 2>&1; then
-    echo "  [PASS] 検査2(パイプ検証): 引用外のシェル連結記号を含む検出手がかりは既存どおり再実行せず素通り"
+    chain_status=0
   else
-    echo "  [FAIL] 検査2(パイプ検証): 引用外のシェル連結記号を含む検出手がかりが誤って不整合扱いになった" >&2
+    chain_status=$?
+  fi
+  if [ "$chain_status" -eq 0 ]; then
+    echo "  [PASS] 検査2(パイプ検証): 引用外のシェル連結記号を含む検出手がかりは再実行せず既存どおり不整合にしない"
+  else
+    echo "  [FAIL] 検査2(パイプ検証): 引用外のシェル連結記号を含む検出手がかりが不整合扱いになった" >&2
     rc=1
   fi
 
@@ -1265,6 +1660,217 @@ MD
     echo "  [PASS] 検査7(1-126): UNKNOWN行は復号可否検査の対象外として通過"
   else
     echo "  [FAIL] 検査7(1-126): UNKNOWN行が誤ってexit 1になった" >&2
+    rc=1
+  fi
+
+  # --- 1-258自己テスト追加分: 手がかり参照先限定・大容量回避・signal cleanup・
+  #     規模超過の局所的判定不能・非UTF-8再実行の回帰確認 ---
+  mirror_scope_repo="$tmp/mirror-scope-repo"
+  mkdir -p "$mirror_scope_repo/config" "$mirror_scope_repo/src/allowed" "$mirror_scope_repo/unrelated"
+  echo "needle" > "$mirror_scope_repo/config/app.conf"
+  echo "needle" > "$mirror_scope_repo/src/allowed/target.txt"
+  echo "must-not-copy" > "$mirror_scope_repo/unrelated/large.bin"
+  scope_paths="$(extract_hint_paths 'grep -rl "needle" config/app.conf src/allowed')"
+  PREPARED_MIRROR=""
+  if create_utf8_mirror && prepare_utf8_mirror "$mirror_scope_repo" "$PREPARED_MIRROR" "$scope_paths" \
+    && [ -f "$PREPARED_MIRROR/config/app.conf" ] \
+    && [ -f "$PREPARED_MIRROR/src/allowed/target.txt" ] \
+    && [ ! -e "$PREPARED_MIRROR/unrelated/large.bin" ]; then
+    echo "  [PASS] 1-258判定1: 一時ミラーは手がかりが読むパス配下だけを複製"
+  else
+    echo "  [FAIL] 1-258判定1: 一時ミラーへ手がかり外のファイルを複製した、または参照先を複製できない" >&2
+    rc=1
+  fi
+  [ -n "$PREPARED_MIRROR" ] && unregister_and_remove_mirror "$PREPARED_MIRROR"
+
+  large_hint_repo="$tmp/large-hint-repo"
+  mkdir -p "$large_hint_repo/src/selected" "$large_hint_repo/unrelated"
+  echo "needle" > "$large_hint_repo/src/selected/target.txt"
+  python3 - "$large_hint_repo/unrelated/sparse.bin" <<'PY'
+import sys
+with open(sys.argv[1], "wb") as handle:
+    handle.seek(1073741825)
+    handle.write(b"0")
+PY
+  large_hint_kinds='| 種別 | 実在判定 | 検出手がかり | 参照先 |
+|---|---|---|---|
+| 画面 | 実在する | `grep -rl "needle" src/selected` で検出 | `src/selected/target.txt` |
+| API | 実在しない（対象なし） | - | - |
+| テーブル | 実在しない（対象なし） | - | - |
+| バッチ | 実在しない（対象なし） | - | - |
+| 帳票 | 実在しない（対象なし） | - | - |
+| 外部連携 | 実在しない（対象なし） | - | - |'
+  cat > "$tmp/large-hint.md" <<MD
+## ユニット種別判定
+$large_hint_kinds
+MD
+  large_started="$(date +%s)"
+  large_selected_paths="$(extract_hint_paths 'grep -rl "needle" src/selected')"
+  large_selected_bytes="$(measure_hint_paths "$large_hint_repo" "$large_selected_paths")"
+  if [ "$large_selected_paths" = "src/selected" ] && [ "$large_selected_bytes" -lt 1024 ] \
+    && check_unit_kinds "$tmp/large-hint.md" "$large_hint_repo" >/dev/null 2>&1; then
+    large_elapsed=$(( $(date +%s) - large_started ))
+    if [ "$large_elapsed" -le 10 ]; then
+      echo "  [PASS] 1-258判定2: 1GiB超の無関係疎ファイルを複製せず判定を返却（${large_elapsed}秒）"
+    else
+      echo "  [FAIL] 1-258判定2: 無関係ファイルを含む判定が制限時間を超過（${large_elapsed}秒）" >&2
+      rc=1
+    fi
+  else
+    echo "  [FAIL] 1-258判定2: 1GiB超の無関係ファイルにより検出手がかりを判定できない" >&2
+    rc=1
+  fi
+
+  if [ "$(extract_hint_paths 'rg --sort path needle src/selected')" = "src/selected" ] \
+    && [ "$(extract_hint_paths 'rg --threads 4 needle src/selected')" = "src/selected" ] \
+    && [ "$(extract_hint_paths 'rg -t py needle src/selected')" = "src/selected" ] \
+    && [ "$(extract_hint_paths 'rg -T py needle src/selected')" = "src/selected" ] \
+    && [ "$(extract_hint_paths 'find -H src/selected -name target.txt')" = "src/selected" ] \
+    && ! extract_hint_paths 'rg --未対応 値 needle src/selected' >/dev/null 2>&1; then
+    echo "  [PASS] 1-258引数解析: 値付きoptionとfind前置きoptionをパスから除外し未対応構文を拒否"
+  else
+    echo "  [FAIL] 1-258引数解析: option値または検索patternを参照パスとして誤採用" >&2
+    rc=1
+  fi
+
+  signal_repo="$tmp/signal-repo"
+  cp -R "$tmp/repo" "$signal_repo"
+  echo "page" > "$signal_repo/src/app/page.tsx"
+  sed 's#`find src/app -name page.tsx`#`grep -rl "page" src/app src/styles`#' "$tmp/pass.md" > "$tmp/signal.md"
+  slow_cp="$tmp/slow-copy-for-signal.sh"
+  cat > "$slow_cp" <<'SH'
+#!/usr/bin/env bash
+set -euo pipefail
+copy_args=("$@")
+copy_arg_count=${#copy_args[@]}
+copy_source="${copy_args[$((copy_arg_count - 2))]}"
+copy_target="${copy_args[$((copy_arg_count - 1))]}"
+copy_root="${copy_source%/.}"
+if [ -d "$copy_root" ]; then
+  first_file="$(find "$copy_root" -type f | head -1)"
+  if [ -n "$first_file" ]; then
+    relative_file="${first_file#"$copy_root"/}"
+    mkdir -p "$copy_target/$(dirname "$relative_file")"
+    /bin/cp -P "$first_file" "$copy_target/$relative_file"
+  fi
+fi
+# 外部copyコマンド自身を未完了のまま保ち、親がwait中にsignalを受けるケースを作る。
+copy_pause_until=$((SECONDS + 20))
+while [ "$SECONDS" -lt "$copy_pause_until" ]; do :; done
+exec /bin/cp "$@"
+SH
+  chmod +x "$slow_cp"
+  for signal_name in TERM INT; do
+    signal_tmp="$tmp/signal-tmp-$signal_name"
+    mkdir -p "$signal_tmp"
+    signal_result="$(python3 - "$0" "$tmp/signal.md" "$signal_repo" "$signal_tmp" "$signal_name" "$slow_cp" <<'PY'
+import glob
+import os
+import signal
+import subprocess
+import sys
+import time
+
+script, survey, repo, temp_root, signal_name, slow_cp = sys.argv[1:]
+env = os.environ.copy()
+env["TMPDIR"] = temp_root
+env["ARCHITECTURE_SURVEY_MIRROR_TEST_CP_COMMAND"] = slow_cp
+started = time.monotonic()
+proc = subprocess.Popen(
+    ["bash", script, survey, repo],
+    stdout=subprocess.PIPE,
+    stderr=subprocess.STDOUT,
+    text=True,
+    env=env,
+)
+observed_copy = False
+deadline = started + 5
+while time.monotonic() < deadline:
+    mirrors = glob.glob(os.path.join(temp_root, "architecture-survey-mirror.*"))
+    if any(
+        any(os.path.isfile(item) for item in glob.glob(os.path.join(path, "src", "app", "**", "*"), recursive=True))
+        for path in mirrors
+    ):
+        observed_copy = True
+        break
+    if proc.poll() is not None:
+        break
+    time.sleep(0.02)
+if observed_copy and proc.poll() is None:
+    proc.send_signal(getattr(signal, "SIG" + signal_name))
+try:
+    output, _ = proc.communicate(timeout=5)
+except subprocess.TimeoutExpired:
+    proc.kill()
+    output, _ = proc.communicate()
+remaining = len(glob.glob(os.path.join(temp_root, "architecture-survey-mirror.*")))
+continued = int("ゲート総括" in output)
+elapsed = time.monotonic() - started
+print(f"status={proc.returncode} remaining={remaining} elapsed={elapsed:.3f} observed={int(observed_copy)} continued={continued}")
+PY
+)"
+    expected_signal_status=143
+    [ "$signal_name" = "INT" ] && expected_signal_status=130
+    if printf '%s\n' "$signal_result" | grep -q "status=${expected_signal_status} " \
+      && printf '%s\n' "$signal_result" | grep -q 'remaining=0 ' \
+      && printf '%s\n' "$signal_result" | grep -q 'observed=1 ' \
+      && printf '%s\n' "$signal_result" | grep -q 'continued=0'; then
+      echo "  [PASS] 1-258判定$([ "$signal_name" = TERM ] && echo 3 || echo 4): ${signal_name}で終了コード${expected_signal_status}・ミラー0件・制限時間内終了（${signal_result}）"
+    else
+      echo "  [FAIL] 1-258 ${signal_name}: signal cleanupまたは終了コードが不正（${signal_result}）" >&2
+      rc=1
+    fi
+  done
+
+  limit_repo="$tmp/limit-repo"
+  cp -R "$tmp/repo" "$limit_repo"
+  python3 - "$limit_repo/src/app/unrelated.sparse" <<'PY'
+import sys
+with open(sys.argv[1], "wb") as handle:
+    handle.seek(4095)
+    handle.write(b"0")
+PY
+  sed 's#`find src/app -name page.tsx`#`find . -name page.tsx`#' "$tmp/pass.md" > "$tmp/limit.md"
+  if ARCHITECTURE_SURVEY_MIRROR_MAX_BYTES=1024 limit_output="$(ARCHITECTURE_SURVEY_MIRROR_MAX_BYTES=1024 bash "$0" "$tmp/limit.md" "$limit_repo" 2>&1)"; then
+    limit_status=0
+  else
+    limit_status=$?
+  fi
+  if [ "$limit_status" -eq 2 ] \
+    && printf '%s\n' "$limit_output" | grep -q '^\[SKIP\].*種別=画面.*実測バイト数=.*上限=1024' \
+    && printf '%s\n' "$limit_output" | grep -q '検査1通過' \
+    && printf '%s\n' "$limit_output" | grep -q '検査3通過' \
+    && printf '%s\n' "$limit_output" | grep -q '合格=6 不合格=0 判定不能=1'; then
+    echo "  [PASS] 1-258判定5: 規模超過を判定不能として他6検査を完了しexit 2"
+  else
+    echo "  [FAIL] 1-258判定5: 規模超過時の継続・総括・exit 2契約を満たさない" >&2
+    echo "$limit_output" >&2
+    rc=1
+  fi
+
+  legacy_hint_repo="$tmp/legacy-hint-repo"
+  mkdir -p "$legacy_hint_repo/src/legacy"
+  python3 - "$legacy_hint_repo/src/legacy/routes.euc.txt" <<'PY'
+import sys
+with open(sys.argv[1], "wb") as handle:
+    handle.write("経理システムのルーティング定義。\n".encode("euc-jp"))
+PY
+  legacy_hint_kinds='| 種別 | 実在判定 | 検出手がかり | 参照先 |
+|---|---|---|---|
+| 画面 | 実在しない（対象なし） | - | - |
+| API | 実在する | `grep -rl "経理" src/legacy` で検出 | `src/legacy/routes.euc.txt` |
+| テーブル | 実在しない（対象なし） | - | - |
+| バッチ | 実在しない（対象なし） | - | - |
+| 帳票 | 実在しない（対象なし） | - | - |
+| 外部連携 | 実在しない（対象なし） | - | - |'
+  cat > "$tmp/legacy-hint.md" <<MD
+## ユニット種別判定
+$legacy_hint_kinds
+MD
+  if check_unit_kinds "$tmp/legacy-hint.md" "$legacy_hint_repo" >/dev/null 2>&1; then
+    echo "  [PASS] 1-258判定6: 非UTF-8参照ファイルを変換後に再実行し期待件数を判定"
+  else
+    echo "  [FAIL] 1-258判定6: 非UTF-8参照ファイルの変換後再実行が回帰" >&2
     rc=1
   fi
 
@@ -1412,9 +2018,22 @@ if [ ! -d "$repo" ]; then
 fi
 
 if run_all_checks "$survey" "$repo"; then
-  echo "アーキテクチャ調査書ゲート: 全${CHECK_COUNT}検査PASS"
-  exit 0
+  final_status=0
 else
-  echo "アーキテクチャ調査書ゲート: FAIL（登録検査数: ${CHECK_COUNT}）" >&2
-  exit 1
+  final_status=$?
 fi
+echo "アーキテクチャ調査書ゲート総括: 合格=${CHECK_PASS_COUNT} 不合格=${CHECK_FAIL_COUNT} 判定不能=${CHECK_UNKNOWN_COUNT} 登録検査数=${CHECK_COUNT}"
+case "$final_status" in
+  0)
+    echo "アーキテクチャ調査書ゲート: 全${CHECK_COUNT}検査PASS"
+    exit 0
+    ;;
+  1)
+    echo "アーキテクチャ調査書ゲート: FAIL（不合格=${CHECK_FAIL_COUNT} 判定不能=${CHECK_UNKNOWN_COUNT}）" >&2
+    exit 1
+    ;;
+  *)
+    echo "アーキテクチャ調査書ゲート: UNKNOWN（判定不能=${CHECK_UNKNOWN_COUNT}、他の検査は完了）" >&2
+    exit 2
+    ;;
+esac
