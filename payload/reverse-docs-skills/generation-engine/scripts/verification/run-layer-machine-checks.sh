@@ -157,16 +157,35 @@ has_indeterminate_contract() {
 
 # 出力から実行ケース数を読み取る。次の順で試し、最初に一致した形式の値を採る。
 #   1. 「実行 <N> 件」の N
-#   2. 「self-test: <N> PASS」の N（「, <M> FAIL」があれば N+M）
-#   3. 「結果: PASS=<N> FAIL=<M>」の N+M
-#   4. 行頭の「self-test PASS:」/「self-test FAIL:」の合計
-#   5. 行頭の PASS(<N>):/FAIL(<N>): の合計
-#   6. 行頭の [PASS]/[FAIL] の合計
-#   7. 行頭の PASS:/FAIL: の合計
-#   8. 出力全体に「全項目 PASS」/「全項目 FAIL」という個別内訳を伴わない単一の
+#   2. Node標準node:testのTAP要約「# tests <N>」/「# pass <N>」の N
+#   3. 「self-test: <N> PASS」の N（「, <M> FAIL」があれば N+M）
+#   4. 「結果: PASS=<N> FAIL=<M>」の N+M
+#   5. 行頭の「self-test PASS:」/「self-test FAIL:」の合計
+#   6. 行頭の PASS(<N>):/FAIL(<N>): の合計
+#   7. 行頭の [PASS]/[FAIL] の合計
+#   8. 行頭の PASS:/FAIL: の合計
+#   9. 出力全体に「全項目 PASS」/「全項目 FAIL」という個別内訳を伴わない単一の
 #      要約行がある場合は1件（cmp/jq -e 等が set -euo pipefail 下で暗黙にケースを
 #      検証しており、内訳の行だけを持たない自己テストのための救済）
-#   9. 行頭の PASS /FAIL （空白区切り）の合計
+#  10. 行頭の PASS /FAIL （空白区切り）の合計
+#  11. 行全体が「self-test: PASS=<N> FAIL=<M>」である要約の N+M
+# 既存書式と新書式が同居する出力では、既存10経路を優先して従来の採用値を保つ。
+count_keyed_self_test_summary() {
+  local output="$1" line p f
+  # 診断文中の期待値を要約と誤認しないよう、最後の非空行だけを候補にする。
+  line="$(printf '%s\n' "$output" | LC_ALL=C awk 'NF { last = $0 } END { print last }')"
+  if ! printf '%s\n' "$line" | grep -qE '^[[:space:]]*self-test: PASS=[0-9]+ FAIL=[0-9]+[[:space:]]*$'; then
+    # 単体テストでは非一致を0件と観測し、呼出し側では終了コード1で非一致と区別する。
+    printf '%s' "0"
+    return 1
+  fi
+
+  p="$(printf '%s' "$line" | grep -oE 'PASS=[0-9]+' | grep -oE '[0-9]+')"
+  f="$(printf '%s' "$line" | grep -oE 'FAIL=[0-9]+' | grep -oE '[0-9]+')"
+  # 先頭ゼロを8進数として扱う算術展開を避け、常に10進数として合算する。
+  printf '%s' "$((10#$p + 10#$f))"
+}
+
 count_cases() {
   local output="$1" n pass_n fail_n line p f
 
@@ -235,7 +254,17 @@ count_cases() {
 
   pass_n="$(printf '%s\n' "$output" | grep -cE '^[[:space:]]*PASS[[:space:]]')"
   fail_n="$(printf '%s\n' "$output" | grep -cE '^[[:space:]]*FAIL[[:space:]]')"
-  printf '%s' "$((pass_n + fail_n))"
+  if [ "$((pass_n + fail_n))" -gt 0 ]; then
+    printf '%s' "$((pass_n + fail_n))"
+    return 0
+  fi
+
+  if n="$(count_keyed_self_test_summary "$output")"; then
+    printf '%s' "$n"
+    return 0
+  fi
+
+  printf '%s' "0"
 }
 
 # 実測所要時間が既定の --timeout（90〜120秒）を超える既存の自己テストを
@@ -634,6 +663,34 @@ EOS
   local nSummary
   nSummary="$(count_cases "self-test: 5 PASS, 0 FAIL")"
   [ "$nSummary" = "5" ] && assert_true "読取-集計行形式" 0 || assert_true "読取-集計行形式" 1
+
+  # 読取-PASS=形式（inventory/source-refの自己テストが出す
+  # 「self-test: PASS=N FAIL=M」形式から、合格・不合格を合わせた実行件数を読む）
+  local nKeyedSummary
+  nKeyedSummary="$(count_cases "$(printf '診断\n  self-test: PASS=5 FAIL=2  \n\n')")"
+  [ "$nKeyedSummary" = "7" ] && assert_true "読取-PASS=形式を最終非空行から合算" 0 || assert_true "読取-PASS=形式を最終非空行から合算" 1
+
+  # 新形式の読取だけを単体で検査する。2件目の診断は count_cases 全体では既存の
+  # 行頭 [FAIL] 経路が1件として数えるため、既存10経路の優先順位を変えずhelperで確かめる。
+  local nKeyedDiagnostic nKeyedFailDiagnostic
+  nKeyedDiagnostic="$(count_keyed_self_test_summary "expected self-test: PASS=5 FAIL=2, but summary was absent")" || true
+  [ "$nKeyedDiagnostic" = "0" ] && assert_true "読取-PASS=形式は前後文言を除外" 0 || assert_true "読取-PASS=形式は前後文言を除外" 1
+  nKeyedFailDiagnostic="$(count_keyed_self_test_summary "[FAIL] output must not contain self-test: PASS=5 FAIL=2")" || true
+  [ "$nKeyedFailDiagnostic" = "0" ] && assert_true "読取-PASS=形式はFAIL診断文を除外" 0 || assert_true "読取-PASS=形式はFAIL診断文を除外" 1
+
+  local nKeyedMiddleDiagnostic
+  nKeyedMiddleDiagnostic="$(count_keyed_self_test_summary "$(printf 'expected output follows:\nself-test: PASS=5 FAIL=2\nbut was absent\n')")" || true
+  [ "$nKeyedMiddleDiagnostic" = "0" ] && assert_true "読取-PASS=形式は中間行の期待値を除外" 0 || assert_true "読取-PASS=形式は中間行の期待値を除外" 1
+
+  # 新形式は11番目なので、既存の結果形式が同居するときは従来どおり5を採る。
+  local nKeyedPrecedence
+  nKeyedPrecedence="$(count_cases "$(printf '結果: PASS=5 FAIL=0\nself-test: PASS=2 FAIL=0\n')")"
+  [ "$nKeyedPrecedence" = "5" ] && assert_true "読取-PASS=形式より既存書式を優先" 0 || assert_true "読取-PASS=形式より既存書式を優先" 1
+
+  # 08を8進数として解釈すると算術エラーになるため、10進数の9として読めることを固定する。
+  local nKeyedLeadingZero
+  nKeyedLeadingZero="$(count_cases "self-test: PASS=08 FAIL=01")"
+  [ "$nKeyedLeadingZero" = "9" ] && assert_true "読取-PASS=形式の先頭ゼロを10進合算" 0 || assert_true "読取-PASS=形式の先頭ゼロを10進合算" 1
 
   # 読取-self-test PASS形式（改善課題1-52: aggregate-test-cases.sh 等が使う
   # 「self-test PASS: 説明」形式を4行出す出力から4が読み取られる）
