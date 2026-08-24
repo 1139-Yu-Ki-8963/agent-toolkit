@@ -107,7 +107,6 @@
 | generating-agent-config-index-from-repo | リポジトリ分析からAGENTS/CLAUDE索引を生成 | AGENTS.md・CLAUDE.md |
 | generating-requirement-definitions-for-reverse-docs | 一覧マニフェストと個別基本設計書から観測できる事実だけで要件定義5文書を生成 | 機能要件一覧・帳票要件・バッチ要件・外部連携要件・ビジネス概要 |
 | generating-rule-proposals-for-reverse-docs | 対象コードの実装慣行を観測し、規約提案HTMLをリポジトリ外へ出力 | 規約提案HTML |
-| prioritizing-improvement-tasks-from-images | 画像から改善課題を台帳へ登録し、調査してグループ化・優先順位付け（このリポジトリ専用。配布対象外） | 改善課題タスク一覧.md・改善課題優先順位.md |
 
 ## 種別×工程の対応表
 

@@ -43,6 +43,8 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 DEFAULT_OUTPUT="$REPO_ROOT/docs/guides/成果物一覧.html"
 DEFAULT_LEDGER="$REPO_ROOT/docs/tasks/work-records/週次スナップショット.md"
 DEFAULT_SKILLS_DIR="$REPO_ROOT/.claude/skills"
+DEFAULT_FORBIDDEN_NAMES_FILE="$HOME/agent-home/state/payload-forbidden-content.json"
+FORBIDDEN_NAMES_FILE="${PAYLOAD_FORBIDDEN_NAMES_FILE:-$DEFAULT_FORBIDDEN_NAMES_FILE}"
 
 TMP_FILES=()
 cleanup_tmp() {
@@ -77,6 +79,19 @@ abspath() {
 
 html_escape() {
   printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g'
+}
+
+# 配布対象から外すスキル（このリポジトリ専用・非公開）の名前は、
+# 除外の定義ファイル（~/agent-home/state/payload-forbidden-content.json の
+# .names）から読む。名前をこのスクリプトへ直接書き込まない。
+# 定義ファイルまたは jq が無い場合は除外を適用しない（fail-open）。
+is_forbidden_skill_name() {
+  local name="$1"
+  if [ -f "$FORBIDDEN_NAMES_FILE" ] && command -v jq >/dev/null 2>&1; then
+    jq -e --arg n "$name" '(.names // []) | index($n) != null' "$FORBIDDEN_NAMES_FILE" >/dev/null 2>&1
+    return $?
+  fi
+  return 1
 }
 
 # SKILL.md の説明は内部向けの設定値であり、外部向けガイドでは
@@ -151,19 +166,6 @@ extract_japanese_name() {
 
 # ---- 台帳の週次スナップショットの抽出（compare-skill-snapshots.sh と同形） ----
 
-extract_section_count() {
-  local ledger="$1" idx="$2"
-  awk -v target="$idx" '
-    /^### / { count++; insection = (count == target); next }
-    insection && /^\*\*スキル本数\*\*: / {
-      v = $0
-      sub(/^\*\*スキル本数\*\*: /, "", v)
-      print v
-      exit
-    }
-  ' "$ledger"
-}
-
 extract_section_rows() {
   local ledger="$1" idx="$2"
   awk -v target="$idx" '
@@ -206,18 +208,34 @@ build_weekly_diff_li() {
     return 0
   fi
 
+  # 台帳（週次スナップショット）は非公開のこのリポジトリ専用スキルも
+  # 含めて記録する。公開する文面に載せる本数・行はここで除外の定義
+  # （is_forbidden_skill_name）を通してから使う。台帳の
+  # 「**スキル本数**:」欄はこの除外を経ていない生の値のため使わない。
+  local latest_rows prev_rows
+  if ! mk_tmp latest_rows; then unknown_mktemp; return 2; fi
+  if ! mk_tmp prev_rows; then unknown_mktemp; return 2; fi
+  extract_section_rows "$ledger" 1 | while IFS=$'\t' read -r skill rest; do
+    [ -z "$skill" ] && continue
+    is_forbidden_skill_name "$skill" && continue
+    printf '%s\t%s\n' "$skill" "$rest"
+  done > "$latest_rows"
+
   local latest_count prev_count diff sign
   if [ "$section_count" -eq 1 ]; then
-    latest_count="$(extract_section_count "$ledger" 1)"
-    [ -n "$latest_count" ] || latest_count=0
+    latest_count="$(LC_ALL=C wc -l < "$latest_rows" | tr -d '[:space:]')"
     printf '<li>掲載スキル: %s本</li>\n' "$(html_escape "$latest_count")"
     return 0
   fi
 
-  latest_count="$(extract_section_count "$ledger" 1)"
-  prev_count="$(extract_section_count "$ledger" 2)"
-  [ -z "$latest_count" ] && latest_count=0
-  [ -z "$prev_count" ] && prev_count=0
+  extract_section_rows "$ledger" 2 | while IFS=$'\t' read -r skill rest; do
+    [ -z "$skill" ] && continue
+    is_forbidden_skill_name "$skill" && continue
+    printf '%s\t%s\n' "$skill" "$rest"
+  done > "$prev_rows"
+
+  latest_count="$(LC_ALL=C wc -l < "$latest_rows" | tr -d '[:space:]')"
+  prev_count="$(LC_ALL=C wc -l < "$prev_rows" | tr -d '[:space:]')"
   diff=$((latest_count - prev_count))
   if [ "$diff" -gt 0 ]; then
     sign="+${diff}"
@@ -228,12 +246,6 @@ build_weekly_diff_li() {
   fi
   printf '<li>本数: %s本 → %s本（%s）</li>\n' \
     "$(html_escape "$prev_count")" "$(html_escape "$latest_count")" "$(html_escape "$sign")"
-
-  local latest_rows prev_rows
-  if ! mk_tmp latest_rows; then unknown_mktemp; return 2; fi
-  if ! mk_tmp prev_rows; then unknown_mktemp; return 2; fi
-  extract_section_rows "$ledger" 1 > "$latest_rows"
-  extract_section_rows "$ledger" 2 > "$prev_rows"
 
   local skill jp desc public_desc phases tools p_line p_skill p_jp p_desc p_phases p_tools
   local added_list="" changed_list="" label label_kind
@@ -297,6 +309,7 @@ build_table_rows() {
     file="$d/SKILL.md"
     [ -f "$file" ] || continue
     name="$(basename "$d")"
+    is_forbidden_skill_name "$name" && continue
     fm="$(extract_frontmatter "$file")"
     jp="$(extract_japanese_name "$fm")"
     desc="$(extract_description "$fm")"
@@ -326,7 +339,10 @@ build_html() {
   skills_dir="$(abspath "$skills_dir")"
 
   local skill_count report_date
-  skill_count="$(find "$skills_dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d '[:space:]')"
+  skill_count="$(find "$skills_dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | while IFS= read -r d; do
+    is_forbidden_skill_name "$(basename "$d")" && continue
+    printf '%s\n' "$d"
+  done | wc -l | tr -d '[:space:]')"
   report_date="$(date +%F)"
 
   local rows_file weekly_diff_file

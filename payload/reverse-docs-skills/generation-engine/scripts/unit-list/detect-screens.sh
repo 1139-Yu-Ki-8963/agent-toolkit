@@ -71,6 +71,31 @@
 
 set -euo pipefail
 
+# _mktemp_or_unknown: 置き場を明示した mktemp のラッパー。
+#
+# 実装判断: 引数なしの mktemp は既定の置き場へ書こうとして失敗する環境がある
+# （実測 2026-08-24: mktemp: mkstemp failed on
+# /var/folders/.../T/tmp.XXXX: Operation not permitted）。TMPDIR を明示すると
+# 成功する。この形を素直な mktemp へ戻してはならない。手元で動いても環境が
+# 変われば再び壊れる。
+# このファイル内で60箇所超使うため、ファイル内で完結する共通ヘルパーとして
+# 1箇所にまとめる（3箇所以上で使う場合はファイル内にヘルパーを置くという既定
+# に基づく）。失敗時は判定不能規約（indeterminate-result/rule.md）に沿って
+# [UNKNOWN]・終了コード2で終了する。
+_mktemp_or_unknown() {
+  local out
+  if [ "${1:-}" = "-d" ]; then
+    out="$(mktemp -d "${TMPDIR:-/tmp}/$(basename "${BASH_SOURCE[0]}" .sh).XXXXXX" 2>/dev/null)"
+  else
+    out="$(mktemp "${TMPDIR:-/tmp}/$(basename "${BASH_SOURCE[0]}" .sh).XXXXXX" 2>/dev/null)"
+  fi
+  if [ -z "$out" ]; then
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  printf '%s' "$out"
+}
+
 # ============================================================================
 # 8-4: import 再帰追跡(resolve_screen_files)と --resolve-files サブコマンド
 # ============================================================================
@@ -88,9 +113,9 @@ set -euo pipefail
 # を裸のまま getline することはしない(必ず拡張子または/indexを付けてから
 # プローブする)。
 
-RESOLVE_COMMON_AWK_FILE="$(mktemp)"
-RESOLVE_AWK_FILE="$(mktemp)"
-RESOLVE_BATCH_AWK_FILE="$(mktemp)"
+RESOLVE_COMMON_AWK_FILE="$(_mktemp_or_unknown)"
+RESOLVE_AWK_FILE="$(_mktemp_or_unknown)"
+RESOLVE_BATCH_AWK_FILE="$(_mktemp_or_unknown)"
 trap 'rm -f "$RESOLVE_COMMON_AWK_FILE" "$RESOLVE_AWK_FILE" "$RESOLVE_BATCH_AWK_FILE"' EXIT
 
 # RESOLVE_COMMON_AWK_FILE: resolve_screen_files(単一画面)と
@@ -498,8 +523,8 @@ resolve_screen_files() {
   case "$maxdepth" in ''|*[!0-9]*) maxdepth=6 ;; esac
 
   local params_file empty_file
-  params_file="$(mktemp)"
-  empty_file="$(mktemp)"
+  params_file="$(_mktemp_or_unknown)"
+  empty_file="$(_mktemp_or_unknown)"
   {
     printf '%s\n' "$entry"
     printf '%s\n' "$srcdir"
@@ -546,13 +571,13 @@ resolve_files_subcommand() {
 
   local rf_shared_file rf_alias_file rf_screens_all_file rf_screens_valid_file
   local rf_params_file rf_batch_result_file rf_updates_file
-  rf_shared_file="$(mktemp)"
-  rf_alias_file="$(mktemp)"
-  rf_screens_all_file="$(mktemp)"
-  rf_screens_valid_file="$(mktemp)"
-  rf_params_file="$(mktemp)"
-  rf_batch_result_file="$(mktemp)"
-  rf_updates_file="$(mktemp)"
+  rf_shared_file="$(_mktemp_or_unknown)"
+  rf_alias_file="$(_mktemp_or_unknown)"
+  rf_screens_all_file="$(_mktemp_or_unknown)"
+  rf_screens_valid_file="$(_mktemp_or_unknown)"
+  rf_params_file="$(_mktemp_or_unknown)"
+  rf_batch_result_file="$(_mktemp_or_unknown)"
+  rf_updates_file="$(_mktemp_or_unknown)"
 
   jq -r '(.strategy.sharedDirPatterns // [])[]' "$manifest_in" > "$rf_shared_file" 2>/dev/null || true
 
@@ -725,9 +750,9 @@ run_detect_screens_profile() {
   local axis_weight=1
 
   local rows_tmp jsonl_tmp diag_tmp
-  rows_tmp="$(mktemp)"
-  jsonl_tmp="$(mktemp)"
-  diag_tmp="$(mktemp)"
+  rows_tmp="$(_mktemp_or_unknown)"
+  jsonl_tmp="$(_mktemp_or_unknown)"
+  diag_tmp="$(_mktemp_or_unknown)"
   _cleanup_detect_screens_profile_tmp() { rm -f "$rows_tmp" "$jsonl_tmp" "$diag_tmp"; }
   trap '_cleanup_detect_screens_profile_tmp' RETURN
 
@@ -829,7 +854,7 @@ run_detect_screens_profile() {
   if [ -s "$jsonl_tmp" ]; then
     local layer_names layer_tmp
     layer_names="$(jq -r '.layer' "$jsonl_tmp" | sort -u)"
-    layer_tmp="$(mktemp)"
+    layer_tmp="$(_mktemp_or_unknown)"
     : > "$layer_tmp"
     while IFS= read -r layer_name; do
       [ -z "$layer_name" ] && continue
@@ -944,7 +969,7 @@ has_ui_rendering_evidence() {
 
 run_self_tests() {
   local root
-  root="$(mktemp -d)"
+  root="$(_mktemp_or_unknown -d)"
   PASS_COUNT=0
   FAIL_COUNT=0
 
@@ -954,7 +979,7 @@ run_self_tests() {
   printf "import { Button } from '@/shared/Button'\n" > "$t1/src/screens/foo/index.tsx"
   printf "export const Button = () => null\n" > "$t1/src/shared/Button.tsx"
   local t1_alias_file
-  t1_alias_file="$(mktemp)"
+  t1_alias_file="$(_mktemp_or_unknown)"
   printf '@/\t%s\n' "$t1/src" > "$t1_alias_file"
   local t1_result
   t1_result="$(resolve_screen_files "$t1/src/screens/foo/index.tsx" "$t1/src" 6 "" "" "" "" "$t1_alias_file")"
@@ -970,7 +995,7 @@ $t1/src/shared/Button.tsx" \
   printf "import { Widget } from '../../shared/Widget'\n" > "$t2/src/screens/foo/index.tsx"
   printf "export const Widget = () => null\n" > "$t2/src/shared/Widget.tsx"
   local t2_shared_file
-  t2_shared_file="$(mktemp)"
+  t2_shared_file="$(_mktemp_or_unknown)"
   printf '(^|/)shared/\n' > "$t2_shared_file"
   local t2_result
   t2_result="$(resolve_screen_files "$t2/src/screens/foo/index.tsx" "$t2/src" 6 "$t2_shared_file" "" "" "" "")"
@@ -986,7 +1011,7 @@ $t1/src/shared/Button.tsx" \
   printf "import { Widget } from '../../shared/Widget'\n" > "$t2b/src/screens/foo/index.tsx"
   printf "export const Widget = () => null\n" > "$t2b/src/shared/Widget.tsx"
   local t2b_shared_file
-  t2b_shared_file="$(mktemp)"
+  t2b_shared_file="$(_mktemp_or_unknown)"
   printf '^shared/\n' > "$t2b_shared_file"
   local t2b_result
   t2b_result="$(resolve_screen_files "$t2b/src/screens/foo/index.tsx" "$t2b/src" 6 "$t2b_shared_file" "" "" "" "")"
@@ -1044,7 +1069,7 @@ $t5/src/screens/foo/f2.tsx" \
   printf "import { BarOnly } from './BarOnly'\n" > "$t6/src/screens/bar/index.tsx"
   printf "export const BarOnly = 1\n" > "$t6/src/screens/bar/BarOnly.tsx"
   local t6_others_file
-  t6_others_file="$(mktemp)"
+  t6_others_file="$(_mktemp_or_unknown)"
   printf '%s\n' "$t6/src/screens/bar/index.tsx" > "$t6_others_file"
   local t6_result
   t6_result="$(resolve_screen_files "$t6/src/screens/foo/index.tsx" "$t6/src" 6 "" "$t6_others_file" "" "" "")"
@@ -1084,7 +1109,7 @@ $t7/src/screens/foo/T-001-detail.tsx" \
   mkdir -p "$t8/src/screens/foo"
   printf "export const Foo = 1\n" > "$t8/src/screens/foo/index.tsx"
   local t8_shared_file
-  t8_shared_file="$(mktemp)"
+  t8_shared_file="$(_mktemp_or_unknown)"
   printf '(^|/)screens/foo/\n' > "$t8_shared_file"
   local t8_result
   t8_result="$(resolve_screen_files "$t8/src/screens/foo/index.tsx" "$t8/src" 6 "$t8_shared_file" "" "" "" "")"
@@ -1146,8 +1171,8 @@ $t13/src/screens/foo/foo.data.ts" \
   printf "import { Button } from '@/shared/Button'\n" > "$t9/src/screens/foo/index.tsx"
   printf "export const Button = () => null\n" > "$t9/src/shared/Button.tsx"
   local t9_manifest_in t9_manifest_out
-  t9_manifest_in="$(mktemp)"
-  t9_manifest_out="$(mktemp)"
+  t9_manifest_in="$(_mktemp_or_unknown)"
+  t9_manifest_out="$(_mktemp_or_unknown)"
   cat > "$t9_manifest_in" <<EOF
 {
   "generatedAt": null,
@@ -1183,8 +1208,8 @@ EOF
   printf "export const Bar = 1\n" > "$t10/src/screens/bar/index.tsx"
   printf "export const Widget = () => null\n" > "$t10/src/shared/Widget.tsx"
   local t10_manifest_in t10_manifest_out
-  t10_manifest_in="$(mktemp)"
-  t10_manifest_out="$(mktemp)"
+  t10_manifest_in="$(_mktemp_or_unknown)"
+  t10_manifest_out="$(_mktemp_or_unknown)"
   cat > "$t10_manifest_in" <<EOF
 {
   "generatedAt": null,
@@ -1214,7 +1239,7 @@ EOF
   printf "module.exports = {}\n" > "$reg/next.config.js"
   printf "export default function Page() { return null }\n" > "$reg/app/dashboard/page.tsx"
   local reg_manifest reg_status
-  reg_manifest="$(mktemp)"
+  reg_manifest="$(_mktemp_or_unknown)"
   reg_status=0
   bash "$0" "$reg" "$reg_manifest" >/dev/null 2>&1 || reg_status=$?
   local reg_screen_count reg_route
@@ -1237,8 +1262,8 @@ EOF
   printf "import { Widget } from '../shared/Widget'\nexport default function Page(){return null}\n" > "$chain/app/dashboard/page.tsx"
   printf "export const Widget = () => null\n" > "$chain/app/shared/Widget.tsx"
   local chain_manifest chain_manifest_out chain_status
-  chain_manifest="$(mktemp)"
-  chain_manifest_out="$(mktemp)"
+  chain_manifest="$(_mktemp_or_unknown)"
+  chain_manifest_out="$(_mktemp_or_unknown)"
   chain_status=0
   bash "$0" "$chain" "$chain_manifest" >/dev/null 2>&1 || chain_status=$?
   bash "$0" --resolve-files "$chain_manifest" "$chain" "$chain_manifest_out" >/dev/null 2>&1 || chain_status=$?
@@ -1264,11 +1289,11 @@ EOF
   printf "import { Widget } from '@/shared/Widget'\nexport default function Page(){return null}\n" > "$t11/app/dashboard/page.tsx"
   printf "export const Widget = () => null\n" > "$t11/shared/Widget.tsx"
   local t11_strategy_file t11_manifest t11_status
-  t11_strategy_file="$(mktemp)"
+  t11_strategy_file="$(_mktemp_or_unknown)"
   cat > "$t11_strategy_file" <<EOF
 {"sharedDirPatterns": ["^shared/"], "pathAliases": {"@/": ""}, "importTraversalMaxDepth": 6}
 EOF
-  t11_manifest="$(mktemp)"
+  t11_manifest="$(_mktemp_or_unknown)"
   t11_status=0
   bash "$0" "$t11" "$t11_manifest" --strategy-json "$t11_strategy_file" >/dev/null 2>&1 || t11_status=$?
   local t11_count t11_files
@@ -1627,7 +1652,7 @@ EOF
     'case "$value" in ""|*[!0-9]*) value=0 ;; esac' \
     'printf "loc %s\\nimport 0\\nexport_type 0\\nconst 0\\nstate 0\\nhandler 0\\njsx 0\\nstyle 0\\napi 0\\n" "$value"' \
     > "$profile_recount_fast_script"
-  screens_big_tmp="$(mktemp)"
+  screens_big_tmp="$(_mktemp_or_unknown)"
   : > "$screens_big_tmp"
   for ibig in $(seq 1 250); do
     pfbig="$prepo/src/screens/ScreenBig_${ibig}/Foo.tsx"
@@ -1756,7 +1781,7 @@ EOF
   printf "module.exports = {}\n" > "$ok5/next.config.js"
   printf "export default function Page() { return null }\n" > "$ok5/app/トップ-OK/page.tsx"
   local ok5_manifest ok5_status ok5_name
-  ok5_manifest="$(mktemp)"
+  ok5_manifest="$(_mktemp_or_unknown)"
   ok5_status=0
   bash "$0" "$ok5" "$ok5_manifest" >/dev/null 2>&1 || ok5_status=$?
   ok5_name="$(jq -r '.screens[0].screenNameGuess' "$ok5_manifest" 2>/dev/null || echo "")"
@@ -1776,7 +1801,7 @@ EOF
   printf "export default function Page() { return null }\n" > "$tname/app/users/edit/page.tsx"
   printf "export default function Page() { return null }\n" > "$tname/app/orders/edit/page.tsx"
   local tname_manifest tname_status tname_users tname_orders
-  tname_manifest="$(mktemp)"
+  tname_manifest="$(_mktemp_or_unknown)"
   tname_status=0
   bash "$0" "$tname" "$tname_manifest" >/dev/null 2>&1 || tname_status=$?
   tname_users="$(jq -r '.screens[] | select(.route=="/users/edit") | .screenNameGuess' "$tname_manifest" 2>/dev/null || echo "")"
@@ -1801,7 +1826,7 @@ EOF
     '  { path: "/beta", element: <BetaPage /> },' \
     '])' > "$tshared/router.tsx"
   local tshared_manifest tshared_status tshared_alpha tshared_beta tshared_alpha_shared tshared_beta_shared
-  tshared_manifest="$(mktemp)"
+  tshared_manifest="$(_mktemp_or_unknown)"
   tshared_status=0
   bash "$0" "$tshared" "$tshared_manifest" >/dev/null 2>&1 || tshared_status=$?
   tshared_alpha="$(jq -r '.screens[] | select(.route=="/alpha") | .screenNameGuess' "$tshared_manifest" 2>/dev/null || echo "")"
@@ -1846,7 +1871,7 @@ EOF
     '}' > "$t_modal/app/user/components/ScreenBody.tsx"
   printf 'export default function Page() { return <form><input /></form> }\n' > "$t_modal/app/user/edit-modal/page.tsx"
   local t_modal_manifest t_modal_status t_modal_parent t_modal_parent_exists t_modal_child_key t_modal_child_type t_modal_user_parent t_modal_user_component_type
-  t_modal_manifest="$(mktemp)"
+  t_modal_manifest="$(_mktemp_or_unknown)"
   t_modal_status=0
   bash "$0" "$t_modal" "$t_modal_manifest" >/dev/null 2>&1 || t_modal_status=$?
   t_modal_parent="$(jq -r '.screens[] | select(.screenKey == "edit-modal") | .parentScreen' "$t_modal_manifest" 2>/dev/null || true)"
@@ -1871,7 +1896,7 @@ EOF
     'export default function Page() { return isOpen ? <SettingsModal /> : <main>Home</main> }' > "$t_embedded/app/page.tsx"
   printf 'export default function SettingsModal() { return <dialog>Settings</dialog> }\n' > "$t_embedded/app/SettingsModal.tsx"
   local t_embedded_manifest t_embedded_status t_embedded_key
-  t_embedded_manifest="$(mktemp)"
+  t_embedded_manifest="$(_mktemp_or_unknown)"
   t_embedded_status=0
   perl -e 'alarm shift; exec @ARGV' 15 bash "$0" "$t_embedded" "$t_embedded_manifest" --view-switch-pattern 'isOpen' >/dev/null 2>&1 || t_embedded_status=$?
   t_embedded_key="$(jq -r '.screens[] | select(.kind == "embedded-view") | .screenKey' "$t_embedded_manifest" 2>/dev/null | sed -n '1p' || true)"
@@ -1890,7 +1915,7 @@ EOF
     'import React from "react"' \
     'export default function Page() { return React.createElement("main", null, "UI") }' > "$t_react_element/app/ui/page.js"
   local t_react_element_manifest t_react_element_status t_react_element_type t_react_element_processing t_react_element_template
-  t_react_element_manifest="$(mktemp)"
+  t_react_element_manifest="$(_mktemp_or_unknown)"
   t_react_element_status=0
   bash "$0" "$t_react_element" "$t_react_element_manifest" >/dev/null 2>&1 || t_react_element_status=$?
   t_react_element_type="$(jq -r '.screens[] | select(.route == "/ui") | .screenType' "$t_react_element_manifest" 2>/dev/null || true)"
@@ -1915,7 +1940,7 @@ EOF
     '  return <div role="dialog"><button onClick={onClose}>閉じる</button></div>' \
     '}' > "$t_modal_parent/app/home/EditModal.tsx"
   local t_modal_parent_manifest t_modal_parent_status t_modal_parent_value t_modal_parent_children
-  t_modal_parent_manifest="$(mktemp)"
+  t_modal_parent_manifest="$(_mktemp_or_unknown)"
   t_modal_parent_status=0
   bash "$0" "$t_modal_parent" "$t_modal_parent_manifest" >/dev/null 2>&1 || t_modal_parent_status=$?
   t_modal_parent_value="$(jq -r '.screens[] | select(.screenKey == "home") | .parentScreen' "$t_modal_parent_manifest" 2>/dev/null || true)"
@@ -1942,7 +1967,7 @@ EOF
     '  { path: "/orders", element: <Orders /> }' \
     '])' > "$t_route_onclose/src/router.tsx"
   local t_route_onclose_manifest t_route_onclose_status t_route_onclose_parent t_route_onclose_type
-  t_route_onclose_manifest="$(mktemp)"
+  t_route_onclose_manifest="$(_mktemp_or_unknown)"
   t_route_onclose_status=0
   bash "$0" "$t_route_onclose" "$t_route_onclose_manifest" >/dev/null 2>&1 || t_route_onclose_status=$?
   t_route_onclose_parent="$(jq -r '.screens[] | select(.route == "/orders") | .parentScreen' "$t_route_onclose_manifest" 2>/dev/null || true)"
@@ -1962,7 +1987,7 @@ EOF
     'import React from "react"' \
     'export default function Page() { return React.createElement("main", null, "Dashboard") }' > "$t_page_js/app/dashboard/page.js"
   local t_page_js_manifest t_page_js_status t_page_js_template t_page_js_endpoint
-  t_page_js_manifest="$(mktemp)"
+  t_page_js_manifest="$(_mktemp_or_unknown)"
   t_page_js_status=0
   bash "$0" "$t_page_js" "$t_page_js_manifest" >/dev/null 2>&1 || t_page_js_status=$?
   t_page_js_template="$(jq -r '.screens[] | select(.screenKey == "dashboard") | .hasTemplate' "$t_page_js_manifest" 2>/dev/null || true)"
@@ -1981,7 +2006,7 @@ EOF
   printf '%s\n' \
     'export default function Page() { return <main>Confirm</main> }' > "$t_confirm_page/app/confirm/page.tsx"
   local t_confirm_manifest t_confirm_status t_confirm_type t_confirm_endpoint
-  t_confirm_manifest="$(mktemp)"
+  t_confirm_manifest="$(_mktemp_or_unknown)"
   t_confirm_status=0
   bash "$0" "$t_confirm_page" "$t_confirm_manifest" >/dev/null 2>&1 || t_confirm_status=$?
   t_confirm_type="$(jq -r '.screens[] | select(.route == "/confirm") | .screenType' "$t_confirm_manifest" 2>/dev/null || true)"
@@ -2007,7 +2032,7 @@ EOF
     '}' > "$t_bfs/app/admin/ScreenBody.tsx"
   printf '*\tfeature_phone\n' > "$t_bfs/account-group-map.tsv"
   local t_bfs_manifest t_bfs_status t_bfs_type t_bfs_subtype t_bfs_group
-  t_bfs_manifest="$(mktemp)"
+  t_bfs_manifest="$(_mktemp_or_unknown)"
   t_bfs_status=0
   bash "$0" "$t_bfs" "$t_bfs_manifest" --account-group-map "$t_bfs/account-group-map.tsv" >/dev/null 2>&1 || t_bfs_status=$?
   t_bfs_type="$(jq -r '.screens[] | select(.route=="/admin") | .screenType' "$t_bfs_manifest" 2>/dev/null || true)"
@@ -2044,7 +2069,7 @@ EOF
   printf 'export default function Page() { role = "admin"; return <main>Admin</main> }\n' > "$t_role_priority/app/role-literal/page.tsx"
   local t_role_priority_manifest t_role_priority_status t_role_priority_subtype t_role_dynamic_subtype
   local t_roles_array_subtype t_has_role_subtype t_has_role_first_subtype t_role_literal_subtype
-  t_role_priority_manifest="$(mktemp)"
+  t_role_priority_manifest="$(_mktemp_or_unknown)"
   t_role_priority_status=0
   bash "$0" "$t_role_priority" "$t_role_priority_manifest" >/dev/null 2>&1 || t_role_priority_status=$?
   t_role_priority_subtype="$(jq -r '.screens[] | select(.route == "/role-priority") | .accountSubType' "$t_role_priority_manifest" 2>/dev/null || true)"
@@ -2085,7 +2110,7 @@ EOF
     printf '</main> }\n'
   } > "$t_dom_stress/app/mass-table/Body.tsx"
   local t_dom_stress_manifest t_dom_stress_status t_dom_form_type t_dom_form_template t_dom_table_type t_dom_table_template t_dom_form_bytes t_dom_table_bytes
-  t_dom_stress_manifest="$(mktemp)"
+  t_dom_stress_manifest="$(_mktemp_or_unknown)"
   t_dom_stress_status=0
   bash "$0" "$t_dom_stress" "$t_dom_stress_manifest" >/dev/null 2>&1 || t_dom_stress_status=$?
   t_dom_form_type="$(jq -r '.screens[] | select(.route == "/mass-form") | .screenType' "$t_dom_stress_manifest" 2>/dev/null || true)"
@@ -2120,7 +2145,7 @@ EOF
       > "$t_template_bulk/app/bulk/templates/Template$(printf '%04d' "$n").tsx"
   done
   local t_template_bulk_manifest t_template_bulk_status t_template_bulk_has_template t_template_bulk_count
-  t_template_bulk_manifest="$(mktemp)"
+  t_template_bulk_manifest="$(_mktemp_or_unknown)"
   t_template_bulk_status=0
   bash "$0" "$t_template_bulk" "$t_template_bulk_manifest" >/dev/null 2>&1 || t_template_bulk_status=$?
   t_template_bulk_has_template="$(jq -r '.screens[] | select(.route == "/bulk") | .hasTemplate' "$t_template_bulk_manifest" 2>/dev/null || true)"
@@ -2146,7 +2171,7 @@ EOF
     '  return <main>Preview</main>' \
     '}' > "$t_template_popup/app/user/templates/PopupTemplate.tsx"
   local t_template_popup_manifest t_template_popup_status t_template_popup_parent t_template_popup_child t_template_popup_type
-  t_template_popup_manifest="$(mktemp)"
+  t_template_popup_manifest="$(_mktemp_or_unknown)"
   t_template_popup_status=0
   bash "$0" "$t_template_popup" "$t_template_popup_manifest" >/dev/null 2>&1 || t_template_popup_status=$?
   t_template_popup_parent="$(jq -r '.screens[] | select(.screenKey == "print") | .parentScreen' "$t_template_popup_manifest" 2>/dev/null || true)"
@@ -2169,7 +2194,7 @@ EOF
     'export default function Page() { window.open("/self"); return <PrintBody /> }' > "$t_entry_popup/app/reports/print/page.tsx"
   printf 'export default function PrintBody() { return <main>Body</main> }\n' > "$t_entry_popup/app/reports/templates/PrintBody.tsx"
   local t_entry_popup_manifest t_entry_popup_status t_entry_popup_parent t_entry_popup_children
-  t_entry_popup_manifest="$(mktemp)"
+  t_entry_popup_manifest="$(_mktemp_or_unknown)"
   t_entry_popup_status=0
   bash "$0" "$t_entry_popup" "$t_entry_popup_manifest" >/dev/null 2>&1 || t_entry_popup_status=$?
   t_entry_popup_parent="$(jq -r '.screens[] | select(.route == "/reports/print") | .parentScreen' "$t_entry_popup_manifest" 2>/dev/null || true)"
@@ -2201,7 +2226,7 @@ EOF
   printf 'export const View = () => React.createElement("main", null, "React")\n' > "$t_helper_popup/ui-react.js"
   printf 'render_template("preview")\n' > "$t_helper_popup/ui-template.rb"
   local t_helper_popup_manifest t_helper_popup_status t_helper_popup_parent t_helper_popup_children
-  t_helper_popup_manifest="$(mktemp)"
+  t_helper_popup_manifest="$(_mktemp_or_unknown)"
   t_helper_popup_status=0
   bash "$0" "$t_helper_popup" "$t_helper_popup_manifest" >/dev/null 2>&1 || t_helper_popup_status=$?
   t_helper_popup_parent="$(jq -r '.screens[] | select(.route == "/helper/print") | .parentScreen' "$t_helper_popup_manifest" 2>/dev/null || true)"
@@ -2367,13 +2392,13 @@ allow_method() {
   esac
 }
 
-TMP_ROWS="$(mktemp)"
-SEEN_KEYS_FILE="$(mktemp)"
-TMP_MERGED="$(mktemp)"
-TMP_KEYED="$(mktemp)"
-TMP_EMBEDDED="$(mktemp)"
-TMP_ALL="$(mktemp)"
-TMP_CLUSTERS="$(mktemp)"
+TMP_ROWS="$(_mktemp_or_unknown)"
+SEEN_KEYS_FILE="$(_mktemp_or_unknown)"
+TMP_MERGED="$(_mktemp_or_unknown)"
+TMP_KEYED="$(_mktemp_or_unknown)"
+TMP_EMBEDDED="$(_mktemp_or_unknown)"
+TMP_ALL="$(_mktemp_or_unknown)"
+TMP_CLUSTERS="$(_mktemp_or_unknown)"
 trap 'rm -f "$TMP_ROWS" "$SEEN_KEYS_FILE" "$TMP_MERGED" "$TMP_KEYED" "$TMP_EMBEDDED" "$TMP_ALL" "$TMP_CLUSTERS" "$RESOLVE_COMMON_AWK_FILE" "$RESOLVE_AWK_FILE" "$RESOLVE_BATCH_AWK_FILE" "${STRATEGY_SHARED_FILE:-}" "${STRATEGY_ALIAS_FILE:-}" "${STRATEGY_ALL_ENTRIES_FILE:-}"' EXIT
 
 detection_method=""
@@ -3100,9 +3125,9 @@ fi
 # 解決する。strategy の sharedDirPatterns/pathAliases/importTraversalMaxDepth/
 # screenIdRegex を読み込んで BFS に引き渡す(entryFile がディレクトリの場合の
 # 従来のディレクトリ収集はフォールバック互換として維持する)。
-STRATEGY_SHARED_FILE="$(mktemp)"
-STRATEGY_ALIAS_FILE="$(mktemp)"
-STRATEGY_ALL_ENTRIES_FILE="$(mktemp)"
+STRATEGY_SHARED_FILE="$(_mktemp_or_unknown)"
+STRATEGY_ALIAS_FILE="$(_mktemp_or_unknown)"
+STRATEGY_ALL_ENTRIES_FILE="$(_mktemp_or_unknown)"
 
 STRATEGY_MAX_DEPTH="$(printf '%s' "$strategy_json" | jq -r '.importTraversalMaxDepth // 6' 2>/dev/null || echo 6)"
 case "$STRATEGY_MAX_DEPTH" in ''|*[!0-9]*) STRATEGY_MAX_DEPTH=6 ;; esac
@@ -3157,7 +3182,7 @@ awk -F'\t' '$5!=""{print $5}' "$TMP_ALL" | sort -u > "$STRATEGY_ALL_ENTRIES_FILE
         bfs_base="${bfs_base%.*}"
         bfs_own_screen_id="$(printf '%s' "$bfs_base" | grep -aoE "$STRATEGY_SCREEN_ID_REGEX" | head -1 || true)"
       fi
-      screen_others_file="$(mktemp)"
+      screen_others_file="$(_mktemp_or_unknown)"
       grep -avxF "$entry_file" "$STRATEGY_ALL_ENTRIES_FILE" > "$screen_others_file" 2>/dev/null || true
       files="$(resolve_screen_files "$entry_file" "$SOURCE_DIR" "$STRATEGY_MAX_DEPTH" "$STRATEGY_SHARED_FILE" "$screen_others_file" "$STRATEGY_SCREEN_ID_REGEX" "$bfs_own_screen_id" "$STRATEGY_ALIAS_FILE")"
       rm -f "$screen_others_file"

@@ -141,6 +141,11 @@ TASKS_DIR="${JUDGE_TASK_DONE_TEST_TASKS_DIR:-$REPO_ROOT/docs/tasks}"
 DONE_DIR="$TASKS_DIR/done"
 MAIN_REF="main"
 TOOLKIT_DIR="${TASK_DONE_TOOLKIT_DIR:-$HOME/github-public/agent-toolkit}"
+# 除外名は .claude/rules/always/publish/complete/rule.md「公開対象から
+# 外す資産」節が定める非公開の定義ファイル（.names）を正本として読む。
+# 名前をこのスクリプトへ直接書き込まない。
+DEFAULT_PUBLISH_FORBIDDEN_NAMES_FILE="$HOME/agent-home/state/payload-forbidden-content.json"
+PUBLISH_FORBIDDEN_NAMES_FILE="${PAYLOAD_FORBIDDEN_NAMES_FILE:-$DEFAULT_PUBLISH_FORBIDDEN_NAMES_FILE}"
 
 if [ ! -d "$TASKS_DIR" ]; then
   echo "ERROR: $TASKS_DIR が無い" >&2
@@ -369,19 +374,27 @@ judge_publish() {
   git -C "$REPO_ROOT" archive "$MAIN_REF" -- "${existing_paths[@]}" 2>/dev/null | tar -x -C "$tmp_src" 2>/dev/null
   git -C "$TOOLKIT_DIR" archive origin/main payload/reverse-docs-skills 2>/dev/null | tar -x -C "$tmp_pub" 2>/dev/null
 
+  # 除外名は .claude/rules/always/publish/complete/rule.md
+  # 「公開対象から外す資産」節が定める非公開の定義ファイルから読む
+  # （名前をこのスクリプトへ直接書き込まない）。ファイルが読めない場合は
+  # 除外なしで判定を続けず、判定不能として止める（除外漏れによる
+  # 誤った「未反映」判定を避けるため）。
+  local -a exclude_args=(--exclude=.DS_Store --exclude=node_modules --exclude='*.local.yml')
+  if [ ! -f "$PUBLISH_FORBIDDEN_NAMES_FILE" ]; then
+    PUBLISH_MSG="判定不能（除外名の定義ファイルが無い: ${PUBLISH_FORBIDDEN_NAMES_FILE}）"
+    rm -rf "$tmp_src" "$tmp_pub"
+    return
+  fi
+  local forbidden_name
+  while IFS= read -r forbidden_name; do
+    [ -n "$forbidden_name" ] || continue
+    exclude_args+=("--exclude=${forbidden_name}")
+  done < <(jq -r '.names[]? // empty' "$PUBLISH_FORBIDDEN_NAMES_FILE" 2>/dev/null)
+
   local mismatch=""
   for rel in "${existing_paths[@]}"; do
-    # 除外名10件は .claude/rules/always/publish/complete/rule.md
-    # 「公開対象から外す資産」節と揃える。
     if ! diff -r -q \
-        --exclude=.DS_Store --exclude=node_modules --exclude='*.local.yml' \
-        --exclude=flow-config --exclude=flow-context.yml \
-        --exclude='.flow-progress.json' --exclude='.port-slot' \
-        --exclude='.investigation-checklist.md' \
-        --exclude='local-environment' --exclude='.cc-writes' \
-        --exclude='prioritizing-improvement-tasks-from-images' \
-        --exclude='改善課題タスク一覧.md' \
-        --exclude='check-self-contained.sh' \
+        "${exclude_args[@]}" \
         "$tmp_src/$rel" "$tmp_pub/payload/reverse-docs-skills/$rel" >/dev/null 2>&1; then
       mismatch="${mismatch}${rel} "
     fi

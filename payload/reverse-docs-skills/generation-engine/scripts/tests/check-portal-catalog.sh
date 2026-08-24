@@ -31,7 +31,13 @@ capture_golden() {
   git -C "$repo_root" cat-file -e "$commit:generation-engine/samples/project-portal/index.html" 2>/dev/null \
     || { echo "ERROR: commit/path does not exist: $commit:generation-engine/samples/project-portal/index.html" >&2; return 1; }
   local temporary_html temporary_output
-  temporary_html="$(mktemp)"
+  # 置き場を明示するのは、引数なしの mktemp が既定の置き場へ書こうとして
+  # 失敗する環境があるためである（実測 2026-08-24）。TMPDIR を明示すると成功する。
+  # この形を素直な mktemp へ戻してはならない。
+  if ! temporary_html="$(mktemp "${TMPDIR:-/tmp}/$(basename "${BASH_SOURCE[0]}" .sh).XXXXXX" 2>/dev/null)" || [ -z "$temporary_html" ]; then
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境のサンドボックス制約等が原因である可能性があります）"
+    return 2
+  fi
   temporary_output="$(mktemp "$(dirname "$output")/.portal-catalog-golden.XXXXXX")"
   trap 'rm -f "$temporary_html" "$temporary_output"' RETURN
   git -C "$repo_root" show "$commit:generation-engine/samples/project-portal/index.html" > "$temporary_html"
@@ -49,7 +55,9 @@ self_test() {
   # 判定不能規約（.claude/rules/always/verification/indeterminate-result/rule.md）:
   # mktemp の失敗（実行環境のサンドボックス制約等）を対象の不合格と区別する。
   # if の条件式の中で代入と失敗チェックを行うことで、set -e の対象から外す。
-  if ! tmpdir="$(mktemp -d 2>/dev/null)" || [ -z "$tmpdir" ]; then
+  # 置き場を明示するのは、引数なしの mktemp が既定の置き場へ書こうとして
+  # 失敗する環境があるためである（実測 2026-08-24）。素直な mktemp へ戻さない。
+  if ! tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/$(basename "${BASH_SOURCE[0]}" .sh).XXXXXX" 2>/dev/null)" || [ -z "$tmpdir" ]; then
     echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境のサンドボックス制約等が原因である可能性があります）"
     exit 2
   fi

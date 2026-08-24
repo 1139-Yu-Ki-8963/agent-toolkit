@@ -101,6 +101,22 @@ frontmatter_of() {
   awk 'NR == 1 && /^---[[:space:]]*$/ { f = 1; next } f && /^---[[:space:]]*$/ { exit } f' "$1"
 }
 
+# 配布対象から外すスキル（このリポジトリ専用・非公開）の名前は、除外の定義
+# ファイル（~/agent-home/state/payload-forbidden-content.json の .names）
+# から読む。名前をこのスクリプトへ直接書き込まない。定義ファイルまたは jq
+# が無い場合は除外を適用しない（fail-open。このスクリプト自体は jq を必須
+# 依存として既に要求しているため実運用では常に読める）。
+DEFAULT_AI_ASSETS_FORBIDDEN_NAMES_FILE="$HOME/agent-home/state/payload-forbidden-content.json"
+AI_ASSETS_FORBIDDEN_NAMES_FILE="${PAYLOAD_FORBIDDEN_NAMES_FILE:-$DEFAULT_AI_ASSETS_FORBIDDEN_NAMES_FILE}"
+is_forbidden_skill_name() {
+  local name="$1"
+  if [ -f "$AI_ASSETS_FORBIDDEN_NAMES_FILE" ] && command -v jq >/dev/null 2>&1; then
+    jq -e --arg n "$name" '(.names // []) | index($n) != null' "$AI_ASSETS_FORBIDDEN_NAMES_FILE" >/dev/null 2>&1
+    return $?
+  fi
+  return 1
+}
+
 # skillName から category(サンプル埋め込みマニフェストの値集合: 指揮|一覧生成|基盤ページ生成|工程)を判定する。
 # 判定規則(サンプル実データ10件全件と一致することを --self-test ケースbで検証済み):
 #   orchestrating-*                         → 指揮(工程全体の指揮役)
@@ -232,6 +248,7 @@ extract_skills() {
     fm="$(frontmatter_of "$scan_f")"
     skill_name="$(sed -n 's/^name:[[:space:]]*//p' <<<"$fm" | head -1)"
     [ -n "$skill_name" ] || continue
+    is_forbidden_skill_name "$skill_name" && continue
     category="$(skill_category "$skill_name")"
     # description: 同一行値、または 'description: |' ブロックのインデント行群
     desc="$(awk '

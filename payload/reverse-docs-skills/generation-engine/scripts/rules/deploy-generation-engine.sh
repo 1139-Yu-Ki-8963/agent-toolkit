@@ -213,7 +213,8 @@ self_test() {
   # 判定不能規約（.claude/rules/always/verification/indeterminate-result/rule.md）:
   # mktemp の失敗（実行環境のサンドボックス制約等）を対象の不合格と区別する。
   # if の条件式の中で代入と失敗チェックを行うことで、set -e の対象から外す。
-  if ! tmpdir="$(mktemp -d 2>/dev/null)" || [ -z "$tmpdir" ]; then
+  # 置き場を明示するのは、引数なしの mktemp が既定の置き場へ書こうとして失敗する環境があるためである（実測 2026-08-24）。素直な mktemp へ戻さない。
+  if ! tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/$(basename "${BASH_SOURCE[0]}" .sh).XXXXXX" 2>/dev/null)" || [ -z "$tmpdir" ]; then
     echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境のサンドボックス制約等が原因である可能性があります）"
     exit 2
   fi

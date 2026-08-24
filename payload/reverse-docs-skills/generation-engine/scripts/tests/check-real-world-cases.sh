@@ -196,7 +196,8 @@ run_check() {
 run_self_test() {
   local tmp rc n_pass=0 n_fail=0
 
-  if ! tmp="$(mktemp -d 2>/dev/null)" || [ -z "$tmp" ]; then
+  # 置き場を明示するのは、引数なしの mktemp が既定の置き場へ書こうとして失敗する環境があるためである（実測 2026-08-24）。素直な mktemp へ戻さない。
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/$(basename "${BASH_SOURCE[0]}" .sh).XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
     echo "[UNKNOWN] 一時ディレクトリを作れないため自己テストを判定できません 操作: mktemp -d 想定原因: 実行環境が一時領域への書き込みを許していない" >&2
     exit 2
   fi

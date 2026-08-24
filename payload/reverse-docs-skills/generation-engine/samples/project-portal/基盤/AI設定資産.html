@@ -668,17 +668,17 @@ table.assets tbody tr:hover td { background: var(--panel3); }
     <div class="pt-brand-switch" id="pt-brand-switch">
       <div class="pt-brand-name"></div>
     </div>
-    <div class="pt-brand-sub">設計台帳 · 全62資料</div>
+    <div class="pt-brand-sub">設計台帳 · 全61資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
   
   <button type="button" class="pt-theme" id="pt-theme-toggle">
     <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
   </button>
-  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-21T04:07:47+0900</span><span id="pt-meta-commit"><br>コミット </span></div>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-24T10:35:10+0900</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
-<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":7},{"key":"list","num":"04","label":"一覧・設計図","count":14},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":6},{"key":"list","num":"04","label":"一覧・設計図","count":14},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
 <script type="application/json" id="pt-sites-data">[]</script>
 <script>
 (function () {
@@ -959,7 +959,7 @@ table.assets tbody tr:hover td { background: var(--panel3); }
         <div class="pt-crumb"><a href="../index.html">TOP</a> ／ AI設定資産 ／ <span class="pt-crumb-current">AI設定資産</span></div>
         <div class="pt-title-row">
           <h1 class="pt-title">AI設定資産</h1>
-          <span class="pt-title-sub">更新 2026-08-21T04:07:47+0900</span>
+          <span class="pt-title-sub">更新 2026-08-24T10:35:10+0900</span>
         </div>
       </div>
 
@@ -1051,15 +1051,15 @@ table.assets tbody tr:hover td { background: var(--panel3); }
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta"> · 更新 <span id="pt-footer-date">2026-08-21T04:07:47+0900</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta"> · 更新 <span id="pt-footer-date">2026-08-24T10:35:10+0900</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: generation-engine/scripts/matrix/build-matrix-pages.sh</span>
 </footer>
 </div>
 
 <script type="application/json" id="matrix-manifest">
 {
-  "generatedAt": "2026-08-21T04:07:47+0900",
-  "dataSource": "improve-1-49",
+  "generatedAt": "2026-08-24T10:35:10+0900",
+  "dataSource": "publish-guard",
   "rules": [
     {
       "ruleName": "実装判断記録規約（IMPLEMENTATION-DECISION-RECORD）",
@@ -1116,6 +1116,7 @@ table.assets tbody tr:hover td { background: var(--panel3); }
       "mechanicalEnforcement": true,
       "tags": [
         "[DELEGATION-WORKTREE-BLOCK]",
+        "[DELEGATION-WORKTREE-EXEMPT]",
         "[DELEGATION-WORKTREE-SKIP]"
       ],
       "summary": "書き換えを伴う作業を委任するとき、委任元が作業場所（git の worktree）を用意し、そのパスを委任のプロンプトへ書くことを求める。"
@@ -1127,6 +1128,17 @@ table.assets tbody tr:hover td { background: var(--panel3); }
       "mechanicalEnforcement": false,
       "tags": [],
       "summary": "`docs/tasks/指摘改善一覧.md` の課題を複数の `codex exec` へ並行投入するとき、変更対象の重なりを事前に確認し、プロンプトを安全に構築し、3件同時実行の上限を守ることを求める。"
+    },
+    {
+      "ruleName": "サブエージェント報告の裏取り（SUBAGENT-REPORT-VERIFICATION）",
+      "layer": "always",
+      "declaredEnforcement": "block",
+      "mechanicalEnforcement": true,
+      "tags": [
+        "[SUBAGENT-REPORT-VERIFICATION-BLOCK]",
+        "[SUBAGENT-REPORT-VERIFICATION-SKIP]"
+      ],
+      "summary": "サブエージェントが「実行した」と報告した内容のうち、後から実物を確かめられるものは、報告を受けた側が確かめてから次へ進むことを定める。"
     },
     {
       "ruleName": "作業者の自律規約（WORKER-AUTONOMY）",
@@ -1232,7 +1244,6 @@ table.assets tbody tr:hover td { background: var(--panel3); }
     {
       "skillName": "generating-api-detail-design-for-reverse-docs",
       "category": "工程",
-      "trigger": "API詳細設計書を生成・更新するとき。",
       "summary": "接続窓口ごとに原本コードから詳細設計書を作る。",
       "phaseCount": 4
     },
@@ -1455,25 +1466,19 @@ table.assets tbody tr:hover td { background: var(--panel3); }
     {
       "skillName": "maintaining-semantic-glossary",
       "category": "工程",
-      "summary": "用語の変更を検査し、影響を分析する。",
+      "summary": "正式用語集、用語候補又は変更提案を検査して影響を調べ、正式用語集を変えずに検査結果又は承認用の変更要求を作る。",
       "phaseCount": 5
     },
     {
       "skillName": "managing-semantic-glossary",
       "category": "工程",
-      "summary": "確定した用語の変更と公開を管理する。",
+      "summary": "正式用語集、用語候補又は変更要求を入力に、指定に応じて照会・審査・試行を行い、役割別の二件の承認がある変更だけを適用して公開する。",
       "phaseCount": 5
     },
     {
       "skillName": "orchestrating-ai-development-setup",
       "category": "指揮",
-      "summary": "元のコードと設計書を照合する検証の工程全体を統括する。",
-      "phaseCount": 7
-    },
-    {
-      "skillName": "prioritizing-improvement-tasks-from-images",
-      "category": "工程",
-      "summary": "改善課題の画像を書き起こして指示書へ集約し、未解決項目を調査して優先順位を確定する。",
+      "summary": "対象コードと実行範囲を入力に、調査・事実抽出・設計書作成から再構築・原本照合・基準確立までを指定に応じて統括し、選んだ工程の結果を確定する。",
       "phaseCount": 7
     },
     {
@@ -1491,7 +1496,7 @@ table.assets tbody tr:hover td { background: var(--panel3); }
     {
       "skillName": "running-reverse-screen-batch",
       "category": "工程",
-      "summary": "画面ごとの検証を無人のまとめ処理で自動的に実行する。",
+      "summary": "対象コード、画面一覧、検証条件、出力先、雛形及び共通資料を入力に、各画面を無人で順に処理して指定工程まで設計書作成・再構築・原本照合を行い、進捗と失敗を記録する。",
       "phaseCount": 5
     },
     {
@@ -1515,7 +1520,7 @@ table.assets tbody tr:hover td { background: var(--panel3); }
     {
       "skillName": "unlocking-reverse-target-screens",
       "category": "工程",
-      "summary": "既存の画面を疑似の接続窓口で開通させ、起動モードごとの検証準備を行う。",
+      "summary": "対象画面と依存先を調べてデータ取得を差し替え、画面を起動して検証用のアドレスを記録し、単独実行では比較の基準を確立する。",
       "phaseCount": 5
     }
   ],
@@ -1576,6 +1581,15 @@ table.assets tbody tr:hover td { background: var(--panel3); }
       "matcher": "—",
       "tags": [],
       "summary": "最終応答が作業の受け渡しを未来形で述べて終わっているかを検出する Stop hook。"
+    },
+    {
+      "script": "check-subagent-report-verification.sh",
+      "timing": "Stop",
+      "matcher": "—",
+      "tags": [
+        "[SUBAGENT-REPORT-VERIFICATION-SKIP]"
+      ],
+      "summary": "サブエージェントの報告のうち、実行記録が 0 件のものを検出する Stop hook。"
     },
     {
       "script": "check-publish-sync-gate.sh",
