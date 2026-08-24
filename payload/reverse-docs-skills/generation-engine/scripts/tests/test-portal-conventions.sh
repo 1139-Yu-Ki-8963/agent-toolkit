@@ -240,7 +240,7 @@ check_callout_contract() {
   script_dir="$(cd "$(dirname "$0")" && pwd)"
   templates_dir="$script_dir/../../../delivery-payload/templates"
   shell_css="$templates_dir/partials/shell.css"
-  representative="$script_dir/../../samples/project-portal/一覧/API一覧/API一覧.html"
+  representative="$script_dir/../../samples/project-portal/lists/apis/API一覧.html"
   material_symbols_href='https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined&amp;icon_names=info,priority_high,warning&amp;display=block'
   expected_font_sha='8f1b843abe398437ce5b3194a9f060f45534414e1fd6bced2521d39ca3d5a778'
   shell_font_sha=""

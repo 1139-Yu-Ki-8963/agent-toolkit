@@ -421,11 +421,23 @@ stage_type_extraction() {
 stage_unit_lists() {
   local any_fail=0 detail=""
 
+  # 出力先は output-layout.json から解決する。project-portal 配下の日本語
+  # ルートを直書きすると、unitsRoot を project-portal/lists
+  # （英字）へ差し戻した現行定義と食い違い、build-portal.sh の discovery
+  # （portal-catalog.json の各blueprint.discovery.glob）が生成物を見失う
+  # （実測: 直書きのままcheck-coverage.shを実行すると10件すべてMISSINGになった）。
+  local unit_layout_json
+  unit_layout_json="$(resolve_output_layout "${OUTPUT_DIR}")" || unit_layout_json=""
+  local units_root
+  units_root="$(output_layout_get "${unit_layout_json}" unitsRoot 2>/dev/null)" || units_root="project-portal/lists"
+
   local screen_manifest="${MANIFESTS_DIR}/screen-manifest.json"
   local screen_script="${REPO_SELF}/generation-engine/scripts/unit-list/build-screen-list.sh"
+  local screen_html_rel
+  screen_html_rel="$(output_layout_get "${unit_layout_json}" screenListHtml 2>/dev/null)" || screen_html_rel="${units_root}/screens/画面一覧.html"
   if [ -f "${screen_script}" ] && [ -f "${screen_manifest}" ]; then
-    mkdir -p "${PORTAL_DIR}/一覧/画面一覧"
-    run_cmd bash "${screen_script}" "${screen_manifest}" "${PORTAL_DIR}/一覧/画面一覧/画面一覧.html"
+    mkdir -p "$(dirname "${OUTPUT_DIR}/${screen_html_rel}")"
+    run_cmd bash "${screen_script}" "${screen_manifest}" "${OUTPUT_DIR}/${screen_html_rel}"
     [ "${LAST_RC}" -ne 0 ] && any_fail=1
     detail="${detail}screen=${LAST_RC}; "
   else
@@ -434,9 +446,11 @@ stage_unit_lists() {
 
   local feature_manifest="${MANIFESTS_DIR}/feature-manifest.json"
   local feature_script="${REPO_SELF}/generation-engine/scripts/unit-list/build-feature-list.sh"
+  local feature_html_rel
+  feature_html_rel="$(output_layout_get "${unit_layout_json}" unitListHtml 機能 2>/dev/null)" || feature_html_rel="${units_root}/features/機能一覧.html"
   if [ -f "${feature_script}" ] && [ -f "${feature_manifest}" ]; then
-    mkdir -p "${PORTAL_DIR}/一覧/機能一覧"
-    run_cmd bash "${feature_script}" "${feature_manifest}" "${PORTAL_DIR}/一覧/機能一覧/機能一覧.html"
+    mkdir -p "$(dirname "${OUTPUT_DIR}/${feature_html_rel}")"
+    run_cmd bash "${feature_script}" "${feature_manifest}" "${OUTPUT_DIR}/${feature_html_rel}"
     [ "${LAST_RC}" -ne 0 ] && any_fail=1
     detail="${detail}feature=${LAST_RC}; "
   else
@@ -444,7 +458,7 @@ stage_unit_lists() {
   fi
 
   local unit_script="${REPO_SELF}/generation-engine/scripts/unit-list/build-unit-list.sh"
-  local kind manifest label
+  local kind manifest label html_rel
   for kind in api table batch report external; do
     case "${kind}" in
       api) label="API" ;;
@@ -454,9 +468,10 @@ stage_unit_lists() {
       external) label="外部連携" ;;
     esac
     manifest="${MANIFESTS_DIR}/${kind}-manifest.json"
+    html_rel="$(output_layout_get "${unit_layout_json}" unitListHtml "${label}" 2>/dev/null)" || html_rel="${units_root}/${label}一覧/${label}一覧.html"
     if [ -f "${unit_script}" ] && [ -f "${manifest}" ]; then
-      mkdir -p "${PORTAL_DIR}/一覧/${label}一覧"
-      run_cmd bash "${unit_script}" "${manifest}" "${PORTAL_DIR}/一覧/${label}一覧/${label}一覧.html" --unit-kind "${kind}"
+      mkdir -p "$(dirname "${OUTPUT_DIR}/${html_rel}")"
+      run_cmd bash "${unit_script}" "${manifest}" "${OUTPUT_DIR}/${html_rel}" --unit-kind "${kind}"
       [ "${LAST_RC}" -ne 0 ] && any_fail=1
       detail="${detail}${kind}=${LAST_RC}; "
     else
@@ -464,10 +479,18 @@ stage_unit_lists() {
     fi
   done
 
+  # メッセージ一覧・テストケース一覧は、portal-catalog.json の該当blueprint
+  # （message-list・test-case-list）の kind が kindDirNames のキーと一致しない
+  # ため、discovery側は英字ディレクトリ名（messages・test-cases）へ差し替わらず
+  # 日本語のサブディレクトリ名のまま解決する（generation-engine/scripts/extract/
+  # aggregate-test-cases.sh の設計コメントを参照。unitListHtml+{label}経由で
+  # 英字名を使うと、discoveryが探す場所と食い違いportalに連結されない）。
+  # ここでの出力先も同じ日本語のサブディレクトリ名に揃える。
   local message_manifest="${MANIFESTS_DIR}/message-manifest.json"
+  local message_html_rel="${units_root}/メッセージ一覧/メッセージ一覧.html"
   if [ -f "${unit_script}" ] && [ -f "${message_manifest}" ]; then
-    mkdir -p "${PORTAL_DIR}/一覧/メッセージ一覧"
-    run_cmd bash "${unit_script}" "${message_manifest}" "${PORTAL_DIR}/一覧/メッセージ一覧/メッセージ一覧.html" --unit-kind message
+    mkdir -p "$(dirname "${OUTPUT_DIR}/${message_html_rel}")"
+    run_cmd bash "${unit_script}" "${message_manifest}" "${OUTPUT_DIR}/${message_html_rel}" --unit-kind message
     [ "${LAST_RC}" -ne 0 ] && any_fail=1
     detail="${detail}message=${LAST_RC}; "
   else
@@ -475,9 +498,10 @@ stage_unit_lists() {
   fi
 
   local viewpoint_manifest="${MANIFESTS_DIR}/test_viewpoint-manifest.json"
+  local viewpoint_html_rel="${units_root}/テスト観点表/テスト観点表.html"
   if [ -f "${unit_script}" ] && [ -f "${viewpoint_manifest}" ]; then
-    mkdir -p "${PORTAL_DIR}/一覧/テスト観点表"
-    run_cmd bash "${unit_script}" "${viewpoint_manifest}" "${PORTAL_DIR}/一覧/テスト観点表/テスト観点表.html" --unit-kind test_viewpoint
+    mkdir -p "$(dirname "${OUTPUT_DIR}/${viewpoint_html_rel}")"
+    run_cmd bash "${unit_script}" "${viewpoint_manifest}" "${OUTPUT_DIR}/${viewpoint_html_rel}" --unit-kind test_viewpoint
     [ "${LAST_RC}" -ne 0 ] && any_fail=1
     detail="${detail}test-viewpoint=${LAST_RC}; "
   else
@@ -485,9 +509,10 @@ stage_unit_lists() {
   fi
 
   local testcase_manifest="${MANIFESTS_DIR}/test_case-manifest.json"
+  local testcase_html_rel="${units_root}/テストケース一覧/テストケース一覧.html"
   if [ -f "${unit_script}" ] && [ -f "${testcase_manifest}" ]; then
-    mkdir -p "${PORTAL_DIR}/一覧/テストケース一覧"
-    run_cmd bash "${unit_script}" "${testcase_manifest}" "${PORTAL_DIR}/一覧/テストケース一覧/テストケース一覧.html" --unit-kind test_case
+    mkdir -p "$(dirname "${OUTPUT_DIR}/${testcase_html_rel}")"
+    run_cmd bash "${unit_script}" "${testcase_manifest}" "${OUTPUT_DIR}/${testcase_html_rel}" --unit-kind test_case
     [ "${LAST_RC}" -ne 0 ] && any_fail=1
     detail="${detail}test-case=${LAST_RC}; "
   else

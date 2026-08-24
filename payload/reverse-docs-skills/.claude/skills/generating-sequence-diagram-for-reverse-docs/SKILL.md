@@ -260,7 +260,7 @@ jq -e '
 
 Glob / Read で実在ファイルを確認し、対象単位の設計書ビューアと同じ体裁の左サイドバー用doc-navを組み立てる。画面は既存のscreenViewRoot経路、API・機能は対象設計書と同じ単位ディレクトリを基点にする。実在判定はシーケンス図.html側の視点（アクティブ項目がシーケンス図）で行う。
 
-- **戻るリンク**: `<a class="back-link" href="<画面一覧.htmlへの相対パス>">← 画面一覧へ戻る</a>`。`<output_dir>/<screenListDir>/画面一覧.html`（既定 `project-portal/一覧/画面一覧/画面一覧.html`）への相対パスを算出する（出力先は `<screenViewRoot>/screen-<ID>/` 直下で、既定値どうしの組では `../../一覧/画面一覧/画面一覧.html` が典型値）
+- **戻るリンク**: `<a class="back-link" href="<画面一覧.htmlへの相対パス>">← 画面一覧へ戻る</a>`。`<output_dir>/<screenListDir>/画面一覧.html`（既定 `project-portal/lists/screens/画面一覧.html`）への相対パスを算出する（出力先は `<screenViewRoot>/screen-<ID>/` 直下で、既定値どうしの組では `../../lists/screens/画面一覧.html` が典型値）
 - **基本設計項目**: `${screen_view_dir}基本設計/画面基本設計書.html` が実在すれば `<a class="nav-item" href="基本設計/画面基本設計書.html">基本設計</a>`
 - **詳細設計項目**: `${screen_view_dir}詳細設計/画面詳細設計書.html` が実在すれば `<a class="nav-item" href="詳細設計/画面詳細設計書.html">詳細設計</a>`
 - **シーケンス図項目**: 自ページなので `<span class="nav-item active">シーケンス図</span>`

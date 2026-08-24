@@ -96,13 +96,17 @@ EOF
     return 1
   fi
   printf '<script type="application/json">%s</script>\n' "$(jq -c . "$manifest")" > "$manifest_only"
-  # 1-244（一覧の置き場が三者三様になっている問題を直す指示書.mdで定義を統一済み）:
-  # build-portal.sh（portal-catalog.mjsのresolveDefaultRootPrefix）は
-  # test-viewpoint-list blueprintのdiscovery.glob（project-portal/一覧/テスト観点表/
-  # テスト観点表.html）の既定接頭辞（defaultRoots.unitsRoot=project-portal/一覧）を
-  # output-layout.jsonの現行unitsRoot（project-portal/一覧。両者は一致するためkindDir
-  # Namesへの差し替えは行われない）へ解決して連結先を求める。$html の生成
-  # （55・61行目）は units_root 経由でこの配置に追従している。
+  # 1-244: build-portal.sh（portal-catalog.mjsのresolveDefaultRootPrefix）は
+  # test-viewpoint-list blueprintのdiscovery.glob（project-portal/lists/テスト観点表/
+  # テスト観点表.html）で連結先を解決する。blueprint.kind="test-viewpoint-list" は
+  # kindDirNamesのキーと文字列が一致しないため、resolveDefaultRootPrefixのディレクトリ
+  # 名差し替えは働かず、サブディレクトリ名は日本語のまま残る（test-case-listと同じ
+  # 理由。1-244当時はunitsRoot自体がproject-portal配下の日本語ディレクトリ名だった
+  # 時期があり、ルートだけが動的置換の対象だったが、日本語のディレクトリは3つの不具合を起こすと
+  # 実測で確かめたため（docs/tasks/work-records/2026-08-24-日本語のフォルダ名の
+  # 実測.md）、unitsRootは"project-portal/lists"へ差し戻し済み）。$html の生成
+  # （55・61行目）は既に units_root 経由で新配置に追従済みだったが、この連結確認
+  # だけが旧配置の文字列を直書きしたまま取り残されていた。
   if jq -e '.summary.totalCount == 2 and ([.units[].testType] | sort == ["integration", "unit"])' "$manifest" >/dev/null 2>&1 \
     && has_visible_viewpoint_row "$html" "screen-orders-unit-1" "入力必須" "screen-orders" "単体" \
     && has_visible_viewpoint_row "$html" "screen-orders-integration-1" "登録遷移" "screen-orders" "結合" \

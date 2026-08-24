@@ -97,26 +97,16 @@ function resolveDefaultRootPrefix(value, defaultRoots, outputLayout, kind) {
   if (!outputLayout) return value;
   const layout = outputLayout.layout || {};
   let result = value;
-  let unitsRootOverridden = false;
   for (const [key, prefix] of Object.entries(defaultRoots || {})) {
     if (result === prefix || result.startsWith(`${prefix}/`)) {
       const override = layout[key];
       if (typeof override === "string" && override.length > 0) {
         result = override + result.slice(prefix.length);
-        if (key === "unitsRoot" && override !== prefix) unitsRootOverridden = true;
       }
       break;
     }
   }
-  // kindDirNames への差し替えは、unitsRoot が defaultRoots.unitsRoot（正本の
-  // project-portal/一覧）から実際に上書きされている場合だけ行う。unitsRoot が
-  // 正本のままなら、種別一覧生成スキルの出力先（project-portal/一覧/<kindLabel>一覧/
-  // <kindLabel>一覧.html）はカタログのglobそのものと一致するため、この差し替えは
-  // 不要かつ有害（<kindLabel>一覧のディレクトリ名をkindDirNamesの英字名へ書き換えて
-  // しまい、実際に生成されるファイルを見失う）。この差し替えはunitsRootを
-  // project-portal/listsのような旧来の英字ルートへ上書きした対象プロジェクト向けの
-  // 後方互換だけを担う（一覧の置き場が三者三様になっている問題を直す指示書.md）。
-  if (kind && unitsRootOverridden) {
+  if (kind) {
     const kindLabel = (outputLayout.kindLabels || {})[kind];
     const kindDirName = (outputLayout.kindDirNames || {})[kind];
     if (typeof kindLabel === "string" && kindLabel.length > 0
@@ -766,38 +756,18 @@ function runSelfTest() {
           report: "帳票", external: "外部連携", feature: "機能", message: "メッセージ",
         },
       };
-      const defaultRoots = { unitsRoot: "project-portal/一覧" };
+      const defaultRoots = { unitsRoot: "project-portal/legacy-root" };
       const cases = [
-        ["screen", "project-portal/一覧/画面一覧/画面一覧.html", "project-portal/lists/screens/画面一覧.html"],
-        ["api", "project-portal/一覧/API一覧/API一覧.html", "project-portal/lists/apis/API一覧.html"],
-        ["table", "project-portal/一覧/テーブル一覧/テーブル一覧.html", "project-portal/lists/tables/テーブル一覧.html"],
-        ["batch", "project-portal/一覧/バッチ一覧/バッチ一覧.html", "project-portal/lists/batches/バッチ一覧.html"],
-        ["report", "project-portal/一覧/帳票一覧/帳票一覧.html", "project-portal/lists/reports/帳票一覧.html"],
-        ["external", "project-portal/一覧/外部連携一覧/外部連携一覧.html", "project-portal/lists/externals/外部連携一覧.html"],
-        ["feature", "project-portal/一覧/機能一覧/機能一覧.html", "project-portal/lists/features/機能一覧.html"],
+        ["screen", "project-portal/legacy-root/画面一覧/画面一覧.html", "project-portal/lists/screens/画面一覧.html"],
+        ["api", "project-portal/legacy-root/API一覧/API一覧.html", "project-portal/lists/apis/API一覧.html"],
+        ["table", "project-portal/legacy-root/テーブル一覧/テーブル一覧.html", "project-portal/lists/tables/テーブル一覧.html"],
+        ["batch", "project-portal/legacy-root/バッチ一覧/バッチ一覧.html", "project-portal/lists/batches/バッチ一覧.html"],
+        ["report", "project-portal/legacy-root/帳票一覧/帳票一覧.html", "project-portal/lists/reports/帳票一覧.html"],
+        ["external", "project-portal/legacy-root/外部連携一覧/外部連携一覧.html", "project-portal/lists/externals/外部連携一覧.html"],
+        ["feature", "project-portal/legacy-root/機能一覧/機能一覧.html", "project-portal/lists/features/機能一覧.html"],
       ];
       for (const [kind, input, expected] of cases) {
         assert.strictEqual(resolveDefaultRootPrefix(input, defaultRoots, outputLayout, kind), expected);
-      }
-    });
-
-    check("kind directory name is left untouched when unitsRoot is not overridden (正本のproject-portal/一覧のまま)", () => {
-      // unitsRootがdefaultRoots.unitsRoot（project-portal/一覧）から実際に上書きされて
-      // いない場合、kindDirNamesへの差し替えを行わない。差し替えてしまうと、カタログの
-      // globがそのまま指す実際の生成先（project-portal/一覧/<kindLabel>一覧/...）を
-      // 見失う（一覧の置き場が三者三様になっている問題を直す指示書.md）。
-      const outputLayout = {
-        layout: { unitsRoot: "project-portal/一覧" },
-        kindDirNames: { screen: "screens", api: "apis" },
-        kindLabels: { screen: "画面", api: "API" },
-      };
-      const defaultRoots = { unitsRoot: "project-portal/一覧" };
-      const cases = [
-        ["screen", "project-portal/一覧/画面一覧/画面一覧.html"],
-        ["api", "project-portal/一覧/API一覧/API一覧.html"],
-      ];
-      for (const [kind, input] of cases) {
-        assert.strictEqual(resolveDefaultRootPrefix(input, defaultRoots, outputLayout, kind), input);
       }
     });
 
@@ -807,11 +777,11 @@ function runSelfTest() {
         kindDirNames: { screen: "screens" },
         kindLabels: { screen: "画面" },
       };
-      const defaultRoots = { unitsRoot: "project-portal/一覧" };
+      const defaultRoots = { unitsRoot: "project-portal/legacy-root" };
       // 用語辞書等はkindDirNamesに対応キーを持たない種別のため、
       // ルート接頭辞の置換だけが行われ、ディレクトリ名は変わらない。
       assert.strictEqual(
-        resolveDefaultRootPrefix("project-portal/一覧/用語辞書/用語辞書.html", defaultRoots, outputLayout, "semantic-glossary"),
+        resolveDefaultRootPrefix("project-portal/legacy-root/用語辞書/用語辞書.html", defaultRoots, outputLayout, "semantic-glossary"),
         "project-portal/lists/用語辞書/用語辞書.html",
       );
     });

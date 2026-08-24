@@ -65,9 +65,9 @@ source "$SCRIPT_DIR/output-layout.sh"
 # 場合を検出し、警告する。削除はしない。
 #
 # 削除しない理由: --self-test の複数のケース（ケース3・7・8・9・12・13・25・48等）が、
-# project-portal/一覧・対応表・画面 のような旧名の直下に、このケース自身が読み取る
+# project-portal/対応表・画面 のような旧名の直下に、このケース自身が読み取る
 # 前提のフィクスチャを事前配置している。旧名リストとの単純な文字列一致で削除する設計を
-# 一度実装したところ、--self-test ケース13の既存フィクスチャ（project-portal/一覧/用語辞書）
+# 一度実装したところ、--self-test ケース13の既存フィクスチャ（project-portal/lists/用語辞書）
 # を実際に削除してしまう事故を実測で確認した（1-209の実装時に検出、パッチは反映前に
 # 差し戻し済み）。旧名かどうかを名前だけで判定すると、「rename後に残った孤立した旧構成」と
 # 「このセッション内で入力として使われている旧名の置き場」を区別できない。安全側に倒し、
@@ -1176,7 +1176,7 @@ EOF
   fi
   if [ ! -f "$test_portal/foundation/技術スタック.html" ] \
     || [ ! -f "$test_portal/foundation/環境構築手順.html" ] \
-    || [ ! -f "$test_portal/一覧/用語辞書/用語辞書.html" ] \
+    || [ ! -f "$test_portal/lists/用語辞書/用語辞書.html" ] \
     || [ ! -f "$test_portal/foundation/AI設定資産.html" ] \
     || [ ! -f "$test_docs/custom/manifests/ai-assets.json" ]; then
     echo "FAIL: --self-test ケース48a（3種の詳細ページまたはAI設定資産が生成されない）" >&2
@@ -1185,7 +1185,7 @@ EOF
   fi
   if ! grep -q '<div class="pt-brand-name">repo</div>' "$test_portal/foundation/技術スタック.html" \
     || ! grep -q '<div class="pt-brand-name">repo</div>' "$test_portal/foundation/環境構築手順.html" \
-    || ! grep -q '<div class="pt-brand-name">repo</div>' "$test_portal/一覧/用語辞書/用語辞書.html" \
+    || ! grep -q '<div class="pt-brand-name">repo</div>' "$test_portal/lists/用語辞書/用語辞書.html" \
     || ! grep -q '<div class="pt-brand-name">repo</div>' "$test_portal/foundation/AI設定資産.html" \
     || ! grep -q '2026-08-20T00:00:00Z' "$test_portal/foundation/AI設定資産.html"; then
     echo "FAIL: --self-test ケース48a（解決したプロジェクト名または生成時刻が全ページへ渡らない）" >&2
@@ -1238,7 +1238,7 @@ EOF
     node "$SCRIPT_DIR/tests/assert-generated-detail-pages-runtime.cjs" \
       "$test_portal/foundation/技術スタック.html" \
       "$test_portal/foundation/環境構築手順.html" \
-      "$test_portal/一覧/用語辞書/用語辞書.html" || runtime_status=$?
+      "$test_portal/lists/用語辞書/用語辞書.html" || runtime_status=$?
     # 終了コード2は判定不能(ブラウザを起動できない)を表す。実行できな
     # かったことと不合格を区別する規約により、不合格(FAIL)ではなく
     # SKIPとして扱う(assert-generated-detail-pages-runtime.cjs側の対応)。
@@ -1669,8 +1669,8 @@ FIXTURE2
   test3_portal="$test3_dir/portal"
   mkdir -p "$test3_docs" "$test3_portal"
   echo '{"total":100,"fe":50,"be":50,"file_count":10}' > "$test3_docs/code-metrics.json"
-  mkdir -p "$test3_docs/project-portal/一覧/用語辞書"
-  echo '<html><body>test glossary</body></html>' > "$test3_docs/project-portal/一覧/用語辞書/用語辞書.html"
+  mkdir -p "$test3_docs/project-portal/lists/用語辞書"
+  echo '<html><body>test glossary</body></html>' > "$test3_docs/project-portal/lists/用語辞書/用語辞書.html"
   "$SCRIPT_DIR/build-portal.sh" "$test3_dir" "$test3_docs" "$test3_portal" 2>/dev/null
   if grep -q 'href":"[^"]*用語辞書.html"' "$test3_portal/index.html" \
     && grep -q '"kind":"semantic-glossary"' "$DEFAULT_CATALOG" \
@@ -2021,8 +2021,8 @@ JSON
   test7_repo="$test7_dir/repo"
   test7_docs="$test7_dir/docs"
   test7_portal="$test7_dir/portal"
-  mkdir -p "$test7_repo" "$test7_docs/project-portal/一覧/API一覧" "$test7_portal"
-  cat > "$test7_docs/project-portal/一覧/API一覧/API一覧.html" <<'TEST7HTML'
+  mkdir -p "$test7_repo" "$test7_docs/project-portal/lists/apis" "$test7_portal"
+  cat > "$test7_docs/project-portal/lists/apis/API一覧.html" <<'TEST7HTML'
 <!DOCTYPE html><html><head><title>API一覧</title></head><body>
 <script type="application/json" id="unit-manifest">
 {
@@ -2051,8 +2051,8 @@ TEST7HTML
   test8_repo="$test8_dir/repo"
   test8_docs="$test8_dir/docs"
   test8_portal="$test8_dir/portal"
-  mkdir -p "$test8_repo" "$test8_docs/project-portal/一覧/画面一覧" "$test8_portal"
-  cat > "$test8_docs/project-portal/一覧/画面一覧/画面一覧.html" <<'TEST8HTML'
+  mkdir -p "$test8_repo" "$test8_docs/project-portal/lists/screens" "$test8_portal"
+  cat > "$test8_docs/project-portal/lists/screens/画面一覧.html" <<'TEST8HTML'
 <!DOCTYPE html><html><head><title>画面一覧</title></head><body>
 <script type="application/json" id="screen-manifest">
 {
@@ -2367,13 +2367,13 @@ TEST10HTML
   test12_repo="$test12_dir/repo"
   test12_docs="$test12_dir/docs"
   test12_portal="$test12_dir/portal"
-  mkdir -p "$test12_repo" "$test12_docs/project-portal/一覧/テスト観点表" "$test12_portal"
-  cat > "$test12_docs/project-portal/一覧/テスト観点表/テスト観点表.html" <<'TEST12HTML'
+  mkdir -p "$test12_repo" "$test12_docs/project-portal/lists/テスト観点表" "$test12_portal"
+  cat > "$test12_docs/project-portal/lists/テスト観点表/テスト観点表.html" <<'TEST12HTML'
 <!DOCTYPE html><html><body><script type="application/json" id="unit-manifest">{"unitKind":"test_viewpoint","detectionSummary":{"unitCount":3,"unresolvedCount":0},"units":[]}</script></body></html>
 TEST12HTML
   "$SCRIPT_DIR/build-portal.sh" "$test12_repo" "$test12_docs" "$test12_portal" 2>/dev/null
   if grep -q '"title":"テスト観点表"' "$test12_portal/index.html" \
-     && grep -q '一覧/テスト観点表/テスト観点表.html' "$test12_portal/index.html"; then
+     && grep -q 'lists/テスト観点表/テスト観点表.html' "$test12_portal/index.html"; then
     echo "PASS: --self-test ケース12（テスト観点表の正本パスを派生一覧カードへ反映）"
   else
     echo "FAIL: --self-test ケース12（テスト観点表の派生一覧カード）" >&2
@@ -2386,9 +2386,9 @@ TEST12HTML
   test13_dir="$(create_physical_tmpdir)"
   test13_repo="$test13_dir/repo"
   test13_docs="$test13_dir/docs"
-  mkdir -p "$test13_repo" "$test13_docs/プロジェクト共通" "$test13_docs/project-portal/一覧/用語辞書"
+  mkdir -p "$test13_repo" "$test13_docs/プロジェクト共通" "$test13_docs/project-portal/lists/用語辞書"
   printf '# 変換禁止\n\n本文。\n' > "$test13_docs/プロジェクト共通/source.md"
-  printf '<html><body>glossary</body></html>\n' > "$test13_docs/project-portal/一覧/用語辞書/用語辞書.html"
+  printf '<html><body>glossary</body></html>\n' > "$test13_docs/project-portal/lists/用語辞書/用語辞書.html"
   before13="$(find "$test13_docs" -type f ! -name index.html -print0 | sort -z | xargs -0 shasum -a 256)"
   "$SCRIPT_DIR/build-portal.sh" "$test13_repo" "$test13_docs" "$test13_docs" --portal-only --generated-at 2026-07-28T00:00:00Z 2>/dev/null
   after13="$(find "$test13_docs" -type f ! -name index.html -print0 | sort -z | xargs -0 shasum -a 256)"
@@ -2945,7 +2945,7 @@ TEST24CATALOG
   test25_dir="$(create_physical_tmpdir)"
   test25_repo="$test25_dir/repo"
   test25_docs="$test25_dir/docs"
-  mkdir -p "$test25_repo/src/routes" "$test25_docs/project-portal/一覧/API一覧"
+  mkdir -p "$test25_repo/src/routes" "$test25_docs/project-portal/lists/apis"
   echo "export function usersRoute() {}" > "$test25_repo/src/routes/users.ts"
 
   test25_manifest="$test25_dir/manifest-api.json"
@@ -2985,7 +2985,7 @@ TEST24CATALOG
 
   # 手順1: unit-listビルダー単独でAPI一覧ページを生成する（shell_counts_json未指定のため
   # blueprint数のまま焼かれる = discoveryを持たない5経路の実際の挙動を再現）
-  "$SCRIPT_DIR/unit-list/build-unit-list.sh" "$test25_manifest" "$test25_docs/project-portal/一覧/API一覧/API一覧.html" \
+  "$SCRIPT_DIR/unit-list/build-unit-list.sh" "$test25_manifest" "$test25_docs/project-portal/lists/apis/API一覧.html" \
     --unit-kind api --portal-dir "$test25_docs" --project-name test25 >/dev/null 2>&1
 
   # 手順2: build-portal.sh フル生成（discoveryを持つ唯一の経路。末尾でDOCS_ROOT配下の
@@ -3000,7 +3000,7 @@ TEST24CATALOG
   # 末尾のPASSは「このケースの間に新たな不合格が記録されていない」場合
   # にのみ出す。
   test25_fail_snapshot="$SELF_TEST_CASE_FAIL_COUNT"
-  test25_result1="$(compare_shell_state_across_pages "$test25_docs/index.html" "$test25_docs/project-portal/一覧/API一覧/API一覧.html")"
+  test25_result1="$(compare_shell_state_across_pages "$test25_docs/index.html" "$test25_docs/project-portal/lists/apis/API一覧.html")"
   if [ "$test25_result1" != "MATCH" ]; then
     echo "FAIL: --self-test ケース25（フル生成直後に全ページのシェル表示値が一致しない）" >&2
     rm -rf "$test25_dir"
@@ -3012,9 +3012,9 @@ TEST24CATALOG
   # 全ページの表示値は不一致に戻るはずである。不一致にならなければ検査に判別力が無い。
   test25_manifest2="$test25_dir/manifest-api2.json"
   jq '.generatedAt = "2026-07-29T00:00:00Z"' "$test25_manifest" > "$test25_manifest2"
-  "$SCRIPT_DIR/unit-list/build-unit-list.sh" "$test25_manifest2" "$test25_docs/project-portal/一覧/API一覧/API一覧.html" \
+  "$SCRIPT_DIR/unit-list/build-unit-list.sh" "$test25_manifest2" "$test25_docs/project-portal/lists/apis/API一覧.html" \
     --unit-kind api --portal-dir "$test25_docs" --project-name test25 >/dev/null 2>&1
-  test25_result2="$(compare_shell_state_across_pages "$test25_docs/index.html" "$test25_docs/project-portal/一覧/API一覧/API一覧.html")"
+  test25_result2="$(compare_shell_state_across_pages "$test25_docs/index.html" "$test25_docs/project-portal/lists/apis/API一覧.html")"
   if [ "$test25_result2" != "MISMATCH" ]; then
     echo "FAIL: --self-test ケース25（フィクスチャ不備: 一部ページ単独再生成後も不一致を検知できず検査として機能しない）" >&2
     rm -rf "$test25_dir"
@@ -3024,7 +3024,7 @@ TEST24CATALOG
   # 手順4: build-portal.sh を再実行する（一部ページのみ再生成した直後でもPASSすることの
   # 検収方法。バックフィルがDOCS_ROOT配下の全HTMLを再度単一の情報源へ揃え直す）
   "$SCRIPT_DIR/build-portal.sh" "$test25_repo" "$test25_docs" "$test25_docs" --generated-at 2026-07-28T00:00:00Z >/dev/null 2>&1
-  test25_result3="$(compare_shell_state_across_pages "$test25_docs/index.html" "$test25_docs/project-portal/一覧/API一覧/API一覧.html")"
+  test25_result3="$(compare_shell_state_across_pages "$test25_docs/index.html" "$test25_docs/project-portal/lists/apis/API一覧.html")"
   if [ "$test25_result3" != "MATCH" ]; then
     echo "FAIL: --self-test ケース25（一部ページ再生成後にbuild-portal.shを再実行しても全ページが一致しない）" >&2
     rm -rf "$test25_dir"
@@ -4247,8 +4247,8 @@ TEST48DETAIL
   mkdir -p "$test49_repo" "$test49_docs/docs/design/common" "$test49_docs/docs/design/screens/screen-case49/基本設計"
   printf '# 共通設計書\n\n本文。\n' > "$test49_docs/docs/design/common/共通設計書.md"
   printf '# 画面基本設計書\n\n本文。\n' > "$test49_docs/docs/design/screens/screen-case49/基本設計/画面基本設計書.md"
-  mkdir -p "$test49_portal/旧一覧/ダミー" "$test49_portal/作業中"
-  printf 'stale' > "$test49_portal/旧一覧/ダミー/stale.html"
+  mkdir -p "$test49_portal/旧構成/ダミー" "$test49_portal/作業中"
+  printf 'stale' > "$test49_portal/旧構成/ダミー/stale.html"
   printf 'work' > "$test49_portal/作業中/note.txt"
   test49_out="$(bash "$0" "$test49_repo" "$test49_docs" "$test49_portal" 2>&1)"
   test49_status=$?
@@ -4257,11 +4257,11 @@ TEST48DETAIL
     echo "$test49_out" >&2
     rm -rf "$test49_dir"
     record_self_test_case_failure
-  elif [ ! -d "$test49_portal/旧一覧" ] || [ ! -d "$test49_portal/作業中" ]; then
+  elif [ ! -d "$test49_portal/旧構成" ] || [ ! -d "$test49_portal/作業中" ]; then
     echo "FAIL: --self-test ケース49（定義に無い置き場が削除されてしまった。警告のみが既定であるべき）" >&2
     rm -rf "$test49_dir"
     record_self_test_case_failure
-  elif ! printf '%s' "$test49_out" | grep -qF "WARN: project-portal/旧一覧"; then
+  elif ! printf '%s' "$test49_out" | grep -qF "WARN: project-portal/旧構成"; then
     echo "FAIL: --self-test ケース49（旧構成の置き場への警告が出力されていない）" >&2
     echo "$test49_out" >&2
     rm -rf "$test49_dir"

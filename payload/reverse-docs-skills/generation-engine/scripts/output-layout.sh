@@ -261,7 +261,7 @@ output_layout_self_test() {
   # ケース1: 既定のみでキーが取れる
   base="$(resolve_output_layout "$tmp" 2>"$tmp/.resolve-err")" || true
   _gt_resolve_err="$(cat "$tmp/.resolve-err" 2>/dev/null)"
-  if [ -n "$base" ] && printf '%s' "$base" | jq -e '.layout.unitsRoot == "project-portal/一覧"' >/dev/null 2>&1; then
+  if [ -n "$base" ] && printf '%s' "$base" | jq -e '.layout.unitsRoot == "project-portal/lists"' >/dev/null 2>&1; then
     echo "  [PASS] ケース1: 既定解決でキーが取れる"
   else
     echo "  [FAIL] ケース1: 既定解決に失敗" >&2
@@ -269,12 +269,12 @@ output_layout_self_test() {
     rc=1
   fi
 
-  # ケース2: {label} 置換（label=API）
+  # ケース2: {labelDir}/{label} 置換（label=API）
   v2="$(output_layout_get "$base" unitListHtml API 2>/dev/null)" || true
-  if [ "$v2" = "project-portal/一覧/API一覧/API一覧.html" ]; then
-    echo "  [PASS] ケース2: {label} 置換 (label=API)"
+  if [ "$v2" = "project-portal/lists/apis/API一覧.html" ]; then
+    echo "  [PASS] ケース2: {labelDir}/{label} 置換 (label=API)"
   else
-    echo "  [FAIL] ケース2: {label} 置換が不正: $v2" >&2
+    echo "  [FAIL] ケース2: {labelDir}/{label} 置換が不正: $v2" >&2
     rc=1
   fi
 

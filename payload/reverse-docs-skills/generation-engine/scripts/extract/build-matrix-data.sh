@@ -530,12 +530,13 @@ self_test() {
     assert "ケースm: 同梱サンプルで3成果物を生成する" \
       bash -c "[ -f '$sample_out/permission-matrix.json' ] && [ -f '$sample_out/crud-matrix.json' ] && [ -f '$sample_out/traceability.json' ]"
   else
-    # 1-29（一覧の置き場が三者三様になっている問題を直す指示書.mdで定義を統一済み）:
-    # output-layout.jsonのunitsRootが project-portal/一覧 と一致した現在は通常この
-    # elseへ入らない。samples側の欠落・改名など別要因で解決先パスに実在しない場合の
-    # 保険として判定不能を返す(このスクリプト単体の担当範囲を超えるため、samples側の
-    # 再配置はここでは行わない)。
-    echo "  [UNKNOWN] ケースm/n: 同梱API一覧フィクスチャが解決先パス($api_list_html_rel)に実在しないため判定できません(generation-engine/samples/project-portal/一覧 配下が旧配置のまま。output-layout.jsonの既定値との不一致)" >&2
+    # output-layout.jsonのunitsRoot（project-portal/lists、英字）が示す解決先パスに
+    # 同梱サンプルが実在しない場合の防御的分岐（1-29で指摘された、samplesの配置と
+    # output-layout.jsonの既定値が食い違う構造的な不一致が再発した場合に備える。
+    # 通常はgeneration-engine/samples/project-portal/lists/apis/API一覧.htmlが
+    # 実在し、この分岐には入らない）。このスクリプト単体の担当範囲を超えるため、
+    # samples側の再配置は行わない。
+    echo "  [UNKNOWN] ケースm/n: 同梱API一覧フィクスチャが解決先パス($api_list_html_rel)に実在しないため判定できません(output-layout.jsonの既定値との不一致の可能性があります)" >&2
     unknown=1
   fi
 
@@ -657,12 +658,13 @@ EOF
     assert "ケースs: 権限機能JSONの functions が1件以上" \
       jq -e '.functions | length >= 1' "$permission_function"
   else
-    # 1-29（一覧の置き場が三者三様になっている問題を直す指示書.mdで定義を統一済み）:
-    # output-layout.jsonのunitsRootが project-portal/一覧 と一致した現在は通常この
-    # elseへ入らない。samples側の欠落・改名など別要因で解決先パスに実在しない場合の
-    # 保険として判定不能を返す(このスクリプト単体の担当範囲を超えるため、samples側の
-    # 再配置はここでは行わない)。
-    echo "  [UNKNOWN] ケースs: 同梱機能一覧フィクスチャが解決先パス($feature_list_html_rel)に実在しないため判定できません(generation-engine/samples/project-portal/一覧 配下が旧配置のまま。output-layout.jsonの既定値との不一致)" >&2
+    # output-layout.jsonのunitsRoot（project-portal/lists、英字）が示す解決先パスに
+    # 同梱サンプルが実在しない場合の防御的分岐（1-29で指摘された、samplesの配置と
+    # output-layout.jsonの既定値が食い違う構造的な不一致が再発した場合に備える。
+    # 通常はgeneration-engine/samples/project-portal/lists/features/機能一覧.htmlが
+    # 実在し、この分岐には入らない）。このスクリプト単体の担当範囲を超えるため、
+    # samples側の再配置は行わない。
+    echo "  [UNKNOWN] ケースs: 同梱機能一覧フィクスチャが解決先パス($feature_list_html_rel)に実在しないため判定できません(output-layout.jsonの既定値との不一致の可能性があります)" >&2
     unknown=1
   fi
 

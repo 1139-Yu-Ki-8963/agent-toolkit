@@ -1532,21 +1532,6 @@ Material Symbols OutlinedのGoogle Fonts CDNだけは、アイコン表示に必
 
 **廃棄条件**: `mktemp` を使う検査スクリプトが1本もこの置き場指定漏れを起こさない仕組み（例: 共通ラッパー関数への全面移行）へ切り替わった時。または、`mktemp` 自体をこのリポジトリの検査スクリプトが使わなくなった時。
 
-### check-list-path-unified.sh
-
-**必要性**: 一覧の置き場は3つの定め（配置の定義 output-layout.json・ポータルのカタログ portal-catalog.json・生成器の既定）が食い違っていた（一覧の置き場が三者三様になっている問題を直す指示書.md）。project-portal/一覧（日本語）を正とする決定に伴い、output-layout.json の unitsRoot・unitListDir・unitListHtml・screenListDir・screenListHtml を project-portal/一覧 基準へ揃え、portal-catalog.mjs の resolveDefaultRootPrefix が unitsRoot 未上書き時に kindDirNames への差し替えを行わないよう改めた。この統一が崩れて旧来の英字ルート project-portal/lists へ再び逆戻りしていないかを、generation-engine/・delivery-payload/・docs/・.claude/ の4ディレクトリ配下で横断的に検出する必要がある（当初は3ディレクトリのみだったが、.claude/skills/ 配下のスキル定義3ファイルにも同じ食い違いが残っていたことが後日判明し、走査対象へ .claude/ を追加した。あわせて .claude/ 配下の自己言及（.claude/rules/scoped/portal/page-conventions/rule.md。docs/rules/側の設計判断が build-derived-rules.sh --apply で複製される派生物）を除外対象へ加えた）。定義・カタログ・生成器のいずれかが個別に編集されるたびに人手で4ディレクトリを目視確認するのは非現実的で、実際にこの問題自体が長期間気付かれずに残っていた。判定の式を指示書の表へ直接書けない（式に縦棒を含み、片付けの判定器が列の区切りと読み違えて判定行を壊す）ため、スクリプトへ切り出した。
-
-**代替案を採用しなかった理由**:
-- Bash ツール直叩き: 4ディレクトリへの走査を対話セッションのたびに手動で `grep` すると、除外対象（生成器の後方互換自己テスト・作業記録・台帳）の判定基準が実行のたびにぶれる
-- 単純な `grep -rn 'project-portal/lists' | wc -l` をそのまま完了条件にする（指示書が当初挙げた形）: `docs/tasks/work-records/`・`docs/tasks/指摘改善一覧.md` は commit-issue-trace 規約が書き換えを禁じる記録であり、`generation-engine/scripts/portal-catalog.mjs` の自己テスト2件は unitsRoot を旧来の英字ルートへ独自に上書きした対象プロジェクト向けの後方互換動作を検証する正当なフィクスチャである。除外なしの単純カウントはこれらを常に不合格として扱ってしまう
-- 既存 `check-mktemp-placement.sh`・`check-broken-verdict-rows.sh` への同居: いずれも対象・判定式が異なる（`mktemp` の呼び出し形／指示書の判定表の破損）。本検査は一覧の置き場という別の文字列パターンを見る
-- 既存 Makefile ターゲット拡張: このリポジトリに Makefile は存在せず、新規導入は本検査専用の依存を増やすだけになる
-- package.json scripts 追加: 同様に、このリポジトリはビルド設定を持たない
-
-**保守責任者**: 人手（ユーザー）。除外対象（ファイルパス・ディレクトリ）を増減する場合は本スクリプトの `scan_dirs` 内の `case` と本節を同時に更新する。
-
-**廃棄条件**: project-portal/lists への逆戻りが構造的に起こらなくなった時（例: unitsRoot の値をコード生成側が強制する仕組みへ移行した時）、またはこの検査自体が不要になるほど一覧の置き場の定義が1箇所へ完全に集約された時。
-
 ## プロジェクト上書き
 
 - 上書き可否: プロジェクト固有規約（reverse-docs-skills 専用）

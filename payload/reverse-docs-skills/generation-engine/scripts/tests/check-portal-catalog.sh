@@ -78,9 +78,9 @@ self_test() {
     echo "FAIL: semantic glossary must belong to list (一覧・設計図), not project (基盤情報)" >&2
     exit 1
   fi
-  if [ "$(jq -r '.categories[].blueprints[] | select(.kind=="semantic-glossary") | .dir' "$DEFAULT_CATALOG")" != "project-portal/一覧/用語辞書" ] \
-    || [ "$(jq -r '.categories[].blueprints[] | select(.kind=="semantic-glossary") | .discovery.glob' "$DEFAULT_CATALOG")" != "project-portal/一覧/用語辞書/用語辞書.html" ]; then
-    echo "FAIL: semantic glossary must be physically located under project-portal/一覧/用語辞書" >&2
+  if [ "$(jq -r '.categories[].blueprints[] | select(.kind=="semantic-glossary") | .dir' "$DEFAULT_CATALOG")" != "project-portal/lists/用語辞書" ] \
+    || [ "$(jq -r '.categories[].blueprints[] | select(.kind=="semantic-glossary") | .discovery.glob' "$DEFAULT_CATALOG")" != "project-portal/lists/用語辞書/用語辞書.html" ]; then
+    echo "FAIL: semantic glossary must be physically located under project-portal/lists/用語辞書" >&2
     exit 1
   fi
   if jq -e '.categories[].blueprints[] | select(.generator=="generating-glossary-for-reverse-docs")' "$DEFAULT_CATALOG" >/dev/null; then

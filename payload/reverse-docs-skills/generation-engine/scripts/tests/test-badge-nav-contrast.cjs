@@ -21,7 +21,7 @@ if (typeof WebSocket !== 'function' && !process.env.__WS_RETRY) {
 // なぜ4.5を採ったかの根拠説明は明記されていなかった（2026-08-18 実測）。
 //
 // 対象ページは合成フィクスチャではなく、既存の実サンプル
-// generation-engine/samples/project-portal/一覧/API一覧/API一覧.html を使う。
+// generation-engine/samples/project-portal/lists/apis/API一覧.html を使う。
 // このページは埋め込みJSONに confidence: HIGH/MEDIUM/LOW を3種とも持ち
 // （バッジ3種の描画を保証）、data-active-category="list" を持つため
 // サイドバーの現在地ナビ項目（is-active）も再現できる。
@@ -298,7 +298,7 @@ function contrastRatio(rgb1, rgb2) {
 
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const targetPage = path.join(
-  repoRoot, 'generation-engine', 'samples', 'project-portal', '一覧', 'API一覧', 'API一覧.html',
+  repoRoot, 'generation-engine', 'samples', 'project-portal', 'lists', 'apis', 'API一覧.html',
 );
 
 // --- 検証対象要素(セレクタ)。バッジ3種＋サイドバーのナビ項目の文字・番号・件数

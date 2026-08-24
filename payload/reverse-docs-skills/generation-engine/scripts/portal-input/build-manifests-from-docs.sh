@@ -159,6 +159,26 @@ document_path_canonical_unit_dir() {
   esac
 }
 
+# 改善課題1-254: root直下の単位ディレクトリの数を数える。「正規の命名(document_path_
+# canonical_unit_dirが受理するもの)の数」と「root直下の全ディレクトリ数」の2つを
+# "<正規の数> <全体の数>" の形で1行返す。組み立てられた件数(unit_count)と正規の数を
+# 突き合わせれば、正規の命名を持つ設計書が実在するのに反映されない食い違いを検知できる。
+# 正規の数が0でも全体の数が1以上なら、単位フォルダの命名そのものが正規の形と一致して
+# いない可能性がある(root自体が無い・単位フォルダを1つも持たない種別と区別するために
+# 全体の数も返す)。root_dirが無ければ "0 0" を返す。
+count_canonical_unit_dirs() {
+  local root_dir="$1" kind="$2"
+  local canonical=0 total=0 unit_dir
+  [ -d "$root_dir" ] || { printf '%s %s\n' 0 0; return 0; }
+  while IFS= read -r unit_dir; do
+    [ -n "$unit_dir" ] || continue
+    total=$((total + 1))
+    document_path_canonical_unit_dir "$kind" "$unit_dir" || continue
+    canonical=$((canonical + 1))
+  done < <(find "$root_dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | LC_ALL=C sort)
+  printf '%s %s\n' "$canonical" "$total"
+}
+
 # frontmatter抽出元は、種別root直下の正規単位ディレクトリにある所定roleの文書だけに限る。
 # 再帰findにするとarchive等の退避領域にある同名文書まで別単位として抽出してしまう。
 individual_document_files() {
@@ -609,15 +629,29 @@ build_manifest_for_kind() {
   unit_count="$(printf '%s' "$units_json" | jq 'length')"
   unresolved_count="$(printf '%s' "$units_json" | jq '[.[] | select(.kind == "unresolved")] | length')"
 
-  if [ "$unit_count" -eq 0 ]; then
-    local names_oneline root_dir_abs
-    names_oneline="$(printf '%s' "$doc_file_names" | tr '\n' ',' | sed 's/,$//')"
-    if [ -d "$root_dir" ]; then
-      root_dir_abs="$(cd "$root_dir" && pwd)"
-    else
-      root_dir_abs="$root_dir"
-    fi
-    echo "WARN: 種別 $kind の設計文書が0件でした(探索したファイル名: ${names_oneline} / 走査したディレクトリ: ${root_dir_abs})" >&2
+  # 改善課題1-254: 単位フォルダの数(folder_count。正規の命名を持つものだけ)と
+  # 組み立てられた件数(unit_count)を突き合わせる。単位フォルダが1つ以上ある種別に限って
+  # 食い違いを検知する。個別の設計書を持たない種別(単位フォルダ自体が0件)は、0件が正しい
+  # 状態のため対象から外す。あわせて、root直下に何らかのディレクトリ(all_dir_count)は
+  # あるのに正規の命名を持つものが1つも無い場合も検知する(単位フォルダの命名そのものが
+  # 正規の形と一致していない可能性。この場合はfolder_countが0になり上の突き合わせでは
+  # 検知できないため、別条件として持つ)。組み立ての処理自体は終了コード0のまま続ける
+  # (0件・食い違いを理由に生成連鎖を止めない。既存の「0件時は警告のみで続行する」設計を
+  # 踏襲する。詳細は .claude/rules/scoped/portal/page-conventions/rule.md「設計判断」内
+  # 「build-manifests-from-docs.sh」を参照)。
+  local folder_count all_dir_count
+  read -r folder_count all_dir_count < <(count_canonical_unit_dirs "$root_dir" "$kind")
+  local names_oneline root_dir_abs
+  names_oneline="$(printf '%s' "$doc_file_names" | tr '\n' ',' | sed 's/,$//')"
+  if [ -d "$root_dir" ]; then
+    root_dir_abs="$(cd "$root_dir" && pwd)"
+  else
+    root_dir_abs="$root_dir"
+  fi
+  if [ "$folder_count" -ge 1 ] && [ "$folder_count" -ne "$unit_count" ]; then
+    echo "WARN: 種別 $kind で単位フォルダの数(${folder_count})と一覧の元データへ組み立てられた件数(${unit_count})が一致しません(探索したファイル名: ${names_oneline} / 走査したディレクトリ: ${root_dir_abs})。設計書は実在するのに一覧の元データへ反映されていない可能性があります。" >&2
+  elif [ "$folder_count" -eq 0 ] && [ "$all_dir_count" -ge 1 ]; then
+    echo "WARN: 種別 $kind で単位フォルダの命名が正規の形(${kind}-<単位ID>)と一致しません(root直下のディレクトリ数: ${all_dir_count} / 正規の命名を持つもの: 0 / 走査したディレクトリ: ${root_dir_abs})。設計書が実在するのに一覧の元データへ反映されていない可能性があります。" >&2
   fi
 
   local generated_at
@@ -1314,6 +1348,94 @@ EOF
     pass=$((pass + 1))
   else
     echo "  [FAIL] 検査10(1-68/1-249): 集約文書からの抽出件数・抽出方式または単位資料Pathが不正" >&2
+    fail=$((fail + 1))
+  fi
+
+  # 検査11(改善課題1-254): 単位フォルダを2つ用意し、片方だけ設計文書が実在する場合、
+  #        単位フォルダの数(2)と組み立てられた件数(1)の食い違いがWARNとして出て、
+  #        終了コードは0のまま続くこと。
+  local t11_root t11_out t11_output t11_rc ok11=1
+  t11_root="$(mktemp -d "${TMPDIR:-/tmp}/build-manifests-from-docs-t11.XXXXXX")"
+  mkdir -p "$t11_root/docs/design/features/feature-with-doc" \
+    "$t11_root/docs/design/features/feature-without-doc"
+  cat > "$t11_root/docs/design/features/feature-with-doc/機能設計書.md" <<'EOF'
+---
+feature_key: with-doc
+feature_id: feature-with-doc
+category: 会員管理
+source_ref: src/features/with_doc.py
+unit_kind: feature
+---
+
+# 設計書ありの機能設計書
+EOF
+  t11_out="$t11_root/out"
+  mkdir -p "$t11_out"
+  t11_output="$(bash "$self_path" "$t11_root" "$t11_out" --unit-kind feature 2>&1)"
+  t11_rc=$?
+  [ "$t11_rc" -eq 0 ] || ok11=0
+  printf '%s' "$t11_output" | grep -q "WARN" || ok11=0
+  printf '%s' "$t11_output" | grep -q "単位フォルダの数(2)と一覧の元データへ組み立てられた件数(1)" || ok11=0
+  [ "$(jq -r '.detectionSummary.unitCount' "$t11_out/feature-manifest.json" 2>/dev/null)" = "1" ] || ok11=0
+  rm -rf "$t11_root"
+  if [ "$ok11" -eq 1 ]; then
+    echo "  [PASS] 検査11(1-254): 単位フォルダの数と組み立て件数の食い違いがWARNとして出て終了コードは0のまま" >&2
+    pass=$((pass + 1))
+  else
+    echo "  [FAIL] 検査11(1-254): 単位フォルダ数と組み立て件数の食い違い検知が不正" >&2
+    fail=$((fail + 1))
+  fi
+
+  # 検査12(改善課題1-254): 単位フォルダを1つも持たない種別(0件が正しい種別)では、
+  #        食い違いのWARNが出ないこと。検査4と同じ空rootを使うが、WARN文言の有無まで見る。
+  local t12_root t12_out t12_output ok12=1
+  t12_root="$(mktemp -d "${TMPDIR:-/tmp}/build-manifests-from-docs-t12.XXXXXX")"
+  t12_out="$t12_root/out"
+  mkdir -p "$t12_out"
+  t12_output="$(bash "$self_path" "$t12_root" "$t12_out" --unit-kind feature 2>&1)"
+  [ $? -eq 0 ] || ok12=0
+  printf '%s' "$t12_output" | grep -q "WARN" && ok12=0
+  rm -rf "$t12_root"
+  if [ "$ok12" -eq 1 ]; then
+    echo "  [PASS] 検査12(1-254): 単位フォルダが0件の種別では食い違いのWARNが出ない" >&2
+    pass=$((pass + 1))
+  else
+    echo "  [FAIL] 検査12(1-254): 単位フォルダ0件時にWARNが誤って出た" >&2
+    fail=$((fail + 1))
+  fi
+
+  # 検査13(改善課題1-254): 設計書を持つ単位フォルダが実在するが、正規の命名
+  #        (<kind>-<単位ID>)と一致しない場合、単位フォルダの数(folder_count)が0のまま
+  #        検査11の食い違い検知(folder_count>=1が前提)をすり抜ける。この場合でも、
+  #        命名不一致のWARNが出て終了コードは0のまま続くこと。
+  local t13_root t13_out t13_output t13_rc ok13=1
+  t13_root="$(mktemp -d "${TMPDIR:-/tmp}/build-manifests-from-docs-t13.XXXXXX")"
+  mkdir -p "$t13_root/docs/design/features/user-management"
+  cat > "$t13_root/docs/design/features/user-management/機能設計書.md" <<'EOF'
+---
+feature_key: user-management
+feature_id: feature-user-management
+category: 会員管理
+source_ref: src/features/user_management.py
+unit_kind: feature
+---
+
+# 会員管理 機能設計書
+EOF
+  t13_out="$t13_root/out"
+  mkdir -p "$t13_out"
+  t13_output="$(bash "$self_path" "$t13_root" "$t13_out" --unit-kind feature 2>&1)"
+  t13_rc=$?
+  [ "$t13_rc" -eq 0 ] || ok13=0
+  printf '%s' "$t13_output" | grep -q "WARN" || ok13=0
+  printf '%s' "$t13_output" | grep -q "単位フォルダの命名が正規の形" || ok13=0
+  [ "$(jq -r '.detectionSummary.unitCount' "$t13_out/feature-manifest.json" 2>/dev/null)" = "0" ] || ok13=0
+  rm -rf "$t13_root"
+  if [ "$ok13" -eq 1 ]; then
+    echo "  [PASS] 検査13(1-254): 正規の命名でない単位フォルダはfolder_count=0でも命名不一致のWARNが出る" >&2
+    pass=$((pass + 1))
+  else
+    echo "  [FAIL] 検査13(1-254): 命名不一致時のWARN検知が不正" >&2
     fail=$((fail + 1))
   fi
 

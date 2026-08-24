@@ -37,7 +37,7 @@ JSON
 
   root="$tmp/output-root"
   # 主本体（本ファイル下部）はSCREEN_LIST_HTMLをoutput-layout.sh経由で解決するため、
-  # フィクスチャも同じ解決結果（既定: project-portal/一覧/画面一覧/画面一覧.html）に
+  # フィクスチャも同じ解決結果（既定: project-portal/lists/screens/画面一覧.html）に
   # 合わせて配置する。ハードコードした「一覧/画面一覧」に置くと本体の解決結果と
   # 一致せずmissing derived HTMLで失敗する。
   LAYOUT_JSON_ST="$(resolve_output_layout "$root")"

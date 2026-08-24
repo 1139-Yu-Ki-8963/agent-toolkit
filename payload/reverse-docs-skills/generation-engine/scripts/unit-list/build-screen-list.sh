@@ -1375,7 +1375,7 @@ screen_manifest_json="$(jq -c . "$EMBED_MANIFEST" | sed 's/</\\u003c/g; s/>/\\u0
 
 # --- ポータルへの相対パス算出 ---
 # 正本レイアウト（delivery-payload/references/output-layout.json）: ポータルは <output_dir>/index.html、
-# 画面一覧HTMLは <output_dir>/<screenListHtml>（既定 <output_dir>/project-portal/一覧/画面一覧/画面一覧.html）。
+# 画面一覧HTMLは <output_dir>/<screenListHtml>（既定 <output_dir>/project-portal/lists/screens/画面一覧.html）。
 # この2階層は output_dir からの深さが異なるため、呼び出し元は必ず --portal-dir <output_dir> を渡すこと。
 # --portal-dir 未指定時のフォールバックは旧2階層レイアウト（<output_dir>/一覧/画面一覧/）を前提とした
 # 後方互換値であり、現行レイアウトでは誤ったリンクになる。

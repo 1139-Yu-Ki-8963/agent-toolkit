@@ -29,7 +29,7 @@ allowed-tools: [AskUserQuestion, Bash, Read, Write]
 - 起動引数: `target_repo_path`（対象リポジトリの絶対パス）・`output_dir`（テーブル一覧.html 所在 / ER図.html 出力先）・`portal_output_dir`（任意）
 - `portal_output_dir` を指定した場合、生成後に `build-portal.sh` を再実行してカードへ反映する
 
-出力先は `<output_dir>/project-portal/diagrams/ER図.html` に固定する。前提となるテーブル一覧.html は `<output_dir>/project-portal/一覧/テーブル一覧/テーブル一覧.html`（正本レイアウト）を既定パスとする。不在の場合のみ後方互換として旧レイアウト `<output_dir>/テーブル一覧/テーブル一覧.html` も探索する。
+出力先は `<output_dir>/project-portal/diagrams/ER図.html` に固定する。前提となるテーブル一覧.html は `<output_dir>/project-portal/lists/テーブル一覧/テーブル一覧.html`（正本レイアウト）を既定パスとする。不在の場合のみ後方互換として旧レイアウト `<output_dir>/テーブル一覧/テーブル一覧.html` も探索する。
 
 ## 設計原則
 

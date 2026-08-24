@@ -221,8 +221,8 @@ try {
     validateNonGeneratingManifest()
   ]);
 
-  const apiList = path.join(work, 'project-portal/一覧/API一覧/API一覧.html');
-  const featureList = path.join(work, 'project-portal/一覧/機能一覧/機能一覧.html');
+  const apiList = path.join(work, 'project-portal/lists/API一覧/API一覧.html');
+  const featureList = path.join(work, 'project-portal/lists/機能一覧/機能一覧.html');
   const apiSequencePath = path.relative(path.dirname(apiList), apiHtml).split(path.sep).join('/');
   const featureSequencePath = path.relative(path.dirname(featureList), featureHtml).split(path.sep).join('/');
   assert.ok(isSafeRelativeUrl(apiSequencePath));

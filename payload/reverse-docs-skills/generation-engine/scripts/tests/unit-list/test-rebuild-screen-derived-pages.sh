@@ -156,7 +156,7 @@ JSON
 : > "$custom_root_out/画面/screen-home/詳細設計/画面詳細設計書.html"
 : > "$custom_root_out/画面/screen-home/シーケンス図.html"
 : > "$custom_root_out/画面/screen-home/テスト項目書/単体テスト仕様書.md"
-# SCREEN_LIST_DIR(既定 project-portal/一覧/画面一覧、3階層)基準の相対パスなので
+# SCREEN_LIST_DIR(既定 project-portal/lists/screens、3階層)基準の相対パスなので
 # output_root まで3つ上がってから対象ディレクトリへ降りる("../../../")。
 run_rebuild "$custom_root_out" --design-docs-dir "$custom_root_out/スクリーン"
 if jq -e '.layout.screenUnitRoot == "スクリーン"' "$custom_root_out/output-layout.json" >/dev/null \
