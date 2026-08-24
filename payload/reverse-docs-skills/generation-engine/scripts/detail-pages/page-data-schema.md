@@ -139,7 +139,7 @@ bash generation-engine/scripts/detail-pages/regenerate-semantic-glossary-sample.
 ```
 
 wrapperは`build-detail-page.sh --page glossary`を呼ぶ。
-`generation-engine/samples/一覧/用語辞書/用語辞書.html`は現行T2 templateから再生成する。
+`generation-engine/samples/project-portal/lists/semantic-glossary/用語辞書.html`は現行T2 templateから再生成する。
 HTMLの手修正は禁止する。画面の列見出しは日本語14列とする。埋め込みpage-dataのキーは英語14キーを維持する。
 
 ### T4: transition / er（確定仕様）

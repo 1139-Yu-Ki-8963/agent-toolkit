@@ -33,10 +33,10 @@ allowed-tools: [Bash, Read, Write]
 
 | page-type | 出力パス |
 |---|---|
-| permission-screen | `<output_dir>/project-portal/matrices/権限画面マトリクス/権限画面マトリクス.html` |
-| permission-function | `<output_dir>/project-portal/matrices/権限機能マトリクス/権限機能マトリクス.html` |
-| crud | `<output_dir>/project-portal/matrices/CRUD図/CRUD図.html` |
-| traceability | `<output_dir>/project-portal/matrices/画面-API-テーブル対応表/画面-API-テーブル対応表.html` |
+| permission-screen | `<output_dir>/project-portal/matrices/permission-screen/権限画面マトリクス.html` |
+| permission-function | `<output_dir>/project-portal/matrices/permission-function/権限機能マトリクス.html` |
+| crud | `<output_dir>/project-portal/matrices/crud/CRUD図.html` |
+| traceability | `<output_dir>/project-portal/matrices/traceability/画面-API-テーブル対応表.html` |
 | ai-assets | `<output_dir>/project-portal/foundation/AI設定資産.html` |
 
 `build-portal.sh` はこの5パスの実在有無だけでカードを出す（不在時はセクション自体が非表示になる fail-safe）。パスをこの表からずらすとカードが無言で出ない事故になるため厳守する。

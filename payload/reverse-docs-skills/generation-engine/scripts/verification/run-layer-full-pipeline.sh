@@ -491,15 +491,15 @@ stage_unit_lists() {
     fi
   done
 
-  # メッセージ一覧・テストケース一覧は、portal-catalog.json の該当blueprint
-  # （message-list・test-case-list）の kind が kindDirNames のキーと一致しない
-  # ため、discovery側は英字ディレクトリ名（messages・test-cases）へ差し替わらず
-  # 日本語のサブディレクトリ名のまま解決する（generation-engine/scripts/extract/
-  # aggregate-test-cases.sh の設計コメントを参照。unitListHtml+{label}経由で
-  # 英字名を使うと、discoveryが探す場所と食い違いportalに連結されない）。
-  # ここでの出力先も同じ日本語のサブディレクトリ名に揃える。
+  # メッセージ一覧・テスト観点表・テストケース一覧は、portal-catalog.json の
+  # 該当blueprint（message-list・test-viewpoint-list・test-case-list）が
+  # discovery.glob で1段下のサブディレクトリ名を英字（message-list・
+  # test-viewpoint-list・test-case-list）へ直接宣言している
+  # （ディレクトリ名の方針が実態と食い違う問題を直す指示書.mdで解消済み。
+  # generation-engine/scripts/extract/aggregate-test-cases.sh の設計コメントを
+  # 参照）。ここでの出力先も同じ英字のサブディレクトリ名に揃える。
   local message_manifest="${MANIFESTS_DIR}/message-manifest.json"
-  local message_html_rel="${units_root}/メッセージ一覧/メッセージ一覧.html"
+  local message_html_rel="${units_root}/message-list/メッセージ一覧.html"
   if [ -f "${unit_script}" ] && [ -f "${message_manifest}" ]; then
     mkdir -p "$(dirname "${OUTPUT_DIR}/${message_html_rel}")"
     run_cmd bash "${unit_script}" "${message_manifest}" "${OUTPUT_DIR}/${message_html_rel}" --unit-kind message
@@ -510,7 +510,7 @@ stage_unit_lists() {
   fi
 
   local viewpoint_manifest="${MANIFESTS_DIR}/test_viewpoint-manifest.json"
-  local viewpoint_html_rel="${units_root}/テスト観点表/テスト観点表.html"
+  local viewpoint_html_rel="${units_root}/test-viewpoint-list/テスト観点表.html"
   if [ -f "${unit_script}" ] && [ -f "${viewpoint_manifest}" ]; then
     mkdir -p "$(dirname "${OUTPUT_DIR}/${viewpoint_html_rel}")"
     run_cmd bash "${unit_script}" "${viewpoint_manifest}" "${OUTPUT_DIR}/${viewpoint_html_rel}" --unit-kind test_viewpoint
@@ -521,7 +521,7 @@ stage_unit_lists() {
   fi
 
   local testcase_manifest="${MANIFESTS_DIR}/test_case-manifest.json"
-  local testcase_html_rel="${units_root}/テストケース一覧/テストケース一覧.html"
+  local testcase_html_rel="${units_root}/test-case-list/テストケース一覧.html"
   if [ -f "${unit_script}" ] && [ -f "${testcase_manifest}" ]; then
     mkdir -p "$(dirname "${OUTPUT_DIR}/${testcase_html_rel}")"
     run_cmd bash "${unit_script}" "${testcase_manifest}" "${OUTPUT_DIR}/${testcase_html_rel}" --unit-kind test_case
@@ -665,8 +665,8 @@ stage_matrix() {
           pt_label="確認事項質問票"
           ;;
       esac
-      pt_out="${OUTPUT_DIR}/${matrix_root}/${pt_label}/${pt_label}.html"
-      mkdir -p "${OUTPUT_DIR}/${matrix_root}/${pt_label}"
+      pt_out="${OUTPUT_DIR}/${matrix_root}/${pt}/${pt_label}.html"
+      mkdir -p "${OUTPUT_DIR}/${matrix_root}/${pt}"
       if [ -n "${pt_file}" ] && [ -f "${pt_file}" ]; then
         run_cmd bash "${pages_script}" "${pt}" "${pt_file}" "${pt_out}"
         [ "${LAST_RC}" -ne 0 ] && any_fail=1
@@ -1067,14 +1067,17 @@ DEPS
 
   # 出力先-対応表サブフォルダ
   # matrixDir を output-layout.json から動的解決していること・出力先が
-  # <matrixDir>/${pt_label}/${pt_label}.html の形であることを検査する
-  # （matrixDir に「対応表」のような旧来の日本語ルートの直書きが復活していないか）。
+  # <matrixDir>/${pt}/${pt_label}.html の形（ディレクトリ名は英字のkind、
+  # ファイル名はJapaneseラベル）であることを検査する（matrixDir に「対応表」の
+  # ような旧来の日本語ルートの直書きが復活していないか。ディレクトリ名の方針が
+  # 実態と食い違う問題を直す指示書.md でportal-catalog.jsonのdir・discovery.glob
+  # を英字へ揃え、stage_matrixの出力先もこれに追従させた）。
   local matrix_block
   matrix_block="$(sed -n '/^stage_matrix()/,/^}/p' "${SELF_PATH}")"
   if printf '%s' "${matrix_block}" | grep -Eq 'output_layout_get "\$\{matrix_layout_json\}" matrixDir' \
-    && printf '%s' "${matrix_block}" | grep -Eq '\$\{OUTPUT_DIR\}/\$\{matrix_root\}/\$\{pt_label\}/\$\{pt_label\}\.html' \
+    && printf '%s' "${matrix_block}" | grep -Eq '\$\{OUTPUT_DIR\}/\$\{matrix_root\}/\$\{pt\}/\$\{pt_label\}\.html' \
     && ! printf '%s' "${matrix_block}" | grep -Eq 'PORTAL_DIR\}/対応表'; then
-    _case_pass "出力先-対応表サブフォルダ" "対応表の出力先が matrixDir から動的解決された <matrixDir>/<ラベル>/<ラベル>.html の形になっている"
+    _case_pass "出力先-対応表サブフォルダ" "対応表の出力先が matrixDir から動的解決された <matrixDir>/<kind>/<ラベル>.html の形になっている"
   else
     _case_fail "出力先-対応表サブフォルダ" "対応表の出力先が matrixDir の動的解決を経由していない、または旧来の直書きが残っている"
   fi

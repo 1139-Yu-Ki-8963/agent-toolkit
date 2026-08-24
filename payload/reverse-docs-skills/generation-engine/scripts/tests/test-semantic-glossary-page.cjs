@@ -179,7 +179,7 @@ try {
     const reproducedSampleDir = path.join(tmp, 'reproduced-real-sample');
     const reproducedSample = run('bash', [sampleRegenerator, reproducedSampleDir]);
     assert.equal(reproducedSample.status, 0, reproducedSample.stderr);
-    assert.deepEqual(fs.readFileSync(path.join(reproducedSampleDir, '一覧/用語辞書/用語辞書.html')), fs.readFileSync(sampleHtml), 'real sample must be byte-identical to canonical builder output');
+    assert.deepEqual(fs.readFileSync(path.join(reproducedSampleDir, 'project-portal/lists/semantic-glossary/用語辞書.html')), fs.readFileSync(sampleHtml), 'real sample must be byte-identical to canonical builder output');
   }
   assert.equal(fs.existsSync(path.join(root, 'generation-engine/samples/用語辞書.html')), false, 'obsolete root-level glossary page must not exist');
   runtimeCheck(sampleHtml);

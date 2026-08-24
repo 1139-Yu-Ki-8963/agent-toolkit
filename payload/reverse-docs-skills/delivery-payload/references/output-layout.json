@@ -50,7 +50,7 @@
     "screenListDir": "project-portal/lists/screens",
     "screenListHtml": "project-portal/lists/screens/画面一覧.html",
     "matrixDir": "project-portal/matrices",
-    "permissionFunctionMatrixHtml": "project-portal/matrices/権限機能マトリクス/権限機能マトリクス.html",
+    "permissionFunctionMatrixHtml": "project-portal/matrices/permission-function/権限機能マトリクス.html",
     "diagramDir": "project-portal/diagrams",
     "foundationDir": "project-portal/foundation",
     "deliverableInventoryHtml": "project-portal/foundation/納品物一覧.html",

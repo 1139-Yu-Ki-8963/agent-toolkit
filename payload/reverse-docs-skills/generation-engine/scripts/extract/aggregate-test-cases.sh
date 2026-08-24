@@ -239,21 +239,22 @@ self_test() {
   trap 'rm -rf "$tmp"' RETURN
   docs="$tmp/docs"
   manifest="$tmp/test-case-manifest.json"
-  # 1-244: 「テストケース」は screen/api/table/... の8種別（kindLabels/kindDirNames、
+  # 1-244（ディレクトリ名の方針が実態と食い違う問題を直す指示書.mdで解消済み）:
+  # 「テストケース」は screen/api/table/... の8種別（kindLabels/kindDirNames、
   # 1-208で新設）に属さない集約カテゴリであり、output_layout_get の {labelDir} 解決
   # （kindLabels の逆引き）には対応しない。実際に build-portal.sh（portal-catalog.mjs
   # の resolveDefaultRootPrefix）がこのHTMLを発見・連結する先は、portal-catalog.json
   # の test-case-list blueprint が持つ discovery.glob（unitsRoot="project-portal/lists"
-  # 配下の日本語サブディレクトリ「テストケース一覧」）である。blueprint.kind
-  # ="test-case-list" は kindDirNames のキー（testCase）と文字列が一致しないため、
-  # resolveDefaultRootPrefix のディレクトリ名差し替えは働かず、サブディレクトリ名は
-  # 日本語のまま残る（実測: dir を英字"test-cases"へ差し替えると本self-testが
-  # 「テストケースの連結結果が不正」でFAILすることを確認済み）。unitListHtml の
+  # 配下の英字サブディレクトリ"test-case-list"。1段下の日本語フォルダ名が3つの
+  # 不具合を起こすと実測で確かめたため、blueprint.dir・discovery.glob を直接
+  # 英字へ書き換え済み）である。resolveDefaultRootPrefix のkindDirNames差し替え
+  # （`<kindLabel>一覧`という形のsegmentだけを対象とする）は元々このkindには
+  # 働かないため、この英字化は宣言側の書き換えだけで完結する。unitListHtml の
   # 新配置テンプレート（project-portal/lists/{labelDir}/{label}一覧.html、1-208新設）
   # とは無関係で、labelDir解決に失敗するため使えない。unitsRoot が今後も
   # 変わりうるため、値は直書きせず output_layout_get から取得する。
   units_root="$(output_layout_get "$layout_json" unitsRoot)" || return 1
-  html="$docs/${units_root}/テストケース一覧/テストケース一覧.html"
+  html="$docs/${units_root}/test-case-list/テストケース一覧.html"
   portal="$tmp/portal"
   has_visible_case_row() {
     local file="$1" unit_key="$2" name="$3"
@@ -323,7 +324,7 @@ EOF
     && has_visible_case_row "$html" "screen-orders-unit-1" "合計0円-登録不可" \
     && has_visible_case_row "$html" "screen-orders-integration-1" "登録実行-一覧反映" \
     && has_visible_case_row "$html" "screen-orders-scenario-1" "検索条件の絞り込み" \
-    && grep -qF "${units_root}/テストケース一覧/テストケース一覧.html" "$portal/index.html" \
+    && grep -qF "${units_root}/test-case-list/テストケース一覧.html" "$portal/index.html" \
     && [ "$(jq -r '.units[] | select(.testType == "integration") | .steps' "$manifest")" = "登録ボタンを押す" ] \
     && [ "$(jq -r '.units[] | select(.testType == "scenario") | .expected' "$manifest")" = "検索実行後、一覧テーブルが即座に更新される。" ]; then
     echo "self-test PASS: テストケースの集約→検証→HTML→ポータル連結（単体/結合/操作シナリオ）"

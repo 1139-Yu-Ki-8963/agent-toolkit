@@ -308,7 +308,7 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 | ポータル未生成 | `<output_dir>/project-portal/index.html` が不在 | bash generation-engine/scripts/build-portal.sh | target_repo_path, output_dir, portal_output_dir（固定値: `<output_dir>/project-portal`）。ポータルは納品物ルート（output_dir）配下の project-portal/index.html として出力する。`<target_repo_path>/project-portal` 等の納品物ルート外への出力は定義レイアウト違反。複数サイトの場合、`<output_dir>` は当該サイトのサイトルートを指す |
 | サイト定義未生成 | サイトが2件以上あり `<納品ルート>/sites.json` が不在 | `sites.json` を書き出す（統括スキル自身が実行。子スキル起動なし） | site_key, sites_path（書き出し先。サイト一覧はアーキテクチャ調査書 §10 から転記する） |
 | 用語候補未生成（任意） | 呼び出し元が用語候補生成を要求し、対象repo外の絶対 `proposal_output_ref` が明示済みで、提案YAMLが不在 | generating-glossary-for-reverse-docs | target_repo_path, proposal_output_ref, target_glossary_key, base_content_version, source_revision（期待返却 `NEEDS_REVIEW`） |
-| 承認済み用語ページ未生成（任意） | schema検証済みかつ承認済みの `approved_glossary_ref` が明示済みで、`<output_dir>/project-portal/lists/用語辞書/用語辞書.html` が不在 | managing-semantic-glossary（portal publish） | operation=portal-publish, approved_glossary_ref, output_dir, portal_output_dir（任意） |
+| 承認済み用語ページ未生成（任意） | schema検証済みかつ承認済みの `approved_glossary_ref` が明示済みで、`<output_dir>/project-portal/lists/semantic-glossary/用語辞書.html` が不在 | managing-semantic-glossary（portal publish） | operation=portal-publish, approved_glossary_ref, output_dir, portal_output_dir（任意） |
 | 基盤ページ未生成（任意） | 技術スタック.html・画面遷移図.html・ER図.html・環境構築手順.html・リリースノート.html・デザインシステム.html・コンポーネント棚卸し.html・アイコンカタログ.html のいずれかが output_dir 直下に不在。データ源未整備時はスキップしてよい | generating-tech-stack-for-reverse-docs / generating-env-guide-for-reverse-docs / generating-screen-transition-for-reverse-docs / generating-er-diagram-for-reverse-docs / generating-release-notes-for-reverse-docs / generating-design-system-for-reverse-docs / generating-component-inventory-for-reverse-docs / generating-icon-catalog-for-reverse-docs（不在ページに対応するスキルのみ） | target_repo_path, output_dir, portal_output_dir（任意）, sites_path（任意）, site_key（任意） |
 | 状態遷移図未生成（任意） | 状態遷移図.html が output_dir 直下に不在。データ源未整備時はスキップしてよい | generating-entity-state-for-reverse-docs | target_repo_path, output_dir, portal_output_dir（任意） |
 | シーケンス図未生成（任意） | 画面フォルダのシーケンス図.html が不在。データ源未整備時はスキップしてよい | generating-sequence-diagram-for-reverse-docs | target_repo_path, output_dir, screen_id, portal_output_dir（任意） |
@@ -551,7 +551,7 @@ feature（機能一覧）は派生一覧のため本ファイルの管理対象�
 
 ## 基盤ページ6枚と用語辞書の出力パス契約
 
-基盤ページ生成スキル6本は`<output_dir>/project-portal/foundation`直下へ書き出す。用語辞書は一覧ページとして`<output_dir>/project-portal/lists/用語辞書/`へ書き出す。不一致はポータルカードが無言で出ない事故になるため機械保証する。
+基盤ページ生成スキル6本は`<output_dir>/project-portal/foundation`直下へ書き出す。用語辞書は一覧ページとして`<output_dir>/project-portal/lists/semantic-glossary/`へ書き出す。不一致はポータルカードが無言で出ない事故になるため機械保証する。
 
 | スキル | 出力ファイル |
 |---|---|
@@ -564,7 +564,7 @@ feature（機能一覧）は派生一覧のため本ファイルの管理対象�
 | generating-screen-transition-for-reverse-docs | `<output_dir>/project-portal/diagrams/画面遷移図.html` |
 | generating-er-diagram-for-reverse-docs | `<output_dir>/project-portal/diagrams/ER図.html` |
 | generating-entity-state-for-reverse-docs | `<output_dir>/project-portal/diagrams/状態遷移図.html` |
-| managing-semantic-glossary | `<output_dir>/project-portal/lists/用語辞書/用語辞書.html`（schema検証済みかつ承認済み用語YAMLのportal publish） |
+| managing-semantic-glossary | `<output_dir>/project-portal/lists/semantic-glossary/用語辞書.html`（schema検証済みかつ承認済み用語YAMLのportal publish） |
 
 `portal_output_dir` を指定した場合、各ページ生成スキルは生成後に `build-portal.sh` を再実行してカードへ反映する。
 
@@ -576,10 +576,10 @@ feature（機能一覧）は派生一覧のため本ファイルの管理対象�
 
 | page-type | 出力ファイル |
 |---|---|
-| permission-screen | `<output_dir>/project-portal/matrices/権限画面マトリクス/権限画面マトリクス.html` |
-| permission-function | `<output_dir>/project-portal/matrices/権限機能マトリクス/権限機能マトリクス.html`（データ形状ギャップにより未生成の場合あり。既知の制約） |
-| crud | `<output_dir>/project-portal/matrices/CRUD図/CRUD図.html` |
-| traceability | `<output_dir>/project-portal/matrices/画面-API-テーブル対応表/画面-API-テーブル対応表.html` |
+| permission-screen | `<output_dir>/project-portal/matrices/permission-screen/権限画面マトリクス.html` |
+| permission-function | `<output_dir>/project-portal/matrices/permission-function/権限機能マトリクス.html`（データ形状ギャップにより未生成の場合あり。既知の制約） |
+| crud | `<output_dir>/project-portal/matrices/crud/CRUD図.html` |
+| traceability | `<output_dir>/project-portal/matrices/traceability/画面-API-テーブル対応表.html` |
 | ai-assets | `<output_dir>/AI設定資産/AI設定資産.html` |
 
 `portal_output_dir` を指定した場合、本スキルは生成後に `build-portal.sh` を再実行してカードへ反映する。

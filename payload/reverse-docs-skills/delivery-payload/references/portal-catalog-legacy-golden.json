@@ -332,7 +332,7 @@
       {
         "title": "用語辞書",
         "icon": "dictionary",
-        "href": "./lists/用語辞書/用語辞書.html",
+        "href": "./lists/semantic-glossary/用語辞書.html",
         "desc": "承認済み用語の内容要約キー・日本語名・英語名・定義・適用範囲・分類・コード名・型名・DB名・API名・UI表示名・許容値・状態・備考を一覧化。",
         "count": "詳細を見る",
         "group": "用語"
@@ -404,7 +404,7 @@
       {
         "title": "メッセージ一覧",
         "icon": "chat",
-        "href": "./lists/メッセージ一覧/メッセージ一覧.html",
+        "href": "./lists/message-list/メッセージ一覧.html",
         "desc": "UI メッセージ・エラー文の定義一覧。",
         "count": "詳細を見る",
         "group": "メッセージ"
@@ -412,7 +412,7 @@
       {
         "title": "テスト観点表",
         "icon": "checklist",
-        "href": "./lists/テスト観点表/テスト観点表.html",
+        "href": "./lists/test-viewpoint-list/テスト観点表.html",
         "desc": "全画面のテスト観点を横断集約。",
         "count": "詳細を見る",
         "group": "テスト"
@@ -420,7 +420,7 @@
       {
         "title": "テストケース一覧",
         "icon": "checklist",
-        "href": "./lists/テストケース一覧/テストケース一覧.html",
+        "href": "./lists/test-case-list/テストケース一覧.html",
         "desc": "全画面のテストケースを単体・結合・操作シナリオのカテゴリ別に集約。",
         "count": "詳細を見る",
         "group": "テスト"
@@ -437,7 +437,7 @@
       {
         "title": "権限画面マトリクス",
         "icon": "lock",
-        "href": "./matrices/権限画面マトリクス/権限画面マトリクス.html",
+        "href": "./matrices/permission-screen/権限画面マトリクス.html",
         "desc": "ロール×画面の行×列で閲覧可否の関係を示すマトリクス。",
         "count": "詳細を見る",
         "group": "権限"
@@ -445,7 +445,7 @@
       {
         "title": "権限機能マトリクス",
         "icon": "key",
-        "href": "./matrices/権限機能マトリクス/権限機能マトリクス.html",
+        "href": "./matrices/permission-function/権限機能マトリクス.html",
         "desc": "ロール×機能の行×列で操作可否（CRUD）の関係を示すマトリクス。",
         "count": "詳細を見る",
         "group": "権限"
@@ -453,7 +453,7 @@
       {
         "title": "CRUD図",
         "icon": "grid_on",
-        "href": "./matrices/CRUD図/CRUD図.html",
+        "href": "./matrices/crud/CRUD図.html",
         "desc": "機能×テーブルの行×列でCRUD操作の関係を示すマトリクス。",
         "count": "詳細を見る",
         "group": "データ"
@@ -461,7 +461,7 @@
       {
         "title": "画面-API-テーブル対応表",
         "icon": "route",
-        "href": "./matrices/画面-API-テーブル対応表/画面-API-テーブル対応表.html",
+        "href": "./matrices/traceability/画面-API-テーブル対応表.html",
         "desc": "画面-API-テーブルの対応連鎖を行×列で追跡する対応表。",
         "count": "詳細を見る",
         "group": "データ"
@@ -469,7 +469,7 @@
       {
         "title": "確認事項質問票",
         "icon": "quiz",
-        "href": "./matrices/確認事項質問票/確認事項質問票.html",
+        "href": "./matrices/confirmation-survey/確認事項質問票.html",
         "desc": "推定名称・要手動確認・権限未設定・要確認事項を横断集約し、人間の確認が必要な事項を一覧化する質問票。",
         "count": "詳細を見る",
         "group": "確認"

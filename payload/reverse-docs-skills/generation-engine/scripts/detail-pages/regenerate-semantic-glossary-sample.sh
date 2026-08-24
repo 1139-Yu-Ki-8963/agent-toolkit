@@ -7,7 +7,7 @@ fixture="$repo_root/generation-engine/scripts/glossary/fixtures/valid-glossary.y
 registry="$repo_root/generation-engine/scripts/glossary/fixtures/canonical-registry"
 projector="$script_dir/project-semantic-glossary.py"
 portal_root="${1:-$repo_root/generation-engine/samples}"
-output_dir="$portal_root/一覧/用語辞書"
+output_dir="$portal_root/project-portal/lists/semantic-glossary"
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/semantic-glossary-sample.XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT
 if [ "$#" -eq 0 ]; then

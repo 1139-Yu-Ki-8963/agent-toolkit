@@ -58,7 +58,7 @@ self_test() {
   trap 'rm -rf "$tmp"' RETURN
   docs="$tmp/docs"
   manifest="$tmp/test-viewpoint-manifest.json"
-  html="$docs/$units_root/テスト観点表/テスト観点表.html"
+  html="$docs/$units_root/test-viewpoint-list/テスト観点表.html"
   portal="$tmp/portal"
   manifest_only="$tmp/manifest-only.html"
   has_visible_viewpoint_row() {
@@ -96,22 +96,22 @@ EOF
     return 1
   fi
   printf '<script type="application/json">%s</script>\n' "$(jq -c . "$manifest")" > "$manifest_only"
-  # 1-244: build-portal.sh（portal-catalog.mjsのresolveDefaultRootPrefix）は
-  # test-viewpoint-list blueprintのdiscovery.glob（project-portal/lists/テスト観点表/
-  # テスト観点表.html）で連結先を解決する。blueprint.kind="test-viewpoint-list" は
-  # kindDirNamesのキーと文字列が一致しないため、resolveDefaultRootPrefixのディレクトリ
-  # 名差し替えは働かず、サブディレクトリ名は日本語のまま残る（test-case-listと同じ
-  # 理由。1-244当時はunitsRoot自体がproject-portal配下の日本語ディレクトリ名だった
-  # 時期があり、ルートだけが動的置換の対象だったが、日本語のディレクトリは3つの不具合を起こすと
-  # 実測で確かめたため（docs/tasks/work-records/2026-08-24-日本語のフォルダ名の
-  # 実測.md）、unitsRootは"project-portal/lists"へ差し戻し済み）。$html の生成
-  # （55・61行目）は既に units_root 経由で新配置に追従済みだったが、この連結確認
-  # だけが旧配置の文字列を直書きしたまま取り残されていた。
+  # 1-244（ディレクトリ名の方針が実態と食い違う問題を直す指示書.mdで解消済み）:
+  # build-portal.sh（portal-catalog.mjsのresolveDefaultRootPrefix）は
+  # test-viewpoint-list blueprintのdiscovery.glob（project-portal/lists/
+  # test-viewpoint-list/テスト観点表.html）で連結先を解決する。1段下の
+  # サブディレクトリ名（テスト観点表）は日本語のフォルダ名が3つの不具合を
+  # 起こすと実測で確かめたため（docs/tasks/work-records/2026-08-24-日本語の
+  # フォルダ名の実測.md）、portal-catalog.jsonのblueprint.dir・discovery.glob
+  # を直接英字（test-viewpoint-list）へ書き換え済みである。resolveDefaultRootPrefix
+  # のkindDirNames差し替え（`<kindLabel>一覧`という形のsegmentだけを対象とする）は
+  # 元々このkindには働かないため、この英字化は宣言側の書き換えだけで完結する。
+  # $html の生成（55・61行目）は units_root 経由で新配置に追従済みである。
   if jq -e '.summary.totalCount == 2 and ([.units[].testType] | sort == ["integration", "unit"])' "$manifest" >/dev/null 2>&1 \
     && has_visible_viewpoint_row "$html" "screen-orders-unit-1" "入力必須" "screen-orders" "単体" \
     && has_visible_viewpoint_row "$html" "screen-orders-integration-1" "登録遷移" "screen-orders" "結合" \
     && ! has_visible_viewpoint_row "$manifest_only" "screen-orders-unit-1" "入力必須" "screen-orders" "単体" \
-    && grep -qF "${units_root}/テスト観点表/テスト観点表.html" "$portal/index.html"; then
+    && grep -qF "${units_root}/test-viewpoint-list/テスト観点表.html" "$portal/index.html"; then
     echo "self-test PASS: テスト観点表の集約→検証→HTML→ポータル連結（既存正本パス維持）"
   else
     echo "self-test FAIL: テスト観点表の連結結果または正本パスが不正" >&2
@@ -150,7 +150,7 @@ EOF
   local zero_docs zero_manifest zero_html
   zero_docs="$tmp/zero-docs"
   zero_manifest="$tmp/zero-manifest.json"
-  zero_html="$zero_docs/$units_root/テスト観点表/テスト観点表.html"
+  zero_html="$zero_docs/$units_root/test-viewpoint-list/テスト観点表.html"
   mkdir -p "$zero_docs"
   if ! bash "$script_path" "$zero_docs" "$zero_manifest" >/dev/null 2>&1 \
     || ! bash "$script_dir/../unit-list/validate-test-viewpoint-manifest.sh" "$zero_manifest" >/dev/null 2>&1 \

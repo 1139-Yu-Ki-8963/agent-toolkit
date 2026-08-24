@@ -12,10 +12,19 @@
 # 起こすと実測で確かめたため
 # （docs/tasks/work-records/2026-08-24-日本語のフォルダ名の実測.md）、この4つを
 # 英字へ揃え直した（一覧以外の置き場も定義と実態が食い違う問題を直す指示書.md）。
-# unitsRoot 等の一覧系5キーは project-portal/lists 配下に日本語のサブフォルダ
-# （用語辞書・メッセージ一覧等）を持つが、これは project-portal/ の直後の
-# セグメントではないため本検査の対象外である（check-list-path-unified.sh が
-# 一覧の置き場そのものの逆戻りを別途検査する）。
+# unitsRoot 等の一覧系5キーの1段下（project-portal/lists・project-portal/matrices
+# 配下の種別ごとのフォルダ名）は、project-portal/ の直後のセグメントではないため
+# 本検査の対象外である。この1段下にも日本語のフォルダ名（用語辞書・メッセージ
+# 一覧等、9件）が残っていたが、ディレクトリ名の方針が実態と食い違う問題を直す
+# 指示書.md で portal-catalog.json の blueprint.dir・discovery.glob を直接英字
+# （semantic-glossary・message-list等）へ書き換え、解消済みである。この1段下の
+# 逆戻りを継続監視する専用の検査は本指示書の完了の判定に含めず、portal-catalog.json・
+# output-layout.json の該当パスへの grep（同指示書の完了の判定3・4）で代える判断
+# とした（新規検査の追加は指示書の完了条件に含まれておらず、追加の保守コスト
+# （--self-test・design-判断の記載・tests/ラッパー）に見合わないため）。
+# check-list-path-unified.sh は unitsRoot自体の旧来の日本語トップ名（project-portal
+# 直後のセグメント）への逆戻りを検査し、1段下のセグメント名は対象にしない
+# （別の検査対象）。
 #
 # 検出方法: project-portal/ の直後に4つの既知の旧名（図・対応表・基盤・画面）が
 # 来る箇所を検出する。完了の判定1の grep（`project-portal/(図|対応表|基盤|画面)`）

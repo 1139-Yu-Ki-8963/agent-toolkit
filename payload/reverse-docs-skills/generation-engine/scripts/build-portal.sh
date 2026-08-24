@@ -1176,7 +1176,7 @@ EOF
   fi
   if [ ! -f "$test_portal/foundation/技術スタック.html" ] \
     || [ ! -f "$test_portal/foundation/環境構築手順.html" ] \
-    || [ ! -f "$test_portal/lists/用語辞書/用語辞書.html" ] \
+    || [ ! -f "$test_portal/lists/semantic-glossary/用語辞書.html" ] \
     || [ ! -f "$test_portal/foundation/AI設定資産.html" ] \
     || [ ! -f "$test_docs/custom/manifests/ai-assets.json" ]; then
     echo "FAIL: --self-test ケース48a（3種の詳細ページまたはAI設定資産が生成されない）" >&2
@@ -1185,7 +1185,7 @@ EOF
   fi
   if ! grep -q '<div class="pt-brand-name">repo</div>' "$test_portal/foundation/技術スタック.html" \
     || ! grep -q '<div class="pt-brand-name">repo</div>' "$test_portal/foundation/環境構築手順.html" \
-    || ! grep -q '<div class="pt-brand-name">repo</div>' "$test_portal/lists/用語辞書/用語辞書.html" \
+    || ! grep -q '<div class="pt-brand-name">repo</div>' "$test_portal/lists/semantic-glossary/用語辞書.html" \
     || ! grep -q '<div class="pt-brand-name">repo</div>' "$test_portal/foundation/AI設定資産.html" \
     || ! grep -q '2026-08-20T00:00:00Z' "$test_portal/foundation/AI設定資産.html"; then
     echo "FAIL: --self-test ケース48a（解決したプロジェクト名または生成時刻が全ページへ渡らない）" >&2
@@ -1238,7 +1238,7 @@ EOF
     node "$SCRIPT_DIR/tests/assert-generated-detail-pages-runtime.cjs" \
       "$test_portal/foundation/技術スタック.html" \
       "$test_portal/foundation/環境構築手順.html" \
-      "$test_portal/lists/用語辞書/用語辞書.html" || runtime_status=$?
+      "$test_portal/lists/semantic-glossary/用語辞書.html" || runtime_status=$?
     # 終了コード2は判定不能(ブラウザを起動できない)を表す。実行できな
     # かったことと不合格を区別する規約により、不合格(FAIL)ではなく
     # SKIPとして扱う(assert-generated-detail-pages-runtime.cjs側の対応)。
@@ -1669,8 +1669,8 @@ FIXTURE2
   test3_portal="$test3_dir/portal"
   mkdir -p "$test3_docs" "$test3_portal"
   echo '{"total":100,"fe":50,"be":50,"file_count":10}' > "$test3_docs/code-metrics.json"
-  mkdir -p "$test3_docs/project-portal/lists/用語辞書"
-  echo '<html><body>test glossary</body></html>' > "$test3_docs/project-portal/lists/用語辞書/用語辞書.html"
+  mkdir -p "$test3_docs/project-portal/lists/semantic-glossary"
+  echo '<html><body>test glossary</body></html>' > "$test3_docs/project-portal/lists/semantic-glossary/用語辞書.html"
   "$SCRIPT_DIR/build-portal.sh" "$test3_dir" "$test3_docs" "$test3_portal" 2>/dev/null
   if grep -q 'href":"[^"]*用語辞書.html"' "$test3_portal/index.html" \
     && grep -q '"kind":"semantic-glossary"' "$DEFAULT_CATALOG" \
@@ -2081,8 +2081,8 @@ TEST8HTML
   test9_repo="$test9_dir/repo"
   test9_docs="$test9_dir/docs"
   test9_portal="$test9_dir/portal"
-  mkdir -p "$test9_repo" "$test9_docs/project-portal/matrices/権限画面マトリクス" "$test9_docs/AI設定資産" "$test9_portal"
-  echo '<html><body>perm screen matrix</body></html>' > "$test9_docs/project-portal/matrices/権限画面マトリクス/権限画面マトリクス.html"
+  mkdir -p "$test9_repo" "$test9_docs/project-portal/matrices/permission-screen" "$test9_docs/AI設定資産" "$test9_portal"
+  echo '<html><body>perm screen matrix</body></html>' > "$test9_docs/project-portal/matrices/permission-screen/権限画面マトリクス.html"
   echo '<html><body>ai assets</body></html>' > "$test9_docs/AI設定資産/AI設定資産.html"
   "$SCRIPT_DIR/build-portal.sh" "$test9_repo" "$test9_docs" "$test9_portal" 2>/dev/null
   # 全不在ケース: 全カテゴリを空状態付きで保持し、サイドバーのアンカー先を本文生成契約へ接続する
@@ -2367,13 +2367,13 @@ TEST10HTML
   test12_repo="$test12_dir/repo"
   test12_docs="$test12_dir/docs"
   test12_portal="$test12_dir/portal"
-  mkdir -p "$test12_repo" "$test12_docs/project-portal/lists/テスト観点表" "$test12_portal"
-  cat > "$test12_docs/project-portal/lists/テスト観点表/テスト観点表.html" <<'TEST12HTML'
+  mkdir -p "$test12_repo" "$test12_docs/project-portal/lists/test-viewpoint-list" "$test12_portal"
+  cat > "$test12_docs/project-portal/lists/test-viewpoint-list/テスト観点表.html" <<'TEST12HTML'
 <!DOCTYPE html><html><body><script type="application/json" id="unit-manifest">{"unitKind":"test_viewpoint","detectionSummary":{"unitCount":3,"unresolvedCount":0},"units":[]}</script></body></html>
 TEST12HTML
   "$SCRIPT_DIR/build-portal.sh" "$test12_repo" "$test12_docs" "$test12_portal" 2>/dev/null
   if grep -q '"title":"テスト観点表"' "$test12_portal/index.html" \
-     && grep -q 'lists/テスト観点表/テスト観点表.html' "$test12_portal/index.html"; then
+     && grep -q 'lists/test-viewpoint-list/テスト観点表.html' "$test12_portal/index.html"; then
     echo "PASS: --self-test ケース12（テスト観点表の正本パスを派生一覧カードへ反映）"
   else
     echo "FAIL: --self-test ケース12（テスト観点表の派生一覧カード）" >&2
@@ -4595,7 +4595,7 @@ if [ "$BUILD_MANIFESTS_FROM_DOCS" -eq 1 ] && [ "$PORTAL_ONLY" -eq 0 ]; then
       || { echo "ERROR: message manifest generation failed" >&2; exit 1; }
     echo "INFO: generating message list" >&2
     units_root_rel="$(output_layout_get "$LAYOUT_JSON" unitsRoot)" || exit 1
-    bash "$SCRIPT_DIR/unit-list/build-unit-list.sh" "$message_manifest" "$PORTAL_DIR/${units_root_rel#*/}/メッセージ一覧/メッセージ一覧.html" --unit-kind message \
+    bash "$SCRIPT_DIR/unit-list/build-unit-list.sh" "$message_manifest" "$PORTAL_DIR/${units_root_rel#*/}/message-list/メッセージ一覧.html" --unit-kind message \
       || { echo "ERROR: message list generation failed" >&2; exit 1; }
   else
     echo "SKIP: message list (message definition document is absent: $DOCS_ROOT/$message_doc_rel)" >&2
@@ -4648,7 +4648,7 @@ if [ "$PORTAL_ONLY" -eq 0 ]; then
     bash "$SCRIPT_DIR/extract/build-matrix-data.sh" "${matrix_args[@]}" \
       || { echo "ERROR: CRUD matrix data generation failed" >&2; exit 1; }
     echo "INFO: generating CRUD matrix page" >&2
-    bash "$SCRIPT_DIR/matrix/build-matrix-pages.sh" crud "$matrix_dir/data/crud-matrix.json" "$matrix_dir/CRUD図/CRUD図.html" \
+    bash "$SCRIPT_DIR/matrix/build-matrix-pages.sh" crud "$matrix_dir/data/crud-matrix.json" "$matrix_dir/crud/CRUD図.html" \
       || { echo "ERROR: CRUD matrix page generation failed" >&2; exit 1; }
   else
     echo "SKIP: CRUD matrix (screen or API manifest is absent)" >&2
@@ -4669,7 +4669,7 @@ if [ "$PORTAL_ONLY" -eq 0 ]; then
   for detail_spec in \
     "techstack|techstack-page-data.json|$PORTAL_DIR/${foundation_dir_rel#*/}|技術スタック.html" \
     "env|env-page-data.json|$PORTAL_DIR/${foundation_dir_rel#*/}|環境構築手順.html" \
-    "glossary|glossary-page-data.json|$PORTAL_DIR/${detail_units_root_rel#*/}/用語辞書|用語辞書.html"; do
+    "glossary|glossary-page-data.json|$PORTAL_DIR/${detail_units_root_rel#*/}/semantic-glossary|用語辞書.html"; do
     IFS='|' read -r detail_page detail_input_name detail_output_dir detail_output_name <<EOF
 $detail_spec
 EOF
