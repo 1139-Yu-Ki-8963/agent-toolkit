@@ -30,6 +30,29 @@
 
 **廃棄条件**: 同じfixtureとexit/report契約を包含する上位テストランナーへ完全移行した時。
 
+## 隔離環境の整備
+
+このディレクトリを作業場所にして、次の順に実行する。
+
+```bash
+cd generation-engine/scripts/glossary
+python3.13 -m venv .venv
+.venv/bin/pip install -r requirements.txt
+```
+
+`requirements.txt` は `PyYAML>=6,<7` と `jsonschema[format]>=4.23,<5` を要求する。
+このworktreeでは、`python3.13` はPATHになく、fallbackの`python3`もPyYAMLを読み込めない。
+そのため2本の検査は `[UNKNOWN]` と終了コード2を返した。
+他の環境での結果は、Python実行系と依存の状態により異なる。
+`[UNKNOWN]` は成果物のFAILではない。
+実行環境が整っていないため未実行である判定を表す。
+環境を整備した後に同じ検査を再実行する。
+`test-validate-semantic-glossary.sh` の判定不能は `.venv/bin/python` がないことによる。
+`test-project-semantic-glossary-race.sh` の判定不能は `python3` へ切り替えた後に PyYAMLを読み込めないことによる。
+2本を同じ原因として扱わない。
+`.venv` は生成物であり `.gitignore` の対象である。
+`.venv` をコミットしてはいけない。
+
 ## 承認identity
 
 proposalの二者承認は、`business_approver`と`technical_approver`の両roleに`approved`の判断があることで判定する。同じactorが両roleを兼任できる。外部identity providerとの照合は、このCLIの入力契約に含まれない。
