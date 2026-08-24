@@ -275,7 +275,7 @@ async function stopBrowser(browser) {
 
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const samplePath = path.join(
-  repoRoot, 'generation-engine', 'samples', 'project-portal', '一覧', '画面一覧', '画面一覧.html',
+  repoRoot, 'generation-engine', 'samples', 'project-portal', 'lists', 'screens', '画面一覧.html',
 );
 
 function measureScript() {

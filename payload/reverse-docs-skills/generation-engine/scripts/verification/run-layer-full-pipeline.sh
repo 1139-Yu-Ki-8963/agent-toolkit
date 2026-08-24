@@ -281,6 +281,17 @@ stage_type_extraction() {
   # 拒否される新規の失敗を招く(entryFile が実ファイルでなくディレクトリになる等)。
   # 完了条件が求める6種別(api/table/batch/report/external/feature)には影響しないため、
   # 画面だけは対象外とし ${REPO} を渡す従来どおりの挙動を維持する。
+  #
+  # generation-engine/samples 配下は --exclude で必ず除外する。この配下の一覧見本
+  # (samples/project-portal/lists/screens 等)・画面見本(samples/project-portal/
+  # screens/screen-* 等)・画面設計文書見本(samples/docs/design/screens 等)は、
+  # 置き場を英字へ揃えた結果、detect-screens.sh のフォールバック規約
+  # (pages/screens/views ディレクトリ直下を1画面とみなす)に一致するようになった。
+  # 除外しないと ${REPO}(このリポジトリ自身)を検出対象にした際、これらの見本を
+  # 画面として誤検出し、entryFile がディレクトリ(見本フォルダそのもの)を指す不正な
+  # マニフェストになる(2026-08-24 実測)。この誤検出により「このリポジトリ自身の
+  # ようにアプリケーションコードを持たない対象では検出が必ず0件になる」という
+  # 下記コメントの前提が破れていたため、除外で前提を復元する。
   local scr_script="${REPO_SELF}/generation-engine/scripts/unit-list/detect-screens.sh"
   local screen_manifest_path="${MANIFESTS_DIR}/screen-manifest.json"
   if [ -f "${scr_script}" ]; then
@@ -298,7 +309,8 @@ stage_type_extraction() {
     fi
     local screen_detected_path="${MANIFESTS_DIR}/screen-manifest.detected.json"
     rm -f "${screen_detected_path}"
-    run_cmd bash "${scr_script}" "${REPO}" "${screen_detected_path}"
+    run_cmd bash "${scr_script}" "${REPO}" "${screen_detected_path}" \
+      --exclude '(^|/)generation-engine/samples(/|$)'
     local screen_rc="${LAST_RC}"
     [ "${screen_rc}" -ne 0 ] && any_fail=1
 

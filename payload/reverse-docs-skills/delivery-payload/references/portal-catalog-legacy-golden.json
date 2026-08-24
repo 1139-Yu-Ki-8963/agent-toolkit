@@ -9,7 +9,7 @@
       {
         "title": "技術スタック",
         "icon": "stacks",
-        "href": "./基盤/技術スタック.html",
+        "href": "./foundation/技術スタック.html",
         "desc": "言語・フレームワーク・主要依存パッケージのバージョンと採用箇所の整理。",
         "count": "詳細を見る",
         "group": "開発環境"
@@ -17,7 +17,7 @@
       {
         "title": "環境構築手順",
         "icon": "terminal",
-        "href": "./基盤/環境構築手順.html",
+        "href": "./foundation/環境構築手順.html",
         "desc": "環境構築・必須ツール・ポート割当の整理。",
         "count": "詳細を見る",
         "group": "開発環境"
@@ -25,7 +25,7 @@
       {
         "title": "リリースノート",
         "icon": "history",
-        "href": "./基盤/リリースノート.html",
+        "href": "./foundation/リリースノート.html",
         "desc": "git log から自動生成した変更履歴。",
         "count": "詳細を見る",
         "group": "参照情報"
@@ -267,7 +267,7 @@
       {
         "title": "基盤設計書",
         "icon": "architecture",
-        "href": "./基盤/基盤設計.html",
+        "href": "./foundation/基盤設計.html",
         "desc": "フレームワーク構成・ビルド・デプロイ・認証方式の実態記録。",
         "count": "詳細を見る",
         "group": "基盤"
@@ -275,7 +275,7 @@
       {
         "title": "共通設計書",
         "icon": "architecture",
-        "href": "./基盤/共通設計書.html",
+        "href": "./foundation/共通設計書.html",
         "desc": "ログ設計・エラーコード体系・共通レスポンス形式の横断仕様。",
         "count": "詳細を見る",
         "group": "基盤"
@@ -283,7 +283,7 @@
       {
         "title": "データ設計書",
         "icon": "architecture",
-        "href": "./基盤/データ設計.html",
+        "href": "./foundation/データ設計.html",
         "desc": "テーブル定義・リレーション・状態遷移表の設計記録。",
         "count": "詳細を見る",
         "group": "データ"
@@ -291,7 +291,7 @@
       {
         "title": "メッセージ定義書",
         "icon": "architecture",
-        "href": "./基盤/メッセージ定義書.html",
+        "href": "./foundation/メッセージ定義書.html",
         "desc": "バリデーション・通知・エラー等のメッセージ文言と管理方式。",
         "count": "詳細を見る",
         "group": "データ"
@@ -299,7 +299,7 @@
       {
         "title": "UI共通設計書",
         "icon": "architecture",
-        "href": "./基盤/UI共通設計.html",
+        "href": "./foundation/UI共通設計.html",
         "desc": "色・タイポグラフィ・共通コンポーネントのデザイントークン。",
         "count": "詳細を見る",
         "group": "UI"
@@ -316,7 +316,7 @@
       {
         "title": "画面一覧",
         "icon": "monitor",
-        "href": "./一覧/画面一覧/画面一覧.html",
+        "href": "./lists/screens/画面一覧.html",
         "desc": "全画面のルートパス・コンポーネント構成・複雑度プロファイルを一覧化。",
         "count": "44 画面 →",
         "group": "画面"
@@ -324,7 +324,7 @@
       {
         "title": "画面遷移図",
         "icon": "account_tree",
-        "href": "./図/画面遷移図.html",
+        "href": "./diagrams/画面遷移図.html",
         "desc": "画面一覧とコード走査から生成する画面遷移マップ。ブラウザバック・条件付き遷移に対応。",
         "count": "詳細を見る",
         "group": "画面"
@@ -332,7 +332,7 @@
       {
         "title": "用語辞書",
         "icon": "dictionary",
-        "href": "./一覧/用語辞書/用語辞書.html",
+        "href": "./lists/用語辞書/用語辞書.html",
         "desc": "承認済み用語の内容要約キー・日本語名・英語名・定義・適用範囲・分類・コード名・型名・DB名・API名・UI表示名・許容値・状態・備考を一覧化。",
         "count": "詳細を見る",
         "group": "用語"
@@ -340,7 +340,7 @@
       {
         "title": "API一覧",
         "icon": "api",
-        "href": "./一覧/API一覧/API一覧.html",
+        "href": "./lists/apis/API一覧.html",
         "desc": "全エンドポイントのパス・HTTPメソッド・リクエスト/レスポンス型・認証要否を網羅。",
         "count": "141 エンドポイント →",
         "group": "API"
@@ -348,7 +348,7 @@
       {
         "title": "バッチ一覧",
         "icon": "schedule",
-        "href": "./一覧/バッチ一覧/バッチ一覧.html",
+        "href": "./lists/batches/バッチ一覧.html",
         "desc": "定期実行ジョブのスケジュール・入出力・依存関係・実行頻度を整理。",
         "count": "10 ジョブ →",
         "group": "バッチ"
@@ -356,7 +356,7 @@
       {
         "title": "テーブル一覧",
         "icon": "table_chart",
-        "href": "./一覧/テーブル一覧/テーブル一覧.html",
+        "href": "./lists/tables/テーブル一覧.html",
         "desc": "全テーブルのカラム定義・型・制約・外部キーリレーションを一覧化。",
         "count": "16 テーブル →",
         "group": "データ"
@@ -364,7 +364,7 @@
       {
         "title": "ER図",
         "icon": "schema",
-        "href": "./図/ER図.html",
+        "href": "./diagrams/ER図.html",
         "desc": "テーブル一覧と外部キー定義から生成するエンティティ関連図。",
         "count": "詳細を見る",
         "group": "データ"
@@ -372,7 +372,7 @@
       {
         "title": "状態遷移図",
         "icon": "sync",
-        "href": "./図/状態遷移図.html",
+        "href": "./diagrams/状態遷移図.html",
         "desc": "データ設計の状態遷移表から生成するエンティティ状態遷移図。",
         "count": "詳細を見る",
         "group": "データ"
@@ -380,7 +380,7 @@
       {
         "title": "帳票一覧",
         "icon": "print",
-        "href": "./一覧/帳票一覧/帳票一覧.html",
+        "href": "./lists/reports/帳票一覧.html",
         "desc": "出力帳票のフォーマット・生成条件・出力先・利用者を整理。",
         "count": "8 帳票 →",
         "group": "帳票"
@@ -388,7 +388,7 @@
       {
         "title": "外部連携一覧",
         "icon": "link",
-        "href": "./一覧/外部連携一覧/外部連携一覧.html",
+        "href": "./lists/externals/外部連携一覧.html",
         "desc": "外部サービスとの連携インターフェース・プロトコル・認証方式を整理。",
         "count": "6 連携先 →",
         "group": "外部連携"
@@ -396,7 +396,7 @@
       {
         "title": "機能一覧",
         "icon": "category",
-        "href": "./一覧/機能一覧/機能一覧.html",
+        "href": "./lists/features/機能一覧.html",
         "desc": "画面一覧を入力に導出した機能単位の一覧（派生一覧）。",
         "count": "16 機能 →",
         "group": "機能"
@@ -404,7 +404,7 @@
       {
         "title": "メッセージ一覧",
         "icon": "chat",
-        "href": "./一覧/メッセージ一覧/メッセージ一覧.html",
+        "href": "./lists/メッセージ一覧/メッセージ一覧.html",
         "desc": "UI メッセージ・エラー文の定義一覧。",
         "count": "詳細を見る",
         "group": "メッセージ"
@@ -412,7 +412,7 @@
       {
         "title": "テスト観点表",
         "icon": "checklist",
-        "href": "./一覧/テスト観点表/テスト観点表.html",
+        "href": "./lists/テスト観点表/テスト観点表.html",
         "desc": "全画面のテスト観点を横断集約。",
         "count": "詳細を見る",
         "group": "テスト"
@@ -420,7 +420,7 @@
       {
         "title": "テストケース一覧",
         "icon": "checklist",
-        "href": "./一覧/テストケース一覧/テストケース一覧.html",
+        "href": "./lists/テストケース一覧/テストケース一覧.html",
         "desc": "全画面のテストケースを単体・結合・操作シナリオのカテゴリ別に集約。",
         "count": "詳細を見る",
         "group": "テスト"
@@ -437,7 +437,7 @@
       {
         "title": "権限画面マトリクス",
         "icon": "lock",
-        "href": "./対応表/権限画面マトリクス/権限画面マトリクス.html",
+        "href": "./matrices/権限画面マトリクス/権限画面マトリクス.html",
         "desc": "ロール×画面の行×列で閲覧可否の関係を示すマトリクス。",
         "count": "詳細を見る",
         "group": "権限"
@@ -445,7 +445,7 @@
       {
         "title": "権限機能マトリクス",
         "icon": "key",
-        "href": "./対応表/権限機能マトリクス/権限機能マトリクス.html",
+        "href": "./matrices/権限機能マトリクス/権限機能マトリクス.html",
         "desc": "ロール×機能の行×列で操作可否（CRUD）の関係を示すマトリクス。",
         "count": "詳細を見る",
         "group": "権限"
@@ -453,7 +453,7 @@
       {
         "title": "CRUD図",
         "icon": "grid_on",
-        "href": "./対応表/CRUD図/CRUD図.html",
+        "href": "./matrices/CRUD図/CRUD図.html",
         "desc": "機能×テーブルの行×列でCRUD操作の関係を示すマトリクス。",
         "count": "詳細を見る",
         "group": "データ"
@@ -461,7 +461,7 @@
       {
         "title": "画面-API-テーブル対応表",
         "icon": "route",
-        "href": "./対応表/画面-API-テーブル対応表/画面-API-テーブル対応表.html",
+        "href": "./matrices/画面-API-テーブル対応表/画面-API-テーブル対応表.html",
         "desc": "画面-API-テーブルの対応連鎖を行×列で追跡する対応表。",
         "count": "詳細を見る",
         "group": "データ"
@@ -469,7 +469,7 @@
       {
         "title": "確認事項質問票",
         "icon": "quiz",
-        "href": "./対応表/確認事項質問票/確認事項質問票.html",
+        "href": "./matrices/確認事項質問票/確認事項質問票.html",
         "desc": "推定名称・要手動確認・権限未設定・要確認事項を横断集約し、人間の確認が必要な事項を一覧化する質問票。",
         "count": "詳細を見る",
         "group": "確認"
@@ -486,7 +486,7 @@
       {
         "title": "AI設定資産",
         "icon": "smart_toy",
-        "href": "./基盤/AI設定資産.html",
+        "href": "./foundation/AI設定資産.html",
         "desc": "rules・skills・サブエージェント・hooks の設定資産の俯瞰。",
         "count": "詳細を見る"
       }
@@ -502,21 +502,21 @@
       {
         "title": "デザインシステム",
         "icon": "palette",
-        "href": "./基盤/デザインシステム.html",
+        "href": "./foundation/デザインシステム.html",
         "desc": "CSS トークン（色・タイポ・スペーシング）の可視化。",
         "count": "詳細を見る"
       },
       {
         "title": "コンポーネント棚卸し",
         "icon": "widgets",
-        "href": "./基盤/コンポーネント棚卸し.html",
+        "href": "./foundation/コンポーネント棚卸し.html",
         "desc": "コンポーネントの一覧・Props・被参照数。",
         "count": "詳細を見る"
       },
       {
         "title": "アイコンカタログ",
         "icon": "emoji_symbols",
-        "href": "./基盤/アイコンカタログ.html",
+        "href": "./foundation/アイコンカタログ.html",
         "desc": "使用アイコンの一覧と使用箇所。",
         "count": "詳細を見る"
       }
