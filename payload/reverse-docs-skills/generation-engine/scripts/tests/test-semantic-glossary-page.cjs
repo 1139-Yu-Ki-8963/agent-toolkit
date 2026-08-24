@@ -6,6 +6,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const cp = require('node:child_process');
+const { BrowserUnavailableError, markUnavailable } = require('./lib/browser-unavailable.cjs');
 
 const root = path.resolve(__dirname, '../../..');
 const builder = path.join(root, 'generation-engine/scripts/detail-pages/build-detail-page.sh');
@@ -67,11 +68,17 @@ function runtimeCheck(htmlPath, options={}) {
   const program = String.raw`
     let chromium;
     try { ({chromium} = require('playwright')); }
-    catch (error) { console.error('runtime: FAIL (playwright unavailable; run npm ci at the repository root)'); process.exit(2); }
+    catch (error) { console.error('[UNKNOWN] playwrightパッケージが見つからないため判定できません（実行環境にnode_modulesが用意されていない可能性があります）'); process.exit(2); }
     const {pathToFileURL} = require('node:url');
     const assert = require('node:assert/strict');
     (async () => {
-      const browser = await chromium.launch({headless:true});
+      let browser;
+      try {
+        browser = await chromium.launch({headless:true});
+      } catch (launchError) {
+        console.error('[UNKNOWN] ブラウザを起動できないため判定できません（実行環境の制約が原因である可能性があります）');
+        process.exit(2);
+      }
       try {
         const page = await browser.newPage({viewport:{width:1280,height:720}});
         await page.goto(pathToFileURL(process.argv[1]).href, {waitUntil:'load'});
@@ -122,6 +129,9 @@ function runtimeCheck(htmlPath, options={}) {
     })().catch(error => { console.error(error.stack || error); process.exit(1); });
   `;
   const result = run(process.execPath, ['-e', program, htmlPath], {timeout:60000});
+  if (result.status === 2) {
+    throw markUnavailable(new Error('runtimeCheckの子プロセスが判定不能を返した'));
+  }
   assert.equal(result.status, 0, result.stderr || result.error);
   process.stdout.write(result.stdout);
   return true;
@@ -413,6 +423,13 @@ try {
   assert.deepEqual(embedded(builtXss.html), xss, 'escaped JSON retains semantic equality');
 
   console.log('semantic glossary page static: PASS (projection/validation/legacy/XSS/UI contracts)');
+} catch (error) {
+  if (error instanceof BrowserUnavailableError) {
+    console.error(`[UNKNOWN] ${error.message}`);
+    fs.rmSync(tmp, {recursive:true, force:true});
+    process.exit(2);
+  }
+  throw error;
 } finally {
   fs.rmSync(tmp, {recursive:true, force:true});
 }

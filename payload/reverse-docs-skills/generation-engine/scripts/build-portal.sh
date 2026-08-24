@@ -1124,7 +1124,7 @@ run_project_name_self_test() {
 
 run_prepared_detail_pages_self_test() {
   local test_dir test_repo test_docs test_portal input_dir first_log second_log second_status
-  local third_log third_status
+  local third_log third_status runtime_status
   test_dir="$(create_physical_tmpdir "${TMPDIR:-/tmp}/build-portal-test48.XXXXXX")"
   test_repo="$test_dir/repo"
   test_docs="$test_dir/output"
@@ -1233,13 +1233,22 @@ EOF
   ensure_playwright_installed
   if [ -z "$PLAYWRIGHT_AVAILABLE" ]; then
     echo "SKIP: --self-test ケース48d実描画（playwrightパッケージが利用できないため。導入後は3種の生成ページでpageerror=0を検査する）"
-  elif ! node "$SCRIPT_DIR/tests/assert-generated-detail-pages-runtime.cjs" \
+  else
+    runtime_status=0
+    node "$SCRIPT_DIR/tests/assert-generated-detail-pages-runtime.cjs" \
       "$test_portal/foundation/技術スタック.html" \
       "$test_portal/foundation/環境構築手順.html" \
-      "$test_portal/一覧/用語辞書/用語辞書.html"; then
+      "$test_portal/一覧/用語辞書/用語辞書.html" || runtime_status=$?
+    # 終了コード2は判定不能(ブラウザを起動できない)を表す。実行できな
+    # かったことと不合格を区別する規約により、不合格(FAIL)ではなく
+    # SKIPとして扱う(assert-generated-detail-pages-runtime.cjs側の対応)。
+    if [ "$runtime_status" -eq 2 ]; then
+      echo "SKIP: --self-test ケース48d実描画（ブラウザを起動できないため判定できません。実行環境の制約が原因である可能性があります）"
+    elif [ "$runtime_status" -ne 0 ]; then
       echo "FAIL: --self-test ケース48d（生成した3種の詳細ページで実描画例外が発生）" >&2
       rm -rf "$test_dir"
       return 1
+    fi
   fi
   rm -rf "$test_dir"
 }

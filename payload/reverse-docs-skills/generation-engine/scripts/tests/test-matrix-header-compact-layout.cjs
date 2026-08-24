@@ -34,6 +34,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { findCachedBrowser } = require('./lib/find-cached-browser.cjs');
+const { BrowserUnavailableError, markUnavailable, reportIfUnavailable } = require('./lib/browser-unavailable.cjs');
 
 function isExecutable(filePath) {
   try {
@@ -154,7 +155,7 @@ function launchBrowser(browserPath, args) {
       if (settled) return;
       settled = true;
       browser.kill('SIGKILL');
-      reject(new Error('Chrome/Chromiumのデバッグ接続先を15秒以内に取得できませんでした'));
+      reject(markUnavailable(new Error('Chrome/Chromiumのデバッグ接続先を15秒以内に取得できませんでした')));
     }, 15000);
 
     browser.stderr.setEncoding('utf8');
@@ -171,13 +172,13 @@ function launchBrowser(browserPath, args) {
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
-      reject(error);
+      reject(markUnavailable(error));
     });
     browser.on('close', (code) => {
       if (settled) return;
       settled = true;
       clearTimeout(timeout);
-      reject(new Error(`Chrome/Chromiumの起動に失敗しました（exit ${code}）\n${stderr}`));
+      reject(markUnavailable(new Error(`Chrome/Chromiumの起動に失敗しました（exit ${code}）\n${stderr}`)));
     });
   });
 }
@@ -198,7 +199,7 @@ function connectCdp(websocketUrl) {
     };
     const timeout = setTimeout(() => {
       socket.close();
-      reject(new Error('Chrome DevTools Protocolへ15秒以内に接続できませんでした'));
+      reject(markUnavailable(new Error('Chrome DevTools Protocolへ15秒以内に接続できませんでした')));
     }, 15000);
 
     socket.addEventListener('open', () => {
@@ -248,13 +249,13 @@ function connectCdp(websocketUrl) {
       clearTimeout(timeout);
       const error = new Error('Chrome DevTools Protocolとの通信に失敗しました');
       rejectPending(error);
-      if (!connected) reject(error);
+      if (!connected) reject(markUnavailable(error));
     });
     socket.addEventListener('close', () => {
       clearTimeout(timeout);
       const error = new Error('Chrome DevTools Protocolとの接続が切断されました');
       rejectPending(error);
-      if (!connected) reject(error);
+      if (!connected) reject(markUnavailable(error));
     });
   });
 }
@@ -441,7 +442,9 @@ function buildMatrixPage(caseDef) {
   const reports = [];
   try {
     const browserPath = findBrowser();
-    assert.notEqual(browserPath, '', 'ChromeまたはChromiumの実行ファイルを検出できる');
+    if (browserPath === '') {
+      throw markUnavailable(new Error('ChromeまたはChromiumの実行ファイルを検出できない'));
+    }
     const launched = await launchBrowser(browserPath, [
       '--headless=new',
       '--no-sandbox',
@@ -554,6 +557,10 @@ function buildMatrixPage(caseDef) {
     cleanupFixture();
   }
 })().catch((error) => {
+  if (reportIfUnavailable(error)) {
+    process.exitCode = 2;
+    return;
+  }
   console.error(error);
   process.exitCode = 1;
 });

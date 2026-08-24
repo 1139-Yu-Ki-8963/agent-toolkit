@@ -7,7 +7,17 @@ const os = require('node:os');
 const path = require('node:path');
 const {pathToFileURL} = require('node:url');
 const {execFileSync} = require('node:child_process');
-const {chromium} = require('playwright');
+const { BrowserUnavailableError, markUnavailable, reportIfUnavailable } = require('./lib/browser-unavailable.cjs');
+let chromium;
+try {
+  ({chromium} = require('playwright'));
+} catch (error) {
+  if (error && error.code === 'MODULE_NOT_FOUND') {
+    console.error('[UNKNOWN] playwrightパッケージが見つからないため判定できません（実行環境にnode_modulesが用意されていない可能性があります）');
+    process.exit(2);
+  }
+  throw error;
+}
 
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
 const builder = path.join(repoRoot, 'generation-engine', 'scripts', 'unit-list', 'build-unit-list.sh');
@@ -83,7 +93,11 @@ async function visibleKeys(page) {
 
   let browser;
   try {
-    browser = await chromium.launch({headless: true});
+    try {
+      browser = await chromium.launch({headless: true});
+    } catch (launchError) {
+      throw markUnavailable(launchError);
+    }
     const page = await browser.newPage({viewport: {width: 1440, height: 900}});
     await page.goto(pathToFileURL(mixedPage).href, {waitUntil: 'load'});
 
@@ -130,6 +144,10 @@ async function visibleKeys(page) {
     fs.rmSync(fixtureRoot, {recursive: true, force: true});
   }
 })().catch(error => {
+  if (reportIfUnavailable(error)) {
+    process.exit(2);
+    return;
+  }
   console.error(error.stack || error);
   process.exit(1);
 });

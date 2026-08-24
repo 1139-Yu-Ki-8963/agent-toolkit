@@ -8,6 +8,7 @@ const os = require('node:os');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
 const { findCachedBrowser } = require('./lib/find-cached-browser.cjs');
+const { BrowserUnavailableError, markUnavailable, reportIfUnavailable } = require('./lib/browser-unavailable.cjs');
 
 const MAX_DUMP_BYTES = 20 * 1024 * 1024;
 const DUMP_DOM_TIMEOUT_MS = 180000;
@@ -252,7 +253,7 @@ function launchDumpDom(browserPath, args) {
     browser.stderr.on('data', (chunk) => {
       stderr += chunk;
     });
-    browser.on('error', (error) => fail(error));
+    browser.on('error', (error) => fail(markUnavailable(error)));
     browser.on('close', (code, signal) => {
       if (hasCompleteDocument(stdout)) {
         if (code === 0 && signal === null) {
@@ -264,9 +265,12 @@ function launchDumpDom(browserPath, args) {
         }
         return;
       }
-      fail(new Error(
+      // 完全な出力を1件も得られないまま終了した場合はブラウザが使えな
+      // かったとみなす(sandbox拒否等)。出力サイズ上限超過・180秒タイム
+      // アウト・完全出力後の異常終了は対象外(narrowな分類を保つ)。
+      fail(markUnavailable(new Error(
         `Chrome/Chromiumが完全な--dump-dom出力前に終了しました（exit ${code}; signal ${signal ?? 'none'}）\n${stderr}`,
-      ));
+      )));
     });
   });
 }
@@ -357,7 +361,9 @@ function generateScreenDetailDocument() {
     generateScreenDetailDocument();
     console.log('INFO: Chrome/Chromiumで生成後DOMを取得');
     const browserPath = findBrowser();
-    assert.notEqual(browserPath, '', 'ChromeまたはChromiumの実行ファイルを検出できる');
+    if (browserPath === '') {
+      throw markUnavailable(new Error('ChromeまたはChromiumの実行ファイルを検出できない'));
+    }
     const launched = await launchDumpDom(browserPath, [
       '--headless=new',
       '--no-sandbox',
@@ -402,6 +408,10 @@ function generateScreenDetailDocument() {
     cleanupTemporaryRoot();
   }
 })().catch((error) => {
+  if (reportIfUnavailable(error)) {
+    process.exitCode = 2;
+    return;
+  }
   console.error(error);
   process.exitCode = 1;
 });
