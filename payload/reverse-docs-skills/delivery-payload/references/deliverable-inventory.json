@@ -266,15 +266,18 @@
     },
     {
       "kind": "design-system",
-      "evidenceSource": "none"
+      "evidenceSource": "none",
+      "dependsOnKind": "screen"
     },
     {
       "kind": "component-inventory",
-      "evidenceSource": "none"
+      "evidenceSource": "none",
+      "dependsOnKind": "screen"
     },
     {
       "kind": "icon-catalog",
-      "evidenceSource": "none"
+      "evidenceSource": "none",
+      "dependsOnKind": "screen"
     }
   ]
 }

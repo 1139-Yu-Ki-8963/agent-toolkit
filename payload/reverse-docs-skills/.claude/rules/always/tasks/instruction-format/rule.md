@@ -321,6 +321,25 @@
 
 **廃棄条件**: ブラウザを使う検査の判定不能対応自体を廃止した時、または集約が16分未満で完走するようになり片付けの判定器の時間の上限内で直接実行できるようになった時。
 
+### check-depends-on-kind.sh
+
+**必要性**: 改善課題1-253は、画面が無ければ作れない納品物のうち3件（design-system・component-inventory・icon-catalog）が、画面への依存を宣言する`dependsOnKind`を持たず、画面ゼロ件の対象で「未生成（作り忘れ）」のまま永久に判定される問題を扱う。3件へ宣言を足すだけでは、次に画面依存の納品物が増えたときに同じ宣言漏れが再発する。画面に依存する納品物11件（既存8件＋新規3件）を固定の一覧として持ち、`delivery-payload/references/deliverable-inventory.json`の各項目が漏れなく`dependsOnKind=screen`を宣言しているかを繰り返し確かめる検査が要る。あわせて、実際の生成（`generation-engine/scripts/build-deliverable-inventory.sh`）に対して、画面ゼロ件の入力では3件が「対象なし」になり、画面ありの入力では従来どおりの判定になることを、実行を伴って確かめる`--check-resolution`を持つ。
+
+11件の一覧は、生成元スキル（`generating-design-system-for-reverse-docs`等）のSKILL.md「いつ使わないか」節を実測して定めた。screenのマニフェストや一覧そのものを直接要求する納品物ではなく、UIが存在することを前提にした証拠（共通設計文書・画面部品のファイル・アイコン参照）に依存する納品物であり、`dependsOnKind`の語彙（screen/api/table/batch/report/external/featureの6種別）に「UIの存在」を表す種別が無いため、画面をその代理として採用した。この判断の詳細はスクリプト冒頭のコメントに記す。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: `dependsOnKind`の宣言漏れを対話セッションのたびに手で確認すると、確認の省略・見落としを繰り返す。実際に3件が長期間見落とされていた
+- 判定の式を指示書の表へ直接書く: `jq`のフィルタが縦棒（`|`）を含み、片付けの判定器が列の区切りと読み違えて判定行を壊す（本ファイルの`check-broken-verdict-rows.sh`の設計判断を参照）
+- `--check-resolution`で既存の見本（`generation-engine/samples/`）をそのまま使う: 同見本の基盤ページ3件は出力先が英字ディレクトリ（`project-portal/foundation`）へ統一される前の構成（`project-portal/基盤`）のまま残っており、本項目と無関係な理由（配置の食い違い）で「未生成」と判定されてしまう。最小の合成フィクスチャで実効globの位置へ空のHTMLを置く方式に替えた
+- `build-deliverable-inventory.sh`を`source`して`resolve_state`等を直接呼ぶ方式: 同スクリプトの`SCRIPT_DIR`は`$0`を使っており、他スクリプトから`source`すると呼び出し元のパスを見て壊れる（`${BASH_SOURCE[0]}`ではなく`$0`を使っているため）。実際に生成コマンドとして`bash`で起動する方式に替えた
+- 既存 Makefile ターゲット拡張: このリポジトリに Makefile は存在せず、新規導入は本検査専用の依存を増やすだけになる
+- package.json scripts 追加: 同様に、このリポジトリはビルド設定を持たない
+
+**保守責任者**: 人手（ユーザー）。画面に依存する納品物を増減する場合は本スクリプトの`SCREEN_DEPENDENT_KINDS`と`delivery-payload/references/deliverable-inventory.json`を同時に更新する。`build-deliverable-inventory.sh`の`resolve_catalog_glob`の変換式を変える場合は本スクリプトの`_resolve_catalog_glob`を同時に更新する。
+
+**廃棄条件**: `dependsOnKind`による依存宣言の仕組み自体を廃止した時、または画面依存の納品物一覧を`deliverable-inventory.json`側の構造化データから動的に導出できるようになった時。
+
+第1層の機械検証（`generation-engine/scripts/verification/run-layer-machine-checks.sh`）の走査対象は`generation-engine/scripts/`と`delivery-payload/templates/rules/checkers/`のみで、`docs/scripts/`は含まれない。`generation-engine/scripts/tests/check-depends-on-kind.sh`は、本体（`docs/scripts/check-depends-on-kind.sh`）の`--self-test`を呼び終了コードをそのまま返すだけのラッパーであり、`check-skill-snapshot.sh`等の先例と同じ形で集約に載せる。判定の中身は写して持たない。
 ### check-manifest-count-mismatch.sh
 
 **必要性**: 設計文書からマニフェストを組み立てる処理（`generation-engine/scripts/portal-input/build-manifests-from-docs.sh`）は、単位フォルダが実在するのに一覧の元データが0件（または一部欠落）でも、従来は終了コード0のまま正常終了していた。0件・部分欠落が不合格として現れないため、前付けの不足やファイル名の不一致が沈黙のまま通っていた（改善課題1-254）。単位フォルダの数と組み立てられた件数の突き合わせを実装したあと、この突き合わせが実際に働くかを繰り返し確かめる必要があり、対話セッションのたびに合成データを手で用意して確認するのは非現実的である。
