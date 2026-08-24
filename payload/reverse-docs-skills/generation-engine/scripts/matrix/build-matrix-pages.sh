@@ -79,7 +79,7 @@ set -euo pipefail
 # 検出できない両スクリプト間のスキーマドリフトを検証する。
 self_test() {
   local script_path="$0"
-  local tmp rc=0
+  local tmp rc=0 header_layout_test_status=0 header_layout_test_unknown=0
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/build-matrix-pages-self-test.XXXXXX")"
   trap 'rm -rf "$tmp"' RETURN
 
@@ -527,19 +527,32 @@ NODE
   if [ ! -f "$header_layout_test" ]; then
     echo "  [FAIL] 改善課題1-105: ヘッダ行コンパクトレイアウト検査スクリプトが見つからない: $header_layout_test" >&2
     rc=1
-  elif node "$header_layout_test"; then
-    echo "  [PASS] 改善課題1-105: ヘッダ行高さ比率3倍以下・左上見出しコントラスト比4.5以上を3種すべてで満たす"
   else
-    echo "  [FAIL] 改善課題1-105: ヘッダ行高さ比率またはコントラスト比が基準を満たさない" >&2
-    rc=1
+    if node "$header_layout_test"; then
+      header_layout_test_status=0
+    else
+      header_layout_test_status=$?
+    fi
+    if [ "$header_layout_test_status" -eq 0 ]; then
+      echo "  [PASS] 改善課題1-105: ヘッダ行高さ比率3倍以下・左上見出しコントラスト比4.5以上を3種すべてで満たす"
+    elif [ "$header_layout_test_status" -eq 2 ]; then
+      echo "  [UNKNOWN] 改善課題1-105: ブラウザを起動できないためヘッダ行高さ比率とコントラスト比を判定できません（実行環境の制約が原因である可能性があります）" >&2
+      header_layout_test_unknown=1
+    else
+      echo "  [FAIL] 改善課題1-105: ヘッダ行高さ比率またはコントラスト比が基準を満たさない" >&2
+      rc=1
+    fi
   fi
 
-  if [ "$rc" -eq 0 ]; then
-    echo "self-test 全項目 PASS"
-  else
+  if [ "$rc" -ne 0 ]; then
     echo "self-test FAIL" >&2
+    return 1
+  elif [ "$header_layout_test_unknown" -ne 0 ]; then
+    echo "self-test UNKNOWN" >&2
+    return 2
   fi
-  return "$rc"
+  echo "self-test 全項目 PASS"
+  return 0
 }
 
 if [ "${1:-}" = "--self-test" ]; then

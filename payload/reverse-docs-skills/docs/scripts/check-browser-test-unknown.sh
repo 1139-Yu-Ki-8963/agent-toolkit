@@ -12,30 +12,40 @@
 #   check-browser-test-unknown.sh                 対象15本が判定不能へ対応
 #                                                   している形になっているかを
 #                                                   静的に見る
-#   check-browser-test-unknown.sh --count-failures 保存済みの第1層集約ログを
-#                                                   読み、失敗本数が3本以下かを
-#                                                   見る
-#   check-browser-test-unknown.sh --count-unknowns 保存済みの第1層集約ログを
-#                                                   読み、判定不能本数が16本
-#                                                   以上かを見る
+#   check-browser-test-unknown.sh --count-failures 制限再現用の保存済み第1層
+#                                                   集約ログを読み、失敗本数が
+#                                                   3本以下かを見る
+#   check-browser-test-unknown.sh --count-unknowns 制限再現用の保存済み第1層
+#                                                   集約ログを読み、判定不能本数が
+#                                                   16本以上かを見る
+#   check-browser-test-unknown.sh --count-successes 制限なし専用の保存済み第1層
+#                                                   集約ログを読み、成功本数が
+#                                                   182本以上かを見る
 #   check-browser-test-unknown.sh --input <path>   --count-failures /
-#                                                   --count-unknowns が読む
+#                                                   --count-unknowns /
+#                                                   --count-successes が読む
 #                                                   ログの場所を変える
 #   check-browser-test-unknown.sh --self-test      このスクリプト自身の判定を
 #                                                   確かめる
 #
-# --count-failures / --count-unknowns は第1層の集約
-# (generation-engine/scripts/verification/run-layer-machine-checks.sh)を
-# 自分では実行しない。集約は所要時間が約16分あり、片付けの判定器
+# --count-failures / --count-unknowns は制限再現ログ、--count-successes は
+# 制限なし専用ログを読む。いずれも --input でログの場所を上書きできる。
+# 第1層の集約(generation-engine/scripts/verification/run-layer-machine-checks.sh)
+# は自分では実行しない。集約は所要時間が約16分あり、片付けの判定器
 # (docs/scripts/judge-task-done.sh)の時間の上限(既定120秒)を超えるため、
 # この場で実行すると必ず未確認になる。呼び出す側が事前に集約を実行し、
-# 出力を本スクリプトの既定の置き場(またはNODE)へ保存してから呼ぶ。
+# 出力を本スクリプトの既定の置き場(または --input で指定した場所)へ保存して
+# から呼ぶ。
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TESTS_DIR="$REPO_ROOT/generation-engine/scripts/tests"
-DEFAULT_LOG="${TMPDIR:-/tmp}/check-browser-test-unknown/layer1-aggregate.log"
+# 保存先はリポジトリルートからの固定パスにする（$TMPDIRを使わない）。
+# $TMPDIRは実行するシェルごとに値が変わるため、保存したシェルと読むシェルが
+# 別だと場所が一致せず、判定不能(見つからない)が恒常的に発生していた。
+DEFAULT_LOG="$REPO_ROOT/.cache/check-browser-test-unknown/layer1-aggregate.log"
+DEFAULT_UNRESTRICTED_LOG="$REPO_ROOT/.cache/check-browser-test-unknown/layer1-unrestricted.log"
 
 # ブラウザを使う対象15本(このリポジトリのgeneration-engine/scripts/tests/配下)。
 TARGETS=(
@@ -152,6 +162,23 @@ run_count_unknowns() {
   return 1
 }
 
+run_count_successes() {
+  local log="${1:-$DEFAULT_UNRESTRICTED_LOG}" min="${2:-182}" value
+
+  [ -f "$log" ] || unknown "保存済みの第1層集約ログが見つからないため判定できません 参照したパス: ${log}（先に generation-engine/scripts/verification/run-layer-machine-checks.sh を実行し、出力を ${log} へ保存すること）"
+
+  if ! value="$(read_summary_field "$log" '成功')" || [ -z "$value" ]; then
+    unknown "ログから成功本数を読み取れないため判定できません 参照したパス: ${log}"
+  fi
+
+  if [ "$value" -ge "$min" ]; then
+    echo "[PASS] 成功本数は${value}本（${min}本以上）"
+    return 0
+  fi
+  echo "[FAIL] 成功本数は${value}本（${min}本に届かない）"
+  return 1
+}
+
 run_self_test() {
   local tmp n_pass=0 n_fail=0 tests_dir
 
@@ -195,27 +222,38 @@ run_self_test() {
   ( run_static_check "$tmp/no-such-dir" >/dev/null 2>&1 )
   assert "対象ディレクトリが無ければ判定不能" 2 $?
 
-  # --- run_count_failures / run_count_unknowns の自己テスト ---
-  printf '%s\n' "対象 187 本 / 成功 167 本 / 失敗 3 本 / 判定不能 16 本 / 途中停止の疑い 1 本 / 打ち切り 0 本 / 宣言済み長時間 0 本 / 総ケース数 4463 件" > "$tmp/ok.log"
+  # --- run_count_failures / run_count_unknowns / run_count_successes の自己テスト ---
+  printf '%s\n' "対象 202 本 / 成功 182 本 / 失敗 3 本 / 判定不能 16 本 / 途中停止の疑い 1 本 / 打ち切り 0 本 / 宣言済み長時間 0 本 / 総ケース数 4463 件" > "$tmp/ok.log"
   ( run_count_failures "$tmp/ok.log" 3 >/dev/null 2>&1 )
   assert "失敗が上限ちょうどなら合格" 0 $?
   ( run_count_unknowns "$tmp/ok.log" 16 >/dev/null 2>&1 )
   assert "判定不能が下限ちょうどなら合格" 0 $?
+  ( run_count_successes "$tmp/ok.log" 182 >/dev/null 2>&1 )
+  assert "成功が下限ちょうどなら合格" 0 $?
 
-  printf '%s\n' "対象 187 本 / 成功 167 本 / 失敗 4 本 / 判定不能 15 本 / 途中停止の疑い 1 本 / 打ち切り 0 本 / 宣言済み長時間 0 本 / 総ケース数 4463 件" > "$tmp/bad.log"
+  printf '%s\n' "対象 201 本 / 成功 181 本 / 失敗 4 本 / 判定不能 15 本 / 途中停止の疑い 1 本 / 打ち切り 0 本 / 宣言済み長時間 0 本 / 総ケース数 4463 件" > "$tmp/bad.log"
   ( run_count_failures "$tmp/bad.log" 3 >/dev/null 2>&1 )
   assert "失敗が上限を超えれば不合格" 1 $?
   ( run_count_unknowns "$tmp/bad.log" 16 >/dev/null 2>&1 )
   assert "判定不能が下限に届かなければ不合格" 1 $?
+  ( run_count_successes "$tmp/bad.log" 182 >/dev/null 2>&1 )
+  assert "成功が下限に届かなければ不合格" 1 $?
 
   ( run_count_failures "$tmp/no-such-file.log" 3 >/dev/null 2>&1 )
   assert "ログが無ければ判定不能(失敗本数)" 2 $?
   ( run_count_unknowns "$tmp/no-such-file.log" 16 >/dev/null 2>&1 )
   assert "ログが無ければ判定不能(判定不能本数)" 2 $?
+  ( run_count_successes "$tmp/no-such-file.log" 182 >/dev/null 2>&1 )
+  assert "ログが無ければ判定不能(成功本数)" 2 $?
 
   printf '%s\n' "要約行を持たないログ" > "$tmp/nosummary.log"
   ( run_count_failures "$tmp/nosummary.log" 3 >/dev/null 2>&1 )
   assert "要約行が無ければ判定不能" 2 $?
+
+  ( bash "${BASH_SOURCE[0]}" --input >/dev/null 2>&1 )
+  assert "--inputの値が無ければ判定不能" 2 $?
+  ( bash "${BASH_SOURCE[0]}" --input --count-successes >/dev/null 2>&1 )
+  assert "--inputの次がオプションなら判定不能" 2 $?
 
   echo "---"
   echo "SELF-TEST SUMMARY: 実行 $((n_pass + n_fail)) 件 合格 ${n_pass} 件 不合格 ${n_fail} 件"
@@ -224,13 +262,20 @@ run_self_test() {
 }
 
 MODE="static"
-INPUT="$DEFAULT_LOG"
+INPUT=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --self-test) run_self_test ;;
     --count-failures) MODE="failures"; shift ;;
     --count-unknowns) MODE="unknowns"; shift ;;
-    --input) INPUT="${2:-$DEFAULT_LOG}"; shift 2 ;;
+    --count-successes) MODE="successes"; shift ;;
+    --input)
+      case "${2:-}" in
+        ""|--*) unknown "--input の値が指定されていないため判定できません（使い方: --input <path>）" ;;
+      esac
+      INPUT="$2"
+      shift 2
+      ;;
     *) shift ;;
   esac
 done
@@ -239,4 +284,5 @@ case "$MODE" in
   static) run_static_check ;;
   failures) run_count_failures "$INPUT" ;;
   unknowns) run_count_unknowns "$INPUT" ;;
+  successes) run_count_successes "$INPUT" ;;
 esac
