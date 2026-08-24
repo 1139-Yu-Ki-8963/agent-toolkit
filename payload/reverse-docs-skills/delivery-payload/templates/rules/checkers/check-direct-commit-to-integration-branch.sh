@@ -231,6 +231,36 @@ self_test() {
     rc=1
   fi
 
+  # repo2b: develop 枝 → 直接コミットは拒否
+  local repo_develop="$tmp/repo-develop"
+  mkdir -p "$repo_develop"
+  git -C "$repo_develop" init -q >/dev/null 2>&1
+  git -C "$repo_develop" checkout -q -b develop >/dev/null 2>&1
+  git -C "$repo_develop" -c user.email=t@example.com -c user.name=t commit --allow-empty -q -m init >/dev/null 2>&1
+
+  if msg="$(judge "$repo_develop" "git commit -m 'x'")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 2 ]; then
+    echo "  [PASS] 系2b: develop枝への直接コミットは拒否される（${msg}）"
+  else
+    echo "  [FAIL] 系2b: develop枝なのに拒否されなかった（exit=${code}）" >&2
+    rc=1
+  fi
+
+  # repo2c: trunk 枝 → 直接コミットは拒否
+  local repo_trunk="$tmp/repo-trunk"
+  mkdir -p "$repo_trunk"
+  git -C "$repo_trunk" init -q >/dev/null 2>&1
+  git -C "$repo_trunk" checkout -q -b trunk >/dev/null 2>&1
+  git -C "$repo_trunk" -c user.email=t@example.com -c user.name=t commit --allow-empty -q -m init >/dev/null 2>&1
+
+  if msg="$(judge "$repo_trunk" "git commit --amend")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 2 ]; then
+    echo "  [PASS] 系2c: trunk枝への直接コミットは拒否される（${msg}）"
+  else
+    echo "  [FAIL] 系2c: trunk枝なのに拒否されなかった（exit=${code}）" >&2
+    rc=1
+  fi
+
   # repo3: 作業用の枝 → 許可
   local repo_feat="$tmp/repo-feature"
   mkdir -p "$repo_feat"

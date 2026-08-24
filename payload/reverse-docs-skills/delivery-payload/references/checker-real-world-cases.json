@@ -151,7 +151,7 @@
       "expect": "clean",
       "input": {
         "tool_name": "Bash",
-        "cwd": "REPO_ROOT",
+        "cwd": "WORK_BRANCH_REPO",
         "tool_input": {
           "command": "git commit -m x"
         }
@@ -1138,7 +1138,7 @@
       "expect": "clean",
       "input": {
         "tool_name": "Bash",
-        "cwd": "REPO_ROOT",
+        "cwd": "WORK_BRANCH_REPO",
         "tool_input": {
           "command": "git commit -m x"
         }
