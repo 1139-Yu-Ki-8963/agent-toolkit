@@ -29,6 +29,22 @@
         "desc": "git log から自動生成した変更履歴。",
         "count": "詳細を見る",
         "group": "参照情報"
+      },
+      {
+        "title": "アーキテクチャ調査書",
+        "icon": "travel_explore",
+        "href": "./foundation/アーキテクチャ調査書.html",
+        "desc": "リバース設計の前提として調査したアーキテクチャの実態記録。",
+        "count": "詳細を見る",
+        "group": "参照情報"
+      },
+      {
+        "title": "規約とフローの対応",
+        "icon": "alt_route",
+        "href": "./foundation/規約とフローの対応.html",
+        "desc": "規約とフローの対応を、フェーズから引く一覧と規約から引く一覧の2通りで示す索引。rule-taxonomy.jsonから決定的に生成。",
+        "count": "詳細を見る",
+        "group": "参照情報"
       }
     ]
   },

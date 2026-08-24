@@ -19,6 +19,97 @@ function fail(message) {
   throw new Error(message);
 }
 
+// 見本（golden）と実際のレンダリング結果が食い違ったときに、何がどう違うのかを
+// 読み手が次に何をすべきか分かる形で報告する。カードの識別は「カテゴリID / 題名」
+// とし、見本にしかないもの・実際にしかないもの・両方にあるが中身が違うものの
+// 3種を区別する。件数が多い場合は先頭10件までを出し、残りは件数だけを添える。
+function describeCatalogDiff(actual, expected) {
+  const collectCards = (categories) => {
+    const map = new Map();
+    for (const category of categories) {
+      for (const tool of category.tools ?? []) {
+        map.set(`${category.id} / ${tool.title}`, tool);
+      }
+    }
+    return map;
+  };
+  const countCards = (categories) => categories.reduce((sum, category) => sum + (category.tools?.length ?? 0), 0);
+  const actualMap = collectCards(actual);
+  const expectedMap = collectCards(expected);
+  const onlyInActual = [];
+  const changed = [];
+  for (const [key, tool] of actualMap) {
+    if (!expectedMap.has(key)) {
+      onlyInActual.push(key);
+    } else if (JSON.stringify(tool) !== JSON.stringify(expectedMap.get(key))) {
+      changed.push(key);
+    }
+  }
+  const onlyInExpected = [...expectedMap.keys()].filter((key) => !actualMap.has(key));
+  const lines = [
+    `見本: ${countCards(expected)} 枚 / 実際: ${countCards(actual)} 枚`,
+  ];
+  const describeGroup = (label, keys) => {
+    if (keys.length === 0) return;
+    lines.push(`${label}（${keys.length} 件）:`);
+    for (const key of keys.slice(0, 10)) lines.push(`  - ${key}`);
+    if (keys.length > 10) lines.push(`  ほか ${keys.length - 10} 件`);
+  };
+  describeGroup("見本にしかないカード", onlyInExpected);
+  describeGroup("実際にしかないカード", onlyInActual);
+  describeGroup("両方にあるが中身が違うカード", changed);
+  if (onlyInExpected.length === 0 && onlyInActual.length === 0 && changed.length === 0) {
+    // カードの集合としては一致するのに deepStrictEqual が不一致になる場合がある。
+    // カテゴリの数・並び・カテゴリ単位のスカラー項目・カード内の並び順のいずれかが
+    // 違うケースであり、カード単位の突合だけでは見えない。ここで補って報告する。
+    const categoryDiffs = describeCategoryLevelDiff(actual, expected);
+    if (categoryDiffs.length > 0) {
+      lines.push(...categoryDiffs);
+    } else {
+      lines.push("カードの集合は一致しているが、内部構造（並び順・付随情報）が一致しない");
+    }
+  }
+  return lines.join("\n");
+}
+
+function describeCategoryLevelDiff(actual, expected) {
+  const lines = [];
+  const actualIds = actual.map((category) => category.id);
+  const expectedIds = expected.map((category) => category.id);
+  if (actual.length !== expected.length) {
+    lines.push(`カテゴリ数が違う: 見本 ${expected.length} 件 / 実際 ${actual.length} 件`);
+  }
+  if (JSON.stringify(actualIds) !== JSON.stringify(expectedIds)) {
+    lines.push(`カテゴリの並びが違う: 見本 [${expectedIds.join(", ")}] / 実際 [${actualIds.join(", ")}]`);
+  }
+  const byId = (categories) => new Map(categories.map((category) => [category.id, category]));
+  const actualById = byId(actual);
+  const expectedById = byId(expected);
+  const scalarKeys = ["group", "title", "icon", "sub"];
+  const reported = [];
+  for (const id of actualIds) {
+    if (!expectedById.has(id)) continue;
+    const a = actualById.get(id);
+    const e = expectedById.get(id);
+    for (const key of scalarKeys) {
+      if (a[key] !== e[key]) {
+        reported.push(`カテゴリ ${id} の ${key} が違う: 見本「${e[key]}」/ 実際「${a[key]}」`);
+      }
+    }
+    const aTitles = (a.tools ?? []).map((tool) => tool.title);
+    const eTitles = (e.tools ?? []).map((tool) => tool.title);
+    if (JSON.stringify(aTitles) !== JSON.stringify(eTitles)) {
+      reported.push(`カテゴリ ${id} のカードの並びが違う: 見本 [${eTitles.join(", ")}] / 実際 [${aTitles.join(", ")}]`);
+    }
+    if (JSON.stringify(a.empty ?? null) !== JSON.stringify(e.empty ?? null)) {
+      reported.push(`カテゴリ ${id} の空状態表示が違う`);
+    }
+  }
+  for (const line of reported.slice(0, 10)) lines.push(line);
+  if (reported.length > 10) lines.push(`  ほか ${reported.length - 10} 件`);
+  return lines;
+}
+
 function assertObject(value, label) {
   if (!value || typeof value !== "object" || Array.isArray(value)) fail(`${label} must be an object`);
 }
@@ -824,6 +915,7 @@ function main() {
     try {
       assert.deepStrictEqual(actual, expected);
     } catch {
+      process.stderr.write(`${describeCatalogDiff(actual, expected)}\n`);
       fail("catalog rendering differs from legacy golden");
     }
     process.stdout.write(`PASS: ${actual.length} categories, ${actual.reduce((sum, category) => sum + category.tools.length, 0)} cards match legacy golden\n`);
