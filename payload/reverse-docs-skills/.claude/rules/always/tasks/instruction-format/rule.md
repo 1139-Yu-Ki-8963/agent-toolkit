@@ -340,6 +340,27 @@
 **廃棄条件**: `dependsOnKind`による依存宣言の仕組み自体を廃止した時、または画面依存の納品物一覧を`deliverable-inventory.json`側の構造化データから動的に導出できるようになった時。
 
 第1層の機械検証（`generation-engine/scripts/verification/run-layer-machine-checks.sh`）の走査対象は`generation-engine/scripts/`と`delivery-payload/templates/rules/checkers/`のみで、`docs/scripts/`は含まれない。`generation-engine/scripts/tests/check-depends-on-kind.sh`は、本体（`docs/scripts/check-depends-on-kind.sh`）の`--self-test`を呼び終了コードをそのまま返すだけのラッパーであり、`check-skill-snapshot.sh`等の先例と同じ形で集約に載せる。判定の中身は写して持たない。
+
+### check-confirmation-doc-handover.sh
+
+**必要性**: 改善課題1-256は、設計単位ごとの確定していない事項の台帳（`confirmation-item-ledger`）が納品物の一覧に含まれ続ける一方、この台帳が書き戻す先の設計書の節が1-223で全テンプレートから外され、台帳を指す`portal-catalog.json`の`discovery.glob`（`docs/design/**/要確認事項台帳.html`）を生成する処理が1本も存在しないため、納品物の一覧が永久に「未生成」を報告し続ける問題を扱う。実測すると、確認事項質問票（`confirmation-survey`）が`build-confirmation-survey-data.sh`の`--confirmation-ledger`引数を通じて設計単位ごとの台帳を既に横断集約しており、`portal-catalog.json`・`deliverable-inventory.json`の両方に既に存在し生成元も実在する。台帳を外すだけでは、次に誰かが同じ理由で別の受け皿を新設し`confirmation-item-ledger`と同じ「生成元を持たない納品物」を複製しかねない。`confirmation-item-ledger`が両定義から外れていること・`confirmation-survey`が両定義に存在し置き場が`output-layout.json`の`matrixDir`へ解決できること・台帳を作業記録として持つ旨と確定していない事項が失われない経路が`output-layout.json`に明記されていることを、繰り返し確かめる検査が要る。
+
+置き場の定義は、`confirmation-survey`専用の新規`output-layout.json`キーを作らず、既存の`defaultRoots.matrixDir`（`portal-catalog.json`）と`layout.matrixDir`（`output-layout.json`）の対応をそのまま検査対象にした。このリポジトリの全マトリクス系ページ（`crud`・`traceability`・`permission-function`・`confirmation-survey`等）は個別の出力先キーを持たず`matrixDir`の起点だけを共有する既存の慣例があり、`confirmation-survey`だけに専用キーを新設すると、その慣例から外れたキーが`resolve_catalog_glob`（`build-deliverable-inventory.sh`）の変換経路に配線されないまま残り、`confirmation-item-ledger`と同じ「参照されない定義」を生みかねない。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: 3つの定義ファイル（`portal-catalog.json`・`deliverable-inventory.json`・`output-layout.json`）の整合を対話セッションのたびに手で確認すると、確認の省略・見落としを繰り返す
+- `confirmation-survey`専用の新規`output-layout.json`キー（例: `confirmationSurveyHtml`）を新設する: 既存のマトリクス系ページはいずれも専用キーを持たず`matrixDir`の起点共有だけで解決されており、専用キーを新設しても`resolve_catalog_glob`の変換経路に配線されなければ未参照のまま残る。既存の`matrixDir`対応を検査対象にする方が、慣例と整合し新たな未参照キーを生まない
+- 新規の受け皿（納品物の`kind`）を追加する: `confirmation-survey`が既に同じ役割（設計単位横断の確定していない事項の集約・実在する生成元）を果たしており、別の`kind`を追加すると生成元を持たない可能性のある定義が増え、`confirmation-item-ledger`と同型の問題を再生産しかねない
+- `check-depends-on-kind.sh`への機能追加: あちらは`dependsOnKind`宣言の網羅を見る検査であり、対象の`kind`の存在・不在と経路の明記を見る本検査とは判定対象・判定式が異なる
+- 既存 Makefile ターゲット拡張: このリポジトリに Makefile は存在せず、新規導入は本検査専用の依存を増やすだけになる
+- package.json scripts 追加: 同様に、このリポジトリはビルド設定を持たない
+
+**保守責任者**: 人手（ユーザー）。台帳（`unitConfirmationLedgerFile`）や受け皿（`confirmation-survey`）の`kind`名を変更する場合は、本スクリプトの`REMOVED_KIND`・`RECEPTACLE_KIND`と`output-layout.json`の`directoryNamePolicy.confirmationItemHandover`を同時に更新する。
+
+**廃棄条件**: 確定していない事項の台帳の仕組み自体を廃止した時、または`confirmation-survey`に代わる新しい受け皿へ全面的に切り替え、`matrixDir`経由の解決を使わなくなった時。
+
+第1層の機械検証（`generation-engine/scripts/verification/run-layer-machine-checks.sh`）の走査対象は`generation-engine/scripts/`と`delivery-payload/templates/rules/checkers/`のみで、`docs/scripts/`は含まれない。`generation-engine/scripts/tests/check-confirmation-doc-handover.sh`は、本体（`docs/scripts/check-confirmation-doc-handover.sh`）の`--self-test`を呼び終了コードをそのまま返すだけのラッパーであり、`check-depends-on-kind.sh`等の先例と同じ形で集約に載せる。判定の中身は写して持たない。
+
 ### check-manifest-count-mismatch.sh
 
 **必要性**: 設計文書からマニフェストを組み立てる処理（`generation-engine/scripts/portal-input/build-manifests-from-docs.sh`）は、単位フォルダが実在するのに一覧の元データが0件（または一部欠落）でも、従来は終了コード0のまま正常終了していた。0件・部分欠落が不合格として現れないため、前付けの不足やファイル名の不一致が沈黙のまま通っていた（改善課題1-254）。単位フォルダの数と組み立てられた件数の突き合わせを実装したあと、この突き合わせが実際に働くかを繰り返し確かめる必要があり、対話セッションのたびに合成データを手で用意して確認するのは非現実的である。
@@ -354,6 +375,38 @@
 **保守責任者**: 人手（ユーザー）。対象スクリプトの食い違いWARNの文言（`単位フォルダの数`）または検知関数名（`count_canonical_unit_dirs`）を変更する場合は、本スクリプトの静的確認部分と `make_mismatch_project`・`make_empty_project` を同時に更新する。
 
 **廃棄条件**: 設計文書からマニフェストを組み立てる処理自体を廃止した時、または単位フォルダ数と組み立て件数の突き合わせを別の機構が標準で保証するようになった時。
+
+### check-excluded-deliverables.sh
+
+**必要性**: 対象外の記録（`docs/scope-and-progress/excluded-kinds.json` の `excludedKinds`）を、整合の検査（`check-excluded-kinds-consistency.sh`）と納品物一覧の生成器（`build-deliverable-inventory.sh`）が別の意味で読んでいた。前者は設計単位の6種別との完全一致を求め、後者は載っていれば「対象なし」と判定する。6種別に属さない納品物（entity-state 等）を対象外にする経路が無く、`excludedKinds` へ直接追記すると整合の検査が壊れる（改善課題1-255）。新しい鍵 `excludedDeliverables` を設けて役割を分離したあと、この分離が実際に機能するか（新しい鍵での対象外判定・整合の検査への非回帰の両方）を繰り返し確かめる必要があり、対話セッションのたびに合成データを手で用意して確認するのは非現実的である。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: 6種別すべての実在フィクスチャを用意し、`excludedDeliverables` の有無・`excludedKinds` への混入という2つのシナリオを対話セッションのたびに手作業で組み立てて確認すると、実行のたびに判定基準がぶれる
+- `check-excluded-kinds-consistency.sh` 自身の `--self-test` への機能追加: あちらは6種別専用の完全分割検査であり、6種別に属さない納品物（entity-state 等）の対象外判定という別の関心を持ち込むと、あちらが検査すべき対象（6種別との完全一致）が曖昧になる。両者を意図的に分離するのが本項目の目的そのものであり、同居させると分離の効果を自己検証できなくなる
+- `build-deliverable-inventory.sh` 自身の `--self-test` への機能追加: あちらはカタログと定義の被覆・状態判定の一般則を見る大きな自己テストであり、`excludedDeliverables` という新設の鍵1つのために整合の検査との突合まで含めると責務が肥大化する。本検査は両スクリプトを外側から黒箱として呼び、突合の結果だけを見る
+- 既存 `check-depends-on-kind.sh` への機能追加: あちらは `dependsOnKind`（依存先の6種別が対象外になれば連動して「対象なし」になる仕組み）を対象とし、依存先を介さず直接6種別に属さない納品物を対象外にする本項目の仕組みとは対象が異なる。ただし構造（`_label_for_kind`・`--check-resolution`・第1層集約向けラッパー）は同スクリプトを踏襲した
+- 既存 Makefile ターゲット拡張: このリポジトリに Makefile は存在せず、新規導入は本検査専用の依存を増やすだけになる
+- package.json scripts 追加: 同様に、このリポジトリはビルド設定を持たない
+
+**保守責任者**: 人手（ユーザー）。`excludedDeliverables` の形式（`kind`・`label`・`reason`・`category`）や `category` の2値（上流不在・対象不在）を変更する場合は、本スクリプトと `.claude/skills/orchestrating-ai-development-setup/references/contract.md` の「excludedDeliverables」節と `generation-engine/scripts/build-deliverable-inventory.sh` の `load_excluded_kinds` を同時に更新する。
+
+**廃棄条件**: `excludedDeliverables` による対象外の記録の分離自体を廃止した時、または6種別に属さない納品物の対象外判定を別の機構が標準で保証するようになった時。
+
+第1層の機械検証（`generation-engine/scripts/verification/run-layer-machine-checks.sh`）の走査対象は`generation-engine/scripts/`と`delivery-payload/templates/rules/checkers/`のみで、`docs/scripts/`は含まれない。`generation-engine/scripts/tests/check-excluded-deliverables.sh`は、本体（`docs/scripts/check-excluded-deliverables.sh`）の`--self-test`を呼び終了コードをそのまま返すだけのラッパーであり、`check-depends-on-kind.sh`等の先例と同じ形で集約に載せる。判定の中身は写して持たない。
+### check-portal-dir-ascii.sh
+
+**必要性**: `matrixDir`・`diagramDir`・`foundationDir`・`screenViewRoot` の4つの置き場（`project-portal/matrices`・`project-portal/diagrams`・`project-portal/foundation`・`project-portal/screens`）は、定義（`delivery-payload/references/output-layout.json`）では既に英字だったが、見本（`generation-engine/samples/`）・カタログ（`delivery-payload/references/portal-catalog.json`）・生成スクリプトの一部が日本語（図・対応表・基盤・画面）のまま残っていた。一覧の置き場（`project-portal/lists`）で先に同じ食い違いが起き、`check-list-path-unified.sh` による継続監視が要ることが確かめられている（`一覧の置き場が三者三様になっている問題を直す指示書.md`）。同じ逆戻りが残る4つの置き場でも起こりうるため、定義・カタログ・生成スクリプト・見本を横断して機械的に検出する検査が要る。判定の式（縦棒を含む grep）を指示書の表へ直接書くと片付けの判定器が壊すため、`check-broken-verdict-rows.sh` 等と同じ理由でスクリプトへ切り出した。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: `generation-engine/`・`delivery-payload/`・`.claude/skills/` を横断する grep を都度手で組み立てると、除外対象（このスクリプト自身）の扱いが実行のたびにぶれる
+- `project-portal/` 直後の日本語全般（ひらがな・カタカナ・漢字の広い範囲）を汎用的に検出する設計: 実装時の実測で2種類の誤検知が判明した。1つは `detect_stale_portal_placeholders` の自己テスト（`build-portal.sh` の既定 `--self-test` に含まれるケース49）が、定義に無い任意の置き場を検出できることを証明するため恒久的に `project-portal/旧構成`・`project-portal/作業中` という日本語の合成フィクスチャを使う（意図的な任意名であり、置き場の逆戻りではない）。もう1つは `project-portal/規約/`（規約定義の派生先。本指示書が対象とする4キーには含まれない、既存の別の置き場）で、汎用検出だと本指示書の対象外まで誤って不合格にしてしまう。4つの既知名（図・対応表・基盤・画面）に限定することでこの2種類の誤検知を避けた
+- `check-list-path-unified.sh` への同居: あちらは `unitsRoot`（一覧の置き場。日本語ルートは「一覧」）1つの逆戻りが関心であり、走査対象（`docs`・`.claude` 全体を含む）も除外リスト（`docs/tasks/` 全体等）も異なる。本検査は `matrixDir`・`diagramDir`・`foundationDir`・`screenViewRoot` の4つの置き場が対象で、走査対象を `generation-engine`・`delivery-payload`・`.claude/skills` の3つに絞る（`docs/` 配下は本指示書の完了の判定1が対象外と明記する）
+- 既存 Makefile ターゲット拡張: このリポジトリに Makefile は存在せず、新規導入は本検査専用の依存を増やすだけになる
+- package.json scripts 追加: 同様に、このリポジトリはビルド設定を持たない
+
+**保守責任者**: 人手（ユーザー）。対象の4キー・4名（`LEGACY_NAMES`）を増減する場合は本スクリプトと `delivery-payload/references/output-layout.json` の `directoryNamePolicy` を同時に更新する。走査対象（`TARGET_DIRS`）を変更する場合は本節も同時に更新する。
+
+**廃棄条件**: `matrixDir`・`diagramDir`・`foundationDir`・`screenViewRoot` の4つの置き場を廃止した時、または定義・カタログ・見本の一致を別の機構（`check-derived-drift.sh` の値レベル検知の拡張等）が標準で保証するようになった時。
 
 ## プロジェクト上書き
 

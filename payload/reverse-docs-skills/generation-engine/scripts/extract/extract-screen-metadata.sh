@@ -19,7 +19,7 @@
 #   --link-base-dir        : 一覧HTMLを置くディレクトリ。--design-docs-dir 側のリンクを
 #                            このディレクトリからの相対パスにする。省略時は従来どおり
 #                            --design-docs-dir 配下の相対パスを返す
-#   --doc-view-dir         : 人が読むHTMLの置き場（screenViewRoot。project-portal/画面等）。
+#   --doc-view-dir         : 人が読むHTMLの置き場（screenViewRoot。project-portal/screens等）。
 #                            designDocPath/detailDocPath/sequencePath はこちらを実在判定の基点にする。
 #                            未指定なら --design-docs-dir と同一ツリーとして扱う（co-locate互換）
 #   --doc-view-link-base-dir : 一覧HTMLを置くディレクトリ。--doc-view-dir 側のリンクをこの
@@ -712,7 +712,7 @@ sys.stdout.write(relative.replace(os.sep, "/"))
 ' "$LINK_BASE_DIR" "$DESIGN_DOCS_DIR")"
 fi
 
-# doc-view側(project-portal/画面等、人が読むHTMLの置き場)は design-docs側(定義の置き場)と
+# doc-view側(project-portal/screens等、人が読むHTMLの置き場)は design-docs側(定義の置き場)と
 # 物理的に別ツリーになりうるため、designDocPath/detailDocPath/sequencePath だけ別ルート・
 # 別リンク基点で解決する。未指定時は従来どおり design-docs 側と同一ツリーとして扱う
 # (co-locate の後方互換)。
@@ -851,7 +851,7 @@ while IFS= read -r row; do
     add="$(jq --arg v "$doc_status" '. + {designDocStatus: $v}' <<<"$add")"
   fi
 
-  # --- 4b-html. designDocPath / detailDocPath / sequencePath: doc-view側(project-portal/画面等、
+  # --- 4b-html. designDocPath / detailDocPath / sequencePath: doc-view側(project-portal/screens等、
   #     人が読むHTMLの置き場)フォルダ内の実在判定。--doc-view-dir 未指定時は design-docs 側と同一 ---
   if [ -n "$DOC_VIEW_DOCS_DIR" ] && [ -n "$screen_key" ]; then
     view_folder=""

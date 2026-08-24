@@ -14,7 +14,7 @@
 #
 # {{PROJECT_NAME}}・{{GENERATED_DATE}}・{{COMMIT_SHORT}}・{{PORTAL_INDEX_HREF}}・
 # {{SCREEN_LABEL}}・doc_sidebar_html（左サイドバーの操作ナビ）は、リポジトリ既定の
-# 出力先（generation-engine/samples/project-portal/画面/screen-<キー>/シーケンス図.html）に
+# 出力先（generation-engine/samples/project-portal/screens/screen-<キー>/シーケンス図.html）に
 # 既にコミット済みのサンプルから読み取って引き継ぐ。新しい値を発明しない。
 #
 # 設計判断（ADR）の正本は .claude/rules/scoped/portal/page-conventions/rule.md の

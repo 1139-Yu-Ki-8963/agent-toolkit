@@ -102,7 +102,7 @@ extract_state_transition_rows() {
 # 常に空文字列とする(改善課題1-240)。
 #
 # nodes[] の集め方は generating-entity-state-for-reverse-docs スキル(Phase 2 Step 1)と
-# 同じ規則にする(既存の生成済みサンプル generation-engine/samples/project-portal/図/状態遷移図.html
+# 同じ規則にする(既存の生成済みサンプル generation-engine/samples/project-portal/diagrams/状態遷移図.html
 # の埋め込みJSONと突き合わせて確認済み): 各行について「状態」列 → 「遷移前」列 → 「遷移後」列の
 # 順で(エンティティ, 状態)の組を集め、初出順を保ったまま重複を除く。この順序でなければ、
 # 対応スキルが既に生成した実測サンプルの並びと一致しない。
@@ -227,7 +227,7 @@ EOF
   fi
 
   # 検査1: nodesの並びが「状態→遷移前→遷移後」の初出順(重複除去)と一致すること
-  # (実サンプル generation-engine/samples/project-portal/図/状態遷移図.html の埋め込みJSONと
+  # (実サンプル generation-engine/samples/project-portal/diagrams/状態遷移図.html の埋め込みJSONと
   #  同じ並び規則であることを確認済み)
   local ok1=1
   local nodes_keys

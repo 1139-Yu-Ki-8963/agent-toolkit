@@ -23,10 +23,19 @@ set -euo pipefail
 #     出力あり: discovery.glob の実ファイルが存在する
 #     対象なし: (a) 実ファイルは無いが、自身のkindが対象外種別の記録
 #               (output-layoutの excludedKinds キーが指す docs/scope-and-progress/
-#               excluded-kinds.json 等)に載っている。(b) dependsOnKindの依存先kindが
-#               対象外種別の記録に載っている。(c) 対応マニフェストが存在し件数0を示す
+#               excluded-kinds.json 等)の excludedKinds(設計単位6種別専用)、または
+#               同ファイルの excludedDeliverables(6種別に属さない納品物用。kind・
+#               label・reason・categoryを持つ。形式は
+#               .claude/skills/orchestrating-ai-development-setup/references/
+#               contract.md の「excludedDeliverables」節を参照)に載っている。
+#               (b) dependsOnKindの依存先kindが対象外種別の記録に載っている。
+#               (c) 対応マニフェストが存在し件数0を示す
 #     未生成:   実ファイルもマニフェストも無い、対象外の記録も無い、またはそもそも
 #               証拠(マニフェスト概念)が無い kind。理由文は区別して書く
+#   excludedKinds と excludedDeliverables の関係: 前者は
+#   check-excluded-kinds-consistency.sh が設計単位6種別との完全一致を検査する
+#   対象であり、本スクリプトはそれを変えない。後者は本スクリプトだけが読み、
+#   6種別に属さない納品物(例: entity-state)を対象なしと判定するための鍵である。
 #   件数の取得(countPointer)はJSON Pointer形式の値をgetpath用のパス配列へ変換して
 #   jqへ渡す。形式不正・jq失敗はエラーとして報告し、既定値0へは倒さない。
 #
@@ -165,14 +174,19 @@ has_matching_html() {
 }
 
 # --- 対象外種別の記録(excluded-kinds.json)を読み出す。存在しない・読めない場合は
-#     空配列を返す(fail-open。除外の記録が無い場合は従来どおり未生成へ倒れる) ---
+#     空配列を返す(fail-open。除外の記録が無い場合は従来どおり未生成へ倒れる)。
+#     excludedKinds(設計単位6種別専用。check-excluded-kinds-consistency.shが
+#     完全一致を検査する対象)と excludedDeliverables(6種別に属さない納品物用。
+#     本スクリプトだけが読む。形式は contract.md の「excludedDeliverables」節を
+#     参照)を連結して返す。同じkindが両方に載っていても連結時に重複しうるが、
+#     excluded_reason_for_kindは最初の一致だけを使うため判定結果には影響しない ---
 load_excluded_kinds() {
   local output_root="$1" layout_json="$2"
   local rel path
   rel="$(output_layout_get "$layout_json" "excludedKinds" 2>/dev/null)" || { printf '[]'; return 0; }
   path="$output_root/$rel"
   [ -f "$path" ] || { printf '[]'; return 0; }
-  jq -c '.excludedKinds // []' "$path" 2>/dev/null || printf '[]'
+  jq -c '(.excludedKinds // []) + (.excludedDeliverables // [])' "$path" 2>/dev/null || printf '[]'
 }
 
 # --- 指定kindが対象外種別の記録に含まれるか判定する。含まれれば記録済みの理由を返す ---

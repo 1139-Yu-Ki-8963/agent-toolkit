@@ -17,8 +17,8 @@
 #     等の正本外配置は探索しない（正本外に置かれた場合はリンク解決 FAIL のままとする。
 #     正本準拠を強制するのがこのテストの役割であり、探索を広げて救済しない）
 #   - AI設定資産・マトリクス・対応表のページは存在する場合のみ検査する（不在は SKIP 行を出す。
-#     対応表は旧レイアウト「<root>/マトリクス・対応表/」と現行正本「<root>/対応表/」を探索し、
-#     生成フローが未対応のページを FAIL にしない）
+#     対応表は現行正本「<root>/matrices/」と旧レイアウト「<root>/マトリクス・対応表/」
+#     「<root>/対応表/」を探索し、生成フローが未対応のページを FAIL にしない）
 #
 # 検査項目（ケースキーは意味語。連番禁止）:
 #   リンク-戻る解決   各ページにポータルトップへ戻る手段があるか。従来の「ポータルへ戻る」
@@ -128,7 +128,7 @@ echo "# 一覧レイアウト検出: 一覧/<種別一覧>/ 形式 ${NESTED_COUN
 
 CROSS_PAGES=()
 for f in "${ALL_PAGES[@]}"; do
-  case "$f" in */マトリクス・対応表/*|*/対応表/*) CROSS_PAGES+=("$f") ;; esac
+  case "$f" in */matrices/*|*/マトリクス・対応表/*|*/対応表/*) CROSS_PAGES+=("$f") ;; esac
 done
 
 MATRIX_PAGES=()
@@ -138,7 +138,7 @@ for f in ${CROSS_PAGES[@]+"${CROSS_PAGES[@]}"}; do
   esac
 done
 
-AI_PAGE="$SAMPLES_DIR/project-portal/基盤/AI設定資産.html"
+AI_PAGE="$SAMPLES_DIR/project-portal/foundation/AI設定資産.html"
 
 # ---- 検査キー: リンク-戻る解決 ----
 for f in "${ALL_PAGES[@]}"; do

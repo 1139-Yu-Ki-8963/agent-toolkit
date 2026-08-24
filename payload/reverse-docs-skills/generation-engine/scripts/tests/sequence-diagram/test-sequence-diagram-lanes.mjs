@@ -9,8 +9,8 @@ const fixturePath = join(scriptDir, 'fixtures/lane-boundaries.json');
 const templatePath = join(repoRoot, 'delivery-payload/templates/screen-sequence-template.html');
 const samplesRoot = join(repoRoot, 'generation-engine/samples/docs/design/screens');
 // 設計文書とシーケンス図のデータは docs/design/screens/ 配下、生成された HTML は
-// ポータル側の 画面/ 配下にあり、配置の移行で置き場が分かれている。
-const portalSamplesRoot = join(repoRoot, 'generation-engine/samples/project-portal/画面');
+// ポータル側の screens/ 配下にあり、配置の移行で置き場が分かれている。
+const portalSamplesRoot = join(repoRoot, 'generation-engine/samples/project-portal/screens');
 const DEFAULT_LANES = [
   { key: 'user', label: '利用者' },
   { key: 'screen', label: '画面' },

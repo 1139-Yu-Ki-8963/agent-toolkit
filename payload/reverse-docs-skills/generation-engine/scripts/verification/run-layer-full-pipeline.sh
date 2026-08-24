@@ -532,6 +532,15 @@ stage_matrix() {
   local pages_script="${REPO_SELF}/generation-engine/scripts/matrix/build-matrix-pages.sh"
   local convert_script="${REPO_SELF}/generation-engine/scripts/extract/build-permission-function-data.sh"
   local screen_m api_m table_m feature_m matrix_out
+  # 出力先は output-layout.json から解決する。matrixDir 配下に「対応表」のような
+  # 旧来の日本語ルートを直書きすると、matrixDir を project-portal/matrices
+  # （英字）へ揃えた現行定義と食い違い、build-portal.sh の discovery
+  # （portal-catalog.json の各blueprint.discovery.glob）が生成物を見失う
+  # （stage_unit_lists の units_root と同じ理由。一覧の置き場が三者三様に
+  # なっている問題を直す指示書.md の対応を踏襲する）。
+  local matrix_layout_json matrix_root
+  matrix_layout_json="$(resolve_output_layout "${OUTPUT_DIR}")" || matrix_layout_json=""
+  matrix_root="$(output_layout_get "${matrix_layout_json}" matrixDir 2>/dev/null)" || matrix_root="project-portal/matrices"
   screen_m="$(pick_manifest screen)"
   api_m="$(pick_manifest api)"
   table_m="$(pick_manifest table)"
@@ -644,8 +653,8 @@ stage_matrix() {
           pt_label="確認事項質問票"
           ;;
       esac
-      pt_out="${PORTAL_DIR}/対応表/${pt_label}/${pt_label}.html"
-      mkdir -p "${PORTAL_DIR}/対応表/${pt_label}"
+      pt_out="${OUTPUT_DIR}/${matrix_root}/${pt_label}/${pt_label}.html"
+      mkdir -p "${OUTPUT_DIR}/${matrix_root}/${pt_label}"
       if [ -n "${pt_file}" ] && [ -f "${pt_file}" ]; then
         run_cmd bash "${pages_script}" "${pt}" "${pt_file}" "${pt_out}"
         [ "${LAST_RC}" -ne 0 ] && any_fail=1
@@ -679,6 +688,12 @@ stage_design_pages() {
   design_layout_json="$(resolve_output_layout "${OUTPUT_DIR}")" || design_layout_json=""
   common_root="$(output_layout_get "${design_layout_json}" commonRoot 2>/dev/null)" || common_root=""
   [ -z "${common_root}" ] && common_root="docs/design/common"
+  # foundationDir・diagramDir も同じ理由で output-layout.json から解決する
+  # （stage_matrix の matrix_root と同じ対応。「基盤」「図」のような
+  # 旧来の日本語ルートを直書きすると現行定義と食い違う）。
+  local foundation_root diagram_root
+  foundation_root="$(output_layout_get "${design_layout_json}" foundationDir 2>/dev/null)" || foundation_root="project-portal/foundation"
+  diagram_root="$(output_layout_get "${design_layout_json}" diagramDir 2>/dev/null)" || diagram_root="project-portal/diagrams"
   local design_md="${OUTPUT_DIR}/${common_root}/DESIGN.md"
   local tok_json="${OUTPUT_DIR}/.design-tokens.json"
   local comp_json="${OUTPUT_DIR}/.component-inventory.json"
@@ -711,7 +726,7 @@ stage_design_pages() {
   fi
 
   if [ -f "${detail_script}" ]; then
-    local foundation_dir="${PORTAL_DIR}/基盤"
+    local foundation_dir="${OUTPUT_DIR}/${foundation_root}"
     mkdir -p "${foundation_dir}"
     if [ -f "${tok_json}" ]; then
       run_cmd bash "${detail_script}" "${tok_json}" "${foundation_dir}" --page design-system --portal-dir "${PORTAL_DIR}"
@@ -735,7 +750,7 @@ stage_design_pages() {
     # プレースホルダ行のみ等)WARNを出しつつexit 0で空のpage-data.jsonを書くため、
     # 段を失敗にしない(捏造しない設計をそのまま活かす)。transitionはscreen-manifest.json
     # 自体が不在・不正な場合のみexit 1になる(材料が無いのとは別の失敗として扱う)。
-    local diagrams_dir="${PORTAL_DIR}/図"
+    local diagrams_dir="${OUTPUT_DIR}/${diagram_root}"
     mkdir -p "${diagrams_dir}"
 
     local es_script="${REPO_SELF}/generation-engine/scripts/portal-input/extract-entity-state-page-data.sh"
@@ -1039,12 +1054,17 @@ DEPS
   fi
 
   # 出力先-対応表サブフォルダ
+  # matrixDir を output-layout.json から動的解決していること・出力先が
+  # <matrixDir>/${pt_label}/${pt_label}.html の形であることを検査する
+  # （matrixDir に「対応表」のような旧来の日本語ルートの直書きが復活していないか）。
   local matrix_block
   matrix_block="$(sed -n '/^stage_matrix()/,/^}/p' "${SELF_PATH}")"
-  if printf '%s' "${matrix_block}" | grep -Eq '対応表/\$\{pt_label\}/\$\{pt_label\}\.html'; then
-    _case_pass "出力先-対応表サブフォルダ" "対応表の出力先が 対応表/<ラベル>/<ラベル>.html の形になっている"
+  if printf '%s' "${matrix_block}" | grep -Eq 'output_layout_get "\$\{matrix_layout_json\}" matrixDir' \
+    && printf '%s' "${matrix_block}" | grep -Eq '\$\{OUTPUT_DIR\}/\$\{matrix_root\}/\$\{pt_label\}/\$\{pt_label\}\.html' \
+    && ! printf '%s' "${matrix_block}" | grep -Eq 'PORTAL_DIR\}/対応表'; then
+    _case_pass "出力先-対応表サブフォルダ" "対応表の出力先が matrixDir から動的解決された <matrixDir>/<ラベル>/<ラベル>.html の形になっている"
   else
-    _case_fail "出力先-対応表サブフォルダ" "対応表の出力先が 対応表/<ラベル>/<ラベル>.html の形になっていない"
+    _case_fail "出力先-対応表サブフォルダ" "対応表の出力先が matrixDir の動的解決を経由していない、または旧来の直書きが残っている"
   fi
 
   # 変換-権限機能
@@ -1132,13 +1152,17 @@ JSON
   fi
 
   # 出力先-基盤配下
-  if printf '%s' "${design_block}" | grep -q 'foundation_dir="\${PORTAL_DIR}/基盤"' \
+  # foundationDir を output-layout.json から動的解決していることと、旧来の
+  # 「基盤」という日本語ルートの直書きが残っていないことを検査する。
+  if printf '%s' "${design_block}" | grep -Eq 'output_layout_get "\$\{design_layout_json\}" foundationDir' \
+    && printf '%s' "${design_block}" | grep -q 'foundation_dir="\${OUTPUT_DIR}/\${foundation_root}"' \
+    && ! printf '%s' "${design_block}" | grep -Eq 'PORTAL_DIR\}/基盤' \
     && printf '%s' "${design_block}" | grep -q -- '"\${foundation_dir}" --page design-system' \
     && printf '%s' "${design_block}" | grep -q -- '"\${foundation_dir}" --page component-inventory' \
     && printf '%s' "${design_block}" | grep -q -- '"\${foundation_dir}" --page icon-catalog'; then
-    _case_pass "出力先-基盤配下" "デザイン系ページの出力先の組み立てが 基盤 を含む"
+    _case_pass "出力先-基盤配下" "デザイン系ページの出力先が foundationDir から動的解決されている"
   else
-    _case_fail "出力先-基盤配下" "デザイン系ページの出力先の組み立てが 基盤 を含まない"
+    _case_fail "出力先-基盤配下" "デザイン系ページの出力先が foundationDir の動的解決を経由していない、または旧来の直書きが残っている"
   fi
 
   # 引数-ポータル位置
@@ -1193,13 +1217,17 @@ JSON
   fi
 
   # 出力先-図配下
-  if printf '%s' "${design_block}" | grep -q 'diagrams_dir="\${PORTAL_DIR}/図"' \
+  # diagramDir を output-layout.json から動的解決していることと、旧来の
+  # 「図」という日本語ルートの直書きが残っていないことを検査する。
+  if printf '%s' "${design_block}" | grep -Eq 'output_layout_get "\$\{design_layout_json\}" diagramDir' \
+    && printf '%s' "${design_block}" | grep -q 'diagrams_dir="\${OUTPUT_DIR}/\${diagram_root}"' \
+    && ! printf '%s' "${design_block}" | grep -Eq 'PORTAL_DIR\}/図' \
     && printf '%s' "${design_block}" | grep -q -- '"\${diagrams_dir}" --page entity-state --portal-dir "\${PORTAL_DIR}"' \
     && printf '%s' "${design_block}" | grep -q -- '"\${diagrams_dir}" --page er --portal-dir "\${PORTAL_DIR}"' \
     && printf '%s' "${design_block}" | grep -q -- '"\${diagrams_dir}" --page transition --portal-dir "\${PORTAL_DIR}"'; then
-    _case_pass "出力先-図配下" "関連図3種の出力先の組み立てが 図 を含む"
+    _case_pass "出力先-図配下" "関連図3種の出力先が diagramDir から動的解決されている"
   else
-    _case_fail "出力先-図配下" "関連図3種の出力先の組み立てが 図 を含まない"
+    _case_fail "出力先-図配下" "関連図3種の出力先が diagramDir の動的解決を経由していない、または旧来の直書きが残っている"
   fi
 
   # 依存-関連図3件実在

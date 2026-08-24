@@ -234,7 +234,7 @@ transitionは図の下に`edges[]`の詳細を補足表として表示する。
 
 ### T8: design-system（確定仕様）
 
-トークンはカテゴリごとの配列を持つオブジェクトとする（平坦な単一配列ではない）。抽出（`extract-design-tokens-from-designmd.sh`）とテンプレート（`detail-t8-design-system.html`）の実装がこの形を前提に作られており、既存の生成済みサンプル（`generation-engine/samples/project-portal/基盤/デザインシステム.html`）もこの形で埋め込まれている。定義側をこの実装へ合わせる（2026-08-11、証跡パス台帳「デザインシステム-データ形式の不一致」）。
+トークンはカテゴリごとの配列を持つオブジェクトとする（平坦な単一配列ではない）。抽出（`extract-design-tokens-from-designmd.sh`）とテンプレート（`detail-t8-design-system.html`）の実装がこの形を前提に作られており、既存の生成済みサンプル（`generation-engine/samples/project-portal/foundation/デザインシステム.html`）もこの形で埋め込まれている。定義側をこの実装へ合わせる（2026-08-11、証跡パス台帳「デザインシステム-データ形式の不一致」）。
 
 | キー | 型 | 内容 |
 |---|---|---|

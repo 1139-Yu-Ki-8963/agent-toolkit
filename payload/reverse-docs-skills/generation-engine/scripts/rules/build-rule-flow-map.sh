@@ -348,7 +348,7 @@ run_build() {
     fi
   fi
 
-  # BACK_LINK はサイドバー注入と同じ値を使う(project カテゴリ配下・project-portal/基盤 直下のページ)
+  # BACK_LINK はサイドバー注入と同じ値を使う(project カテゴリ配下・project-portal/foundation 直下のページ)
   render_args+=("{{BACK_LINK}}" "../index.html")
   # PHASE_VIEW_HTML / RULE_VIEW_HTML / RULE_TAXONOMY_JSON はテンプレート内で最後に
   # 出現するため、単一パス走査により他マーカーとの誤爆を避けて最後に処理される

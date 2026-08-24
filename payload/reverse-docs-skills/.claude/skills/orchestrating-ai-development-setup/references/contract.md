@@ -503,6 +503,32 @@ feature（機能一覧）は派生一覧のため本ファイルの管理対象�
 
 マトリクス・対応表4ページ・AI設定資産ページ（generating-cross-views-for-reverse-docs）も派生補完のため本ファイルの管理対象外とする。allKinds は6種のまま維持し、追加しない。
 
+### excludedDeliverables（設計単位6種別以外の納品物の対象外）
+
+`excludedKinds` は設計単位の6種別（screen/api/table/batch/report/external）専用であり、`check-excluded-kinds-consistency.sh` がこの6種別との完全一致を機械で確かめる。6種別以外の納品物（例: entity-state・design-system 等、`delivery-payload/references/deliverable-inventory.json` が定義する60件のうち6種別に属さないもの）を対象外にする場合は、`excludedKinds` へは追加せず、同じファイルの兄弟キー `excludedDeliverables` へ記載する。
+
+```json
+{
+  "excludedDeliverables": [
+    {
+      "kind": "entity-state",
+      "label": "状態遷移図",
+      "reason": "観測できる状態の遷移が無いため",
+      "category": "上流不在"
+    }
+  ]
+}
+```
+
+`category` は次の2値のいずれかを必須で持つ。`reason` は自由記述で判定理由を書くが、`category` は機械判定できる区別を持たせるための固定値である。
+
+| category | 意味 | 例 |
+|---|---|---|
+| 上流不在 | 対象そのものは存在しうるが、生成の前提になる上流の記述・証拠が存在しないため作れない | 状態遷移図（表の記述に依存する） |
+| 対象不在 | 対象そのものが存在しない | 画面に依存する納品物（画面が0件の対象） |
+
+`excludedKinds` と異なり `allKinds`・`presentKinds` との完全分割は求めない。`excludedDeliverables` は `build-deliverable-inventory.sh` の `load_excluded_kinds` が `excludedKinds` と連結して読み、載っているkindの行を「対象なし」と判定する。`check-excluded-kinds-consistency.sh` はこのキーを読まない。
+
 ## 納品物ルート（output_dir）の正本レイアウト
 
 納品物一式は `<output_dir>` を単一ルートとして自己完結する（`generation-engine/samples/` と同一構成が正）。人が読むHTMLは `project-portal/` 配下へ集約し、機械が読む定義・データは `docs/` 配下に置く。ポータル・一覧・基盤ページの配置は以下に固定する。

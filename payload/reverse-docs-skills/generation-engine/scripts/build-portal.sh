@@ -65,7 +65,7 @@ source "$SCRIPT_DIR/output-layout.sh"
 # 場合を検出し、警告する。削除はしない。
 #
 # 削除しない理由: --self-test の複数のケース（ケース3・7・8・9・12・13・25・48等）が、
-# project-portal/対応表・画面 のような旧名の直下に、このケース自身が読み取る
+# project-portal 配下の「対応表」「画面」のような旧名の直下に、このケース自身が読み取る
 # 前提のフィクスチャを事前配置している。旧名リストとの単純な文字列一致で削除する設計を
 # 一度実装したところ、--self-test ケース13の既存フィクスチャ（project-portal/lists/用語辞書）
 # を実際に削除してしまう事故を実測で確認した（1-209の実装時に検出、パッチは反映前に
@@ -782,7 +782,7 @@ run_related_material_links_self_test() {
   test_common_dir="$test_docs/共通"
   mkdir -p "$test_repo" "$test_detail" "$test_detail/../テスト項目書" "$test_edge" "$test_portal" "$test_common_dir"
   cat > "$test_docs/output-layout.json" <<'JSON'
-{ "specVersion": 1, "layout": { "screenUnitRoot": "画面", "screenViewRoot": "画面", "commonRoot": "共通", "commonDesignDoc": "共通/共通設計書.md", "foundationDir": "project-portal/基盤" } }
+{ "specVersion": 1, "layout": { "screenUnitRoot": "画面", "screenViewRoot": "画面", "commonRoot": "共通", "commonDesignDoc": "共通/共通設計書.md", "foundationDir": "project-portal/foundation" } }
 JSON
   touch "$test_detail/画面 (旧).md" "$test_detail/absolute-entry.md" "$test_detail/実在]D.md" "$test_detail/../テスト項目書/実在C.md" "$test_edge/実在&#93;E.md" "$test_edge/false-prefix.md"
   # 改善課題1-41: check-design-doc-section-consistency.sh（改善課題1-74）が
@@ -976,7 +976,7 @@ COMMON_MD
   test_html="$test_detail/画面詳細設計書.html"
   test_edge_html="$test_edge/画面詳細設計書.html"
   test_common_html="$test_common_dir/本体文書.html"
-  test_foundation_html="$test_docs/project-portal/基盤/共通設計書.html"
+  test_foundation_html="$test_docs/project-portal/foundation/共通設計書.html"
   if [ ! -f "$test_foundation_html" ]; then
     echo "FAIL: 関連資料リンク self-test（共通文書の基盤分離出力が生成されていない: ${test_foundation_html}）" >&2
     rm -rf "$test_dir"
@@ -1044,10 +1044,10 @@ const complete = (main.markdown.match(/\[[^\]]+\]\([^\)]+\)/g) || []).length ===
   && edge.markdown.includes('`./false-prefix.md`')
   && edge.html.includes('<a href="%E5%AE%9F%E5%9C%A8%26%2393%3BE.md">./実在&amp;#93;E.md</a>')
   && edge.html.includes('<code>./false-prefix.md</code>')
-  && common.markdown.includes('[./共通設計書.md](../project-portal/%E5%9F%BA%E7%9B%A4/%E5%85%B1%E9%80%9A%E8%A8%AD%E8%A8%88%E6%9B%B8.html)')
+  && common.markdown.includes('[./共通設計書.md](../project-portal/foundation/%E5%85%B1%E9%80%9A%E8%A8%AD%E8%A8%88%E6%9B%B8.html)')
   && common.markdown.includes('[./補足資料.md](%E8%A3%9C%E8%B6%B3%E8%B3%87%E6%96%99.html)')
   && common.markdown.includes('`./不存在共通.md`')
-  && common.html.includes('<a href="../project-portal/%E5%9F%BA%E7%9B%A4/%E5%85%B1%E9%80%9A%E8%A8%AD%E8%A8%88%E6%9B%B8.html">./共通設計書.md</a>')
+  && common.html.includes('<a href="../project-portal/foundation/%E5%85%B1%E9%80%9A%E8%A8%AD%E8%A8%88%E6%9B%B8.html">./共通設計書.md</a>')
   && common.html.includes('<a href="%E8%A3%9C%E8%B6%B3%E8%B3%87%E6%96%99.html">./補足資料.md</a>')
   && common.html.includes('<code>./不存在共通.md</code>');
 if (!complete) process.exit(1);
@@ -1361,7 +1361,7 @@ run_orphaned_html_self_test() {
   echo "PASS: --self-test ケース49e（削除済み規約の旧HTMLを検出し、警告して削除）"
 
   if [ -e "$old_screen_html" ] \
-    || ! grep -q 'WARN: removed orphaned generated HTML: project-portal/画面/screen-orphan/基本設計/画面基本設計書.html' "$second_log"; then
+    || ! grep -q 'WARN: removed orphaned generated HTML: project-portal/screens/screen-orphan/基本設計/画面基本設計書.html' "$second_log"; then
     echo "FAIL: --self-test ケース49f（削除済み画面基本設計書の旧HTMLを削除して警告しない）" >&2
     rm -rf "$test_dir"
     return 1
@@ -2081,8 +2081,8 @@ TEST8HTML
   test9_repo="$test9_dir/repo"
   test9_docs="$test9_dir/docs"
   test9_portal="$test9_dir/portal"
-  mkdir -p "$test9_repo" "$test9_docs/project-portal/対応表/権限画面マトリクス" "$test9_docs/AI設定資産" "$test9_portal"
-  echo '<html><body>perm screen matrix</body></html>' > "$test9_docs/project-portal/対応表/権限画面マトリクス/権限画面マトリクス.html"
+  mkdir -p "$test9_repo" "$test9_docs/project-portal/matrices/権限画面マトリクス" "$test9_docs/AI設定資産" "$test9_portal"
+  echo '<html><body>perm screen matrix</body></html>' > "$test9_docs/project-portal/matrices/権限画面マトリクス/権限画面マトリクス.html"
   echo '<html><body>ai assets</body></html>' > "$test9_docs/AI設定資産/AI設定資産.html"
   "$SCRIPT_DIR/build-portal.sh" "$test9_repo" "$test9_docs" "$test9_portal" 2>/dev/null
   # 全不在ケース: 全カテゴリを空状態付きで保持し、サイドバーのアンカー先を本文生成契約へ接続する
@@ -4846,7 +4846,7 @@ markdown_to_script_json() {
 
 FOUNDATION_OUT_DIR="$DOCS_ROOT/$LAYOUT_FOUNDATION_DIR"
 # commonRoot 配下のうち、宣言済みの基盤文書（foundationDoc・commonDesignDoc・dataDesignDoc・
-# messageDoc・uiCommonDoc・surveyDoc）だけを foundationDir（project-portal/基盤。人が読む
+# messageDoc・uiCommonDoc・surveyDoc）だけを foundationDir（project-portal/foundation。人が読む
 # 資料の置き場）へ物理分離する。宣言外の文書（プロジェクト固有の補助文書等）は commonRoot
 # に .md と .html を co-locate したまま維持する（分離は「人に見せる基盤文書」に限定する）。
 FOUNDATION_KNOWN_BASENAMES=""
@@ -5126,7 +5126,7 @@ if [ -d "$DOCS_ROOT/$LAYOUT_SCREEN_UNIT_ROOT" ] && [ -f "$SCREEN_DOC_TEMPLATE_FI
     assert_no_symlink_output_paths "$DOCS_ROOT" "$screen_dir" || exit 1
 
     # html は screenUnitRoot（定義の置き場）と物理的に分離し、screenViewRoot
-    # （project-portal/画面。人が読む資料の置き場）の同名 screen-<ID> 配下へ出力する。
+    # （project-portal/screens。人が読む資料の置き場）の同名 screen-<ID> 配下へ出力する。
     screen_dir_name="$(basename "${screen_dir%/}")"
     screen_view_dir="$DOCS_ROOT/$LAYOUT_SCREEN_VIEW_ROOT/${screen_dir_name}/"
     mkdir -p "$screen_view_dir"
