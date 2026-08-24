@@ -38,7 +38,7 @@ allowed-tools: [Agent, AskUserQuestion, Bash, Edit, Glob, Read, Skill, TaskCreat
 | target_repo_path | 必須 | リバース対象プロジェクトの絶対パス。全工程・全子スキルへ渡す入力の正 |
 | output_dir | 必須 | 納品物ルートの絶対パス。ポータル・一覧・設計書等すべての出力先の正（「納品物ルート（output_dir）の正本レイアウト」参照） |
 | screen_scope | `facts_profile=auto|screen`時必須（`python`時は不要。画面範囲を問わないため）。両方を同時に指定した場合も、`facts_profile`が経路を先に確定するため screen_scope の値は参照されない（`python`は明示Python facts-only経路へ進み画面範囲を扱わない） | 対象画面範囲（全画面／個別画面ID列挙等）。種別ループ・画面状態判定の起点 |
-| verification_dir | 任意（既定値なし） | プロジェクト内に `verification/` を作らない（このリポジトリ自身の開発構想文書が定める「検証出力の外部化」）。未指定の対話実行では AskUserQuestion で `target_repo_path` の外にある絶対パスを確認する。headless=true で未指定の場合は推測せず `OUTPUT_PATH_REQUIRED` で中断する。facts・再計数・確定記録・修正指示書・最終報告・テストログの出力先。「プロジェクトの外」という指定だけでは、実行環境のグローバルな実装フローゲート（`~/Projects/` 配下全体を監視する）を回避できないため、`~/Projects/` の外にある絶対パスを明示的に必須とすることで、このゲートとの衝突を構造的に避けている |
+| verification_dir | 任意（既定値なし） | プロジェクト内に `verification/` を作らない（このリポジトリ自身の開発構想文書が定める「検証出力の外部化」）。未指定の場合は推測せず `OUTPUT_PATH_REQUIRED` で中断する（`headless` の値によらず対話では確認しない。起動時に `target_repo_path` の外にある絶対パスを明示指定する）。facts・再計数・確定記録・修正指示書・最終報告・テストログの出力先。「プロジェクトの外」という指定だけでは、実行環境のグローバルな実装フローゲート（`~/Projects/` 配下全体を監視する）を回避できないため、`~/Projects/` の外にある絶対パスを明示的に必須とすることで、このゲートとの衝突を構造的に避けている |
 | template_root | 任意 | 既定 `<reverse_docs_root>/delivery-payload/templates/リバース検証/`（`delivery-payload/templates/リバース検証/` 配下のテンプレート一式。「共有資産」節参照）。テンプレート一式を使う全子スキルへ絶対パスとして渡す |
 | survey_doc_path | 任意 | 既定候補 `<output_dir>/<commonRoot>/アーキテクチャ調査書.md`（`commonRoot` は output-layout の物理配置キー）。候補が不在、または調査ゲート不合格の場合は surveying-architecture-for-reverse-docs を起動し、返却 `status=調査確定` の `artifacts[0]` を確定値として採用する（Step 3 参照） |
 | headless | 任意（既定 false） | true の場合、無人モードで実行する。AskUserQuestion を発行せず、破壊的操作の承認は起動時に一括付与済みとして扱う |
@@ -92,17 +92,17 @@ allowed-tools: [Agent, AskUserQuestion, Bash, Edit, Glob, Read, Skill, TaskCreat
 
 ## Phase 1: 準備
 
-headless=trueではAskUserQuestionを使わず、選択したprofileの必須引数が不足していれば推測せず中断する。対話実行では、`facts_profile=auto|screen`かつtarget_repo_path・output_dir・screen_scopeが指定済みの場合、または`facts_profile=python`かつtarget_repo_path・output_dir・target_file_paths・facts_unit_id・verification_dirが指定済みの場合だけ確認を省略する。Python経路ではscreen_scopeを要求せず、事前ヒアリング完了後は Step 1-2 の明示Python facts-only経路へ分岐する。通常の画面フローだけが global Step 3 以降へ直行する。
+対話による確認は行わない。選択したprofileの必須引数が起動引数として不足していれば、値を推測せず中断する。`facts_profile=auto|screen`はtarget_repo_path・output_dir・screen_scopeが、`facts_profile=python`はtarget_repo_path・output_dir・target_file_paths・facts_unit_id・verification_dirが、いずれも起動引数として指定済みであることを要求する。Python経路ではscreen_scopeを要求せず、起動引数の確認完了後は Step 1-2 の明示Python facts-only経路へ分岐する。通常の画面フローだけが global Step 3 以降へ直行する。
 
 ## Step 1-1: 対象リポジトリと出力先を解決する
 
 - global_step: 1
-- tool: AskUserQuestion / Read / Glob / TaskCreate
+- tool: Read / Glob / TaskCreate
 - condition: 常に実行
 
-AskUserQuestionツールでprofileに応じた必須項目を確定する。起動引数が空の対話実行では、最初にAskUserQuestionツールで`facts_profile=auto|screen|python`を選ばせてから同じ規則を適用する。`facts_profile=auto|screen`では対象プロジェクトパス・出力先パス・画面範囲・実行モードの4項目を確定する。
+起動引数からprofileに応じた必須項目を確定する。`facts_profile`は起動引数として指定するか、未指定なら既定値`auto`を採用する（対話では選ばせない）。`facts_profile=auto|screen`では対象プロジェクトパス・出力先パス・画面範囲・実行モードの4項目が起動引数としてすべて指定済みであることを要求する。
 
-起動引数の `reverse_docs_root`・`target_repo_path`・`output_dir`・`screen_scope` を解決する。`reverse_docs_root` は配布rootの絶対パスとして実在確認し、固定インストール先を仮定しない。未指定かつ `headless=false` の場合だけ AskUserQuestion で対象プロジェクト、出力先、画面範囲を確認する。`headless=true` では引数不足を ERROR として終端し、値を推測しない。成果物の実在から16状態を順に判定し、実行対象の global Step を TaskCreate で先出し登録する。
+起動引数の `reverse_docs_root`・`target_repo_path`・`output_dir`・`screen_scope` を解決する。`reverse_docs_root` は配布rootの絶対パスとして実在確認し、固定インストール先を仮定しない。いずれか1つでも未指定なら、不足している項目名を一覧で示して ERROR として終端する。`headless` の値によらず、値を推測せず対話でも補わない。成果物の実在から16状態を順に判定し、実行対象の global Step を TaskCreate で先出し登録する。
 
 ### 入口モードを判定する
 
@@ -134,17 +134,17 @@ target_repo_path が確定した直後に `bash scripts/resolve-flow-mode.sh <ta
 | facts_unit_id | facts出力を識別する論理ID。画面IDや実在画面ディレクトリを要求しない | なし（必須） |
 | verification_dir | facts・再計数・確定記録の出力先 | 既定値なし。`target_repo_path` の外にある絶対パスを必須とする |
 
-状態判定の冒頭で対象画面IDの実在を検証する。実在確認は永続raw正本（`<output_dir>/<manifestsRoot>/screen-manifest.json` の `screens[]` 配列）に対して行う（`manifestsRoot` は output-layout の物理配置キー。既定値 `docs/manifests`）。一覧外IDの場合は AskUserQuestion で対応を確認する。選択肢は (a) 一覧へ `kind=route`・`route=""` として追記し、route空の未解決画面として工程を継続するか、(b) エラー終端するかの2択（headless=true 時は (a) を自動選択する）。画面レジストリの `verification_url` が未実施・エラーページ・プレースホルダの場合でも、facts 抽出・基本設計・詳細設計は続行する。実レンダリング確認済みURLは動的検証へ移る時点でのみ必須とする。
+状態判定の冒頭で対象画面IDの実在を検証する。実在確認は永続raw正本（`<output_dir>/<manifestsRoot>/screen-manifest.json` の `screens[]` 配列）に対して行う（`manifestsRoot` は output-layout の物理配置キー。既定値 `docs/manifests`）。一覧外IDの場合は一覧へ `kind=route`・`route=""` として追記し、route空の未解決画面として工程を継続する（対話による確認は行わない。旧仕様が持っていたエラー終端の選択肢は廃止した）。画面レジストリの `verification_url` が未実施・エラーページ・プレースホルダの場合でも、facts 抽出・基本設計・詳細設計は続行する。実レンダリング確認済みURLは動的検証へ移る時点でのみ必須とする。
 
 **完了**: `auto|screen`はtarget_repo_path・output_dir・screen_scope・実行モードが、`python`はtarget_repo_path・output_dir・target_file_paths・facts_unit_id・verification_dir・実行モードが確定し（`python`はscreen_scopeを要求しない）、現在状態の確定と実行対象タスクの登録が済んでいる。モードが `setup-only` の場合はここで「セットアップ完了」として終端している。
 
 ## Step 1-2: スコープと実行モードを確定する
 
 - global_step: 2
-- tool: AskUserQuestion / Read
-- condition: headless=true または全引数指定済みなら確認を省略
+- tool: Read
+- condition: 常に実行
 
-`verification_mode=docs-only|single-pass|iterative`、対象画面、フル実行か個別スキル利用かを確定する。「複雑度層別サンプル」は既存の複雑度プロファイルから sampledScreenKeys の和集合を screen_ids に変換し、未生成なら画面一覧スキルのプロファイル工程を先行する。
+起動引数から `verification_mode=docs-only|single-pass|iterative`（既定 `single-pass`）、対象画面（screen_scope）、フル実行か個別スキル利用かを確定する。対話による確認は行わない。「複雑度層別サンプル」は既存の複雑度プロファイルから sampledScreenKeys の和集合を screen_ids に変換し、未生成なら画面一覧スキルのプロファイル工程を先行する。
 
 - **フル実行（facts_profile=python）**: 確定したtarget_repo_path・output_dir・target_file_paths・facts_unit_id・verification_dirを使って後述の「明示Python facts-only経路」へ進む。global Step 3 以降へは進まない
 - **フル実行（facts_profile=auto|screen）**: 確定したtarget_repo_path・output_dir・screen_scopeを使って global Step 3 以降を順に進行する
@@ -154,7 +154,7 @@ target_repo_path が確定した直後に `bash scripts/resolve-flow-mode.sh <ta
 
 本節と次節「サイトごとのループ」は `facts_profile=auto|screen` のフル実行にだけ適用する。`facts_profile=python` は前段の分岐で確定した時点で「明示Python facts-only経路」へ直接進む。global Step 3 以降へは進まないため、サイトのループが対象とする global Step 3〜16 には一度も入らず、本節・次節を評価しない。両方の条件が同時に成立することはなく、`facts_profile` の分岐が先に確定して以降の経路を一意に決める。
 
-アーキテクチャ調査書 §10 のサイト一覧を提示し、どのサイトを対象にするかを確定する。単独プロジェクトならサイトは 1 件（キー `main`）で、確認は不要。モノレポで 2 件以上ある場合は、全サイトを対象にするか一部だけかをユーザーに確認する。§10 がまだ確定していない（初回起動でアーキ調査が未実施）場合は、global Step 7（調査確定の確認）直後にあらためて本段階を実行してから global Step 9 以降へ進む。
+アーキテクチャ調査書 §10 のサイト一覧から対象サイトを確定する。単独プロジェクトならサイトは 1 件（キー `main`）。モノレポで 2 件以上ある場合も、対話による確認は行わず、§10 に列挙された全サイトを対象として確定する（一部サイトだけに絞りたい場合は `target_repo_path` に個別サイトのルートを指定して起動する。起動時に渡す引数の種類は増やさない）。§10 がまだ確定していない（初回起動でアーキ調査が未実施）場合は、global Step 7（調査確定の確認）直後にあらためて本段階を実行してから global Step 9 以降へ進む。
 
 ### サイトごとのループ（モノレポ・複数サイト時）
 
@@ -172,7 +172,7 @@ survey_doc_path確定後に限り、Skillでextracting-unit-facts-from-codeをta
 
 `facts_profile=auto|screen`はこの経路を通らず通常の画面フローへ進む。通常の画面フローでは対象ファイルの拡張子にかかわらず`profile=screen`を渡し、拡張子だけを根拠にpythonへ切り替えてはならない。
 
-**完了**: 実行モード（フル実行 / 個別スキル名）とユーザー介在条件が確定し、対象サイト一覧（キー・ルートディレクトリ）も確定している。`auto|screen`のフル実行は global Step 3 へ進める。`python`は明示Python facts-only経路でsurvey_doc_path確定後にfacts抽出・独立再計数・確定検証まで完了し、facts-only終端している。
+**完了**: 起動引数から実行モード（フル実行 / 個別スキル名）が確定し、対象サイト一覧（キー・ルートディレクトリ）も確定している（対話による確認は行わない）。`auto|screen`のフル実行は global Step 3 へ進める。`python`は明示Python facts-only経路でsurvey_doc_path確定後にfacts抽出・独立再計数・確定検証まで完了し、facts-only終端している。
 
 ## Phase 2: アーキテクチャ調査
 
@@ -239,6 +239,31 @@ revise_findings を固定し、Step 2-3へ戻す。既存タスクを巻き戻�
 
 **完了**: 戻り方向の依存 の理由・対象・上限が記録され、再調査が開始済みか停止判断済み。
 
+## Step 2-7: 納品物の一覧を提示し対象範囲の承認を得る
+
+- tool: Read / Write / AskUserQuestion
+- condition: 常に実行
+
+Step 2-5で確定した unit_kinds_present をもとに、excluded-kinds.json（`<output_dir>/<excludedKinds>`。`excludedKinds` は output-layout の物理配置キー。既定値 `docs/scope-and-progress/excluded-kinds.json`）を暫定生成する。allKindsは既定の6種別（screen・api・table・batch・report・external）とし、presentKindsはunit_kinds_present、excludedKindsはallKindsからpresentKindsを除いた各種別へアーキテクチャ調査書の判定理由を添えたものとする。スキーマ自体（generatedAt/surveyDocPath/allKinds/presentKinds/excludedKinds）は作り替えない。
+
+続けて `bash generation-engine/scripts/build-deliverable-inventory.sh <output_dir> <output_dir>/project-portal/foundation/納品物一覧.html <output_dir>/docs/納品物一覧.md` を実行し、この時点の暫定的な一覧を作る（新しい生成器は作らない。既存の生成器の判定の中身も変えない）。この段階では大半の納品物が「未生成」になるが、欠陥として扱わず、これから作る予定として提示する。
+
+一覧から次の2点を取り出してユーザーへ提示する。
+
+1. 対象の性質: presentKinds（実在と判定した種別）と excludedKinds（対象外とした種別とその理由）
+2. 納品物の件数: 種別ごとの出力件数（「出力あり」の件数）と対象外件数（「対象なし」の件数）
+
+headless=false のときだけ、AskUserQuestionで選択肢「この範囲で進む」「範囲を変える」を示して選ばせる。headless=true のときはAskUserQuestionを発行せず、「この範囲で進む」を選んだものとして自動的に扱う。
+
+- 「この範囲で進む」が選ばれた場合: 提示した presentKinds/excludedKinds をそのまま確定する
+- 「範囲を変える」が選ばれた場合: 種別の名前（screen・api・table・batch・report・external）を並べて選ばせる形で対象範囲を手で指定してもらい、その場で excluded-kinds.json の presentKinds/excludedKinds を指定内容で上書きする
+
+選んだ内容（選択肢・指定内容・日時）を、excluded-kinds.json と同じファイルの approvalHistory 配列（既存キーへの追記のみ。excluded-kinds.jsonのスキーマそのものは作り替えない）へ、承認の経緯として記録する。
+
+Step 3-1以降が参照する unit_kinds_present は、本Step確定後は excluded-kinds.json の presentKinds と同義とする。Phase 3以降で対象範囲が変わった場合（例えばStep 5-1以降で新しい種別の実在が判明した場合）は、excluded-kinds.jsonへの記録だけで済ませず、本Stepの提示・承認を再度実行する。
+
+**完了**: excluded-kinds.jsonのpresentKinds/excludedKindsが確定し、承認の経緯がapprovalHistoryへ記録されている。
+
 ## Phase 3: 目録
 
 ## Step 3-1: 実在種別の一覧を生成する
@@ -247,7 +272,7 @@ revise_findings を固定し、Step 2-3へ戻す。既存タスクを巻き戻�
 - tool: Agent / Skill
 - condition: 一覧未生成時
 
-unit_kinds_present に含まれる種別だけ、対応する6一覧スキル（generating-screen-list-for-reverse-docs・generating-api-list-for-reverse-docs・generating-table-list-for-reverse-docs・generating-batch-list-for-reverse-docs・generating-report-list-for-reverse-docs・generating-external-list-for-reverse-docs）を起動する。対話モードは Agent で並列、headless は Skill で逐次実行する。各子へ source_dir・output_dir を渡し、status=DONE を確認する。画面については永続正本を `screen_manifest_path=<output_dir>/<manifestsRoot>/screen-manifest.json`、`screen_manifest_ext_path=<output_dir>/<manifestsRoot>/screen-manifest.ext.json` に固定し、検出直後の生マニフェストとメタデータ付与後マニフェストをそれぞれ原子的に保存する。
+unit_kinds_present（Step 2-7で承認されたexcluded-kinds.jsonのpresentKindsと同義）に含まれる種別だけ、対応する6一覧スキル（generating-screen-list-for-reverse-docs・generating-api-list-for-reverse-docs・generating-table-list-for-reverse-docs・generating-batch-list-for-reverse-docs・generating-report-list-for-reverse-docs・generating-external-list-for-reverse-docs）を起動する。対話モードは Agent で並列、headless は Skill で逐次実行する。各子へ source_dir・output_dir を渡し、status=DONE を確認する。画面については永続正本を `screen_manifest_path=<output_dir>/<manifestsRoot>/screen-manifest.json`、`screen_manifest_ext_path=<output_dir>/<manifestsRoot>/screen-manifest.ext.json` に固定し、検出直後の生マニフェストとメタデータ付与後マニフェストをそれぞれ原子的に保存する。
 
 通常の再開実行は永続 screen_manifest_path を直接入力にする。旧成果物の明示的な移行・復元を行う場合に限り、画面一覧HTMLが存在して永続 screen_manifest_path が無ければ `bash generation-engine/scripts/unit-list/restore-screen-manifest.sh <output_dir>/<screenListHtml> <screen_manifest_path>` を実行して埋込 `#screen-manifest` から一度だけ復元する。続いて validate-manifest.sh を通し、固定した generated_at と raw の正規化SHA-256を `--generated-at`・`--manifest-content-hash` へ渡して extract-screen-metadata.sh で screen_manifest_ext_path を再生成する。復元・検証・メタデータ付与・hash一致のいずれかが失敗した場合は通常工程へ合流しない。`screenListDir`・`screenListHtml` は画面一覧の物理配置を持つ output-layout のキーである。
 
@@ -277,7 +302,7 @@ api-manifest.json が存在しない場合（api が unit_kinds_present に含�
 - tool: Write / Edit / Skill
 - condition: Step 3-1 完了時
 
-unit_kinds_present に含まれない種別を excluded-kinds.json と「該当なし」文書へ記録する。`<output_dir>/<manifestsRoot>/screen-manifest.json`（raw画面正本）が存在する場合のみ generating-feature-list-for-reverse-docs を source_dir・output_dir（・任意で survey_doc_path）で起動する。raw画面正本が存在しない場合は機能一覧をスキップし、画面一覧の正本確立後に本Stepを再実行する。生成結果の空判定で対象外を再評価しない。画面一覧HTMLが存在するのに `<output_dir>/<unitListHtml>` が不在の場合、状態判定の16状態には追加しない。本Stepを再実行して補完する（派生一覧は16状態の判定フローの対象外）。`unitListHtml` は output-layout の物理配置キーで、{label} は「機能」である。
+対象外種別は、Step 2-7で承認された excluded-kinds.json（presentKinds/excludedKinds）を正として読み込む。承認を経ずに機械判定だけで対象種別を再確定させない。excludedKindsに記載の各種別について「該当なし」文書（`<output_dir>/<unitListAbsentMd>`）がまだ無ければここで生成する。`<output_dir>/<manifestsRoot>/screen-manifest.json`（raw画面正本）が存在する場合のみ generating-feature-list-for-reverse-docs を source_dir・output_dir（・任意で survey_doc_path）で起動する。raw画面正本が存在しない場合は機能一覧をスキップし、画面一覧の正本確立後に本Stepを再実行する。生成結果の空判定で対象外を再評価しない。画面一覧HTMLが存在するのに `<output_dir>/<unitListHtml>` が不在の場合、状態判定の16状態には追加しない。本Stepを再実行して補完する（派生一覧は16状態の判定フローの対象外）。`unitListHtml` は output-layout の物理配置キーで、{label} は「機能」である。
 
 **完了**: 6種別の生成済み/対象外が復元可能で、生成可能な機能一覧が存在する。
 
@@ -617,10 +642,10 @@ global Step 9（外部連携一覧の確立）が完了していることを前�
 ## Step 6-1: 開通から比較結果取得までを依存順に実行する
 
 - global_step: 40
-- tool: AskUserQuestion / Skill
+- tool: Skill
 - condition: verification_mode=single-pass|iterative
 
-実レンダリング確認済みURLが無ければ unlocking-reverse-target-screens を dynamic-only で起動する。次に syncing-reverse-env(mode=setup) でenv_blockを取得し、承認後に rebuilding-screen-unit-from-docs でファイル単位検証を行う。続けて syncing-reverse-env(mode=sync) でbaseline_tagを確立し、rebuilding-code-from-docs(mode=implement)のcompare_requestを受領し、syncing-reverse-env(mode=sync,dry-run)の比較結果全文を保持する。順序は unlock → setup → file verify → baseline sync → implement → compare で固定する。
+実レンダリング確認済みURLが無ければ unlocking-reverse-target-screens を dynamic-only で起動する。次に syncing-reverse-env(mode=setup) でenv_blockを取得する。env_blockの承認は破壊的操作の承認委譲（起動時に一括付与済みの user-approved を子スキルへ渡す方式。「重要な注意事項」参照）で扱い、本Stepはユーザーへ個別に確認しない。取得したenv_blockを渡して rebuilding-screen-unit-from-docs でファイル単位検証を行う。続けて syncing-reverse-env(mode=sync) でbaseline_tagを確立し、rebuilding-code-from-docs(mode=implement)のcompare_requestを受領し、syncing-reverse-env(mode=sync,dry-run)の比較結果全文を保持する。順序は unlock → setup → file verify → baseline sync → implement → compare で固定する。
 
 **完了**: compare_result全文とfreeze_commitが揃うか、静的成果物を保持した動的検証保留理由が確定している。
 
@@ -629,12 +654,14 @@ global Step 9（外部連携一覧の確立）が完了していることを前�
 ## Step 7-1: judgeして基準更新または差し戻しを確定する
 
 - global_step: 41
-- tool: Skill / AskUserQuestion / TaskCreate
+- tool: Skill / TaskCreate / Read
 - condition: Step 6-1でcompare_result取得済み
 
-rebuilding-code-from-docs(mode=judge)へcompare_result全文とfreeze_commitを渡す。PASS時は承認後に syncing-reverse-env(mode=sync)で基準タグを本番更新し、依頼時だけteardownする。FAIL時はNG帰着3系統へ分類し、single-passは改善候補を報告して停止、iterativeだけ下記戻り方向の依存 metadataに従って戻す。
+rebuilding-code-from-docs(mode=judge)へcompare_result全文とfreeze_commitを渡す。PASS時は承認を求めず syncing-reverse-env(mode=sync)で基準タグを本番更新し、依頼時だけteardownする。FAIL時はNG帰着3系統へ分類し、single-passは改善候補を報告して停止、iterativeだけ下記戻り方向の依存 metadataに従って戻す。
 
-**完了**: PASS・FAIL・動的検証保留のいずれかが確定し、PASS時は基準更新または依頼時teardownが完了している。
+続けて、Step 2-7で承認した時点の一覧（excluded-kinds.json 承認時点のpresentKinds/excludedKinds・build-deliverable-inventory.sh の暫定件数）と、本Step完了時点で `bash generation-engine/scripts/build-deliverable-inventory.sh <output_dir> <output_dir>/project-portal/foundation/納品物一覧.html <output_dir>/docs/納品物一覧.md` を再実行して得られる完成時点の一覧とを突き合わせる。承認した範囲がそのまま満たされたかを見るだけであり、完了としてよいかを尋ねない。差があれば種別ごとの差（承認時の件数・完成時の件数）を表で示して終える。差が0件なら「差なし」と1行報告する。
+
+**完了**: PASS・FAIL・動的検証保留のいずれかが確定し、PASS時は基準更新または依頼時teardownが完了している。承認時点の一覧と完成時点の一覧の突き合わせ結果が報告されている。
 
 ## 条件分岐メタデータ
 

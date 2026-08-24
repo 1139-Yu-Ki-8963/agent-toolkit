@@ -11,6 +11,11 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 repo_root="$(cd "$script_dir/../../.." && pwd)"
 fixture_dir="$script_dir/fixtures/api-design-decisions"
 skill="$repo_root/.claude/skills/generating-api-detail-design-for-reverse-docs/SKILL.md"
+# 廃止済み資料名の一覧は docs/references/retired-terms.json（正本）を読む。
+# 4語をここへ個別にハードコードしない（docs/tasks/廃止した名前の一覧が
+# 散らばり起票が古い名前を指す問題を直す指示書.md）。
+retired_terms_file="$repo_root/docs/references/retired-terms.json"
+retired_pattern="$(jq -r '[.terms[].term] | join("|")' "$retired_terms_file")"
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/api-design-decisions.XXXXXX")"
 tmp="$(cd "$tmp" && pwd -P)"
 trap 'rm -rf "$tmp"' EXIT
@@ -93,7 +98,7 @@ missing_reason="$tmp/missing-reason.md"
 cp "$doc" "$missing_reason"
 sed -i.bak '/| local-cache-choice |/d' "$missing_reason"
 node "$repo_root/generation-engine/scripts/validate-api-design-decisions.mjs" "$missing_reason" >/dev/null
-if grep -qE '根拠資料|根拠を記録する資料|設計単位根拠台帳|共通文書根拠台帳' "$missing_reason"; then
+if grep -qE "$retired_pattern" "$missing_reason"; then
   echo "FAIL: 廃止した根拠資料への参照が残っている" >&2
   exit 1
 fi

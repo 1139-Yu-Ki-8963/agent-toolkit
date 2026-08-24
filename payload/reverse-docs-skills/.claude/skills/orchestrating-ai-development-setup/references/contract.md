@@ -207,7 +207,7 @@
 
 管理者の`facts_profile`は`auto|screen|python`（既定`auto`）とする。`auto|screen`は通常の画面フローを意味し、画面ループからextracting-unit-facts-from-codeへ渡すprofileは常に`screen`である。画面の対象ファイルが全件`.py`でも、拡張子だけを理由にpythonへ切り替えない。
 
-起動引数が空の対話実行ではAskUserQuestionでprofileを選ばせる。`facts_profile=python`を選択または明示した場合、screen_scopeは質問せず、target_repo_path・output_dir・target_file_paths・facts_unit_id・verification_dir・実行モードを収集する。target_file_pathsはtarget_repo_pathからの相対`.py`パスの非空配列とし、全件の実在・リポジトリ内包を検証して外部絶対パス・`..`・symlink脱出を拒否する。verification_dirは既定値を持たず、`target_repo_path`の外にある絶対パスを必須とする。これら6項目が確定するまで事前ヒアリングは未完了であり、headless=trueでは不足値を推測せず中断する。
+対話による確認は行わない。`facts_profile`は起動引数で明示指定するか、未指定なら既定値`auto`を採用する。`facts_profile=python`の場合、screen_scopeは要求せず、target_repo_path・output_dir・target_file_paths・facts_unit_id・verification_dir・実行モードを起動引数として収集する。target_file_pathsはtarget_repo_pathからの相対`.py`パスの非空配列とし、全件の実在・リポジトリ内包を検証して外部絶対パス・`..`・symlink脱出を拒否する。verification_dirは既定値を持たず、`target_repo_path`の外にある絶対パスを必須とする。これら6項目が確定するまで事前ヒアリングは未完了であり、`headless`の値によらず不足値を推測せず中断する。
 
 `facts_profile=python`は明示指定時だけ使えるfacts-only入口である。フル実行の事前ヒアリング完了後はglobal Step 3以降へ進まず明示Python facts-only経路へ遷移し、facts抽出より先にsurvey_doc_pathを解決する。明示パスまたは`<output_dir>/<commonRoot>/アーキテクチャ調査書.md`が実在すれば、それを候補とする。候補に対して`check-architecture-survey.sh <survey_doc_path> <target_repo_path>`を実行する。exit 0（調査ゲート通過）なら候補をsurvey_doc_pathとして再利用する。候補が不在ならsurveying-architecture-for-reverse-docsをmode=surveyで起動する。exit 1（調査ゲート不合格）なら同skillをmode=revise・revise_findings付きで起動する。revise_findingsには、直前の`check-architecture-survey.sh`が標準エラーへ出力した検査別の失敗理由（`検査N失敗: ...`、7件）をそのまま用いる。`status=調査確定`のartifacts[0]を`survey_doc_path`として記録する。記録した`survey_doc_path`に対して同じゲートを再実行し、exit 0（合格基準）を再検証する。再検証後、画面一覧生成・対象画面ID実在確認・種別ループより先にextracting-unit-facts-from-codeを`profile=python`で起動する。`screen_dir`引数には実在不要の論理パス`<verification_dir>/logical/<facts_unit_id>`を渡す。`status=封印済み`、recount通過、facts.lock検証通過を検収したら「Python facts封印完了」で終端し、画面スキャフォールディング・基本設計・詳細設計・動的検証へ進まない。
 
@@ -298,7 +298,7 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 
 成果物の実在から次工程を決める。16状態を漏れなく被覆する。
 
-状態判定の冒頭で、対象画面IDが永続raw正本（`<docs>/<manifestsRoot>/screen-manifest.json` の `screens[]` 配列）に存在することを検証する（`manifestsRoot` は output-layout の物理配置キー。既定値 `docs/manifests`）。一覧外IDの場合は (a) 一覧へ `kind=route`・`route=""` として追記し、route空の未解決画面として工程を継続するか (b) エラー終端するかを AskUserQuestion で確認する（headless=true 時は (a) を自動選択する）。
+状態判定の冒頭で、対象画面IDが永続raw正本（`<docs>/<manifestsRoot>/screen-manifest.json` の `screens[]` 配列）に存在することを検証する（`manifestsRoot` は output-layout の物理配置キー。既定値 `docs/manifests`）。一覧外IDの場合は一覧へ `kind=route`・`route=""` として追記し、route空の未解決画面として工程を継続する（対話による確認は行わない。旧仕様のエラー終端の選択肢は廃止した）。
 
 | 状態キー | 実在判定 | 次に起動する子スキル | 渡す主要 args |
 |---|---|---|---|

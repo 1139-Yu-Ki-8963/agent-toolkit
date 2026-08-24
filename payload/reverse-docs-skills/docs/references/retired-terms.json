@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "sourceOfTruth": {
+    "note": "このリポジトリ自身の起票・検査が使う「廃止した資料・節の名前」の一覧。値は各語がここに載っていること自体であり、他ファイルへ複製しない。docs/scripts/check-retired-terms.sh が docs/tasks/ の指示書本文を、generation-engine/scripts/tests/check-design-doc-section-consistency.sh と generation-engine/scripts/tests/test-api-design-decisions.sh が生成物・修正済みSKILL.mdの残存をこの一覧で検査する。"
+  },
+  "terms": [
+    {
+      "term": "根拠資料",
+      "retiredBy": "1-246",
+      "commit": "bd5d2892426ef5341e259d20f13d887feebb0b1c",
+      "replacement": "要確認事項一覧"
+    },
+    {
+      "term": "根拠を記録する資料",
+      "retiredBy": "1-246",
+      "commit": "bd5d2892426ef5341e259d20f13d887feebb0b1c",
+      "replacement": "要確認事項一覧"
+    },
+    {
+      "term": "設計単位根拠台帳",
+      "retiredBy": "1-246",
+      "commit": "bd5d2892426ef5341e259d20f13d887feebb0b1c",
+      "replacement": "要確認事項一覧"
+    },
+    {
+      "term": "共通文書根拠台帳",
+      "retiredBy": "1-246",
+      "commit": "bd5d2892426ef5341e259d20f13d887feebb0b1c",
+      "replacement": "要確認事項一覧"
+    }
+  ]
+}

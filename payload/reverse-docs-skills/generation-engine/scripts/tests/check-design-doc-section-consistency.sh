@@ -571,10 +571,16 @@ JSON
   rm -rf "$tmp_6"
 
   # 課題1-223回帰: 改訂した全種別テンプレートと検査4の定義を突合する。
+  # 廃止済み資料名の一覧は docs/references/retired-terms.json（正本）を読む。
+  # 4語をここへ個別にハードコードしない（docs/tasks/廃止した名前の一覧が
+  # 散らばり起票が古い名前を指す問題を直す指示書.md）。
   local template_root related_count evidence_ref_count old_heading_count old_move_count unit_chapter_count decision_heading_count api_related_rows stale_skill_route_count
+  local retired_terms_file retired_pattern
   template_root="$REPO_ROOT/delivery-payload/templates/リバース検証"
+  retired_terms_file="$REPO_ROOT/docs/references/retired-terms.json"
+  retired_pattern="$(jq -r '[.terms[].term] | join("|")' "$retired_terms_file")"
   related_count="$(grep -R -l -E '^## (§[0-9]+ )?関連資料$' "$template_root" --include='*.md' | wc -l | tr -d ' ')"
-  evidence_ref_count="$(grep -R -l -E '根拠資料|根拠を記録する資料|設計単位根拠台帳|共通文書根拠台帳' "$template_root" --include='*.md' | wc -l | tr -d ' ')"
+  evidence_ref_count="$(grep -R -l -E "$retired_pattern" "$template_root" --include='*.md' | wc -l | tr -d ' ')"
   old_heading_count="$(grep -R -l -E '^## (§[0-9]+ )?要確認事項一覧$' "$template_root" --include='*.md' | wc -l | tr -d ' ')"
   old_move_count="$(grep -R -l -F '要確認事項一覧へ移す' "$template_root" --include='*.md' | wc -l | tr -d ' ')"
   unit_chapter_count="$(grep -R -l -E '^## §[0-9]+ .*単体テスト設計書$' "$template_root" --include='*.md' | wc -l | tr -d ' ')"
