@@ -415,5 +415,5 @@
 
 ## 関連
 
-- `docs/session-prompts/指示書を完遂するループ.md` — 指示書を引き受けるプロンプト
+- `docs/session-prompts/作業者のプロンプト.md` — 指示書を引き受けるプロンプト
 - `docs/tasks/` — 指示書の置き場
