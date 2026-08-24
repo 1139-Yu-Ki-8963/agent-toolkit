@@ -3,6 +3,7 @@ set -euo pipefail
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DESIGN_UNIT_LAYOUT_DEFAULT="$script_dir/../../delivery-payload/references/design-unit-layout.json"
+DETAIL_FRONTMATTER_KEYS_DEFAULT="$script_dir/../../delivery-payload/references/detail-design-frontmatter-keys.json"
 # shellcheck source=./output-layout.sh
 source "$script_dir/output-layout.sh"
 
@@ -288,6 +289,23 @@ extract_frontmatter_top_level_keys() {
     | sed -E 's/^([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*:.*/\1/' \
     | LC_ALL=C sort -u \
     || true
+}
+
+# 詳細設計書はテンプレート自身を期待値にせず、機械可読な契約を期待値にする。
+# これによりテンプレートと生成物が同じ誤りを持つ場合も検出できる。
+detail_frontmatter_expected_keys() {
+  local kind="$1"
+  if [ ! -f "$DETAIL_FRONTMATTER_KEYS_DEFAULT" ]; then
+    echo "エラー: 詳細設計書frontmatter定義がありません: $DETAIL_FRONTMATTER_KEYS_DEFAULT" >&2
+    return 1
+  fi
+  if ! jq -e --arg kind "$kind" '.kinds[$kind].keys | type == "array" and length > 0' \
+      "$DETAIL_FRONTMATTER_KEYS_DEFAULT" >/dev/null 2>&1; then
+    echo "エラー: 詳細設計書frontmatter定義に種別がありません: $kind" >&2
+    return 1
+  fi
+  jq -r --arg kind "$kind" '.kinds[$kind].keys[]' "$DETAIL_FRONTMATTER_KEYS_DEFAULT" \
+    | LC_ALL=C sort -u
 }
 
 # frontmatterブロックから、2文字以上の全大文字英字の連なり(トークン候補)を
@@ -720,6 +738,21 @@ fi
 
 if [ "$MODE" = "verify" ]; then
   errors=0
+  detail_frontmatter_document=""
+  if [ "$phase" = "detail" ] && [ -n "$phase_files" ]; then
+    if [ ! -f "$DETAIL_FRONTMATTER_KEYS_DEFAULT" ]; then
+      echo "エラー: 詳細設計書frontmatter定義がありません: $DETAIL_FRONTMATTER_KEYS_DEFAULT" >&2
+      exit 1
+    fi
+    if ! jq -e --arg kind "$kind" '
+        .kinds[$kind].document | type == "string" and length > 0
+      ' "$DETAIL_FRONTMATTER_KEYS_DEFAULT" >/dev/null 2>&1; then
+      echo "エラー: 詳細設計書frontmatter定義に種別または文書名がありません: $kind" >&2
+      exit 1
+    fi
+    detail_frontmatter_document="$(jq -r --arg kind "$kind" '.kinds[$kind].document' "$DETAIL_FRONTMATTER_KEYS_DEFAULT")"
+    detail_frontmatter_expected_keys "$kind" >/dev/null || exit 1
+  fi
   while IFS= read -r file; do
     [ -z "$file" ] && continue
     if [ ! -f "$phase_dir/$file" ]; then
@@ -732,7 +765,16 @@ if [ "$MODE" = "verify" ]; then
       errors=$((errors + 1))
       continue
     fi
-    template_frontmatter_keys="$(extract_frontmatter_top_level_keys "$template_dir/$label/$file")"
+    if [ "$phase" = "detail" ] && [ -n "$detail_frontmatter_document" ]; then
+      if [ "$file" != "$detail_frontmatter_document" ]; then
+        echo "エラー: 詳細設計書frontmatter定義の文書名と配置宣言が一致しません: $kind ($file)" >&2
+        errors=$((errors + 1))
+        continue
+      fi
+      template_frontmatter_keys="$(detail_frontmatter_expected_keys "$kind")" || exit 1
+    else
+      template_frontmatter_keys="$(extract_frontmatter_top_level_keys "$template_dir/$label/$file")"
+    fi
     target_frontmatter_keys="$(extract_frontmatter_top_level_keys "$phase_dir/$file")"
     missing_frontmatter_keys="$(comm -23 \
       <(printf '%s\n' "$template_frontmatter_keys" | sed '/^$/d') \

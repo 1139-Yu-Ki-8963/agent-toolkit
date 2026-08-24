@@ -34,9 +34,9 @@ allowed-tools: [AskUserQuestion, Bash, Glob, Grep, Read, TaskCreate, TaskUpdate,
 
 原本から確定できない型・制約・既定値を推測で埋めない原則は維持する。ただし、テンプレートの 12.5「設計判断とその理由」に限り、実装構造から導いた選択理由を `推定（実装構造）` と明示して記録できる。推定を観測事実として扱わない。
 
-原本コードの位置は納品物へ記録しない。API詳細設計書の本文には根拠列や対象コードのファイル名を書かず、行番号、`file:line`、ファイル名を省いた括弧書き、文中の行番号も、表・疑似コード・説明文のいずれにも書かない。疑似コードの行末へ対象コードの位置を注記することも禁止する。参照先を記入する場合は、本書の節番号または関数単位の契約への文書内参照に限定する。
+原本コードの位置は納品物の本文へ記録しない。API詳細設計書の本文には根拠列や対象コードのファイル名を書かず、行番号、`file:line`、ファイル名を省いた括弧書き、文中の行番号も、表・疑似コード・説明文のいずれにも書かない。疑似コードの行末へ対象コードの位置を注記することも禁止する。参照先を記入する場合は、本書の節番号または関数単位の契約への文書内参照に限定する。前付けの `source_ref` に代表ファイルのリポジトリルート相対パス1件を記録する場合だけを例外とする。
 
-API単体テスト設計書と機能設計書を含むすべての納品物で、対象コードの位置を記録しない。バッチ詳細設計書、帳票詳細設計書、外部連携詳細設計書など、コードを直接読んで作る設計書にも同じ非記録原則を適用する。
+API単体テスト設計書と機能設計書を含むすべての納品物で、対象コードの位置を本文や別資料へ記録しない。バッチ詳細設計書、帳票詳細設計書、外部連携詳細設計書など、コードを直接読んで作る設計書にも同じ非記録原則を適用する。各前付けで定義された `source_ref` は、この非記録原則の対象外とする。
 
 ## 言語プロファイル
 
@@ -74,7 +74,7 @@ API単体テスト設計書と機能設計書を含むすべての納品物で�
 - コメントに理由が無く、実装構造から理由を導ける場合は `推定（実装構造）` とする。確からしさは `medium` または `low` に限り、推定に `high` を使わない
 - 選ばなかった選択肢と不採用理由を原本から読めない場合は、両欄を `不明（原本に記述なし）` とする。もっともらしい代替案を補わない
 - 設計判断または選択理由を観測も推定もできない場合は 12.5 に行を作らず、要確認事項一覧へ移す
-- 原本コードの位置は設計書本文にも別資料にも書かない
+- 原本コードの位置は設計書本文にも別資料にも書かない。前付けの `source_ref` だけは代表ファイルのリポジトリルート相対パス1件を記録する
 
 ## 使用タイミング
 
@@ -235,6 +235,14 @@ API詳細設計書の前付けは、次の 7 鍵を canonical な完全な集合
 
 この集合へ `title`・`login_required`・`category`・`auth`・`note` を追加せず、生成物にも残さない。
 
+#### source_ref の代表ファイル選定契約
+
+- 1ファイルの場合: `source_ref` は、該当実装ファイルのリポジトリルート相対パス1件とする。
+- 複数ファイルの場合: HTTP要求を最初に受ける代表ファイルを、ルーター、コントローラー、ハンドラーの順で1件選ぶ。同じ優先順位の候補が複数あるときは、マニフェストの `sourceFile` と一致するものを選ぶ。代表ファイルを起点に原本の呼び出し関係をたどり、複数モジュールの関数契約は本文へ記録する。
+- 実装が0件の場合: `source_ref` の鍵を残して値を空欄にする。未検出の事実は、確認事項質問票（`confirmation-survey`）の入力へ記録する。`confirmation-item-ledger` を納品物として復活させない。
+
+いずれの場合も絶対パスと行番号を含めない。
+
 `delivery-payload/references/doc-extraction.json` の宣言に従い、実際の読取処理である `generation-engine/scripts/portal-input/build-manifests-from-docs.sh` は `api_key`・`api_id`・`source_ref`・`method`・`path` を読む。少なくとも `api_key`・`source_ref`・`method`・`path` が揃った文書を `kind=endpoint` と判定する。`unitId`（`api_id`）は欠落時に代替可能であるため、この判定条件には含めない。`generation-engine/scripts/build-portal.sh --build-manifests-from-docs` がこの読取経路を起動する。`unit_kind` と `feature_key` は現行の抽出器が参照する鍵ではないが、canonical 集合の一部として保持する。
 
 ## Step 3-1: テンプレートの展開と記入
@@ -255,7 +263,7 @@ API詳細設計書の前付けは、次の 7 鍵を canonical な完全な集合
 - **検査1 章の完備**: 生成した各設計書に §1 から §13 が存在し、あわせて章マップも存在する。§ の章は `grep -c '^## §'` が 13 を返すことで確認し、§13 が関連資料であることと、`grep -c '^## 章マップ'` が 1 を返すことを確認する
 - **検査2 詳細設計記述規約**: `node generation-engine/scripts/tests/check-detailed-design-conventions.cjs --self-test` を実行し、テンプレート正本に根拠列・対象コードのファイル名・行番号がなく、参照先が文書内参照だけに限定されていることを確認する。終了コード0だけを合格とする
 - **検査3 プレースホルダの残存**: `APIKEY`・`APIID`・`METHOD`・`PATH`・`FEATUREKEY`・`SOURCEREF` が本文に残っていないことを確認する
-- **検査4 配置と前付けの検査**: `bash generation-engine/scripts/scaffold-design-unit.sh --verify api detail <output_dir> <識別子>` と `bash generation-engine/scripts/scaffold-design-unit.sh --verify api test <output_dir> <識別子>` を実行し、詳細設計書・APIテスト設計書・API単体テスト設計書の必須ファイル・トークン・章・配置に加え、各生成物の frontmatter 鍵集合が対応テンプレートの鍵集合と欠落・余剰なく完全一致することを確認する
+- **検査4 配置と前付けの検査**: `bash generation-engine/scripts/tests/check-detail-design-frontmatter-keys.sh --check-api-template` と `bash generation-engine/scripts/tests/check-detail-design-frontmatter-keys.sh --check-source-ref-contract` を実行する。続けて `bash generation-engine/scripts/scaffold-design-unit.sh --verify api detail <output_dir> <識別子>` と `bash generation-engine/scripts/scaffold-design-unit.sh --verify api test <output_dir> <識別子>` を実行し、詳細設計書・APIテスト設計書・API単体テスト設計書の必須ファイル・トークン・章・配置を確認する。詳細設計書の frontmatter は `delivery-payload/references/detail-design-frontmatter-keys.json` の鍵集合と欠落・余剰なく完全一致しなければ生成完了として扱わない
 - **検査5 設計判断と本文位置情報の検査**: `node generation-engine/scripts/validate-api-design-decisions.mjs <生成したAPI詳細設計書...>` を実行する。12.5「設計判断とその理由」の存在、記述区分、推定の確からしさ、原本から読めない選択肢の表記を検査する。本文の表・疑似コード・説明文も検査する。対象コードのファイル名、行番号、`file:line`、ファイル名を省いた括弧書き、文中の行番号が0件でなければならない。終了コード0だけを合格とする。データ行を作れない判断は要確認事項一覧へ記録する
 - **検査6 単体テスト粒度の検査**: API単体テスト設計書の§1と§2の全データ行に関数・メソッド名があり、`HTTPステータス` が0件であることを確認する
 - **検査7 単体テスト配置の検査**: API単体テスト設計書が`<unitTestDesignDir>`にだけ存在し、基本設計/と詳細設計/にテスト設計書が存在しないことを確認する

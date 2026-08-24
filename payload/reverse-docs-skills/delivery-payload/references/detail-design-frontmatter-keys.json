@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "description": "非画面の詳細設計書に許可するfrontmatter鍵の完全な集合",
+  "kinds": {
+    "api": {
+      "label": "API",
+      "document": "API詳細設計書.md",
+      "template": "delivery-payload/templates/リバース検証/API/API詳細設計書.md",
+      "keys": ["api_key", "api_id", "method", "path", "feature_key", "source_ref", "unit_kind"],
+      "forbiddenKeys": ["title", "login_required", "category", "auth", "note"]
+    },
+    "table": {
+      "label": "テーブル",
+      "document": "テーブル定義書.md",
+      "template": "delivery-payload/templates/リバース検証/テーブル/テーブル定義書.md",
+      "keys": ["table_key", "table_id", "table_name", "table_subkind", "source_ref", "unit_kind", "status"]
+    },
+    "batch": {
+      "label": "バッチ",
+      "document": "バッチ詳細設計書.md",
+      "template": "delivery-payload/templates/リバース検証/バッチ/バッチ詳細設計書.md",
+      "keys": ["batch_key", "batch_id", "batch_name", "batch_trigger_type", "source_ref", "unit_kind", "status"]
+    },
+    "report": {
+      "label": "帳票",
+      "document": "帳票詳細設計書.md",
+      "template": "delivery-payload/templates/リバース検証/帳票/帳票詳細設計書.md",
+      "keys": ["report_key", "report_id", "report_name", "report_engine", "source_ref", "unit_kind", "status"]
+    },
+    "external": {
+      "label": "外部連携",
+      "document": "外部連携詳細設計書.md",
+      "template": "delivery-payload/templates/リバース検証/外部連携/外部連携詳細設計書.md",
+      "keys": ["external_key", "external_id", "external_name", "external_direction", "source_ref", "unit_kind", "status"]
+    }
+  }
+}
