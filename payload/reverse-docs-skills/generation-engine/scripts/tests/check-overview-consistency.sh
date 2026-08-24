@@ -84,7 +84,7 @@ MD
 <p>generating-reverse-basic-design ∥ generating-reverse-detailed-design</p>
 <p>詳細設計パス1 → 基本設計・テスト資料パス2</p>
 <p>通常の状態遷移:</p>
-<p>project-portal/lists/test-cases/テストケース一覧.html</p>
+<p>project-portal/一覧/テストケース一覧/テストケース一覧.html</p>
 HTML
       printf '<div>スキル構成 全%d本（リポジトリ内%d本＋納品専用%d本）</div>\n' \
         "$(( repo_total + delivery_total ))" "$repo_total" "$delivery_total"

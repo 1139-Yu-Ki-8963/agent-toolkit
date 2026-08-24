@@ -166,7 +166,7 @@ no_ref_footer="$(grep -o '<span id="pt-footer-commit">[^<]*</span>' \
 ! printf '%s' "$no_ref_footer" | grep -q 'ggggggg'
 
 # 同じdocs fixtureを状態判定へ渡し、旧rootのdecoyではなくcustom rootの不足を判定する。
-mkdir -p "$docs/規約" "$docs/一覧/画面一覧" "$docs/project-portal/lists/screens" "$docs/プロジェクト共通"
+mkdir -p "$docs/規約" "$docs/一覧/画面一覧" "$docs/project-portal/一覧/画面一覧" "$docs/プロジェクト共通"
 cat > "$docs/プロジェクト共通/アーキテクチャ調査書.md" <<'MD'
 # アーキテクチャ調査書
 ### サイト一覧
@@ -177,7 +177,7 @@ MD
 cat > "$docs/一覧/excluded-kinds.json" <<'JSON'
 {"presentKinds":["screen"],"excludedKinds":[]}
 JSON
-: > "$docs/project-portal/lists/screens/画面一覧.html"
+: > "$docs/project-portal/一覧/画面一覧/画面一覧.html"
 for file in コーディング規約 命名規約 ディレクトリ構成規約 コンポーネント設計規約; do : > "$docs/規約/$file.md"; done
 for file in 共通設計書 メッセージ定義書 DESIGN 基盤設計 UI共通設計 データ設計; do : > "$docs/プロジェクト共通/$file.md"; done
 : > "$docs/index.html"

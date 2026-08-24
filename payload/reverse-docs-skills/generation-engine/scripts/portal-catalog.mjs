@@ -97,16 +97,26 @@ function resolveDefaultRootPrefix(value, defaultRoots, outputLayout, kind) {
   if (!outputLayout) return value;
   const layout = outputLayout.layout || {};
   let result = value;
+  let unitsRootOverridden = false;
   for (const [key, prefix] of Object.entries(defaultRoots || {})) {
     if (result === prefix || result.startsWith(`${prefix}/`)) {
       const override = layout[key];
       if (typeof override === "string" && override.length > 0) {
         result = override + result.slice(prefix.length);
+        if (key === "unitsRoot" && override !== prefix) unitsRootOverridden = true;
       }
       break;
     }
   }
-  if (kind) {
+  // kindDirNames への差し替えは、unitsRoot が defaultRoots.unitsRoot（正本の
+  // project-portal/一覧）から実際に上書きされている場合だけ行う。unitsRoot が
+  // 正本のままなら、種別一覧生成スキルの出力先（project-portal/一覧/<kindLabel>一覧/
+  // <kindLabel>一覧.html）はカタログのglobそのものと一致するため、この差し替えは
+  // 不要かつ有害（<kindLabel>一覧のディレクトリ名をkindDirNamesの英字名へ書き換えて
+  // しまい、実際に生成されるファイルを見失う）。この差し替えはunitsRootを
+  // project-portal/listsのような旧来の英字ルートへ上書きした対象プロジェクト向けの
+  // 後方互換だけを担う（一覧の置き場が三者三様になっている問題を直す指示書.md）。
+  if (kind && unitsRootOverridden) {
     const kindLabel = (outputLayout.kindLabels || {})[kind];
     const kindDirName = (outputLayout.kindDirNames || {})[kind];
     if (typeof kindLabel === "string" && kindLabel.length > 0
@@ -768,6 +778,26 @@ function runSelfTest() {
       ];
       for (const [kind, input, expected] of cases) {
         assert.strictEqual(resolveDefaultRootPrefix(input, defaultRoots, outputLayout, kind), expected);
+      }
+    });
+
+    check("kind directory name is left untouched when unitsRoot is not overridden (正本のproject-portal/一覧のまま)", () => {
+      // unitsRootがdefaultRoots.unitsRoot（project-portal/一覧）から実際に上書きされて
+      // いない場合、kindDirNamesへの差し替えを行わない。差し替えてしまうと、カタログの
+      // globがそのまま指す実際の生成先（project-portal/一覧/<kindLabel>一覧/...）を
+      // 見失う（一覧の置き場が三者三様になっている問題を直す指示書.md）。
+      const outputLayout = {
+        layout: { unitsRoot: "project-portal/一覧" },
+        kindDirNames: { screen: "screens", api: "apis" },
+        kindLabels: { screen: "画面", api: "API" },
+      };
+      const defaultRoots = { unitsRoot: "project-portal/一覧" };
+      const cases = [
+        ["screen", "project-portal/一覧/画面一覧/画面一覧.html"],
+        ["api", "project-portal/一覧/API一覧/API一覧.html"],
+      ];
+      for (const [kind, input] of cases) {
+        assert.strictEqual(resolveDefaultRootPrefix(input, defaultRoots, outputLayout, kind), input);
       }
     });
 

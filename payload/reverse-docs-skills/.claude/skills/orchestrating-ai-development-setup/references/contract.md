@@ -303,12 +303,12 @@ running-reverse-screen-batch の実行ログ（`log_path`）・failed リスト�
 | 状態キー | 実在判定 | 次に起動する子スキル | 渡す主要 args |
 |---|---|---|---|
 | アーキ未調査 | `<output_dir>/<commonRoot>/アーキテクチャ調査書.md` が不在、または `check-architecture-survey.sh` の再実行が exit 1 | surveying-architecture-for-reverse-docs | target_repo_path, output_dir, template_root, mode（調査書が不在なら survey。調査書はあるが再実行 exit 1 なら revise・revise_findings必須）（期待返却 調査確定） |
-| 一覧未生成 | unit_kinds_present のいずれかの実在種別について `project-portal/lists/<種別ラベル>一覧/<種別ラベル>一覧.html` が不在、または excluded-kinds.json に記載の対象外種別について `<output_dir>/<unitListAbsentMd>`（`unitListAbsentMd` は output-layout の物理配置キー。`{label}` に種別ラベルを代入。既定値 `docs/manifests/<種別ラベル>一覧（該当なし）.md`）が不在 | generating-<種別>-list-for-reverse-docs（種別別一覧スキル） | source_dir, output_dir（固定値: `<output_dir>` を渡す。一覧HTMLは `<output_dir>/project-portal/lists/<種別ラベル>一覧/<種別ラベル>一覧.html` に出力される。不在種別ごとに対応スキルを起動） |
+| 一覧未生成 | unit_kinds_present のいずれかの実在種別について `project-portal/一覧/<種別ラベル>一覧/<種別ラベル>一覧.html` が不在、または excluded-kinds.json に記載の対象外種別について `<output_dir>/<unitListAbsentMd>`（`unitListAbsentMd` は output-layout の物理配置キー。`{label}` に種別ラベルを代入。既定値 `docs/manifests/<種別ラベル>一覧（該当なし）.md`）が不在 | generating-<種別>-list-for-reverse-docs（種別別一覧スキル） | source_dir, output_dir（固定値: `<output_dir>` を渡す。一覧HTMLは `<output_dir>/project-portal/一覧/<種別ラベル>一覧/<種別ラベル>一覧.html` に出力される。不在種別ごとに対応スキルを起動） |
 | 共通未採録 | プロジェクト共通の6文書（共通設計書・メッセージ定義書・DESIGN.md・基盤設計.md・UI共通設計.md・データ設計.md）のいずれか不在、または `check-common-docs.sh` が exit 1 | generating-reverse-common-docs | target_repo_path, output_dir, template_root, survey_doc_path, mode（6文書が未採録なら v0。NG帰着(c)差し戻し時のみ append・append_findings必須）（期待返却 採録v0確定） |
 | ポータル未生成 | `<output_dir>/project-portal/index.html` が不在 | bash generation-engine/scripts/build-portal.sh | target_repo_path, output_dir, portal_output_dir（固定値: `<output_dir>/project-portal`）。ポータルは納品物ルート（output_dir）配下の project-portal/index.html として出力する。`<target_repo_path>/project-portal` 等の納品物ルート外への出力は定義レイアウト違反。複数サイトの場合、`<output_dir>` は当該サイトのサイトルートを指す |
 | サイト定義未生成 | サイトが2件以上あり `<納品ルート>/sites.json` が不在 | `sites.json` を書き出す（統括スキル自身が実行。子スキル起動なし） | site_key, sites_path（書き出し先。サイト一覧はアーキテクチャ調査書 §10 から転記する） |
 | 用語候補未生成（任意） | 呼び出し元が用語候補生成を要求し、対象repo外の絶対 `proposal_output_ref` が明示済みで、提案YAMLが不在 | generating-glossary-for-reverse-docs | target_repo_path, proposal_output_ref, target_glossary_key, base_content_version, source_revision（期待返却 `NEEDS_REVIEW`） |
-| 承認済み用語ページ未生成（任意） | schema検証済みかつ承認済みの `approved_glossary_ref` が明示済みで、`<output_dir>/project-portal/lists/用語辞書/用語辞書.html` が不在 | managing-semantic-glossary（portal publish） | operation=portal-publish, approved_glossary_ref, output_dir, portal_output_dir（任意） |
+| 承認済み用語ページ未生成（任意） | schema検証済みかつ承認済みの `approved_glossary_ref` が明示済みで、`<output_dir>/project-portal/一覧/用語辞書/用語辞書.html` が不在 | managing-semantic-glossary（portal publish） | operation=portal-publish, approved_glossary_ref, output_dir, portal_output_dir（任意） |
 | 基盤ページ未生成（任意） | 技術スタック.html・画面遷移図.html・ER図.html・環境構築手順.html・リリースノート.html・デザインシステム.html・コンポーネント棚卸し.html・アイコンカタログ.html のいずれかが output_dir 直下に不在。データ源未整備時はスキップしてよい | generating-tech-stack-for-reverse-docs / generating-env-guide-for-reverse-docs / generating-screen-transition-for-reverse-docs / generating-er-diagram-for-reverse-docs / generating-release-notes-for-reverse-docs / generating-design-system-for-reverse-docs / generating-component-inventory-for-reverse-docs / generating-icon-catalog-for-reverse-docs（不在ページに対応するスキルのみ） | target_repo_path, output_dir, portal_output_dir（任意）, sites_path（任意）, site_key（任意） |
 | 状態遷移図未生成（任意） | 状態遷移図.html が output_dir 直下に不在。データ源未整備時はスキップしてよい | generating-entity-state-for-reverse-docs | target_repo_path, output_dir, portal_output_dir（任意） |
 | シーケンス図未生成（任意） | 画面フォルダのシーケンス図.html が不在。データ源未整備時はスキップしてよい | generating-sequence-diagram-for-reverse-docs | target_repo_path, output_dir, screen_id, portal_output_dir（任意） |
@@ -510,7 +510,7 @@ feature（機能一覧）は派生一覧のため本ファイルの管理対象�
 | 成果物 | 正本パス |
 |---|---|
 | ポータル | `<output_dir>/project-portal/index.html`（portal_output_dir は `<output_dir>/project-portal` 固定） |
-| 種別別一覧 | `<output_dir>/project-portal/lists/<種別ラベル>一覧/<種別ラベル>一覧.html`（機能一覧を含む） |
+| 種別別一覧 | `<output_dir>/project-portal/一覧/<種別ラベル>一覧/<種別ラベル>一覧.html`（機能一覧を含む） |
 | 対象外種別の記録 | `<output_dir>/<excludedKinds>`・`<output_dir>/<unitListAbsentMd>`（`unitListAbsentMd` は output-layout の物理配置キー。`{label}` に種別ラベルを代入。既定値 `docs/manifests/<種別ラベル>一覧（該当なし）.md`） |
 | 基盤ページ6枚 | `<output_dir>/project-portal/foundation` 直下（次節「基盤ページ6枚の出力パス契約」） |
 | 図3ページ（画面遷移図・ER図・状態遷移図） | `<output_dir>/project-portal/diagrams` 直下 |
@@ -525,7 +525,7 @@ feature（機能一覧）は派生一覧のため本ファイルの管理対象�
 
 ## 基盤ページ6枚と用語辞書の出力パス契約
 
-基盤ページ生成スキル6本は`<output_dir>/project-portal/foundation`直下へ書き出す。用語辞書は一覧ページとして`<output_dir>/project-portal/lists/用語辞書/`へ書き出す。不一致はポータルカードが無言で出ない事故になるため機械保証する。
+基盤ページ生成スキル6本は`<output_dir>/project-portal/foundation`直下へ書き出す。用語辞書は一覧ページとして`<output_dir>/project-portal/一覧/用語辞書/`へ書き出す。不一致はポータルカードが無言で出ない事故になるため機械保証する。
 
 | スキル | 出力ファイル |
 |---|---|
@@ -538,7 +538,7 @@ feature（機能一覧）は派生一覧のため本ファイルの管理対象�
 | generating-screen-transition-for-reverse-docs | `<output_dir>/project-portal/diagrams/画面遷移図.html` |
 | generating-er-diagram-for-reverse-docs | `<output_dir>/project-portal/diagrams/ER図.html` |
 | generating-entity-state-for-reverse-docs | `<output_dir>/project-portal/diagrams/状態遷移図.html` |
-| managing-semantic-glossary | `<output_dir>/project-portal/lists/用語辞書/用語辞書.html`（schema検証済みかつ承認済み用語YAMLのportal publish） |
+| managing-semantic-glossary | `<output_dir>/project-portal/一覧/用語辞書/用語辞書.html`（schema検証済みかつ承認済み用語YAMLのportal publish） |
 
 `portal_output_dir` を指定した場合、各ページ生成スキルは生成後に `build-portal.sh` を再実行してカードへ反映する。
 

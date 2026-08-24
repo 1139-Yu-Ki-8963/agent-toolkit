@@ -526,7 +526,7 @@
       "input": {
         "tool_name": "Edit",
         "tool_input": {
-          "file_path": "REPO_ROOT/generation-engine/samples/project-portal/lists/tables/テーブル一覧.html",
+          "file_path": "REPO_ROOT/generation-engine/samples/project-portal/一覧/テーブル一覧/テーブル一覧.html",
           "old_string": "a",
           "new_string": "b"
         }

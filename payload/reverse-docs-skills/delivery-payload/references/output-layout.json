@@ -5,6 +5,7 @@
     "fileNames": "日本語を使ってよい",
     "displayHeadings": "閲覧する側に表示する見出しは、ディレクトリ名から導出せず displayLabels と kindLabels が持つ",
     "reason": "日本語のディレクトリは3つの不具合を起こす。履歴管理の道具が経路を8進数へ変換して表示するため経路の文字列での絞り込みが一致しない。経路を場所の指定へ埋め込む際に変換が要り、変換の有無が食い違うと一致しない。基本ソフトによる文字の正規化の違いで、同じ名前が合成済みと分解の2通りで記録されうる",
+    "listRootException": "unitsRoot・unitListDir・unitListHtml・screenListDir・screenListHtmlの一覧系5キーは対象外とし、project-portal/一覧配下のディレクトリに日本語（一覧・{label}一覧・画面一覧）を使う。portal-catalog.jsonのdefaultRoots.unitsRootと各blueprintのdiscovery.glob、および種別別一覧生成スクリプト（generating-<種別>-list-for-reverse-docs）の既定出力先が既に一覧配下を日本語で統一しており、この5キーだけを英数字化すると定義とカタログと生成器が三者で食い違う（一覧の置き場が三者三様になっている問題を直す指示書.md）。matrixDir・diagramDir・foundationDir・screenViewRoot配下は本reasonの対象のままとし、この例外は一覧系5キーに限る",
     "unitPhaseLayout": "単位ディレクトリ（<kindUnitRoot>/<kind>-<unit_id>）の直下に、階層を作って配置する（1つのディレクトリへ並べる方式は採らない）。基本設計・詳細設計のフォルダ名は unitPhaseDirNames の basic・detail が指す値を正とする。単体テスト設計のフォルダ名は unitTestDesignDir を正とする（1-208で対象キー外としたため日本語のまま残す。unitPhaseDirNames に test を持たせず単一の情報源に保つ）。要確認事項への回答・反映の履歴（unitConfirmationLedgerFile が指すファイル名）は、これらの配置フォルダと同じ階層（単位ディレクトリの直下）に置く"
   },
   "unitPhaseDirNames": {
@@ -23,7 +24,7 @@
     "testCase": "test-cases"
   },
   "displayLabels": {
-    "project-portal/lists": "一覧",
+    "project-portal/一覧": "一覧",
     "project-portal/matrices": "対応表",
     "project-portal/diagrams": "図",
     "project-portal/foundation": "基盤",
@@ -39,14 +40,14 @@
     "plansRoot": "docs/tasks",
     "recordsRoot": "docs/tasks/work-records",
     "screenUnitRoot": "docs/design/screens",
-    "unitsRoot": "project-portal/lists",
+    "unitsRoot": "project-portal/一覧",
     "commonRoot": "docs/design/common",
     "unitConfirmationLedgerFile": "要確認事項台帳.json",
-    "unitListDir": "project-portal/lists/{labelDir}",
-    "unitListHtml": "project-portal/lists/{labelDir}/{label}一覧.html",
+    "unitListDir": "project-portal/一覧/{label}一覧",
+    "unitListHtml": "project-portal/一覧/{label}一覧/{label}一覧.html",
     "unitListAbsentMd": "docs/manifests/{label}一覧（該当なし）.md",
-    "screenListDir": "project-portal/lists/screens",
-    "screenListHtml": "project-portal/lists/screens/画面一覧.html",
+    "screenListDir": "project-portal/一覧/画面一覧",
+    "screenListHtml": "project-portal/一覧/画面一覧/画面一覧.html",
     "matrixDir": "project-portal/matrices",
     "permissionFunctionMatrixHtml": "project-portal/matrices/権限機能マトリクス/権限機能マトリクス.html",
     "diagramDir": "project-portal/diagrams",

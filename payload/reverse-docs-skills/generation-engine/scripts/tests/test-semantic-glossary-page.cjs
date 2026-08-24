@@ -18,12 +18,13 @@ const portalCatalog = path.join(root, 'delivery-payload/references/portal-catalo
 const sampleFixture = path.join(root, 'generation-engine/scripts/detail-pages/fixtures/semantic-glossary-sample-page-data.json');
 const sampleRegenerator = path.join(root, 'generation-engine/scripts/detail-pages/regenerate-semantic-glossary-sample.sh');
 const samplesDir = path.join(root, 'generation-engine/samples');
-// 改善課題1-29: samplesDir（generation-engine/samples）は output-layout.json の
-// unitsRoot（対象プロジェクト向けの英字ディレクトリ規約 "project-portal/lists"）ではなく、
-// portal-catalog.json の semantic-glossary blueprint が宣言する物理配置（日本語の
-// "project-portal/一覧/用語辞書"）に実際に置かれている。output_layout_get 経由の解決は
-// samplesDir に対しては実体と一致せず ENOENT を起こすため、実体の唯一の正本である
-// portal-catalog.json の blueprint.dir を直接読む。
+// 改善課題1-29（一覧の置き場が三者三様になっている問題を直す指示書.mdで解消済み）:
+// output-layout.json の unitsRoot は "project-portal/lists"（対象プロジェクト向けの
+// 英字ディレクトリ規約）だったため、portal-catalog.json の semantic-glossary
+// blueprint が宣言する物理配置（日本語の "project-portal/一覧/用語辞書"）と食い違い、
+// output_layout_get 経由の解決は samplesDir に対して ENOENT を起こしていた。現在は
+// unitsRoot 自体が "project-portal/一覧" へ揃ったため両者は一致するが、実体の唯一の
+// 正本である portal-catalog.json の blueprint.dir を直接読む形はそのまま維持する。
 const semanticGlossaryBlueprint = JSON.parse(fs.readFileSync(portalCatalog, 'utf8'))
   .categories.flatMap(category => category.blueprints || [])
   .find(blueprint => blueprint.kind === 'semantic-glossary');
