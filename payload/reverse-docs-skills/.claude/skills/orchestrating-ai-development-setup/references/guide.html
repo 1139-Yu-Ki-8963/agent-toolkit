@@ -566,7 +566,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   </table>
   <div class="constraint">
     <strong>facts profileの境界</strong><br>
-    起動引数が空の対話実行ではprofileを質問し、<code>python</code>選択時は<code>target_repo_path</code>・<code>output_dir</code>・<code>target_file_paths</code>・<code>facts_unit_id</code>・<code>verification_dir</code>・実行モードを収集する。<code>target_file_paths</code>は対象リポジトリ内に実在する相対<code>.py</code>パスだけを許可し、外部絶対パスは要求しない。フル実行は global Step 3 以降へ進まず、global Step 2 の明示Python facts-only経路へ分岐する。通常の画面ループは対象ファイルの拡張子にかかわらず常に <code>profile=screen</code> を使う。<code>profile=python</code> は明示した経路だけで使う。この経路は <code>survey_doc_path</code> を既存調査書から解決し、不在なら <code>surveying-architecture-for-reverse-docs(mode=survey)</code>、不合格なら <code>mode=revise</code> で確定してからfacts抽出へ進み、facts確定後に終端する。拡張子だけから画面フローをPython facts-onlyへ切り替えない。
+    起動引数が空でも対話による確認は行わず、不足値を推測せず中断する。<code>facts_profile=python</code>では<code>target_repo_path</code>・<code>output_dir</code>・<code>target_file_paths</code>・<code>facts_unit_id</code>・<code>verification_dir</code>・実行モードを起動引数として要求する。<code>target_file_paths</code>は対象リポジトリ内に実在する相対<code>.py</code>パスだけを許可し、外部絶対パスは要求しない。フル実行は global Step 3 以降へ進まず、global Step 2 の明示Python facts-only経路へ分岐する。通常の画面ループは対象ファイルの拡張子にかかわらず常に <code>profile=screen</code> を使う。<code>profile=python</code> は明示した経路だけで使う。この経路は <code>survey_doc_path</code> を既存調査書から解決し、不在なら <code>surveying-architecture-for-reverse-docs(mode=survey)</code>、不合格なら <code>mode=revise</code> で確定してからfacts抽出へ進み、facts確定後に終端する。拡張子だけから画面フローをPython facts-onlyへ切り替えない。
   </div>
   <div class="constraint">
     <strong>静的完了前の画面一覧更新</strong><br>

@@ -83,15 +83,25 @@ set -euo pipefail
 # に基づく）。失敗時は判定不能規約（indeterminate-result/rule.md）に沿って
 # [UNKNOWN]・終了コード2で終了する。
 _mktemp_or_unknown() {
-  local out
+  local out tmp_root
+  tmp_root="${TMPDIR:-/tmp}"
+  # 実測 2026-08-24: macOS の TMPDIR は末尾 / 付きで、テンプレート側でも /
+  # を足すと mktemp の返却値に // が残る。一方、import 解決側はパスを正規化
+  # するため、自己テストの期待値だけが // を持って5件不一致になった。環境に
+  # 依存する末尾 / をここで除き、作成時点から比較可能なパスへ統一する。
+  while [ "$tmp_root" != "/" ] && [ "${tmp_root%/}" != "$tmp_root" ]; do
+    tmp_root="${tmp_root%/}"
+  done
   if [ "${1:-}" = "-d" ]; then
-    out="$(mktemp -d "${TMPDIR:-/tmp}/$(basename "${BASH_SOURCE[0]}" .sh).XXXXXX" 2>/dev/null)"
+    if ! out="$(mktemp -d "${tmp_root}/$(basename "${BASH_SOURCE[0]}" .sh).XXXXXX" 2>/dev/null)" || [ -z "$out" ]; then
+      echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+      exit 2
+    fi
   else
-    out="$(mktemp "${TMPDIR:-/tmp}/$(basename "${BASH_SOURCE[0]}" .sh).XXXXXX" 2>/dev/null)"
-  fi
-  if [ -z "$out" ]; then
-    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
-    exit 2
+    if ! out="$(mktemp "${tmp_root}/$(basename "${BASH_SOURCE[0]}" .sh).XXXXXX" 2>/dev/null)" || [ -z "$out" ]; then
+      echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+      exit 2
+    fi
   fi
   printf '%s' "$out"
 }

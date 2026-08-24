@@ -226,6 +226,9 @@ fi
 # 統括到達性: pythonは明示facts-only入口、通常の画面ループは常にscreen。
 phase_0p="$(sed -n '/^### 明示Python facts-only経路/,/^## Phase 2:/p' "$ORCHESTRATOR")"
 phase_6="$(sed -n '/^## Step 5-1:/,/^## Step 5-2:/p' "$ORCHESTRATOR")"
+python_entry_skill="$(sed -n '/^## Phase 1: 準備/,/^## Step 1-1:/p' "$ORCHESTRATOR")"
+python_entry_contract="$(sed -n '/^## Python facts-only入口契約/,/^## 入口モード判定契約/p' "$ORCHESTRATOR_CONTRACT")"
+python_entry_guide="$(sed -n '/<strong>facts profileの境界<\/strong>/,/<\/div>/p' "$ORCHESTRATOR_GUIDE")"
 if grep -q 'profile=python' <<<"$phase_0p" \
   && grep -q 'survey_doc_path.*解決' <<<"$phase_0p" \
   && grep -q 'surveying-architecture-for-reverse-docs' <<<"$phase_0p" \
@@ -237,31 +240,38 @@ else
   report "1-29/1-45 pythonとscreenの統括経路分離" 1
 fi
 
-skill_survey_pos="$(grep -n -m1 'survey_doc_path.*解決' "$ORCHESTRATOR" | cut -d: -f1 || true)"
-skill_extract_pos="$(grep -n -m1 'survey_doc_path確定後に限り' "$ORCHESTRATOR" | cut -d: -f1 || true)"
-contract_survey_pos="$(grep -n -m1 'facts抽出より先にsurvey_doc_pathを解決' "$ORCHESTRATOR_CONTRACT" | cut -d: -f1 || true)"
-contract_extract_pos="$(grep -n -m1 '画面一覧生成・対象画面ID実在確認.*extracting-unit-facts-from-code' "$ORCHESTRATOR_CONTRACT" | cut -d: -f1 || true)"
-guide_survey_pos="$(grep -n -m1 'survey_doc_path.*既存調査書から解決' "$ORCHESTRATOR_GUIDE" | cut -d: -f1 || true)"
-guide_extract_pos="$(grep -n -m1 'facts抽出へ進み' "$ORCHESTRATOR_GUIDE" | cut -d: -f1 || true)"
+skill_order_ok=0
+contract_order_ok=0
+guide_order_ok=0
+case "$phase_0p" in
+  *facts抽出より先に*survey_doc_path*解決*survey_doc_path確定後に限り*) skill_order_ok=1 ;;
+esac
+case "$python_entry_contract" in
+  *facts抽出より先にsurvey_doc_pathを解決*画面一覧生成・対象画面ID実在確認*extracting-unit-facts-from-code*) contract_order_ok=1 ;;
+esac
+case "$python_entry_guide" in
+  *survey_doc_path*既存調査書から解決*facts抽出へ進み*) guide_order_ok=1 ;;
+esac
 
 if grep -q 'Python facts-only入口契約' "$ORCHESTRATOR_CONTRACT" \
   && grep -q '通常の画面フローを意味し、画面ループ.*常に.*screen' "$ORCHESTRATOR_CONTRACT" \
   && grep -q 'global Step 2（明示Python facts-only）' "$ORCHESTRATOR_GUIDE" \
   && grep -q 'target_file_paths・facts_unit_id・verification_dir・実行モード' "$ORCHESTRATOR" \
   && grep -q 'フル実行（facts_profile=python）.*明示Python facts-only経路' "$ORCHESTRATOR" \
-  && grep -q '起動引数が空の対話実行ではAskUserQuestion' "$ORCHESTRATOR_CONTRACT" \
+  && grep -q '対話による確認は行わない' <<<"$python_entry_skill" \
+  && grep -q '対話による確認は行わない' <<<"$python_entry_contract" \
+  && grep -q '起動引数が空でも対話による確認は行わず' <<<"$python_entry_guide" \
+  && ! grep -qE 'AskUserQuestion|profileを質問' <<<"$python_entry_skill" \
+  && ! grep -qE 'AskUserQuestion|profileを質問' <<<"$python_entry_contract" \
+  && ! grep -qE 'AskUserQuestion|profileを質問' <<<"$python_entry_guide" \
   && grep -q 'フル実行の事前ヒアリング完了後はglobal Step 3以降へ進まず明示Python facts-only経路' "$ORCHESTRATOR_CONTRACT" \
-  && grep -q '起動引数が空の対話実行ではprofileを質問' "$ORCHESTRATOR_GUIDE" \
   && grep -q 'フル実行は global Step 3 以降へ進まず' "$ORCHESTRATOR_GUIDE" \
-  && [ -n "$skill_survey_pos" ] && [ -n "$skill_extract_pos" ] \
-  && [ -n "$contract_survey_pos" ] && [ -n "$contract_extract_pos" ] \
-  && [ -n "$guide_survey_pos" ] && [ -n "$guide_extract_pos" ] \
-  && [ "$skill_survey_pos" -lt "$skill_extract_pos" ] \
-  && [ "$contract_survey_pos" -le "$contract_extract_pos" ] \
-  && [ "$guide_survey_pos" -le "$guide_extract_pos" ]; then
-  report "1-29 python facts-only三文書でsurvey解決→facts抽出の順序一致" 0
+  && [ "$skill_order_ok" -eq 1 ] \
+  && [ "$contract_order_ok" -eq 1 ] \
+  && [ "$guide_order_ok" -eq 1 ]; then
+  report "1-29 python facts-only三文書で入口契約とsurvey解決→facts抽出の順序一致" 0
 else
-  report "1-29 python facts-onlyのsurvey順序が三文書で不一致" 1
+  report "1-29 python facts-onlyの入口契約またはsurvey順序が三文書で不一致" 1
 fi
 
 # 1-40/1-41: 著述合流後、静的完了より前にmetadata抽出と一覧再生成を必須化。
