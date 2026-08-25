@@ -6,6 +6,12 @@
       "targetPhase": "basic",
       "eligibility": "sourcePhase に宣言されたファイルがすべて実在する設計単位を対象とする",
       "excludedKinds": ["screen"]
+    },
+    "testFromExistingDetail": {
+      "sourcePhase": "detail",
+      "targetPhase": "test",
+      "eligibility": "sourcePhase に宣言されたファイルがすべて実在する設計単位を対象とする",
+      "excludedKinds": ["screen"]
     }
   },
   "kinds": {

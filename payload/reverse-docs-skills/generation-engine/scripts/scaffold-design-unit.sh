@@ -35,6 +35,7 @@ unit_root_key_for_kind() {
 #   scaffold-design-unit.sh --verify <kind> <phase> <output_dir> <識別子> [表示名] [template_root]
 #   scaffold-design-unit.sh --dry-run <kind> <phase> <output_dir> <識別子> [表示名] [template_root]
 #   scaffold-design-unit.sh --backfill-basic <output_dir> [template_root]
+#   scaffold-design-unit.sh --backfill-test <output_dir> [template_root]
 #
 # 引数:
 #   kind          api / table / batch / report / external / feature のいずれか
@@ -533,6 +534,69 @@ title: 余剰鍵' "$frontmatter_file"
       fail=$((fail + 1))
     fi
 
+    # testフェーズの後埋め（--backfill-test）。
+    # 詳細設計は揃っているユニットを合成する。ただしtestフェーズのファイルは欠けさせる。
+    # 空のユニットと、一部だけ欠けたユニット（部分）を6種別で用意する。
+    # 後埋め後に宣言ファイルが実在することを確認する。既存ファイルが上書きされないことも確認する。
+    # 機能（feature）はdetailフォルダを作らずに合成する。detailを持たない種別でも後埋め対象になることを確認する。
+    bft_root="$tmp/docs_backfill_test"
+    mkdir -p "$bft_root"
+    bft_ok=1
+    for bft_kind in api table batch report external feature; do
+      bft_root_key="$(unit_root_key_for_kind "$bft_kind")" || { bft_ok=0; continue; }
+      bft_root_rel="$(output_layout_get "$backfill_output_layout" "$bft_root_key")" || { bft_ok=0; continue; }
+      bft_kind_root="$bft_root/$bft_root_rel"
+      bft_label="$(design_unit_field "$backfill_layout_json" "$bft_kind" label)" || { bft_ok=0; continue; }
+      bft_test_files="$(design_unit_phase_files "$backfill_layout_json" "$bft_kind" test)" || { bft_ok=0; continue; }
+      bft_first_test_file="$(printf '%s\n' "$bft_test_files" | head -1)"
+      bft_empty_dir="$bft_kind_root/${bft_kind}-empty-${bft_kind}"
+      bft_partial_dir="$bft_kind_root/${bft_kind}-partial-${bft_kind}"
+      mkdir -p "$bft_empty_dir" "$bft_partial_dir"
+      if [ "$bft_kind" != "feature" ]; then
+        bft_detail_files="$(design_unit_phase_files "$backfill_layout_json" "$bft_kind" detail)" || { bft_ok=0; continue; }
+        mkdir -p "$bft_empty_dir/詳細設計" "$bft_partial_dir/詳細設計"
+        while IFS= read -r bft_detail_file; do
+          [ -n "$bft_detail_file" ] || continue
+          cp "$backfill_template_root/$bft_label/$bft_detail_file" "$bft_empty_dir/詳細設計/$bft_detail_file"
+          cp "$backfill_template_root/$bft_label/$bft_detail_file" "$bft_partial_dir/詳細設計/$bft_detail_file"
+        done <<< "$bft_detail_files"
+      fi
+      bft_partial_test_label="$(design_unit_phase_label test "$bft_root")" || { bft_ok=0; continue; }
+      mkdir -p "$bft_partial_dir/$bft_partial_test_label"
+      printf '既存内容は保持する\n' > "$bft_partial_dir/$bft_partial_test_label/$bft_first_test_file"
+      echo "$bft_partial_dir/$bft_partial_test_label/$bft_first_test_file" >> "$tmp/bft-existing-list.txt"
+    done
+    bft_partial_before="$(LC_ALL=C sort "$tmp/bft-existing-list.txt" | xargs cksum)"
+    if [ "$bft_ok" -eq 1 ] && bash "$self_path" --backfill-test "$bft_root" >/dev/null 2>&1; then
+      bft_partial_after="$(LC_ALL=C sort "$tmp/bft-existing-list.txt" | xargs cksum)"
+      bft_expected=0
+      bft_actual=0
+      for bft_kind in api table batch report external feature; do
+        bft_root_key="$(unit_root_key_for_kind "$bft_kind")" || { bft_ok=0; continue; }
+        bft_root_rel="$(output_layout_get "$backfill_output_layout" "$bft_root_key")" || { bft_ok=0; continue; }
+        bft_kind_root="$bft_root/$bft_root_rel"
+        bft_test_files="$(design_unit_phase_files "$backfill_layout_json" "$bft_kind" test)"
+        bft_test_label="$(design_unit_phase_label test "$bft_root")" || { bft_ok=0; continue; }
+        while IFS= read -r bft_test_file; do
+          [ -n "$bft_test_file" ] || continue
+          bft_expected=$((bft_expected + 2))
+          bft_found_empty="$(find "$bft_kind_root" -path "*-empty-*/$bft_test_label/$bft_test_file" -type f | wc -l | tr -d ' ')"
+          bft_found_partial="$(find "$bft_kind_root" -path "*-partial-*/$bft_test_label/$bft_test_file" -type f | wc -l | tr -d ' ')"
+          bft_actual=$((bft_actual + bft_found_empty + bft_found_partial))
+        done <<< "$bft_test_files"
+      done
+      if [ "$bft_expected" -eq "$bft_actual" ] && [ "$bft_partial_before" = "$bft_partial_after" ]; then
+        echo "PASS: testフェーズ後埋め（6種別12ユニット、宣言ファイル${bft_expected}件が実在し既存ファイルは保持）" >&2
+        pass=$((pass + 1))
+      else
+        echo "FAIL: testフェーズ後埋め（期待=${bft_expected}, 実在=${bft_actual}, 既存保持=$([ "$bft_partial_before" = "$bft_partial_after" ] && echo yes || echo no)）" >&2
+        fail=$((fail + 1))
+      fi
+    else
+      echo "FAIL: --backfill-test の実行に失敗、またはfixture準備に失敗" >&2
+      fail=$((fail + 1))
+    fi
+
     if bash "$self_path" api basic "$tmp/docs_not_exist" selftest-missing >/dev/null 2>&1; then
       echo "FAIL: 存在しないoutput_dir指定時にexit1" >&2
       fail=$((fail + 1))
@@ -609,6 +673,10 @@ case "${1:-}" in
     MODE=backfill-basic
     shift
     ;;
+  --backfill-test)
+    MODE=backfill-test
+    shift
+    ;;
 esac
 
 if [ "$MODE" = "backfill-basic" ]; then
@@ -676,6 +744,84 @@ if [ "$MODE" = "backfill-basic" ]; then
     | .key
   ')
   echo "基本設計の差分補完完了: 対象 ${eligible_units} ユニット、完了 ${completed_units} ユニット"
+  exit 0
+fi
+
+# testフェーズの後埋め（--backfill-test）。--backfill-basicと同じ形の処理を、
+# testFromExistingDetailの宣言に差し替えて行う。
+# kindの絞り込みだけはbasicFromExistingDetail側と異なる。
+# あちらはphases[source]（detail）の長さで対象kindを絞る。
+# 機能（feature）はdetailを持たない（空配列）。
+# 同じ絞り込みを使うと機能が常に除外される。
+# 機能のtestフェーズ後埋めは1-72の再検証で要求される対象そのものである。
+# このため絞り込みはexcludedKindsだけで行い、phases[source]の長さは見ない。
+# sourcePhaseに宣言されたファイルが0件の種別がある。
+# その種別は、ファイル群が「すべて実在する」を空虚な真として満たす。
+# このため後埋めの対象に含まれる。
+if [ "$MODE" = "backfill-test" ]; then
+  output_dir="${1:?引数1 output_dir が必要です}"
+  template_root="${2:-$script_dir/../../delivery-payload/templates/リバース検証}"
+  layout_json="$(design_unit_layout_load)" || exit 1
+  source_phase="$(printf '%s' "$layout_json" | jq -r '.generationRules.testFromExistingDetail.sourcePhase')"
+  target_phase="$(printf '%s' "$layout_json" | jq -r '.generationRules.testFromExistingDetail.targetPhase')"
+  if [ -z "$source_phase" ] || [ "$source_phase" = "null" ] || [ -z "$target_phase" ] || [ "$target_phase" = "null" ]; then
+    echo "エラー: testFromExistingDetail の sourcePhase / targetPhase が未定義です" >&2
+    exit 1
+  fi
+  if [ ! -d "$output_dir" ]; then
+    echo "エラー: output_dir が存在しません（タイポ防止のため自動作成しません）: $output_dir" >&2
+    exit 1
+  fi
+  assert_no_symlink_output_path "$output_dir" "$output_dir" || exit 1
+  output_layout_json="$(resolve_output_layout "$output_dir")" || exit 1
+  eligible_units=0
+  completed_units=0
+  while IFS= read -r backfill_kind; do
+    [ -n "$backfill_kind" ] || continue
+    backfill_root_key="$(unit_root_key_for_kind "$backfill_kind")" || exit 1
+    backfill_root_rel="$(output_layout_get "$output_layout_json" "$backfill_root_key")" || exit 1
+    backfill_root="$output_dir/$backfill_root_rel"
+    [ -d "$backfill_root" ] || continue
+    source_label="$(design_unit_phase_label "$source_phase")" || exit 1
+    target_label="$(design_unit_phase_label "$target_phase" "$output_dir")" || exit 1
+    backfill_label="$(design_unit_field "$layout_json" "$backfill_kind" label)" || exit 1
+    backfill_token="$(design_unit_field "$layout_json" "$backfill_kind" token)" || exit 1
+    target_files="$(design_unit_phase_files "$layout_json" "$backfill_kind" "$target_phase")" || exit 1
+    template_dir="$(cd "$template_root" && pwd)"
+    while IFS= read -r candidate_dir; do
+      [ -n "$candidate_dir" ] || continue
+      source_complete=1
+      while IFS= read -r source_file; do
+        [ -n "$source_file" ] || continue
+        if [ ! -f "$candidate_dir/$source_label/$source_file" ]; then
+          source_complete=0
+          break
+        fi
+      done < <(design_unit_phase_files "$layout_json" "$backfill_kind" "$source_phase")
+      [ "$source_complete" -eq 1 ] || continue
+      eligible_units=$((eligible_units + 1))
+      candidate_name="$(basename "$candidate_dir")"
+      candidate_id="${candidate_name#"${backfill_kind}-"}"
+      target_dir="$candidate_dir/$target_label"
+      if [ -L "$target_dir" ]; then
+        echo "エラー: 補完先phaseディレクトリがシンボリックリンクです: $target_dir" >&2
+        exit 1
+      fi
+      if scaffold_missing_phase_files "$target_dir" "$candidate_dir" "$target_phase" "$candidate_id" \
+          "$template_dir" "$backfill_label" "$backfill_token" "$candidate_id" "$target_files" 0 >/dev/null; then
+        completed_units=$((completed_units + 1))
+      else
+        echo "エラー: 単体テスト設計の差分補完に失敗しました: $candidate_dir" >&2
+        exit 1
+      fi
+    done < <(find "$backfill_root" -mindepth 1 -maxdepth 1 -type d -name "${backfill_kind}-*" | LC_ALL=C sort)
+  done < <(printf '%s' "$layout_json" | jq -r '
+    .generationRules.testFromExistingDetail.excludedKinds as $excluded
+    | .kinds | to_entries[] | . as $entry
+    | select(($excluded | index($entry.key)) == null)
+    | .key
+  ')
+  echo "単体テスト設計の差分補完完了: 対象 ${eligible_units} ユニット、完了 ${completed_units} ユニット"
   exit 0
 fi
 
