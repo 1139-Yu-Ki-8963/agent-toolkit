@@ -28,6 +28,45 @@ get_page_template() { case "$1" in glossary) echo "detail-t2-dictionary.html";; 
 get_page_filename() { case "$1" in glossary) echo "用語辞書.html";; techstack) echo "技術スタック.html";; transition) echo "画面遷移図.html";; er) echo "ER図.html";; env) echo "環境構築手順.html";; entity-state) echo "状態遷移図.html";; release-notes) echo "リリースノート.html";; design-system) echo "デザインシステム.html";; component-inventory) echo "コンポーネント棚卸し.html";; icon-catalog) echo "アイコンカタログ.html";; esac; }
 get_page_category() { case "$1" in glossary) echo "project";; techstack) echo "project";; env) echo "project";; release-notes) echo "project";; transition) echo "list";; er) echo "list";; entity-state) echo "list";; design-system) echo "design-tools";; component-inventory) echo "design-tools";; icon-catalog) echo "design-tools";; esac; }
 
+# --- --portal-dir 未指定時の既定値の保険(改善課題1-212) ---
+# design-system・component-inventory・icon-catalogはproject-portal/foundationへ
+# 出力されるにもかかわらず、--portal-dir未指定時の既定値はrelease-notes以外
+# 一律「index.html」(同階層)だったため、戻るリンクが解決しなかった。
+# OUTPUT_DIRのパス要素からproject-portalを探し、そこから何階層深いかを数えて
+# 相対パスを機械的に組み立てる。project-portalを含まない、または同階層(深さ0)の
+# 場合は従来どおり「index.html」を返す(判定できない場合は安全側に倒す)。
+# 呼び出し元が未確認のまま増える可能性があるため、page種別ではなくOUTPUT_DIRの
+# 実際の構造から判定する(release-notesの既存の特別扱いは変更しない)。
+default_back_link_depth() {
+  local output_dir="${1%/}"
+  local IFS=/
+  local -a parts
+  read -r -a parts <<< "$output_dir"
+  local idx=-1 i=0 part
+  for part in "${parts[@]}"; do
+    if [ "$part" = "project-portal" ]; then
+      idx=$i
+    fi
+    i=$((i + 1))
+  done
+  if [ "$idx" -lt 0 ]; then
+    echo "index.html"
+    return
+  fi
+  local total=${#parts[@]}
+  local depth=$((total - idx - 1))
+  if [ "$depth" -le 0 ]; then
+    echo "index.html"
+    return
+  fi
+  local prefix="" j=0
+  while [ "$j" -lt "$depth" ]; do
+    prefix="../$prefix"
+    j=$((j + 1))
+  done
+  echo "${prefix}index.html"
+}
+
 # --- --self-test モード ---
 # (a) バックスラッシュ・実マーカー文字列(\d+・{{PAGE_DATA_JSON}}・<!--DETAIL_TILES-->)を含む
 #     フィクスチャで、埋め込みJSON(script#page-data)が入力のjq -S正規化と完全一致することを
@@ -841,13 +880,14 @@ ER_FLAT_LIST_HTML="$(jq -r '
 # page-dataのJSONはテンプレート内で物理的に最後に出現するため、単一パスの
 # document-order走査により自動的に最後に処理される(JSON内容に他マーカー文字列が
 # 偶然含まれた場合の誤爆を避けるため)。
-# --- ポータルへの相対パス算出(--portal-dir 未指定時はrelease-notesだけ1階層上、他は同階層のindex.html) ---
+# --- ポータルへの相対パス算出(--portal-dir 未指定時はrelease-notesだけ1階層上固定、
+#     他はOUTPUT_DIRの実際の構造からdefault_back_link_depthが深さを判定する。改善課題1-212) ---
 if [ -n "$PORTAL_DIR_ARG" ]; then
   back_link="$(python3 -c "import os; print(os.path.relpath('$PORTAL_DIR_ARG', '$OUTPUT_DIR'))" 2>/dev/null || echo ".")/index.html"
 else
   case "$PAGE" in
     release-notes) back_link="../index.html" ;;
-    *) back_link="index.html" ;;
+    *) back_link="$(default_back_link_depth "$OUTPUT_DIR")" ;;
   esac
 fi
 

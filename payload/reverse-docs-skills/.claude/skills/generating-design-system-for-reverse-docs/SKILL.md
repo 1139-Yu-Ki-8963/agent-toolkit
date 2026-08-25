@@ -102,7 +102,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/design-system-page-data.json
 - **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/デザインシステム.html` が生成済み
 
   ```
-  ../../../generation-engine/scripts/detail-pages/build-detail-page.sh <page-data.json> <output_dir> --page design-system
+  ../../../generation-engine/scripts/detail-pages/build-detail-page.sh <page-data.json> <output_dir> --page design-system --portal-dir <output_dir>/project-portal
   ```
 
 - **Step 2** — `portal_output_dir` が指定されていればポータル再生成スクリプトを実行しカードへ反映する。未指定なら省略し完了報告に注記する。完了条件: 再実行済み、または省略を注記済み

@@ -102,7 +102,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/component-inventory-page-dat
 - **Step 1** — HTML 生成スクリプトを実行する。完了条件: `<output_dir>/コンポーネント棚卸し.html` が生成済み
 
   ```
-  ../../../generation-engine/scripts/detail-pages/build-detail-page.sh <page-data.json> <output_dir> --page component-inventory
+  ../../../generation-engine/scripts/detail-pages/build-detail-page.sh <page-data.json> <output_dir> --page component-inventory --portal-dir <output_dir>/project-portal
   ```
 
 - **Step 2** — `portal_output_dir` が指定されていればポータル再生成スクリプトを実行しカードへ反映する。未指定なら省略し完了報告に注記する。完了条件: 再実行済み、または省略を注記済み
