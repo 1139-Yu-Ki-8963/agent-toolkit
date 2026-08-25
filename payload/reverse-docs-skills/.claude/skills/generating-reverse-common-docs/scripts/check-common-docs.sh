@@ -101,6 +101,9 @@ document_path() {
 
 # backtick囲みトークンのうち「相対パス」とみなせるもの以外を除外する判定。
 # 除外: 「/」を含まない / URL / glob / プレースホルダ / 絶対パス / 空白・正規表現記号を含む
+# 1-79: コロンを含むトークンは、末尾が行番号注記（:<数字> または :<数字>-<数字>）の
+#   形でなければパス候補から除外する。URL（`://`）は前段の判定で既に除外済みのため、
+#   ここに残るコロンは「相対パス + 行番号注記」か「行番号ではない何か」のいずれかである。
 is_path_candidate() {
   tok="$1"
   case "$tok" in
@@ -111,8 +114,26 @@ is_path_candidate() {
     *'://'*|*'*'*|*'?'*|*'<'*|*'>'*|/*|*' '*|*'\'*|*'"'*|*"'"*|*'('*|*')'*|*'|'*|*'['*|*']'*|*'^'*|*'$'*|*'+'*|*'{'*|*'}'*)
       return 1 ;;
   esac
+  case "$tok" in
+    *:*)
+      printf '%s\n' "$tok" | grep -qE ':[0-9]+(-[0-9]+)?$' || return 1
+      ;;
+  esac
   return 0
 }
+
+# 1-79: トークン末尾の行番号・行範囲注記（:<数字>・:<数字>-<数字>）を取り除く。
+# 注記を持たないトークンはそのまま返す。行番号が実際の行数を超えているかどうかは
+# 確かめない（別主題）。
+strip_line_annotation() {
+  printf '%s' "$1" | sed -E 's/:[0-9]+(-[0-9]+)?$//'
+}
+
+# 1-80: `不在: <相対パスまたは文言>` の形は、意図的な不在（受領していない資料・
+# 除外資料・パスではない文言）を記録する印である。印の判定はコロンを含むが、
+# is_path_candidate の行番号注記判定より先に評価する（check_paths_exist 側で
+# 呼び出し順を制御する）。
+ABSENT_MARK='不在: '
 
 extract_backtick_tokens() {
   grep -oE '`[^`]+`' "$1" 2>/dev/null | sed -E 's/^`//; s/`$//' || true
@@ -151,22 +172,43 @@ EOF
 }
 
 # 検査3: パス実在検査（共通設計書＋メッセージ定義書＋DESIGN.md）
+# 1-79: 末尾の行番号注記を取り除いてから実在を確かめる。
+# 1-80: `不在: ` 印付きトークンは通常のパス候補判定から外し、逆検査
+#   （印付きパスが実在すれば不合格）を行う。印の判定は行番号注記の除去より先に行う。
 check_paths_exist() {
   dir="$1"
   repo="$2"
   missing=0
   total=0
+  marked_absent=0
+  confirmed_absent=0
   for f in $PATH_CHECK_FILES; do
     path="$dir/$f"
     [ -f "$path" ] || continue
     tokens="$(extract_backtick_tokens "$path")"
     while IFS= read -r tok; do
       [ -z "$tok" ] && continue
+      case "$tok" in
+        "$ABSENT_MARK"*)
+          marked_absent=$((marked_absent + 1))
+          absent_path="${tok#"$ABSENT_MARK"}"
+          case "$absent_path" in
+            ./*) absent_path="${absent_path#./}" ;;
+          esac
+          if [ -e "$repo/$absent_path" ]; then
+            echo "  不在の印と実態の食い違い: $f: $tok" >&2
+            missing=$((missing + 1))
+          else
+            confirmed_absent=$((confirmed_absent + 1))
+          fi
+          continue
+          ;;
+      esac
       if ! is_path_candidate "$tok"; then
         continue
       fi
       total=$((total + 1))
-      checkpath="$tok"
+      checkpath="$(strip_line_annotation "$tok")"
       case "$checkpath" in
         ./*) checkpath="${checkpath#./}" ;;
       esac
@@ -179,10 +221,10 @@ $tokens
 EOF
   done
   if [ "$missing" -gt 0 ]; then
-    echo "検査3失敗: 記載パス $total 件中 $missing 件が target_repo_path 配下に実在しません" >&2
+    echo "検査3失敗: 記載パス $total 件中 $missing 件が target_repo_path 配下に実在しません（不在記録 $marked_absent 件 / 不在確認 $confirmed_absent 件）" >&2
     return 1
   fi
-  echo "検査3通過: 記載パス $total 件すべて実在（対象0件を含む）"
+  echo "検査3通過: 記載パス $total 件すべて実在（対象0件を含む） / 不在記録 $marked_absent 件 / 不在確認 $confirmed_absent 件"
   return 0
 }
 
@@ -643,6 +685,142 @@ MD
     rc=1
   else
     echo "  [PASS] 集約入口: 検査3違反でexit 1"
+  fi
+
+  # 1-79-1: 実在ファイルへの :36 付き記述は不在扱いにならない
+  lineno1_dir="$tmp/lineno1"
+  build_docs "$lineno1_dir"
+  cat >> "$lineno1_dir/$design_doc" <<'MD'
+
+参照コンポーネントは `src/components/Button.tsx:36`。
+MD
+  lineno1_out="$(check_paths_exist "$lineno1_dir" "$repo" 2>&1)"; lineno1_rc=$?
+  if [ "$lineno1_rc" -eq 0 ] && ! printf '%s' "$lineno1_out" | grep -q '未実在'; then
+    echo "  [PASS] 1-79-1: :36 を添えた実在ファイルが不在扱いにならない"
+  else
+    echo "  [FAIL] 1-79-1: :36 を添えた実在ファイルが不在扱いになった" >&2
+    printf '%s\n' "$lineno1_out" >&2
+    rc=1
+  fi
+
+  # 1-79-2: 実在ファイルへの :36-42 付き記述は不在扱いにならない
+  lineno2_dir="$tmp/lineno2"
+  build_docs "$lineno2_dir"
+  cat >> "$lineno2_dir/$design_doc" <<'MD'
+
+参照コンポーネントは `src/components/Button.tsx:36-42`。
+MD
+  lineno2_out="$(check_paths_exist "$lineno2_dir" "$repo" 2>&1)"; lineno2_rc=$?
+  if [ "$lineno2_rc" -eq 0 ] && ! printf '%s' "$lineno2_out" | grep -q '未実在'; then
+    echo "  [PASS] 1-79-2: :36-42 を添えた実在ファイルが不在扱いにならない"
+  else
+    echo "  [FAIL] 1-79-2: :36-42 を添えた実在ファイルが不在扱いになった" >&2
+    printf '%s\n' "$lineno2_out" >&2
+    rc=1
+  fi
+
+  # 1-79-3: 不在ファイルへの :36-42 付き記述は不在として報告される
+  lineno3_dir="$tmp/lineno3"
+  build_docs "$lineno3_dir"
+  cat >> "$lineno3_dir/$design_doc" <<'MD'
+
+参照コンポーネントは `src/components/Missing.tsx:36-42`。
+MD
+  if check_paths_exist "$lineno3_dir" "$repo" >/dev/null 2>&1; then
+    echo "  [FAIL] 1-79-3: :36-42 を添えた不在ファイルが合格した" >&2
+    rc=1
+  else
+    echo "  [PASS] 1-79-3: :36-42 を添えた不在ファイルが不在として報告される"
+  fi
+
+  # 1-79-4: コロンを含むが行番号の形に一致しない文字列はパス候補から除外される
+  lineno4_dir="$tmp/lineno4"
+  build_docs "$lineno4_dir"
+  cat >> "$lineno4_dir/$design_doc" <<'MD'
+
+補足: `src/components/Button.tsx:備考`。
+MD
+  lineno4_out="$(check_paths_exist "$lineno4_dir" "$repo" 2>&1)"; lineno4_rc=$?
+  if [ "$lineno4_rc" -eq 0 ] && printf '%s' "$lineno4_out" | grep -q '記載パス 0 件'; then
+    echo "  [PASS] 1-79-4: コロンを含む非行番号文字列がパス候補から除外される"
+  else
+    echo "  [FAIL] 1-79-4: コロンを含む非行番号文字列がパス候補として扱われた" >&2
+    printf '%s\n' "$lineno4_out" >&2
+    rc=1
+  fi
+
+  # 1-79-5: 行番号を添えない通常パスの判定は現行と同じ
+  lineno5_dir="$tmp/lineno5"
+  build_docs "$lineno5_dir"
+  cat >> "$lineno5_dir/$design_doc" <<'MD'
+
+参照コンポーネントは `src/components/Button.tsx`。
+MD
+  lineno5_out="$(check_paths_exist "$lineno5_dir" "$repo" 2>&1)"; lineno5_rc=$?
+  if [ "$lineno5_rc" -eq 0 ] && printf '%s' "$lineno5_out" | grep -q '記載パス 1 件すべて実在'; then
+    echo "  [PASS] 1-79-5: 行番号を添えない通常パスの判定が現行と同じ"
+  else
+    echo "  [FAIL] 1-79-5: 行番号を添えない通常パスの判定が変わった" >&2
+    printf '%s\n' "$lineno5_out" >&2
+    rc=1
+  fi
+
+  # 1-80-1: 不在の印を付けた不在パスは合格し、件数を出力する
+  absent1_dir="$tmp/absent1"
+  build_docs "$absent1_dir"
+  cat >> "$absent1_dir/$design_doc" <<'MD'
+
+除外資料は `不在: src/legacy/removed.tsx`。
+MD
+  absent1_out="$(check_paths_exist "$absent1_dir" "$repo" 2>&1)"; absent1_rc=$?
+  if [ "$absent1_rc" -eq 0 ] && printf '%s' "$absent1_out" | grep -qF '不在記録 1 件 / 不在確認 1 件'; then
+    echo "  [PASS] 1-80-1: 印付き不在パスが合格し、件数を出力する"
+  else
+    echo "  [FAIL] 1-80-1: 印付き不在パスが合格しない、または件数を出力しない" >&2
+    printf '%s\n' "$absent1_out" >&2
+    rc=1
+  fi
+
+  # 1-80-2: 不在の印を付けたが実在するパスは、記録と実態の食い違いとして不合格になる
+  absent2_dir="$tmp/absent2"
+  build_docs "$absent2_dir"
+  cat >> "$absent2_dir/$design_doc" <<'MD'
+
+除外資料は `不在: src/components/Button.tsx`。
+MD
+  if check_paths_exist "$absent2_dir" "$repo" >/dev/null 2>&1; then
+    echo "  [FAIL] 1-80-2: 印付き実在パスが合格した" >&2
+    rc=1
+  else
+    echo "  [PASS] 1-80-2: 印付き実在パスは記録と実態の食い違いとして不合格になる"
+  fi
+
+  # 1-80-3: 印の無い不在パスは現行どおり不合格になる
+  absent3_dir="$tmp/absent3"
+  build_docs "$absent3_dir"
+  cat >> "$absent3_dir/$design_doc" <<'MD'
+
+参照コンポーネントは `src/components/StillMissing.tsx`。
+MD
+  if check_paths_exist "$absent3_dir" "$repo" >/dev/null 2>&1; then
+    echo "  [FAIL] 1-80-3: 印の無い不在パスが合格した" >&2
+    rc=1
+  else
+    echo "  [PASS] 1-80-3: 印の無い不在パスは現行どおり不合格"
+  fi
+
+  # 1-80-4: 印の無い実在パスは現行どおり合格する
+  absent4_dir="$tmp/absent4"
+  build_docs "$absent4_dir"
+  cat >> "$absent4_dir/$design_doc" <<'MD'
+
+参照コンポーネントは `src/components/Button.tsx`。
+MD
+  if check_paths_exist "$absent4_dir" "$repo" >/dev/null 2>&1; then
+    echo "  [PASS] 1-80-4: 印の無い実在パスは現行どおり合格"
+  else
+    echo "  [FAIL] 1-80-4: 印の無い実在パスが不合格になった" >&2
+    rc=1
   fi
 
   # 陰性4: 検査4のみ違反（テンプレ残存）
