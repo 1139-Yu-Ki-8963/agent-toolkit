@@ -1699,6 +1699,51 @@ self-testでこの不具合を検出し、判定の中核を `node -e` へ委譲
 
 **廃棄条件**: 接続窓口の詳細設計書から「実装契約」の節自体を廃止した時、または原本コードから設計書全体を生成する仕組みへ統合され、本抽出処理が個別に存在する必要がなくなった時。
 
+### generation-engine/scripts/tests/ の第1層未配線ラッパー6本
+
+**必要性**: 対象は次の7件である。
+
+- `check-phase-step-structure.mjs`
+- `check-improvement-ledger.mjs`
+- `check-skill-machine-inspection-consistency.mjs`
+- `check-confirmation-ledger.mjs`
+- `check-improvement-ledger.test.mjs`
+- `check-detailed-design-conventions.cjs`
+- `test-sequence-kind-policy.mjs`
+
+第1層の集約（`run-layer-machine-checks.sh`）の収集条件は2つある。`--self-test)` を含む `.sh` である。または `generation-engine/scripts/` 配下の `test-*.cjs`・`test-*.mjs` である。対象7件はどちらにも当てはまらない。一度も集約から実行されないまま残っていた（作業課題一覧「検査が7件、第1層の集約に載らないまま実行されない」）。
+
+対象を改名する案は採らない。改名すると部分文字列が消える。この部分文字列（例: `check-improvement-ledger`）に、作業課題一覧の検収コマンドが依存している。
+
+`check-phase-step-structure.mjs` の回帰テスト本体は `check-phase-step-structure.test.sh` である。この1件だけは既に対象の基底名を含む `.sh` として実在した。内容へ `--self-test)` の分岐を足す最小差分で済んだ。新規ファイルではない。
+
+残る6件は、対象を改名せずに集約から呼ぶための薄い `exec` ラッパーを新設した。新設先は次のとおりである。
+
+- `check-skill-machine-inspection-consistency.test.sh`
+- `check-improvement-ledger-cli.test.sh`
+- `check-improvement-ledger-unit.test.sh`
+- `check-detailed-design-conventions.test.sh`
+- `test-sequence-kind-policy.test.sh`
+- `check-confirmation-ledger.test.sh`
+
+形は「`generation-engine/scripts/tests/` のスキル週次記録ラッパー3本」節と同じである。
+
+`check-improvement-ledger.mjs` は引数なしで実行すると既定の台帳を読む本番経路である。既定の台帳は `docs/tasks/work-records/改善反映台帳.md` である。`check-improvement-ledger-cli.test.sh` はそれをそのまま呼ぶ。
+
+`check-confirmation-ledger.mjs` は `--ledger` が必須である。fixture なしに自己完結できない。ロジックの検証は既存の `test-confirmation-ledger.mjs` が既に子プロセスとして呼び出している。`check-confirmation-ledger.test.sh` はその既存テストへ委譲する。二重実行になるが、対象の所要時間が短いため許容範囲内と判断した。
+
+**代替案を採用しなかった理由**:
+- 対象7件を `test-*.mjs`・`test-*.cjs` 等の名前へ改名する: 部分文字列が失われる。既存の検収コマンドや設計判断の相互参照が壊れる
+- 集約（`list_targets`）の収集条件そのものを広げる: 既存の収集ロジックに影響する変更である。既に集約へ載っている200件近い検査の収集結果を変える危険を伴う。対象個別のラッパーで橋渡しする方が影響範囲は小さい
+- `check-confirmation-ledger.mjs` 用に新たな fixture を書き起こす: 既存の `test-confirmation-ledger.mjs` が同じ検証を既に持つ。二重に持つと片方だけが更新され食い違う
+- Bash ツール直叩き: 繰り返し実行する検査であり、対話セッションのツール呼び出しでは代替できない
+- 既存 Makefile ターゲット拡張: このリポジトリに Makefile は存在せず、新規導入は本ラッパー専用の依存を増やすだけになる
+- package.json scripts 追加: このリポジトリはビルド設定を持たない
+
+**保守責任者**: 人手（ユーザー）。対象本体の呼び出し方を変える場合は対応するラッパーも同時に更新する。引数・既定の入力ファイルを変える場合も同様である。
+
+**廃棄条件**: 対応する対象が廃止された時。または集約の収集条件が拡張子・置き場を問わず自己テストを検出できるようになった時。
+
 ## 規則
 
 | 規則 | 内容 | 根拠 | 検査 |

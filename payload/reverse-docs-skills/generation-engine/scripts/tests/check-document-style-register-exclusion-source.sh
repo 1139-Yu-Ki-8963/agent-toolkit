@@ -14,8 +14,21 @@
 #        （self_test関数はケース用の固定名を使ってよいため対象外とする）
 #
 # 使い方:
-#   check-document-style-register-exclusion-source.sh
+#   check-document-style-register-exclusion-source.sh [--self-test]
+#
+# 第1層の集約（run-layer-machine-checks.sh）が拾える形にするため、
+# "--self-test)" という分岐だけを足す（作業課題一覧「除外の直書きを防ぐ
+# 検査が第1層の集約に拾われない」）。引数なしの既存の呼び方は変えない。
 set -uo pipefail
+
+case "${1:-}" in
+  ""|--self-test)
+    ;;
+  *)
+    echo "usage: $0 [--self-test]" >&2
+    exit 2
+    ;;
+esac
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"

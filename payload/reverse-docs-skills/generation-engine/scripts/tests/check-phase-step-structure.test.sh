@@ -1,8 +1,22 @@
 #!/usr/bin/env bash
-# 集約の対象外: 本ファイル自体が check-phase-step-structure.mjs
-# の自己テストであり、--self-test フラグを持つ本番経路スクリプトではないため、
-# 追加の --self-test 実装は行わない（本ファイルの実行自体が回帰検証にあたる）。
+# check-phase-step-structure.mjs の回帰テスト本体。
+#
+# 第1層の集約（run-layer-machine-checks.sh）は "--self-test)" を含む .sh を
+# 収集対象とする。本ファイルは長らくこの条件に当てはまらず、一度も集約から
+# 実行されないまま残っていた（作業課題一覧「検査が7件、第1層の集約に載らない
+# まま実行されない」）。既存の呼び出し（README.md・project-context/rule.md が
+# 引数なしで呼ぶ既存の使い方）を壊さないよう、"" と "--self-test" の両方を
+# 受け付ける最小限の引数判定だけを足す。
 set -euo pipefail
+
+case "${1:-}" in
+  ""|--self-test)
+    ;;
+  *)
+    echo "usage: $0 [--self-test]" >&2
+    exit 2
+    ;;
+esac
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
