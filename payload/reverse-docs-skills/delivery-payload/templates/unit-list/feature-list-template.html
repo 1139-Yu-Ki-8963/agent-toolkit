@@ -26,6 +26,9 @@
     CATEGORY_SECTIONS (大分類セクションマーカー): 大分類ごとの details.module-group + table を丸ごと挿入
     UNRESOLVED_SECTION (要手動確認セクションマーカー) : kind=unresolved の一覧テーブル、0件なら「なし」の文言
     MANIFEST_JSON (マニフェストJSON埋め込みマーカー) : manifest.json の内容をそのまま埋め込み(二重管理・ドリフト禁止)
+    DOC_LABEL_BASIC (個別ページリンクの文書名マーカー・1-83) : design-unit-layout.jsonのkinds.feature.phases.basic[0]
+      から拡張子を除いた値(「機能設計書」)。個別ページリンクのtitle/aria-labelにのみ使い、
+      可視テキスト(「個別ページ」)は種別非依存のまま変更しない(定義は build-feature-list.sh 冒頭コメント)
 
   テーブル列順(固定・全3列): 機能名 / 概要 / 区分(任意列はクライアント側OPTIONAL_FIELDSが動的追加)。
   行の<tr>には data-unit-id / data-unit-key 属性を持たせ、展開行JSがマニフェストJSONから
@@ -857,7 +860,11 @@
       var link = document.createElement('a');
       link.href = path;
       link.className = 'unit-view-link';
-      link.title = '個別ページを開く';
+      /* 1-83: 可視テキスト(textContent)は種別非依存の「個別ページ」のまま変更しない。
+         title/aria-labelだけ、design-unit-layout.jsonのbasic文書名(DOC_LABEL_BASIC)から
+         導いた具体名を使い、開く文書の見出しと一致させる。 */
+      link.title = '{{DOC_LABEL_BASIC}}を開く';
+      link.setAttribute('aria-label', '{{DOC_LABEL_BASIC}}を開く');
       link.textContent = '個別ページ';
       firstTd.appendChild(link);
     }

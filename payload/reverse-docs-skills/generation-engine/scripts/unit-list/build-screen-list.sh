@@ -880,15 +880,19 @@ EOF
     ]
   }' > "$repo_root_manifest"
   local repo_root_out="$tmp/out-repo-root.html" repo_root_default_out="$tmp/out-repo-root-default.html"
-  if bash "$script_path" "$repo_root_manifest" "$repo_root_out" --repo-root "$tmp/mock-repo-root" >/dev/null 2>&1; then
-    if bash "$script_path" "$repo_root_manifest" "$repo_root_default_out" >/dev/null 2>&1; then
+  local _rr_out_a
+  if _rr_out_a="$(bash "$script_path" "$repo_root_manifest" "$repo_root_out" --repo-root "$tmp/mock-repo-root" 2>&1)"; then
+    local _rr_out_b
+    if _rr_out_b="$(bash "$script_path" "$repo_root_manifest" "$repo_root_default_out" 2>&1)"; then
       echo "  [FAIL] --repo-root指定: 省略時も成功してしまい、--repo-rootが解決基準を変えていることを確認できない" >&2
+      printf '%s\n' "$_rr_out_b" | sed 's/^/    /' >&2
       rc=1
     else
       echo "  [PASS] --repo-root指定: 指定時は成功、省略時は既定の解決基準(マニフェスト所在ディレクトリ)で失敗する"
     fi
   else
     echo "  [FAIL] --repo-root指定: 指定した基準ディレクトリでの相対sourceDir解決に失敗した" >&2
+    printf '%s\n' "$_rr_out_a" | sed 's/^/    /' >&2
     rc=1
   fi
 

@@ -351,8 +351,8 @@ EOF
     related_docs_ok=0
   elif ! grep -Fq "{label: '基本', docs: [" "$related_docs_out" \
     || ! grep -Fq "{label: '詳細', docs: [" "$related_docs_out" \
-    || ! grep -Fq "{label: '基本設計書', pathField: 'designDocPath', kind: 'basic'}" "$related_docs_out" \
-    || ! grep -Fq "{label: '詳細設計書', pathField: 'detailDocPath', kind: 'detail'}" "$related_docs_out" \
+    || ! LC_ALL=C grep -Fq "{label: 'API基本設計書', pathField: 'designDocPath', kind: 'basic'}" "$related_docs_out" \
+    || ! LC_ALL=C grep -Fq "{label: 'API詳細設計書', pathField: 'detailDocPath', kind: 'detail'}" "$related_docs_out" \
     || ! grep -Fq 'link.href = path;' "$related_docs_out" \
     || ! grep -Fq 'link.textContent = index === 0 ? group.label : doc.shortLabel;' "$related_docs_out"; then
     related_docs_ok=0
@@ -361,6 +361,80 @@ EOF
     echo "  [PASS] 1-65: 異なる役割の関連資料2件を役割別リンクとして描画できる契約を出力"
   else
     echo "  [FAIL] 1-65: 関連資料2件のパス・役割別ラベル・リンク描画契約が不正" >&2
+    rc=1
+  fi
+
+  # --- 1-83: 資料リンクのラベルを種別ごとの文書名(design-unit-layout.json)から導く ---
+  # api: 「API基本設計書」「API詳細設計書」($related_docs_out を1-65と共用して確認)
+  # table: 基本=「論理データモデル」、詳細=「テーブル定義書」(1-65のapiとは異なる文書名になり食い違いが解消することを示す)
+  # message: design-unit-layout.jsonに宣言が無いため既定値「基本設計書」へフォールバックする(後方互換)
+  # feature: build-unit-list.shがbuild-feature-list.shへ委譲した先でも「機能設計書」が導かれる
+  local doc_label_ok=1
+  if ! LC_ALL=C grep -Fq "{label: 'API基本設計書', pathField: 'designDocPath', kind: 'basic'}" "$related_docs_out" \
+    || ! LC_ALL=C grep -Fq "{label: 'API詳細設計書', pathField: 'detailDocPath', kind: 'detail'}" "$related_docs_out"; then
+    doc_label_ok=0
+  fi
+
+  local table_manifest="$tmp/manifest-table.json" table_out="$tmp/out-table.html"
+  jq -n --arg sourceDir "$tmp/src" --arg sourceFile "$tmp/src/routes/users.ts" '{
+    generatedAt: "2026-01-01T00:00:00Z",
+    sourceDir: $sourceDir,
+    unitKind: "table",
+    strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 1, unresolvedCount: 0},
+    units: [
+      {
+        unitKey: "users",
+        kind: "table",
+        identifier: "users",
+        unitNameGuess: "ユーザーテーブル",
+        designDocPath: "../docs/users-basic.html",
+        detailDocPath: "../docs/users-detail.html",
+        sourceFile: $sourceFile,
+        confidence: "high",
+        fileCount: 1,
+        detectionMethod: "manual"
+      }
+    ]
+  }' > "$table_manifest"
+  if ! bash "$script_path" "$table_manifest" "$table_out" --unit-kind table >/dev/null 2>&1; then
+    doc_label_ok=0
+  elif ! LC_ALL=C grep -Fq "{label: '論理データモデル', pathField: 'designDocPath', kind: 'basic'}" "$table_out" \
+    || ! LC_ALL=C grep -Fq "{label: 'テーブル定義書', pathField: 'detailDocPath', kind: 'detail'}" "$table_out"; then
+    doc_label_ok=0
+  fi
+
+  local message_label_manifest="$tmp/manifest-message-label.json" message_label_out="$tmp/out-message-label.html"
+  jq -n --arg sourceDir "$tmp/src" '{
+    generatedAt: "2026-01-01T00:00:00Z", sourceDir: $sourceDir, unitKind: "message",
+    strategy: {extractionMethod: "message-definition-table", approvedByUser: false, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {method: "message-definition-table", unitCount: 1, unresolvedCount: 0},
+    units: [{unitKey: "login-required", unitNameGuess: "ログインしてください", kind: "error", identifier: "login-required", confidence: "high", messageText: "必須です", messageType: "error", sourceFile: ["src/auth.ts"], usedScreen: "ログイン", designDocPath: "../docs/x.html"}],
+    summary: {totalCount: 1, byType: {error: 1}}
+  }' > "$message_label_manifest"
+  if ! bash "$script_path" "$message_label_manifest" "$message_label_out" --unit-kind message >/dev/null 2>&1; then
+    doc_label_ok=0
+  elif ! LC_ALL=C grep -Fq "{label: '基本設計書', pathField: 'designDocPath', kind: 'basic'}" "$message_label_out"; then
+    doc_label_ok=0
+  fi
+
+  local feature_label_manifest="$tmp/manifest-feature-label.json" feature_label_out="$tmp/out-feature-label.html"
+  jq -n --arg sourceDir "$tmp/src" --arg sourceFile "$tmp/src/routes/users.ts" '{
+    generatedAt: "2026-01-01T00:00:00Z", sourceDir: $sourceDir, unitKind: "feature",
+    strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 1, unresolvedCount: 0},
+    units: [{unitKey: "user-list-view", kind: "feature", category: "ユーザー管理", identifier: "/master/users", unitNameGuess: "ユーザー一覧表示", summary: "一覧を表示する", designDocPath: "../docs/users-basic.html", sourceFile: $sourceFile, relatedScreens: [], relatedApis: [], relatedTables: [], confidence: "high", fileCount: 1, detectionMethod: "manual"}]
+  }' > "$feature_label_manifest"
+  if ! bash "$script_path" "$feature_label_manifest" "$feature_label_out" --unit-kind feature >/dev/null 2>&1; then
+    doc_label_ok=0
+  elif ! LC_ALL=C grep -Fq '機能設計書' "$feature_label_out"; then
+    doc_label_ok=0
+  fi
+
+  if [ "$doc_label_ok" -eq 1 ]; then
+    echo "  [PASS] 1-83: 資料リンクのラベルを種別ごとの文書名から導く(api/table/message/feature)"
+  else
+    echo "  [FAIL] 1-83: 種別ごとの文書名から資料リンクのラベルを導けていない" >&2
     rc=1
   fi
 
@@ -734,15 +808,19 @@ EOF
     ]
   }' > "$repo_root_manifest"
   local repo_root_out="$tmp/out-repo-root.html" repo_root_default_out="$tmp/out-repo-root-default.html"
-  if bash "$script_path" "$repo_root_manifest" "$repo_root_out" --unit-kind api --repo-root "$tmp/mock-repo-root" >/dev/null 2>&1; then
-    if bash "$script_path" "$repo_root_manifest" "$repo_root_default_out" --unit-kind api >/dev/null 2>&1; then
+  local _rr_out_a
+  if _rr_out_a="$(bash "$script_path" "$repo_root_manifest" "$repo_root_out" --unit-kind api --repo-root "$tmp/mock-repo-root" 2>&1)"; then
+    local _rr_out_b
+    if _rr_out_b="$(bash "$script_path" "$repo_root_manifest" "$repo_root_default_out" --unit-kind api 2>&1)"; then
       echo "  [FAIL] --repo-root指定: 省略時も成功してしまい、--repo-rootが解決基準を変えていることを確認できない" >&2
+      printf '%s\n' "$_rr_out_b" | sed 's/^/    /' >&2
       rc=1
     else
       echo "  [PASS] --repo-root指定: 指定時は成功、省略時は既定の解決基準(マニフェスト所在ディレクトリ)で失敗する"
     fi
   else
     echo "  [FAIL] --repo-root指定: 指定した基準ディレクトリでの相対sourceDir解決に失敗した" >&2
+    printf '%s\n' "$_rr_out_a" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -946,6 +1024,24 @@ case "$UNIT_KIND" in
   *) echo "ERROR: unknown unit_kind: $UNIT_KIND" >&2; exit 1 ;;
 esac
 
+# --- 1-83: 資料リンクの「基本」「詳細」ラベルを design-unit-layout.json の
+# phases.basic/detail から解決する。同JSONに宣言の無い種別(message/test_viewpoint/
+# test_case等)は既定値(従来どおりの固定文字列)へフォールバックする。
+DESIGN_UNIT_LAYOUT_FILE="$SCRIPT_DIR/../../../delivery-payload/references/design-unit-layout.json"
+doc_label_for_phase() {
+  local kind="$1" phase="$2" default_label="$3" filename=""
+  if [ -f "$DESIGN_UNIT_LAYOUT_FILE" ]; then
+    filename="$(jq -r --arg k "$kind" --arg p "$phase" '(.kinds[$k].phases[$p][0]) // empty' "$DESIGN_UNIT_LAYOUT_FILE" 2>/dev/null)"
+  fi
+  if [ -n "$filename" ]; then
+    printf '%s' "${filename%.md}"
+  else
+    printf '%s' "$default_label"
+  fi
+}
+doc_label_basic="$(doc_label_for_phase "$UNIT_KIND" basic "基本設計書")"
+doc_label_detail="$(doc_label_for_phase "$UNIT_KIND" detail "詳細設計書")"
+
 TEMPLATE="$SCRIPT_DIR/../../../delivery-payload/templates/unit-list/unit-list-template.html"
 TOKENS_CSS_FILE="$SCRIPT_DIR/../../../delivery-payload/templates/tokens.css"
 if [ ! -f "$TEMPLATE" ]; then
@@ -958,6 +1054,14 @@ mkdir -p "$(dirname "$OUTPUT_HTML")"
 # --- HTMLエスケープ(& < > " '。& を最初に処理する) ---
 html_escape() {
   printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
+}
+
+# --- 1-83: JS単一引用符文字列リテラルへの埋め込み用エスケープ(\ を最初に処理する)。
+# DOC_LABEL_BASIC/DOC_LABEL_DETAIL は HTML属性値ではなく <script> 内のJS文字列リテラル
+# として埋め込むため、html_escape ではなくこちらを使う(html_escapeを使うと '&#39;' が
+# 文字列としてそのままJSソースへ混入し構文が壊れる)。
+js_escape() {
+  printf '%s' "$1" | sed -e "s/\\\\/\\\\\\\\/g" -e "s/'/\\\\'/g"
 }
 
 # detect-screens.sh と同じ末尾OKマーカー規約を、種別別一覧の可視HTMLにも適用する。
@@ -1191,6 +1295,8 @@ column_spec_json="$(unit_axes_script_safe "$(unit_axes_for_kind "$axes_resolved"
 render_args=(
   "{{PROJECT_NAME}}" "$(html_escape "$PROJECT_NAME_ARG")"
   "{{UNIT_KIND_LABEL}}" "$label_esc"
+  "{{DOC_LABEL_BASIC}}" "$(js_escape "$doc_label_basic")"
+  "{{DOC_LABEL_DETAIL}}" "$(js_escape "$doc_label_detail")"
   "{{GENERATED_AT}}" "$(html_escape "$generated_at")"
   "{{UNIT_COUNT}}" "$tile_unit_count"
   "{{UNRESOLVED_COUNT}}" "$tile_unresolved_count"
@@ -1224,6 +1330,14 @@ case "$out" in
   *'id="column-spec"'*) : ;;
   *)
     echo "ERROR: column-spec が出力に注入されていません（テンプレートの <!--COLUMN_SPEC_JSON--> マーカー欠落）" >&2
+    exit 1 ;;
+esac
+
+# 1-83: 未置換のDOC_LABELマーカーがHTMLへ漏れていないか(render_templateは単一パスのため
+# 未登録プレースホルダは置換されずそのまま残る)。fail-closed。
+case "$out" in
+  *'{{DOC_LABEL_'*)
+    echo "ERROR: 資料ラベルのプレースホルダが未置換のまま残っています（{{DOC_LABEL_...}}）" >&2
     exit 1 ;;
 esac
 

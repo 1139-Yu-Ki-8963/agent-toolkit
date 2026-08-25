@@ -27,6 +27,10 @@
     EXTRA_TILES (種別内訳タイルマーカー・任意) : unit_kind=test_case の場合のみ挿入(正本は build-unit-list.sh 冒頭コメント)
     EXTRA_DIAGNOSTICS (種別固有診断マーカー・任意) : unit_kind=batch の場合のみ、推定名称比率(1-128)の
       タイルと警告コールアウトを挿入(正本は build-unit-list.sh 冒頭コメント)。0件でも必ず表示する
+    DOC_LABEL_BASIC (資料リンク「基本」ラベルマーカー・1-83) : design-unit-layout.jsonのkinds.<kind>.phases.basic[0]
+      から拡張子を除いた値。宣言が無い種別(message/test_viewpoint/test_case等)は既定値「基本設計書」
+    DOC_LABEL_DETAIL (資料リンク「詳細」ラベルマーカー・1-83) : 同上のphases.detail[0]から拡張子を除いた値。
+      宣言が無い種別は既定値「詳細設計書」
 
   テーブル列順: <ラベル>名 / 識別子 / 区分（区分値が2種類以上ある場合のみ。種別固有列はJSのFIELD_SETSが動的追加）。
   行の<tr>には data-unit-id / data-unit-key 属性を持たせ、展開行JSがマニフェストJSONから
@@ -538,12 +542,17 @@
        ページ内展開のみを担い、a要素へのクリックは後段の行クリック展開ハンドラが
        ev.target.closest('.copy-btn,a,button') で除外する。 */
     (function () {
+      /* 1-83: 「基本」「詳細」の資料リンクラベル(doc.label)は種別ごとに文書名が異なるため、
+         build-unit-list.sh が design-unit-layout.json の phases.basic/detail から解決した
+         値をビルド時に埋め込む(プレースホルダの定義はテンプレート冒頭コメントを見る)。
+         group.label('基本'・'詳細'等)はグループ分類の短い見出しでありリンクの可視テキストに
+         使うため、種別非依存のまま変更しない。 */
       var DOC_GROUPS = [
         {label: '基本', docs: [
-          {label: '基本設計書', pathField: 'designDocPath', kind: 'basic'}
+          {label: '{{DOC_LABEL_BASIC}}', pathField: 'designDocPath', kind: 'basic'}
         ]},
         {label: '詳細', docs: [
-          {label: '詳細設計書', pathField: 'detailDocPath', kind: 'detail'},
+          {label: '{{DOC_LABEL_DETAIL}}', pathField: 'detailDocPath', kind: 'detail'},
           {label: 'シーケンス図', shortLabel: '図', pathField: 'sequencePath', kind: 'sequence'}
         ]},
         {label: '結合', docs: [

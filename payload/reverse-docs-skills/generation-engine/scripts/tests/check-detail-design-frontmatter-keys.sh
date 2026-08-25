@@ -121,8 +121,10 @@ check_generated() {
   if ! mkdir -p "$output_dir"; then
     unknown "mktempで作成した一時領域へ出力ディレクトリを作成できませんでした。書込み権限または実行環境の制約が考えられます"
   fi
-  if ! bash "$SCAFFOLD" "$kind" detail "$output_dir" frontmatter-check "前付け検査" >/dev/null 2>&1; then
+  local _cg_out
+  if ! _cg_out="$(bash "$SCAFFOLD" "$kind" detail "$output_dir" frontmatter-check "前付け検査" 2>&1)"; then
     echo "[FAIL] $kind 実生成物を作成できません" >&2
+    printf '%s\n' "$_cg_out" | sed 's/^/    /' >&2
     return 1
   fi
   generated="$(find "$output_dir" -type f -name "$document" -print -quit)"
@@ -133,10 +135,12 @@ check_generated() {
   fill_frontmatter_values "$generated"
   local errors=0
   compare_keys "$kind" "$generated" "$kind 実生成物" || errors=$((errors + 1))
-  if bash "$SCAFFOLD" --verify "$kind" detail "$output_dir" frontmatter-check >/dev/null 2>&1; then
+  local _cv_out
+  if _cv_out="$(bash "$SCAFFOLD" --verify "$kind" detail "$output_dir" frontmatter-check 2>&1)"; then
     echo "[PASS] $kind 実生成物: scaffold --verifyがJSON正本との一致を確認"
   else
     echo "[FAIL] $kind 実生成物: scaffold --verifyが不合格" >&2
+    printf '%s\n' "$_cv_out" | sed 's/^/    /' >&2
     errors=$((errors + 1))
   fi
   [ "$errors" -eq 0 ]
@@ -181,8 +185,10 @@ self_test() {
   if ! mkdir -p "$output_dir"; then
     unknown "mktempで作成した一時領域へ自己テスト出力先を作成できませんでした。書込み権限または実行環境の制約が考えられます"
   fi
-  if ! bash "$SCAFFOLD" api detail "$output_dir" frontmatter-self-test "前付け自己テスト" >/dev/null 2>&1; then
+  local _st_out
+  if ! _st_out="$(bash "$SCAFFOLD" api detail "$output_dir" frontmatter-self-test "前付け自己テスト" 2>&1)"; then
     echo "[FAIL] 自己テスト用のAPI詳細設計書を生成できません" >&2
+    printf '%s\n' "$_st_out" | sed 's/^/    /' >&2
     return 1
   fi
   canonical="$(find "$output_dir" -type f -name 'API詳細設計書.md' -print -quit)"
@@ -230,8 +236,15 @@ title: 余剰鍵' "$canonical"; then
 }
 
 main() {
-  if [ ! -f "$DEFINITION" ] || ! jq -e '.schemaVersion == 1 and (.kinds | type == "object")' "$DEFINITION" >/dev/null 2>&1; then
+  local _def_out
+  if [ ! -f "$DEFINITION" ]; then
     echo "[FAIL] 詳細設計書frontmatter定義が不正です: $DEFINITION" >&2
+    echo "    ファイルが存在しません" >&2
+    return 1
+  fi
+  if ! _def_out="$(jq -e '.schemaVersion == 1 and (.kinds | type == "object")' "$DEFINITION" 2>&1)"; then
+    echo "[FAIL] 詳細設計書frontmatter定義が不正です: $DEFINITION" >&2
+    printf '%s\n' "$_def_out" | sed 's/^/    /' >&2
     return 1
   fi
   case "${1:-}" in

@@ -317,6 +317,25 @@ EOF
     rc=1
   fi
 
+  # --- 1-83: 個別ページリンクのtitle/aria-labelが design-unit-layout.json の
+  # kinds.feature.phases.basic(機能設計書.md)から導かれる。可視テキスト(個別ページ)は変えない ---
+  local doc_label_manifest="$tmp/manifest-doc-label.json" doc_label_out="$tmp/out-doc-label.html"
+  jq '.units[0].designDocPath = "../docs/user-list-view-basic.html"' "$manifest_normal" > "$doc_label_manifest"
+  local doc_label_ok=1
+  if ! bash "$script_path" "$doc_label_manifest" "$doc_label_out" >/dev/null 2>&1; then
+    doc_label_ok=0
+  elif ! LC_ALL=C grep -Fq "title = '機能設計書を開く';" "$doc_label_out" \
+    || ! LC_ALL=C grep -Fq "aria-label', '機能設計書を開く'" "$doc_label_out" \
+    || ! LC_ALL=C grep -Fq "link.textContent = '個別ページ';" "$doc_label_out"; then
+    doc_label_ok=0
+  fi
+  if [ "$doc_label_ok" -eq 1 ]; then
+    echo "  [PASS] 1-83: 個別ページリンクのtitle/aria-labelを「機能設計書」から導く(可視テキストは維持)"
+  else
+    echo "  [FAIL] 1-83: 個別ページリンクのラベルが種別ごとの文書名から導けていない" >&2
+    rc=1
+  fi
+
   # --- 1-102: sourceDirが絶対パスの場合、埋め込みJSON内でbasenameへ正規化されること ---
   local abs_manifest="$tmp/manifest-abs-sourcedir.json" abs_out="$tmp/manifest-abs-sourcedir.html"
   jq -n \
@@ -441,15 +460,19 @@ EOF
     ]
   }' > "$repo_root_manifest"
   local repo_root_out="$tmp/out-repo-root.html" repo_root_default_out="$tmp/out-repo-root-default.html"
-  if bash "$script_path" "$repo_root_manifest" "$repo_root_out" --repo-root "$tmp/mock-repo-root" >/dev/null 2>&1; then
-    if bash "$script_path" "$repo_root_manifest" "$repo_root_default_out" >/dev/null 2>&1; then
+  local _rr_out_a
+  if _rr_out_a="$(bash "$script_path" "$repo_root_manifest" "$repo_root_out" --repo-root "$tmp/mock-repo-root" 2>&1)"; then
+    local _rr_out_b
+    if _rr_out_b="$(bash "$script_path" "$repo_root_manifest" "$repo_root_default_out" 2>&1)"; then
       echo "  [FAIL] --repo-root指定: 省略時も成功してしまい、--repo-rootが解決基準を変えていることを確認できない" >&2
+      printf '%s\n' "$_rr_out_b" | sed 's/^/    /' >&2
       rc=1
     else
       echo "  [PASS] --repo-root指定: 指定時は成功、省略時は既定の解決基準(マニフェスト所在ディレクトリ)で失敗する"
     fi
   else
     echo "  [FAIL] --repo-root指定: 指定した基準ディレクトリでの相対sourceDir解決に失敗した" >&2
+    printf '%s\n' "$_rr_out_a" | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -540,6 +563,22 @@ mkdir -p "$(dirname "$OUTPUT_HTML")"
 html_escape() {
   printf '%s' "$1" | sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/"/\&quot;/g' -e "s/'/\&#39;/g"
 }
+
+# --- 1-83: JS単一引用符文字列リテラルへの埋め込み用エスケープ(\ を最初に処理する)。
+# DOC_LABEL_BASIC は HTML属性値ではなく <script> 内のJS文字列リテラルとして埋め込むため、
+# html_escape ではなくこちらを使う。
+js_escape() {
+  printf '%s' "$1" | sed -e "s/\\\\/\\\\\\\\/g" -e "s/'/\\\\'/g"
+}
+
+# --- 1-83: 個別ページリンクのtitle/aria-labelを design-unit-layout.json の
+# kinds.feature.phases.basic から解決する。宣言が無ければ既定値「機能設計書」へフォールバックする。
+DESIGN_UNIT_LAYOUT_FILE="$SCRIPT_DIR/../../../delivery-payload/references/design-unit-layout.json"
+doc_label_basic="機能設計書"
+if [ -f "$DESIGN_UNIT_LAYOUT_FILE" ]; then
+  _feature_basic_filename="$(jq -r '(.kinds.feature.phases.basic[0]) // empty' "$DESIGN_UNIT_LAYOUT_FILE" 2>/dev/null)"
+  [ -n "$_feature_basic_filename" ] && doc_label_basic="${_feature_basic_filename%.md}"
+fi
 
 strip_ok_marker() {
   printf '%s' "$1" | sed -E '
@@ -767,6 +806,7 @@ column_spec_json="$(unit_axes_script_safe "$(unit_axes_for_kind "$axes_resolved"
 # (JSON内容に他マーカー文字列が偶然含まれた場合の誤爆を避けるため)
 render_args=(
   "{{PROJECT_NAME}}" "$(html_escape "$PROJECT_NAME_ARG")"
+  "{{DOC_LABEL_BASIC}}" "$(js_escape "$doc_label_basic")"
   "{{GENERATED_AT}}" "$(html_escape "$generated_at")"
   "{{CATEGORY_COUNT}}" "$category_count"
   "{{UNIT_COUNT}}" "$tile_unit_count"
@@ -800,6 +840,13 @@ case "$out" in
   *'id="column-spec"'*) : ;;
   *)
     echo "ERROR: column-spec が出力に注入されていません（テンプレートの <!--COLUMN_SPEC_JSON--> マーカー欠落）" >&2
+    exit 1 ;;
+esac
+
+# 1-83: 未置換のDOC_LABELマーカーがHTMLへ漏れていないか。fail-closed。
+case "$out" in
+  *'{{DOC_LABEL_'*)
+    echo "ERROR: 資料ラベルのプレースホルダが未置換のまま残っています（{{DOC_LABEL_...}}）" >&2
     exit 1 ;;
 esac
 
