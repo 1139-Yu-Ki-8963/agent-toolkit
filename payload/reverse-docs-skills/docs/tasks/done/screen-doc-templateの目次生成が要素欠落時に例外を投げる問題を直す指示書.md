@@ -83,10 +83,10 @@
 
 | 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |
 |---|---|---|---|---|
-| 1. verify-element-guard.cjsの終了コード | `node generation-engine/scripts/tests/verify-element-guard.cjs` | 完了 | — | — |
-| 2. screen-doc-template.htmlがガードを持つ | `bash docs/scripts/check-screen-doc-template-guard.sh` | 完了 | — | — |
-| 3. 直接チェーンの呼び出しが残らない | `bash docs/scripts/check-screen-doc-template-guard.sh --no-direct-chain` | 完了 | — | — |
-| 4. 検査対象へ追加されている | `grep -c "screen-doc-template" generation-engine/scripts/tests/verify-element-guard.cjs` | 完了 | — | — |
+| 1. verify-element-guard.cjsの終了コード | `node generation-engine/scripts/tests/verify-element-guard.cjs` | 完了 | 146f0b5 | — |
+| 2. screen-doc-template.htmlがガードを持つ | `bash docs/scripts/check-screen-doc-template-guard.sh` | 完了 | 146f0b5 | — |
+| 3. 直接チェーンの呼び出しが残らない | `bash docs/scripts/check-screen-doc-template-guard.sh --no-direct-chain` | 完了 | 146f0b5 | — |
+| 4. 検査対象へ追加されている | `grep -c "screen-doc-template" generation-engine/scripts/tests/verify-element-guard.cjs` | 完了 | 146f0b5 | — |
 
 ### 判断の記録
 
