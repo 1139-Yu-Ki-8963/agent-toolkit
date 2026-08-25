@@ -52,11 +52,11 @@ allowed-tools: [Bash, Read, Write]
 
 | 項目 | 値 |
 |---|---|
-| 出力フォルダ | `<output_dir>/<tableUnitRoot>/table-<テーブル識別子>/詳細設計/` |
+| 出力フォルダ | `<output_dir>/<tableUnitRoot>/table-<テーブル識別子>/<unitPhaseDirNames.detail>/` |
 | 出力ファイル | `テーブル定義書.md` |
 | テンプレート | `<template_root>/リバース検証/テーブル/テーブル定義書.md` |
 
-`tableUnitRoot` は output-layout の物理配置キー（既定値 `docs/design/tables`）。表示用 `kindLabels.table` は path に使わない。
+`tableUnitRoot` は output-layout の物理配置キー（既定値 `docs/design/tables`）。表示用 `kindLabels.table` は path に使わない。`unitPhaseDirNames.detail` は output-layout の `unitPhaseDirNames.detail` の値（既定値 `detail-design`）であり、scaffold-design-unit.sh が実際に展開する配置フォルダ名と一致させる（1-210）。
 
 `<テーブル識別子>` はマニフェストの `unitId` を使う。`unitId` が空（`null` または空文字）の場合は `unitKey` を使う。両方が空の場合だけ当該ユニットを生成せず、`status=ERROR` で中断して hint に「出力先の識別子が確定しない」と当該ユニットの `identifier` を記録する。
 
@@ -114,7 +114,7 @@ bash generation-engine/scripts/scaffold-design-unit.sh table detail <output_dir>
 
 **使用ツール**: Read / Write
 
-- **Step 1**: `<template_root>/リバース検証/テーブル/テーブル定義書.md` を Read する。読み込んだ内容を `<output_dir>/<tableUnitRoot>/table-<テーブル識別子>/詳細設計/テーブル定義書.md` へ書き出す。`<テーブル識別子>` の決め方は「成果物」節の規約に従う。中間ディレクトリが無ければ作成する。完了条件: 全対象ユニットのファイルが配置済み
+- **Step 1**: `<template_root>/リバース検証/テーブル/テーブル定義書.md` を Read する。読み込んだ内容を `<output_dir>/<tableUnitRoot>/table-<テーブル識別子>/<unitPhaseDirNames.detail>/テーブル定義書.md` へ書き出す。`<テーブル識別子>` の決め方は「成果物」節の規約に従う。中間ディレクトリが無ければ作成する。完了条件: 全対象ユニットのファイルが配置済み
 - **Step 2**: Phase 2 で得た材料を各章へ記入する。原本に無い値を書かない。推測で埋めない。完了条件: 各章の記入が完了している
 - **Step 3**: 空欄のまま残った項目を要確認事項一覧へ列挙する。対象コードのファイルパス・行番号は記録しない。完了条件: 要確認事項一覧へ記録済み
 - **Step 4**: frontmatter の `status` を `draft` から `authored` へ更新する。完了条件: `status: authored` になっている

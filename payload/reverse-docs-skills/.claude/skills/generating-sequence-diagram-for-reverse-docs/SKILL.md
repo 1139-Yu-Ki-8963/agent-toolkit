@@ -36,7 +36,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 API・機能の`<unit-dir>`は、空でない`unitId`がpolicyの`unitIdPattern`に一致するときだけそのまま使う。不一致なら生成せず停止する。`unitId`が空なら`api-<unitKey>`または`feature-<unitKey>`とする。日本語の意味語を含む`unitKey`も無変換で保持する。空文字、path区切り（`/`・`\`）、制御文字を含む値は生成せず停止する。
 
-API詳細設計書の`詳細設計/`や機能設計書の`基本設計/`には置かない。その1階層上の設計単位ディレクトリへ置く。
+API詳細設計書の`<unitPhaseDirNames.detail>/`や機能設計書の`<unitPhaseDirNames.basic>/`には置かない。その1階層上の設計単位ディレクトリへ置く。`unitPhaseDirNames.basic`・`unitPhaseDirNames.detail`はoutput-layoutの`unitPhaseDirNames.basic`・`.detail`の値（既定値`basic-design`・`detail-design`）であり、scaffold-design-unit.shが実際に展開する配置フォルダ名と一致させる（1-210）。
 
 | 種別 | page-data | HTML |
 |---|---|---|
@@ -261,8 +261,9 @@ jq -e '
 Glob / Read で実在ファイルを確認し、対象単位の設計書ビューアと同じ体裁の左サイドバー用doc-navを組み立てる。画面は既存のscreenViewRoot経路、API・機能は対象設計書と同じ単位ディレクトリを基点にする。実在判定はシーケンス図.html側の視点（アクティブ項目がシーケンス図）で行う。
 
 - **戻るリンク**: `<a class="back-link" href="<画面一覧.htmlへの相対パス>">← 画面一覧へ戻る</a>`。`<output_dir>/<screenListDir>/画面一覧.html`（既定 `project-portal/lists/screens/画面一覧.html`）への相対パスを算出する（出力先は `<screenViewRoot>/screen-<ID>/` 直下で、既定値どうしの組では `../../lists/screens/画面一覧.html` が典型値）
-- **基本設計項目**: `${screen_view_dir}基本設計/画面基本設計書.html` が実在すれば `<a class="nav-item" href="基本設計/画面基本設計書.html">基本設計</a>`
-- **詳細設計項目**: `${screen_view_dir}詳細設計/画面詳細設計書.html` が実在すれば `<a class="nav-item" href="詳細設計/画面詳細設計書.html">詳細設計</a>`
+- 画面の基本設計・詳細設計のフォルダ名は`${screen_basic_dirname}`・`${screen_detail_dirname}`とする。値はそれぞれ`基本設計`・`詳細設計`固定であり、scaffold-screen.shが展開する画面専用の配置規約に従う（画面はunitPhaseDirNamesの対象外。1-210の対象外）
+- **基本設計項目**: `${screen_view_dir}${screen_basic_dirname}/画面基本設計書.html` が実在すれば `<a class="nav-item" href="${screen_basic_dirname}/画面基本設計書.html">基本設計</a>`
+- **詳細設計項目**: `${screen_view_dir}${screen_detail_dirname}/画面詳細設計書.html` が実在すれば `<a class="nav-item" href="${screen_detail_dirname}/画面詳細設計書.html">詳細設計</a>`
 - **シーケンス図項目**: 自ページなので `<span class="nav-item active">シーケンス図</span>`
 - 実在しない項目は追加しない（存在しない基本設計・詳細設計への空リンクを作らない）
 - **API**: 戻るリンクはAPI一覧。`API基本設計書.html`・`API詳細設計書.html`の実在する方だけを追加する

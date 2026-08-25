@@ -52,11 +52,11 @@ allowed-tools: [Bash, Read, Write]
 
 | 項目 | 基本設計書 | バッチテスト設計書 | バッチ単体テスト設計書 |
 |---|---|---|---|
-| 出力フォルダ | `<output_dir>/<batchUnitRoot>/batch-<バッチ識別子>/基本設計/` | `<output_dir>/<batchUnitRoot>/batch-<バッチ識別子>/<unitTestDesignDir>/` | `<output_dir>/<batchUnitRoot>/batch-<バッチ識別子>/<unitTestDesignDir>/` |
+| 出力フォルダ | `<output_dir>/<batchUnitRoot>/batch-<バッチ識別子>/<unitPhaseDirNames.basic>/` | `<output_dir>/<batchUnitRoot>/batch-<バッチ識別子>/<unitTestDesignDir>/` | `<output_dir>/<batchUnitRoot>/batch-<バッチ識別子>/<unitTestDesignDir>/` |
 | 出力ファイル | `バッチ基本設計書.md` | `バッチテスト設計書.md` | `バッチ単体テスト設計書.md` |
 | テンプレート | `<template_root>/リバース検証/バッチ/バッチ基本設計書.md` | `<template_root>/リバース検証/バッチ/バッチテスト設計書.md` | `<template_root>/リバース検証/バッチ/バッチ単体テスト設計書.md` |
 
-`batchUnitRoot` は output-layout の物理配置キー（既定値 `docs/design/batches`）。表示用 `kindLabels.batch` は path に使わない。
+`batchUnitRoot` は output-layout の物理配置キー（既定値 `docs/design/batches`）。表示用 `kindLabels.batch` は path に使わない。`unitPhaseDirNames.basic` は output-layout の `unitPhaseDirNames.basic` の値（既定値 `basic-design`）であり、scaffold-design-unit.sh が実際に展開する配置フォルダ名と一致させる（1-210）。
 
 テスト成果物は全種別共通で、<unitTestDesignDir>/バッチテスト設計書.md（設計単位1つの外部の振る舞い）とバッチ単体テスト設計書.md（関数・メソッド単位）の2文書とする。観点とケースは各文書の共通12節へ統合し、単位配下へ結合テスト文書を生成しない。
 
@@ -114,7 +114,7 @@ bash generation-engine/scripts/scaffold-design-unit.sh batch basic <output_dir> 
 
 ## Step 3-1: テンプレートの展開と記入
 
-- **Step 1**: `<template_root>/リバース検証/バッチ/バッチ基本設計書.md` を Read する。読み込んだ内容を `<output_dir>/<batchUnitRoot>/batch-<バッチ識別子>/基本設計/バッチ基本設計書.md` へ書き出す。`<バッチ識別子>` の決め方は「成果物」節の規約に従う。中間ディレクトリが無ければ作成する。完了条件: 全対象ユニットのファイルが配置済み
+- **Step 1**: `<template_root>/リバース検証/バッチ/バッチ基本設計書.md` を Read する。読み込んだ内容を `<output_dir>/<batchUnitRoot>/batch-<バッチ識別子>/<unitPhaseDirNames.basic>/バッチ基本設計書.md` へ書き出す。`<バッチ識別子>` の決め方は「成果物」節の規約に従う。中間ディレクトリが無ければ作成する。完了条件: 全対象ユニットのファイルが配置済み
 - **Step 2**: Phase 2 で得た材料を業務語彙のみで各章へ記入する。原本に無い値を書かない。推測で埋めない。完了条件: 各章の記入が完了している
 - **Step 3**: 空欄のまま残った項目を要確認事項一覧へ列挙する。対象コードの位置は記録しない。完了条件: 要確認事項一覧へ記録済み
 - **Step 4**: frontmatter の `status` を `draft` から `authored` へ更新する。完了条件: `status: authored` になっている

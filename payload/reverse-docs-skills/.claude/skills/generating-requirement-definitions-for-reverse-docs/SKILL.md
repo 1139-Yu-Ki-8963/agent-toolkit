@@ -82,7 +82,7 @@ allowed-tools: [Bash, Read, Write]
 
 対象文書に帳票・バッチ・外部連携要件のいずれかが含まれ、Step 2-1で「マニフェスト有」と判定されていれば、次を行う。対象は当該マニフェストが持つユニットごとである。
 
-- Step 1: `design-unit-layout.json` の `kinds.<kind>.phases.basic[0]` をファイル名とする。値は `帳票基本設計書.md`／`バッチ基本設計書.md`／`外部連携基本設計書.md` のいずれかである。`<output_dir>/<kindUnitRoot>/<kind>-<識別子>/基本設計/<ファイル名>` の実在を `test -f` で確認する。`<kindUnitRoot>` は種別ごとに `reportUnitRoot`・`batchUnitRoot`・`externalUnitRoot` のいずれかである。いずれも output-layout の物理配置キーである。既定値はそれぞれ `docs/design/reports`・`docs/design/batches`・`docs/design/externals` である。`<識別子>` はマニフェストの `unitId`、無ければ `unitKey` を使う。完了条件: 対象種別の全ユニットについて個別基本設計書の有無を確認済み
+- Step 1: `design-unit-layout.json` の `kinds.<kind>.phases.basic[0]` をファイル名とする。値は `帳票基本設計書.md`／`バッチ基本設計書.md`／`外部連携基本設計書.md` のいずれかである。`<output_dir>/<kindUnitRoot>/<kind>-<識別子>/<unitPhaseDirNames.basic>/<ファイル名>` の実在を `test -f` で確認する。`<kindUnitRoot>` は種別ごとに `reportUnitRoot`・`batchUnitRoot`・`externalUnitRoot` のいずれかである。いずれも output-layout の物理配置キーである。既定値はそれぞれ `docs/design/reports`・`docs/design/batches`・`docs/design/externals` である。`unitPhaseDirNames.basic` は output-layout の `unitPhaseDirNames.basic` の値（既定値 `basic-design`）であり、scaffold-design-unit.sh が実際に展開する配置フォルダ名と一致させる（1-210）。`<識別子>` はマニフェストの `unitId`、無ければ `unitKey` を使う。完了条件: 対象種別の全ユニットについて個別基本設計書の有無を確認済み
 - Step 2: 実在するユニットについて、テンプレートが名指しする章を Read し、記入材料として保持する。帳票は §1.2 出力の条件と契機・§1.3 レイアウトの要件である。バッチは §1.1 起動の契機と実行の周期・§1.3 異常時の復旧の方針である。外部連携は §1.1 連携先と方式・§1.3 正常応答と異常応答・§1.4 タイムアウトとリトライと冪等性である。完了条件: 実在ユニット全件の該当章を読了済み
 
 **完了**: 対象種別の全ユニットについて個別基本設計書の有無が確定し、実在分は該当章の記入材料を保持している

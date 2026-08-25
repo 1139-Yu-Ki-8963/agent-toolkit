@@ -77,11 +77,11 @@ allowed-tools: [AskUserQuestion, Bash, Read, Write]
 
 | 項目 | 基本設計書 | APIテスト設計書 |
 |---|---|---|
-| 出力フォルダ | `<output_dir>/<apiUnitRoot>/api-<API 識別子>/基本設計/` | `<output_dir>/<apiUnitRoot>/api-<API 識別子>/<unitTestDesignDir>/` |
+| 出力フォルダ | `<output_dir>/<apiUnitRoot>/api-<API 識別子>/<unitPhaseDirNames.basic>/` | `<output_dir>/<apiUnitRoot>/api-<API 識別子>/<unitTestDesignDir>/` |
 | 出力ファイル | `API基本設計書.md` | `APIテスト設計書.md` |
 | テンプレート | `<template_root>/リバース検証/API/API基本設計書.md` | `<template_root>/リバース検証/API/APIテスト設計書.md` |
 
-`apiUnitRoot` は output-layout の物理配置キーである。既定値は `docs/design/apis` とする。
+`apiUnitRoot` は output-layout の物理配置キーである。既定値は `docs/design/apis` とする。`unitPhaseDirNames.basic` は output-layout の `unitPhaseDirNames.basic` の値である。既定値は `basic-design` とする（scaffold-design-unit.sh が実際に展開する配置フォルダ名と一致させる。1-210）。
 
 表示用 `kindLabels.api` は path に使わない。APIテスト設計書はAPI基本設計書だけを情報源とし、対象コードの位置を成果物へ記録しない。
 
@@ -98,7 +98,7 @@ allowed-tools: [AskUserQuestion, Bash, Read, Write]
 ## Step 1-1: 起動引数の確認と対象の確定
 
 開始前に `references/phase5-business-vocabulary-check.md` を必ず Read する。完了条件: 台帳名・導出関数・Phase 1の初期化手順を把握済み
-- **Step 1**: 必須 4 引数の実在を確認する（`test -f` / `test -d`）。いずれかが欠ける場合は `status=ERROR` で停止する。`output_dir` から output-layout を解決し、`apiUnitRoot`・`unitTestDesignDir` を取得する。完了条件: 4 引数すべてが実在し、2つの配置キーが解決済み
+- **Step 1**: 必須 4 引数の実在を確認する（`test -f` / `test -d`）。いずれかが欠ける場合は `status=ERROR` で停止する。`output_dir` から output-layout を解決し、`apiUnitRoot`・`unitTestDesignDir`・`unitPhaseDirNames.basic` を取得する。完了条件: 4 引数すべてが実在し、3つの配置キーが解決済み
 - **Step 2**: `api_manifest_path` を Read し、`unitKind` が `api` であること、`units` が 1 件以上あることを確認する。完了条件: マニフェストが確認済み
 - **Step 3**: 言語プロファイルを選択する。「言語プロファイル」節の選択規則に従い `python` または `perl` を確定する。最多集計が同数で対象ユニット数でも決まらない場合は AskUserQuestion で確認する。どちらの拡張子にも該当しない場合だけ `status=ERROR` で停止し、hint に「該当する言語プロファイルなし」と拡張子の内訳を記録する。完了条件: プロファイルが 1 つ確定している、または該当なしとして停止している
 - **Step 4**: 対象ユニットを確定する。`unit_keys` が渡されていればその集合、無ければマニフェストの全ユニットを対象とする。完了条件: 対象ユニットの一覧が確定済み

@@ -52,11 +52,11 @@ allowed-tools: [Bash, Read, Write]
 
 | 項目 | 基本設計書 | テーブルテスト設計書 | テーブル単体テスト設計書 |
 |---|---|---|---|
-| 出力フォルダ | `<output_dir>/<tableUnitRoot>/table-<テーブル識別子>/基本設計/` | `<output_dir>/<tableUnitRoot>/table-<テーブル識別子>/<unitTestDesignDir>/` | `<output_dir>/<tableUnitRoot>/table-<テーブル識別子>/<unitTestDesignDir>/` |
+| 出力フォルダ | `<output_dir>/<tableUnitRoot>/table-<テーブル識別子>/<unitPhaseDirNames.basic>/` | `<output_dir>/<tableUnitRoot>/table-<テーブル識別子>/<unitTestDesignDir>/` | `<output_dir>/<tableUnitRoot>/table-<テーブル識別子>/<unitTestDesignDir>/` |
 | 出力ファイル | `論理データモデル.md` | `テーブルテスト設計書.md` | `テーブル単体テスト設計書.md` |
 | テンプレート | `<template_root>/リバース検証/テーブル/論理データモデル.md` | `<template_root>/リバース検証/テーブル/テーブルテスト設計書.md` | `<template_root>/リバース検証/テーブル/テーブル単体テスト設計書.md` |
 
-`tableUnitRoot` は output-layout の物理配置キー（既定値 `docs/design/tables`）。表示用 `kindLabels.table` は path に使わない。
+`tableUnitRoot` は output-layout の物理配置キー（既定値 `docs/design/tables`）。表示用 `kindLabels.table` は path に使わない。`unitPhaseDirNames.basic` は output-layout の `unitPhaseDirNames.basic` の値（既定値 `basic-design`）であり、scaffold-design-unit.sh が実際に展開する配置フォルダ名と一致させる（1-210）。
 
 テスト成果物は全種別共通で、<unitTestDesignDir>/テーブルテスト設計書.md（設計単位1つの外部の振る舞い）とテーブル単体テスト設計書.md（関数・メソッド単位）の2文書とする。観点とケースは各文書の共通12節へ統合し、単位配下へ結合テスト文書を生成しない。
 
@@ -126,7 +126,7 @@ bash generation-engine/scripts/scaffold-design-unit.sh table basic <output_dir> 
 
 ## Step 3-1: テンプレートの展開と記入
 
-- **Step 1**: `<template_root>/リバース検証/テーブル/論理データモデル.md` を Read する。読み込んだ内容を `<output_dir>/<tableUnitRoot>/table-<テーブル識別子>/基本設計/論理データモデル.md` へ書き出す。`<テーブル識別子>` の決め方は「成果物」節の規約に従う。中間ディレクトリが無ければ作成する。完了条件: 全対象ユニットのファイルが配置済み
+- **Step 1**: `<template_root>/リバース検証/テーブル/論理データモデル.md` を Read する。読み込んだ内容を `<output_dir>/<tableUnitRoot>/table-<テーブル識別子>/<unitPhaseDirNames.basic>/論理データモデル.md` へ書き出す。`<テーブル識別子>` の決め方は「成果物」節の規約に従う。中間ディレクトリが無ければ作成する。完了条件: 全対象ユニットのファイルが配置済み
 - **Step 2**: Phase 2 で得た材料を業務語彙のみで各章へ記入する。原本に無い値を書かない。推測で埋めない。完了条件: 各章の記入が完了している
 - **Step 3**: 空欄のまま残った項目を要確認事項一覧へ列挙する。対象コードの位置は記録しない。完了条件: 要確認事項一覧へ記録済み
 - **Step 4**: frontmatter の `status` を `draft` から `authored` へ更新する。完了条件: `status: authored` になっている

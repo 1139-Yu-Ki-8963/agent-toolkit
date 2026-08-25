@@ -21,7 +21,7 @@ output_dir 自体が存在しない時、またはいずれの設計種別にも
 
 工程全体は orchestrating-ai-development-setup が案内する。本スキルはポータルの派生一覧のうちテスト観点表一覧（`unit_kind=test_viewpoint`）のみを担い、単独起動できる（起動引数を渡せば動く）。
 
-`<output_dir>` 配下の各設計単位の `テスト設計/<種別>テスト設計書.md` と `<種別>単体テスト設計書.md` を事実源とし、横断集約した manifest JSON を組み立ててテスト観点表.html を生成する。画面の新配置がない既存生成物に限り、`<screenUnitRoot>/screen-*/詳細設計/` の旧観点表2件を後方互換として読む。`screenUnitRoot` は output-layout の物理配置キーから解決し、表示用 `kindLabels.screen` はpathに使わない。**本スキルは判定・評価を一切行わない**。各テスト設計書に記載された事実（由来章・観点）の転記に徹する。
+`<output_dir>` 配下の各設計単位の `テスト設計/<種別>テスト設計書.md` と `<種別>単体テスト設計書.md` を事実源とし、横断集約した manifest JSON を組み立ててテスト観点表.html を生成する。画面の新配置がない既存生成物に限り、`<screenUnitRoot>/screen-*/${screen_detail_dirname}/` の旧観点表2件を後方互換として読む。`screenUnitRoot` は output-layout の物理配置キーから解決し、表示用 `kindLabels.screen` はpathに使わない。`${screen_detail_dirname}` は画面専用の固定フォルダ名（値は`詳細設計`）であり、集約スクリプト（`aggregate-test-viewpoints.sh`）が同じ値をハードコードする画面固有の配置規約に従う（画面はunitPhaseDirNamesの対象外。1-210の対象外）。**本スキルは判定・評価を一切行わない**。各テスト設計書に記載された事実（由来章・観点）の転記に徹する。
 
 ## 使用タイミング
 
@@ -56,7 +56,7 @@ output_dir 自体が存在しない時、またはいずれの設計種別にも
 
 **使用ツール**: Read / Bash / Write
 
-- **Step 1** — output-layout の各 `*UnitRoot` を解決し、設計単位直下の `テスト設計/` にある2設計書を走査する。画面は新しい2設計書を優先し、役割ごとに新文書がない場合だけ旧 `詳細設計/` の対応する観点表を数える。探索条件は集約スクリプト（`aggregate-test-viewpoints.sh`）と一致させ、`<output_dir>` 全体の無差別探索はしない。完了条件: 走査が終了コード 0 で終わり、有効入力件数が確定している
+- **Step 1** — output-layout の各 `*UnitRoot` を解決し、設計単位直下の `テスト設計/` にある2設計書を走査する。画面は新しい2設計書を優先し、役割ごとに新文書がない場合だけ旧 `${screen_detail_dirname}/` の対応する観点表を数える。探索条件は集約スクリプト（`aggregate-test-viewpoints.sh`）と一致させ、`<output_dir>` 全体の無差別探索はしない。完了条件: 走査が終了コード 0 で終わり、有効入力件数が確定している
 
   ```
   ../../../generation-engine/scripts/extract/aggregate-test-viewpoints.sh <output_dir> <manifest.json>
