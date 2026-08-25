@@ -4,9 +4,11 @@
 # 判定:
 #   delivery-payload/references/design-doc-required-sections.json が、文書種別ごとの
 #   必須節と正規の並びを定義する。必須節の欠落を FAIL（exit 1）、並び順の違いと
-#   必須節定義のない文書を WARN（exit 0）として報告する。API詳細設計書はさらに、
-#   現行テンプレートの全 ## 見出しと全表の列見出しへ完全一致することを検査する。
-#   多数決では判定しないため、規約に適合する少数の文書を逸脱として扱わない。
+#   必須節定義のない文書を WARN（exit 0）として報告する。API詳細設計書と単体テスト
+#   設計書7種別（conformance_triples_default が定める対象）はさらに、現行テンプレート
+#   の全 ## 見出しと全表の列見出しへ完全一致することを検査する。欠落・余分・順序のみ
+#   相違を区別して報告する（1-268）。多数決では判定しないため、規約に適合する少数の
+#   文書を逸脱として扱わない。
 #
 # 使い方:
 #   check-design-doc-section-consistency.sh <project_root>
@@ -24,12 +26,29 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 DEFAULT_REQUIREMENTS_FILE="$REPO_ROOT/delivery-payload/references/design-doc-required-sections.json"
-API_DETAIL_TEMPLATE="$REPO_ROOT/delivery-payload/templates/リバース検証/API/API詳細設計書.md"
+TEMPLATE_ROOT="$REPO_ROOT/delivery-payload/templates/リバース検証"
+API_DETAIL_TEMPLATE="$TEMPLATE_ROOT/API/API詳細設計書.md"
 # shellcheck source=../output-layout.sh
 . "$SCRIPT_DIR/../output-layout.sh"
 
 # output-layout.jsonのキーと必須節定義で使う種別名の対応。必須節の中身はJSONだけに置く。
 KIND_ROOTS="screenUnitRoot:screen apiUnitRoot:api tableUnitRoot:table batchUnitRoot:batch reportUnitRoot:report externalUnitRoot:external featureUnitRoot:feature"
+
+# 全見出し・全表列見出しの完全一致検査（テンプレート適合検査）を課す対象。
+# kind・basename・比較先テンプレートの絶対パスの3つ組。API詳細設計書の行は
+# 既存の比較先テンプレート・判定条件のまま（1-268の触らない範囲）。
+# 単体テスト設計書7種別は1-268で追加した。
+conformance_triples_default() {
+  printf '%s\t%s\t%s\n' \
+    "api" "API詳細設計書.md" "$API_DETAIL_TEMPLATE" \
+    "screen" "画面単体テスト設計書.md" "$TEMPLATE_ROOT/画面/テスト設計/画面単体テスト設計書.md" \
+    "api" "API単体テスト設計書.md" "$TEMPLATE_ROOT/API/API単体テスト設計書.md" \
+    "table" "テーブル単体テスト設計書.md" "$TEMPLATE_ROOT/テーブル/テーブル単体テスト設計書.md" \
+    "batch" "バッチ単体テスト設計書.md" "$TEMPLATE_ROOT/バッチ/バッチ単体テスト設計書.md" \
+    "report" "帳票単体テスト設計書.md" "$TEMPLATE_ROOT/帳票/帳票単体テスト設計書.md" \
+    "external" "外部連携単体テスト設計書.md" "$TEMPLATE_ROOT/外部連携/外部連携単体テスト設計書.md" \
+    "feature" "機能単体テスト設計書.md" "$TEMPLATE_ROOT/機能/機能単体テスト設計書.md"
+}
 
 requirements_file() {
   printf '%s\n' "${SECTION_REQUIREMENTS_FILE:-$DEFAULT_REQUIREMENTS_FILE}"
@@ -183,9 +202,16 @@ run_check() {
   validate_requirements_file "$definition_file" || return 1
   kind_roots="$(resolve_kind_roots "$project_root")" || return 1
 
-  local kind kind_root
-  local -a check_args
-  check_args=("$definition_file" "$DEFAULT_REQUIREMENTS_FILE" "$API_DETAIL_TEMPLATE")
+  local kind kind_root c_kind c_basename c_template
+  local -a check_args conformance_triples
+  conformance_triples=()
+  while IFS=$'\t' read -r c_kind c_basename c_template; do
+    [ -n "$c_template" ] || continue
+    conformance_triples+=("$c_kind" "$c_basename" "$c_template")
+  done < <(conformance_triples_default)
+
+  check_args=("$definition_file" "$DEFAULT_REQUIREMENTS_FILE" "${#conformance_triples[@]}")
+  check_args+=("${conformance_triples[@]}")
   while IFS=$'\t' read -r kind kind_root; do
     [ -n "$kind_root" ] || continue
     check_args+=("$kind" "$kind_root")
@@ -200,11 +226,59 @@ EOF
 const fs = require("fs");
 const path = require("path");
 
-const [projectRoot, definitionFile, defaultDefinitionFile, apiTemplate, ...kindRoots] = process.argv.slice(2);
+const [projectRoot, definitionFile, defaultDefinitionFile, conformanceArgCountStr, ...rest] = process.argv.slice(2);
+const conformanceArgCount = Number(conformanceArgCountStr);
+const conformanceArgs = rest.slice(0, conformanceArgCount);
+const kindRoots = rest.slice(conformanceArgCount);
 const definition = JSON.parse(fs.readFileSync(definitionFile, "utf8"));
 let failed = false;
 let checkedCount = 0;
 const undefinedSeen = new Set();
+
+// kind・basenameの組から、全見出し・全表列見出しの完全一致検査（テンプレート
+// 適合検査）を課す対象を引く。値は比較先テンプレートの絶対パス。
+const conformanceTemplates = new Map();
+for (let index = 0; index < conformanceArgs.length; index += 3) {
+  const c_kind = conformanceArgs[index];
+  const c_basename = conformanceArgs[index + 1];
+  const c_template = conformanceArgs[index + 2];
+  conformanceTemplates.set(`${c_kind}/${c_basename}`, c_template);
+}
+const conformanceHeadingsCache = new Map();
+const conformanceTablesCache = new Map();
+
+// 2つの見出し・表列の並びを多重集合として比較し、欠落・余分・順序のみ相違を
+// 区別する。「不一致」ひとくくりにせず、読み手が何を直せばよいか分かる形で返す。
+function classifyListDiff(templateList, actualList) {
+  const count = (list) => {
+    const map = new Map();
+    for (const item of list) map.set(item, (map.get(item) || 0) + 1);
+    return map;
+  };
+  const templateCount = count(templateList);
+  const actualCount = count(actualList);
+  const missing = [];
+  for (const [item, num] of templateCount) {
+    const diff = num - (actualCount.get(item) || 0);
+    for (let i = 0; i < diff; i += 1) missing.push(item);
+  }
+  const extra = [];
+  for (const [item, num] of actualCount) {
+    const diff = num - (templateCount.get(item) || 0);
+    for (let i = 0; i < diff; i += 1) extra.push(item);
+  }
+  const orderOnly = missing.length === 0 && extra.length === 0
+    && JSON.stringify(templateList) !== JSON.stringify(actualList);
+  return { missing, extra, orderOnly, equal: missing.length === 0 && extra.length === 0 && !orderOnly };
+}
+
+function describeListDiff(diff) {
+  const parts = [];
+  if (diff.missing.length) parts.push(`欠落: ${diff.missing.join(" / ")}`);
+  if (diff.extra.length) parts.push(`余分: ${diff.extra.join(" / ")}`);
+  if (diff.orderOnly) parts.push("順序のみ相違");
+  return parts.join("、");
+}
 
 function listMarkdownFiles(root) {
   const files = [];
@@ -247,8 +321,6 @@ function tableHeaders(file) {
   return result;
 }
 
-let templateHeadings;
-let templateTables;
 for (let index = 0; index < kindRoots.length; index += 2) {
   const kind = kindRoots[index];
   const root = kindRoots[index + 1];
@@ -283,19 +355,31 @@ for (let index = 0; index < kindRoots.length; index += 2) {
       process.stdout.write(`WARN 見出し順-相違 ${file}: 同一役割（${basename}）の必須節の並びが定義と異なる\n`);
     }
 
-    if (definitionFile === defaultDefinitionFile && kind === "api" && basename === "API詳細設計書.md") {
-      if (!fs.existsSync(apiTemplate)) {
-        process.stderr.write(`ERROR: API詳細設計書テンプレートが存在しません: ${apiTemplate}\n`);
+    const conformanceKey = `${kind}/${basename}`;
+    if (definitionFile === defaultDefinitionFile && conformanceTemplates.has(conformanceKey)) {
+      const conformanceTemplate = conformanceTemplates.get(conformanceKey);
+      if (!fs.existsSync(conformanceTemplate)) {
+        process.stderr.write(`ERROR: テンプレートが存在しません（${conformanceKey}）: ${conformanceTemplate}\n`);
         failed = true;
       } else {
-        templateHeadings ??= headings(apiTemplate);
-        templateTables ??= tableHeaders(apiTemplate);
-        if (JSON.stringify(templateHeadings) !== JSON.stringify(actualHeadings)) {
-          process.stdout.write(`FAIL テンプレート見出し-不一致 ${file}: API詳細設計書の全節・順序・件数がテンプレートと一致しない\n`);
+        if (!conformanceHeadingsCache.has(conformanceTemplate)) {
+          conformanceHeadingsCache.set(conformanceTemplate, headings(conformanceTemplate));
+        }
+        if (!conformanceTablesCache.has(conformanceTemplate)) {
+          conformanceTablesCache.set(conformanceTemplate, tableHeaders(conformanceTemplate));
+        }
+        const templateHeadings = conformanceHeadingsCache.get(conformanceTemplate);
+        const templateTables = conformanceTablesCache.get(conformanceTemplate);
+
+        const headingDiff = classifyListDiff(templateHeadings, actualHeadings);
+        if (!headingDiff.equal) {
+          process.stdout.write(`FAIL テンプレート見出し-不一致 ${file}: ${conformanceKey}の全節・順序・件数がテンプレートと一致しない（${describeListDiff(headingDiff)}）\n`);
           failed = true;
         }
-        if (JSON.stringify(templateTables) !== JSON.stringify(tableHeaders(file))) {
-          process.stdout.write(`FAIL テンプレート表列-不一致 ${file}: API詳細設計書の表の所属節・小節・列見出し・順序・件数がテンプレートと一致しない\n`);
+
+        const tableDiff = classifyListDiff(templateTables, tableHeaders(file));
+        if (!tableDiff.equal) {
+          process.stdout.write(`FAIL テンプレート表列-不一致 ${file}: ${conformanceKey}の表の所属節・小節・列見出し・順序・件数がテンプレートと一致しない（${describeListDiff(tableDiff)}）\n`);
           failed = true;
         }
       }
@@ -665,6 +749,75 @@ EOF
   assert_contains "課題1-201-表列の逸脱を報告" 'FAIL テンプレート表列-不一致' "$out_bad_columns"
   mv "$bad_columns.bak" "$bad_columns"
   rm -rf "$tmp_201"
+
+  # 課題1-268: 単体テスト設計書（API単体テスト設計書で代表）にも様式への完全一致
+  # 検査を課す。様式どおりの入力で合格になること、欠落・余分・順序のみ相違を
+  # 区別して報告すること、表列の相違も検出することを確認する。
+  local tmp_268 doc_268 out_268_ok rc_268_ok
+  tmp_268="$(mktemp -d "$REPO_ROOT/.design-doc-consistency-self-test.XXXXXX")"
+  SELF_TEST_DIRS+=("$tmp_268")
+  write_layout_override "$tmp_268"
+  bash "$SCRIPT_DIR/../scaffold-design-unit.sh" api test "$tmp_268" "fixture-268" "合成API 268" "$REPO_ROOT/delivery-payload/templates/リバース検証" >/dev/null
+  doc_268="$tmp_268/api/api-fixture-268/テスト設計/API単体テスト設計書.md"
+  # 同じphaseで生成されるAPIテスト設計書.mdは本検収の対象外（1-268の対象は
+  # 単体テスト設計書のみ）。必須節定義-なしのWARNが混ざるのを避けるため取り除く。
+  rm -f "$tmp_268/api/api-fixture-268/テスト設計/APIテスト設計書.md"
+  cp "$doc_268" "$doc_268.orig"
+
+  out_268_ok="$(run_check "$tmp_268")"; rc_268_ok=$?
+  assert_eq "検収268-様式どおりの終了コード" 0 "$rc_268_ok"
+  assert_eq "検収268-様式どおりの出力0件" '' "$out_268_ok"
+
+  # 欠落: 節をまるごと削除する。
+  local out_268_missing rc_268_missing
+  cp "$doc_268.orig" "$doc_268"
+  sed -i.bak '/^## §5 異常系$/d' "$doc_268"
+  out_268_missing="$(run_check "$tmp_268")"; rc_268_missing=$?
+  assert_eq "検収268-欠落の終了コード" 1 "$rc_268_missing"
+  assert_contains "検収268-欠落をFAILで報告" 'FAIL テンプレート見出し-不一致' "$out_268_missing"
+  assert_contains "検収268-欠落の内訳を報告" '欠落: §5 異常系' "$out_268_missing"
+  assert_not_contains "検収268-欠落ケースは順序相違を報告しない" '順序のみ相違' "$out_268_missing"
+  rm -f "$doc_268.bak"
+
+  # 余分: 様式にない節を追加する。
+  local out_268_extra rc_268_extra
+  awk '/^## §6 境界値$/ { print "## §99 追加節" } { print }' "$doc_268.orig" > "$doc_268"
+  out_268_extra="$(run_check "$tmp_268")"; rc_268_extra=$?
+  assert_eq "検収268-余分の終了コード" 1 "$rc_268_extra"
+  assert_contains "検収268-余分をFAILで報告" 'FAIL テンプレート見出し-不一致' "$out_268_extra"
+  assert_contains "検収268-余分の内訳を報告" '余分: §99 追加節' "$out_268_extra"
+  assert_not_contains "検収268-余分ケースは欠落を報告しない" '欠落:' "$out_268_extra"
+
+  # 順序のみ相違: §1節と§2節を丸ごと（見出しと表を一緒に）入れ替える。見出し行
+  # だけを入れ替えると表が元の節に取り残され、表列側にも欠落・余分が生じて
+  # しまうため、節全体を単位に動かして純粋な順序違いにする。
+  local out_268_order rc_268_order swap_before swap_block1 swap_block2 swap_after
+  swap_before="$tmp_268/.swap-before"
+  swap_block1="$tmp_268/.swap-block1"
+  swap_block2="$tmp_268/.swap-block2"
+  swap_after="$tmp_268/.swap-after"
+  sed '/^## §1 テスト観点$/,$d' "$doc_268.orig" > "$swap_before"
+  sed -n '/^## §1 テスト観点$/,/^## §2 テストケース一覧$/p' "$doc_268.orig" | sed '$d' > "$swap_block1"
+  sed -n '/^## §2 テストケース一覧$/,/^## §3 入力条件$/p' "$doc_268.orig" | sed '$d' > "$swap_block2"
+  sed -n '/^## §3 入力条件$/,$p' "$doc_268.orig" > "$swap_after"
+  cat "$swap_before" "$swap_block2" "$swap_block1" "$swap_after" > "$doc_268"
+  rm -f "$swap_before" "$swap_block1" "$swap_block2" "$swap_after"
+  out_268_order="$(run_check "$tmp_268")"; rc_268_order=$?
+  assert_eq "検収268-順序相違の終了コード" 1 "$rc_268_order"
+  assert_contains "検収268-順序相違をFAILで報告" 'FAIL テンプレート見出し-不一致' "$out_268_order"
+  assert_contains "検収268-順序相違の内訳を報告" '順序のみ相違' "$out_268_order"
+  assert_not_contains "検収268-順序相違ケースは欠落を報告しない" '欠落:' "$out_268_order"
+  assert_not_contains "検収268-順序相違ケースは余分を報告しない" '余分:' "$out_268_order"
+
+  # 表列相違: §3 入力条件の表の列見出しを変える（課題1-201のbad_columnsと同じ深さ）。
+  local out_268_columns rc_268_columns
+  sed 's/^| ケースのキー | 引数・事前状態 | 値 | 由来する詳細設計書の章 |$/| 名前 | 値 |/' "$doc_268.orig" > "$doc_268"
+  out_268_columns="$(run_check "$tmp_268")"; rc_268_columns=$?
+  assert_eq "検収268-表列相違の終了コード" 1 "$rc_268_columns"
+  assert_contains "検収268-表列相違をFAILで報告" 'FAIL テンプレート表列-不一致' "$out_268_columns"
+
+  rm -f "$doc_268.orig"
+  rm -rf "$tmp_268"
 
   echo "self-test: $pass PASS, $fail FAIL"
   [ "$fail" -eq 0 ]

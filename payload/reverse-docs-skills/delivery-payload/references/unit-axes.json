@@ -111,7 +111,7 @@
     { "key": "responseTimeout", "label": "応答待ち時間", "appliesTo": ["external"], "order": 40, "unconfirmedLabel": "未確認" },
     { "key": "retryCount", "label": "再試行回数", "appliesTo": ["external"], "order": 50, "unconfirmedLabel": "未確認" },
 
-    { "key": "sourceFile", "label": "抽出元", "appliesTo": ["message"], "order": 10 },
+    { "key": "sourceFile", "label": "取り出し元", "appliesTo": ["message"], "order": 10 },
     { "key": "usedScreen", "label": "使用画面", "appliesTo": ["message"], "order": 20 },
 
     {

@@ -373,6 +373,30 @@ DOC
   missing_match_type="$(jq -r '[.terms[] | select(.matchType != "exact" and .matchType != "pattern")] | length' "$DEFAULT_TERMS_FILE")"
   assert_eq "追加回帰6-matchType欠落は0件" "0" "$missing_match_type"
 
+  # 追加回帰7（1-265）: 言い換え後の様式（原本→実装・納品物→本資料・
+  # 抽出→取り出し）が、実物定義ファイル（DEFAULT_TERMS_FILE）に対して
+  # 不合格にならないこと。配布物自身の様式・定義・生成物がこの3語を含む
+  # 事故の再発を防ぐ回帰テスト。
+  local tmp_7 doc_7 out_7 rc_7
+  tmp_7="$(new_tmp_dir)"
+  mkdir -p "$tmp_7/api"
+  doc_7="$tmp_7/api/API詳細設計書.md"
+  cat > "$doc_7" <<'DOC'
+# 注文API API詳細設計書
+
+情報源は API 一覧の拡張マニフェストと実装コードの読解です。実装から確定できない事項は推測で埋めず、空欄のままとする。
+選ばなかった選択肢または不採用理由を実装から読み取れない場合は `不明（実装に記述なし）` とし、補わない。
+
+本資料ごとに、出力先・生成元・状態・理由を示す。
+メッセージの取り出し元は本節を参照する。
+DOC
+  out_7="$(run_check "$tmp_7")"; rc_7=$?
+  assert_eq "追加回帰7-言い換え後の様式は終了コード0" 0 "$rc_7"
+  assert_not_contains "追加回帰7-原本はFAILしない(既に出現なし)" 'FAIL 第3: 作る側の事情語-原本' "$out_7"
+  assert_not_contains "追加回帰7-納品物はFAILしない(既に出現なし)" 'FAIL 第2: 第三者呼称-納品物' "$out_7"
+  assert_not_contains "追加回帰7-抽出はFAILしない(既に出現なし)" 'FAIL 第3: 作る側の事情語-抽出' "$out_7"
+  rm -rf "$tmp_7"
+
   echo "self-test: $pass PASS, $fail FAIL"
   [ "$fail" -eq 0 ]
 }

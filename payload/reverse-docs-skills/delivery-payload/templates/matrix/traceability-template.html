@@ -224,7 +224,7 @@ table.matrix tbody tr:hover td { background: var(--panel3); }
       var emptyMsg = document.getElementById('matrix-empty-callout-msg');
       if (emptyMsg) {
         emptyMsg.textContent = missingParts.join('・') + 'が0件のため、該当する行または連鎖がありません。' +
-          '原因区分（抽出未対応・データ不在のいずれか）は入力データからは判別できません。';
+          '原因区分（取り出し未対応・データ不在のいずれか）は入力データからは判別できません。';
       }
       emptyCallout.hidden = false;
     }

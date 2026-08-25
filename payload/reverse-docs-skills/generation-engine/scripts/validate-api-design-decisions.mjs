@@ -82,8 +82,8 @@ for (const file of targets) {
     if (kind === "推定（実装構造）" && !new Set(["medium", "low"]).has(confidence)) {
       fail(file, `推定の確からしさが不正: ${confidence}`);
     }
-    const unknownAlternative = alternative === "不明（原本に記述なし）";
-    const unknownRejection = rejection === "不明（原本に記述なし）";
+    const unknownAlternative = alternative === "不明（実装に記述なし）";
+    const unknownRejection = rejection === "不明（実装に記述なし）";
     if (unknownAlternative !== unknownRejection) {
       fail(file, `選択肢と不採用理由の不明表記が片方だけ: ${key}`);
     }

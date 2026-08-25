@@ -281,7 +281,7 @@ PAGE_TEMPLATE='<!DOCTYPE html>
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>納品物一覧</title>
+<title>本資料一覧</title>
 <style>
 /* TOKENS_CSS */
 /* SHELL_CSS */
@@ -306,19 +306,19 @@ table.di td.di-state-出力あり { color: var(--ok, inherit); }
     <!--SHELL_SIDEBAR-->
     <main class="pt-main is-fixed">
       <div class="pt-head">
-        <div class="pt-crumb"><a href="{{BACK_LINK}}">TOP</a> ／ {{ACTIVE_CATEGORY_LABEL}} ／ <span class="pt-crumb-current">納品物一覧</span></div>
+        <div class="pt-crumb"><a href="{{BACK_LINK}}">TOP</a> ／ {{ACTIVE_CATEGORY_LABEL}} ／ <span class="pt-crumb-current">本資料一覧</span></div>
         <div class="pt-title-row">
-          <h1 class="pt-title">納品物一覧</h1>
-          <span class="pt-title-sub">更新 {{GENERATED_AT}} ／ 納品物 {{ITEM_COUNT}} 件</span>
+          <h1 class="pt-title">本資料一覧</h1>
+          <span class="pt-title-sub">更新 {{GENERATED_AT}} ／ 本資料 {{ITEM_COUNT}} 件</span>
         </div>
       </div>
 
-      <p class="di-lead">納品物ごとに、出力先・生成元・状態(出力あり／対象なし／未生成)・理由を示す。「対象なし」は生成対象が0件と確認できた場合、「未生成」はまだ判定できないか未実行の場合。</p>
+      <p class="di-lead">本資料ごとに、出力先・生成元・状態(出力あり／対象なし／未生成)・理由を示す。「対象なし」は生成対象が0件と確認できた場合、「未生成」はまだ判定できないか未実行の場合。</p>
 
       <div class="table-area">
         <div class="pt-tablewrap">
         <table class="di">
-        <thead><tr><th>納品物</th><th>出力先</th><th>生成元</th><th>状態</th><th>理由</th></tr></thead>
+        <thead><tr><th>本資料</th><th>出力先</th><th>生成元</th><th>状態</th><th>理由</th></tr></thead>
         <tbody>
         {{ROWS_HTML}}
         </tbody>
@@ -443,9 +443,9 @@ run_build() {
   local md_rows
   md_rows="$(printf '%s\n' "$rows_tsv" | awk -F'\t' '{printf "| %s | `%s` | %s | %s | %s |\n", $1, $2, $3, $4, $5}')"
   {
-    printf '# 納品物一覧\n\n'
+    printf '# 本資料一覧\n\n'
     printf '本書は %s 時点の状態を示す。生成元は delivery-payload/references/portal-catalog.json と delivery-payload/references/deliverable-inventory.json。\n\n' "$generated_at"
-    printf '| 納品物 | 出力先 | 生成元 | 状態 | 理由 |\n'
+    printf '| 本資料 | 出力先 | 生成元 | 状態 | 理由 |\n'
     printf '|---|---|---|---|---|\n'
     printf '%s\n' "$md_rows"
   } > "$md_output"
