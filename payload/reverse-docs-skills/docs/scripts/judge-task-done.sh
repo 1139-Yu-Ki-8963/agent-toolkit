@@ -232,16 +232,23 @@ extract_judgment_rows() {
         }
         return out
       }
-      function strip_code_span(s,    open_len, close_len, close_start, i) {
+      function strip_code_span(s,    open_len, close_len, close_start, i, s2) {
         if (substr(s, 1, 1) != "`" || is_escaped(s, 1)) return s
         open_len = 1
         while (open_len < length(s) && substr(s, open_len + 1, 1) == "`") open_len++
-        close_start = length(s) + 1
-        for (i = length(s); i >= 1 && substr(s, i, 1) == "`"; i--) close_start = i
-        if (close_start <= length(s) && is_escaped(s, close_start)) close_start++
-        close_len = length(s) - close_start + 1
-        if (open_len != close_len || length(s) <= open_len + close_len) return s
-        return substr(s, open_len + 1, length(s) - open_len - close_len)
+        # 逆引用符を閉じた直後の句点・読点は文の区切りであり、コマンドの一部では
+        # ない。閉じ側の逆引用符を末尾から探す前に、末尾の句点・読点を取り除いた
+        # 写し(s2)を作る。取り除いた分はコマンドに含めず、そのまま捨てる。
+        s2 = s
+        while (length(s2) >= 3 && (substr(s2, length(s2) - 2, 3) == "。" || substr(s2, length(s2) - 2, 3) == "、")) {
+          s2 = substr(s2, 1, length(s2) - 3)
+        }
+        close_start = length(s2) + 1
+        for (i = length(s2); i >= 1 && substr(s2, i, 1) == "`"; i--) close_start = i
+        if (close_start <= length(s2) && is_escaped(s2, close_start)) close_start++
+        close_len = length(s2) - close_start + 1
+        if (open_len != close_len || length(s2) <= open_len + close_len) return s
+        return substr(s2, open_len + 1, length(s2) - open_len - close_len)
       }
       BEGIN { header_seen = 0; sep_seen = 0; confirm_col = 0; state_col = 0; commit_col = 0 }
       {
@@ -1216,7 +1223,7 @@ run_self_test() {
     fi
   }
 
-  echo "実行 35 件"
+  echo "実行 38 件"
 
   # 0. 確かめる手段がバッククォート囲み（rule.mdの見本と同じ書き方） -> 中身のコマンドとして実行され満たす
   #    （囲みを剥がさずに実行すると、バッククォート付き文字列がコマンド置換として実行され、
@@ -1225,6 +1232,35 @@ run_self_test() {
   local f0="$tmpdir/case0.md"
   mk_doc "$(printf '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |\n|---|---|---|---|---|\n| 1. 何か | `true` | 未着手 | — | — |')" > "$f0"
   run_meas_case "確かめる手段がバッククォート囲み" "$f0" 5 1
+
+  # 35. 逆引用符を閉じた直後に句点が続く -> 句点を取り除いてからコマンドとして
+  #     実行され満たす（句点が残ると逆引用符付きのままコマンド置換として実行され、
+  #     終了コード0のコマンドでも「実測で満たさない」に落ちる不具合を実測で踏んだ）
+  local f35="$tmpdir/case35.md"
+  mk_doc "$(printf '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |\n|---|---|---|---|---|\n| 1. 何か | `true`。 | 未着手 | — | — |')" > "$f35"
+  run_meas_case "確かめる手段のバッククォート直後に句点があっても中身が実行される" "$f35" 5 1
+
+  # 36. 逆引用符を閉じた直後に読点が続く -> 読点を取り除いてからコマンドとして
+  #     実行され満たす（35と同じ不具合の読点版）
+  local f36="$tmpdir/case36.md"
+  mk_doc "$(printf '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |\n|---|---|---|---|---|\n| 1. 何か | `true`、 | 未着手 | — | — |')" > "$f36"
+  run_meas_case "確かめる手段のバッククォート直後に読点があっても中身が実行される" "$f36" 5 1
+
+  # 37. --writeでも句点付きの行が「完了」へ書き換わり、かつ「確かめる手段」の
+  #     セル自体（逆引用符・句点を含む）は書き換え前と一字も変えずに残る。
+  local f37="$tmpdir/case37.md" expected37
+  expected37='| 1. 何か | `true`。 | 完了 | — | — |'
+  mk_doc "$(printf '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |\n|---|---|---|---|---|\n| 1. 何か | `true`。 | 未着手 | — | — |')" > "$f37"
+  write_measurement_states "$f37" 5
+  if grep -qF "$expected37" "$f37"; then
+    echo "[PASS] --writeが句点付き確かめる手段を完了へ書き換え、セル自体は保つ"
+    pass=$((pass + 1))
+  else
+    echo "[FAIL] --writeが句点付き確かめる手段を完了へ書き換え、セル自体は保つ"
+    echo "       中身:"
+    sed 's/^/       /' "$f37"
+    fail=$((fail + 1))
+  fi
 
   # 1. 確かめる手段が終了コード0を返す -> 満たす（移せる）
   local f1="$tmpdir/case1.md"

@@ -85,9 +85,9 @@ project-portal/screens/screen-orphan/基本設計/画面基本設計書.html
 
 | 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |
 |---|---|---|---|---|
-| 1. 自己テストの通過 | `bash generation-engine/scripts/build-portal.sh --self-test --case 49` | 完了 | 74838867635e3c4a3e88d19ef26ae64feddad646 | rc=0。49a〜49iが全てPASS。 |
-| 2. 全ケースPASS | `bash docs/scripts/check-case49-orphan-html.sh --count-pass` | 完了 | 74838867635e3c4a3e88d19ef26ae64feddad646 | PASS件数9/9。 |
-| 3. 旧ディレクトリ名の直書きが無い | `bash docs/scripts/check-case49-orphan-html.sh --stale-paths` | 完了 | 74838867635e3c4a3e88d19ef26ae64feddad646 | 直書き0件。 |
+| 1. 自己テストの通過 | `bash generation-engine/scripts/build-portal.sh --self-test --case 49` | 完了 | e56e0b1e1acf15b11b9746587050cdf3467923c2 | rc=0。49a〜49iが全てPASS。 |
+| 2. 全ケースPASS | `bash docs/scripts/check-case49-orphan-html.sh --count-pass` | 完了 | e56e0b1e1acf15b11b9746587050cdf3467923c2 | PASS件数9/9。 |
+| 3. 旧ディレクトリ名の直書きが無い | `bash docs/scripts/check-case49-orphan-html.sh --stale-paths` | 完了 | e56e0b1e1acf15b11b9746587050cdf3467923c2 | 直書き0件。 |
 
 ### 判断の記録
 
