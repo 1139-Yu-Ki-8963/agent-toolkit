@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "納品する設計書・生成HTMLに残してはいけない語と、機械では合否を確定できず人手のレビューに回す語の一覧（1-233）。machine=true の語は本文に見つかった時点で不合格（FAIL）。machine=\"detect-only\" の語は見つかった箇所を人手のレビュー対象（REVIEW）として報告するだけで、合否には影響しない。category は本文が定める6種類（第1: 指示文の残存／第2: 第三者呼称／第3: 作る側の事情語／第4: 確認先の妥当性／第5: 実装言語の用語と略語／第6: 指示語の自己完結）のいずれか。走査対象は生成物（output-layout.json の <kind>UnitRoot 配下の基本設計書・詳細設計書、および生成HTML）に限り、テンプレート（delivery-payload/templates/）と本ファイル自身は走査しない。matchType は検出方式を表す（1-238で追加）。\"exact\" は単語・定型句の完全一致（grep -F、LC_ALL=C）。\"pattern\" は文末表現・言い回しの正規表現一致（grep -E、LC_ALL=en_US.UTF-8）。「移送」（exact・名詞）と「から移した」（pattern・動詞句）のように概念が重なる語でも、表記形が違えば別エントリとして両方登録する。",
+  "description": "納品する設計書・生成HTMLに残してはいけない語と、機械では合否を確定できず人手のレビューに回す語の一覧（1-233）。machine=true の語は本文に見つかった時点で不合格（FAIL）。machine=\"detect-only\" の語は見つかった箇所を人手のレビュー対象（REVIEW）として報告するだけで、合否には影響しない。category は本文が定める7種類（第1: 指示文の残存／第2: 第三者呼称／第3: 作る側の事情語／第4: 確認先の妥当性／第5: 実装言語の用語と略語／第6: 指示語の自己完結／第7: 対話エージェントの編集単位語）のいずれか。第7は、生成作業を行った対話エージェント自身の編集単位（やり取りの回・下書きファイル等）を指し、成果物の外側の事情を読者へ露出する語である（1-261）。走査対象は生成物（output-layout.json の <kind>UnitRoot 配下の基本設計書・詳細設計書、および生成HTML）に限り、テンプレート（delivery-payload/templates/）と本ファイル自身は走査しない。matchType は検出方式を表す（1-238で追加）。\"exact\" は単語・定型句の完全一致（grep -F、LC_ALL=C）。\"pattern\" は文末表現・言い回しの正規表現一致（grep -E、LC_ALL=en_US.UTF-8）。「移送」（exact・名詞）と「から移した」（pattern・動詞句）のように概念が重なる語でも、表記形が違えば別エントリとして両方登録する。",
   "terms": [
     {"term": "キーは連番禁止。内容を要約した意味語で付ける（番号からは情報を得られないため）", "replacement": null, "category": "第1: 指示文の残存", "machine": true, "matchType": "exact"},
     {"term": "本書で確認しない事項を省略せず記入する。該当がない場合は「なし」と記入する。", "replacement": null, "category": "第1: 指示文の残存", "machine": true, "matchType": "exact"},
@@ -29,7 +29,9 @@
     {"term": "下記", "replacement": null, "category": "第6: 指示語の自己完結", "machine": "detect-only", "matchType": "exact"},
     {"term": "前述", "replacement": null, "category": "第6: 指示語の自己完結", "machine": "detect-only", "matchType": "exact"},
     {"term": "先述", "replacement": null, "category": "第6: 指示語の自己完結", "machine": "detect-only", "matchType": "exact"},
-    {"term": "後述", "replacement": null, "category": "第6: 指示語の自己完結", "machine": "detect-only", "matchType": "exact"}
+    {"term": "後述", "replacement": null, "category": "第6: 指示語の自己完結", "machine": "detect-only", "matchType": "exact"},
+    {"term": "本ターン", "replacement": null, "category": "第7: 対話エージェントの編集単位語", "machine": true, "matchType": "exact"},
+    {"term": "下書きファイル", "replacement": null, "category": "第7: 対話エージェントの編集単位語", "machine": true, "matchType": "exact"}
   ],
   "targetGeneratedDocumentSuffixes": ["基本設計書.md", "詳細設計書.md"],
   "targetGeneratedHtmlGlob": "*.html"

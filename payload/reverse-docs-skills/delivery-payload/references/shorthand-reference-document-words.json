@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "sourceOfTruth": {
+    "documentWritingRule": "delivery-payload/templates/rules/tool-defined/document-writing.md",
+    "checker": "generation-engine/scripts/tests/check-shorthand-reference-declaration.sh",
+    "note": "「他文書への参照の短縮」節が定める短縮形は、他の文書やその節を指すラベルだけを対象とする。抽出した短縮ラベルがここに挙げる語のいずれかを含む場合だけ短縮参照とみなし、宣言の有無を検査する。いずれも含まないラベル（「例」「参照」「理由」のような、丸括弧の中で補足を述べる通常の書き方）は対象から除外する。"
+  },
+  "documentWords": [
+    "設計書",
+    "一覧",
+    "規約",
+    "台帳"
+  ]
+}

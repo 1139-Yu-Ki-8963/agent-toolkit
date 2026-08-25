@@ -350,10 +350,11 @@ DOC
   validate_terms_file "$DEFAULT_TERMS_FILE" >/dev/null 2>&1; rc_real=$?
   assert_eq "追加回帰2-実物定義ファイルの形式適合" 0 "$rc_real"
 
-  # 追加回帰3: 実物定義ファイルが6カテゴリの語をすべて持つ。
+  # 追加回帰3: 実物定義ファイルが7カテゴリの語をすべて持つ（1-261で
+  # 第7: 対話エージェントの編集単位語を追加した）。
   local categories_present
   categories_present="$(jq -r '[.terms[].category] | unique | length' "$DEFAULT_TERMS_FILE")"
-  assert_eq "追加回帰3-6カテゴリすべての語が存在する" "6" "$categories_present"
+  assert_eq "追加回帰3-7カテゴリすべての語が存在する" "7" "$categories_present"
 
   # 追加回帰4: LC_ALL=C を明示していることを自己確認する。
   local locale_out
@@ -396,6 +397,25 @@ DOC
   assert_not_contains "追加回帰7-納品物はFAILしない(既に出現なし)" 'FAIL 第2: 第三者呼称-納品物' "$out_7"
   assert_not_contains "追加回帰7-抽出はFAILしない(既に出現なし)" 'FAIL 第3: 作る側の事情語-抽出' "$out_7"
   rm -rf "$tmp_7"
+
+  # 追加回帰8（1-261）: 第7: 対話エージェントの編集単位語（機械化定義の
+  # write_terms ではなく、実物定義ファイル DEFAULT_TERMS_FILE を使う）。
+  # 対話エージェント自身の編集単位（やり取りの回・下書きファイル）を指す
+  # 語が本文に混入すれば不合格になることを確認する。
+  local tmp_8 doc_8 out_8 rc_8
+  tmp_8="$(new_tmp_dir)"
+  mkdir -p "$tmp_8/api"
+  doc_8="$tmp_8/api/API詳細設計書.md"
+  cat > "$doc_8" <<'DOC'
+# 注文API API詳細設計書
+
+本ターンで追記した内容を以下にまとめる。下書きファイルの内容をそのまま転記した。
+DOC
+  out_8="$(run_check "$tmp_8")"; rc_8=$?
+  assert_eq "追加回帰8-対話エージェントの編集単位語の終了コード" 1 "$rc_8"
+  assert_contains "追加回帰8-本ターンをFAIL" 'FAIL 第7: 対話エージェントの編集単位語-本ターン' "$out_8"
+  assert_contains "追加回帰8-下書きファイルをFAIL" 'FAIL 第7: 対話エージェントの編集単位語-下書きファイル' "$out_8"
+  rm -rf "$tmp_8"
 
   echo "self-test: $pass PASS, $fail FAIL"
   [ "$fail" -eq 0 ]
