@@ -6,9 +6,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import process from 'node:process';
 
-const ACTIVE_STATUSES = new Set(['未確認', '確認中', '回答済み']);
-const CLOSED_STATUSES = new Set(['反映済み', '対象外']);
-const ALLOWED_STATUSES = new Set([...ACTIVE_STATUSES, ...CLOSED_STATUSES]);
+const ALLOWED_STATUSES = new Set(['未確認', '確認中', '回答済み', '反映済み', '対象外']);
 const ITEM_FIELDS = [
   'key',
   'raisedDate',
@@ -154,28 +152,6 @@ function findTable(lines, range, item) {
   throw new Error(`反映先のセルが見つかりません: ${item.key}（${item.target.section} / ${item.target.rowKey} / ${item.target.column}）`);
 }
 
-function confirmationTable(markdown) {
-  const lines = markdown.split(/\r?\n/);
-  const headingIndex = lines.findIndex((line) => /^##\s+(?:§\d+\s+)?要確認事項一覧\s*$/.test(line));
-  if (headingIndex < 0) throw new Error('設計書に「要確認事項一覧」節がありません');
-  for (let headerIndex = headingIndex + 1; headerIndex < lines.length - 1; headerIndex += 1) {
-    if (!/^\s*\|/.test(lines[headerIndex]) || !/^\s*\|(?:\s*:?-{3,}:?\s*\|)+\s*$/.test(lines[headerIndex + 1])) continue;
-    const headers = splitRow(lines[headerIndex]);
-    if (headers.join('|') !== 'キー|確認事項|確認先') {
-      throw new Error('要確認事項一覧は「キー・確認事項・確認先」の3列でなければなりません');
-    }
-    let end = headerIndex + 2;
-    while (end < lines.length && /^\s*\|/.test(lines[end])) end += 1;
-    return { lines, headerIndex, start: headerIndex + 2, end };
-  }
-  throw new Error('要確認事項一覧の表が見つかりません');
-}
-
-function confirmationKeys(markdown) {
-  const table = confirmationTable(markdown);
-  return table.lines.slice(table.start, table.end).map((line) => splitRow(line)[0]).filter(Boolean);
-}
-
 function applyAnswers(markdown, ledger) {
   const lines = markdown.split(/\r?\n/);
   const answered = ledger.items.filter((item) => item.status === '回答済み');
@@ -186,25 +162,16 @@ function applyAnswers(markdown, ledger) {
     lines[target.rowIndex] = `| ${target.cells.join(' | ')} |`;
   }
 
-  const appliedKeys = new Set(answered.map((item) => item.key));
-  const table = confirmationTable(lines.join('\n'));
-  const keptRows = table.lines.slice(table.start, table.end).filter((line) => !appliedKeys.has(splitRow(line)[0]));
-  table.lines.splice(table.start, table.end - table.start, ...keptRows);
   answered.forEach((item) => { item.status = '反映済み'; });
-  return table.lines.join('\n');
+  return lines.join('\n');
 }
 
 function assertConsistency(markdown, ledger) {
   validateLedger(ledger);
   const lines = markdown.split(/\r?\n/);
-  const designKeys = confirmationKeys(markdown);
   const ledgerKeys = ledger.items.map((item) => item.key);
-  const expectedKeys = ledger.items.filter((item) => ACTIVE_STATUSES.has(item.status)).map((item) => item.key);
   const failures = [
-    ...duplicateValues(designKeys).map((key) => `設計書でキーが重複: ${key}`),
     ...duplicateValues(ledgerKeys).map((key) => `台帳でキーが重複: ${key}`),
-    ...designKeys.filter((key) => !expectedKeys.includes(key)).map((key) => `一覧に完了済みのキーが残存: ${key}`),
-    ...expectedKeys.filter((key) => !designKeys.includes(key)).map((key) => `一覧に未完了のキーがない: ${key}`),
     ...ledger.items.filter((item) => item.status === '回答済み').map((item) => `回答済みのまま未反映: ${item.key}`),
   ];
   for (const item of ledger.items.filter(({ status }) => status === '反映済み')) {
@@ -251,8 +218,8 @@ async function selfTest() {
   try {
     const designPath = path.join(dir, '設計書.md');
     const ledgerPath = path.join(dir, '要確認事項台帳.json');
-    const design = `# 合成設計書\n\n## §2 業務仕様\n\n| キー | 判定内容 | 根拠 |\n|---|---|---|\n| auth-policy | 未確定 | コードから確定不可 |\n| retry-policy | 未確定 | コードから確定不可 |\n\n## §9 要確認事項一覧\n\n| キー | 確認事項 | 確認先 |\n|---|---|---|\n| auth-policy | 操作権限を確認する | 業務責任者 |\n| retry-policy | 再試行回数を確認する | 運用責任者 |\n| retention | 保存期間を確認する | 法務担当者 |\n`;
-    const target = (rowKey, column) => ({ section: '§2 業務仕様', rowKey, column });
+    const design = `# 合成設計書\n\n## §2 機能一覧\n\n### 2.1 機能一覧表\n\n| キー | 機能名 | 概要 | 優先度 |\n|---|---|---|---|\n| auth-policy | 認証ポリシー | 未確定 | 必須 |\n| retry-policy | 再試行ポリシー | 未確定 | 必須 |\n`;
+    const target = (rowKey, column) => ({ section: '§2 機能一覧', rowKey, column });
     const item = (key, status, answer, answeredDate, reflectionTarget) => ({
       key,
       raisedDate: '2026-08-20',
@@ -267,9 +234,9 @@ async function selfTest() {
       unitKey: 'fixture-unit',
       designDocument: '設計書.md',
       items: [
-        item('auth-policy', '回答済み', '管理者だけに許可する', '2026-08-20', target('auth-policy', '判定内容')),
-        item('retry-policy', '回答済み', '3回まで再試行する', '2026-08-20', target('retry-policy', '判定内容')),
-        item('retention', '未確認', '', '', target('retention-policy', '判定内容')),
+        item('auth-policy', '回答済み', '管理者だけに許可する', '2026-08-20', target('auth-policy', '概要')),
+        item('retry-policy', '回答済み', '3回まで再試行する', '2026-08-20', target('retry-policy', '概要')),
+        item('retention', '未確認', '', '', target('retention-policy', '概要')),
       ],
     };
     await writeFile(designPath, design, 'utf8');
@@ -277,11 +244,8 @@ async function selfTest() {
     await processFiles({ ledgerPath, designDocPath: designPath, checkOnly: false });
     const actualDesign = await readFile(designPath, 'utf8');
     const actualLedger = JSON.parse(await readFile(ledgerPath, 'utf8'));
-    assert.match(actualDesign, /\| auth-policy \| 管理者だけに許可する \|/);
-    assert.match(actualDesign, /\| retry-policy \| 3回まで再試行する \|/);
-    assert.doesNotMatch(actualDesign, /\| auth-policy \| 操作権限を確認する \|/);
-    assert.doesNotMatch(actualDesign, /\| retry-policy \| 再試行回数を確認する \|/);
-    assert.match(actualDesign, /\| retention \| 保存期間を確認する \| 法務担当者 \|/);
+    assert.match(actualDesign, /\| auth-policy \| 認証ポリシー \| 管理者だけに許可する \| 必須 \|/);
+    assert.match(actualDesign, /\| retry-policy \| 再試行ポリシー \| 3回まで再試行する \| 必須 \|/);
     assert.deepEqual(actualLedger.items.map(({ status }) => status), ['反映済み', '反映済み', '未確認']);
     await processFiles({ ledgerPath, designDocPath: designPath, checkOnly: true });
     await writeFile(designPath, actualDesign.replace('管理者だけに許可する', '未確定'), 'utf8');
@@ -289,7 +253,7 @@ async function selfTest() {
       processFiles({ ledgerPath, designDocPath: designPath, checkOnly: true }),
       /反映済みの本文セルが回答と不一致: auth-policy/,
     );
-    console.log('self-test PASS: 回答済み2件の本文反映と一覧削除、未回答1件の保持、反映後の整合と本文ドリフトの拒否を確認しました');
+    console.log('self-test PASS: 台帳だけを使った回答済み2件の本文反映、未回答1件の保持、反映後の整合と本文ドリフトの拒否を確認しました');
   } finally {
     await rm(dir, { recursive: true, force: true });
   }
