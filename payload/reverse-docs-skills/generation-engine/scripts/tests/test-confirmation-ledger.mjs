@@ -11,8 +11,12 @@ const repoRoot = path.resolve(testDir, '../../..');
 const checker = path.join(repoRoot, 'generation-engine/scripts/check-confirmation-ledger.mjs');
 const surveyBuilder = path.join(repoRoot, 'generation-engine/scripts/extract/build-confirmation-survey-data.sh');
 
-function designDocument(status, rows) {
-  return `---\nstatus: ${status}\n---\n\n# 画面詳細設計書\n\n## §19 要確認事項一覧\n\n| キー | 起票日 | 内容 | 暫定扱いにしている § | 解消条件 | 状態 |\n|---|---|---|---|---|---|\n${rows.join('\n')}\n\n---\n\n## 関連資料\n`;
+function designDocument(status) {
+  // 現行の画面詳細設計書テンプレートは §19 が「関連資料」であり、確認事項の
+  // 見出し・表は持たない（改善課題1-223）。check-confirmation-ledger.mjs は
+  // 台帳（ledger.items）だけで完結し、設計書からは frontmatter の status
+  // しか読まないため、本文に確認事項の構造は不要である（改善課題1-215）。
+  return `---\nstatus: ${status}\n---\n\n# 画面詳細設計書\n\n## §19 関連資料\n\n| 正の種類 | ファイル | 本書との役割分担 |\n|---|---|---|\n`;
 }
 
 function ledger(unitKey, items) {
@@ -32,11 +36,11 @@ function item(key, status, answer = '') {
   };
 }
 
-async function fixture(t, status, rows, items) {
+async function fixture(t, status, items) {
   const dir = await mkdtemp(path.join(tmpdir(), 'confirmation-ledger-test-'));
   t.after(() => rm(dir, { recursive: true, force: true }));
   const designPath = path.join(dir, '画面詳細設計書.md');
-  await writeFile(designPath, designDocument(status, rows));
+  await writeFile(designPath, designDocument(status));
   const ledgerPath = await writeLedger(dir, 'screen-login', items);
   return { dir, designPath, ledgerPath };
 }
@@ -54,11 +58,10 @@ function runChecker(ledgerPath, designPath) {
   });
 }
 
-test('設計書に無い対象外の台帳行を許容し未解消が無ければ3検査に合格する', async (t) => {
+test('台帳の行だけで未解消が無ければ3検査に合格する（設計書は§19関連資料のみを持つ）', async (t) => {
   const f = await fixture(
     t,
     'approved',
-    [],
     [
       item('permission-policy', '反映済み', '管理者のみ'),
       item('out-of-scope', '対象外'),
@@ -66,34 +69,26 @@ test('設計書に無い対象外の台帳行を許容し未解消が無けれ�
   );
   const result = runChecker(f.ledgerPath, f.designPath);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /PASS: 設計書と台帳のキー整合/);
+  assert.match(result.stdout, /PASS: 台帳のキー重複が0件/);
   assert.match(result.stdout, /PASS: 台帳の回答済み行が0件/);
   assert.match(result.stdout, /PASS: 承認済み設計書の未解消行が0件/);
 });
 
-test('設計書と台帳のキーが食い違う場合は該当キーを列挙して異常終了する', async (t) => {
+test('台帳内でキーが重複する場合は該当キーを列挙して異常終了する', async (t) => {
   const f = await fixture(
     t,
     'authored',
-    [
-      '| `design-only-a` | 2026-08-19 | 内容 | §4 | 回答 | 未解消 |',
-      '| `design-only-b` | 2026-08-19 | 内容 | §4 | 回答 | 未解消 |',
-    ],
-    [item('ledger-only-a', '未確認'), item('ledger-only-b', '確認中')],
+    [item('duplicated-key', '未確認'), item('duplicated-key', '確認中')],
   );
   const result = runChecker(f.ledgerPath, f.designPath);
   assert.equal(result.status, 1);
-  assert.match(result.stderr, /設計書にだけ存在: design-only-a/);
-  assert.match(result.stderr, /設計書にだけ存在: design-only-b/);
-  assert.match(result.stderr, /台帳の未完了行が設計書に存在しない: ledger-only-a（未確認）/);
-  assert.match(result.stderr, /台帳の未完了行が設計書に存在しない: ledger-only-b（確認中）/);
+  assert.match(result.stderr, /台帳でキーが重複: duplicated-key/);
 });
 
 test('台帳に回答済みの行が残る場合は反映待ちのキーを列挙して異常終了する', async (t) => {
   const f = await fixture(
     t,
     'authored',
-    ['| `permission-policy` | 2026-08-19 | 内容 | §4 | 回答 | 未解消 |'],
     [item('permission-policy', '回答済み', '管理者のみ')],
   );
   const result = runChecker(f.ledgerPath, f.designPath);
@@ -105,11 +100,6 @@ test('承認済み設計書に未確認・確認中・回答済みがある場�
   const f = await fixture(
     t,
     'approved',
-    [
-      '| `unconfirmed` | 2026-08-19 | 内容 | §4 | 回答 | 未解消 |',
-      '| `in-progress` | 2026-08-19 | 内容 | §4 | 回答 | 未解消 |',
-      '| `answered` | 2026-08-19 | 内容 | §4 | 回答 | 未解消 |',
-    ],
     [
       item('unconfirmed', '未確認'),
       item('in-progress', '確認中'),

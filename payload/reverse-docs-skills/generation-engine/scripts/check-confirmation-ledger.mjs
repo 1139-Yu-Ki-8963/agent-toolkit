@@ -42,29 +42,6 @@ function parseFrontmatterStatus(markdown) {
   return statusLine ? statusLine[1].trim().replace(/^['"]|['"]$/g, '') : '';
 }
 
-function cleanCell(value) {
-  return value.trim().replace(/^`|`$/g, '').trim();
-}
-
-function extractConfirmationKeys(markdown) {
-  const lines = markdown.split(/\r?\n/);
-  const headingIndex = lines.findIndex((line) => /^##\s+(?:§\d+\s+)?要確認事項一覧\s*$/.test(line));
-  if (headingIndex < 0) {
-    throw new Error('設計書に「要確認事項一覧」章がありません');
-  }
-
-  const keys = [];
-  for (const line of lines.slice(headingIndex + 1)) {
-    if (/^##\s+/.test(line)) break;
-    if (!/^\s*\|/.test(line)) continue;
-    const cells = line.trim().replace(/^\||\|$/g, '').split('|').map(cleanCell);
-    const key = cells[0] ?? '';
-    if (!key || key === 'キー' || /^:?-{3,}:?$/.test(key)) continue;
-    keys.push(key);
-  }
-  return keys;
-}
-
 function duplicates(values) {
   const seen = new Set();
   const duplicateValues = new Set();
@@ -127,19 +104,9 @@ async function main() {
   );
   const markdown = await readFile(designDocPath, 'utf8');
   const designStatus = parseFrontmatterStatus(markdown);
-  const designKeys = extractConfirmationKeys(markdown);
   const ledgerKeys = ledger.items.map((item) => item.key);
-  const designKeySet = new Set(designKeys);
-  const ledgerKeySet = new Set(ledgerKeys);
 
-  const consistencyFailures = [
-    ...duplicates(designKeys).map((key) => `設計書でキーが重複: ${key}`),
-    ...duplicates(ledgerKeys).map((key) => `台帳でキーが重複: ${key}`),
-    ...designKeys.filter((key) => !ledgerKeySet.has(key)).map((key) => `設計書にだけ存在: ${key}`),
-    ...ledger.items
-      .filter((item) => !CLOSED_STATUSES.has(item.status) && !designKeySet.has(item.key))
-      .map((item) => `台帳の未完了行が設計書に存在しない: ${item.key}（${item.status}）`),
-  ];
+  const duplicateFailures = duplicates(ledgerKeys).map((key) => `台帳でキーが重複: ${key}`);
   const answerFailures = ledger.items
     .filter((item) => item.status === '回答済み')
     .map((item) => `反映待ち: ${item.key}（回答: ${item.answer || '空欄'}）`);
@@ -150,7 +117,7 @@ async function main() {
     : [];
 
   let failed = false;
-  failed = reportFailure('設計書と台帳のキー整合', consistencyFailures) || failed;
+  failed = reportFailure('台帳のキー重複が0件', duplicateFailures) || failed;
   failed = reportFailure('台帳の回答済み行が0件', answerFailures) || failed;
   failed = reportFailure('承認済み設計書の未解消行が0件', approvalFailures) || failed;
 

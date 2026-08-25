@@ -30,6 +30,18 @@
 #   失敗した場合は [UNKNOWN]・終了コード2で終える
 #   （.claude/rules/always/verification/indeterminate-result/rule.md に従う）。
 #
+# 実装判断: 2026-08-21 にこのリポジトリの履歴を単一の初回コミットへ作り直した
+#   （コミット 2ee874944bdfc0ac9e6c354f4e9ceac5f5464f27）。それより前に判定表・
+#   状態欄へ書かれたハッシュは、いま存在せず今後も復元できない。これは
+#   「実行できなかった」でも「不合格」でもなく、確かめる手段そのものが失われた
+#   判定不能である（.claude/rules/always/verification/indeterminate-result/rule.md
+#   の考え方をハッシュの検証可否へ適用したもの）。2026-08-26 に実測した
+#   復元不能ハッシュ83件（重複除去後）を docs/references/pre-rewrite-hashes.json
+#   へ固定の一覧として記録し、この一覧に載るハッシュだけを判定不能として除外する。
+#   この一覧は実測時点で固定し、以後は手で追記しない。新しく切れたハッシュは
+#   この一覧に無いため、そのまま不合格として検出される（自動で一覧へ加わる
+#   仕組みは意図的に持たせない。持たせると検査が新しい切れを見逃す）。
+#
 # 使い方:
 #   bash docs/scripts/check-verdict-hash-ancestry.sh                docs/tasks 全体を走査
 #   bash docs/scripts/check-verdict-hash-ancestry.sh <file...>       指定ファイルだけ走査
@@ -38,8 +50,9 @@
 #   bash docs/scripts/check-verdict-hash-ancestry.sh --self-test     このスクリプト自身の検査
 #
 # 終了コード:
-#   0 = 抽出した全ハッシュが main のコミットであり祖先である
-#   1 = main の祖先でない、またはコミットとして存在しないハッシュが1件以上ある
+#   0 = 新しく切れたハッシュ（履歴再作成より後に生じた祖先違反・存在しない
+#       ハッシュのうち、pre-rewrite-hashes.json に載らないもの）が0件
+#   1 = 新しく切れたハッシュが1件以上ある
 #   2 = 走査対象が無い・git が無い・main ブランチが無いなど判定不能
 set -uo pipefail
 
@@ -79,6 +92,26 @@ extract_hashes() {
       }
     }
   ' "$file"
+}
+
+# load_pre_rewrite_hashes: <repo_root> の docs/references/pre-rewrite-hashes.json
+# から、履歴再作成より前に書かれ復元できないと確認済みのハッシュを1行1件で返す。
+# ファイルが無い・jq が無い・パースに失敗した場合は何も出さない（空集合として扱う。
+# 一覧が読めないことを理由に既存の切れを不合格から除外することはしない＝安全側）。
+load_pre_rewrite_hashes() {
+  local repo_root="$1"
+  local list_file="$repo_root/docs/references/pre-rewrite-hashes.json"
+  [ -f "$list_file" ] || return 0
+  command -v jq >/dev/null 2>&1 || return 0
+  jq -r '.hashes[]? // empty' "$list_file" 2>/dev/null
+}
+
+# is_pre_rewrite_hash: <hash> が <allowlist> （改行区切りの文字列）に完全一致で
+# 含まれるかを見る。含まれれば0、含まれなければ1を返す。
+is_pre_rewrite_hash() {
+  local hash="$1" allowlist="$2"
+  [ -n "$allowlist" ] || return 1
+  printf '%s\n' "$allowlist" | grep -qxF "$hash"
 }
 
 # list_target_files: <repo_root> 配下の docs/tasks/*.md・docs/tasks/done/*.md を返す。
@@ -136,7 +169,11 @@ run_check() {
     return 2
   fi
 
+  local pre_rewrite_hashes
+  pre_rewrite_hashes="$(load_pre_rewrite_hashes "$repo_root")"
+
   local -a failures=()
+  local -a indeterminates=()
   local total=0
   local file line kind hash reason
 
@@ -146,19 +183,23 @@ run_check() {
       [ -n "$hash" ] || continue
       total=$((total + 1))
       if ! reason="$(check_hash "$repo_root" "$hash")"; then
-        failures+=("$(printf '%s:%d: %s（由来: %s、理由: %s）' "$file" "$line" "$hash" "$kind" "$reason")")
+        if is_pre_rewrite_hash "$hash" "$pre_rewrite_hashes"; then
+          indeterminates+=("$(printf '%s:%d: %s（由来: %s、理由: %s。履歴再作成より前で復元不能のため判定不能）' "$file" "$line" "$hash" "$kind" "$reason")")
+        else
+          failures+=("$(printf '%s:%d: %s（由来: %s、理由: %s）' "$file" "$line" "$hash" "$kind" "$reason")")
+        fi
       fi
     done < <(extract_hashes "$file")
   done
 
   if [ "${#failures[@]}" -gt 0 ]; then
     printf '%s\n' "${failures[@]}" >&2
-    printf '[FAIL] mainの祖先でない・存在しないハッシュ=%d件（走査したハッシュ%d件中）\n' \
-      "${#failures[@]}" "$total" >&2
+    printf '[FAIL] 新しく切れたハッシュ=%d件（判定不能%d件を除く。走査したハッシュ%d件中）\n' \
+      "${#failures[@]}" "${#indeterminates[@]}" "$total" >&2
     return 1
   fi
 
-  echo "[PASS] mainの祖先でない・存在しないハッシュ=0件（走査したハッシュ${total}件）"
+  echo "[PASS] 新しく切れたハッシュ=0件（判定不能${#indeterminates[@]}件を除く。走査したハッシュ${total}件）"
   return 0
 }
 
@@ -269,6 +310,48 @@ EOF
   else
     echo "  [FAIL] mainブランチが無い場合は判定不能(終了コード2)を返す（実際: ${rc2}）" >&2
     fail=$((fail + 1)); rc=1
+  fi
+
+  # ケース6: pre-rewrite-hashes.json に載る存在しないハッシュは判定不能として
+  # 除外され、他に切れが無ければ合格(終了コード0)になる
+  local repo3="$tmp/repo-allowlisted"
+  mkdir -p "$repo3/docs/tasks" "$repo3/docs/references"
+  git -C "$repo3" init -q
+  git -C "$repo3" config user.name "self-test"
+  git -C "$repo3" config user.email "self-test@example.invalid"
+  git -C "$repo3" checkout -q -b main 2>/dev/null || git -C "$repo3" checkout -q main 2>/dev/null
+  echo "a" > "$repo3/a.txt"
+  git -C "$repo3" add a.txt
+  git -C "$repo3" commit -q -m "初期コミット"
+  local pre_rewrite_hash="deadbeef00"
+  cat > "$repo3/docs/references/pre-rewrite-hashes.json" <<EOF
+{"schemaVersion": 1, "hashes": ["${pre_rewrite_hash}"]}
+EOF
+  echo "| 1. 例 | \`test -z \"\"\` | 完了 | ${pre_rewrite_hash} | 履歴再作成より前の記録 |" > "$repo3/docs/tasks/allowlisted.md"
+  if run_check "$repo3" "$repo3/docs/tasks/allowlisted.md" >"$tmp/out6.txt" 2>"$tmp/err6.txt"; then
+    if grep -q "判定不能1件" "$tmp/out6.txt"; then
+      echo "  [PASS] 一覧に載る存在しないハッシュは判定不能として除外され合格する"; pass=$((pass + 1))
+    else
+      echo "  [FAIL] 一覧に載る存在しないハッシュは判定不能として除外され合格する（出力に件数が無い: $(cat "$tmp/out6.txt")）" >&2
+      fail=$((fail + 1)); rc=1
+    fi
+  else
+    echo "  [FAIL] 一覧に載る存在しないハッシュは判定不能として除外され合格する（不合格になった: $(cat "$tmp/err6.txt")）" >&2
+    fail=$((fail + 1)); rc=1
+  fi
+
+  # ケース7: 一覧に載らない、履歴再作成より後に生じた新しい切れは
+  # 引き続き不合格(終了コード1)として検出される
+  echo "| 1. 例 | \`test -z \"\"\` | 完了 | ff11223344 | 一覧に無い新しい切れ |" > "$repo3/docs/tasks/new-break.md"
+  if run_check "$repo3" "$repo3/docs/tasks/new-break.md" >"$tmp/out7.txt" 2>"$tmp/err7.txt"; then
+    echo "  [FAIL] 一覧に無い新しい切れは不合格になる" >&2; fail=$((fail + 1)); rc=1
+  else
+    if grep -q "新しく切れたハッシュ=1件" "$tmp/err7.txt"; then
+      echo "  [PASS] 一覧に無い新しい切れは不合格になる"; pass=$((pass + 1))
+    else
+      echo "  [FAIL] 一覧に無い新しい切れは不合格になる（出力: $(cat "$tmp/err7.txt")）" >&2
+      fail=$((fail + 1)); rc=1
+    fi
   fi
 
   echo "self-test: PASS=${pass} FAIL=${fail}"
