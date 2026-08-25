@@ -891,6 +891,14 @@ deliver_agent() {
 # で走査し、該当があれば標準出力へ報告する。報告のみで生成は中断しない
 # （既存の他検査と同じ方針）。$1: 走査対象ディレクトリ（docs/rules 等）
 # 戻り値は常に0。呼び出し側は出力を読んで対応を判断する。
+#
+# 除外（規則を定義する文書）: 一部の規則は、その規則自身が「禁止語を書かない」
+# ことを定義しており、本文に禁止語を例示として含む（例:
+# documentation-standards/document-writing）。この自己言及は term_file の
+# exemptions（parent/key で指定）に一覧を持たせ、本スクリプトへは直書きしない
+# （文体の検査における常体除外と同じ設計。除外の対象はrule-banned-terms.json
+# の定義側が正であり、除外した件数を必ず報告する）。除外は指定した子カテゴリ
+# の rule.md・rule.html への一致に限り、それ以外の文書は従来どおり対象とする。
 scan_banned_terms() {
   local target_dir="$1"
   local term_file="${2:-$BANNED_TERMS_JSON}"
@@ -916,12 +924,47 @@ scan_banned_terms() {
     | xargs -0 grep -n -F -f "$patterns_file" 2>/dev/null || true)"
   rm -f "$patterns_file"
 
+  local excluded_count=0
+  if [ -n "$matches" ]; then
+    # exemptions（parent/key）を "<parent>/<key>/" の形へ変換し、matches の
+    # 行（"<path>:<lineno>:<content>"）のうちパスにこの断片を含むものだけを除外する。
+    local exempt_file
+    exempt_file="$(mktemp "${TMPDIR:-/tmp}/rule-banned-terms-exempt.XXXXXX")"
+    jq -r --arg scope "rule-definitions" \
+      '(.exemptions // [])[] | select(.scope == $scope) | "\(.parent)/\(.key)/"' \
+      "$term_file" >"$exempt_file" 2>/dev/null || true
+
+    if [ -s "$exempt_file" ]; then
+      local filtered_matches line is_exempt pat
+      filtered_matches=""
+      while IFS= read -r line; do
+        [ -n "$line" ] || continue
+        is_exempt=0
+        while IFS= read -r pat; do
+          [ -n "$pat" ] || continue
+          case "$line" in
+            *"/${pat}"*) is_exempt=1; break ;;
+          esac
+        done <"$exempt_file"
+        if [ "$is_exempt" -eq 1 ]; then
+          excluded_count=$((excluded_count + 1))
+        else
+          filtered_matches="${filtered_matches}${line}"$'\n'
+        fi
+      done <<EOF
+$matches
+EOF
+      matches="${filtered_matches%$'\n'}"
+    fi
+    rm -f "$exempt_file"
+  fi
+
   if [ -z "$matches" ]; then
-    echo "禁止語検査: 0件"
+    echo "禁止語検査: 0件（除外 ${excluded_count}件）"
     return 0
   fi
   hit_count="$(printf '%s\n' "$matches" | grep -c .)"
-  echo "禁止語検査: ${hit_count}件"
+  echo "禁止語検査: ${hit_count}件（除外 ${excluded_count}件）"
   printf '%s\n' "$matches" | sed 's/^/  /'
   return 0
 }
@@ -1516,7 +1559,7 @@ EOF
   #   禁止語（delivery-payload/references/rule-banned-terms.json）の機械検索が0件であること
   local ok11=1 scan_out11 hit11
   scan_out11="$(scan_banned_terms "${out1}/docs/rules")"
-  hit11="$(printf '%s\n' "$scan_out11" | head -n1 | sed -n 's/^禁止語検査: \([0-9][0-9]*\)件$/\1/p')"
+  hit11="$(printf '%s\n' "$scan_out11" | head -n1 | sed -n 's/^禁止語検査: \([0-9][0-9]*\)件.*$/\1/p')"
   if [ -z "$hit11" ] || [ "$hit11" != "0" ]; then
     ok11=0
   fi
@@ -1594,7 +1637,7 @@ EOF
   #   対して同じ検索を行い0件であること
   local ok13=1 scan_out13 hit13
   scan_out13="$(scan_banned_terms "${REPO_ROOT}/generation-engine/samples/docs/rules")"
-  hit13="$(printf '%s\n' "$scan_out13" | head -n1 | sed -n 's/^禁止語検査: \([0-9][0-9]*\)件$/\1/p')"
+  hit13="$(printf '%s\n' "$scan_out13" | head -n1 | sed -n 's/^禁止語検査: \([0-9][0-9]*\)件.*$/\1/p')"
   if [ -z "$hit13" ] || [ "$hit13" != "0" ]; then
     ok13=0
   fi

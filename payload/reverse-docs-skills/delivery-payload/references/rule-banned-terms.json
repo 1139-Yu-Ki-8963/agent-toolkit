@@ -1,6 +1,6 @@
 {
   "specVersion": 2,
-  "description": "delivery-payload/templates/rules/tool-defined/ から生成する規約定義（rule.md・rule.html）の本文、および .claude/skills/*/SKILL.md・.claude/skills/*/references/guide.html に残してはいけない語の一覧。scope=rule-definitions は規約定義の生成物専用（generation-engine/scripts/rules/scaffold-rule-definitions.sh の scan_banned_terms が読む）。scope=skills はスキル定義とガイド専用（generation-engine/scripts/check-internal-jargon.sh が読む）。status= の右辺値・バージョン付き状態値（例: 採録v0確定）としての使用は、コードの中の識別子に相当するため走査対象から除外する。",
+  "description": "delivery-payload/templates/rules/tool-defined/ から生成する規約定義（rule.md・rule.html）の本文、および .claude/skills/*/SKILL.md・.claude/skills/*/references/guide.html に残してはいけない語の一覧。scope=rule-definitions は規約定義の生成物専用（generation-engine/scripts/rules/scaffold-rule-definitions.sh の scan_banned_terms が読む）。scope=skills はスキル定義とガイド専用（generation-engine/scripts/check-internal-jargon.sh が読む）。status= の右辺値・バージョン付き状態値（例: 採録v0確定）としての使用は、コードの中の識別子に相当するため走査対象から除外する。exemptions は、規則を定義する文書自身が禁止語を例示として本文に含む場合の除外対象（parent/key で指定する子カテゴリ）の一覧であり、scan_banned_terms がこの一覧に載る子カテゴリの rule.md・rule.html への一致だけを除外する。",
   "terms": [
     {"term": "納品", "replacement": null, "scope": ["rule-definitions"]},
     {"term": "再納品", "replacement": null, "scope": ["rule-definitions"]},
@@ -26,5 +26,8 @@
     {"term": "原本読解型", "replacement": "原本だけを読み取る種類", "scope": ["skills"]},
     {"term": "gold標準", "replacement": "模範例", "scope": ["skills"]},
     {"term": "back-edge", "replacement": "戻り方向の依存", "scope": ["skills"]}
+  ],
+  "exemptions": [
+    {"scope": "rule-definitions", "parent": "documentation-standards", "key": "document-writing", "reason": "この規約自身が『本文には成果物を作った作業の単位を指す語を書かない』という規則を定義しており、規則の本文がその語（下書きファイル等）を例示している。禁止語の例示は規則の説明として正当であり、規則を定義する文書だけを対象に除外する（generation-engine/scripts/rules/scaffold-rule-definitions.sh の scan_banned_terms が読む）。"}
   ]
 }
