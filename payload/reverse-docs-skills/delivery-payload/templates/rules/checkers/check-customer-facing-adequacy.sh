@@ -417,6 +417,44 @@ DOC
   assert_contains "追加回帰8-下書きファイルをFAIL" 'FAIL 第7: 対話エージェントの編集単位語-下書きファイル' "$out_8"
   rm -rf "$tmp_8"
 
+  # 追加回帰9（1-238）: 配布する全種別の設計書テンプレートが、冒頭案内の
+  # 記入規則を適用すると宣言している。ファイル総数との一致で、新しい種別を
+  # 追加した際の宣言漏れも不合格にする。
+  local reverse_template_root template_root_rc template_count guidance_count
+  reverse_template_root="$SCRIPT_DIR/../../リバース検証"
+  [ -d "$reverse_template_root" ]; template_root_rc=$?
+  assert_eq "追加回帰9-実物テンプレートディレクトリが存在" 0 "$template_root_rc"
+  template_count="$(find "$reverse_template_root" -type f -name '*.md' | wc -l | tr -d ' ')"
+  guidance_count="$(grep -rl 'INTRODUCTION_GUIDANCE' "$reverse_template_root" --include='*.md' | wc -l | tr -d ' ')"
+  assert_eq "追加回帰9-全テンプレートが冒頭記入規則を宣言" "$template_count" "$guidance_count"
+
+  # 追加回帰10（1-238）: 2節の試験入力から冒頭案内を組み立て、節数と
+  # 「節・内容・読み手へのお願い」の案内行数が一致することを確認する。
+  local tmp_intro intro_doc section_count guidance_row_count
+  tmp_intro="$(new_tmp_dir)"
+  intro_doc="$tmp_intro/複数節設計書.md"
+  cat > "$intro_doc" <<'DOC'
+# 注文API 設計書
+
+| 節 | 内容 | 読み手へのお願い |
+|---|---|---|
+| §1 利用条件 | 利用者と前提条件 | 条件が業務運用と一致するか確認してください。 |
+| §2 応答 | 正常時と異常時の応答 | 呼出元が各応答を処理できるか確認してください。 |
+
+## §1 利用条件
+
+本文。
+
+## §2 応答
+
+本文。
+DOC
+  section_count="$(grep -c '^## §' "$intro_doc")"
+  guidance_row_count="$(grep -c '^| §' "$intro_doc")"
+  assert_eq "追加回帰10-複数節の案内行数が節数と一致" "$section_count" "$guidance_row_count"
+  assert_contains "追加回帰10-内容列を持つ" '| 節 | 内容 | 読み手へのお願い |' "$(cat "$intro_doc")"
+  rm -rf "$tmp_intro"
+
   echo "self-test: $pass PASS, $fail FAIL"
   [ "$fail" -eq 0 ]
 }
