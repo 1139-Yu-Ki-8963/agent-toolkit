@@ -15,9 +15,22 @@ const templatePath = path.join(repoRoot, 'delivery-payload/templates/screen-sequ
 const rendererPath = path.join(repoRoot, 'generation-engine/scripts/render-template.sh');
 const manifestValidatorPath = path.join(repoRoot, 'generation-engine/scripts/unit-list/validate-manifest.sh');
 const listTemplatePath = path.join(repoRoot, 'delivery-payload/templates/unit-list/unit-list-template.html');
+const designUnitLayoutPath = path.join(repoRoot, 'delivery-payload/references/design-unit-layout.json');
 const policy = JSON.parse(readFileSync(policyPath, 'utf8'));
+const designUnitLayout = JSON.parse(readFileSync(designUnitLayoutPath, 'utf8'));
 const work = mkdtempSync(path.join(tmpdir(), 'sequence-kind-policy-'));
 const execFileAsync = promisify(execFile);
+
+// 1-73/1-83: 「基本」「詳細」の資料リンクラベルは種別ごとに design-unit-layout.json の
+// phases.basic/detail から解決する。build-unit-list.sh の doc_label_for_phase() と
+// 同じ規則(拡張子.mdを除いたファイル名。宣言が無ければ既定値)をここでも再現する。
+function docLabelForPhase(kind, phase, defaultLabel) {
+  const filename = designUnitLayout.kinds?.[kind]?.phases?.[phase]?.[0];
+  if (typeof filename === 'string' && filename.length > 0) {
+    return filename.replace(/\.md$/, '');
+  }
+  return defaultLabel;
+}
 
 function makeApiData() {
   const rows = [
@@ -151,10 +164,15 @@ function isSafeRelativeUrl(value) {
     !/^[\\/]/.test(value) && !value.includes('\\');
 }
 
-function runActualListRelatedDocs(unit) {
+function runActualListRelatedDocs(unit, kind) {
   const listTemplate = readFileSync(listTemplatePath, 'utf8');
-  const script = listTemplate.match(/\/\* 1-65\b[^:]*:[\s\S]*?(\(function \(\) \{[\s\S]*?\n    \}\)\(\);)/)?.[1];
-  assert.ok(script, '一覧テンプレートの関連資料表示処理を抽出できること');
+  const rawScript = listTemplate.match(/\/\* 1-65\b[^:]*:[\s\S]*?(\(function \(\) \{[\s\S]*?\n    \}\)\(\);)/)?.[1];
+  assert.ok(rawScript, '一覧テンプレートの関連資料表示処理を抽出できること');
+  // テンプレート原本は {{DOC_LABEL_BASIC}}/{{DOC_LABEL_DETAIL}} が未置換のまま残るため、
+  // build-unit-list.sh がビルド時に行う解決をここでも再現してから実行する。
+  const script = rawScript
+    .replaceAll('{{DOC_LABEL_BASIC}}', docLabelForPhase(kind, 'basic', '基本設計書'))
+    .replaceAll('{{DOC_LABEL_DETAIL}}', docLabelForPhase(kind, 'detail', '詳細設計書'));
 
   function element() {
     const classes = new Set();
@@ -235,14 +253,14 @@ try {
   assert.ok(isSafeRelativeUrl(apiSequencePath));
   assert.ok(isSafeRelativeUrl(featureSequencePath));
 
-  const validatedLabels = runActualListRelatedDocs(validatedNonGeneratingUnit);
-  assert.ok(validatedLabels.some((link) => link.label === '基本設計書'));
+  const validatedLabels = runActualListRelatedDocs(validatedNonGeneratingUnit, validatedNonGeneratingUnit.kind);
+  assert.ok(validatedLabels.some((link) => link.label === docLabelForPhase(validatedNonGeneratingUnit.kind, 'basic', '基本設計書')));
   assert.ok(!validatedLabels.some((link) => link.label === 'シーケンス図'));
 
   const generatingLabels = runActualListRelatedDocs({
     unitId: apiData.unitId, unitKey: 'orders-get',
     designDocPath: '../../API/api-orders-get/基本設計書.html', sequencePath: apiSequencePath
-  });
+  }, 'api');
   assert.ok(
     generatingLabels.some((link) => link.label === 'シーケンス図' && link.href === apiSequencePath),
     '生成対象では実テンプレート処理がsequencePathと同じhrefを表示すること'
@@ -250,7 +268,7 @@ try {
   const featureGeneratingLabels = runActualListRelatedDocs({
     unitId: featureData.unitId, unitKey: 'order',
     designDocPath: '../../機能/feat-order/機能設計書.html', sequencePath: featureSequencePath
-  });
+  }, 'feature');
   assert.ok(
     featureGeneratingLabels.some((link) => link.label === 'シーケンス図' && link.href === featureSequencePath),
     '機能でも実テンプレート処理がsequencePathと同じhrefを表示すること'
@@ -262,8 +280,11 @@ try {
       designDocPath: `../../${kind}/基本設計書.html`, sequencePath: `../../${kind}/シーケンス図.html`
     };
     delete unit[policy.kinds[kind].omitListField];
-    const labels = runActualListRelatedDocs(unit);
-    assert.ok(labels.some((link) => link.label === '基本設計書'), `${kind}: 他の関連資料は維持されること`);
+    const labels = runActualListRelatedDocs(unit, kind);
+    assert.ok(
+      labels.some((link) => link.label === docLabelForPhase(kind, 'basic', '基本設計書')),
+      `${kind}: 他の関連資料は維持されること`
+    );
     assert.ok(!labels.some((link) => link.label === 'シーケンス図'), `${kind}: シーケンス図欄が現れないこと`);
     assert.ok(!Object.hasOwn(unit, policy.linkField), `${kind}: sequencePathキーを省くこと`);
   }
