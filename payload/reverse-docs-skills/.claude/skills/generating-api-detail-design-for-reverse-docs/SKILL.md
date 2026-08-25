@@ -173,6 +173,8 @@ API詳細設計書は、テンプレートを出力先へ複製してから値�
 
 ## Step 1-1: 起動引数の確認と対象確定
 
+**使用ツール**: Bash, Read, AskUserQuestion, TaskCreate, TaskUpdate
+
 - **Step 1**: 必須 4 引数の実在を確認する（`test -f` / `test -d`）。いずれかが欠ける場合は `status=ERROR` で停止する。完了条件: 4 引数すべてが実在する
 - **Step 2**: `api_manifest_path` を Read し、`unitKind` が `api` であること、`units` が 1 件以上あることを確認する。完了条件: マニフェストが確認済み
 - **Step 3**: 言語プロファイルを選択する。「言語プロファイル」節の選択規則に従い `python` または `perl` を確定する。どちらの拡張子にも該当しない場合だけ `status=ERROR` で停止し、hint に「該当する言語プロファイルなし」と拡張子の内訳を記録する。完了条件: プロファイルが 1 つ確定している、または該当なしとして停止している
@@ -201,6 +203,8 @@ bash generation-engine/scripts/extract/build-implementation-contract-section.sh 
 **完了**: 拡張マニフェスト（`api-manifest.impl-contract.json`）が生成済み
 
 ## Step 2-2: ユニットごとの原本読解
+
+**使用ツール**: Read, Grep, Glob
 
 対象ユニット 1 件につき次を行う。
 
@@ -264,6 +268,8 @@ API詳細設計書の前付けは、次の 7 鍵を canonical な完全な集合
 `delivery-payload/references/doc-extraction.json` の宣言に従い、実際の読取処理である `generation-engine/scripts/portal-input/build-manifests-from-docs.sh` は `api_key`・`api_id`・`source_ref`・`method`・`path` を読む。少なくとも `api_key`・`source_ref`・`method`・`path` が揃った文書を `kind=endpoint` と判定する。`unitId`（`api_id`）は欠落時に代替可能であるため、この判定条件には含めない。`generation-engine/scripts/build-portal.sh --build-manifests-from-docs` がこの読取経路を起動する。`unit_kind` と `feature_key` は現行の抽出器が参照する鍵ではないが、canonical 集合の一部として保持する。
 
 ## Step 3-1: テンプレートの展開と記入
+
+**使用ツール**: Bash, Read, Write
 
 - **Step 1**: `<template_root>/リバース検証/API/API詳細設計書.md` を Read する。読み込んだ内容を `<output_dir>/<apiUnitRoot>/api-<API 識別子>/<unitPhaseDirNames.detail>/API詳細設計書.md` へ書き出し、以後はその複製へ記入する。見出し・表の列見出し・区切り行を再構築しない。`<API 識別子>` の決め方は「出力」節の規約に従う。中間ディレクトリが無ければ作成する。frontmatter は canonical な 7 鍵だけを保持し、`APIKEY` は `unitKey`、`APIID` は `unitId`、`METHOD` は `method`、`FEATUREKEY` は `featureKey`、`SOURCEREF` は `sourceFile` で置換する。`PATH` はマニフェストに独立した `path` があればその値で置換し、無ければ `identifier` の先頭にある HTTP メソッドとそれに続く空白を除いた後半で置換する。`unitId` または `featureKey` が無い場合も対応する鍵を残して値を空欄とし、その旨を要確認事項一覧へ記録する。`unit_kind` は `api` のまま保持する。完了条件: 全対象ユニットの設計書が配置済み
 - **Step 2**: Phase 2 で得た本文材料を各章へ記入する。§12.1・§12.2 は Step 2-1 の拡張マニフェストが持つ `subroutines`・`functions` 配列の値をそのまま表へ写す。読解で補った関数だけ、読解の結果を記入する。12.5 以外は原本に無い値を書かず、推測で埋めない。12.5 は「設計判断の読み取り規約」に従い、`観測（コードコメント）` と `推定（実装構造）` を区別する。選ばなかった選択肢または不採用理由を読めない場合は `不明（実装に記述なし）` とする。表、疑似コード、説明文を含む本文全体に、根拠列や対象コードのファイル名を記入しない。行番号、`file:line`、ファイル名を省いた括弧書き、文中の行番号も記入しない。疑似コード行末の位置注記も禁止する。完了条件: §1 から §12 と 12.5 がコード位置を含まず記入済み

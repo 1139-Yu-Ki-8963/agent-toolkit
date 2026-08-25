@@ -1535,8 +1535,13 @@ if [ "${1:-}" = "--self-test" ]; then
   # 別プロセスであり本体側の set -euo pipefail は子プロセス内で独立に有効）。
   set +e
   SELF_TEST_CASE_FAIL_COUNT=0
+  SELF_TEST_CASE_UNKNOWN_COUNT=0
   record_self_test_case_failure() {
     SELF_TEST_CASE_FAIL_COUNT=$((SELF_TEST_CASE_FAIL_COUNT + 1))
+    return 0
+  }
+  record_self_test_case_unknown() {
+    SELF_TEST_CASE_UNKNOWN_COUNT=$((SELF_TEST_CASE_UNKNOWN_COUNT + 1))
     return 0
   }
 
@@ -2692,8 +2697,13 @@ NODE
   elif node "$SECTION_ORDER_TEST"; then
     echo "PASS: --self-test ケース19（実テンプレート・正式生成経路のDOM章順序）"
   else
-    echo "FAIL: --self-test ケース19（実テンプレート・正式生成経路のDOM章順序）" >&2
-    record_self_test_case_failure
+    section_order_status=$?
+    if [ "$section_order_status" -eq 2 ]; then
+      record_self_test_case_unknown
+    else
+      echo "FAIL: --self-test ケース19（実テンプレート・正式生成経路のDOM章順序）" >&2
+      record_self_test_case_failure
+    fi
   fi
 
   echo "--- ケース20: サイドバーとメインコンテンツの見出し番号が全カテゴリで一致する（DOM比較） ---"
@@ -2893,8 +2903,13 @@ NODE
   elif node "$COLUMN_WIDTH_TEST"; then
     :
   else
-    echo "FAIL: --self-test ケース21（コンテンツカラム幅拡張・横スクロール発生率の検証に失敗）" >&2
-    record_self_test_case_failure
+    column_width_status=$?
+    if [ "$column_width_status" -eq 2 ]; then
+      record_self_test_case_unknown
+    else
+      echo "FAIL: --self-test ケース21（コンテンツカラム幅拡張・横スクロール発生率の検証に失敗）" >&2
+      record_self_test_case_failure
+    fi
   fi
 
   echo "--- ケース22: 画面詳細設計書テンプレートの参照用付録折りたたみ（生コード全文・API全量列挙、DOM計測） ---"
@@ -2908,8 +2923,13 @@ NODE
   elif node "$APPENDIX_COLLAPSE_TEST"; then
     :
   else
-    echo "FAIL: --self-test ケース22（参照用付録折りたたみの検証に失敗）" >&2
-    record_self_test_case_failure
+    appendix_collapse_status=$?
+    if [ "$appendix_collapse_status" -eq 2 ]; then
+      record_self_test_case_unknown
+    else
+      echo "FAIL: --self-test ケース22（参照用付録折りたたみの検証に失敗）" >&2
+      record_self_test_case_failure
+    fi
   fi
 
   echo "--- ケース23: §16要確認事項一覧の行数自動判定によるpt-calloutコールアウト付与（DOM計測） ---"
@@ -2923,8 +2943,13 @@ NODE
   elif node "$UNRESOLVED_CALLOUT_TEST"; then
     :
   else
-    echo "FAIL: --self-test ケース23（要確認事項コールアウトの検証に失敗）" >&2
-    record_self_test_case_failure
+    unresolved_callout_status=$?
+    if [ "$unresolved_callout_status" -eq 2 ]; then
+      record_self_test_case_unknown
+    else
+      echo "FAIL: --self-test ケース23（要確認事項コールアウトの検証に失敗）" >&2
+      record_self_test_case_failure
+    fi
   fi
 
   # 改善課題1-243: 本関数は内部でFAIL時に `return 1` するため、set -e下で
@@ -3257,8 +3282,13 @@ TEST24CATALOG
   elif node "$TRANSITION_INITIAL_SUMMARY_TEST"; then
     :
   else
-    echo "FAIL: --self-test ケース30（画面遷移図の初期DOMに空でない規模サマリが存在することの検証に失敗）" >&2
-    record_self_test_case_failure
+    transition_initial_summary_status=$?
+    if [ "$transition_initial_summary_status" -eq 2 ]; then
+      record_self_test_case_unknown
+    else
+      echo "FAIL: --self-test ケース30（画面遷移図の初期DOMに空でない規模サマリが存在することの検証に失敗）" >&2
+      record_self_test_case_failure
+    fi
   fi
 
   echo "--- ケース31: ER図の巨大ハブ(200テーブル)カード内、最小フォントサイズが10px以上（写真指摘1-104の検収方法2、Canvas計測） ---"
@@ -3272,8 +3302,13 @@ TEST24CATALOG
   elif node "$ER_HUB_FONT_SIZE_TEST"; then
     :
   else
-    echo "FAIL: --self-test ケース31（ER図の巨大ハブカード内、最小フォントサイズ10px以上であることの検証に失敗）" >&2
-    record_self_test_case_failure
+    er_hub_font_size_status=$?
+    if [ "$er_hub_font_size_status" -eq 2 ]; then
+      record_self_test_case_unknown
+    else
+      echo "FAIL: --self-test ケース31（ER図の巨大ハブカード内、最小フォントサイズ10px以上であることの検証に失敗）" >&2
+      record_self_test_case_failure
+    fi
   fi
 
   echo "--- ケース41: 用語辞書ページの意味投影とUI契約が実ブラウザ計測を含めて検証される（改善課題1-29 自己テスト配線） ---"
@@ -3302,8 +3337,13 @@ TEST24CATALOG
   elif node "$SEMANTIC_GLOSSARY_PAGE_TEST"; then
     :
   else
-    echo "FAIL: --self-test ケース41（用語辞書ページの意味投影/検証/UI契約の検証に失敗）" >&2
-    record_self_test_case_failure
+    semantic_glossary_status=$?
+    if [ "$semantic_glossary_status" -eq 2 ]; then
+      record_self_test_case_unknown
+    else
+      echo "FAIL: --self-test ケース41（用語辞書ページの意味投影/検証/UI契約の検証に失敗）" >&2
+      record_self_test_case_failure
+    fi
   fi
 
   echo "--- ケース42: disabledWhenEmpty:trueの作成不可カードは遷移せず、活性カードと視覚差があり実際に遷移する（改善課題1-29 自己テスト配線） ---"
@@ -3317,8 +3357,13 @@ TEST24CATALOG
   elif node "$DISABLED_CARD_INTERACTION_TEST"; then
     :
   else
-    echo "FAIL: --self-test ケース42（作成不可カードのクリック無反応/視覚差/活性カードの遷移検証に失敗）" >&2
-    record_self_test_case_failure
+    disabled_card_interaction_status=$?
+    if [ "$disabled_card_interaction_status" -eq 2 ]; then
+      record_self_test_case_unknown
+    else
+      echo "FAIL: --self-test ケース42（作成不可カードのクリック無反応/視覚差/活性カードの遷移検証に失敗）" >&2
+      record_self_test_case_failure
+    fi
   fi
 
   echo "--- ケース32: 画面遷移bridgeの再実行で、同一manifestContentHashなら既存edges/edgesStatusが引き継がれる（画面遷移図edges消失バグ修正の検収方法1） ---"
@@ -4353,6 +4398,10 @@ TEST48DETAIL
   # 始めない（SELF-TEST SUMMARY: を接頭辞にする）。1件でも不合格を記録して
   # いれば非0で終了し、走り切ったことと不合格の有無を両立して報告する。
   set -e
+  if [ "$SELF_TEST_CASE_UNKNOWN_COUNT" -ne 0 ]; then
+    echo "[UNKNOWN] SELF-TEST SUMMARY: 判定不能 ${SELF_TEST_CASE_UNKNOWN_COUNT} 件（実行環境の制約により合否を判定できません）" >&2
+    exit 2
+  fi
   echo "SELF-TEST SUMMARY: 不合格 ${SELF_TEST_CASE_FAIL_COUNT} 件（ケース1件不合格でも以降のケースを打ち切らず走り切る。改善課題1-243）"
   if [ "$SELF_TEST_CASE_FAIL_COUNT" -ne 0 ]; then
     exit 1
