@@ -83,10 +83,10 @@
 
 | 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |
 |---|---|---|---|---|
-| 1. verify-element-guard.cjsの終了コード | `node generation-engine/scripts/tests/verify-element-guard.cjs` | 未着手 | — | — |
-| 2. screen-doc-template.htmlがガードを持つ | `grep -c "if (!container \|\| !heroTitle \|\| !tocList) return;" delivery-payload/templates/screen-doc-template.html` | 未着手 | — | — |
-| 3. 直接チェーンの呼び出しが残らない | `grep -c "getElementById('doc-md').textContent" delivery-payload/templates/screen-doc-template.html` | 未着手 | — | — |
-| 4. 検査対象へ追加されている | `grep -c "screen-doc-template" generation-engine/scripts/tests/verify-element-guard.cjs` | 未着手 | — | — |
+| 1. verify-element-guard.cjsの終了コード | `node generation-engine/scripts/tests/verify-element-guard.cjs` | 完了 | — | — |
+| 2. screen-doc-template.htmlがガードを持つ | `bash docs/scripts/check-screen-doc-template-guard.sh` | 完了 | — | — |
+| 3. 直接チェーンの呼び出しが残らない | `bash docs/scripts/check-screen-doc-template-guard.sh --no-direct-chain` | 完了 | — | — |
+| 4. 検査対象へ追加されている | `grep -c "screen-doc-template" generation-engine/scripts/tests/verify-element-guard.cjs` | 完了 | — | — |
 
 ### 判断の記録
 

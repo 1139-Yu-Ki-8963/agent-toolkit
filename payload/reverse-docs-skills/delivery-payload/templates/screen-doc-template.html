@@ -192,7 +192,10 @@ table.data-table code {
 
 <script>
 (function () {
-  var src = JSON.parse(document.getElementById('doc-md').textContent || '""');
+  var sourceElement = document.getElementById('doc-md');
+  var contentElement = document.getElementById('doc-content');
+  if (!sourceElement || !contentElement) return;
+  var src = JSON.parse(sourceElement.textContent || '""');
 
   // frontmatter 除去
   src = src.replace(/^\s*---[\s\S]*?---\s*/, '');
@@ -373,7 +376,7 @@ table.data-table code {
   if (inFence) closeFence();
   closeList(); closeTable(); closeBlockquote();
 
-  document.getElementById('doc-content').innerHTML = html.join('\n');
+  contentElement.innerHTML = html.join('\n');
   // 改善課題1-51: 見出し以外の本文が無く、かつ表の行が無い場合に未記入の注記を表示する
   if (!hasBodyContent && !hasTableRow) {
     var emptyCallout = document.getElementById('doc-empty-callout');
@@ -385,6 +388,7 @@ table.data-table code {
     var container = document.getElementById('doc-content');
     var heroTitle = document.getElementById('dp-hero-title');
     var tocList = document.getElementById('toc-list');
+    if (!container || !heroTitle || !tocList) return;
 
     // 最初の h1 はヒーローへ移し、本文からは除去する
     var h1 = container.querySelector('h1');

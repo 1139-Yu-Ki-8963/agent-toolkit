@@ -153,12 +153,17 @@ function isSafeRelativeUrl(value) {
 
 function runActualListRelatedDocs(unit) {
   const listTemplate = readFileSync(listTemplatePath, 'utf8');
-  const script = listTemplate.match(/\/\* 1-65:[\s\S]*?(\(function \(\) \{[\s\S]*?\n    \}\)\(\);)/)?.[1];
+  const script = listTemplate.match(/\/\* 1-65\b[^:]*:[\s\S]*?(\(function \(\) \{[\s\S]*?\n    \}\)\(\);)/)?.[1];
   assert.ok(script, '一覧テンプレートの関連資料表示処理を抽出できること');
 
   function element() {
+    const classes = new Set();
     return {
       children: [], textContent: '', className: '', style: {}, attributes: {},
+      classList: {
+        add(name) { classes.add(name); },
+        contains(name) { return classes.has(name); }
+      },
       appendChild(child) { this.children.push(child); return child; },
       setAttribute(name, value) { this.attributes[name] = value; },
       getAttribute(name) { return this.attributes[name] ?? null; }
@@ -175,7 +180,9 @@ function runActualListRelatedDocs(unit) {
 
   const cell = row.children.at(-1);
   assert.ok(cell, '関連資料セルが生成されること');
-  return cell.children[0].children.map((link) => ({ label: link.textContent, href: link.href }));
+  return cell.children[0].children
+    .flatMap((slot) => slot.children)
+    .map((link) => ({ label: link.title, href: link.href }));
 }
 
 try {
