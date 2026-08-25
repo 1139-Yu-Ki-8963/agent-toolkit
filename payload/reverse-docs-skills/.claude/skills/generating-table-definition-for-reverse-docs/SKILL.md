@@ -1,7 +1,7 @@
 ---
 name: generating-table-definition-for-reverse-docs
 日本語名: テーブル定義書の書き起こし
-description: "テーブル一覧の元データと原本のコードから、テーブルごとの定義書を作る。"
+description: "テーブル一覧の元データと実装のコードから、テーブルごとの定義書を作る。"
 invocation: generating-table-definition-for-reverse-docs
 type: transform
 allowed-tools: [Bash, Read, Write]

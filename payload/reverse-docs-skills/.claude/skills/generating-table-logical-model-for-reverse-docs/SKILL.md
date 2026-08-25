@@ -1,7 +1,7 @@
 ---
 name: generating-table-logical-model-for-reverse-docs
 日本語名: 論理データモデルの書き起こし
-description: "テーブル一覧の元データと原本のコードから、テーブルが持つ業務上の意味を業務の言葉だけで書く。"
+description: "テーブル一覧の元データと実装のコードから、テーブルが持つ業務上の意味を業務の言葉だけで書く。"
 invocation: generating-table-logical-model-for-reverse-docs
 type: transform
 allowed-tools: [Bash, Read, Write]

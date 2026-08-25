@@ -1,7 +1,7 @@
 ---
 name: orchestrating-ai-development-setup
 日本語名: 検証工程全体の統括
-description: 対象コードと実行範囲を入力に、調査・事実抽出・設計書作成から再構築・原本照合・基準確立までを指定に応じて統括し、選んだ工程の結果を確定する。
+description: 対象コードと実行範囲を入力に、調査・事実取り出し・設計書作成から再構築・実装照合・基準確立までを指定に応じて統括し、選んだ工程の結果を確定する。
 invocation: orchestrating-ai-development-setup
 type: orchestration
 allowed-tools: [Agent, AskUserQuestion, Bash, Edit, Glob, Read, Skill, TaskCreate, TaskUpdate, Write]
