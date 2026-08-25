@@ -116,13 +116,14 @@ target_repo_path が確定した直後に `bash scripts/resolve-flow-mode.sh <ta
 
 ### 規約配布とAI設定資産生成の手順
 
-3モードいずれも、入口モード確定直後にこの手順を1回だけ実行する。次の3手順をこの順序で実行する。順序を逆にする、または省略すると、手順2が置く `AGENTS.md` の `RULES-INDEX` マーカーを手順3が検出できず、規約索引が生成されない、または前半索引（目的・技術スタック等）が失われる。
+3モードいずれも、入口モード確定直後にこの手順を1回だけ実行する。次の4手順をこの順序で実行する。手順1〜3の順序を逆にする、または省略すると `AGENTS.md` の `RULES-INDEX` マーカーを手順3が検出できない。この場合、規約索引や前半索引（目的・技術スタック等）が生成されない。手順4は手順1が配置した `docs/rules/` の実体を読むため、手順1より後に実行する。
 
 1. `bash <reverse_docs_root>/generation-engine/scripts/rules/scaffold-rule-definitions.sh <target_repo_path> --apply --with-skills` で規約定義一式（`docs/rules/` の親7・子27）と納品スキル2本を対象リポジトリへ配る。既存の `docs/rules/**/rule.md` は上書きしない
 2. `generating-agent-config-index-from-repo` を `target_repo_path`・`template_root=<reverse_docs_root>/delivery-payload/templates/ai-assets/`・`output_dir=<target_repo_path>` で起動し、`AGENTS.md`・`CLAUDE.md` へ前半索引（目的・技術スタック・実行コマンド等の事実）と、`RULES-INDEX` マーカーを含むテンプレートを複製する。手順3より前に実行しなければ、手順3が新規作成する `AGENTS.md` は前半索引を持たない
 3. `bash <reverse_docs_root>/generation-engine/scripts/rules/build-derived-rules.sh <target_repo_path>/docs/rules <target_repo_path> --apply` で各AIツール設定（`.claude`・`.cursor`・`.codex`）を生成し、手順2が置いた `RULES-INDEX` マーカーの範囲を規約索引で埋める
+4. `bash <reverse_docs_root>/generation-engine/scripts/rules/build-rule-flow-map.sh` で規約とフローの対応ページを生成する。第1引数は `rule-taxonomy.json`、第2引数は出力先（`<output_dir>/project-portal/foundation/規約とフローの対応.html`）とする。`--target-root <target_repo_path>` も渡す。`--target-root` は手順1が配置済みの `docs/rules/` の実体を読み、分類定義にあるが対象プロジェクトへ未配置の子カテゴリを索引から除く。
 
-3つの呼び出しはいずれも絶対パス指定であり、スクリプト・スキル自身が自分の位置から依存ファイルを解決するため、作業ディレクトリはどこであってもよい。`docs/rules/` 配下の規約定義自体は `scaffold-rule-definitions.sh`（手順1）が生成する。この配布に合わせて `.claude/rules/always/project-context/flow-values.yml` と `.claude/rules/always/project-context/rule.md`（実装フローのゲートが必須とする2ファイル）も手順1が既存保護つきで生成する（既存ファイルは上書きしない）。
+4つの呼び出しはいずれも絶対パス指定であり、スクリプト・スキル自身が自分の位置から依存ファイルを解決するため、作業ディレクトリはどこであってもよい。`docs/rules/` 配下の規約定義自体は `scaffold-rule-definitions.sh`（手順1）が生成する。この配布に合わせて、手順1は2ファイルも生成する。対象は `.claude/rules/always/project-context/` 配下の `flow-values.yml` と `rule.md` である。この2ファイルは実装フローのゲートが必須とし、既存保護つき（既存ファイルは上書きしない）で生成する。
 
 `setup-only` の場合はここで本フローを終端し、以降の対象プロジェクトパス・出力先パス・画面範囲の確認へは進まない。
 

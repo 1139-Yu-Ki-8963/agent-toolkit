@@ -83,6 +83,7 @@ allowed-tools: [Bash, Read, Write]
 | 整合検証 | `../../../generation-engine/scripts/detail-pages/validate-page-data.sh` |
 | HTML生成 | `../../../generation-engine/scripts/detail-pages/build-detail-page.sh` |
 | ポータル再生成（任意） | `../../../generation-engine/scripts/build-portal.sh` |
+| 出力配置解決 | `../../../generation-engine/scripts/output-layout.sh` |
 
 ## 実行手順
 
@@ -131,7 +132,9 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/release-notes-page-data.json
 
 - **Step 2** — FAIL 時は指摘に応じて page-data.json を修正し Step 1 を再実行する。3 回失敗したら Phase 2 Step 3（page-data 組み立て）へ差し戻す。完了条件: exit 0
 
-**完了**: `validate-page-data.sh --target-repo` が全項目 PASS
+- **Step 3** — PASSした候補だけを永続化する。`output-layout.sh`で`manifestsRoot`を解決し、`<output_dir>/<manifestsRoot>/detail-pages/release-notes-page-data.json`へ保存する。完了条件: 検証済みpage-dataが再生成用の正規配置に存在する
+
+**完了**: `validate-page-data.sh --target-repo` が全項目PASSし、検証済みpage-dataを再生成用の正規配置へ保存済み
 
 ## Phase 4: リリースノート.html 生成
 
@@ -161,7 +164,7 @@ page-data.json の保存先は `$CLAUDE_JOB_DIR/tmp/release-notes-page-data.json
 |---|---|
 | Phase 1 | git リポジトリの実在確認済み、または不在を報告して停止している |
 | Phase 2 | 全コミットの日付グルーピング・種別分類を終え page-data.json を保存済み、かつ `flow` 値が feature/maintenance/docs の3値、`changes[].type` 値が feat/fix/docs/test/refactor/chore の6値の、それぞれ部分集合のみであることを機械検査済み |
-| Phase 3 | `validate-page-data.sh --target-repo` が全項目 PASS |
+| Phase 3 | `validate-page-data.sh --target-repo` が全項目PASSし、検証済みpage-dataを再生成用の正規配置へ保存済み |
 | Phase 4 | `<output_dir>/リリースノート.html` が生成され、指定時は `build-portal.sh` の再実行が完了している |
 | **Goal** | git log の事実のみからリリースノート.html が生成され、種別判定不能なコミットは「その他」として捏造なく分類されている |
 

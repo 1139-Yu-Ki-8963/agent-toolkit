@@ -1124,7 +1124,7 @@ run_project_name_self_test() {
 
 run_prepared_detail_pages_self_test() {
   local test_dir test_repo test_docs test_portal input_dir first_log second_log second_status
-  local third_log third_status runtime_status
+  local third_log third_status runtime_status release_notes_html
   test_dir="$(create_physical_tmpdir "${TMPDIR:-/tmp}/build-portal-test48.XXXXXX")"
   test_repo="$test_dir/repo"
   test_docs="$test_dir/output"
@@ -1166,6 +1166,17 @@ EOF
   jq '.generatedAt = "2026-08-20T00:00:00Z"' \
     "$SCRIPT_DIR/detail-pages/fixtures/semantic-glossary-sample-page-data.json" \
     > "$input_dir/glossary-page-data.json"
+  jq -n '{
+    pageKind: "release-notes", generatedAt: "2026-08-20T00:00:00Z",
+    title: "リリースノート", description: "合成フィクスチャ",
+    releases: [{
+      id: "2026-08-20-demo", date: "2026-08-20", title: "初期リリースV1マーカー",
+      pr: 1, prUrl: null, flow: "feature",
+      summary: [{label: "概要", text: "初期リリースV1マーカー"}],
+      changes: [{type: "feat", text: "初期リリースV1マーカー"}],
+      verifySteps: [{title: "動作確認", checks: ["初期リリースV1マーカーの表示"]}]
+    }]
+  }' > "$input_dir/release-notes-page-data.json"
 
   if ! "$SCRIPT_DIR/build-portal.sh" "$test_repo" "$test_docs" "$test_portal" \
     --generated-at 2026-08-20T00:00:00Z >"$first_log" 2>&1; then
@@ -1194,6 +1205,24 @@ EOF
   fi
   echo "PASS: --self-test ケース48a（準備済み3入力と実在するAI設定資産から4ページを生成）"
 
+  # 1-269: 更新履歴（release-notes）は永続化対象再生成ループへ新たに加わった4件目の
+  # 種別である。既存3種の合成フィクスチャとは別のケース番号（51以降）で、永続化した
+  # 入力から作り直されることと、旧版が新版へ置き換わることの2点を確認する。
+  release_notes_html="$test_portal/foundation/リリースノート.html"
+  if [ ! -f "$release_notes_html" ] \
+    || ! grep -q '初期リリースV1マーカー' "$release_notes_html" \
+    || ! grep -Fq '<a href="../index.html">TOP</a>' "$release_notes_html"; then
+    echo "FAIL: --self-test ケース51（準備済み入力から更新履歴ページが作り直されない）" >&2
+    rm -rf "$test_dir"
+    return 1
+  fi
+  echo "PASS: --self-test ケース51（永続化した入力から更新履歴ページを作り直す）"
+
+  # 旧版を模した破損リンクの更新履歴ページを手動で置き、次の生成で1階層上を指す
+  # 正しいリンクへ置き換わることを確認する（release-notes-page-data.json は残したまま）。
+  printf '<html><body><a href="index.html">TOP</a>旧版マーカー</body></html>\n' \
+    > "$release_notes_html"
+
   rm -f "$input_dir/techstack-page-data.json"
   second_status=0
   "$SCRIPT_DIR/build-portal.sh" "$test_repo" "$test_docs" "$test_portal" \
@@ -1207,6 +1236,14 @@ EOF
     return 1
   fi
   echo "PASS: --self-test ケース48b（入力欠落を記録し、既存ページを古い版として非0終了）"
+
+  if grep -q '旧版マーカー' "$release_notes_html" \
+    || ! grep -Fq '<a href="../index.html">TOP</a>' "$release_notes_html"; then
+    echo "FAIL: --self-test ケース52（旧版の更新履歴ページが新版へ置き換わらない）" >&2
+    rm -rf "$test_dir"
+    return 1
+  fi
+  echo "PASS: --self-test ケース52（旧版の更新履歴ページが1階層上を指す正しい版へ置き換わる）"
 
   jq -n '{
     pageKind: "techstack", generatedAt: "2026-08-20T00:00:00Z",
@@ -4657,7 +4694,7 @@ fi
 
 run_pipeline_hook "--pre-build" "$PRE_BUILD"
 
-# 1-224: detail-pages のうち対話スキルが page-data を組み立てる3種は、生成済みHTMLを
+# 1-224/1-269: detail-pages のうち対話スキルが page-data を組み立てる4種は、生成済みHTMLを
 # 発見するだけでは古い版を更新できない。検証済み入力を manifestsRoot/detail-pages に
 # 永続化し、通常のポータル生成から決定的ビルダーへ必ず渡す。入力が無い場合はSKIPを
 # 記録し、既存HTMLが残っていれば古い版を成功扱いにしないため全種を確認後に非0終了する。
@@ -4669,7 +4706,8 @@ if [ "$PORTAL_ONLY" -eq 0 ]; then
   for detail_spec in \
     "techstack|techstack-page-data.json|$PORTAL_DIR/${foundation_dir_rel#*/}|技術スタック.html" \
     "env|env-page-data.json|$PORTAL_DIR/${foundation_dir_rel#*/}|環境構築手順.html" \
-    "glossary|glossary-page-data.json|$PORTAL_DIR/${detail_units_root_rel#*/}/semantic-glossary|用語辞書.html"; do
+    "glossary|glossary-page-data.json|$PORTAL_DIR/${detail_units_root_rel#*/}/semantic-glossary|用語辞書.html" \
+    "release-notes|release-notes-page-data.json|$PORTAL_DIR/${foundation_dir_rel#*/}|リリースノート.html"; do
     IFS='|' read -r detail_page detail_input_name detail_output_dir detail_output_name <<EOF
 $detail_spec
 EOF
