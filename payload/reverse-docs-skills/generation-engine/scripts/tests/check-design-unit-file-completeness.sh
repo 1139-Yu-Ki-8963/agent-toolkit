@@ -67,6 +67,13 @@ check_all() {
   local template_root="$repo/delivery-payload/templates/リバース検証"
   local unit_test_design_dir
   unit_test_design_dir="$(jq -r '.layout.unitTestDesignDir' "$repo/delivery-payload/references/output-layout.json")"
+  # 1-210の残件対応。basic-design/detail-designの名前も
+  # scaffold-design-unit.sh側と同じくunitPhaseDirNamesを正として読む
+  # （トップレベルキーのため.layout配下ではなく直接参照する。
+  # build-portal.sh等の既存踏襲と同じ読み方）。
+  local unit_basic_design_dir unit_detail_design_dir
+  unit_basic_design_dir="$(jq -r '.unitPhaseDirNames.basic' "$repo/delivery-payload/references/output-layout.json")"
+  unit_detail_design_dir="$(jq -r '.unitPhaseDirNames.detail' "$repo/delivery-payload/references/output-layout.json")"
 
   if [ ! -f "$layout_json" ]; then
     echo "ERROR: 宣言ファイルが見つかりません: $layout_json" >&2
@@ -98,8 +105,8 @@ check_all() {
       local unit_id="completeness-${kind}-${phase}"
       local phase_label
       case "$phase" in
-        basic) phase_label="基本設計" ;;
-        detail) phase_label="詳細設計" ;;
+        basic) phase_label="$unit_basic_design_dir" ;;
+        detail) phase_label="$unit_detail_design_dir" ;;
         test) phase_label="$unit_test_design_dir" ;;
         *) phase_label="$phase" ;;
       esac

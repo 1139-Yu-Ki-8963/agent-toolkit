@@ -27,6 +27,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 DEFAULT_REQUIREMENTS_FILE="$REPO_ROOT/delivery-payload/references/design-doc-required-sections.json"
 TEMPLATE_ROOT="$REPO_ROOT/delivery-payload/templates/リバース検証"
+# 1-210の残件対応。detailフェーズの配置フォルダ名はハードコードせず、
+# scaffold-design-unit.sh自身と同じくoutput-layout.jsonのunitPhaseDirNames
+# を正として読む（自己テストのfixture展開先の突き合わせに使う）。
+SELF_TEST_DETAIL_DIR_NAME="$(jq -r '.unitPhaseDirNames.detail' "$REPO_ROOT/delivery-payload/references/output-layout.json")"
 API_DETAIL_TEMPLATE="$TEMPLATE_ROOT/API/API詳細設計書.md"
 # shellcheck source=../output-layout.sh
 . "$SCRIPT_DIR/../output-layout.sh"
@@ -735,14 +739,14 @@ EOF
   assert_eq "課題1-201-3件のテンプレート一致終了コード" 0 "$rc_201"
   assert_eq "課題1-201-3件のテンプレート一致出力0件" '' "$out_201"
 
-  bad_heading="$tmp_201/api/api-fixture-1/詳細設計/API詳細設計書.md"
+  bad_heading="$tmp_201/api/api-fixture-1/$SELF_TEST_DETAIL_DIR_NAME/API詳細設計書.md"
   sed -i.bak 's/^## §5 ロジック$/## §5 ロジック設計/' "$bad_heading"
   out_bad_heading="$(run_check "$tmp_201")"; rc_bad_heading=$?
   assert_eq "課題1-201-節構成の逸脱を非0にする" 1 "$rc_bad_heading"
   assert_contains "課題1-201-節構成の逸脱を報告" 'FAIL テンプレート見出し-不一致' "$out_bad_heading"
   mv "$bad_heading.bak" "$bad_heading"
 
-  bad_columns="$tmp_201/api/api-fixture-2/詳細設計/API詳細設計書.md"
+  bad_columns="$tmp_201/api/api-fixture-2/$SELF_TEST_DETAIL_DIR_NAME/API詳細設計書.md"
   sed -i.bak '1,/^| 名前 | 型 | 必須 | 有効な範囲 | NULL許容 | 初期値 | 桁と精度 | 制約 |$/s/^| 名前 | 型 | 必須 | 有効な範囲 | NULL許容 | 初期値 | 桁と精度 | 制約 |$/| 名前 | 型 | 必須 | 制約 |/' "$bad_columns"
   out_bad_columns="$(run_check "$tmp_201")"; rc_bad_columns=$?
   assert_eq "課題1-201-表列の逸脱を非0にする" 1 "$rc_bad_columns"

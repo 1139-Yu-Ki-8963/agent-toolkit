@@ -16,6 +16,10 @@ skill="$repo_root/.claude/skills/generating-api-detail-design-for-reverse-docs/S
 # 散らばり起票が古い名前を指す問題を直す指示書.md）。
 retired_terms_file="$repo_root/docs/references/retired-terms.json"
 retired_pattern="$(jq -r '[.terms[].term] | join("|")' "$retired_terms_file")"
+# 1-210の残件対応。detailフェーズの配置フォルダ名はハードコードせず、
+# scaffold-design-unit.sh自身と同じくoutput-layout.jsonのunitPhaseDirNames
+# を正として読む。
+detail_dir_name="$(jq -r '.unitPhaseDirNames.detail' "$repo_root/delivery-payload/references/output-layout.json")"
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/api-design-decisions.XXXXXX")"
 tmp="$(cd "$tmp" && pwd -P)"
 trap 'rm -rf "$tmp"' EXIT
@@ -32,7 +36,7 @@ bash "$repo_root/generation-engine/scripts/scaffold-design-unit.sh" \
   api detail "$tmp/output" inventory-cache "在庫確認" \
   "$repo_root/delivery-payload/templates/リバース検証" >/dev/null
 
-doc="$tmp/output/docs/design/apis/api-inventory-cache/詳細設計/API詳細設計書.md"
+doc="$tmp/output/docs/design/apis/api-inventory-cache/$detail_dir_name/API詳細設計書.md"
 node - "$fixture_dir/comment-source.py" "$fixture_dir/api-manifest.ext.json" "$doc" <<'NODE'
 const fs = require("fs");
 const [sourcePath, manifestPath, documentPath] = process.argv.slice(2);

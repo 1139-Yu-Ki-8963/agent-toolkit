@@ -16,6 +16,15 @@ tmp="$(mktemp -d "${TMPDIR:-/tmp}/design-unit-scaffold-test.XXXXXX")"
 tmp="$(cd "$tmp" && pwd -P)"
 trap 'rm -rf "$tmp"' EXIT
 
+# 1-210の残件対応。basic/detailの配置フォルダ名はハードコードせず、
+# scaffold-design-unit.sh自身と同じくoutput-layout.jsonのunitPhaseDirNames
+# を正として読む。
+# shellcheck source=../output-layout.sh
+source "$REPO_ROOT/generation-engine/scripts/output-layout.sh"
+layout_json_for_test="$(resolve_output_layout "")" || exit 1
+BASIC_DIR="$(printf '%s' "$layout_json_for_test" | jq -r '.unitPhaseDirNames.basic')"
+DETAIL_DIR="$(printf '%s' "$layout_json_for_test" | jq -r '.unitPhaseDirNames.detail')"
+
 # 1. 5種別×2phaseの展開が成功する
 docs1="$tmp/docs1"
 mkdir -p "$docs1"
@@ -41,10 +50,10 @@ for kind in api table batch report external; do
       external) kind_dir_fill="externals" ;;
     esac
     case "$phase" in
-      basic) phase_dir_jp_fill="基本設計" ;;
-      detail) phase_dir_jp_fill="詳細設計" ;;
+      basic) phase_dir_fill="$BASIC_DIR" ;;
+      detail) phase_dir_fill="$DETAIL_DIR" ;;
     esac
-    unit_dir_fill="$docs1/docs/design/${kind_dir_fill}/${kind}-case-${kind}/${phase_dir_jp_fill}"
+    unit_dir_fill="$docs1/docs/design/${kind_dir_fill}/${kind}-case-${kind}/${phase_dir_fill}"
     while IFS= read -r fill_file; do
       [ -z "$fill_file" ] && continue
       sed -i.bak -E 's/^([a-z_]+): [A-Z]{2,}$/\1: dummy-value/' "$fill_file"
@@ -105,7 +114,7 @@ mkdir -p "$docs5"
 #   それぞれの宣言ファイルを対象にする形へ改めた。
 bash "$SCAFFOLD" api basic "$docs5" repeat-case "リピート" >/dev/null
 bash "$SCAFFOLD" api test "$docs5" repeat-case "リピート" >/dev/null
-target5_basic="$docs5/docs/design/apis/api-repeat-case/基本設計/API基本設計書.md"
+target5_basic="$docs5/docs/design/apis/api-repeat-case/$BASIC_DIR/API基本設計書.md"
 target5_test="$docs5/docs/design/apis/api-repeat-case/テスト設計/APIテスト設計書.md"
 target5_unit="$docs5/docs/design/apis/api-repeat-case/テスト設計/API単体テスト設計書.md"
 printf '\n基本設計を保持するmarker\n' >> "$target5_basic"
@@ -140,14 +149,14 @@ echo "PASS: 同じphaseの通常再実行は全宣言ファイルを保持"
 docs6="$tmp/docs6"
 mkdir -p "$docs6"
 bash "$SCAFFOLD" api basic "$docs6" order-case "オーダー基本" >/dev/null
-basic_before="$(cat "$docs6/docs/design/apis/api-order-case/基本設計/API基本設計書.md")"
+basic_before="$(cat "$docs6/docs/design/apis/api-order-case/$BASIC_DIR/API基本設計書.md")"
 bash "$SCAFFOLD" api detail "$docs6" order-case "オーダー詳細" >/dev/null
-basic_after="$(cat "$docs6/docs/design/apis/api-order-case/基本設計/API基本設計書.md")"
+basic_after="$(cat "$docs6/docs/design/apis/api-order-case/$BASIC_DIR/API基本設計書.md")"
 if [ "$basic_before" != "$basic_after" ]; then
   echo "FAIL: detail展開でbasicが上書きされました" >&2
   exit 1
 fi
-if [ ! -f "$docs6/docs/design/apis/api-order-case/詳細設計/API詳細設計書.md" ]; then
+if [ ! -f "$docs6/docs/design/apis/api-order-case/$DETAIL_DIR/API詳細設計書.md" ]; then
   echo "FAIL: detail展開が行われませんでした" >&2
   exit 1
 fi
@@ -157,7 +166,7 @@ echo "PASS: basic実行後のdetail実行でbasicが保持される"
 docs7="$tmp/docs7"
 mkdir -p "$docs7"
 bash "$SCAFFOLD" api basic "$docs7" token-case "トークン確認" >/dev/null
-printf '<API名>\n' >> "$docs7/docs/design/apis/api-token-case/基本設計/API基本設計書.md"
+printf '<API名>\n' >> "$docs7/docs/design/apis/api-token-case/$BASIC_DIR/API基本設計書.md"
 if bash "$SCAFFOLD" --verify api basic "$docs7" token-case >/dev/null 2>&1; then
   echo "FAIL: 未置換トークンが残っているのにverifyが成功しました" >&2
   exit 1
@@ -168,7 +177,7 @@ echo "PASS: 未置換トークンをverifyが検出"
 docs8="$tmp/docs8"
 mkdir -p "$docs8"
 bash "$SCAFFOLD" api basic "$docs8" heading-case "見出し確認" >/dev/null
-target8="$docs8/docs/design/apis/api-heading-case/基本設計/API基本設計書.md"
+target8="$docs8/docs/design/apis/api-heading-case/$BASIC_DIR/API基本設計書.md"
 grep -v '^## §1 外部仕様$' "$target8" > "$target8.tmp"
 mv "$target8.tmp" "$target8"
 if bash "$SCAFFOLD" --verify api basic "$docs8" heading-case >/dev/null 2>&1; then
@@ -181,7 +190,7 @@ echo "PASS: 見出しの欠落をverifyが検出"
 docs9="$tmp/docs9"
 mkdir -p "$docs9"
 bash "$SCAFFOLD" table detail "$docs9" allcaps-case "全大文字確認" >/dev/null
-target9="$docs9/docs/design/tables/table-allcaps-case/詳細設計/テーブル定義書.md"
+target9="$docs9/docs/design/tables/table-allcaps-case/$DETAIL_DIR/テーブル定義書.md"
 # table_subkind以外の全大文字トークンをダミー値で埋め、table_subkindだけ未置換のまま残す
 sed -i.bak -E 's/^(table_key|table_id|table_name|source_ref): [A-Z]{2,}$/\1: dummy-value/' "$target9"
 rm -f "${target9}.bak"
@@ -195,7 +204,7 @@ echo "PASS: 未置換-全大文字トークン"
 docs10="$tmp/docs10"
 mkdir -p "$docs10"
 bash "$SCAFFOLD" table detail "$docs10" allcaps-ok-case "全大文字確認済み" >/dev/null
-target10="$docs10/docs/design/tables/table-allcaps-ok-case/詳細設計/テーブル定義書.md"
+target10="$docs10/docs/design/tables/table-allcaps-ok-case/$DETAIL_DIR/テーブル定義書.md"
 sed -i.bak -E 's/^([a-z_]+): [A-Z]{2,}$/\1: dummy-value/' "$target10"
 rm -f "${target10}.bak"
 if ! bash "$SCAFFOLD" --verify table detail "$docs10" allcaps-ok-case >/dev/null 2>&1; then
@@ -209,7 +218,7 @@ docs11="$tmp/docs11"
 external11="$tmp/external11-target"
 mkdir -p "$docs11" "$external11"
 bash "$SCAFFOLD" api basic "$docs11" file-symlink-case "ファイルリンク" >/dev/null
-target11="$docs11/docs/design/apis/api-file-symlink-case/基本設計/API基本設計書.md"
+target11="$docs11/docs/design/apis/api-file-symlink-case/$BASIC_DIR/API基本設計書.md"
 rm -f "$target11"
 ln -s "$external11" "$target11"
 if bash "$SCAFFOLD" api basic "$docs11" file-symlink-case "通常リンク拒否" >/dev/null 2>&1; then
@@ -277,7 +286,7 @@ echo "PASS: --check-missingはテンプレート不要・書き込みなしで�
 docs14="$tmp/docs14"
 mkdir -p "$docs14"
 bash "$SCAFFOLD" api basic "$docs14" overwrite-scope-case "上書き範囲" >/dev/null
-custom14="$docs14/docs/design/apis/api-overwrite-scope-case/基本設計/CUSTOM.md"
+custom14="$docs14/docs/design/apis/api-overwrite-scope-case/$BASIC_DIR/CUSTOM.md"
 printf '未宣言sentinelは保持する\n' > "$custom14"
 checksum14_before="$(cksum "$custom14")"
 bash "$SCAFFOLD" --overwrite api basic "$docs14" overwrite-scope-case "上書き範囲" >/dev/null
@@ -293,7 +302,7 @@ echo "PASS: --overwriteは未宣言ファイルを保持"
 docs15="$tmp/docs15"
 mkdir -p "$docs15"
 bash "$SCAFFOLD" api basic "$docs15" directory-boundary-case "同名ディレクトリ" >/dev/null
-target15="$docs15/docs/design/apis/api-directory-boundary-case/基本設計/API基本設計書.md"
+target15="$docs15/docs/design/apis/api-directory-boundary-case/$BASIC_DIR/API基本設計書.md"
 rm -f "$target15"
 mkdir -p "$target15"
 if bash "$SCAFFOLD" api basic "$docs15" directory-boundary-case "通常ディレクトリ拒否" >/dev/null 2>&1; then
@@ -322,7 +331,7 @@ docs16="$tmp/docs16"
 mkdir -p "$docs16"
 bash "$SCAFFOLD" api detail "$docs16" phase-file-case "phase通常ファイル" >/dev/null
 unit16="$docs16/docs/design/apis/api-phase-file-case"
-phase16="$unit16/基本設計"
+phase16="$unit16/$BASIC_DIR"
 printf 'phaseパスsentinel\n' > "$phase16"
 snapshot16_before="$(find "$unit16" -type d -print | sort; find "$unit16" -type f -exec cksum {} + | sort)"
 if bash "$SCAFFOLD" api basic "$docs16" phase-file-case "通常phase拒否" >/dev/null 2>&1; then

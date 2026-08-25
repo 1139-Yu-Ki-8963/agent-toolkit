@@ -38,14 +38,20 @@ if ! work="$(mktemp -d "${TMPDIR:-/tmp}/check-scaffold-phase-dirs.XXXXXX" \
   echo "$msg" >&2
   exit 2
 fi
+# macOSの/tmpはシンボリックリンクであり、scaffold-design-unit.sh自身の
+# assert_no_symlink_output_pathがこれを拒否する。
+# scaffold-design-unit.sh自身の自己テストと同じ回避を行う。
+work="$(cd "$work" && pwd -P)"
 trap 'rm -rf "$work"' EXIT
 
 case "${1:-}" in
   --basic)
+    mkdir -p "$work/out"
     bash "$scaffold" api basic "$work/out" api-sample01 サンプルAPI > "$work/log.txt" 2>&1
     test -f "$work/out/docs/design/apis/api-api-sample01/basic-design/API基本設計書.md"
     ;;
   --detail)
+    mkdir -p "$work/out"
     bash "$scaffold" api detail "$work/out" api-sample01 サンプルAPI > "$work/log.txt" 2>&1
     test -d "$work/out/docs/design/apis/api-api-sample01/detail-design"
     ;;

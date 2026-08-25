@@ -164,11 +164,24 @@ check_impl_contract_adjacency() {
   return 0
 }
 
-# phase キーを配置フォルダ名へ変換する。テスト設計の名前はoutput-layoutを正とする。
+# phase キーを配置フォルダ名へ変換する。
+# basic・detail・testの名前はいずれもoutput-layout.jsonを正とする（1-210）。
+# basic・detailはunitPhaseDirNames.basic・.detailを読む。このキーは
+# layoutオブジェクトの外（トップレベル）にありoutput_layout_getでは引けず、
+# build-portal.sh・build-manifests-from-docs.shの既存踏襲どおり合成JSONへ
+# 直接jqで問い合わせる。testの名前はunitTestDesignDirを正とする。
 design_unit_phase_label() {
   case "$1" in
-    basic) echo "基本設計" ;;
-    detail) echo "詳細設計" ;;
+    basic|detail)
+      local resolved_layout value
+      resolved_layout="$(resolve_output_layout "${2:-}")" || return 1
+      value="$(printf '%s' "$resolved_layout" | jq -r --arg k "$1" '.unitPhaseDirNames[$k] // empty')"
+      if [ -z "$value" ]; then
+        echo "エラー: unitPhaseDirNames に $1 の定義がありません" >&2
+        return 1
+      fi
+      printf '%s\n' "$value"
+      ;;
     test)
       local resolved_layout
       resolved_layout="$(resolve_output_layout "${2:-}")" || return 1
@@ -372,7 +385,7 @@ if [ "${1:-}" = "--self-test" ]; then
     if bash "$self_path" api detail "$frontmatter_root" frontmatter-api "前付け検査API" >/dev/null 2>&1; then
       frontmatter_layout_json="$(resolve_output_layout "$frontmatter_root")"
       frontmatter_root_rel="$(output_layout_get "$frontmatter_layout_json" apiUnitRoot)"
-      frontmatter_file="$frontmatter_root/$frontmatter_root_rel/api-frontmatter-api/詳細設計/API詳細設計書.md"
+      frontmatter_file="$frontmatter_root/$frontmatter_root_rel/api-frontmatter-api/detail-design/API詳細設計書.md"
       sed -i.bak \
         -e 's/APIKEY/api-selftest-key/g' \
         -e 's/APIID/api-selftest-id/g' \
@@ -482,12 +495,12 @@ title: 余剰鍵' "$frontmatter_file"
     for i in $(seq 1 50); do
       api_id="backfill-api-${i}"
       api_unit_dir="$api_root/api-$api_id"
-      mkdir -p "$api_unit_dir/詳細設計"
-      cp "$backfill_template_root/$api_label/$api_detail_file" "$api_unit_dir/詳細設計/$api_detail_file"
+      mkdir -p "$api_unit_dir/detail-design"
+      cp "$backfill_template_root/$api_label/$api_detail_file" "$api_unit_dir/detail-design/$api_detail_file"
       if [ "$i" -le 12 ]; then
-        mkdir -p "$api_unit_dir/基本設計"
+        mkdir -p "$api_unit_dir/basic-design"
         while IFS= read -r api_basic_file; do
-          cp "$backfill_template_root/$api_label/$api_basic_file" "$api_unit_dir/基本設計/$api_basic_file"
+          cp "$backfill_template_root/$api_label/$api_basic_file" "$api_unit_dir/basic-design/$api_basic_file"
         done <<< "$api_basic_files"
       fi
     done
@@ -497,14 +510,14 @@ title: 余剰鍵' "$frontmatter_file"
       kind_label="$(design_unit_field "$backfill_layout_json" "$kind" label)"
       kind_detail_file="$(design_unit_phase_files "$backfill_layout_json" "$kind" detail)"
       kind_unit_dir="$backfill_root/$kind_root_rel/${kind}-backfill-${kind}"
-      mkdir -p "$kind_unit_dir/詳細設計"
-      cp "$backfill_template_root/$kind_label/$kind_detail_file" "$kind_unit_dir/詳細設計/$kind_detail_file"
+      mkdir -p "$kind_unit_dir/detail-design"
+      cp "$backfill_template_root/$kind_label/$kind_detail_file" "$kind_unit_dir/detail-design/$kind_detail_file"
     done
-    existing_before="$(for i in $(seq 1 12); do find "$api_root/api-backfill-api-${i}/基本設計" -type f -exec cksum {} +; done | LC_ALL=C sort)"
+    existing_before="$(for i in $(seq 1 12); do find "$api_root/api-backfill-api-${i}/basic-design" -type f -exec cksum {} +; done | LC_ALL=C sort)"
     if bash "$self_path" --backfill-basic "$backfill_root" >/dev/null 2>&1; then
-      existing_after="$(for i in $(seq 1 12); do find "$api_root/api-backfill-api-${i}/基本設計" -type f -exec cksum {} +; done | LC_ALL=C sort)"
-      api_detail_count="$(find "$api_root" -path '*/詳細設計/API詳細設計書.md' -type f | wc -l | tr -d ' ')"
-      api_basic_count="$(find "$api_root" -path '*/基本設計/*.md' -type f | wc -l | tr -d ' ')"
+      existing_after="$(for i in $(seq 1 12); do find "$api_root/api-backfill-api-${i}/basic-design" -type f -exec cksum {} +; done | LC_ALL=C sort)"
+      api_detail_count="$(find "$api_root" -path '*/detail-design/API詳細設計書.md' -type f | wc -l | tr -d ' ')"
+      api_basic_count="$(find "$api_root" -path '*/basic-design/*.md' -type f | wc -l | tr -d ' ')"
       layout_path="$script_dir/../../delivery-payload/references/design-unit-layout.json"
       expected_basic_count=0
       actual_basic_count=0
@@ -516,7 +529,7 @@ title: 余剰鍵' "$frontmatter_file"
         expected_basic_count=$((expected_basic_count + basic_file_count * unit_count))
         while IFS= read -r declared_file; do
           [ -n "$declared_file" ] || continue
-          found_count="$(find "$backfill_root/$kind_root_rel" -path "*/基本設計/$declared_file" -type f | wc -l | tr -d ' ')"
+          found_count="$(find "$backfill_root/$kind_root_rel" -path "*/basic-design/$declared_file" -type f | wc -l | tr -d ' ')"
           actual_basic_count=$((actual_basic_count + found_count))
         done < <(jq -r --arg k "$kind" '.kinds[$k].phases.basic[]' "$layout_path")
       done
@@ -554,11 +567,11 @@ title: 余剰鍵' "$frontmatter_file"
       mkdir -p "$bft_empty_dir" "$bft_partial_dir"
       if [ "$bft_kind" != "feature" ]; then
         bft_detail_files="$(design_unit_phase_files "$backfill_layout_json" "$bft_kind" detail)" || { bft_ok=0; continue; }
-        mkdir -p "$bft_empty_dir/詳細設計" "$bft_partial_dir/詳細設計"
+        mkdir -p "$bft_empty_dir/detail-design" "$bft_partial_dir/detail-design"
         while IFS= read -r bft_detail_file; do
           [ -n "$bft_detail_file" ] || continue
-          cp "$backfill_template_root/$bft_label/$bft_detail_file" "$bft_empty_dir/詳細設計/$bft_detail_file"
-          cp "$backfill_template_root/$bft_label/$bft_detail_file" "$bft_partial_dir/詳細設計/$bft_detail_file"
+          cp "$backfill_template_root/$bft_label/$bft_detail_file" "$bft_empty_dir/detail-design/$bft_detail_file"
+          cp "$backfill_template_root/$bft_label/$bft_detail_file" "$bft_partial_dir/detail-design/$bft_detail_file"
         done <<< "$bft_detail_files"
       fi
       bft_partial_test_label="$(design_unit_phase_label test "$bft_root")" || { bft_ok=0; continue; }

@@ -688,6 +688,14 @@ self_test() {
   tmp="$(cd "$tmp" && pwd -P)"
   trap 'rm -rf "$tmp"' RETURN
 
+  # 1-210の残件対応。検査1dはscaffold-design-unit.shを実際に呼び出す唯一の
+  # 検査であり、生成先のdetailフェーズフォルダ名をunitPhaseDirNamesから読む
+  # （scaffold-design-unit.sh自身と同じ正）。他のfixtureは旧名フォールバック
+  # 自体を検査対象にするため意図的に日本語のままとする。
+  local self_test_layout_json self_test_detail_dir_name
+  self_test_layout_json="$(resolve_output_layout "")" || return 1
+  self_test_detail_dir_name="$(printf '%s' "$self_test_layout_json" | jq -r '.unitPhaseDirNames.detail')"
+
   mkdir -p "$tmp/docs/design/apis/api-get-users/詳細設計"
   cat > "$tmp/docs/design/apis/api-get-users/詳細設計/API詳細設計書.md" <<'EOF'
 ---
@@ -979,7 +987,7 @@ EOF
     ok1d=0
   fi
   mkdir -p "$jp_root/docs/design/apis/archive/詳細設計"
-  cp "$jp_root/docs/design/apis/api-日本語_ID/詳細設計/API詳細設計書.md" \
+  cp "$jp_root/docs/design/apis/api-日本語_ID/$self_test_detail_dir_name/API詳細設計書.md" \
     "$jp_root/docs/design/apis/archive/詳細設計/API詳細設計書.md" 2>/dev/null || ok1d=0
   mkdir -p "$jp_out/docs/design/apis"
   : > "$jp_out/docs/design/apis/SOURCEREF"
