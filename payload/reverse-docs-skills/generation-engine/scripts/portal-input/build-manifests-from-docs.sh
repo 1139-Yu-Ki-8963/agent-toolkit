@@ -7,7 +7,7 @@
 # 一覧マニフェスト(<kind>-manifest.json)を組み立てる。
 #
 # Usage:
-#   build-manifests-from-docs.sh <output_dir> <出力先ディレクトリ> [--unit-kind <種別>]
+#   build-manifests-from-docs.sh <output_dir> <出力先ディレクトリ> [--unit-kind <種別>] [--source-file-root <対象プロジェクトルート>]
 #   build-manifests-from-docs.sh --self-test
 #
 #   <output_dir>         設計文書が展開済みのプロジェクトルート
@@ -15,6 +15,8 @@
 #                         <kind>UnitRoot を <output_dir> からの相対で解決する)
 #   <出力先ディレクトリ>  <kind>-manifest.json を書き出す先
 #   --unit-kind           省略時は宣言にある全種別(api/table/batch/report/external/feature)を処理する
+#   --source-file-root     source_refの実在確認だけをこの対象プロジェクトルートから行う。
+#                          省略時は<output_dir>を使う。source_refとsourceDirの値は変更しない。
 #
 # 対象は非画面の6種別。画面はfrontmatterの体系(screenKey/route/entryFile)が他種別と異なるため
 # 対象外(理由は doc-extraction.json の "excluded" 節を参照)。
@@ -407,7 +409,7 @@ NODE
 # 種別1件分のマニフェストを組み立てて<dest_dir>/<kind>-manifest.jsonへ書き出し、
 # validate-manifest.sh の検証まで実行する。
 build_manifest_for_kind() {
-  local decl_json="$1" layout_json="$2" output_dir="$3" dest_dir="$4" kind="$5"
+  local decl_json="$1" layout_json="$2" output_dir="$3" dest_dir="$4" kind="$5" source_file_root="$6"
 
   local unit_root_key doc_file_names unit_root_rel root_dir
   unit_root_key="$(doc_extraction_field "$decl_json" "$kind" unitRootKey)"
@@ -678,7 +680,7 @@ build_manifest_for_kind() {
   mkdir -p "$dest_dir"
   printf '%s\n' "$manifest" > "$dest_dir/${kind}-manifest.json"
 
-  bash "$VALIDATE_MANIFEST_SH" "$dest_dir/${kind}-manifest.json" --unit-kind "$kind" >&2
+  bash "$VALIDATE_MANIFEST_SH" "$dest_dir/${kind}-manifest.json" --unit-kind "$kind" --source-file-root "$source_file_root" >&2
   return $?
 }
 
@@ -866,29 +868,20 @@ EOF
   local out="$tmp/out"
   mkdir -p "$out"
 
-  # 1-66: apiのkindがkindMappingで"endpoint"(非unresolved)へ解決されるため、
-  # validate-manifest.shのsourceFile-実在検査(kind!=unresolvedの行のみ検査)が
-  # source_refの実在を要求するようになる。sourceDirはこの検証器の実装上、
-  # manifestの所在ディレクトリ(この自己検査では$out。.git祖先が無いためフォール
-  # バックされる)を基準に解決されるため、$out配下の同じ相対位置にダミーの実体を
-  # 用意する(既存のvalidate-manifest.shの解決仕様に合わせるだけで、本体の
-  # 挙動は変えない)。
-  mkdir -p "$out/docs/design/apis/src/api"
-  : > "$out/docs/design/apis/src/api/users.py"
+  # source_refはsourceDir（設計資料の置き場）でなく対象プロジェクトルートを基準に
+  # 実在確認する。設計書隣・マニフェスト出力先には複製せず、対象ルート直下にだけ置く。
+  mkdir -p "$tmp/src/api"
+  : > "$tmp/src/api/users.py"
 
   # 種別の判定材料をテンプレートへ足す指示書: table/batch/report/externalのkindMapping
   # (table_subkind等)がfrontmatterの欄から解決されるようになったため、apiと同様に
   # sourceFile-実在検査(kind!=unresolvedの行のみを検査するvalidate-manifest.shの
-  # 検査4)がsource_refの実在を要求するようになる。$out配下の同じ相対位置にダミーの
-  # 実体を用意する(本体の挙動は変えない。上のapi向け実装と同じ形。ab86f030の先例に倣う)。
-  mkdir -p "$out/docs/design/tables/src/models"
-  : > "$out/docs/design/tables/src/models/users.py"
-  mkdir -p "$out/docs/design/batches/src/batches"
-  : > "$out/docs/design/batches/src/batches/cleanup.py"
-  mkdir -p "$out/docs/design/reports/src/reports"
-  : > "$out/docs/design/reports/src/reports/sales.py"
-  mkdir -p "$out/docs/design/externals/src/externals"
-  : > "$out/docs/design/externals/src/externals/payment.py"
+  # 検査4)がsource_refの実在を要求する。他種別も同じ対象プロジェクトルートにだけ置く。
+  mkdir -p "$tmp/src/models" "$tmp/src/batches" "$tmp/src/reports" "$tmp/src/externals"
+  : > "$tmp/src/models/users.py"
+  : > "$tmp/src/batches/cleanup.py"
+  : > "$tmp/src/reports/sales.py"
+  : > "$tmp/src/externals/payment.py"
 
   local self_path
   self_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
@@ -989,8 +982,7 @@ EOF
   mkdir -p "$jp_root/docs/design/apis/archive/詳細設計"
   cp "$jp_root/docs/design/apis/api-日本語_ID/$self_test_detail_dir_name/API詳細設計書.md" \
     "$jp_root/docs/design/apis/archive/詳細設計/API詳細設計書.md" 2>/dev/null || ok1d=0
-  mkdir -p "$jp_out/docs/design/apis"
-  : > "$jp_out/docs/design/apis/SOURCEREF"
+  : > "$jp_root/SOURCEREF"
   if ! bash "$self_path" "$jp_root" "$jp_out" --unit-kind api >/dev/null 2>&1; then
     ok1d=0
   fi
@@ -1039,7 +1031,7 @@ EOF
   # 検査3: 出力がvalidate-manifest.shの検証を通ること(6種別すべてを直接再検証)
   local ok3=1 k
   for k in api table batch report external feature; do
-    if ! bash "$VALIDATE_MANIFEST_SH" "$out/${k}-manifest.json" --unit-kind "$k" >/dev/null 2>&1; then
+    if ! bash "$VALIDATE_MANIFEST_SH" "$out/${k}-manifest.json" --unit-kind "$k" --source-file-root "$tmp" >/dev/null 2>&1; then
       ok3=0
     fi
   done
@@ -1137,14 +1129,13 @@ unit_kind: api
 EOF
   t6_out="$t6_root/out"
   mkdir -p "$t6_out"
-  # 1-66: 検査7と同じ理由(kindMappingでapiのkindがendpointへ解決されるため、
-  # sourceFile-実在検査がsource_refの実在を要求する)でダミーの実体を用意する。
-  mkdir -p "$t6_out/docs/design/apis/src/api"
-  : > "$t6_out/docs/design/apis/src/api/users.py"
-  : > "$t6_out/docs/design/apis/src/api/orders.py"
+  # source_refは設計資料置き場でなく対象プロジェクトルートを基準に検査する。
+  mkdir -p "$t6_root/src/api"
+  : > "$t6_root/src/api/users.py"
+  : > "$t6_root/src/api/orders.py"
   t6_decl="$(doc_extraction_load | jq '.kinds.api.docFileName = ["API詳細設計書.md", "APIdetail-alt.md"]')"
   t6_layout="$(resolve_output_layout "$t6_root")"
-  if build_manifest_for_kind "$t6_decl" "$t6_layout" "$t6_root" "$t6_out" api >/dev/null 2>&1; then
+  if build_manifest_for_kind "$t6_decl" "$t6_layout" "$t6_root" "$t6_out" api "$t6_root" >/dev/null 2>&1; then
     [ "$(jq -r '.detectionSummary.unitCount' "$t6_out/api-manifest.json" 2>/dev/null)" = "2" ] || ok6=0
     [ "$(jq -r '[.units[].unitKey] | sort | join(",")' "$t6_out/api-manifest.json" 2>/dev/null)" = "create-order,get-users" ] || ok6=0
   else
@@ -1306,16 +1297,16 @@ EOF
 | identity | external-identity | src/externals/identity.py | client |
 EOF
   t10_out="$t10_root/out"
-  mkdir -p "$t10_out/docs/design/tables/src/models" "$t10_out/docs/design/batches/src/batches" "$t10_out/docs/design/externals/src/externals"
-  : > "$t10_out/docs/design/tables/src/models/users.py"
-  : > "$t10_out/docs/design/tables/src/models/orders.py"
-  : > "$t10_out/docs/design/tables/src/models/audit_logs.py"
-  : > "$t10_out/docs/design/batches/src/batches/cleanup.py"
-  : > "$t10_out/docs/design/batches/src/batches/import.py"
-  : > "$t10_out/docs/design/batches/src/batches/archive.py"
-  : > "$t10_out/docs/design/externals/src/externals/payment.py"
-  : > "$t10_out/docs/design/externals/src/externals/notify.py"
-  : > "$t10_out/docs/design/externals/src/externals/identity.py"
+  mkdir -p "$t10_root/src/models" "$t10_root/src/batches" "$t10_root/src/externals"
+  : > "$t10_root/src/models/users.py"
+  : > "$t10_root/src/models/orders.py"
+  : > "$t10_root/src/models/audit_logs.py"
+  : > "$t10_root/src/batches/cleanup.py"
+  : > "$t10_root/src/batches/import.py"
+  : > "$t10_root/src/batches/archive.py"
+  : > "$t10_root/src/externals/payment.py"
+  : > "$t10_root/src/externals/notify.py"
+  : > "$t10_root/src/externals/identity.py"
   for k in table batch external; do
     if ! bash "$self_path" "$t10_root" "$t10_out" --unit-kind "$k" >/dev/null 2>&1; then
       ok10=0
@@ -1460,14 +1451,19 @@ dest_dir="${2:?引数2 出力先ディレクトリ が必要です}"
 shift 2
 
 unit_kind_arg=""
+source_file_root_arg=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --unit-kind)
       unit_kind_arg="${2:?--unit-kind には種別が必要です}"
       shift 2
       ;;
+    --source-file-root)
+      source_file_root_arg="${2:?--source-file-root には対象プロジェクトルートが必要です}"
+      shift 2
+      ;;
     *)
-      echo "Usage: build-manifests-from-docs.sh <output_dir> <出力先ディレクトリ> [--unit-kind <種別>]" >&2
+      echo "Usage: build-manifests-from-docs.sh <output_dir> <出力先ディレクトリ> [--unit-kind <種別>] [--source-file-root <対象プロジェクトルート>]" >&2
       exit 1
       ;;
   esac
@@ -1477,6 +1473,15 @@ if [ ! -d "$output_dir" ]; then
   echo "ERROR: output_dir が存在しません: $output_dir" >&2
   exit 1
 fi
+
+if [ -z "$source_file_root_arg" ]; then
+  source_file_root_arg="$output_dir"
+fi
+if [ ! -d "$source_file_root_arg" ]; then
+  echo "ERROR: source-file-root が存在しません: $source_file_root_arg" >&2
+  exit 1
+fi
+source_file_root_arg="$(cd "$source_file_root_arg" && pwd)"
 
 decl_json="$(doc_extraction_load)" || exit 1
 layout_json="$(resolve_output_layout "$output_dir")" || exit 1
@@ -1495,7 +1500,7 @@ fi
 overall_rc=0
 for kind in $kinds_to_process; do
   echo "=== 種別 $kind の抽出 ===" >&2
-  if ! build_manifest_for_kind "$decl_json" "$layout_json" "$output_dir" "$dest_dir" "$kind"; then
+  if ! build_manifest_for_kind "$decl_json" "$layout_json" "$output_dir" "$dest_dir" "$kind" "$source_file_root_arg"; then
     echo "ERROR: 種別 $kind のマニフェスト検証に失敗しました" >&2
     overall_rc=1
   fi

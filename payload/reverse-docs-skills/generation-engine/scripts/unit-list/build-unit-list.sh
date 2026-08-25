@@ -2,8 +2,9 @@
 # 種別別一覧スキル群(generating-<種別>-list-for-reverse-docs)共通エンジン: 種別対応HTML一覧生成ディスパッチャ。
 # unit_kind=screen なら build-screen-list.sh、unit_kind=feature なら build-feature-list.sh に委譲、他種別は汎用テンプレートから生成する。
 #
-# Usage: build-unit-list.sh <manifest.json> <output-html-path> [--unit-kind <kind>] [--repo-root <パス>]
+# Usage: build-unit-list.sh <manifest.json> <output-html-path> [--unit-kind <kind>] [--repo-root <パス>] [--source-file-root <パス>]
 #   --repo-root <パス>: 元データの sourceDir を解決する基準にするディレクトリ。省略すると元データの所在から上へ辿って探す
+#   --source-file-root <パス>: sourceDirを保持し、sourceFileの実在だけを対象プロジェクトルート基準で検査する
 #
 # unit_kind=screen の場合:
 #   同ディレクトリの build-screen-list.sh に <manifest.json> <output-html-path> をそのまま渡して
@@ -824,6 +825,57 @@ EOF
     rc=1
   fi
 
+  # --- --source-file-root: sourceDirを結合せず対象プロジェクトルートのsourceFileを検査すること ---
+  mkdir -p "$tmp/source-file-root/src/api"
+  printf '%s\n' 'export function users() {}' > "$tmp/source-file-root/src/api/users.ts"
+  local source_file_root_manifest="$tmp/manifest-source-file-root.json"
+  jq '.sourceDir = "docs/design/apis" | .units[0].sourceFile = "src/api/users.ts"' "$repo_root_manifest" > "$source_file_root_manifest"
+  local source_file_root_out="$tmp/out-source-file-root.html" _sfr_out
+  if _sfr_out="$(bash "$script_path" "$source_file_root_manifest" "$source_file_root_out" --unit-kind api --source-file-root "$tmp/source-file-root" 2>&1)"; then
+    echo "  [PASS] --source-file-root指定: 一覧生成時の再検証へ対象プロジェクトルートを透過"
+  else
+    echo "  [FAIL] --source-file-root指定: 一覧生成時の再検証へ対象プロジェクトルートを透過できない" >&2
+    printf '%s\n' "$_sfr_out" | sed 's/^/    /' >&2
+    rc=1
+  fi
+
+  # featureは専用生成器へ委譲するため、その先まで--source-file-rootが届くことを回帰確認する。
+  local feature_source_file_root_manifest="$tmp/manifest-feature-source-file-root.json"
+  jq '.unitKind = "feature" | .units[0].kind = "feature" | .units[0].category = "注文管理" | .units[0].summary = "注文一覧を表示する" | .units[0].relatedScreens = [] | .units[0].relatedApis = [] | .units[0].relatedTables = []' "$source_file_root_manifest" > "$feature_source_file_root_manifest"
+  local feature_source_file_root_out="$tmp/out-feature-source-file-root.html" _feature_sfr_out
+  if _feature_sfr_out="$(bash "$script_path" "$feature_source_file_root_manifest" "$feature_source_file_root_out" --unit-kind feature --source-file-root "$tmp/source-file-root" 2>&1)"; then
+    echo "  [PASS] --source-file-root feature委譲: build-feature-list.shの再検証まで対象プロジェクトルートを透過"
+  else
+    echo "  [FAIL] --source-file-root feature委譲: build-feature-list.shの再検証まで対象プロジェクトルートを透過できない" >&2
+    printf '%s\n' "$_feature_sfr_out" | sed 's/^/    /' >&2
+    rc=1
+  fi
+
+  # screenも専用生成器へ委譲するため、対象rootだけにentryFileがある条件で透過を確認する。
+  mkdir -p "$tmp/source-file-root/src/screens"
+  printf '%s\n' 'export default function Top() { return null; }' > "$tmp/source-file-root/src/screens/Top.tsx"
+  local screen_source_file_root_manifest="$tmp/manifest-screen-source-file-root.json"
+  jq -n '{
+    generatedAt: "2026-01-01T00:00:00Z",
+    sourceDir: "docs/design/screens",
+    strategy: {extractionMethod: "custom", approvedByUser: true, screenIdRegex: null, excludePatterns: []},
+    detectionSummary: {screenCount: 1, clusterCount: 0, sharedScreenCount: 0, embeddedCandidateCount: 0, unresolvedCount: 0},
+    screens: [{
+      screenKey: "top", kind: "route", route: "/", screenNameGuess: "トップ",
+      entryFile: "src/screens/Top.tsx", detectionMethod: "manual", confidence: "high",
+      screenType: "top", accountGroup: "common", accountSubType: "common",
+      hasTemplate: true, parentScreen: null, childComponents: [], isProcessingEndpoint: false
+    }]
+  }' > "$screen_source_file_root_manifest"
+  local screen_source_file_root_out="$tmp/out-screen-source-file-root.html" _screen_sfr_out
+  if _screen_sfr_out="$(bash "$script_path" "$screen_source_file_root_manifest" "$screen_source_file_root_out" --unit-kind screen --source-file-root "$tmp/source-file-root" 2>&1)"; then
+    echo "  [PASS] --source-file-root screen委譲: build-screen-list.shの再検証まで対象プロジェクトルートを透過"
+  else
+    echo "  [FAIL] --source-file-root screen委譲: build-screen-list.shの再検証まで対象プロジェクトルートを透過できない" >&2
+    printf '%s\n' "$_screen_sfr_out" | sed 's/^/    /' >&2
+    rc=1
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -850,6 +902,7 @@ CATALOG_FILE=""
 SITES_FILE=""
 SITE_KEY=""
 REPO_ROOT_ARG=""
+SOURCE_FILE_ROOT_ARG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --unit-kind)
@@ -891,6 +944,11 @@ while [ $# -gt 0 ]; do
     --repo-root)
       # 元データの sourceDir を解決する基準にするディレクトリ。省略すると元データの所在から上へ辿って探す
       REPO_ROOT_ARG="${2:-}"
+      shift 2
+      ;;
+    --source-file-root)
+      # sourceDirを保持し、sourceFileの実在だけを対象プロジェクトルート基準で検査する
+      SOURCE_FILE_ROOT_ARG="${2:-}"
       shift 2
       ;;
     *)
@@ -965,6 +1023,7 @@ if [ "$UNIT_KIND" = "screen" ]; then
   [ -n "$SITE_KEY" ] && delegate_args+=(--site-key "$SITE_KEY")
   delegate_args+=(--axes "$AXES_PASS_FILE")
   [ -n "$SPLIT_BY" ] && delegate_args+=(--split-by "$SPLIT_BY")
+  [ -n "$SOURCE_FILE_ROOT_ARG" ] && delegate_args+=(--source-file-root "$SOURCE_FILE_ROOT_ARG")
   "$SCRIPT_DIR/build-screen-list.sh" "${delegate_args[@]}"
   exit $?
 fi
@@ -976,6 +1035,7 @@ if [ "$UNIT_KIND" = "feature" ]; then
   [ -n "$PROJECT_NAME_ARG" ] && delegate_args+=(--project-name "$PROJECT_NAME_ARG")
   [ -n "$CATALOG_FILE" ] && delegate_args+=(--catalog "$CATALOG_FILE")
   delegate_args+=(--axes "$AXES_PASS_FILE")
+  [ -n "$SOURCE_FILE_ROOT_ARG" ] && delegate_args+=(--source-file-root "$SOURCE_FILE_ROOT_ARG")
   "$SCRIPT_DIR/build-feature-list.sh" "${delegate_args[@]}"
   exit $?
 fi
@@ -1002,6 +1062,9 @@ case "$UNIT_KIND" in
     VALIDATE_CMD=("$SCRIPT_DIR/validate-manifest.sh" "$MANIFEST" --unit-kind "$UNIT_KIND" --axes "$AXES_PASS_FILE")
     if [ -n "$REPO_ROOT_ARG" ]; then
       VALIDATE_CMD+=(--repo-root "$REPO_ROOT_ARG")
+    fi
+    if [ -n "$SOURCE_FILE_ROOT_ARG" ]; then
+      VALIDATE_CMD+=(--source-file-root "$SOURCE_FILE_ROOT_ARG")
     fi
     ;;
 esac

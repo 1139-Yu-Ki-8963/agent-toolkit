@@ -5,7 +5,7 @@
 # 出力・挙動を保証する。
 #
 # Usage: validate-manifest.sh <manifest.json> [--fix <fixed-out.json>] [--unit-kind <kind>] [--axes <file>]
-#                              [--migrations-dir <dir>] [--repo-root <path>]
+#                              [--migrations-dir <dir>] [--repo-root <path>] [--source-file-root <path>]
 #        validate-manifest.sh --self-test
 #
 # --axes <file> は分類軸・任意列の宣言ファイルを受理する(現時点では受理するのみで検査には未使用)。
@@ -37,6 +37,9 @@
 #                                   ディレクトリを基準に解決する(1-10)。
 #                                   strategy.sourceExternal=trueの場合は対象コードが別リポジトリに
 #                                   あり参照できない宣言として実在確認自体を省略しPASS扱い(1-18)。
+#                                   --source-file-root指定時はsourceDirを結合せず、その直下で
+#                                   sourceFile（screenではentryFile）を実在確認する。--repo-rootと
+#                                   同時指定した場合、sourceFile/entryFileの検査にはこちらを優先する)
 #                                   --fix指定時は不在行を kind=unresolved・confidence=low に降格し
 #                                   detectionSummaryを再計算した修正版JSONを出力してPASS扱い)
 #   5. 意味キー-品質            : screenKeyが連番ID規約(数字のみ/-数字終わり/前後ハイフン/連続ハイフン)に違反していないか
@@ -140,6 +143,26 @@ axes_closed_values() {
   ' 2>/dev/null
 }
 
+# 実在ファイルの物理パスを返す。macOSでrealpathが標準搭載とは限らないため、
+# 中間ディレクトリはpwd -P、末尾のシンボリックリンクはreadlinkで解決する。
+# sourceFile/entryFileの値そのものは変更せず、--source-file-rootの境界判定にだけ使う。
+canonical_existing_file() {
+  local candidate="$1" link_target physical_dir hops=0
+  while [ -L "$candidate" ]; do
+    hops=$((hops + 1))
+    [ "$hops" -le 40 ] || return 1
+    link_target="$(readlink "$candidate")" || return 1
+    case "$link_target" in
+      /*) candidate="$link_target" ;;
+      *) candidate="$(cd -P "$(dirname "$candidate")" 2>/dev/null && pwd -P)/$link_target" ;;
+    esac
+  done
+  # cd自身を-Pにすることで、中間symlinkを辿った後の..を物理的な親へ解決する。
+  # pwdだけ-Pにしても、bashの論理cdがlink/..を先に相殺してroot内へ戻すため不十分。
+  physical_dir="$(cd -P "$(dirname "$candidate")" 2>/dev/null && pwd -P)" || return 1
+  printf '%s/%s\n' "${physical_dir%/}" "$(basename "$candidate")"
+}
+
 # ---------------------------------------------------------------------------
 # 検証本体。manifest・fix_out(空文字可)・unit_kind を受け取り、[PASS]/[FAIL]行を
 # stderrへ列挙したうえで、全項目PASSなら0、1件でもFAILなら1をreturnする。
@@ -150,6 +173,13 @@ run_validate() {
   local UNIT_KIND="$3"
   local MIGRATIONS_DIR="${4:-}"
   local REPO_ROOT="${5:-}"
+  local SOURCE_FILE_ROOT="${6:-}"
+
+  # self-test等から関数を直接呼ぶ経路も、CLI経路と同じ物理パスで境界判定する。
+  # macOSの/tmp -> /private/tmpのような別名で同一ディレクトリを誤ってroot外にしないため。
+  if [ -n "$SOURCE_FILE_ROOT" ]; then
+    SOURCE_FILE_ROOT="$(cd "$SOURCE_FILE_ROOT" 2>/dev/null && pwd -P)" || return 1
+  fi
 
   local ITEMS_KEY ITEM_KEY_FIELD IDENTIFIER_FIELD SOURCE_FIELD ID_REGEX_FIELD SUMMARY_COUNT_FIELD
   local TOP_REQUIRED_JSON ITEM_REQUIRED_JSON
@@ -270,6 +300,9 @@ run_validate() {
   #    従来どおりsourceDirをそのまま基準にする。
   #    マニフェスト自身の所在ディレクトリを基準にすると、sourceDirを対象リポジトリのルート
   #    起点で書く既存の書式が二重に連結されて解決に失敗する。
+  #    --source-file-root指定時はsourceDirをメタデータとして保持したまま、sourceFileだけを
+  #    指定した対象プロジェクトルートから解決する。設計文書の置き場と原本コードの置き場が
+  #    異なる経路で、source_refを変更・複製せずに実在確認するための専用指定である。
   #    strategy.sourceExternal=trueの場合、対象コードが別リポジトリにあり参照できないことの
   #    宣言として扱い、実在確認そのものを省略してPASS扱いで記録だけ残す(1-18)。
   #
@@ -290,7 +323,9 @@ run_validate() {
   source_dir="$(jq -r '.sourceDir // ""' "$MANIFEST")"
   check4_label="${SOURCE_FIELD}-実在"
   manifest_dir="$(cd "$(dirname "$MANIFEST")" && pwd)"
-  if [ -n "$REPO_ROOT" ]; then
+  if [ -n "$SOURCE_FILE_ROOT" ]; then
+    resolve_base="$SOURCE_FILE_ROOT"
+  elif [ -n "$REPO_ROOT" ]; then
     resolve_base="$REPO_ROOT"
   else
     resolve_base=""
@@ -309,7 +344,7 @@ run_validate() {
   [ -z "$resolve_base" ] && resolve_base="$manifest_dir"
   source_external="$(jq -r '(.strategy.sourceExternal == true)' "$MANIFEST" 2>/dev/null || echo false)"
 
-  local missing_keys_raw="" missing_detail="" row key ef path ef_list row_missing
+  local missing_keys_raw="" missing_detail="" row key ef path ef_list row_missing canonical_path
   if [ "$source_external" = "true" ]; then
     echo "[PASS] ${check4_label} — strategy.sourceExternal=trueのため実在確認を省略(対象コードは別リポジトリにあり参照不可という宣言を記録)" >&2
   else
@@ -332,16 +367,32 @@ run_validate() {
         case "$ef" in
           /*) path="$ef" ;;
           *)
-            case "$source_dir" in
-              /*) path="${source_dir%/}/$ef" ;;
-              "") path="${resolve_base%/}/$ef" ;;
-              *) path="${resolve_base%/}/${source_dir%/}/$ef" ;;
-            esac
+            if [ -n "$SOURCE_FILE_ROOT" ]; then
+              path="${resolve_base%/}/$ef"
+            else
+              case "$source_dir" in
+                /*) path="${source_dir%/}/$ef" ;;
+                "") path="${resolve_base%/}/$ef" ;;
+                *) path="${resolve_base%/}/${source_dir%/}/$ef" ;;
+              esac
+            fi
             ;;
         esac
+        canonical_path=""
+        if [ -n "$SOURCE_FILE_ROOT" ] && [ -f "$path" ]; then
+          canonical_path="$(canonical_existing_file "$path")" || canonical_path=""
+        fi
         if [ ! -f "$path" ]; then
           row_missing=1
           missing_detail="${missing_detail}${key}:${ef} (解決後: ${path}); "
+        elif [ -n "$SOURCE_FILE_ROOT" ]; then
+          case "$canonical_path" in
+            "${SOURCE_FILE_ROOT%/}"/*) ;;
+            *)
+              row_missing=1
+              missing_detail="${missing_detail}${key}:${ef} (解決後: ${canonical_path:-$path}; 対象root外); "
+              ;;
+          esac
         fi
       done <<<"$ef_list"
       if [ "$row_missing" -eq 1 ]; then
@@ -1548,6 +1599,85 @@ EOF
     rc=1
   fi
 
+  # ---- --source-file-root: sourceDirを保持したままsourceFileだけを対象ルートから解決 ----
+  # 設計資料はdocs/design/apisに置く一方、source_refは対象プロジェクト直下のsrc/を
+  # 指すケースを再現する。sourceDirを変えず、対象ルートにのみ実体を置いてPASSすることを確認する。
+  mkdir -p "$tmp/source-file-root/src/api" "$tmp/source-file-manifests"
+  printf '%s\n' 'export function users() {}' > "$tmp/source-file-root/src/api/users.ts"
+  local source_file_root_manifest="$tmp/source-file-manifests/api-manifest.json"
+  jq -n '{
+    generatedAt: "2026-01-01T00:00:00Z", sourceDir: "docs/design/apis", unitKind: "api",
+    strategy: {extractionMethod: "custom", approvedByUser: true, unitIdRegex: null, excludePatterns: []},
+    detectionSummary: {unitCount: 1, unresolvedCount: 0},
+    units: [{unitKey: "users-api", kind: "endpoint", identifier: "GET /users", unitNameGuess: "users", sourceFile: "src/api/users.ts", confidence: "high"}]
+  }' > "$source_file_root_manifest"
+  local source_file_root_default_out source_file_root_scoped_out
+  if source_file_root_default_out="$(run_validate "$source_file_root_manifest" "" "api" 2>&1)"; then
+    echo "  [FAIL] --source-file-root既定: 設計資料rootからの誤った解決をPASSした" >&2
+    printf '%s\n' "$source_file_root_default_out" | sed 's/^/    /' >&2
+    rc=1
+  elif source_file_root_scoped_out="$(run_validate "$source_file_root_manifest" "" "api" "" "" "$tmp/source-file-root" 2>&1)"; then
+    echo "  [PASS] --source-file-root指定: sourceDirを保持し、sourceFileを対象プロジェクトルートから解決"
+  else
+    echo "  [FAIL] --source-file-root指定: 対象プロジェクトルートのsourceFileを解決できない" >&2
+    printf '%s\n' "$source_file_root_scoped_out" | sed 's/^/    /' >&2
+    rc=1
+  fi
+
+  # --repo-rootと同時指定しても、原本の検査には--source-file-rootを優先する。
+  if source_file_root_scoped_out="$(run_validate "$source_file_root_manifest" "" "api" "" "$tmp/managed-repo/delivery" "$tmp/source-file-root" 2>&1)"; then
+    echo "  [PASS] --source-file-root優先: --repo-rootとの同時指定でも対象プロジェクトルートから解決"
+  else
+    echo "  [FAIL] --source-file-root優先: --repo-rootとの同時指定で対象プロジェクトルートを優先しない" >&2
+    printf '%s\n' "$source_file_root_scoped_out" | sed 's/^/    /' >&2
+    rc=1
+  fi
+
+  # 実在だけで合格にせず、物理パスが対象root内に収まることを検査する。
+  mkdir -p "$tmp/source-file-outside"
+  printf '%s\n' 'export function escape() {}' > "$tmp/source-file-outside/escape.ts"
+  local traversal_manifest="$tmp/source-file-manifests/api-manifest-traversal.json"
+  local absolute_manifest="$tmp/source-file-manifests/api-manifest-absolute.json"
+  local symlink_manifest="$tmp/source-file-manifests/api-manifest-symlink.json"
+  local intermediate_symlink_manifest="$tmp/source-file-manifests/api-manifest-intermediate-symlink.json"
+  jq '.units[0].sourceFile = "../source-file-outside/escape.ts"' "$source_file_root_manifest" > "$traversal_manifest"
+  jq --arg path "$tmp/source-file-outside/escape.ts" '.units[0].sourceFile = $path' "$source_file_root_manifest" > "$absolute_manifest"
+  ln -s "$tmp/source-file-outside/escape.ts" "$tmp/source-file-root/src/api/escape-link.ts"
+  jq '.units[0].sourceFile = "src/api/escape-link.ts"' "$source_file_root_manifest" > "$symlink_manifest"
+  mkdir -p "$tmp/source-file-outside/sub"
+  ln -s "$tmp/source-file-outside/sub" "$tmp/source-file-root/outside-link"
+  jq '.units[0].sourceFile = "outside-link/../escape.ts"' "$source_file_root_manifest" > "$intermediate_symlink_manifest"
+  local boundary_manifest boundary_label boundary_out
+  for boundary_manifest in "$traversal_manifest" "$absolute_manifest" "$symlink_manifest" "$intermediate_symlink_manifest"; do
+    case "$boundary_manifest" in
+      *traversal*) boundary_label="../" ;;
+      *absolute*) boundary_label="絶対パス" ;;
+      *intermediate*) boundary_label="中間シンボリックリンク+後続.." ;;
+      *) boundary_label="シンボリックリンク" ;;
+    esac
+    if boundary_out="$(run_validate "$boundary_manifest" "" "api" "" "" "$tmp/source-file-root" 2>&1)"; then
+      echo "  [FAIL] --source-file-root境界: ${boundary_label}経由の対象root外ファイルをPASSした" >&2
+      printf '%s\n' "$boundary_out" | sed 's/^/    /' >&2
+      rc=1
+    elif printf '%s' "$boundary_out" | grep -Fq '対象root外'; then
+      echo "  [PASS] --source-file-root境界: ${boundary_label}経由の対象root外ファイルを拒否"
+    else
+      echo "  [FAIL] --source-file-root境界: ${boundary_label}経由の不合格理由が対象root外ではない" >&2
+      printf '%s\n' "$boundary_out" | sed 's/^/    /' >&2
+      rc=1
+    fi
+  done
+
+  local boundary_fixed="$tmp/source-file-manifests/api-manifest-traversal-fixed.json"
+  if boundary_out="$(run_validate "$traversal_manifest" "$boundary_fixed" "api" "" "" "$tmp/source-file-root" 2>&1)" \
+    && [ "$(jq -r '.units[0].kind + ":" + .units[0].confidence' "$boundary_fixed")" = "unresolved:low" ]; then
+    echo "  [PASS] --source-file-root境界 --fix: 対象root外参照を従来どおりunresolvedへ降格"
+  else
+    echo "  [FAIL] --source-file-root境界 --fix: 対象root外参照をunresolvedへ降格できない" >&2
+    printf '%s\n' "$boundary_out" | sed 's/^/    /' >&2
+    rc=1
+  fi
+
   # ---- strategy.sourceExternal=trueで実在確認を省略することの確認(1-18) ----
   local screen_external="$tmp/screen-external.json"
   jq '.strategy.sourceExternal = true | .screens[0].entryFile = "src/screens/DoesNotExist.tsx"' "$screen_pass" > "$screen_external"
@@ -2009,6 +2139,7 @@ UNIT_KIND_ARG=""
 AXES_FILE=""
 MIGRATIONS_DIR_ARG=""
 REPO_ROOT_ARG=""
+SOURCE_FILE_ROOT_ARG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --fix)
@@ -2047,6 +2178,14 @@ while [ $# -gt 0 ]; do
       fi
       shift 2
       ;;
+    --source-file-root)
+      SOURCE_FILE_ROOT_ARG="${2:-}"
+      if [ -z "$SOURCE_FILE_ROOT_ARG" ]; then
+        echo "Usage: validate-manifest.sh <manifest.json> [--fix <fixed-out.json>] [--unit-kind <kind>] [--migrations-dir <dir>] [--source-file-root <path>]" >&2
+        exit 1
+      fi
+      shift 2
+      ;;
     *)
       echo "Usage: validate-manifest.sh <manifest.json> [--fix <fixed-out.json>] [--unit-kind <kind>] [--migrations-dir <dir>]" >&2
       exit 1
@@ -2072,6 +2211,14 @@ if [ -n "$REPO_ROOT_ARG" ]; then
   REPO_ROOT_ARG="$(cd "$REPO_ROOT_ARG" && pwd)"
 fi
 
+if [ -n "$SOURCE_FILE_ROOT_ARG" ]; then
+  if [ ! -d "$SOURCE_FILE_ROOT_ARG" ]; then
+    echo "ERROR: --source-file-root is not a directory: $SOURCE_FILE_ROOT_ARG" >&2
+    exit 1
+  fi
+  SOURCE_FILE_ROOT_ARG="$(cd "$SOURCE_FILE_ROOT_ARG" && pwd -P)"
+fi
+
 if [ -n "$UNIT_KIND_ARG" ]; then
   UNIT_KIND="$UNIT_KIND_ARG"
 else
@@ -2079,5 +2226,5 @@ else
   [ -z "$UNIT_KIND" ] && UNIT_KIND="screen"
 fi
 
-run_validate "$MANIFEST" "$FIX_OUT" "$UNIT_KIND" "$MIGRATIONS_DIR_ARG" "$REPO_ROOT_ARG"
+run_validate "$MANIFEST" "$FIX_OUT" "$UNIT_KIND" "$MIGRATIONS_DIR_ARG" "$REPO_ROOT_ARG" "$SOURCE_FILE_ROOT_ARG"
 exit $?

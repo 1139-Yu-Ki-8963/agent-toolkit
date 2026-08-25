@@ -4002,15 +4002,12 @@ EOF
   echo '{"total":100,"fe":50,"be":50,"file_count":10}' > "$test43_portal/code-metrics.json"
   # 改善課題1-66により、method・pathが揃ったAPI文書のkindは"endpoint"へ解決されるため、
   # validate-manifest.shのsourceFile-実在検査(kind!=unresolvedの行のみ検査)がsource_ref
-  # (src/api/users.py)の実在を要求するようになった。この検査はmanifest_dir(.git祖先が
-  # 見つからないためのフォールバック)を起点にsourceDir+source_refを解決するため、
-  # 該当パスへダミーの実体を用意する(既存のvalidate-manifest.shの解決仕様に合わせるだけで、
-  # build-portal.sh本体・1-66の挙動は変えない)。
-  mkdir -p "$test43_docs/docs/manifests/docs/design/apis/src/api"
-  : > "$test43_docs/docs/manifests/docs/design/apis/src/api/users.py"
-  mkdir -p "$test43_docs/docs/manifests/docs/design/tables/src/models"
-  : > "$test43_docs/docs/manifests/docs/design/tables/src/models/users.py"
-  : > "$test43_docs/docs/manifests/docs/design/tables/src/models/orders.py"
+  # (src/api/users.py)の実在を要求する。source_refは設計資料・マニフェスト出力先でなく
+  # TARGET_REPOを基準に検査するため、対象プロジェクトにだけダミーの実体を用意する。
+  mkdir -p "$test43_repo/src/api" "$test43_repo/src/models"
+  : > "$test43_repo/src/api/users.py"
+  : > "$test43_repo/src/models/users.py"
+  : > "$test43_repo/src/models/orders.py"
   # 改善課題1-243: 本ケースは複数の独立したガードを経て末尾で1行のPASSを
   # 出す構造を持つ。途中のガードが1つでも不合格になった場合、末尾の
   # 無条件PASSを抑止する必要がある（実測: ER図データのガードのみ不合格
@@ -4033,7 +4030,7 @@ EOF
     record_self_test_case_failure
   fi
   test43_list_html="$test43_dir/API一覧.html"
-  if ! "$SCRIPT_DIR/unit-list/build-unit-list.sh" "$test43_manifest" "$test43_list_html" --unit-kind api >/dev/null 2>&1; then
+  if ! "$SCRIPT_DIR/unit-list/build-unit-list.sh" "$test43_manifest" "$test43_list_html" --unit-kind api --source-file-root "$test43_repo" >/dev/null 2>&1; then
     echo "FAIL: --self-test ケース43（抽出したマニフェストから一覧ページの生成に到達しない）" >&2
     rm -rf "$test43_dir"
     record_self_test_case_failure
@@ -4065,9 +4062,9 @@ EOF
   mkdir -p "$test46_repo" "$test46_docs/docs/design/apis/api-get-users/詳細設計" "$test46_portal"
   write_valid_api_detail_fixture "$test46_docs/docs/design/apis/api-get-users/詳細設計/API詳細設計書.md"
   echo '{"total":100,"fe":50,"be":50,"file_count":10}' > "$test46_portal/code-metrics.json"
-  # 改善課題1-66の影響でsourceFile-実在検査が効くため、ケース43と同じ理由でダミーの実体を用意する。
-  mkdir -p "$test46_docs/docs/manifests/docs/design/apis/src/api"
-  : > "$test46_docs/docs/manifests/docs/design/apis/src/api/users.py"
+  # sourceFile-実在検査は設計資料でなく対象プロジェクトの原本コードを確認する。
+  mkdir -p "$test46_repo/src/api"
+  : > "$test46_repo/src/api/users.py"
   test46_build_status=0
   "$SCRIPT_DIR/build-portal.sh" "$test46_repo" "$test46_docs" "$test46_portal" \
     --generated-at 2026-07-28T00:00:00Z \
@@ -4587,7 +4584,7 @@ if [ "$BUILD_MANIFESTS_FROM_DOCS" -eq 1 ] && [ "$PORTAL_ONLY" -eq 0 ]; then
     exit 1
   fi
   echo "INFO: generating design-document manifests" >&2
-  bash "$SCRIPT_DIR/portal-input/build-manifests-from-docs.sh" "$DOCS_ROOT" "$DOCS_ROOT/$LAYOUT_MANIFESTS_ROOT" \
+  bash "$SCRIPT_DIR/portal-input/build-manifests-from-docs.sh" "$DOCS_ROOT" "$DOCS_ROOT/$LAYOUT_MANIFESTS_ROOT" --source-file-root "$TARGET_REPO" \
     || { echo "ERROR: design-document manifest generation failed" >&2; exit 1; }
 
   # 改善課題1-61: build-manifests-from-docs.shは本体(<kind>-manifest.json)しか作らず、

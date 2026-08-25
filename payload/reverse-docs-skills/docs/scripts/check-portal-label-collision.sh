@@ -65,6 +65,8 @@ LABELS_EOF
 run_self_test() {
   local ok=1
   local tmp
+  local case1_output case1_rc
+  local case2_output case2_rc
   if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/portal-label-collision-selftest.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
     echo "[UNKNOWN] --self-test: 一時ディレクトリの作成に失敗したため判定できません（mktemp）"
     return 2
@@ -72,19 +74,33 @@ run_self_test() {
 
   # ケース1: labelと同名のディレクトリがあれば不合格になること
   mkdir -p "$tmp/case1/マトリクス・対応表"
-  if check_portal_dir "$tmp/case1" | grep -qF '[FAIL]'; then
-    echo "[PASS] ケース1: label同名の置き場を検出した"
+  case1_output="$(check_portal_dir "$tmp/case1")"
+  case1_rc=$?
+  if [ "$case1_rc" -eq 1 ]; then
+    if [[ "$case1_output" == *'[FAIL]'* ]]; then
+      echo "[PASS] ケース1: label同名の置き場を終了コード1で検出した"
+    else
+      echo "[FAIL] ケース1: 終了コード1だが検出結果を出力しなかった"
+      ok=0
+    fi
   else
-    echo "[FAIL] ケース1: label同名の置き場を検出できなかった"
+    echo "[FAIL] ケース1: label同名の置き場に終了コード1を返さなかった（exit $case1_rc）"
     ok=0
   fi
 
   # ケース2: 英字の正しい置き場だけならPASSすること
   mkdir -p "$tmp/case2/matrices"
-  if check_portal_dir "$tmp/case2" | grep -qF '[PASS]'; then
-    echo "[PASS] ケース2: 英字の置き場は誤検知しない"
+  case2_output="$(check_portal_dir "$tmp/case2")"
+  case2_rc=$?
+  if [ "$case2_rc" -eq 0 ]; then
+    if [[ "$case2_output" == *'[PASS]'* ]]; then
+      echo "[PASS] ケース2: 英字の置き場は終了コード0で誤検知しない"
+    else
+      echo "[FAIL] ケース2: 終了コード0だが合格結果を出力しなかった"
+      ok=0
+    fi
   else
-    echo "[FAIL] ケース2: 英字の置き場を誤って検出した"
+    echo "[FAIL] ケース2: 英字の置き場に終了コード0を返さなかった（exit $case2_rc）"
     ok=0
   fi
 
@@ -107,9 +123,15 @@ run_self_test() {
 }
 
 main() {
-  if [ "${1:-}" = "--self-test" ]; then
-    run_self_test
-    return $?
+  if [ "$#" -gt 1 ]; then
+    echo "usage: $0 [<project-portal path> | --self-test]" >&2
+    return 2
+  fi
+  if [ "$#" -eq 1 ]; then
+    if [ "$1" = "--self-test" ]; then
+      run_self_test
+      return $?
+    fi
   fi
   local target="${1:-$REPO_ROOT/generation-engine/samples/project-portal}"
   check_portal_dir "$target"

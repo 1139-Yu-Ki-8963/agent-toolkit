@@ -125,6 +125,8 @@ bash generation-engine/scripts/scaffold-design-unit.sh feature basic <output_dir
 
 ## Step 3-1: テンプレートの展開と記入
 
+**使用ツール**: Read / Write
+
 - **Step 1**: 配置済みの `<output_dir>/<featureUnitRoot>/feature-<機能識別子>/<unitPhaseDirNames.basic>/機能設計書.md` へ記入する。`<機能識別子>` の決め方は「出力」節の規約に従う。frontmatter の `FEATUREKEY`・`FEATUREID`・`CATEGORY`・`SOURCEREF` をマニフェストの値で置換する。`unitId` が空の場合、frontmatter の `FEATUREID` は空欄のままとし、その旨を 要確認事項一覧へ記録する。`sourceFile` は機能一覧生成側が付与しない非必須フィールドである(1-254。機能は複数の実装ファイルを束ねる集約であり、代表となる単一のソースファイルを持たない)。マニフェストに値が無い場合、frontmatter の `SOURCEREF` は空欄のままとし、代表ファイルを推測で補わず、その旨を 要確認事項一覧へ記録する。完了条件: 全対象機能のファイルが配置済み
 - **Step 2**: §1 から §10 を記入する。構成要素の個別仕様を再掲せず、§2.1 の表にはパス参照だけを置く。共通処理は §7.1 へ、共有状態は §6.2 へ、それぞれ 1 箇所だけ記述する。完了条件: §1 から §10 の記入が完了している
 - **Step 3**: 記入できなかった章と項目を 要確認事項一覧へ列挙する。対象コードの位置は記録しない。完了条件: 当該資料へ確定できなかった事項が記録済み

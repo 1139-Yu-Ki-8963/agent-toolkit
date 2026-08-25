@@ -265,7 +265,7 @@ stage_build_manifests() {
     record_result build-manifests FAIL "スクリプトが存在しない: ${script}"
     return 0
   fi
-  run_cmd bash "${script}" "${OUTPUT_DIR}" "${MANIFESTS_DIR}"
+  run_cmd bash "${script}" "${OUTPUT_DIR}" "${MANIFESTS_DIR}" --source-file-root "${REPO}"
   if [ "${LAST_RC}" -eq 0 ]; then
     record_result build-manifests OK "非画面6種別のマニフェストを組み立てた"
   else
@@ -449,7 +449,7 @@ stage_unit_lists() {
   screen_html_rel="$(output_layout_get "${unit_layout_json}" screenListHtml 2>/dev/null)" || screen_html_rel="${units_root}/screens/画面一覧.html"
   if [ -f "${screen_script}" ] && [ -f "${screen_manifest}" ]; then
     mkdir -p "$(dirname "${OUTPUT_DIR}/${screen_html_rel}")"
-    run_cmd bash "${screen_script}" "${screen_manifest}" "${OUTPUT_DIR}/${screen_html_rel}"
+    run_cmd bash "${screen_script}" "${screen_manifest}" "${OUTPUT_DIR}/${screen_html_rel}" --source-file-root "${REPO}"
     [ "${LAST_RC}" -ne 0 ] && any_fail=1
     detail="${detail}screen=${LAST_RC}; "
   else
@@ -462,7 +462,7 @@ stage_unit_lists() {
   feature_html_rel="$(output_layout_get "${unit_layout_json}" unitListHtml 機能 2>/dev/null)" || feature_html_rel="${units_root}/features/機能一覧.html"
   if [ -f "${feature_script}" ] && [ -f "${feature_manifest}" ]; then
     mkdir -p "$(dirname "${OUTPUT_DIR}/${feature_html_rel}")"
-    run_cmd bash "${feature_script}" "${feature_manifest}" "${OUTPUT_DIR}/${feature_html_rel}"
+    run_cmd bash "${feature_script}" "${feature_manifest}" "${OUTPUT_DIR}/${feature_html_rel}" --source-file-root "${REPO}"
     [ "${LAST_RC}" -ne 0 ] && any_fail=1
     detail="${detail}feature=${LAST_RC}; "
   else
@@ -483,7 +483,7 @@ stage_unit_lists() {
     html_rel="$(output_layout_get "${unit_layout_json}" unitListHtml "${label}" 2>/dev/null)" || html_rel="${units_root}/${label}一覧/${label}一覧.html"
     if [ -f "${unit_script}" ] && [ -f "${manifest}" ]; then
       mkdir -p "$(dirname "${OUTPUT_DIR}/${html_rel}")"
-      run_cmd bash "${unit_script}" "${manifest}" "${OUTPUT_DIR}/${html_rel}" --unit-kind "${kind}"
+      run_cmd bash "${unit_script}" "${manifest}" "${OUTPUT_DIR}/${html_rel}" --unit-kind "${kind}" --source-file-root "${REPO}"
       [ "${LAST_RC}" -ne 0 ] && any_fail=1
       detail="${detail}${kind}=${LAST_RC}; "
     else
@@ -1202,6 +1202,17 @@ JSON
     _case_pass "配線-追加5件" "5本の呼び出しがすべてスクリプト本文に存在する"
   else
     _case_fail "配線-追加5件" "追加5本のうち一部の呼び出しが見つからない"
+  fi
+
+  # 原本root-全生成連鎖: 設計資料をOUTPUT_DIRへ分離しても、原本実在検査はREPOを基準にする。
+  local manifest_block
+  manifest_block="$(sed -n '/^stage_build_manifests()/,/^}/p' "${SELF_PATH}")"
+  if printf '%s' "${manifest_block}" | grep -Fq -- '--source-file-root "${REPO}"' \
+    && [ "$(printf '%s' "${unit_block}" | grep -Fc -- '--source-file-root "${REPO}"')" -eq 3 ] \
+    && printf '%s' "${unit_block}" | grep -Fq -- '--unit-kind "${kind}" --source-file-root "${REPO}"'; then
+    _case_pass "原本root-全生成連鎖" "manifest組立・screen・feature・汎用5種別へREPOを透過"
+  else
+    _case_fail "原本root-全生成連鎖" "--source-file-root REPOの透過が一部の生成経路で欠けている"
   fi
 
   # 依存-追加分実在

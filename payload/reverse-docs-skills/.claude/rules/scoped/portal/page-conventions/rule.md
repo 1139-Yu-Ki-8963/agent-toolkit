@@ -1500,17 +1500,30 @@ Material Symbols OutlinedのGoogle Fonts CDNだけは、アイコン表示に必
 
 ### check-portal-label-collision.sh
 
-**必要性**: 改善課題1-213は名前の衝突検出の穴を扱う。`output-layout.json`の置き場の値（英字）と`portal-catalog.json`の表示見出し（label）は別の鍵に分かれている。既存の逆戻り検知（`check-portal-dir-ascii.sh`）は短い旧名4語だけを対象にする。label値そのもの（「マトリクス・対応表」「基盤情報」等の複合語）と同名のディレクトリが作られても検出できない。判定は複数段の手順である。`portal-catalog.json`からlabel一覧を読み、`project-portal`直下の実ディレクトリ名と突き合わせる。1行の縦棒なしコマンドへ収められない。
+**必要性**: 改善課題1-213は名前の衝突検出の穴を扱う。`output-layout.json`の置き場の値（英字）と`portal-catalog.json`の表示見出し（label）は別の鍵に分かれている。既存の逆戻り検知（`check-portal-dir-ascii.sh`）は短い旧名4語だけを対象とし、label値を完全一致の契約として検査しない。「マトリクス・対応表」は検出せず、「基盤情報」は短名「基盤」への前方一致で副次的に検出するだけである。このため、label値を動的に完全一致で検査する仕組みがない。判定は複数段の手順である。`portal-catalog.json`からlabel一覧を読み、`project-portal`直下の実ディレクトリ名と突き合わせる。1行の縦棒なしコマンドへ収められない。
 
 **代替案を採用しなかった理由**:
 - Bash ツール直叩き: label一覧の取得とディレクトリ名との突き合わせを対話セッションのたびに手で組み立てると、判定基準がぶれる
-- 既存`check-portal-dir-ascii.sh`への機能追加: あちらは4つの既知の短い旧名専用の検査であり`project-portal/`直後の完全一致が前提である。label値（可変・複合語）を動的に読む本検査とは起点が異なる
+- 既存`check-portal-dir-ascii.sh`への機能追加: あちらは`project-portal/`直後から4つの既知短名（図|対応表|基盤|画面）への前方一致を検査する。このため「基盤情報」は副次的に検出するが、「マトリクス・対応表」は検出しない。`categories[].label`を動的に読み、実ディレクトリ名と完全一致で突き合わせる本検査とは起点と判定が異なる
 - 既存`detect_stale_portal_placeholders`（build-portal.sh内）への機能追加: あちらは`output-layout.json`の値との突き合わせが関心である。label値との突き合わせという別の対象を持ち込むと責務が混在する
 - 既存 Makefile ターゲット拡張・package.json scripts 追加: このリポジトリはどちらも持たない
 
 **保守責任者**: 人手（ユーザー）。`portal-catalog.json`のカテゴリ構造（`categories[].label`）を変更する場合は`labels_from_catalog`を同時に更新する。
 
 **廃棄条件**: 改善課題1-213の是正自体を撤回した時。またはlabelと置き場の名前の衝突を別の機構が標準で検出するようになった時。
+
+#### 第1層集約用ラッパー（`generation-engine/scripts/tests/check-portal-label-collision.sh`）
+
+**必要性**: 本体は`docs/scripts/`配下にあり、第1層の集約対象外である。集約から本体の自己テストを実行する入口が必要である。
+
+**代替案を採用しなかった理由**:
+- 集約本体の変更: 汎用集約へ個別の検査名を持ち込むことになる
+- 判定の複製: 本体とラッパーの二重正本化になる
+- 本体の移動: `docs/`配下へ検査を置く責務を崩す
+
+**保守責任者**: 人手（ユーザー）。本体のパスまたは自己テストの契約を変更する時は、このラッパーを同時に更新する。
+
+**廃棄条件**: 本体を廃止した時。または集約が`docs/scripts/`を標準収集するようになった時。
 
 ### check-confirmation-ledger-current-template.sh
 

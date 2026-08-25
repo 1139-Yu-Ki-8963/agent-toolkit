@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # generating-screen-list-for-reverse-docs: Phase 4 画面一覧.HTML 決定的生成
 #
-# Usage: build-screen-list.sh <manifest.json> <output-html-path> [--split-by <axisKey>] [--repo-root <パス>]
+# Usage: build-screen-list.sh <manifest.json> <output-html-path> [--split-by <axisKey>] [--repo-root <パス>] [--source-file-root <パス>]
 #   --repo-root <パス>: 元データの sourceDir を解決する基準にするディレクトリ。省略すると元データの所在から上へ辿って探す
+#   --source-file-root <パス>: sourceDirを保持し、entryFileの実在だけを対象プロジェクトルート基準で検査する
 #
 # --split-by <axisKey>: 一覧を指定した軸の値ごとに分割する。none で分割を無効化する。
 #   未指定時は unit-axes.json で split.default=true な screen 軸(既定: accountGroup)が使われる。
@@ -896,6 +897,20 @@ EOF
     rc=1
   fi
 
+  # --- --source-file-root: screen専用生成器の再検証へ対象プロジェクトルートを透過すること ---
+  mkdir -p "$tmp/source-file-root/src/screens"
+  printf '%s\n' 'export default function Top() { return null; }' > "$tmp/source-file-root/src/screens/Top.tsx"
+  local source_file_root_manifest="$tmp/manifest-source-file-root.json"
+  jq '.sourceDir = "docs/design/screens" | .screens[0].entryFile = "src/screens/Top.tsx"' "$repo_root_manifest" > "$source_file_root_manifest"
+  local source_file_root_out="$tmp/out-source-file-root.html" _sfr_out
+  if _sfr_out="$(bash "$script_path" "$source_file_root_manifest" "$source_file_root_out" --source-file-root "$tmp/source-file-root" 2>&1)"; then
+    echo "  [PASS] --source-file-root指定: screen再検証へ対象プロジェクトルートを透過"
+  else
+    echo "  [FAIL] --source-file-root指定: screen再検証へ対象プロジェクトルートを透過できない" >&2
+    printf '%s\n' "$_sfr_out" | sed 's/^/    /' >&2
+    rc=1
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -922,6 +937,7 @@ CATALOG_FILE=""
 SITES_FILE=""
 SITE_KEY=""
 REPO_ROOT_ARG=""
+SOURCE_FILE_ROOT_ARG=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --portal-dir)
@@ -963,6 +979,11 @@ while [ $# -gt 0 ]; do
     --repo-root)
       # 元データの sourceDir を解決する基準にするディレクトリ。省略すると元データの所在から上へ辿って探す
       REPO_ROOT_ARG="${2:-}"
+      shift 2
+      ;;
+    --source-file-root)
+      # sourceDirを保持し、entryFileの実在だけを対象プロジェクトルート基準で検査する
+      SOURCE_FILE_ROOT_ARG="${2:-}"
       shift 2
       ;;
     *)
@@ -1019,6 +1040,9 @@ MANIFEST="$DETECTED_MANIFEST"
 VALIDATE_SCREEN_CMD=("$SCRIPT_DIR/validate-manifest.sh" "$MANIFEST" --axes "$AXES_RESOLVED_FILE")
 if [ -n "$REPO_ROOT_ARG" ]; then
   VALIDATE_SCREEN_CMD+=(--repo-root "$REPO_ROOT_ARG")
+fi
+if [ -n "$SOURCE_FILE_ROOT_ARG" ]; then
+  VALIDATE_SCREEN_CMD+=(--source-file-root "$SOURCE_FILE_ROOT_ARG")
 fi
 if ! "${VALIDATE_SCREEN_CMD[@]}"; then
   echo "ERROR: manifestがvalidate-manifest.shの検証に失敗しました。Phase 3の整合検証を先に完了してください" >&2
