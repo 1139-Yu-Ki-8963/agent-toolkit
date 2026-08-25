@@ -1311,10 +1311,10 @@ run_orphaned_html_self_test() {
   new_html="$common_dir/新名.html"
   orphan_html="$common_dir/孤立.html"
   late_orphan_html="$common_dir/後置孤立.html"
-  separated_html="$test_portal/基盤/共通設計書.html"
+  separated_html="$test_portal/foundation/共通設計書.html"
   old_rule_html="$rules_dir/rule.html"
-  old_screen_html="$test_portal/画面/screen-orphan/基本設計/画面基本設計書.html"
-  release_notes_html="$test_portal/基盤/リリースノート.html"
+  old_screen_html="$test_portal/screens/screen-orphan/基本設計/画面基本設計書.html"
+  release_notes_html="$test_portal/foundation/リリースノート.html"
   manual_note_html="$common_dir/手動運用メモ.html"
   footer_example_html="$common_dir/フッター記法例.html"
 
@@ -1346,12 +1346,13 @@ run_orphaned_html_self_test() {
   printf '<html>\n<footer class="pt-footer">\n<span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>\n<span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span>\n</footer>\n</html>\n' > "$orphan_html"
   printf '<html>実行方法は generation-engine/scripts/build-portal.sh を参照する。</html>\n' > "$manual_note_html"
   printf '<html><!-- <span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span> --><pre><span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span></pre><textarea><footer class="pt-footer"><span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span><span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span></footer></textarea><main><span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span></main>\n<footer class="pt-footer">\n<span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>\n</footer><footer class="pt-footer">\n<span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span>\n</footer>\n</html>\n' > "$footer_example_html"
-  mkdir -p "$(dirname "$release_notes_html")"
-  printf '<html>別生成器が作ったリリースノート</html>\n' > "$release_notes_html"
+  # release_notes_html はpost-build後に作る。
+  # build本体はprepared inputが無い場合、project-portal/foundation/リリースノート.htmlをstaleと判定する。
+  # その判定より後に生成することで、衝突を避ける。
   # 後置孤立HTMLを読み取り専用にし、post-build後の再走査で警告・削除されることを確認する。
   if ! "$SCRIPT_DIR/build-portal.sh" "$test_repo" "$test_root" "$test_portal" \
     --generated-at 2026-08-20T00:00:00Z \
-    --post-build 'late_orphan="$REVERSE_DOCS_DOCS_DIR/docs/design/common/後置孤立.html"; printf '\''<span id="pt-sidebar-date">2000-01-01</span>\n<footer class="pt-footer">\n<span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>\n<span id="pt-footer-date">2000-01-01</span>\n<span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span>\n</footer>\n'\'' > "$late_orphan"; chmod 444 "$late_orphan"' \
+    --post-build 'release_out="$REVERSE_DOCS_PORTAL_DIR/foundation/リリースノート.html"; mkdir -p "$(dirname "$release_out")"; printf '\''<html>別生成器が作ったリリースノート</html>\n'\'' > "$release_out"; late_orphan="$REVERSE_DOCS_DOCS_DIR/docs/design/common/後置孤立.html"; printf '\''<span id="pt-sidebar-date">2000-01-01</span>\n<footer class="pt-footer">\n<span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>\n<span id="pt-footer-date">2000-01-01</span>\n<span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span>\n</footer>\n'\'' > "$late_orphan"; chmod 444 "$late_orphan"' \
     >"$second_log" 2>&1; then
     echo "FAIL: --self-test ケース49（改名・孤立HTMLを含む合成フィクスチャを再生成できない）" >&2
     cat "$second_log" >&2
