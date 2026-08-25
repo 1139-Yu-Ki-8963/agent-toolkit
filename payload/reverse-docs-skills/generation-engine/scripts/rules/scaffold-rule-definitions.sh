@@ -976,15 +976,41 @@ EOF
 self_test() {
   local rc=0
   local out1 out2
+  local scaffold_out scaffold_rc
+
+  capture_scaffold() {
+    local captured
+    if [ -n "${SELF_TEST_FORCE_SCAFFOLD_FAILURE:-}" ]; then
+      captured="$SELF_TEST_FORCE_SCAFFOLD_FAILURE"
+      scaffold_rc=97
+    elif captured="$(run_scaffold "$@" 2>&1)"; then
+      scaffold_rc=0
+    else
+      scaffold_rc=$?
+    fi
+    scaffold_out="$captured"
+  }
+
+  print_scaffold_failure() {
+    printf '    run_scaffold exit=%s\n' "$scaffold_rc" >&2
+    if [ -n "$scaffold_out" ]; then
+      printf '%s\n' "$scaffold_out" | awk '{ print "    " $0 }' >&2
+    fi
+  }
 
   # ケース1: --apply なしでは書き込みが起きない
   out1="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-self-test-out1.XXXXXX")"
   rm -rf "$out1"
   APPLY=0
   WITH_SKILLS=0
-  run_scaffold "$out1" >/dev/null 2>&1 || true
-  if [ -d "$out1" ]; then
+  capture_scaffold "$out1"
+  if [ "$scaffold_rc" -ne 0 ]; then
+    echo "  [FAIL] ケース1: --apply なしの実行自体が失敗した" >&2
+    print_scaffold_failure
+    rc=1
+  elif [ -d "$out1" ]; then
     echo "  [FAIL] ケース1: --apply なしで出力先ディレクトリが作成された" >&2
+    print_scaffold_failure
     rc=1
   else
     echo "  [PASS] ケース1: --apply なしでは書き込みが起きない"
@@ -1161,13 +1187,18 @@ EOF
   cp -R "$out1" "$out2"
   APPLY=1
   WITH_SKILLS=1
-  run_scaffold "$out1" >/dev/null 2>&1
+  capture_scaffold "$out1"
   local diff_log
   diff_log="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-bst-diff.XXXXXX")"
-  if diff -r "${out2}/docs/rules" "${out1}/docs/rules" >"$diff_log" 2>&1; then
+  if [ "$scaffold_rc" -ne 0 ]; then
+    echo "  [FAIL] ケース8: 冪等性確認の再実行自体が失敗した" >&2
+    print_scaffold_failure
+    rc=1
+  elif diff -r "${out2}/docs/rules" "${out1}/docs/rules" >"$diff_log" 2>&1; then
     echo "  [PASS] ケース8: 2回実行しても既存の docs/rules が壊れない（冪等）"
   else
     echo "  [FAIL] ケース8: 再実行で既存の docs/rules が変化した" >&2
+    print_scaffold_failure
     sed 's/^/    /' "$diff_log" >&2
     rc=1
   fi
@@ -1269,13 +1300,18 @@ EOF
     WITH_SKILLS=1
     # このケースが見るのはproject-context/rule.md・flow-values.ymlだけであり、
     # 27件の子カテゴリのどれとも無関係なため、実在しないキーを渡して0件に絞る。
-    run_scaffold "$out1" "__case10_no_child__" >/dev/null 2>&1
-    grep -q '^# 現場編集済み$' "$pc_rule" || ok10=0
+    capture_scaffold "$out1" "__case10_no_child__"
+    if [ "$scaffold_rc" -ne 0 ]; then
+      ok10=0
+    else
+      grep -q '^# 現場編集済み$' "$pc_rule" || ok10=0
+    fi
   fi
   if [ "$ok10" -eq 1 ]; then
     echo "  [PASS] ケース10: project-context/rule.md・flow-values.yml が生成され、既存を上書きしない"
   else
     echo "  [FAIL] ケース10: project-context/rule.md・flow-values.yml の生成または既存保護が不正" >&2
+    print_scaffold_failure
     rc=1
   fi
 
@@ -1296,18 +1332,28 @@ EOF
   WITH_SKILLS=1
   # このケースが見るのはoverride_key19（naming）1件だけであり、他の26件を
   # 作り直す必要はない。
-  run_scaffold "$out1" "$override_key19" >/dev/null 2>&1
+  capture_scaffold "$out1" "$override_key19"
   local rule19
   rule19="$(find "${out1}/docs/rules" -type d -name "$override_key19" | head -n1)/rule.md"
-  if ! grep -qF 'paths: ["apps/custom-app/src/**"]' "$rule19" || ! grep -q '^scope: scoped$' "$rule19"; then
+  if [ "$scaffold_rc" -ne 0 ]; then
+    ok19=0
+    echo "  [FAIL] ケース19: 1回目の再実行自体が失敗した" >&2
+    print_scaffold_failure
+  elif ! grep -qF 'paths: ["apps/custom-app/src/**"]' "$rule19" || ! grep -q '^scope: scoped$' "$rule19"; then
     ok19=0
     echo "  [FAIL] ケース19: 1回目の再実行で対象側の上書きが反映されない" >&2
+    print_scaffold_failure
   else
     # もう一度再実行しても失われないこと（判定8の核心: 再実行で失われない）
-    run_scaffold "$out1" "$override_key19" >/dev/null 2>&1
-    if ! grep -qF 'paths: ["apps/custom-app/src/**"]' "$rule19" || ! grep -q '^scope: scoped$' "$rule19"; then
+    capture_scaffold "$out1" "$override_key19"
+    if [ "$scaffold_rc" -ne 0 ]; then
+      ok19=0
+      echo "  [FAIL] ケース19: 2回目の再実行自体が失敗した" >&2
+      print_scaffold_failure
+    elif ! grep -qF 'paths: ["apps/custom-app/src/**"]' "$rule19" || ! grep -q '^scope: scoped$' "$rule19"; then
       ok19=0
       echo "  [FAIL] ケース19: 2回目の再実行で対象側の上書きが失われた" >&2
+      print_scaffold_failure
     fi
   fi
   if [ "$ok19" -eq 1 ]; then
@@ -1358,13 +1404,19 @@ EOF
       APPLY=1
       WITH_SKILLS=1
       # このケースが見るのはckey15 1件だけであり、他の26件を作り直す必要はない。
-      run_scaffold "$out1" "$ckey15" >/dev/null 2>&1
-      if [ ! -s "$rule15" ]; then
+      capture_scaffold "$out1" "$ckey15"
+      if [ "$scaffold_rc" -ne 0 ]; then
+        ok15=0
+        echo "  [FAIL] ケース15: 再実行自体が失敗した" >&2
+        print_scaffold_failure
+      elif [ ! -s "$rule15" ]; then
         ok15=0
         echo "  [FAIL] ケース15: 空の雛形が再実行後も空のままである（上書きされていない）" >&2
+        print_scaffold_failure
       elif ! grep -q "^key: ${ckey15}\$" "$rule15"; then
         ok15=0
         echo "  [FAIL] ケース15: 再実行後の本文がツール側テンプレート由来でない" >&2
+        print_scaffold_failure
       fi
     fi
   fi
@@ -1410,8 +1462,16 @@ EOF
         WITH_SKILLS=1
         # このケースが見るのはckey15（=rule16の対象キー）1件だけであり、
         # 他の26件を作り直す必要はない。
-        run_scaffold "$out1" "$ckey15" >/dev/null 2>&1
-        grep -q '現場観測ルール16' "$rule16" || { ok16=0; echo "  [FAIL] ケース16: 再実行で現場が書き込んだ規則が消えた" >&2; }
+        capture_scaffold "$out1" "$ckey15"
+        if [ "$scaffold_rc" -ne 0 ]; then
+          ok16=0
+          echo "  [FAIL] ケース16: 再実行自体が失敗した" >&2
+          print_scaffold_failure
+        elif ! grep -q '現場観測ルール16' "$rule16"; then
+          ok16=0
+          echo "  [FAIL] ケース16: 再実行で現場が書き込んだ規則が消えた" >&2
+          print_scaffold_failure
+        fi
       fi
     fi
   fi
@@ -1456,13 +1516,19 @@ EOF
           APPLY=1
           WITH_SKILLS=1
           # このケースが見るのはckey17 1件だけであり、他の26件を作り直す必要はない。
-          run_scaffold "$out1" "$ckey17" >/dev/null 2>&1
-          if grep -qF '現場が説明文だけ書き換えた状態を装う' "$rule17"; then
+          capture_scaffold "$out1" "$ckey17"
+          if [ "$scaffold_rc" -ne 0 ]; then
+            ok17=0
+            echo "  [FAIL] ケース17: 再実行自体が失敗した" >&2
+            print_scaffold_failure
+          elif grep -qF '現場が説明文だけ書き換えた状態を装う' "$rule17"; then
             ok17=0
             echo "  [FAIL] ケース17: プレースホルダ行が再実行後も書き換えたままである（上書きされていない）" >&2
+            print_scaffold_failure
           elif ! grep -qF "$orig_row17" "$rule17"; then
             ok17=0
             echo "  [FAIL] ケース17: 再実行後の行が雛形の本文と一致しない" >&2
+            print_scaffold_failure
           fi
         fi
       fi
