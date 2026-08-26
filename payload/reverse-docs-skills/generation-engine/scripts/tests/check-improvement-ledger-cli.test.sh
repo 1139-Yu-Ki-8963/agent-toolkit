@@ -15,7 +15,14 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 case "${1:-}" in
   ""|--self-test)
-    exec node "$REPO_ROOT/generation-engine/scripts/check-improvement-ledger.mjs"
+    node "$REPO_ROOT/generation-engine/scripts/check-improvement-ledger.mjs"
+    rc=$?
+    if [ "$rc" -eq 0 ]; then
+      echo "実行 1 件 / 成功 1 件 / 失敗 0 件"
+    else
+      echo "実行 1 件 / 成功 0 件 / 失敗 1 件" >&2
+    fi
+    exit "$rc"
     ;;
   *)
     echo "usage: $0 [--self-test]" >&2

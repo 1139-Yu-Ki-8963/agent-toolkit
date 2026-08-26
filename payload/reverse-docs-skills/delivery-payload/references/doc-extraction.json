@@ -83,7 +83,7 @@
         "unitId": "table_id",
         "sourceFile": "source_ref"
       },
-      "identifier": { "mode": "unresolvable" },
+      "identifier": { "mode": "field", "fields": ["table_key"] },
       "kindMapping": {
         "requiredFields": ["table_subkind"],
         "valueFrom": "table_subkind",
@@ -242,6 +242,10 @@
         "sourceFile": "source_ref"
       },
       "identifier": { "mode": "unresolvable" },
+      "kindMapping": {
+        "requiredFields": ["feature_key", "source_ref"],
+        "value": "feature"
+      },
       "unresolvable": {
         "kind": "unresolved",
         "confidence": "low",

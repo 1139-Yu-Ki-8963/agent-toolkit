@@ -345,7 +345,7 @@ stage_fixture_code() {
   local output_dir="$1"
   local stage_root="$output_dir/verification-source"
   rm -rf "$stage_root"
-  mkdir -p "$stage_root"
+  mkdir -p "$stage_root/project"
   local kind_en src dest
   for kind_en in api table batch report external feature; do
     src="$FIXTURES_BASE/$kind_en"
@@ -353,6 +353,10 @@ stage_fixture_code() {
     if [ -d "$src" ]; then
       mkdir -p "$dest"
       cp -R "$src/." "$dest/"
+      # build-manifests-from-docs.sh は6種別を1回で検証するため、種別別の
+      # 抽出起点とは別に、全sourceFileを同じ対象プロジェクトrootから解決できる
+      # 合成rootも用意する。各fixtureの相対パスは実プロジェクト内の配置を表す。
+      cp -R "$src/." "$stage_root/project/"
     fi
   done
 }
@@ -392,7 +396,7 @@ derive_key_from_relpath() {
   base="$(basename "$relpath")"
   base="${base%.*}"
   base="$(printf '%s' "$base" | sed -E 's/^[0-9]+_//; s/^create_//')"
-  printf '%s' "$base"
+  printf '%s' "$base" | tr '[:upper:]' '[:lower:]'
 }
 
 # ---- 配置先パスの決定 ----
@@ -419,7 +423,7 @@ dest_path_for() {
     "外部連携/外部連携テスト設計書.md") printf '%s/external-%s/%s/外部連携テスト設計書.md' "$EXTERNAL_ROOT" "$EXTERNAL_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "外部連携/外部連携単体テスト設計書.md") printf '%s/external-%s/%s/外部連携単体テスト設計書.md' "$EXTERNAL_ROOT" "$EXTERNAL_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "外部連携/外部連携詳細設計書.md") printf '%s/external-%s/詳細設計/外部連携詳細設計書.md' "$EXTERNAL_ROOT" "$EXTERNAL_KEY" ;;
-    "機能/機能設計書.md") printf '%s/feature-%s/基本設計/機能設計書.md' "$FEATURE_ROOT" "$FEATURE_KEY" ;;
+    "機能/機能設計書.md") printf '%s/feature-%s/機能設計書.md' "$FEATURE_ROOT" "$FEATURE_KEY" ;;
     "機能/機能テスト設計書.md") printf '%s/feature-%s/%s/機能テスト設計書.md' "$FEATURE_ROOT" "$FEATURE_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "機能/機能単体テスト設計書.md") printf '%s/feature-%s/%s/機能単体テスト設計書.md' "$FEATURE_ROOT" "$FEATURE_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "画面/基本設計/画面基本設計書.md") printf '%s/screen-%s/基本設計/画面基本設計書.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;

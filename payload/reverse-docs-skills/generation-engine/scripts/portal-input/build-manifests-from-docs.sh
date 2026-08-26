@@ -547,7 +547,10 @@ build_manifest_for_kind() {
       fi
 
       local identifier_value
-      if [ "$identifier_mode" = "concat" ]; then
+      if [ "$identifier_mode" = "field" ]; then
+        identifier_value="$(extract_frontmatter_value "$file" "$identifier_field1")"
+        [ -n "$identifier_value" ] || identifier_value="$unresolved_identifier"
+      elif [ "$identifier_mode" = "concat" ]; then
         local v1 v2
         v1="$(extract_frontmatter_value "$file" "$identifier_field1")"
         v2="$(extract_frontmatter_value "$file" "$identifier_field2")"
@@ -877,11 +880,12 @@ EOF
   # (table_subkind等)がfrontmatterの欄から解決されるようになったため、apiと同様に
   # sourceFile-実在検査(kind!=unresolvedの行のみを検査するvalidate-manifest.shの
   # 検査4)がsource_refの実在を要求する。他種別も同じ対象プロジェクトルートにだけ置く。
-  mkdir -p "$tmp/src/models" "$tmp/src/batches" "$tmp/src/reports" "$tmp/src/externals"
+  mkdir -p "$tmp/src/models" "$tmp/src/batches" "$tmp/src/reports" "$tmp/src/externals" "$tmp/src/features"
   : > "$tmp/src/models/users.py"
   : > "$tmp/src/batches/cleanup.py"
   : > "$tmp/src/reports/sales.py"
   : > "$tmp/src/externals/payment.py"
+  : > "$tmp/src/features/user_management.py"
 
   local self_path
   self_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
@@ -998,15 +1002,15 @@ EOF
     fail=$((fail + 1))
   fi
 
-  # 検査2: 導けない項目が宣言の代替値で埋まること(featureで確認。tableは検査8でkindMapping解決を確認)
+  # 検査2: featureは判定材料からkindを解決し、導けないidentifier等だけを代替値で埋めること。
   local ok2=1
-  [ "$(jq -r '.units[0].kind' "$out/feature-manifest.json" 2>/dev/null)" = "unresolved" ] || ok2=0
-  [ "$(jq -r '.units[0].confidence' "$out/feature-manifest.json" 2>/dev/null)" = "low" ] || ok2=0
+  [ "$(jq -r '.units[0].kind' "$out/feature-manifest.json" 2>/dev/null)" = "feature" ] || ok2=0
+  [ "$(jq -r '.units[0].confidence' "$out/feature-manifest.json" 2>/dev/null)" = "high" ] || ok2=0
   [ "$(jq -r '.units[0].identifier' "$out/feature-manifest.json" 2>/dev/null)" = "未確認" ] || ok2=0
-  [ "$(jq -r '.units[0].detectionMethod' "$out/feature-manifest.json" 2>/dev/null)" = "未確認" ] || ok2=0
+  [ "$(jq -r '.units[0].detectionMethod' "$out/feature-manifest.json" 2>/dev/null)" = "document-frontmatter" ] || ok2=0
   [ "$(jq -r '.units[0].fileCount' "$out/feature-manifest.json" 2>/dev/null)" = "null" ] || ok2=0
   if [ "$ok2" -eq 1 ]; then
-    echo "  [PASS] 検査2: 導けない項目が宣言の代替値で埋まる" >&2
+    echo "  [PASS] 検査2: featureのkindを解決し、導けない項目は宣言の代替値で埋まる" >&2
     pass=$((pass + 1))
   else
     echo "  [FAIL] 検査2: 導けない項目の代替値に不一致がある" >&2
@@ -1369,7 +1373,8 @@ unit_kind: feature
 # 設計書ありの機能設計書
 EOF
   t11_out="$t11_root/out"
-  mkdir -p "$t11_out"
+  mkdir -p "$t11_out" "$t11_root/src/features"
+  : > "$t11_root/src/features/with_doc.py"
   t11_output="$(bash "$self_path" "$t11_root" "$t11_out" --unit-kind feature 2>&1)"
   t11_rc=$?
   [ "$t11_rc" -eq 0 ] || ok11=0

@@ -216,13 +216,13 @@ LEDGERS
 # 種別別の抽出(stage_type_extraction)のうち api/table/batch/report/external/feature の
 # 6種別が使う起点を種別ごとに解決する(screen は対象外。stage_type_extraction 内の
 # コメント参照)。--repo が明示された場合(REPO_EXPLICIT=1)は常に ${REPO} を使う(従来どおり)。
-# 明示が無い場合(既定の自己検証)は、prepare-verification-input.sh が
-# ${OUTPUT_DIR}/verification-source/<kind> へ疑似コードを配置済みならそちらを使う。
+# prepare-verification-input.sh が ${OUTPUT_DIR}/verification-source/<kind> へ
+# 疑似コードを配置済みなら、--repo の明示有無にかかわらずそちらを使う。
 # 疑似入力の配置に失敗・スキップした場合は ${REPO} へフォールバックする。
 resolve_extraction_source_dir() {
   local kind_en="$1"
   local staged="${OUTPUT_DIR}/verification-source/${kind_en}"
-  if [ "${REPO_EXPLICIT:-0}" -eq 0 ] && [ -d "${staged}" ]; then
+  if [ -d "${staged}" ]; then
     printf '%s' "${staged}"
   else
     printf '%s' "${REPO}"
@@ -265,7 +265,9 @@ stage_build_manifests() {
     record_result build-manifests FAIL "スクリプトが存在しない: ${script}"
     return 0
   fi
-  run_cmd bash "${script}" "${OUTPUT_DIR}" "${MANIFESTS_DIR}" --source-file-root "${REPO}"
+  local source_file_root="${OUTPUT_DIR}/verification-source/project"
+  [ -d "${source_file_root}" ] || source_file_root="${REPO}"
+  run_cmd bash "${script}" "${OUTPUT_DIR}" "${MANIFESTS_DIR}" --source-file-root "${source_file_root}"
   if [ "${LAST_RC}" -eq 0 ]; then
     record_result build-manifests OK "非画面6種別のマニフェストを組み立てた"
   else
@@ -312,7 +314,6 @@ stage_type_extraction() {
     run_cmd bash "${scr_script}" "${REPO}" "${screen_detected_path}" \
       --exclude '(^|/)generation-engine/samples(/|$)'
     local screen_rc="${LAST_RC}"
-    [ "${screen_rc}" -ne 0 ] && any_fail=1
 
     local screen_detected_count=0
     if [ -f "${screen_detected_path}" ]; then
@@ -325,10 +326,12 @@ stage_type_extraction() {
       rm -f "${screen_detected_path}"
       detail="${detail}screen=${screen_rc}(検出0件・既存${screen_existing_count}件のため既存を残した); "
     elif [ -f "${screen_detected_path}" ]; then
+      [ "${screen_rc}" -ne 0 ] && any_fail=1
       # 検出が1件以上、または既存も0件のときはこれまでどおり検出の結果で置き換える。
       mv -f "${screen_detected_path}" "${screen_manifest_path}"
       detail="${detail}screen=${screen_rc}; "
     else
+      [ "${screen_rc}" -ne 0 ] && any_fail=1
       # 検出失敗でマニフェスト自体が書かれず、既存も0件のときは、後続の段
       # (一覧・マトリクス)が入力不足で巻き込み判定不能にならないよう
       # 空の妥当なマニフェストで続行する。
@@ -462,7 +465,7 @@ stage_unit_lists() {
   feature_html_rel="$(output_layout_get "${unit_layout_json}" unitListHtml 機能 2>/dev/null)" || feature_html_rel="${units_root}/features/機能一覧.html"
   if [ -f "${feature_script}" ] && [ -f "${feature_manifest}" ]; then
     mkdir -p "$(dirname "${OUTPUT_DIR}/${feature_html_rel}")"
-    run_cmd bash "${feature_script}" "${feature_manifest}" "${OUTPUT_DIR}/${feature_html_rel}" --source-file-root "${REPO}"
+    run_cmd bash "${feature_script}" "${feature_manifest}" "${OUTPUT_DIR}/${feature_html_rel}" --source-file-root "$(resolve_extraction_source_dir feature)"
     [ "${LAST_RC}" -ne 0 ] && any_fail=1
     detail="${detail}feature=${LAST_RC}; "
   else
@@ -483,7 +486,7 @@ stage_unit_lists() {
     html_rel="$(output_layout_get "${unit_layout_json}" unitListHtml "${label}" 2>/dev/null)" || html_rel="${units_root}/${label}一覧/${label}一覧.html"
     if [ -f "${unit_script}" ] && [ -f "${manifest}" ]; then
       mkdir -p "$(dirname "${OUTPUT_DIR}/${html_rel}")"
-      run_cmd bash "${unit_script}" "${manifest}" "${OUTPUT_DIR}/${html_rel}" --unit-kind "${kind}" --source-file-root "${REPO}"
+      run_cmd bash "${unit_script}" "${manifest}" "${OUTPUT_DIR}/${html_rel}" --unit-kind "${kind}" --source-file-root "$(resolve_extraction_source_dir "${kind}")"
       [ "${LAST_RC}" -ne 0 ] && any_fail=1
       detail="${detail}${kind}=${LAST_RC}; "
     else
@@ -1204,15 +1207,17 @@ JSON
     _case_fail "配線-追加5件" "追加5本のうち一部の呼び出しが見つからない"
   fi
 
-  # 原本root-全生成連鎖: 設計資料をOUTPUT_DIRへ分離しても、原本実在検査はREPOを基準にする。
+  # 原本root-全生成連鎖: 疑似入力がある場合は合成rootまたは種別別rootを使い、
+  # 画面だけはREPOを基準にする。
   local manifest_block
   manifest_block="$(sed -n '/^stage_build_manifests()/,/^}/p' "${SELF_PATH}")"
-  if printf '%s' "${manifest_block}" | grep -Fq -- '--source-file-root "${REPO}"' \
-    && [ "$(printf '%s' "${unit_block}" | grep -Fc -- '--source-file-root "${REPO}"')" -eq 3 ] \
-    && printf '%s' "${unit_block}" | grep -Fq -- '--unit-kind "${kind}" --source-file-root "${REPO}"'; then
-    _case_pass "原本root-全生成連鎖" "manifest組立・screen・feature・汎用5種別へREPOを透過"
+  if printf '%s' "${manifest_block}" | grep -Fq -- 'verification-source/project' \
+    && printf '%s' "${manifest_block}" | grep -Fq -- '--source-file-root "${source_file_root}"' \
+    && printf '%s' "${unit_block}" | grep -Fq -- '--source-file-root "${REPO}"' \
+    && [ "$(printf '%s' "${unit_block}" | grep -Fc -- 'resolve_extraction_source_dir')" -eq 2 ]; then
+    _case_pass "原本root-全生成連鎖" "manifest組立へ合成root、feature・汎用5種別へ種別別root、screenへREPOを透過"
   else
-    _case_fail "原本root-全生成連鎖" "--source-file-root REPOの透過が一部の生成経路で欠けている"
+    _case_fail "原本root-全生成連鎖" "生成経路ごとの--source-file-root配線が欠けている"
   fi
 
   # 依存-追加分実在

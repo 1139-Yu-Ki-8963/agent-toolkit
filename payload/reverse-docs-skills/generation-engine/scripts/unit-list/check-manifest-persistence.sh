@@ -26,26 +26,26 @@ source "$SCRIPT_DIR/../output-layout.sh"
 # ---------------------------------------------------------------------------
 manifest_key_for_folder() {
   case "$1" in
-    画面一覧) echo "screenManifest" ;;
-    API一覧) echo "apiManifest" ;;
-    テーブル一覧) echo "tableManifest" ;;
-    バッチ一覧) echo "batchManifest" ;;
-    帳票一覧) echo "reportManifest" ;;
-    外部連携一覧) echo "externalManifest" ;;
-    機能一覧) echo "featureManifest" ;;
+    画面一覧|screens) echo "screenManifest" ;;
+    API一覧|apis) echo "apiManifest" ;;
+    テーブル一覧|tables) echo "tableManifest" ;;
+    バッチ一覧|batches) echo "batchManifest" ;;
+    帳票一覧|reports) echo "reportManifest" ;;
+    外部連携一覧|externals) echo "externalManifest" ;;
+    機能一覧|features) echo "featureManifest" ;;
     *) echo "" ;;
   esac
 }
 
 manifest_ext_key_for_folder() {
   case "$1" in
-    画面一覧) echo "screenManifestExt" ;;
-    API一覧) echo "apiManifestExt" ;;
-    テーブル一覧) echo "tableManifestExt" ;;
-    バッチ一覧) echo "batchManifestExt" ;;
-    帳票一覧) echo "reportManifestExt" ;;
-    外部連携一覧) echo "externalManifestExt" ;;
-    機能一覧) echo "featureManifestExt" ;;
+    画面一覧|screens) echo "screenManifestExt" ;;
+    API一覧|apis) echo "apiManifestExt" ;;
+    テーブル一覧|tables) echo "tableManifestExt" ;;
+    バッチ一覧|batches) echo "batchManifestExt" ;;
+    帳票一覧|reports) echo "reportManifestExt" ;;
+    外部連携一覧|externals) echo "externalManifestExt" ;;
+    機能一覧|features) echo "featureManifestExt" ;;
     *) echo "" ;;
   esac
 }
@@ -76,8 +76,8 @@ run_check() {
     manifest_ext_key="$(manifest_ext_key_for_folder "$folder_name")"
     [ -n "$manifest_key" ] || continue
 
-    html_path="$folder/${folder_name}.html"
-    [ -f "$html_path" ] || continue
+    html_path="$(find "$folder" -maxdepth 1 -type f -name '*.html' -print -quit)"
+    [ -n "$html_path" ] || continue
 
     checked_count=$((checked_count + 1))
     manifest_rel="$(output_layout_get "$layout_json" "$manifest_key")" || return 1
