@@ -351,7 +351,7 @@ feature-manifest がない場合、`targetTables` キー欠落と `targetTables:
 
 ## 影響を受けるビルドスクリプト
 
-build-*.sh の実在ファイルは以下の 5 本（`.claude/skills/*/scripts/` 配下に build-*.sh は存在しない）。検証系の validate-manifest.sh も追加フィールドの許容が必要なため併記する。
+影響を受ける build-*.sh の実在ファイルは以下の 6 本である。`.claude/skills/*/scripts/` 配下に build-*.sh は存在しない。検証系の validate-manifest.sh も追加フィールドの許容が必要なため併記する。
 
 | スクリプト | 配置 | 影響内容 |
 |---|---|---|
@@ -369,7 +369,7 @@ screenType を除く追加フィールドは任意とする。screenType は画�
 
 ## 設計判断
 
-### generation-engine/scripts/extract/ 配下の抽出スクリプト群（6本）
+### generation-engine/scripts/extract/ 配下の抽出スクリプト群（7本）
 
 - 必要性: スキーマ拡張フィールドとマトリクス・対応表用 JSON は実プロジェクトのコードから機械抽出しない限り恒常運用できない。検出ヒューリスティック（認可デコレータ・fetch パス・FK 定義・cron 定義等の grep）は種別ごとに分岐が多く、hook や手作業では再現不能
 - 代替案を採用しなかった理由:

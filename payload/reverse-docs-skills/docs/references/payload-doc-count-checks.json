@@ -1,0 +1,80 @@
+{
+  "metrics": {
+    "rule_parent_count": {
+      "kind": "jq",
+      "path": "delivery-payload/references/rule-taxonomy.json",
+      "filter": ".parents | length"
+    },
+    "rule_count": {
+      "kind": "jq",
+      "path": "delivery-payload/references/rule-taxonomy.json",
+      "filter": "[.parents[].children[]] | length"
+    },
+    "tool_defined_rule_count": {
+      "kind": "jq",
+      "path": "delivery-payload/references/rule-taxonomy.json",
+      "filter": "[.parents[].children[] | select(.toolDefined == true)] | length"
+    },
+    "tool_defined_rule_list": {
+      "kind": "jq",
+      "path": "delivery-payload/references/rule-taxonomy.json",
+      "filter": "[.parents[].children[] | select(.toolDefined == true) | \"- `\\(.key)`\"] as $lines | (\"次の \" + (($lines | length) | tostring) + \" 件である。\\n\\n\" + ($lines | join(\"\\n\")) + \"\\n\\nこれらは\")"
+    },
+    "design_kind_count": {
+      "kind": "jq",
+      "path": "delivery-payload/references/design-unit-layout.json",
+      "filter": ".kinds | length"
+    },
+    "affected_build_script_count": {
+      "kind": "markdown_table_rows",
+      "path": "delivery-payload/references/manifest-schema-extensions.md",
+      "start": "| build-portal.sh |",
+      "end": "## 段階的移行方針",
+      "pattern": "^[|] build-.*[.]sh [|]"
+    },
+    "documented_extract_script_count": {
+      "kind": "markdown_headings",
+      "path": "delivery-payload/references/manifest-schema-extensions.md",
+      "start": "### generation-engine/scripts/extract/ 配下の抽出スクリプト群",
+      "end": "### build-matrix-data.sh",
+      "pattern": "^### extract-.*[.]sh$"
+    }
+  },
+  "assertions": [
+    {
+      "metric": "rule_parent_count",
+      "path": "delivery-payload/references/規約定義と派生生成の設計.md",
+      "template": "親カテゴリを {{value}} 個"
+    },
+    {
+      "metric": "rule_count",
+      "path": "delivery-payload/references/規約定義と派生生成の設計.md",
+      "template": "子カテゴリを {{value}} 個"
+    },
+    {
+      "metric": "tool_defined_rule_count",
+      "path": "delivery-payload/references/規約定義と派生生成の設計.md",
+      "template": "子カテゴリは次の {{value}} 件である"
+    },
+    {
+      "metric": "tool_defined_rule_list",
+      "path": "delivery-payload/references/規約定義と派生生成の設計.md",
+      "template": "{{value}}"
+    },
+    {
+      "metric": "design_kind_count",
+      "path": "delivery-payload/references/実装契約定義.md",
+      "template": "{{value}} 種別の詳細設計"
+    },
+    {
+      "metric": "affected_build_script_count",
+      "path": "delivery-payload/references/manifest-schema-extensions.md",
+      "template": "影響を受ける build-*.sh の実在ファイルは以下の {{value}} 本である"
+    },
+    {
+      "metric": "documented_extract_script_count",
+      "path": "delivery-payload/references/manifest-schema-extensions.md",
+      "template": "配下の抽出スクリプト群（{{value}}本）"
+    }
+  ]
+}
