@@ -19,6 +19,9 @@ const stripFrontmatterAndComments = (text) =>
     .replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "")
     .replace(/<!--[\s\S]*?-->/g, "");
 
+const stripObservationSourceSection = (text) =>
+  text.replace(/\n### 13\.1 観測の出どころ\n[\s\S]*?(?=\n### |\n## |$)/, "");
+
 const normalizeDigits = (text) =>
   text.replace(/[０-９]/g, (digit) => String(digit.charCodeAt(0) - "０".charCodeAt(0)));
 
@@ -47,7 +50,9 @@ for (const file of targets) {
     fail(file, `読み取れない: ${error.message}`);
     continue;
   }
-  const body = protectNetworkAuthorities(normalizeDigits(stripFrontmatterAndComments(text)));
+  const body = protectNetworkAuthorities(
+    normalizeDigits(stripObservationSourceSection(stripFrontmatterAndComments(text))),
+  );
   if (bodyCodePositionPatterns.some((pattern) => pattern.test(body))) {
     fail(file, "本文に対象コードのファイル名または行番号が混入している");
   }

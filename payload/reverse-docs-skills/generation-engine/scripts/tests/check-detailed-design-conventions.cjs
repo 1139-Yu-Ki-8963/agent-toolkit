@@ -23,6 +23,10 @@ function withoutHtmlComments(document) {
   return document.replace(/<!--[\s\S]*?-->/g, "");
 }
 
+function withoutObservationSourceSection(document) {
+  return document.replace(/\n### 13\.1 観測の出どころ\n[\s\S]*?(?=\n### |\n## |$)/, "");
+}
+
 function normalizeDigits(document) {
   return document.replace(/[０-９]/g, (digit) =>
     String(digit.charCodeAt(0) - "０".charCodeAt(0)),
@@ -64,7 +68,7 @@ function assertMatches(document, checks, label) {
 
 function assertNoBodyCodePositions(document, label) {
   const body = protectNetworkAuthorities(
-    normalizeDigits(withoutHtmlComments(document.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, ""))),
+    normalizeDigits(withoutObservationSourceSection(withoutHtmlComments(document.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n/, "")))),
   );
   const sourceFile = String.raw`(?:[\p{L}\p{N}_.-]+[\\/])*[\p{L}\p{N}_.-]+\.(?:py|ts|tsx|js|jsx|mjs|cjs|vue|svelte|java|kt|cs|go|rs|rb|php|swift|scala|sql|sh|bash|zsh|ps1|c|cpp|h|hpp|html|css|scss|xml|yaml|yml|json|toml|ini|conf|properties|proto|graphql|tf|hcl)(?![\p{L}\p{N}_])`;
   const fileLine = String.raw`(?:[\p{L}\p{N}_.-]+[\\/])+[\p{L}\p{N}_.-]+[：:]\d+`;
@@ -163,6 +167,13 @@ function runSelfTest() {
     ["詳細設計記述規約", () => validateConventions(conventions)],
     ["API詳細設計テンプレート", () => validateDetailedDesign(apiTemplate, "API詳細設計テンプレート")],
     ["合成詳細設計書", () => validateDetailedDesign(synthetic, "合成詳細設計書")],
+    ["観測の出どころに限りファイルと行を許可", () => {
+      const withSource = synthetic.replace(
+        "|---|---|---|\n\n| 資料 | パス | 本書との関係 |",
+        "|---|---|---|\n| §5.1 分岐 | src/api/member.ts | 42 |\n\n| 資料 | パス | 本書との関係 |",
+      );
+      validateDetailedDesign(withSource, "出どころ付き合成詳細設計書");
+    }],
     ["行番号注記を拒否", () => {
       let rejected = false;
       try {

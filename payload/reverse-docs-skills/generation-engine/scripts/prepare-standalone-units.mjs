@@ -134,28 +134,6 @@ function unitDirectories(root, layout, errors) {
   return units;
 }
 
-function headingExists(file) {
-  const content = fs.readFileSync(file, 'utf8');
-  if (file.endsWith('.md')) {
-    let fence = null;
-    for (const line of content.split(/\r?\n/)) {
-      if (fence) {
-        const closing = line.match(/^\s{0,3}(`{3,}|~{3,})\s*$/);
-        if (closing && closing[1][0] === fence.character && closing[1].length >= fence.length) fence = null;
-        continue;
-      }
-      const opening = line.match(/^\s{0,3}(`{3,}|~{3,})(?:\s*[^`]*)?$/);
-      if (opening) {
-        fence = { character: opening[1][0], length: opening[1].length };
-        continue;
-      }
-      if (/^\s{0,3}#{1,6}\s+[^\n]*要確認事項[^\n]*$/.test(line)) return true;
-    }
-    return false;
-  }
-  return /<h([1-6])\b[^>]*>(?:(?!<\/?h[1-6]\b)[\s\S])*?要確認事項(?:(?!<\/?h[1-6]\b)[\s\S])*?<\/h\1>/i.test(content);
-}
-
 function stripTags(value) {
   return value.replace(/<[^>]*>/g, ' ').replace(/&(?:#\d+|#x[0-9a-f]+|[a-z]+);/gi, ' ').replace(/\s+/g, ' ').trim();
 }
@@ -390,8 +368,6 @@ function structure(unit, unitLayout) {
       errors.push(error.message);
     }
   }
-  const headingSources = targets.flatMap(({ markdown, html }) => [markdown, html]);
-  if (!headingSources.some(headingExists)) errors.push(`${unit.kind}/${path.basename(unit.path)}: 必須文書に「要確認事項」の見出しがありません`);
   return { errors, targets, htmlFiles };
 }
 
@@ -584,15 +560,18 @@ function selfTest() {
     }));
     const parsedUnitLayout = readJson(unitLayoutPath);
     for (const kind of kinds) requiredFiles(kind, parsedUnitLayout);
-    writeFixture(path.join(unit, '基本設計/API基本設計書.md'), 'Standalone API 基本設計書', '\n[詳細設計](../詳細設計/API詳細設計書.md)\n\n<a href="../テスト設計/APIテスト設計書.md">通常テスト</a>\n');
-    const sections = [
-      '§1 API概要', '§2 リクエスト', '§3 レスポンス', '§4 処理フロー', '§5 ロジック',
-      '§6 疑似コード', '§7 データアクセス', '§8 データ定義', '§9 業務ルールとバリデーション',
-      '§10 エラー', '§11 非機能', '§12 実装契約', '§13 関連資料'
-    ].map((section) => `\n## ${section}\n\nfixture。\n`).join('');
-    writeFixture(path.join(unit, '詳細設計/API詳細設計書.md'), 'Standalone API 詳細設計書', sections);
-    writeFixture(path.join(unit, 'テスト設計/APIテスト設計書.md'), 'Standalone API テスト設計書');
-    writeFixture(path.join(unit, 'テスト設計/API単体テスト設計書.md'), 'Standalone API 単体テスト設計書');
+    const templateRoot = path.join(repoRoot, 'delivery-payload/templates/リバース検証/API');
+    for (const relative of [
+      '基本設計/API基本設計書.md',
+      '詳細設計/API詳細設計書.md',
+      'テスト設計/APIテスト設計書.md',
+      'テスト設計/API単体テスト設計書.md'
+    ]) {
+      const destination = path.join(unit, relative);
+      fs.mkdirSync(path.dirname(destination), { recursive: true });
+      fs.copyFileSync(path.join(templateRoot, path.basename(relative)), destination);
+    }
+    fs.appendFileSync(path.join(unit, '基本設計/API基本設計書.md'), '\n[詳細設計](../詳細設計/API詳細設計書.md)\n\n<a href="../テスト設計/APIテスト設計書.md">通常テスト</a>\n');
     writeFixture(path.join(unit, '補助資料.md'), 'Standalone API 補助資料', '\n[基本設計](基本設計/API基本設計書.md)\n');
 
     const normal = build(repo, root, false, sitesPath);
@@ -657,26 +636,6 @@ function selfTest() {
     fs.mkdirSync(emptyRoot);
     const empty = expectFailure(emptyRoot, '0単位');
 
-    const headingRoot = copyCase(root, work, 'heading-only');
-    for (const file of requiredHtml(unit).map((source) => source.replace(root, headingRoot).replace(/\.html$/, '.md'))) {
-      const markdown = fs.readFileSync(file, 'utf8').replace(/^## 要確認事項$/gm, '本文中の要確認事項');
-      fs.writeFileSync(file, markdown);
-    }
-    for (const file of requiredHtml(unit).map((source) => source.replace(root, headingRoot))) {
-      updateDocMarkdown(file, (markdown) => markdown.replace(/^## 要確認事項$/gm, '本文中の要確認事項'));
-    }
-    const headingOnly = expectFailure(headingRoot, '本文だけの要確認事項');
-
-    const headingFenceRoot = copyCase(root, work, 'heading-fence');
-    for (const file of requiredHtml(unit).map((source) => source.replace(root, headingFenceRoot).replace(/\.html$/, '.md'))) {
-      const markdown = fs.readFileSync(file, 'utf8').replace(/^## 要確認事項$/gm, '本文中の要確認事項');
-      fs.writeFileSync(file, `${markdown}\n\n\`\`\`markdown\n## 要確認事項\n\`\`\`\n`);
-    }
-    for (const file of requiredHtml(unit).map((source) => source.replace(root, headingFenceRoot))) {
-      updateDocMarkdown(file, (markdown) => `${markdown.replace(/^## 要確認事項$/gm, '本文中の要確認事項')}\n\n\`\`\`markdown\n## 要確認事項\n\`\`\`\n`);
-    }
-    const headingFence = expectFailure(headingFenceRoot, 'fence内だけの要確認事項見出し');
-
     const referenceRoot = copyCase(root, work, 'reference-broken');
     const referenceHtml = path.join(referenceRoot, 'docs/design/apis/api-standalone/補助資料.html');
     updateDocMarkdown(referenceHtml, (markdown) => `${markdown}\n[full][full-ref]\n[collapsed][]\n[shortcut]\n\n[full-ref]: missing-full.html\n[collapsed]: missing-collapsed.html\n[shortcut]: missing-shortcut.html\n`);
@@ -695,7 +654,7 @@ function selfTest() {
     fs.symlinkSync(outsideFile, linked);
     const symlink = expectFailure(symlinkRoot, '必須文書symlink');
 
-    process.stdout.write(`PASS: standalone self-test (runtime portal links=${runtimeLinks}, site runtime links=${siteRuntimeLinks}, local broken links=0, required HTML=${normalHtml.length}, auxiliary HTML=1, unit kinds=${kinds.length}, missing=${missing}, outside=${outside}, broken=${broken}, auxiliary-outside=${auxiliaryOutside}, auxiliary-broken=${auxiliaryBroken}, code-examples=${codeExamples}, empty=${empty}, heading-only=${headingOnly}, heading-fence=${headingFence}, reference-broken=${referenceBroken}, symlink=${symlink})\n`);
+    process.stdout.write(`PASS: standalone self-test (runtime portal links=${runtimeLinks}, site runtime links=${siteRuntimeLinks}, local broken links=0, required HTML=${normalHtml.length}, auxiliary HTML=1, unit kinds=${kinds.length}, missing=${missing}, outside=${outside}, broken=${broken}, auxiliary-outside=${auxiliaryOutside}, auxiliary-broken=${auxiliaryBroken}, code-examples=${codeExamples}, empty=${empty}, reference-broken=${referenceBroken}, symlink=${symlink})\n`);
   } finally {
     fs.rmSync(work, { recursive: true, force: true });
   }

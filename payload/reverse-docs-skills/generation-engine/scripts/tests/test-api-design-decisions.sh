@@ -85,6 +85,22 @@ node "$repo_root/generation-engine/scripts/tests/check-detailed-design-conventio
 grep -qF '| パス | /api/members |' "$doc"
 grep -qF '| local-cache-choice | ローカルキャッシュを使う | 外部在庫サービスの一時障害で注文受付を止めないため | 観測（コードコメント） |' "$doc"
 grep -qF '| 同期照会 | 外部在庫サービスの一時障害で注文受付を止めないため | high |' "$doc"
+
+observation_source="$tmp/observation-source.md"
+cp "$doc" "$observation_source"
+node - "$observation_source" <<'NODE'
+const fs = require("fs");
+const file = process.argv[2];
+let document = fs.readFileSync(file, "utf8");
+const heading = "### 13.1 観測の出どころ";
+const separator = "|---|---|---|";
+const headingIndex = document.indexOf(heading);
+const separatorIndex = document.indexOf(separator, headingIndex);
+if (headingIndex < 0 || separatorIndex < 0) throw new Error("observation source table not found");
+document = `${document.slice(0, separatorIndex + separator.length)}\n| §5.1 分岐 | src/api/member.py | 42 |${document.slice(separatorIndex + separator.length)}`;
+fs.writeFileSync(file, document);
+NODE
+node "$repo_root/generation-engine/scripts/validate-api-design-decisions.mjs" "$observation_source" >/dev/null
 if grep -qF '注文受付を停止して在庫サービスの復旧を待つ' "$doc"; then
   echo "FAIL: 却下済み案のコメントを設計判断へ転記した" >&2
   exit 1
