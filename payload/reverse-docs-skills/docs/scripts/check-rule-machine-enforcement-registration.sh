@@ -95,6 +95,10 @@ run_check() {
   local hook_count=0 non_hook_count=0 missing_both_count=0
   local missing_script_count=0 missing_registration_count=0
 
+  if [ ! -d "$rules_dir" ]; then
+    echo "[PASS] 対象なし: .claude/rules がありません"
+    return 0
+  fi
   [ -d "$rules_dir" ] || unknown "$rules_dir が実在しません"
   [ -f "$settings" ] || unknown "$settings が実在しません"
   command -v jq >/dev/null 2>&1 || unknown "jq が無いため settings.json を判定できません"

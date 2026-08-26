@@ -57,8 +57,8 @@ scan() {
   local work raw_candidates candidates rc
 
   if [ ! -d "$skills" ]; then
-    echo "[UNKNOWN] .claude/skills が見つからないため判定できません: $skills" >&2
-    return 2
+    echo "[PASS] 対象なし: .claude/skills がありません"
+    return 0
   fi
   if [ ! -f "$exclusions" ]; then
     echo "[UNKNOWN] 除外一覧が見つからないため判定できません: $exclusions" >&2

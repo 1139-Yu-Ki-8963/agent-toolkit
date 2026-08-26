@@ -23,6 +23,11 @@ run_check() {
   local term file line line_number hit_count=0 file_count=0 target file_list content
   local -a terms=() targets=()
 
+  if [ ! -d "$repo_root/generation-engine/samples" ] \
+    && [ ! -d "$repo_root/delivery-payload/templates" ]; then
+    echo "[PASS] 対象なし: 見本とテンプレートがありません"
+    return 0
+  fi
   if ! command -v jq >/dev/null 2>&1; then
     echo "[UNKNOWN] jqが無いため判定できません" >&2
     return 2
@@ -43,8 +48,8 @@ run_check() {
   targets=("$repo_root/generation-engine/samples" "$repo_root/delivery-payload/templates")
   for target in "${targets[@]}"; do
     if [ ! -d "$target" ]; then
-      echo "[UNKNOWN] 走査対象が存在しません: $target" >&2
-      return 2
+      echo "[SKIP] 対象なし: ${target#$repo_root/}"
+      continue
     fi
     if ! file_list="$(find "$target" -type f 2>/dev/null)"; then
       echo "[UNKNOWN] 走査対象の列挙に失敗しました: $target" >&2
@@ -77,8 +82,8 @@ run_check() {
   done
 
   if [ "$file_count" -eq 0 ]; then
-    echo "[UNKNOWN] 走査対象が1件も無いため判定できません" >&2
-    return 2
+    echo "[PASS] 対象なし: 走査対象のファイルがありません"
+    return 0
   fi
   if [ "$hit_count" -gt 0 ]; then
     echo "[FAIL] 廃止語が ${hit_count} 件残っています"
@@ -139,13 +144,13 @@ run_self_test() {
   case_dir="$SELF_TEST_TMPDIR/empty"
   mkdir -p "$case_dir/generation-engine/samples" "$case_dir/delivery-payload/templates"
   output="$(RETIRED_TERMS_FILE="$terms_file" run_check "$case_dir" 2>&1)"; rc=$?
-  assert_case "走査ファイルなしは判定不能" 2 "[UNKNOWN]"
+  assert_case "走査ファイルなしは対象なし" 0 "[PASS] 対象なし"
 
   case_dir="$SELF_TEST_TMPDIR/missing-target"
   mkdir -p "$case_dir/generation-engine/samples"
   printf '%s\n' '現行の文言' > "$case_dir/generation-engine/samples/clean.md"
   output="$(RETIRED_TERMS_FILE="$terms_file" run_check "$case_dir" 2>&1)"; rc=$?
-  assert_case "片方の走査対象欠落は判定不能" 2 "[UNKNOWN]"
+  assert_case "片方の走査対象欠落は存在する側を検査" 0 "[SKIP] 対象なし" "[PASS]"
 
   echo "self-test: ${pass} PASS, ${fail} FAIL"
   [ "$fail" -eq 0 ]

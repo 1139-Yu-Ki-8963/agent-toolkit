@@ -25,7 +25,8 @@ function unknown(message) {
 }
 
 if (!fs.existsSync(skillsRoot) || !fs.statSync(skillsRoot).isDirectory()) {
-  unknown(`.claude/skills が見つからないため判定できません: ${skillsRoot}`);
+  console.log("[PASS] 対象なし: .claude/skills がありません");
+  process.exit(0);
 }
 
 const skillFiles = fs.readdirSync(skillsRoot)

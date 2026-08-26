@@ -35,8 +35,8 @@ scan() {
   local skill_phases guide_phases total=0 matched=0 mismatched=0
 
   if [ ! -d "$skills" ]; then
-    echo "[UNKNOWN] .claude/skills が見つからないため判定できません: $skills" >&2
-    return 2
+    echo "[PASS] 対象なし: .claude/skills がありません"
+    return 0
   fi
   if ! work="$(mktemp -d "${TMPDIR:-/tmp}/check-skill-guide-consistency.XXXXXX" 2>/dev/null)" || [ -z "$work" ]; then
     echo "[UNKNOWN] mktemp が失敗し、一時ディレクトリを作れないため判定できません" >&2

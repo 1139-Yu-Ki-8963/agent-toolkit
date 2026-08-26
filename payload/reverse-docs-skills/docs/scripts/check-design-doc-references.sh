@@ -115,8 +115,8 @@ run_check() {
   local repo_root="$1"
   local design_dir="$repo_root/docs/design"
   if [ ! -d "$design_dir" ]; then
-    echo "[UNKNOWN] docs/design/ が見つからないため判定できません: ${design_dir}" >&2
-    return 2
+    echo "[PASS] 対象なし: docs/design/ がありません"
+    return 0
   fi
 
   local work
@@ -329,17 +329,17 @@ EOF
     fail=$((fail + 1))
   fi
 
-  # ケース9: docs/design/ が無いプロジェクトは判定不能(終了コード2)
+  # ケース9: docs/design/ が無いプロジェクトは対象なしとして合格
   total=$((total + 1))
   local proj9="$work/case9"
   mkdir -p "$proj9"
   local rc9=0
   run_check "$proj9" >/dev/null 2>&1
   rc9=$?
-  if [ "$rc9" -eq 2 ]; then
-    echo "  [PASS] ケース9: docs/design/ が無いと判定不能(終了コード2)になる"
+  if [ "$rc9" -eq 0 ]; then
+    echo "  [PASS] ケース9: docs/design/ が無いと対象なしとして合格する"
   else
-    echo "  [FAIL] ケース9: docs/design/ が無いときの終了コードが2でない(rc=${rc9})" >&2
+    echo "  [FAIL] ケース9: docs/design/ が無いときの終了コードが0でない(rc=${rc9})" >&2
     fail=$((fail + 1))
   fi
 

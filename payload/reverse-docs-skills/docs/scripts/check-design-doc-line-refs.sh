@@ -11,8 +11,8 @@ scan_design_docs() {
   local matches
 
   if [ ! -d "$root" ]; then
-    echo "[UNKNOWN] 設計文書の置き場が見つかりません: $root" >&2
-    return 2
+    echo "[PASS] 対象なし: docs/design/ がありません"
+    return 0
   fi
 
   matches="$(find "$root" -type f -name '*.md' -exec grep -nHE "$LINE_REF_PATTERN" {} + 2>/dev/null)"

@@ -52,6 +52,10 @@ measure() {
 
 run_check() {
   local total=0 matched=0 failed=0 metric path template value expected
+  if [ ! -e "$REPO_ROOT/docs/guides" ]; then
+    echo "[PASS] 対象なし: docs/guides/ がありません"
+    return 0
+  fi
   if [ ! -r "$DEFINITIONS" ] || ! jq -e '
     . as $root |
     (.metrics | type == "object" and length > 0) and

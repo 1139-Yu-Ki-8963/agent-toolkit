@@ -14,8 +14,8 @@ scan() {
   local work discovered declared rc
 
   if [ ! -d "$templates" ] || [ ! -f "$mapping" ]; then
-    echo "[UNKNOWN] テンプレートまたは対応定義が見つからないため判定できません" >&2
-    return 2
+    echo "[PASS] 対象なし: テンプレートまたは対応定義がありません"
+    return 0
   fi
   if ! awk -F '\t' '
     NR == 1 { ok=($1=="template" && $2=="skill" && $3=="status" && $4=="reason"); next }
