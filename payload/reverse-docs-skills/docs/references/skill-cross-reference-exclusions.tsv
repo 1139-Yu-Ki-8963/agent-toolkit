@@ -1,0 +1,5 @@
+reference	source	reason
+generating-glossary	.claude/skills/generating-glossary-for-reverse-docs/SKILL.md	generating-glossary-for-reverse-docs の旧名を説明する歴史的記述であり、起動対象ではない。
+generating-glossary-proposal-contract	.claude/skills/generating-glossary-for-reverse-docs/references/test-cases.md	test-generating-glossary-proposal-contract.sh というテストスクリプト名の一部であり、スキル名ではない。
+running-headless-batch	.claude/skills/running-reverse-screen-batch/SKILL.md	running-reverse-screen-batch の設計判断で元スキル名を記録する歴史的記述であり、起動対象ではない。
+syncing-derived-artifacts	.claude/skills/generating-rule-proposals-for-reverse-docs/SKILL.md	delivery-payload/templates/delivered-skills/ から対象リポジトリへ配布する別リポジトリ用スキルであり、このリポジトリの .claude/skills には置かない。
