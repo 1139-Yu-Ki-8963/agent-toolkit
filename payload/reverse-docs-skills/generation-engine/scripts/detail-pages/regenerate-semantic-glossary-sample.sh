@@ -7,6 +7,7 @@ fixture="$repo_root/generation-engine/scripts/glossary/fixtures/valid-glossary.y
 registry="$repo_root/generation-engine/scripts/glossary/fixtures/canonical-registry"
 projector="$script_dir/project-semantic-glossary.py"
 portal_root="${1:-$repo_root/generation-engine/samples}"
+portal_dir="$portal_root/project-portal"
 output_dir="$portal_root/project-portal/lists/semantic-glossary"
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/semantic-glossary-sample.XXXXXX")"
 trap 'rm -rf "$tmp"' EXIT
@@ -25,6 +26,6 @@ sample_page_data="$(mktemp "$tmp/semantic-glossary-page-data.XXXXXX")"
 jq '.title = "用語辞書" | .description = "承認済みの業務概念とコード上の名称を対応付けます。"' "$page_data" > "$sample_page_data"
 mv "$sample_page_data" "$page_data"
 
-bash "$script_dir/build-detail-page.sh" "$page_data" "$output_dir" --page glossary --portal-dir "$portal_root"
+bash "$script_dir/build-detail-page.sh" "$page_data" "$output_dir" --page glossary --portal-dir "$portal_dir"
 
 printf 'generated: %s/用語辞書.html\n' "$output_dir"
