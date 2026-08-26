@@ -68,7 +68,7 @@
 | 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |
 |---|---|---|---|---|
 | 1. check-instruction-format.shの判定不能扱い | `bash -c 'd="${TMPDIR:-/tmp}/fake-mktemp-$$"; mkdir -p "$d"; printf "#!/bin/sh\nexit 1\n" > "$d/mktemp"; chmod +x "$d/mktemp"; out="$(PATH="$d:$PATH" bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh 2>&1)"; rc=$?; rm -rf "$d"; printf "%s\n" "$out" \| grep -q "\[UNKNOWN\]" && [ "$(printf "%s\n" "$out" \| grep -c "\[FAIL\]")" -eq 0 ] && [ "$rc" -eq 2 ]'` | 完了 | `8f7cb7b9` | PATH上に常にexit 1を返す偽のmktemp実行ファイルを差し込み、mktemp失敗を環境非依存で強制する。`ensure_stripped_tmp`（run_main経路）と`run_self_test`のtmpdir生成の両方へ`if !`構文での失敗チェックを追加。実際にサンドボックス制約下（dangerouslyDisableSandboxを付けない実行）でmktempが自然に失敗する状態で実行し、両経路とも`[UNKNOWN]`・終了コード2で終了することを確認した |
-| 2. 追加対象スクリプトの判定不能扱い | 目視 | 対象外 | — | 「決めていないこと」の既定どおり、まずcheck-instruction-format.sh 1件で確立するに留め、他119件への拡張は行っていない（PMからの明示的な指示により本件のスコープを1件に限定） ／ この判定はスコープを1件に限定するという判断そのものの記録であり、機械で成立の可否を判定する走査対象を持たない。判断を要する |
+| 2. 追加対象スクリプトの判定不能扱い | 目視 | 対象外 | — | 「決めていないこと」の既定どおり、まずcheck-instruction-format.sh 1件で確立するに留め、他119件への拡張は行っていない。PMからの明示的な指示により本件のスコープを1件に限定した。この判定はスコープを限定する判断の記録であり、文面の評価を要する |
 | 3. 正常系の挙動が不変 | `bash -c 'out="$(bash .claude/rules/always/tasks/instruction-format/check-instruction-format.sh 2>&1)"; rc=$?; printf "%s\n" "$out" \| grep -q "不合格 0 件" && ! printf "%s\n" "$out" \| grep -q "\[UNKNOWN\]" && [ "$rc" -eq 0 ]'` | 完了 | 2ee8749 | mktempが正常に使える実行環境であることが前提。サンドボックスがmktempそのものを拒否する環境では本コマンド自体が誤って`[UNKNOWN]`側に倒れるため、その場合はサンドボックス制約を外して再実行する。サンドボックス解除（dangerouslyDisableSandbox）実行で、通常実行（合格2件/不合格0件）とself-test（合格17件/不合格0件）の両方が修正前と同じ結果になることを確認した |
 
 ### 判断の記録
