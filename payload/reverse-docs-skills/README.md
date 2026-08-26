@@ -303,7 +303,7 @@ bash generation-engine/scripts/tests/check-overview-consistency.sh
 bash generation-engine/scripts/tests/check-phase-step-structure.test.sh
 ```
 
-前者は `generation-engine/samples/index.html` のカテゴリ JSON と全体ガイド（このリポジトリ自身の説明資料）の可視表記を突合する。後者は52個のSkillのPhase/Step構造、26件の operational refs における旧番号・Phase/Step再定義の不在、統括フローのPhase 1〜7 / global Step 1〜41、正本の親Phase対応、条件分岐・Back-edgeメタデータを検査する。失敗時は値を推測して埋めず、正本（サンプル、工程設計、契約、各スキル）へ戻って原因を修正する。なお、実行環境の hook が検査スクリプトを遮断した場合は、成功扱いにせず、遮断理由と未実行の検証を受入記録へ残す。
+前者は `generation-engine/samples/project-portal/index.html` のカテゴリ JSON と全体ガイド（このリポジトリ自身の説明資料）の可視表記を突合する。後者は52個のSkillのPhase/Step構造、26件の operational refs における旧番号・Phase/Step再定義の不在、統括フローのPhase 1〜7 / global Step 1〜41、正本の親Phase対応、条件分岐・Back-edgeメタデータを検査する。失敗時は値を推測して埋めず、正本（サンプル、工程設計、契約、各スキル）へ戻って原因を修正する。なお、実行環境の hook が検査スクリプトを遮断した場合は、成功扱いにせず、遮断理由と未実行の検証を受入記録へ残す。
 
 各スキルの詳解ガイド:
 

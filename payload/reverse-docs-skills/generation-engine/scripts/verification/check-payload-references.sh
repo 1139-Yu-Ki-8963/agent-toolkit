@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# check-payload-references.sh — 配布物(delivery-payload・generation-engine)の説明文書の中の
+# check-payload-references.sh — 配布物の説明文書の中の
 # 相対参照が実在するファイルを指しているかを検査する
 #
 # 何を見るか:
-#   delivery-payload/ と generation-engine/ 配下の *.md だけを対象にする（*.html は
-#   対象外。理由は下の「対象外にすること」を参照）。ただし次の3か所は走査対象から
+#   delivery-payload/ と generation-engine/ 配下、README.md、配布対象の検証規約・
+#   公開完遂規約の *.md を対象にする（*.html は対象外。理由は下の「対象外にすること」
+#   を参照）。ただし次の3か所は走査対象から
 #   除く。
 #     - delivery-payload/templates/rules/ 配下: 「検証の結果を信用できるように
 #       する指示書」がこのリポジトリ側の担当者に編集を禁じている範囲であり、
@@ -61,6 +62,9 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 TARGETS=(
   "delivery-payload"
   "generation-engine"
+  "README.md"
+  ".claude/rules/always/verification/reverse-verification/rule.md"
+  ".claude/rules/always/publish/complete/rule.md"
 )
 
 # パス本体: 空白・丸括弧・波括弧・引用符・プラス記号を含まず、末尾に拡張子を持つ。
@@ -72,13 +76,16 @@ collect_files() {
   local base="$1" t p
   for t in "${TARGETS[@]}"; do
     p="$base/$t"
-    [ -d "$p" ] || continue
-    find "$p" -type f -name '*.md' \
-      -not -path "$base/delivery-payload/templates/rules/*" \
-      -not -path "$base/delivery-payload/templates/リバース検証/*" \
-      -not -path "$base/generation-engine/samples/*" \
-      -not -path "$base/generation-engine/samples-no-screen/*" \
-      2>/dev/null
+    if [ -d "$p" ]; then
+      find "$p" -type f -name '*.md' \
+        -not -path "$base/delivery-payload/templates/rules/*" \
+        -not -path "$base/delivery-payload/templates/リバース検証/*" \
+        -not -path "$base/generation-engine/samples/*" \
+        -not -path "$base/generation-engine/samples-no-screen/*" \
+        2>/dev/null
+    elif [ -f "$p" ]; then
+      printf '%s\n' "$p"
+    fi
   done
 }
 

@@ -93,7 +93,7 @@ function assertNoEvidenceColumn(document, label) {
     const parts = separator.slice(1, -1).split("|").map((cell) => cell.trim());
     return parts.length === cells.length && parts.every((cell) => /^:?-{3,}:?$/.test(cell));
   });
-  if (hasEvidenceColumn) throw new Error(label + "に根拠列があります");
+  if (hasEvidenceColumn) throw new Error(label + "に廃止した根拠の列があります");
 }
 
 function validateConventions(document) {
@@ -175,7 +175,7 @@ function runSelfTest() {
       }
       if (!rejected) throw new Error("file:lineを不合格にできません");
     }],
-    ["根拠列を拒否", () => {
+    ["廃止した根拠の列を拒否", () => {
       const invalid = synthetic
         .replace(
           "| 名前 | 型 | 必須 | 有効な範囲 | NULL許容 | 初期値 | 桁と精度 | 制約 |",
@@ -188,7 +188,7 @@ function runSelfTest() {
       } catch {
         rejected = true;
       }
-      if (!rejected) throw new Error("根拠列を不合格にできません");
+      if (!rejected) throw new Error("廃止した根拠の列を不合格にできません");
     }],
   ];
 

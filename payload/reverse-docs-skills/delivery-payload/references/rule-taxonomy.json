@@ -60,7 +60,7 @@
       "key": "portal-unmaintainable-content",
       "title": "ポータルへ保守できない内容を載せない",
       "rules": [
-        "ポータルと設計書に根拠列・根拠パス列を設けない",
+        "ポータルと設計書に対象コードへの参照、レビュー記録、社内資料の出典を載せない",
         "ポータルと設計書へ対象コードの中身を写さない"
       ],
       "checker": "check-portal-unmaintainable-content.sh",

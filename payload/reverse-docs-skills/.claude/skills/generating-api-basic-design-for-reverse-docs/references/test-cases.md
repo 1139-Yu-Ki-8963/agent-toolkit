@@ -5,7 +5,7 @@
 | 観点キー | 前提 | 操作 | 期待結果 | 機械検証の方法 |
 |---|---|---|---|---|
 | 業務語彙-実装用語ゼロ | 設計書が生成済みである | Phase 5 検査1を実行する | 実装用語（フレームワーク用語・型構文・原本の拡張子・内部の成果物名）の検出が0件であること | SKILL.md の Phase 5 で `references/phase5-business-vocabulary-check.md` を Read し、そこにある関数を定義して検査1を実行する |
-| 根拠列-基本設計書から分離 | API基本設計書テンプレートがある | 15個のデータ表のヘッダを走査する | `根拠` という列が0件であること | `LC_ALL=en_US.UTF-8 grep -c '^\|.*\| *根拠 *\|' delivery-payload/templates/リバース検証/API/API基本設計書.md` が 0 を返す |
+| 廃止した根拠の列-基本設計書から分離 | API基本設計書テンプレートがある | 15個のデータ表のヘッダを走査する | `根拠` という列が0件であること | `LC_ALL=en_US.UTF-8 grep -c '^\|.*\| *根拠 *\|' delivery-payload/templates/リバース検証/API/API基本設計書.md` が 0 を返す |
 | 実装位置-非記録 | output-layoutと納品物一覧がある | 根拠台帳の配置キーとkindが存在しないことを照合する | 根拠台帳が納品物として宣言されず、設計書に対象コードのファイルパス・行番号がないこと | `LC_ALL=en_US.UTF-8 grep -c '根拠台帳' delivery-payload/references/output-layout.json delivery-payload/references/deliverable-inventory.json` が両方とも 0 を返す |
 | 根拠-file:line不使用 | 設計書の本文がある | Phase 5 検査1を実行する | 原本の拡張子（.py/.pl/.pm/.cgi）を含むファイルパス形式の記述が本文に存在しないこと | 検査1（同一grepコマンドの拡張子パターンで検出0件） |
 | 注記-記入規則コメント残存なし | テンプレートを展開した設計書がある | Phase 5 検査2を実行する | テンプレートの記入規則を書いたHTMLコメント（`<!-- -->`）が本文に残っていないこと | 検査2 |

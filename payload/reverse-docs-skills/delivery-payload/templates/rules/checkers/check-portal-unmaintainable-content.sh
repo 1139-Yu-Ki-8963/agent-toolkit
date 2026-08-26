@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# ポータルと設計書へ根拠列または対象コードの写しを載せない。
+# ポータルと設計書へ廃止した根拠の列または対象コードの写しを載せない。
 set -uo pipefail
 
 STRICT=0
@@ -7,7 +7,7 @@ STRICT=0
 judge_content() {
   local content="$1" source="$2" hits=0
   if printf '%s\n' "$content" | LC_ALL=C grep -qE '\|[[:space:]]*(根拠|根拠パス)[[:space:]]*\|'; then
-    printf '%s\n' "[FOUND] ${source}: 根拠列または根拠パス列"
+    printf '%s\n' "[FOUND] ${source}: 廃止した根拠の列または根拠パス列"
     hits=$((hits + 1))
   fi
   if printf '%s\n' "$content" | LC_ALL=C grep -qE '<pre[^>]*>[[:space:]]*<code|(^|[[:space:]])```[[:alnum:]_-]*[[:space:]]*$'; then
@@ -94,7 +94,7 @@ for target in "$@"; do
 done
 
 if [ "$found" -eq 0 ]; then
-  printf '%s\n' '合格: 根拠列とコードの中身は無い'
+  printf '%s\n' '合格: 廃止した根拠の列とコードの中身は無い'
   exit 0
 fi
 if [ "$STRICT" -eq 1 ]; then

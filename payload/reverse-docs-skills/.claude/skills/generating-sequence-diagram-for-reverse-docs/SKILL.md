@@ -101,7 +101,7 @@ API詳細設計書の`<unitPhaseDirNames.detail>/`や機能設計書の`<unitPha
 - **レーン（ライフライン）**: `operations[].lanes` で操作ごとに任意定義できる。各要素は `key`（`steps[].from`/`to` が参照する識別子）と `label`（見出し表示名）を持つ。テンプレートは `operation.lanes`、page-data直下の`lanes`、固定4本（`user`=利用者 / `screen`=画面 / `api`=API / `table`=テーブル）の順で採用する。page-data直下の`lanes`は後方互換のfallbackである
 - `kind: "return"` のステップは破線で描画される。省略時は実線
 - operation先頭は種別ごとに異なる。screenは`user→screen`の「操作開始」、apiは`caller→api`の「リクエスト受信」を根拠行のない合成triggerとする。featureは§3.1の先頭行を`user→最初の構成要素`のtriggerへ変換する
-- `sourceRef`はscreenのfacts由来step、apiの合成triggerを除くstep、featureの全stepで省略しない。手書きpage-dataで根拠が無いstepに限り省略でき、その場合はテンプレート側で根拠列を空表示する
+- `sourceRef`はscreenのfacts由来step、apiの合成triggerを除くstep、featureの全stepで省略しない。手書きpage-dataで参照先が無いstepに限り省略でき、その場合はテンプレート側で参照先列を空表示する
 
 ## エンジンスクリプトの所在
 
@@ -142,7 +142,7 @@ policyで`generate: false`の種別は、既存の`sequencePath`をマニフェ�
   - 先頭は`caller→api`の「リクエスト受信」とする
   - 各処理行は`api→internal`、末尾は`api→caller`のreturnとする
   - 処理名をlabelへ転記し、`sourceRef`には設計書の相対パス・節・表行を記録する
-  - 表の根拠列と関数名は根拠確認と補助表示に使う
+  - 表の参照先列と関数名は参照先の確認と補助表示に使う
   - 順番号が正の整数で一意かつ連続しない場合は生成しない
 - `feature`は、`機能設計書.md`の§3.1「正常系フロー」表だけを読む
   - `順`の昇順で1行を1stepへ変換する

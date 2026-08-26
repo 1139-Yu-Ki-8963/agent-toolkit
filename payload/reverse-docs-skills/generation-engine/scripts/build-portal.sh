@@ -4304,10 +4304,10 @@ EVIDENCE47B
     || grep -qF '<th>根拠</th>' "$test47b_rule_dir/rule.html" \
     || grep -qF '秘密の根拠' "$test47b_rule_dir/rule.html" \
     || [ -f "$test47b_rule_dir/evidence.html" ]; then
-    echo "FAIL: --self-test ケース47b（3列規則表の生成、根拠列の非表示、または根拠別資料の除外が不正）" >&2
+    echo "FAIL: --self-test ケース47b（3列規則表の生成、廃止した根拠の列の非表示、または根拠別資料の除外が不正）" >&2
     record_self_test_case_failure
   else
-    echo "PASS: --self-test ケース47b（3列規則表を生成し、根拠列・根拠別資料をポータルへ表示しない）"
+    echo "PASS: --self-test ケース47b（3列規則表を生成し、廃止した根拠の列・根拠別資料をポータルへ表示しない）"
   fi
   rm -rf "$test47b_dir"
 

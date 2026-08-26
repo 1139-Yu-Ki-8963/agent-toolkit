@@ -29,7 +29,7 @@ set -euo pipefail
 #
 #   7. 必須節検査: 定義ファイルで必須節を持つ文書に、Markdown見出しとして
 #      必須節がすべて無ければFAIL。
-#   8. 根拠分離検査: 共通6文書に根拠列・抽出元列・file:line 注記が無い。
+#   8. 根拠分離検査: 共通6文書に廃止した根拠の列・抽出元列・file:line 注記が無い。
 #   いずれか1件でも違反があれば exit 1（fail-closed）。全件PASSでexit 0。
 #   --self-test は合成フィクスチャで陽性exit 0・陰性(検査ごと)exit 1を自己検証する。
 #
@@ -370,7 +370,7 @@ EOF
   return 0
 }
 
-# 検査8: 共通文書本文の根拠列・抽出元列・file:line注記を禁止する。
+# 検査8: 共通文書本文の廃止した根拠の列・抽出元列・file:line注記を禁止する。
 file_line_annotation_hits() {
   awk '
     BEGIN { FS = "[[:space:]|]+" }
@@ -405,10 +405,10 @@ check_common_doc_evidence_separation() {
 $(document_records)
 EOF
   if [ "$failed" -gt 0 ]; then
-    echo "検査8失敗: $failed 文書に根拠列・抽出元列またはfile:line注記が残っています" >&2
+    echo "検査8失敗: $failed 文書に廃止した根拠の列・抽出元列またはfile:line注記が残っています" >&2
     return 1
   fi
-  echo "検査8通過: 共通6文書の本文に根拠列・抽出元列・file:line注記がない"
+  echo "検査8通過: 共通6文書の本文に廃止した根拠の列・抽出元列・file:line注記がない"
   return 0
 }
 
@@ -887,15 +887,15 @@ MD
     echo "  [PASS] 検査6: 宣言件数と実測件数の不一致でexit 1"
   fi
 
-  # 検収1: 共通文書本文の根拠列・file:line注記が無い状態を通す。
+  # 検収1: 共通文書本文の廃止した根拠の列・file:line注記が無い状態を通す。
   if check_common_doc_evidence_separation "$pass_dir" >/dev/null 2>&1; then
-    echo "  [PASS] 検査8: 共通文書本文に根拠列・file:line注記が無い状態でexit 0"
+    echo "  [PASS] 検査8: 共通文書本文に廃止した根拠の列・file:line注記が無い状態でexit 0"
   else
     echo "  [FAIL] 検査8: 根拠を分離済みの共通文書を不合格にした" >&2
     rc=1
   fi
 
-  # 検収1の陰性: 根拠列またはfile:line注記が本文へ戻れば検出する。
+  # 検収1の陰性: 廃止した根拠の列またはfile:line注記が本文へ戻れば検出する。
   fail8_dir="$tmp/fail8"
   build_docs "$fail8_dir"
   cat >> "$fail8_dir/$data_design_doc" <<'MD'
@@ -905,10 +905,10 @@ MD
 | 状態管理 | src/components/Button.tsx:1 |
 MD
   if check_common_doc_evidence_separation "$fail8_dir" >/dev/null 2>&1; then
-    echo "  [FAIL] 検査8: 本文に根拠列・file:line注記があるのにexit 0になった" >&2
+    echo "  [FAIL] 検査8: 本文に廃止した根拠の列・file:line注記があるのにexit 0になった" >&2
     rc=1
   else
-    echo "  [PASS] 検査8: 本文の根拠列・file:line注記でexit 1"
+    echo "  [PASS] 検査8: 本文の廃止した根拠の列・file:line注記でexit 1"
   fi
 
   # 検査8: 拡張子に依存せず、非ASCIIパスを含むfile:line注記を検出する。

@@ -13,8 +13,8 @@
 | 必須節見出し-合格 | 定義上の必須節がMarkdown見出しとしてすべて存在する | check-common-docs.shを実行する | 検査7がPASSしexit 0になる | check-common-docs.shのself-testケース「[PASS] 検査7: 必須節をMarkdown見出しとして持つ文書でexit 0」 |
 | 必須語本文のみ-不合格 | 定義上の必須語が本文の1行にだけありMarkdown見出しとして存在しない | check-common-docs.shを実行する | 検査7がFAILしexit 1になる | check-common-docs.shのself-testケース「[PASS] 検査7: 必須語が本文にだけある文書でexit 1」 |
 | コードフェンス内見出し風-不合格 | 定義上の必須語を持つATX見出し風の行がコードフェンス内にだけ存在する | check-common-docs.shを実行する | 検査7がコード内の行を節として数えずFAILしexit 1になる | check-common-docs.shのself-testケース「[PASS] 検査7: コードフェンス内のATX見出し風の行でexit 1」 |
-| 共通本文根拠分離-合格 | 共通6文書の本文に根拠・抽出元列と対象コードのfile:line表記がない | check-common-docs.shを実行する | 検査8がPASSしexit 0になる | check-common-docs.shのself-testケース「[PASS] 検査8: 根拠列とfile:line表記がない本文でexit 0」 |
-| 共通本文根拠分離-検出 | 共通文書の表に根拠列または対象コードのfile:line表記がある | check-common-docs.shを実行する | 検査8がFAILしexit 1になる | check-common-docs.shのself-testケース「[PASS] 検査8: 根拠列またはfile:line表記でexit 1」 |
+| 共通本文根拠分離-合格 | 共通6文書の本文に根拠・抽出元列と対象コードのfile:line表記がない | check-common-docs.shを実行する | 検査8がPASSしexit 0になる | check-common-docs.shのself-testケース「[PASS] 検査8: 廃止した根拠の列とfile:line表記がない本文でexit 0」 |
+| 共通本文根拠分離-検出 | 共通文書の表に廃止した根拠の列または対象コードのfile:line表記がある | check-common-docs.shを実行する | 検査8がFAILしexit 1になる | check-common-docs.shのself-testケース「[PASS] 検査8: 廃止した根拠の列またはfile:line表記でexit 1」 |
 | 共通本文根拠分離-言語非依存 | 共通文書に`src/views/App.vue:2`と`日本語/処理.sql:1`がある | check-common-docs.shを実行する | 拡張子やASCII文字に依存せず検査8がFAILしexit 1になる | check-common-docs.shのself-testケース「[PASS] 検査8: .vueと日本語パス.sqlのfile:line注記でexit 1」 |
 | 共通本文根拠分離-URL除外 | 共通文書に`https://example.com/docs/file.vue:1`がある | check-common-docs.shを実行する | URLをfile:line注記として誤検出せず検査8がexit 0になる | check-common-docs.shのself-testケース「[PASS] 検査8: URLはfile:line注記から除外」 |
 | self-test一時領域-判定不能 | self-test開始時にmktempが一時領域へ書き込めない | check-common-docs.sh --self-testを実行する | stderrへ`[UNKNOWN]`と原因を出しexit 2になる | 環境依存のため規約準拠をコードレビューで確認 |
