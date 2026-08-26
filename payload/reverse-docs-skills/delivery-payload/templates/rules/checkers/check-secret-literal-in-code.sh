@@ -495,9 +495,9 @@ jobs:
 
 ## このプロジェクトの規則
 
-| 規則 | 内容 | 根拠 | 検査 |
-|---|---|---|---|
-| 権限の確認を処理の側で行う | 権限の確認は requirePermission を呼ぶ | 観測による | 静的解析 |
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 権限の確認を処理の側で行う | 権限の確認は requirePermission を呼ぶ | 静的解析 |
 EOF
   local t16='app.get("/admin", function (req, res) { res.send("ok"); });'
   if msg="$(judge "app.js" "$t16" "$tmp16")"; then code=0; else code=$?; fi
@@ -518,9 +518,9 @@ EOF
 
 ## このプロジェクトの規則
 
-| 規則 | 内容 | 根拠 | 検査 |
-|---|---|---|---|
-| 権限の確認を処理の側で行う | 権限の確認は requirePermission を呼ぶ | 観測による | 静的解析 |
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 権限の確認を処理の側で行う | 権限の確認は requirePermission を呼ぶ | 静的解析 |
 EOF
   local t17='app.get("/admin", requirePermission("admin"), function (req, res) { res.send("ok"); });'
   if msg="$(judge "app.js" "$t17" "$tmp17")"; then code=0; else code=$?; fi

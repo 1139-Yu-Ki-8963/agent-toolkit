@@ -248,10 +248,10 @@ self_test() {
 
 ## 規則
 
-| 規則 | 内容 | 根拠 | 検査 |
-|---|---|---|---|
-| 規則A | 内容A | 根拠A | 静的解析: 何かを走査する |
-| 規則B | 内容B | 根拠B | 手段不明のまま書かれた検査列 |'
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 規則A | 内容A | 静的解析: 何かを走査する |
+| 規則B | 内容B | 手段不明のまま書かれた検査列 |'
   if msg="$(judge_review_means_declared "docs/rules/example/rule.md" "$content3")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '拒否[規約が求めるレビューを観点とする]'; then
     echo "  [PASS] 系3: 検査の手段が明示されていない規則があれば拒否される（${msg}）"
@@ -265,10 +265,10 @@ self_test() {
 
 ## 規則
 
-| 規則 | 内容 | 根拠 | 検査 |
-|---|---|---|---|
-| 規則A | 内容A | 根拠A | 静的解析: 何かを走査する |
-| 規則B | 内容B | 根拠B | テスト: 何かを確かめる ／ レビュー: 何かを読んで判断する |'
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 規則A | 内容A | 静的解析: 何かを走査する |
+| 規則B | 内容B | テスト: 何かを確かめる ／ レビュー: 何かを読んで判断する |'
   if msg="$(judge_review_means_declared "docs/rules/example/rule.md" "$content4")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '許可[規約が求めるレビューを観点とする]'; then
     echo "  [PASS] 系4: 全行に検査の手段があれば許可される（${msg}）"

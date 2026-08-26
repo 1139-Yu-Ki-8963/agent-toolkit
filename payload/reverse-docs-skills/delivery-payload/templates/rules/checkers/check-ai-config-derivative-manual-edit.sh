@@ -352,9 +352,9 @@ self_test() {
 
 ## このプロジェクトの規則
 
-| 規則 | 内容 | 根拠 | 検査 |
-|---|---|---|---|
-| ずれは台帳で検知する | 台帳は特に定めない | 観測による | 静的解析 |
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| ずれは台帳で検知する | 台帳は特に定めない | 静的解析 |
 EOF
   if msg="$(judge_drift_ledger "$tmp12")"; then code=0; else code=$?; fi
   rm -rf "$tmp12"
@@ -374,9 +374,9 @@ EOF
 
 ## このプロジェクトの規則
 
-| 規則 | 内容 | 根拠 | 検査 |
-|---|---|---|---|
-| ずれは台帳で検知する | 台帳は docs/derived-ledger.json に置く | 観測による | 静的解析 |
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| ずれは台帳で検知する | 台帳は docs/derived-ledger.json に置く | 静的解析 |
 EOF
   if msg="$(judge_drift_ledger "$tmp13")"; then code=0; else code=$?; fi
   rm -rf "$tmp13"
@@ -396,9 +396,9 @@ EOF
 
 ## このプロジェクトの規則
 
-| 規則 | 内容 | 根拠 | 検査 |
-|---|---|---|---|
-| ずれは台帳で検知する | 台帳は docs/derived-ledger.json に置く | 観測による | 静的解析 |
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| ずれは台帳で検知する | 台帳は docs/derived-ledger.json に置く | 静的解析 |
 EOF
   printf '{}' > "$tmp14/docs/derived-ledger.json"
   if msg="$(judge_drift_ledger "$tmp14")"; then code=0; else code=$?; fi

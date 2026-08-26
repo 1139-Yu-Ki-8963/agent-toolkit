@@ -713,9 +713,9 @@ EOF
 
 ## このプロジェクトの規則
 
-| 規則 | 内容 | 根拠 | 検査 |
-|---|---|---|---|
-| 置き場を役割で分ける | 実装とテストと文書を分ける | 観測による | 静的解析 |
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 置き場を役割で分ける | 実装とテストと文書を分ける | 静的解析 |
 EOF
   if msg="$(judge_role_separation "$tmp" "src/app.ts")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
@@ -745,9 +745,9 @@ EOF
 
 ## このプロジェクトの規則
 
-| 規則 | 内容 | 根拠 | 検査 |
-|---|---|---|---|
-| 置き場を役割で分ける | 実装は src/、試験は tests/、文書は docs/ | 観測による | 静的解析 |
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 置き場を役割で分ける | 実装は src/、試験は tests/、文書は docs/ | 静的解析 |
 EOF
   if msg="$(judge_role_separation "$tmp" "lib/app.ts")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
@@ -766,9 +766,9 @@ EOF
 
 ## このプロジェクトの規則
 
-| 規則 | 内容 | 根拠 | 検査 |
-|---|---|---|---|
-| 置き場を役割で分ける | 実装は src/、試験は tests/、文書は docs/ | 観測による | 静的解析 |
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 置き場を役割で分ける | 実装は src/、試験は tests/、文書は docs/ | 静的解析 |
 EOF
   if msg="$(judge_role_separation "$tmp" "src/app.ts")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
@@ -787,9 +787,9 @@ EOF
 
 ## このプロジェクトの規則
 
-| 規則 | 内容 | 根拠 | 検査 |
-|---|---|---|---|
-| 依存の向きを一方向に保つ | 層の並びは ui/、domain/、data/ | 観測による | 静的解析 |
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 依存の向きを一方向に保つ | 層の並びは ui/、domain/、data/ | 静的解析 |
 EOF
   if msg="$(judge_dependency_direction "$tmp" "lib/app.ts" 'export const z = 1;')"; then code=0; else code=$?; fi
   rm -rf "$tmp"
@@ -819,9 +819,9 @@ EOF
 
 ## このプロジェクトの規則
 
-| 規則 | 内容 | 根拠 | 検査 |
-|---|---|---|---|
-| 依存の向きを一方向に保つ | 層の並びは ui/、domain/、data/ | 観測による | 静的解析 |
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 依存の向きを一方向に保つ | 層の並びは ui/、domain/、data/ | 静的解析 |
 EOF
   if msg="$(judge_dependency_direction "$tmp" "data/repo.ts" 'import { x } from "ui/Something";')"; then code=0; else code=$?; fi
   rm -rf "$tmp"
@@ -840,9 +840,9 @@ EOF
 
 ## このプロジェクトの規則
 
-| 規則 | 内容 | 根拠 | 検査 |
-|---|---|---|---|
-| 依存の向きを一方向に保つ | 層の並びは ui/、domain/、data/ | 観測による | 静的解析 |
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 依存の向きを一方向に保つ | 層の並びは ui/、domain/、data/ | 静的解析 |
 EOF
   if msg="$(judge_dependency_direction "$tmp" "data/repo.ts" 'import { helper } from "./helper";
 export const z = 1;')"; then code=0; else code=$?; fi

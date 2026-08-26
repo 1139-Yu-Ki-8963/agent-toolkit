@@ -549,9 +549,9 @@ function login() {}'
 
 ## このプロジェクトの規則
 
-| 規則 | 内容 | 根拠 | 検査 |
-|---|---|---|---|
-| 記録に追跡の鍵を含める | 追跡の鍵は requestId とする | 観測による | 静的解析 |
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 記録に追跡の鍵を含める | 追跡の鍵は requestId とする | 静的解析 |
 EOF
   local c18='logger.info("service started");'
   if msg="$(judge "app.js" "$c18" "$tmp18")"; then code=0; else code=$?; fi
@@ -572,9 +572,9 @@ EOF
 
 ## このプロジェクトの規則
 
-| 規則 | 内容 | 根拠 | 検査 |
-|---|---|---|---|
-| 記録に追跡の鍵を含める | 追跡の鍵は requestId とする | 観測による | 静的解析 |
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 記録に追跡の鍵を含める | 追跡の鍵は requestId とする | 静的解析 |
 EOF
   local c19='logger.info("request " + requestId + " started");'
   if msg="$(judge "app.js" "$c19" "$tmp19")"; then code=0; else code=$?; fi
