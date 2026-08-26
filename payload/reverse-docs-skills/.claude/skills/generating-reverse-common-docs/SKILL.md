@@ -199,3 +199,8 @@ allowed-tools: [Bash, Read, Write, Edit]
 - `generation-engine/scripts/rules/scaffold-rule-definitions.sh` — 規約定義（`docs/rules/`）の雛形配布。本スキルの対象外
 - `delivery-payload/references/リバース工程設計.md` — Phase/Step×スキル対応の正本（本スキルの位置づけ: Phase 4 共通書き起こし / Step 12-16）。NG帰着3系統の(c)共通文書欠落からの差し戻し先でもある
 - `.claude/skills/surveying-architecture-for-reverse-docs/SKILL.md` — 本スキルが前提とするアーキテクチャ調査書を確定する上流スキル
+## テンプレート記入規則の実行
+
+<!-- TEMPLATE_GUIDANCE_EXECUTION -->
+
+使用する各 Markdown テンプレートを Read する。`<!-- 記入規則: ... -->` と `<!-- INTRODUCTION_GUIDANCE ... -->` の指示を本文生成の手順として実行する。冒頭案内は `delivery-payload/references/設計書様式.md` の §9 に従う。複数節では「節｜内容｜読み手へのお願い」の3列表を本文の節ごとに1行ずつ作る。作る側の判断理由・保管方法・作業経緯・文書作成方針・件数内訳は冒頭案内へ書かない。自由記述は敬体で書く。指示を反映した後、記入規則の HTML コメントは生成文書から除去する。

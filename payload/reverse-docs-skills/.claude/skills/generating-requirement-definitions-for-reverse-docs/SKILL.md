@@ -228,3 +228,8 @@ Phase 4（機械検査）で不合格が検出された場合、該当する対�
 - `.claude/skills/generating-batch-basic-design-for-reverse-docs/SKILL.md` — 入力となるバッチの個別基本設計書の生成元
 - `.claude/skills/generating-external-basic-design-for-reverse-docs/SKILL.md` — 入力となる外部連携の個別基本設計書の生成元
 - `.claude/skills/generating-reverse-common-docs/SKILL.md` — 出力先配置の踏襲元。同じ `<output_dir>/<commonRoot>/` へ出力する先行スキルである
+## テンプレート記入規則の実行
+
+<!-- TEMPLATE_GUIDANCE_EXECUTION -->
+
+使用する各 Markdown テンプレートを Read する。`<!-- 記入規則: ... -->` と `<!-- INTRODUCTION_GUIDANCE ... -->` の指示を本文生成の手順として実行する。冒頭案内は `delivery-payload/references/設計書様式.md` の §9 に従う。複数節では「節｜内容｜読み手へのお願い」の3列表を本文の節ごとに1行ずつ作る。作る側の判断理由・保管方法・作業経緯・文書作成方針・件数内訳は冒頭案内へ書かない。自由記述は敬体で書く。指示を反映した後、記入規則の HTML コメントは生成文書から除去する。

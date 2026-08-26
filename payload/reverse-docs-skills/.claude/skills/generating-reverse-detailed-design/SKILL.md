@@ -339,3 +339,8 @@ audit_script_path はこれらを機械検査する。
 - `delivery-payload/references/gold-standard/` — 正解セット（模範例）。記載粒度の見本（Phase 4）・バックテスト（スキーマ検証）・カバレッジ受入判定に使用
 - `generation-engine/scripts/backtest-facts-against-gold.sh` — 模範例からの逆算検査（`--self-test` 内蔵）
 - `generation-engine/scripts/check-doc-coverage-against-gold.sh` — 模範例に対するカバレッジ受入判定（`--self-test` 内蔵）
+## テンプレート記入規則の実行
+
+<!-- TEMPLATE_GUIDANCE_EXECUTION -->
+
+使用する各 Markdown テンプレートを Read する。`<!-- 記入規則: ... -->` と `<!-- INTRODUCTION_GUIDANCE ... -->` の指示を本文生成の手順として実行する。冒頭案内は `delivery-payload/references/設計書様式.md` の §9 に従う。複数節では「節｜内容｜読み手へのお願い」の3列表を本文の節ごとに1行ずつ作る。作る側の判断理由・保管方法・作業経緯・文書作成方針・件数内訳は冒頭案内へ書かない。自由記述は敬体で書く。指示を反映した後、記入規則の HTML コメントは生成文書から除去する。
