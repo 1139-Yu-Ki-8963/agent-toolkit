@@ -5,7 +5,7 @@ affected_term_keys: [customer]
 base_content_version: 1.9.0
 target_content_version: 2.0.0
 before_hash: sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
-after_hash: sha256:6264d9ff274c0e52e8cf676cd885bab48f64f61933095433e14398a5c06fca77
+after_hash: sha256:999618a01c952c1f4358f300f19e3d59dfb0be85779803a19387ff79e1f77601
 requested_by: customer-domain-team
 approved_by: [business_approver:business-reviewer, technical_approver:architecture-reviewer]
 reason: 顧客定義の説明を根拠文書に合わせるため
