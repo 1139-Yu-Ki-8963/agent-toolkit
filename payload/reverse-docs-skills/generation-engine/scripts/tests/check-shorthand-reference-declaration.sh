@@ -202,10 +202,16 @@ self_test() {
 | 項目 | 参照 |
 |---|---|
 | 冪等性 | （要確認事項一覧: 冪等性欠如の業務上の許容） |
+
+## 関連資料
+
+- 設計単位根拠台帳: `docs/reverse/api/注文API/設計単位根拠台帳.md`
 DOC
   out_1="$(run_check "$tmp_1")"; rc_1=$?
   assert_eq "検収1-終了コード" 0 "$rc_1"
   assert_eq "検収1-出力0件" '' "$out_1"
+  assert_contains "検収4-関連資料に参照先のフルネーム" '設計単位根拠台帳' "$(cat "$doc_1")"
+  assert_contains "検収4-関連資料に参照先の経路" 'docs/reverse/api/注文API/設計単位根拠台帳.md' "$(cat "$doc_1")"
   rm -rf "$tmp_1"
 
   # 検収2: 宣言なしに短縮形だけを使うと不合格（ラベルが文書を指す語を含む場合）。
