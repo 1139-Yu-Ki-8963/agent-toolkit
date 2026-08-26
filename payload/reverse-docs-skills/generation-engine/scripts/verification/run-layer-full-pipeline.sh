@@ -110,6 +110,7 @@ ${repo}/generation-engine/scripts/extract/extract-feature-metadata.sh
 ${repo}/generation-engine/scripts/unit-list/build-screen-list.sh
 ${repo}/generation-engine/scripts/unit-list/build-unit-list.sh
 ${repo}/generation-engine/scripts/unit-list/build-feature-list.sh
+${repo}/generation-engine/scripts/generate-integration-test-spec.sh
 ${repo}/generation-engine/scripts/extract/build-matrix-data.sh
 ${repo}/generation-engine/scripts/extract/build-permission-function-data.sh
 ${repo}/generation-engine/scripts/matrix/build-matrix-pages.sh
@@ -532,6 +533,26 @@ stage_unit_lists() {
     detail="${detail}test-case=${LAST_RC}; "
   else
     detail="${detail}test-case=skip; "
+  fi
+
+  # プロジェクト全体で1冊の結合テスト仕様書を生成する。portal-catalog.json の
+  # integration-test-spec が網羅の分母に含める docs/test-cases 配下の成果物であり、
+  # 単位別一覧とは別の文書だが、ポータル生成より前に成果物を揃える本段で生成する。
+  local integration_spec_script="${REPO_SELF}/generation-engine/scripts/generate-integration-test-spec.sh"
+  local integration_spec_output="${OUTPUT_DIR}/docs/test-cases/結合テスト仕様書.md"
+  if [ -f "${integration_spec_script}" ]; then
+    rm -f "${integration_spec_output}"
+    run_cmd bash "${integration_spec_script}" "${OUTPUT_DIR}" "検証用プロジェクト"
+    if [ "${LAST_RC}" -eq 0 ]; then
+      [ -s "${integration_spec_output}" ] || LAST_RC=1
+      grep -q '^# 検証用プロジェクト 結合テスト仕様書$' "${integration_spec_output}" 2>/dev/null || LAST_RC=1
+      grep -q '^## テストケース一覧$' "${integration_spec_output}" 2>/dev/null || LAST_RC=1
+    fi
+    [ "${LAST_RC}" -ne 0 ] && any_fail=1
+    detail="${detail}integration-test-spec=${LAST_RC}; "
+  else
+    any_fail=1
+    detail="${detail}integration-test-spec=missing; "
   fi
 
   if [ "${any_fail}" -eq 0 ]; then
@@ -1192,7 +1213,7 @@ JSON
     _case_fail "引数-ポータル位置" "デザイン系の呼び出しに --portal-dir が見つからない"
   fi
 
-  # 配線-追加5件
+  # 配線-追加6件
   local type_block unit_block wired_all needle combined
   type_block="$(sed -n '/^stage_type_extraction()/,/^}/p' "${SELF_PATH}")"
   unit_block="$(sed -n '/^stage_unit_lists()/,/^}/p' "${SELF_PATH}")"
@@ -1201,10 +1222,11 @@ JSON
   for needle in extract-screen-metadata convert-message-doc-to-manifest aggregate-test-viewpoints aggregate-test-cases build-confirmation-survey-data; do
     printf '%s' "${combined}" | grep -q "${needle}" || wired_all=0
   done
+  printf '%s' "${unit_block}" | grep -Eq '^[[:space:]]+run_cmd bash "\$\{integration_spec_script\}" "\$\{OUTPUT_DIR\}" "検証用プロジェクト"$' || wired_all=0
   if [ "${wired_all}" -eq 1 ]; then
-    _case_pass "配線-追加5件" "5本の呼び出しがすべてスクリプト本文に存在する"
+    _case_pass "配線-追加6件" "6本の呼び出しがすべてスクリプト本文に存在する"
   else
-    _case_fail "配線-追加5件" "追加5本のうち一部の呼び出しが見つからない"
+    _case_fail "配線-追加6件" "追加6本のうち一部の呼び出しが見つからない"
   fi
 
   # 原本root-全生成連鎖: 疑似入力がある場合は合成rootまたは種別別rootを使い、

@@ -101,12 +101,11 @@ frontmatter_of() {
   awk 'NR == 1 && /^---[[:space:]]*$/ { f = 1; next } f && /^---[[:space:]]*$/ { exit } f' "$1"
 }
 
-# 配布対象から外すスキル（このリポジトリ専用・非公開）の名前は、除外の定義
-# ファイル（~/agent-home/state/payload-forbidden-content.json の .names）
-# から読む。名前をこのスクリプトへ直接書き込まない。定義ファイルまたは jq
-# が無い場合は除外を適用しない（fail-open。このスクリプト自体は jq を必須
-# 依存として既に要求しているため実運用では常に読める）。
-DEFAULT_AI_ASSETS_FORBIDDEN_NAMES_FILE="$HOME/agent-home/state/payload-forbidden-content.json"
+# 配布対象から外すスキル（このリポジトリ専用・非公開）の名前は、環境変数で
+# 指定された除外定義ファイルの .names から読む。名前をこのスクリプトへ直接
+# 書き込まない。環境変数が未設定、定義ファイルまたは jq が無い場合は除外を
+# 適用しない（fail-open）。
+DEFAULT_AI_ASSETS_FORBIDDEN_NAMES_FILE=""
 AI_ASSETS_FORBIDDEN_NAMES_FILE="${PAYLOAD_FORBIDDEN_NAMES_FILE:-$DEFAULT_AI_ASSETS_FORBIDDEN_NAMES_FILE}"
 is_forbidden_skill_name() {
   local name="$1"
