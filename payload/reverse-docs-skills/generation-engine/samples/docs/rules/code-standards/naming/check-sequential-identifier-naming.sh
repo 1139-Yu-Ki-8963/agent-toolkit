@@ -400,9 +400,9 @@ const order_total = 100;')"; then code=0; else code=$?; fi
 
 ## このプロジェクトの規則
 
-| 規則 | 内容 | 根拠 | 検査 |
-|---|---|---|---|
-| 不透明な省略を使わない | 許可する省略: idx、req、res | 観測による | 静的解析 |
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 不透明な省略を使わない | 許可する省略: idx、req、res | 静的解析 |
 EOF
   if msg="$(judge 'const abc = 1;' "src/app.ts" "$tmp")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
@@ -421,9 +421,9 @@ EOF
 
 ## このプロジェクトの規則
 
-| 規則 | 内容 | 根拠 | 検査 |
-|---|---|---|---|
-| 不透明な省略を使わない | 許可する省略: idx、req、res | 観測による | 静的解析 |
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 不透明な省略を使わない | 許可する省略: idx、req、res | 静的解析 |
 EOF
   if msg="$(judge 'const idx = 1;' "src/app.ts" "$tmp")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
