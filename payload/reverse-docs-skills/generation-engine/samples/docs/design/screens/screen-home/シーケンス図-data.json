@@ -17,8 +17,8 @@
       "steps": [
         {"seq": 1, "from": "user", "to": "screen", "label": "操作開始", "kind": "trigger"},
         {"seq": 2, "from": "screen", "to": "api", "label": "GET /api/dashboard-summary", "sourceRef": "pages/HomePage.tsx:28"},
-        {"seq": 3, "from": "api", "to": "table", "label": "SELECT summary FROM dashboard_view WHERE user_id = ?", "sourceRef": "server/api/dashboard-summary.ts:15"},
-        {"seq": 4, "from": "table", "to": "api", "label": "集計レコードを返却", "sourceRef": "server/api/dashboard-summary.ts:20"},
+        {"seq": 3, "from": "api", "to": "table", "label": "SELECT summary FROM dashboard_view WHERE user_id = ?", "sourceRef": "server/api/dashboard-summary.ts"},
+        {"seq": 4, "from": "table", "to": "api", "label": "集計レコードを返却", "sourceRef": "server/api/dashboard-summary.ts"},
         {"seq": 5, "from": "api", "to": "screen", "label": "200 OK { cards, unreadNotificationCount } → 集計カード再描画", "kind": "return", "sourceRef": "pages/HomePage.tsx:34"}
       ]
     },

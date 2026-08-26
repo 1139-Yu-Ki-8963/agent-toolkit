@@ -45,6 +45,7 @@ unit_kind パラメータで screen / batch / report / external を区別する�
 4. **原本 Read 禁止**: 本スキル実行中に対象リポジトリの原本コードを Read することを全面禁止する。情報源は起動引数 facts_ref 配下の facts.yml と common_docs_root 配下の共通文書に限定する
 5. **業務語彙限定**: コード識別子・フレームワーク用語・型構文・ファイルパス・ライブラリ名を一切含めない。実装寄りの契約は詳細設計書（generating-reverse-detailed-design）が担う
 6. **詳細設計を内容の出典にしない**: 詳細設計書を要約せず、facts.yml から業務語彙で直接書く。大規模ユニットでは完成済み詳細設計書をパス2開始の完了証跡・整合対象としてのみ確認する
+7. **実装位置を記録しない**: 対象コードのファイルパス・行番号は基本設計書の本文にも別資料にも書かない。参照が必要な場合は関数名までとする
 
 ## Phase 1: テンプレート展開と facts 読込
 
@@ -146,7 +147,7 @@ facts.yml の各セクションを下記マップに従って基本設計書の�
 
 **使用ツール**: Read / Bash / Write
 
-生成した画面基本設計書.md 全文に対し、コード識別子・フレームワーク用語・型構文・ファイルパス・ライブラリ名の混入を grep で検査する。
+生成した画面基本設計書.md 全文に対し、コード識別子・フレームワーク用語・型構文・ファイルパス・ライブラリ名、および `<ファイル名>:<行番号>` 形式の混入を grep で検査する。
 
 ```bash
 grep -nE 'useState|useEffect|useReducer|\bProps\b|styled-components|\bReact\b|\bVue\b|\bAngular\b|interface [A-Z]|: *(string|number|boolean)\b|/[A-Za-z0-9_-]+\.(tsx|ts|jsx|js|css)\b|facts\.yml|facts-schema|facts_ref|const_declarations|handler_exports|type_definitions' <画面基本設計書.md>

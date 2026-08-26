@@ -188,7 +188,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         <h2>認証とエラー処理</h2>
       </div>
       <p class="chapter-desc">認証トークンの渡し方とエラー応答の扱いを検討する章である。</p>
-      <div class="category" id="cat-auth-token-header" data-report-row="auth-token-header" data-chapter-index="1" data-chapter-name="認証とエラー処理" data-cat-name="認証トークンのヘッダー方式" data-summary="認証トークンをAuthorizationヘッダーのBearer形式で渡す実装に統一されている。" data-parent="auth-and-error" data-key="auth-token-header" data-scope="scoped" data-paths='[&quot;src/api/**&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="Authorizationヘッダーの値がBearerで始まるかを検査する。" data-proposed-rule="認証トークンは常にAuthorizationヘッダーへ`Bearer &lt;token&gt;`形式で渡す。" data-sources='[&quot;src/api/client.ts:42&quot;,&quot;src/api/legacy-client.ts:18&quot;]'>
+      <div class="category" id="cat-auth-token-header" data-report-row="auth-token-header" data-chapter-index="1" data-chapter-name="認証とエラー処理" data-cat-name="認証トークンのヘッダー方式" data-summary="認証トークンをAuthorizationヘッダーのBearer形式で渡す実装に統一されている。" data-parent="auth-and-error" data-key="auth-token-header" data-scope="scoped" data-paths='[&quot;src/api/**&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="Authorizationヘッダーの値がBearerで始まるかを検査する。" data-proposed-rule="認証トークンは常にAuthorizationヘッダーへ`Bearer &lt;token&gt;`形式で渡す。" data-sources='[&quot;src/api/client.ts&quot;,&quot;src/api/legacy-client.ts&quot;]'>
         <div class="cat-head">
           <h3>認証トークンのヘッダー方式</h3>
           <span class="pill pill--green">提案あり</span>
@@ -199,16 +199,16 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
           </div>
         </div>
         <ul class="evidence-list">
-          <li><code>src/api/client.ts:42</code> でBearerトークンをAuthorizationヘッダーに設定している。</li>
-          <li><code>src/api/legacy-client.ts:18</code> でも同じ形式を使っている。</li>
+          <li><code>src/api/client.ts</code> でBearerトークンをAuthorizationヘッダーに設定している。</li>
+          <li><code>src/api/legacy-client.ts</code> でも同じ形式を使っている。</li>
         </ul>
         <div class="proposal">
           <p class="proposal-label">規約提案文(案)</p>
           <p class="proposal-text">認証トークンは常にAuthorizationヘッダーへ`Bearer &lt;token&gt;`形式で渡す。</p>
         </div>
-        <p class="source">出典: <code>src/api/client.ts:42</code>、<code>src/api/legacy-client.ts:18</code></p>
+        <p class="source">出典: <code>src/api/client.ts</code>、<code>src/api/legacy-client.ts</code></p>
       </div>
-      <div class="category" id="cat-error-status-code-mapping" data-report-row="error-status-code-mapping" data-chapter-index="1" data-chapter-name="認証とエラー処理" data-cat-name="HTTPステータスコードとエラー種別の対応" data-summary="業務エラーと通信基盤のエラーをHTTPステータスコードで明確に区別している。" data-parent="auth-and-error" data-key="error-status-code-mapping" data-scope="scoped" data-paths='[&quot;src/api/error-handler.ts&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="エラーハンドラのcase分岐が400番台と500番台で異なる処理を持つかを検査する。" data-proposed-rule="400番台は業務エラー、500番台は通信基盤のエラーとして扱い、404は対象不存在の意味に限定する。" data-sources='[&quot;src/api/error-handler.ts:12&quot;,&quot;src/api/error-handler.ts:35&quot;]'>
+      <div class="category" id="cat-error-status-code-mapping" data-report-row="error-status-code-mapping" data-chapter-index="1" data-chapter-name="認証とエラー処理" data-cat-name="HTTPステータスコードとエラー種別の対応" data-summary="業務エラーと通信基盤のエラーをHTTPステータスコードで明確に区別している。" data-parent="auth-and-error" data-key="error-status-code-mapping" data-scope="scoped" data-paths='[&quot;src/api/error-handler.ts&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="エラーハンドラのcase分岐が400番台と500番台で異なる処理を持つかを検査する。" data-proposed-rule="400番台は業務エラー、500番台は通信基盤のエラーとして扱い、404は対象不存在の意味に限定する。" data-sources='[&quot;src/api/error-handler.ts&quot;,&quot;src/api/error-handler.ts&quot;]'>
         <div class="cat-head">
           <h3>HTTPステータスコードとエラー種別の対応</h3>
           <span class="pill pill--green">提案あり</span>
@@ -219,14 +219,14 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
           </div>
         </div>
         <ul class="evidence-list">
-          <li><code>src/api/error-handler.ts:12</code> で400番台を業務エラー、500番台を通信基盤のエラーとして分岐している。</li>
-          <li><code>src/api/error-handler.ts:35</code> で404を「対象が存在しない」の意味に限定して使っている。</li>
+          <li><code>src/api/error-handler.ts</code> で400番台を業務エラー、500番台を通信基盤のエラーとして分岐している。</li>
+          <li><code>src/api/error-handler.ts</code> で404を「対象が存在しない」の意味に限定して使っている。</li>
         </ul>
         <div class="proposal">
           <p class="proposal-label">規約提案文(案)</p>
           <p class="proposal-text">400番台は業務エラー、500番台は通信基盤のエラーとして扱い、404は対象不存在の意味に限定する。</p>
         </div>
-        <p class="source">出典: <code>src/api/error-handler.ts:12</code>、<code>src/api/error-handler.ts:35</code></p>
+        <p class="source">出典: <code>src/api/error-handler.ts</code>、<code>src/api/error-handler.ts</code></p>
       </div>
       <div class="category" id="cat-error-response-shape">
         <div class="cat-head">
@@ -242,7 +242,7 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
         <h2>命名とページング</h2>
       </div>
       <p class="chapter-desc">一覧系APIのページング方式とフィールド命名を検討する章である。</p>
-      <div class="category" id="cat-pagination-cursor" data-report-row="pagination-cursor" data-chapter-index="2" data-chapter-name="命名とページング" data-cat-name="一覧のページング方式" data-summary="一覧系APIはカーソル方式のページングで統一されている。" data-parent="naming-and-paging" data-key="pagination-cursor" data-scope="scoped" data-paths='[&quot;src/api/list-*.ts&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="一覧系APIのクエリパラメータに`offset`が使われていないかを検査する。" data-proposed-rule="一覧系APIのページングは`cursor`と`limit`のクエリパラメータで統一する。オフセット方式は使わない。" data-sources='[&quot;src/api/list-items.ts:30&quot;,&quot;src/api/list-orders.ts:25&quot;]'>
+      <div class="category" id="cat-pagination-cursor" data-report-row="pagination-cursor" data-chapter-index="2" data-chapter-name="命名とページング" data-cat-name="一覧のページング方式" data-summary="一覧系APIはカーソル方式のページングで統一されている。" data-parent="naming-and-paging" data-key="pagination-cursor" data-scope="scoped" data-paths='[&quot;src/api/list-*.ts&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="一覧系APIのクエリパラメータに`offset`が使われていないかを検査する。" data-proposed-rule="一覧系APIのページングは`cursor`と`limit`のクエリパラメータで統一する。オフセット方式は使わない。" data-sources='[&quot;src/api/list-items.ts&quot;,&quot;src/api/list-orders.ts&quot;]'>
         <div class="cat-head">
           <h3>一覧のページング方式</h3>
           <span class="pill pill--green">提案あり</span>
@@ -253,16 +253,16 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
           </div>
         </div>
         <ul class="evidence-list">
-          <li><code>src/api/list-items.ts:30</code> で`cursor`と`limit`パラメータを受け取っている。</li>
-          <li><code>src/api/list-orders.ts:25</code> でも同じ`cursor`パラメータ名を使っている。</li>
+          <li><code>src/api/list-items.ts</code> で`cursor`と`limit`パラメータを受け取っている。</li>
+          <li><code>src/api/list-orders.ts</code> でも同じ`cursor`パラメータ名を使っている。</li>
         </ul>
         <div class="proposal">
           <p class="proposal-label">規約提案文(案)</p>
           <p class="proposal-text">一覧系APIのページングは`cursor`と`limit`のクエリパラメータで統一する。オフセット方式は使わない。</p>
         </div>
-        <p class="source">出典: <code>src/api/list-items.ts:30</code>、<code>src/api/list-orders.ts:25</code></p>
+        <p class="source">出典: <code>src/api/list-items.ts</code>、<code>src/api/list-orders.ts</code></p>
       </div>
-      <div class="category" id="cat-request-timeout-config" data-report-row="request-timeout-config" data-chapter-index="2" data-chapter-name="命名とページング" data-cat-name="外部APIへのリクエストタイムアウト設定" data-summary="外部APIへのリクエストは呼び出し元ごとにタイムアウト値を明示している。" data-parent="naming-and-paging" data-key="request-timeout-config" data-scope="scoped" data-paths='[&quot;src/api/external-client.ts&quot;,&quot;src/api/payment-client.ts&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="外部呼び出しの近傍にtimeout指定があるかを検査する。" data-proposed-rule="外部APIへのリクエストには必ずtimeoutを明示する。既定値に頼らない。" data-sources='[&quot;src/api/external-client.ts:20&quot;,&quot;src/api/payment-client.ts:15&quot;]'>
+      <div class="category" id="cat-request-timeout-config" data-report-row="request-timeout-config" data-chapter-index="2" data-chapter-name="命名とページング" data-cat-name="外部APIへのリクエストタイムアウト設定" data-summary="外部APIへのリクエストは呼び出し元ごとにタイムアウト値を明示している。" data-parent="naming-and-paging" data-key="request-timeout-config" data-scope="scoped" data-paths='[&quot;src/api/external-client.ts&quot;,&quot;src/api/payment-client.ts&quot;]' data-enforcement="advisory" data-checkable="true" data-check-method="外部呼び出しの近傍にtimeout指定があるかを検査する。" data-proposed-rule="外部APIへのリクエストには必ずtimeoutを明示する。既定値に頼らない。" data-sources='[&quot;src/api/external-client.ts&quot;,&quot;src/api/payment-client.ts&quot;]'>
         <div class="cat-head">
           <h3>外部APIへのリクエストタイムアウト設定</h3>
           <span class="pill pill--green">提案あり</span>
@@ -273,14 +273,14 @@ footer p{font-size:12.5px;color:var(--ink-soft);margin:6px 0;}
           </div>
         </div>
         <ul class="evidence-list">
-          <li><code>src/api/external-client.ts:20</code> で`timeout: 5000`を明示している。</li>
-          <li><code>src/api/payment-client.ts:15</code> でも同様に`timeout`を明示している。</li>
+          <li><code>src/api/external-client.ts</code> で`timeout: 5000`を明示している。</li>
+          <li><code>src/api/payment-client.ts</code> でも同様に`timeout`を明示している。</li>
         </ul>
         <div class="proposal">
           <p class="proposal-label">規約提案文(案)</p>
           <p class="proposal-text">外部APIへのリクエストには必ずtimeoutを明示する。既定値に頼らない。</p>
         </div>
-        <p class="source">出典: <code>src/api/external-client.ts:20</code>、<code>src/api/payment-client.ts:15</code></p>
+        <p class="source">出典: <code>src/api/external-client.ts</code>、<code>src/api/payment-client.ts</code></p>
       </div>
       <div class="category" id="cat-field-naming-case">
         <div class="cat-head">

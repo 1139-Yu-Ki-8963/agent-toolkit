@@ -43,6 +43,18 @@
       "scope": "scoped",
       "paths": ["docs/tasks/*.md"],
       "phases": ["フロー外"]
+    },
+    {
+      "key": "code-line-number-reference",
+      "title": "納品文書の対象コード行番号を禁止する",
+      "rules": [
+        "ポータルの生成物・設計文書・規約定義の本文へ対象コードの行番号を書かない",
+        "参照はファイルパスと関数名までにする"
+      ],
+      "checker": "check-code-line-number-reference.sh",
+      "scope": "scoped",
+      "paths": ["docs/**/*.md", "docs/**/*.html", "project-portal/**"],
+      "phases": ["2-基本設計", "3-詳細設計", "フロー外"]
     }
   ],
   "parents": [
