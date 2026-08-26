@@ -420,13 +420,15 @@ DOC
   # 追加回帰9（1-238）: 配布する全種別の設計書テンプレートが、冒頭案内の
   # 記入規則を適用すると宣言している。ファイル総数との一致で、新しい種別を
   # 追加した際の宣言漏れも不合格にする。
-  local reverse_template_root template_root_rc template_count guidance_count
+  local reverse_template_root template_root_rc template_count guidance_count style_guidance_count
   reverse_template_root="$SCRIPT_DIR/../../リバース検証"
   [ -d "$reverse_template_root" ]; template_root_rc=$?
   assert_eq "追加回帰9-実物テンプレートディレクトリが存在" 0 "$template_root_rc"
   template_count="$(find "$reverse_template_root" -type f -name '*.md' | wc -l | tr -d ' ')"
   guidance_count="$(grep -rl 'INTRODUCTION_GUIDANCE' "$reverse_template_root" --include='*.md' | wc -l | tr -d ' ')"
   assert_eq "追加回帰9-全テンプレートが冒頭記入規則を宣言" "$template_count" "$guidance_count"
+  style_guidance_count="$(grep -rl '生成する本文の自由記述は敬体（です・ます）で書く。' "$reverse_template_root" --include='*.md' | wc -l | tr -d ' ')"
+  assert_eq "追加回帰9-全テンプレートが本文の敬体を指定" "$template_count" "$style_guidance_count"
 
   # 追加回帰10（1-238）: 2節の試験入力から冒頭案内を組み立て、節数と
   # 「節・内容・読み手へのお願い」の案内行数が一致することを確認する。
