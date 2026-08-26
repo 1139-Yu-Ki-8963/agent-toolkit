@@ -28,8 +28,9 @@
 #
 # 配置構造:
 #   API/テーブル/バッチ/帳票/外部連携: <kind>UnitRoot/<kind>-<key>/{基本設計,詳細設計}/<file>
-#     （scaffold-design-unit.sh と同じ命名規則。design-unit-layout.json の phases に従う）
-#   機能: featureUnitRoot/feature-<key>/基本設計/<同名ファイル>（detail は持たない）
+#     （検証用の固定構造。scaffold-design-unit.sh が output-layout.json から解決する
+#     unitPhaseDirNames.basic / .detail とは連動しない）
+#   機能: featureUnitRoot/feature-<key>/<同名ファイル>（phase 階層は持たない）
 #   画面: screenUnitRoot/screen-<key>/{基本設計,詳細設計,テスト設計}/<file>
 #     （画面は doc-extraction.json の対象外だが、実際のスキルが生成する構造に合わせる）
 #   プロジェクト共通: commonRoot/<同名ファイル>（フラット）
