@@ -73,7 +73,7 @@
 
 ## 現状の実測
 
-`docs/reverse-docs-overview.html` の 199〜352 行目は、物理配置を 3 層に分ける方針を既に定めている。AI が読む Markdown と根拠画像を置く `docs/`、人間向け HTML を置く `project-portal/`、各 AI ツールが定義へ到達するための派生アダプターである。
+`docs/reverse-docs-overview.html` の 該当箇所は、物理配置を 3 層に分ける方針を既に定めている。AI が読む Markdown と根拠画像を置く `docs/`、人間向け HTML を置く `project-portal/`、各 AI ツールが定義へ到達するための派生アダプターである。
 
 実装は追いついていない。実測値は次のとおり。
 
@@ -376,8 +376,8 @@ rules 階層は親 7 と子 27 の 2 階層で構成する。単体で意味の�
 
 Phase D は定義層の完了を前提としないが、Phase A と同じファイルを触る。次の 2 本が Phase A の置き換え対象にも含まれる。
 
-- `generation-engine/scripts/tests/test-portal-conventions.sh`（231 行目に `samples/一覧/API一覧/API一覧.html` の直書き）
-- `generation-engine/scripts/tests/test-e2e-portal.sh`（97〜112 行目に `一覧/` の直書き）
+- `generation-engine/scripts/tests/test-portal-conventions.sh`（該当箇所に `samples/一覧/API一覧/API一覧.html` の直書き）
+- `generation-engine/scripts/tests/test-e2e-portal.sh`（該当箇所に `一覧/` の直書き）
 
 よって Phase D と Phase A を同時には走らせず、着手順を先に決める。Phase D を先に着地させる場合、Phase A で同じファイルを再度触ることを見込む。
 
@@ -411,7 +411,7 @@ Phase D は定義層の完了を前提としないが、Phase A と同じファ�
 | 共有スクリプト | `generation-engine/scripts/render-template.sh` | 汎用の置換エンジン。パス解決の宣言化はこの外側で行う |
 | 語彙 | `sourceRef`、`baseline_tag`、`baseline_tag_status`、`target_branch` | コミット値と別概念、またはスキル間契約が固定した名前 |
 
-当初は `generation-engine/scripts/shell-injection.sh` も触らない範囲に挙げた。調査の結果、67 行目の直書きは自己テストのフィクスチャであり生成物への埋め込みではないと判明した。ただし本番経路の置き換え対象に含まれるかは着手時に再確認する。
+当初は `generation-engine/scripts/shell-injection.sh` も触らない範囲に挙げた。調査の結果、該当箇所の直書きは自己テストのフィクスチャであり生成物への埋め込みではないと判明した。ただし本番経路の置き換え対象に含まれるかは着手時に再確認する。
 
 ## 判断を要する事項
 
