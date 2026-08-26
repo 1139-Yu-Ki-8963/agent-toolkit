@@ -6,7 +6,7 @@
 #   bash docs/scripts/judge-task-done.sh --apply         移せる対象を git mv でステージへ載せる（commit はしない）
 #   bash docs/scripts/judge-task-done.sh --write         「確かめる手段」を実行し、結果を「状態」欄へ書き込む
 #   bash docs/scripts/judge-task-done.sh --only <パス>    指定した指示書1件だけを対象にする（--write と併用可）
-#   bash docs/scripts/judge-task-done.sh --timeout <秒>  「確かめる手段」1件あたりの時間の上限を変える（既定120秒）
+#   bash docs/scripts/judge-task-done.sh --timeout <秒>  「確かめる手段」1件あたりの時間の上限を変える（既定300秒）
 #   bash docs/scripts/judge-task-done.sh --cross-check   段階3（照合）: 指示書が主張するキーに台帳の裏付けがあるか数える
 #   bash docs/scripts/judge-task-done.sh --self-test     スクリプト自身の検査
 #
@@ -16,7 +16,7 @@
 #   2. 実測が済んでいる（段階2）: 表が「判定 | 確かめる手段 | 状態 | コミット | 確かめた内容」の5列であり
 #      （「確かめる手段」の列が無い古い4列の表は満たさない）、各行の「確かめる手段」欄のコマンドを
 #      実際に実行してすべてが終了コード0を返す。「目視」と書かれた行が1件でもあれば
-#      （機械では確かめられないため）満たさない。コマンドが時間の上限（既定120秒。--timeoutで変更可）を
+#      （機械では確かめられないため）満たさない。コマンドが時間の上限（既定300秒。--timeoutで変更可）を
 #      超えたら「未確認」として満たさない。終了コード2は結合出力の行頭に `[UNKNOWN]` が
 #      あれば「未確認」、無ければ「未着手」とする（実行できなかったこととコマンド自身の
 #      エラーを区別する。定義:
@@ -102,7 +102,7 @@
 #   本ファイルの sync_targets・diff exclude を同時に更新する。同期対象そのものの正本は
 #   agent-toolkit の `scripts/sync-manifest.json` である。`publish/complete/rule.md` の
 #   一覧はこの正本から意図的に絞った diff 比較対象であり、古くなりうる。
-#   「確かめる手段」欄の実行タイムアウト既定値（120秒）を変える場合は本ファイルの
+#   「確かめる手段」欄の実行タイムアウト既定値（300秒）を変える場合は本ファイルの
 #   TIMEOUT_SEC の既定値とこのコメントを同時に更新する。
 #
 # 廃棄条件: `docs/tasks/` による指示書運用自体を廃止した時、
@@ -1827,7 +1827,12 @@ APPLY=0
 WRITE=0
 SELF_TEST=0
 CROSS_CHECK=0
-TIMEOUT_SEC=120
+# 2026-08-26実測: build-portal.sh --self-testが約122秒かかり、旧既定の120 秒では必ず
+# 「未確認」になった。その2秒差で本物の欠陥（用語辞書の見本の戻るリンクの階層ずれ）が
+# 隠れていた。第1層の集約の上限宣言は200秒以上の余裕を求めており
+# （docs/scripts/check-portal-timeout-margin.shが機械的に見張っている）、判定器だけ
+# 旧既定のままでは揃わないため300秒へ引き上げる。
+TIMEOUT_SEC=300
 ONLY_PATH=""
 while [ $# -gt 0 ]; do
   case "$1" in
