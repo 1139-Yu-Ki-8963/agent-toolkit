@@ -4,7 +4,7 @@ name: generating-requirement-definitions-for-reverse-docs
 description: "対象のコードは読まず、作成済みの一覧の元データと個別の基本設計書から確かめられる事実だけで、要件定義の5つの文書を作る。"
 invocation: generating-requirement-definitions-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

@@ -4,7 +4,7 @@ name: generating-table-logical-model-for-reverse-docs
 description: "テーブル一覧の元データと実装のコードから、テーブルが持つ業務上の意味を業務の言葉だけで書く。"
 invocation: generating-table-logical-model-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

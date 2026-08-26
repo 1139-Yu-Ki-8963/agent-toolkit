@@ -4,7 +4,7 @@ name: generating-env-guide-for-reverse-docs
 description: "調査書とローカル環境の調査結果をもとに、環境構築の手順ページを機械的に作る。"
 invocation: generating-env-guide-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Grep, Read, Write]
 ---
 
 ## いつ使うか

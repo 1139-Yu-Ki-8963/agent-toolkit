@@ -70,6 +70,22 @@ const toolNames = [
   "TaskUpdate",
   "Write",
 ];
+const negativeToolUse = /(?:不使用|使わない|使用してはならない|発行しない|聞き出さない|書かない|禁止|撤廃|再openしない|渡さない|させない|ではなく)/;
+
+function bodyUsesTool(lines, tool) {
+  const bodyStart = lines.indexOf("---", 1) + 1;
+  return lines
+    .slice(bodyStart)
+    .flatMap((line) => line.split(/。|(?:が|けれども|ただし)[、,]/))
+    .some((segment) => {
+      if (!new RegExp(`\\b${tool}\\b`).test(segment) || negativeToolUse.test(segment)) {
+        return false;
+      }
+      if (tool !== "Skill") return true;
+      if (/が Skill\s*ツールで呼び出/.test(segment)) return false;
+      return /(?:Skill\s*\(|Skill\s*ツール.{0,30}(?:起動|呼び出)|Skill.{0,15}(?:を|で)(?:順次)?起動)/.test(segment);
+    });
+}
 
 const skillFiles = singleTarget
   ? [singleTarget]
@@ -221,7 +237,7 @@ for (const file of skillFiles) {
   });
   closePhase();
   for (const tool of allowedTools) {
-    if (!usedTools.has(tool)) {
+    if (!usedTools.has(tool) && !bodyUsesTool(lines, tool)) {
       warn(
         file,
         1,

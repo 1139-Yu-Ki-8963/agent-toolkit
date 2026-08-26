@@ -4,7 +4,7 @@ name: generating-cross-views-for-reverse-docs
 description: "画面・接続窓口・データの一覧をもとに、権限や関係を示す対応表と、エージェント設定のページをまとめて作る。"
 invocation: generating-cross-views-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

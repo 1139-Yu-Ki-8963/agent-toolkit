@@ -4,7 +4,7 @@ name: unlocking-reverse-target-screens
 description: 対象画面と依存先を調べてデータ取得を差し替え、画面を起動して検証用のアドレスを記録し、単独実行では比較の基準を確立する。
 invocation: unlocking-reverse-target-screens
 type: orchestration
-allowed-tools: [Bash, Edit, Glob, Grep, Read, Skill, TaskUpdate, Write]
+allowed-tools: [Bash, Edit, Glob, Grep, Read, Skill, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

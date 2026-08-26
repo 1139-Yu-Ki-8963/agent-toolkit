@@ -166,6 +166,11 @@ perl -pi -e 's/^allowed-tools: \[Bash, Read, Write\]$/allowed-tools: [Bash, Read
 assert_warned "allowed-toolsの未使用ツール" "W_ALLOWED_TOOLS"
 
 cp "$tmp/original-skill.md" "$target"
+perl -pi -e 's/^allowed-tools: \[Bash, Read, Write\]$/allowed-tools: [Bash, Read, Write, Glob]/' "$target"
+printf '\nGlob は使わない。\n' >> "$target"
+assert_warned "Step外の不使用記述を実使用に数えない" "W_ALLOWED_TOOLS"
+
+cp "$tmp/original-skill.md" "$target"
 
 # 改善課題1-168: 位置引数で単一の定義文書を指定した場合、その対象のみの検査結果が返ること
 # （リポジトリ全体を前提とする横断チェックの影響を受けないことも合わせて確認する）

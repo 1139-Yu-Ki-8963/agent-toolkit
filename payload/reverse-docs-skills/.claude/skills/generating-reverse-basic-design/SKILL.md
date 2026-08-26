@@ -4,7 +4,7 @@ name: generating-reverse-basic-design
 description: "確定した事実の記録だけを使い、業務の言葉だけで基本設計書を書く。"
 invocation: generating-reverse-basic-design
 type: transform
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

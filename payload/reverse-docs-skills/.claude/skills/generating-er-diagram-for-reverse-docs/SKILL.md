@@ -4,7 +4,7 @@ name: generating-er-diagram-for-reverse-docs
 description: "表の一覧と参照関係の定義をもとに、表同士のつながりを表す図を機械的に作る。"
 invocation: generating-er-diagram-for-reverse-docs
 type: transform
-allowed-tools: [AskUserQuestion, Bash, Read, Write]
+allowed-tools: [AskUserQuestion, Bash, Grep, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

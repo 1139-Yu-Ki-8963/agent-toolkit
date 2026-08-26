@@ -4,7 +4,7 @@ name: generating-entity-state-for-reverse-docs
 description: "データ設計文書の状態遷移表をもとに、状態の移り変わりを示す図のページを機械的に作る。"
 invocation: generating-entity-state-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

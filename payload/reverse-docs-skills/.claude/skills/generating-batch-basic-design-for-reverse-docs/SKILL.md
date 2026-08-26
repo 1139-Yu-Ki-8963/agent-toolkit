@@ -4,7 +4,7 @@ name: generating-batch-basic-design-for-reverse-docs
 description: "定期的に実行する処理（バッチ）を1本ごとに取り上げ、業務の言葉だけで基本設計書を作る。"
 invocation: generating-batch-basic-design-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

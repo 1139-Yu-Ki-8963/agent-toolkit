@@ -4,7 +4,7 @@ name: generating-report-basic-design-for-reverse-docs
 description: "帳票一件ごとの基本設計書を、業務の言葉だけで書き起こす。"
 invocation: generating-report-basic-design-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

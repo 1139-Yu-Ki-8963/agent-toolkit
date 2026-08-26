@@ -4,7 +4,7 @@ name: generating-report-detail-design-for-reverse-docs
 description: "帳票の詳細設計書を、元のコードの編集処理から書き起こす。"
 invocation: generating-report-detail-design-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

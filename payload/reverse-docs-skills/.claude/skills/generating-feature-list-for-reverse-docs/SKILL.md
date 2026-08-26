@@ -4,7 +4,7 @@ name: generating-feature-list-for-reverse-docs
 description: "既にある種別ごとの一覧をもとに、画面と接続窓口を業務の機能ごとにまとめた一覧を作る。"
 invocation: generating-feature-list-for-reverse-docs
 type: transform
-allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
+allowed-tools: [AskUserQuestion, Bash, Glob, Grep, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

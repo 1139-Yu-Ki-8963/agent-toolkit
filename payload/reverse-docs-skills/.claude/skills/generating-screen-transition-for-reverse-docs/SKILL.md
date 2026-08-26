@@ -4,7 +4,7 @@ name: generating-screen-transition-for-reverse-docs
 description: "画面一覧の元データとコード内の経路の定義を突き合わせ、画面遷移図のページを機械的に作る。"
 invocation: generating-screen-transition-for-reverse-docs
 type: transform
-allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
+allowed-tools: [AskUserQuestion, Bash, Grep, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

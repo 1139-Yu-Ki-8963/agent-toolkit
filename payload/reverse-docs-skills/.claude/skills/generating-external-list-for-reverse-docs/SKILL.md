@@ -4,7 +4,7 @@ name: generating-external-list-for-reverse-docs
 description: "既にあるコードから外部との連携先を洗い出し、一覧のページを作る。"
 invocation: generating-external-list-for-reverse-docs
 type: transform
-allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
+allowed-tools: [AskUserQuestion, Bash, Glob, Grep, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

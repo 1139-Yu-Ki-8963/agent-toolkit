@@ -4,7 +4,7 @@ name: generating-screen-list-for-reverse-docs
 description: "既存のコードから画面ごとの単位を見つけ出し、画面一覧のページを作る。"
 invocation: generating-screen-list-for-reverse-docs
 type: transform
-allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
+allowed-tools: [AskUserQuestion, Bash, Glob, Grep, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

@@ -4,7 +4,7 @@ name: generating-release-notes-for-reverse-docs
 description: "対象のコードの変更履歴をもとに、更新内容をまとめたページを作る。"
 invocation: generating-release-notes-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Grep, Read, Write]
 ---
 
 ## いつ使うか

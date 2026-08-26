@@ -4,7 +4,7 @@ name: generating-table-definition-for-reverse-docs
 description: "テーブル一覧の元データと実装のコードから、テーブルごとの定義書を作る。"
 invocation: generating-table-definition-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

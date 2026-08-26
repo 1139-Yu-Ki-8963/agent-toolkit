@@ -4,7 +4,7 @@ name: generating-reverse-detailed-design
 description: "確定した事実の記録と共通文書だけを使い、画面の詳細設計書を書く。"
 invocation: generating-reverse-detailed-design
 type: orchestration
-allowed-tools: [Agent, Bash, Read, Write, Edit]
+allowed-tools: [Agent, Bash, Edit, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

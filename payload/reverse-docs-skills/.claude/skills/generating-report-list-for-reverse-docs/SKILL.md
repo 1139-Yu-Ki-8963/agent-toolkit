@@ -4,7 +4,7 @@ name: generating-report-list-for-reverse-docs
 description: "既存のコードから帳票の単位を見つけ出し、帳票一覧のページを作る。"
 invocation: generating-report-list-for-reverse-docs
 type: transform
-allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
+allowed-tools: [AskUserQuestion, Bash, Glob, Grep, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

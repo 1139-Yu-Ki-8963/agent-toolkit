@@ -4,7 +4,7 @@ name: generating-api-list-for-reverse-docs
 description: "既存のコードを調べて、接続窓口ごとの一覧のページを作る。"
 invocation: generating-api-list-for-reverse-docs
 type: transform
-allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
+allowed-tools: [AskUserQuestion, Bash, Glob, Grep, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

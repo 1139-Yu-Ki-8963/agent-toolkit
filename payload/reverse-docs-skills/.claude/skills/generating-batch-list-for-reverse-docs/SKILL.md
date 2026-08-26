@@ -4,7 +4,7 @@ name: generating-batch-list-for-reverse-docs
 description: "既存のコードを調べて、定期実行やきっかけ起動の処理ごとに一覧のページを作る。"
 invocation: generating-batch-list-for-reverse-docs
 type: transform
-allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
+allowed-tools: [AskUserQuestion, Bash, Glob, Grep, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

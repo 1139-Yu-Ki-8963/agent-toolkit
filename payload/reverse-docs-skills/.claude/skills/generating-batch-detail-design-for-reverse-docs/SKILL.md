@@ -4,7 +4,7 @@ name: generating-batch-detail-design-for-reverse-docs
 description: "バッチを1本ごとに取り上げ、元の処理の定義を読み解いて詳細設計書を作る。"
 invocation: generating-batch-detail-design-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

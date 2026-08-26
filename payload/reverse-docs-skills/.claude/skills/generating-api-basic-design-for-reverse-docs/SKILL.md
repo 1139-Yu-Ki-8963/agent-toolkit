@@ -4,7 +4,7 @@ name: generating-api-basic-design-for-reverse-docs
 description: "外部とやり取りする接続窓口を1本ごとに取り上げ、業務の言葉だけで基本設計書を作る。"
 invocation: generating-api-basic-design-for-reverse-docs
 type: transform
-allowed-tools: [AskUserQuestion, Bash, Read, Write]
+allowed-tools: [AskUserQuestion, Bash, Read, TaskCreate, TaskUpdate, Write]
 ---
 
 ## いつ使うか

@@ -4,7 +4,7 @@ name: running-reverse-screen-batch
 description: 対象コード、画面一覧、検証条件、出力先、雛形及び共通資料を入力に、各画面を無人で順に処理して指定工程まで設計書作成・再構築・実装照合を行い、進捗と失敗を記録する。
 invocation: running-reverse-screen-batch
 type: orchestration
-allowed-tools: [Bash, Edit, Read, Write]
+allowed-tools: [Bash, Edit, Read, Skill, Write]
 ---
 
 ## いつ使うか

@@ -4,7 +4,7 @@ name: surveying-architecture-for-reverse-docs
 description: "既存のリポジトリを調べ、機械による検証を添えてアーキテクチャ調査書を確定する。"
 invocation: surveying-architecture-for-reverse-docs
 type: orchestration
-allowed-tools: [Bash, Edit, Read, Write]
+allowed-tools: [Bash, Edit, Glob, Grep, Read, Write]
 ---
 
 ## いつ使うか

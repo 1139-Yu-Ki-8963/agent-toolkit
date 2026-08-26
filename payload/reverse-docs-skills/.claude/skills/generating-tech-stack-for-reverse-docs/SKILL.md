@@ -4,7 +4,7 @@ name: generating-tech-stack-for-reverse-docs
 description: "調査書の記載と定義ファイルの実測値を突き合わせ、技術スタックのページを機械的に作る。"
 invocation: generating-tech-stack-for-reverse-docs
 type: transform
-allowed-tools: [Bash, Read, Write]
+allowed-tools: [Bash, Grep, Read, Write]
 ---
 
 ## いつ使うか
