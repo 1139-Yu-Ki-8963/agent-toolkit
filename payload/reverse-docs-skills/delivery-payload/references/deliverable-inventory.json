@@ -236,6 +236,10 @@
       "dependsOnKind": "screen"
     },
     {
+      "kind": "integration-test-spec",
+      "evidenceSource": "none"
+    },
+    {
       "kind": "permission-function",
       "evidenceSource": "none",
       "dependsOnKind": "screen"

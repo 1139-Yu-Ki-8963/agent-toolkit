@@ -99,6 +99,13 @@
 - テストケース一覧は既存文書の派生グルーピング（派生一覧）であり、unit_kinds_present の存在判定対象外。excluded-kinds.json の allKinds にも含めない
 - 入力前提: いずれかの種別の `<kindUnitRoot>/<kind>-*/テスト設計/<種別>テスト設計書.md` または `<種別>単体テスト設計書.md` が1件以上存在すること。画面が存在する場合は操作シナリオ仕様書も集約元へ加え、新配置がない既存生成物に限り旧テスト仕様書へfallbackする（不在時は起動しない）
 
+### generating-integration-test-spec-for-reverse-docs（結合テスト仕様書）
+
+- status: `DONE | STOPPED | ERROR`
+- artifacts: `<output_dir>/docs/test-cases/結合テスト仕様書.md`
+- 入力前提: 2つ以上の設計単位が存在し、単位をまたぐ連携を定義できること。不成立時は起動しない
+- 生成後は実文書を読み、対象範囲に2つ以上の設計単位、テストケース一覧に操作手順と期待結果が記載されていることを確認する
+
 ### generating-cross-views-for-reverse-docs（マトリクス・対応表生成・派生補完）
 
 - status: `DONE | STOPPED | ERROR`

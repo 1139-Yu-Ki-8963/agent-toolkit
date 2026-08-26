@@ -119,7 +119,7 @@ else
 fi
 
 if grep -q '^## 検証範囲と文書と単位の対応$' "$FOLDER_DOC" \
-  && grep -q '単位ごとのテスト設計書は結合テストを扱わない' "$FOLDER_DOC"; then
+  && grep -q '単位ごとのテスト設計書は結合テストを扱いません' "$FOLDER_DOC"; then
   pass "検証範囲の対応表と結合テストの除外が定義されている"
 else
   fail_case "検証範囲の対応表または結合テストの除外がない"
@@ -164,10 +164,11 @@ else
 fi
 
 if ! find "$TEMPLATES/画面" -type f \( -name '単体テスト観点表.md' -o -name '結合テスト観点表.md' -o -name '単体テスト仕様書.md' -o -name '結合テスト仕様書.md' \) | grep -q . \
-  && ! find "$TEMPLATES" -mindepth 2 -maxdepth 2 -type f -name '*結合テスト*' | grep -q .; then
-  pass "旧4文書と単位配下の結合テスト文書が定義から消えている"
+  && test "$(find "$TEMPLATES" -mindepth 2 -maxdepth 2 -type f -name '*結合テスト*' | wc -l | tr -d ' ')" -eq 1 \
+  && test -f "$TEMPLATES/プロジェクト共通/結合テスト仕様書.md"; then
+  pass "旧4文書と単位配下の結合テスト文書がなく、上位の結合テスト仕様書だけがある"
 else
-  fail_case "旧4文書または単位配下の結合テスト文書が残っている"
+  fail_case "結合テスト文書が上位1冊に限定されていない"
 fi
 
 screen_test="$TEMPLATES/画面/テスト設計/画面テスト設計書.md"
