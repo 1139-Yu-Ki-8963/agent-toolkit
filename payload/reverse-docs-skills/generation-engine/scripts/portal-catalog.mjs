@@ -203,6 +203,17 @@ function validateRuleEvidence(value) {
 function resolveDefaultRootPrefix(value, defaultRoots, outputLayout, kind) {
   if (!outputLayout) return value;
   const layout = outputLayout.layout || {};
+  const exactOutputKeys = new Map([
+    ["project-portal/foundation/基盤設計.html", "platformDesignHtml"],
+    ["project-portal/foundation/共通設計書.html", "commonDesignHtml"],
+    ["project-portal/foundation/データ設計.html", "dataDesignHtml"],
+    ["project-portal/foundation/メッセージ定義書.html", "messageDesignHtml"],
+    ["project-portal/foundation/UI共通設計.html", "uiCommonDesignHtml"],
+  ]);
+  const exactOutputKey = exactOutputKeys.get(value);
+  if (exactOutputKey && typeof layout[exactOutputKey] === "string" && layout[exactOutputKey].length > 0) {
+    return layout[exactOutputKey];
+  }
   let result = value;
   for (const [key, prefix] of Object.entries(defaultRoots || {})) {
     if (result === prefix || result.startsWith(`${prefix}/`)) {

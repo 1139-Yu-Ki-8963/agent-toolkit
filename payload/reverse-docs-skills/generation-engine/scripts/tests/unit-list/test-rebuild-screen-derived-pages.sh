@@ -14,6 +14,7 @@ SCREEN_MANIFEST_REL="$(output_layout_get "$LAYOUT_JSON" screenManifest)" || exit
 SCREEN_MANIFEST_EXT_REL="$(output_layout_get "$LAYOUT_JSON" screenManifestExt)" || exit 1
 API_LIST_HTML_REL="$(output_layout_get "$LAYOUT_JSON" unitListHtml API)" || exit 1
 SCREEN_LIST_HTML_REL="$(output_layout_get "$LAYOUT_JSON" screenListHtml)" || exit 1
+PERMISSION_FUNCTION_MATRIX_HTML_REL="$(output_layout_get "$LAYOUT_JSON" permissionFunctionMatrixHtml)" || exit 1
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/screen-rebuild-test.XXXXXX")"
 # macOSでは/tmpや$TMPDIR配下が/privateへのsymlinkであり、build-portal.shの
 # assertNoLexicalSymlink（書込先の祖先path componentにsymlinkを許さないfail-closed検査）が
@@ -146,7 +147,13 @@ mkdir -p "$custom_root_out/スクリーン/screen-home/基本設計" \
   "$custom_root_out/画面/screen-home/詳細設計" \
   "$custom_root_out/画面/screen-home/テスト項目書"
 cat > "$custom_root_out/output-layout.json" <<'JSON'
-{ "specVersion": 1, "layout": { "screenUnitRoot": "スクリーン" } }
+{
+  "specVersion": 1,
+  "layout": {
+    "screenUnitRoot": "スクリーン",
+    "permissionFunctionMatrixHtml": "custom/matrices/permission-function.html"
+  }
+}
 JSON
 : > "$custom_root_out/スクリーン/screen-home/基本設計/画面基本設計書.html"
 : > "$custom_root_out/スクリーン/screen-home/詳細設計/画面詳細設計書.html"
@@ -159,12 +166,14 @@ JSON
 # SCREEN_LIST_DIR(既定 project-portal/lists/screens、3階層)基準の相対パスなので
 # output_root まで3つ上がってから対象ディレクトリへ降りる("../../../")。
 run_rebuild "$custom_root_out" --design-docs-dir "$custom_root_out/スクリーン"
-if jq -e '.layout.screenUnitRoot == "スクリーン"' "$custom_root_out/output-layout.json" >/dev/null \
+if jq -e '.layout.screenUnitRoot == "スクリーン" and .layout.permissionFunctionMatrixHtml == "custom/matrices/permission-function.html"' "$custom_root_out/output-layout.json" >/dev/null \
   && jq -e '.screens[] | select(.screenKey == "home") | .designDocPath == "../../../スクリーン/screen-home/基本設計/画面基本設計書.html" and .detailDocPath == "../../../スクリーン/screen-home/詳細設計/画面詳細設計書.html" and .sequencePath == "../../../スクリーン/screen-home/シーケンス図.html" and .testCasePath == "../../../スクリーン/screen-home/テスト項目書/単体テスト仕様書.md"' "$custom_root_out/docs/manifests/screen-manifest.ext.json" >/dev/null \
-  && ! jq -e '.. | strings | select(contains("../../../画面/screen-home/"))' "$custom_root_out/docs/manifests/screen-manifest.ext.json" >/dev/null; then
-  echo "PASS: rebuildへcustom design-docs-dirを渡しext manifestはスクリーンだけを指す"
+  && ! jq -e '.. | strings | select(contains("../../../画面/screen-home/"))' "$custom_root_out/docs/manifests/screen-manifest.ext.json" >/dev/null \
+  && [ -f "$custom_root_out/custom/matrices/permission-function.html" ] \
+  && [ ! -e "$custom_root_out/マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html" ]; then
+  echo "PASS: rebuildは合成定義のscreenUnitRootとpermissionFunctionMatrixHtmlだけへ生成する"
 else
-  echo "FAIL: rebuildのscreenUnitRoot呼出契約またはext manifest linkが不正" >&2
+  echo "FAIL: rebuildの合成出力定義への配線またはext manifest linkが不正" >&2
   exit 1
 fi
 
@@ -202,7 +211,7 @@ managed=(
   "マトリクス・対応表/data/crud-matrix.json"
   "マトリクス・対応表/data/traceability.json"
   "マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html"
-  "マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html"
+  "$PERMISSION_FUNCTION_MATRIX_HTML_REL"
   "マトリクス・対応表/CRUD図/CRUD図.html"
   "マトリクス・対応表/画面-API-テーブル対応表/画面-API-テーブル対応表.html" "index.html"
 )

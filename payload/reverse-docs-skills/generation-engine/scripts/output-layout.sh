@@ -121,7 +121,8 @@ output_layout_validate() {
     const required = [
       "docsRoot", "rulesRoot", "manifestsRoot", "scopeProgressRoot", "screenUnitRoot", "commonRoot",
       "apiUnitRoot", "tableUnitRoot", "batchUnitRoot", "reportUnitRoot", "externalUnitRoot", "featureUnitRoot",
-      "unitTestDesignDir"
+      "unitTestDesignDir", "permissionFunctionMatrixHtml", "platformDesignHtml", "commonDesignHtml",
+      "dataDesignHtml", "messageDesignHtml", "uiCommonDesignHtml"
     ];
     for (const key of required) {
       const value = layout[key];
@@ -238,6 +239,49 @@ output_layout_get() {
   return 0
 }
 
+# output_layout_assert_path <合成JSON> <出力ルート> <キー> <候補出力先>
+#
+# 出力先を引数で受ける生成経路が、宣言に無い場所へ書き出すことを防ぐ。
+# 候補と宣言値は正規化後の絶対パスで比較し、同じ場所だけを受け付ける。
+output_layout_assert_path() {
+  local layout_json="$1"
+  local output_root="$2"
+  local key="$3"
+  local candidate="$4"
+  local declared_rel
+  declared_rel="$(output_layout_get "$layout_json" "$key")" || return $?
+  node - "$output_root" "$output_root/$declared_rel" "$candidate" "$key" <<'NODE'
+const fs = require("fs");
+const path = require("path");
+const [outputRoot, declared, candidate, key] = process.argv.slice(2);
+const root = path.resolve(outputRoot);
+const declaredPath = path.resolve(declared);
+const candidatePath = path.resolve(candidate);
+const relative = path.relative(root, candidatePath);
+if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+  process.stderr.write(`ERROR: ${key} の出力先は出力ルート配下でなければなりません: ${candidate}\n`);
+  process.exit(2);
+}
+let current = path.parse(candidatePath).root;
+for (const segment of candidatePath.slice(current.length).split(path.sep).filter(Boolean)) {
+  current = path.join(current, segment);
+  try {
+    if (fs.lstatSync(current).isSymbolicLink()) {
+      process.stderr.write(`ERROR: ${key} の出力先にシンボリックリンクを含められません: ${current}\n`);
+      process.exit(2);
+    }
+  } catch (error) {
+    if (error && error.code === "ENOENT") break;
+    throw error;
+  }
+}
+if (declaredPath !== candidatePath) {
+  process.stderr.write(`ERROR: ${key} の出力先は output-layout の定義と一致しません: ${candidate}\n`);
+  process.exit(2);
+}
+NODE
+}
+
 # 合成済み宣言から種別キーの日本語ラベルを取り出す。
 # output_layout_kind_label <合成JSON> <kind>
 output_layout_kind_label() {
@@ -255,6 +299,7 @@ output_layout_kind_label() {
 
 output_layout_self_test() {
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/output-layout-self-test.XXXXXX")"
+  tmp="$(cd "$tmp" && pwd -P)"
   trap 'rm -rf "$tmp"' RETURN
   rc=0
 
@@ -597,6 +642,55 @@ JSON
     echo "  [PASS] ケース21: kindDirNames・directoryNamePolicy・displayLabels・unitPhaseDirNamesの4キーが合成結果に含まれる"
   else
     echo "  [FAIL] ケース21: 4キーのうち${ok21}/4件のみ合成結果に含まれた" >&2
+    rc=1
+  fi
+
+  # ケース22: 1-211対象の6鍵は合成後の定義先だけを受け付け、候補引数が
+  #           定義外なら全鍵でreturn 2となる
+  cat > "$tmp/output-layout.json" <<'JSON'
+{
+  "specVersion": 1,
+  "layout": {
+    "permissionFunctionMatrixHtml": "custom/matrices/permission-function.html",
+    "platformDesignHtml": "custom/foundation/platform.html",
+    "commonDesignHtml": "custom/foundation/common.html",
+    "dataDesignHtml": "custom/foundation/data.html",
+    "messageDesignHtml": "custom/foundation/message.html",
+    "uiCommonDesignHtml": "custom/foundation/ui-common.html"
+  }
+}
+JSON
+  ov22="$(resolve_output_layout "$tmp")" || true
+  ok22=0
+  rejected22=0
+  for key22 in permissionFunctionMatrixHtml platformDesignHtml commonDesignHtml dataDesignHtml messageDesignHtml uiCommonDesignHtml; do
+    rel22="$(output_layout_get "$ov22" "$key22" 2>/dev/null)" || continue
+    if output_layout_assert_path "$ov22" "$tmp" "$key22" "$tmp/$rel22" >/dev/null 2>&1; then
+      ok22=$((ok22 + 1))
+    fi
+    output_layout_assert_path "$ov22" "$tmp" "$key22" "$tmp/undefined/$key22.html" >/dev/null 2>&1
+    [ "$?" -eq 2 ] && rejected22=$((rejected22 + 1))
+  done
+  rm -f "$tmp/output-layout.json"
+  if [ "$ok22" -eq 6 ] && [ "$rejected22" -eq 6 ]; then
+    echo "  [PASS] ケース22: 1-211対象6鍵の合成定義先を受理し、定義外の候補引数を全鍵で拒否"
+  else
+    echo "  [FAIL] ケース22: 1-211対象6鍵の出力先検査が不正 (defined=$ok22/6 rejected=$rejected22/6)" >&2
+    rc=1
+  fi
+
+  # ケース23: 6鍵の宣言値自体に上位脱出を入れた合成定義を全鍵で拒否する
+  rejected23=0
+  for key23 in permissionFunctionMatrixHtml platformDesignHtml commonDesignHtml dataDesignHtml messageDesignHtml uiCommonDesignHtml; do
+    jq -n --arg key "$key23" '{specVersion: 1, layout: {($key): "../../outside.html"}}' > "$tmp/output-layout.json"
+    resolve_output_layout "$tmp" >/dev/null 2>&1
+    [ "$?" -ne 0 ] && rejected23=$((rejected23 + 1))
+  done
+  rm -f "$tmp/output-layout.json"
+  if [ "$rejected23" -eq 6 ]; then
+    echo "  [PASS] ケース23: 1-211対象6鍵の宣言値による出力ルート脱出を全鍵で拒否"
+  else
+    echo "  [FAIL] ケース23: 1-211対象6鍵のルート脱出を${rejected23}/6件だけ拒否" >&2
     rc=1
   fi
 

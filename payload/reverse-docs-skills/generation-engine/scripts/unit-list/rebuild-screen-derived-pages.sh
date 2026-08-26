@@ -49,6 +49,7 @@ SCREEN_MANIFEST="$(output_layout_get "$LAYOUT_JSON" screenManifest)" || exit 1
 SCREEN_MANIFEST_EXT="$(output_layout_get "$LAYOUT_JSON" screenManifestExt)" || exit 1
 SCREEN_LIST_DIR="$(output_layout_get "$LAYOUT_JSON" screenListDir)" || exit 1
 SCREEN_LIST_HTML="$(output_layout_get "$LAYOUT_JSON" screenListHtml)" || exit 1
+PERMISSION_FUNCTION_MATRIX_HTML="$(output_layout_get "$LAYOUT_JSON" permissionFunctionMatrixHtml)" || exit 1
 
 node - "$raw" "$output_root/$SCREEN_MANIFEST" <<'NODE'
 const path = require("path");
@@ -91,7 +92,7 @@ managed=(
   "マトリクス・対応表/data/crud-matrix.json"
   "マトリクス・対応表/data/traceability.json"
   "マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html"
-  "マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html"
+  "$PERMISSION_FUNCTION_MATRIX_HTML"
   "マトリクス・対応表/CRUD図/CRUD図.html"
   "マトリクス・対応表/画面-API-テーブル対応表/画面-API-テーブル対応表.html"
   "index.html"
@@ -241,12 +242,14 @@ build_matrix() {
 # スキップした場合も不在のままにし、commit時に既存outputから削除できるようにする。
 rm -f \
   "$transaction_root/マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html" \
-  "$transaction_root/マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html" \
+  "$transaction_root/$PERMISSION_FUNCTION_MATRIX_HTML" \
   "$transaction_root/マトリクス・対応表/CRUD図/CRUD図.html" \
   "$transaction_root/マトリクス・対応表/画面-API-テーブル対応表/画面-API-テーブル対応表.html"
 
 build_matrix permission-screen "$matrix_dir/permission-matrix.json" "$transaction_root/マトリクス・対応表/権限画面マトリクス/権限画面マトリクス.html"
-build_matrix permission-function "$matrix_dir/permission-function-matrix.json" "$transaction_root/マトリクス・対応表/権限機能マトリクス/権限機能マトリクス.html"
+permission_function_output="$transaction_root/$PERMISSION_FUNCTION_MATRIX_HTML"
+output_layout_assert_path "$LAYOUT_JSON" "$transaction_root" permissionFunctionMatrixHtml "$permission_function_output" || exit 1
+build_matrix permission-function "$matrix_dir/permission-function-matrix.json" "$permission_function_output"
 build_matrix crud "$matrix_dir/crud-matrix.json" "$transaction_root/マトリクス・対応表/CRUD図/CRUD図.html"
 build_matrix traceability "$matrix_dir/traceability.json" "$transaction_root/マトリクス・対応表/画面-API-テーブル対応表/画面-API-テーブル対応表.html"
 
@@ -268,7 +271,7 @@ cmp "$backup_root/unmanaged-before" "$backup_root/unmanaged-after" \
 for rel in "${managed[@]}"; do
   if [ ! -f "$transaction_root/$rel" ]; then
     case "$rel" in
-      マトリクス・対応表/*/*.html)
+      "$PERMISSION_FUNCTION_MATRIX_HTML"|マトリクス・対応表/*/*.html)
         : # 必須成分0件によるスキップ。任意出力のため実在検査を免除する
         ;;
       *)

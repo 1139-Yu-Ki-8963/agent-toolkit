@@ -464,6 +464,12 @@ scanRoots.add(path.resolve(screenViewRootRaw));
 const catalog = JSON.parse(fs.readFileSync(catalogFile, 'utf8'));
 const outputLayoutJson = JSON.parse(fs.readFileSync(outputLayoutFile, 'utf8'));
 const outputLayout = outputLayoutJson.layout;
+for (const key of ['platformDesignHtml', 'commonDesignHtml', 'dataDesignHtml', 'messageDesignHtml', 'uiCommonDesignHtml']) {
+  const value = outputLayout && outputLayout[key];
+  if (typeof value === 'string' && value.length > 0) {
+    scanRoots.add(path.dirname(path.resolve(docsRoot, value)));
+  }
+}
 const catalogCommonOutputs = new Set();
 const catalogOtherOutputs = new Set();
 function resolveDefaultRootPrefix(value) {
@@ -681,17 +687,16 @@ function existingFileHref(relativePath) {
 
   let targetFile = sourceFile;
   const baseName = path.basename(sourceFile);
-  if (foundationOutDir && foundationBasenames.has(baseName)) {
+  const mapped = mdToHtmlMap.get(path.resolve(sourceFile));
+  if (mapped) {
+    // 個別の生成物鍵を含む対応表を最優先し、foundationDirとは異なる宣言先にも追従する。
+    targetFile = mapped;
+  } else if (foundationOutDir && foundationBasenames.has(baseName)) {
     // 基盤文書は commonRoot 配下に実在すれば必ずこのビルドで foundationDir 配下へ
     // 変換される（宣言済みの既知集合のため、生成物の実在確認は不要）。
     targetFile = path.join(foundationOutDir, baseName.replace(/\.md$/i, '.html'));
   } else {
-    const mapped = mdToHtmlMap.get(path.resolve(sourceFile));
-    if (mapped) {
-      // 対応表に載っている（＝このビルドの変換対象である）参照は、実際にまだ変換済み
-      // かどうかによらず、必ず生成される先へ解決する（改善課題1-41）。
-      targetFile = mapped;
-    } else {
+    {
       // 対応表に載っていない参照（rules・screen等、対応表の対象外のループから呼ばれた
       // 場合）は、参照先の .md に対応する生成物（.html）が実際に出力されている場合
       // だけそちらへ解決する（改善課題1-40）。無ければ元の .md 参照のまま残す
@@ -5002,16 +5007,20 @@ FOUNDATION_OUT_DIR="$DOCS_ROOT/$LAYOUT_FOUNDATION_DIR"
 # 資料の置き場）へ物理分離する。宣言外の文書（プロジェクト固有の補助文書等）は commonRoot
 # に .md と .html を co-locate したまま維持する（分離は「人に見せる基盤文書」に限定する）。
 FOUNDATION_KNOWN_BASENAMES=""
+FOUNDATION_KNOWN_PATHS=""
 # 1-35: 基盤文書はすべて foundationDir へ物理分離されるが、ポータルカタログ上の所属カテゴリは
 # 文書ごとに異なる（surveyDoc＝アーキテクチャ調査書は「project」＝基盤情報、それ以外の
 # foundationDoc・commonDesignDoc・dataDesignDoc・messageDoc・uiCommonDoc は「design」＝設計書。
 # 定義は delivery-payload/references/portal-catalog.json の categories[].blueprints[].discovery.glob）。
 # パンくずの中カテゴリは物理配置ではなく、この所属カテゴリで判定する。
 FOUNDATION_CATEGORY_MAP=""
+FOUNDATION_OUTPUT_MAP=""
 for foundation_doc_key in foundationDoc commonDesignDoc dataDesignDoc messageDoc uiCommonDoc surveyDoc; do
   foundation_doc_path="$(output_layout_get "$LAYOUT_JSON" "$foundation_doc_key" 2>/dev/null)" || continue
   foundation_doc_basename="$(basename "$foundation_doc_path")"
   FOUNDATION_KNOWN_BASENAMES="${FOUNDATION_KNOWN_BASENAMES}${foundation_doc_basename}
+"
+  FOUNDATION_KNOWN_PATHS="${FOUNDATION_KNOWN_PATHS}${DOCS_ROOT}/${foundation_doc_path}
 "
   if [ "$foundation_doc_key" = "surveyDoc" ]; then
     foundation_doc_category="project"
@@ -5020,6 +5029,21 @@ for foundation_doc_key in foundationDoc commonDesignDoc dataDesignDoc messageDoc
   fi
   FOUNDATION_CATEGORY_MAP="${FOUNDATION_CATEGORY_MAP}${foundation_doc_basename}	${foundation_doc_category}
 "
+  case "$foundation_doc_key" in
+    foundationDoc) foundation_output_key="platformDesignHtml" ;;
+    commonDesignDoc) foundation_output_key="commonDesignHtml" ;;
+    dataDesignDoc) foundation_output_key="dataDesignHtml" ;;
+    messageDoc) foundation_output_key="messageDesignHtml" ;;
+    uiCommonDoc) foundation_output_key="uiCommonDesignHtml" ;;
+    *) foundation_output_key="" ;;
+  esac
+  if [ -n "$foundation_output_key" ]; then
+    foundation_output_rel="$(output_layout_get "$LAYOUT_JSON" "$foundation_output_key")" || exit 1
+    foundation_output_abs="$DOCS_ROOT/$foundation_output_rel"
+    output_layout_assert_path "$LAYOUT_JSON" "$DOCS_ROOT" "$foundation_output_key" "$foundation_output_abs" || exit 1
+    FOUNDATION_OUTPUT_MAP="${FOUNDATION_OUTPUT_MAP}${DOCS_ROOT}/${foundation_doc_path}	${foundation_output_abs}
+"
+  fi
 done
 # 1-41: 本文中の.md参照が、参照元と参照先の処理順序に左右されず解決できるよう、
 # これから変換する全.mdファイルの変換先(.html)を先読みした対応表を先に作る
@@ -5034,8 +5058,14 @@ for md_map_dir in "${common_roots[@]}"; do
   while IFS= read -r md_map_file; do
     md_map_basename="$(basename "$md_map_file")"
     html_map_basename="$(basename "$md_map_file" .md).html"
-    if printf '%s' "$FOUNDATION_KNOWN_BASENAMES" | grep -qxF "$md_map_basename"; then
-      html_map_file="$FOUNDATION_OUT_DIR/$html_map_basename"
+    if printf '%s' "$FOUNDATION_KNOWN_PATHS" | grep -qxF "$md_map_file"; then
+      html_map_file=""
+      while IFS=$'\t' read -r output_map_source output_map_path; do
+        [ "$output_map_source" = "$md_map_file" ] || continue
+        html_map_file="$output_map_path"
+        break
+      done <<< "$FOUNDATION_OUTPUT_MAP"
+      [ -n "$html_map_file" ] || html_map_file="$FOUNDATION_OUT_DIR/$html_map_basename"
     else
       html_map_file="$(dirname "$md_map_file")/$html_map_basename"
     fi
@@ -5124,10 +5154,16 @@ if [ -d "$common_dir" ]; then
         break
       fi
     done <<< "$FOUNDATION_CATEGORY_MAP"
-    if printf '%s' "$FOUNDATION_KNOWN_BASENAMES" | grep -qxF "$md_basename"; then
-      mkdir -p "$FOUNDATION_OUT_DIR"
-      html_file="$FOUNDATION_OUT_DIR/$html_basename"
-      html_dir_for_links="$FOUNDATION_OUT_DIR"
+    if printf '%s' "$FOUNDATION_KNOWN_PATHS" | grep -qxF "$md_file"; then
+      html_file=""
+      while IFS=$'\t' read -r output_map_source output_map_path; do
+        [ "$output_map_source" = "$md_file" ] || continue
+        html_file="$output_map_path"
+        break
+      done <<< "$FOUNDATION_OUTPUT_MAP"
+      [ -n "$html_file" ] || html_file="$FOUNDATION_OUT_DIR/$html_basename"
+      html_dir_for_links="$(dirname "$html_file")"
+      mkdir -p "$html_dir_for_links"
     else
       html_file="$(dirname "$md_file")/$html_basename"
       html_dir_for_links="$(dirname "$md_file")"

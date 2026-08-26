@@ -541,6 +541,20 @@
 
 **廃棄条件**: 1-269の判定表自体を`docs/tasks/done/`へ移し、以後参照しなくなった時。
 
+### check-label-collision-wiring.sh
+
+**必要性**: 対象は`docs/tasks/置き場の名前と表示見出しの衝突を検出する指示書.md`（1-213）の判定表の3行目である。判定「第1層の集約の一覧に含まれる」の式は`run-layer-machine-checks.sh --list | grep -q 'check-portal-label-collision'`であり、縦棒（パイプ）を含む。この式を判定表へ直接書くと、片付けの判定器（`docs/scripts/judge-task-done.sh`）が縦棒を列の区切りと読み違え、判定行そのものを壊す。実測（2026-08-26）でこの事故が起き、状態欄が`grep -q 'check-portal-label-collision'`という定めていない5つの値のいずれにも当たらない値になった。式をこのファイルへ移し、表からは短いファイル名だけを呼ぶ形にする。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: 判定表を埋めるたびに`--list`の出力とgrepの組み合わせを手で組み立てると、実行のたびに判定基準がぶれる。実際に今回、判定行そのものが壊れる事故が起きた
+- 既存`check-layer1-declarations.sh`・`check-case49-orphan-html.sh`への同居: いずれも対象の検査（第1層の集約の宣言済み長時間・成功本数、`build-portal.sh`の自己テストケース49）が異なる。本検査は`run-layer-machine-checks.sh --list`の出力に特定の検査名が含まれるかという別の判定を持つ
+- 既存 Makefile ターゲット拡張: このリポジトリに Makefile は存在せず、新規導入は本スクリプト専用の依存を増やすだけになる
+- package.json scripts 追加: 同様に、このリポジトリはビルド設定を持たない
+
+**保守責任者**: 人手（ユーザー）。検出対象の検査名（`check-portal-label-collision`）を変更する場合は本スクリプトと1-213の指示書の判定表を同時に更新する。
+
+**廃棄条件**: 1-213の判定表自体を`docs/tasks/done/`へ移し、以後参照しなくなった時。
+
 ## プロジェクト上書き
 
 - 上書き可否: プロジェクト固有規約（reverse-docs-skills 専用）
