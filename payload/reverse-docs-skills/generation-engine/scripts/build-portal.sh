@@ -1078,7 +1078,7 @@ run_project_name_self_test() {
   local test36_dir test36_repo test36_docs test36_explicit_log test36_index
   local test36_docs2 test36_fallback_log test36_index2
 
-  # --- ケース36: --project-name明示指定時は指定名がタイトル・ブランド名・見出し・フッターへ
+  # ケース36: --project-name明示指定時は指定名がタイトル・ブランド名・見出し・フッターへ
   # 反映され、未指定時はディレクトリ名(basename)へのフォールバック警告が残ること(1-172) ---
   test36_dir="$(create_physical_tmpdir "${TMPDIR:-/tmp}/build-portal-test36.XXXXXX")"
   test36_repo="$test36_dir/一時作業ディレクトリ名"
@@ -1536,6 +1536,17 @@ if [ "${1:-}" = "--self-test" ]; then
   set +e
   SELF_TEST_CASE_FAIL_COUNT=0
   SELF_TEST_CASE_UNKNOWN_COUNT=0
+  # 見出しを実際に出力した件数を数える。ソース上のケース見出し数と
+  # 突き合わせることで、末尾まで来ただけでなく全ケースを走査したことを確認する。
+  SELF_TEST_CASE_EXECUTED_COUNT=0
+  SELF_TEST_CASE_HEADING_PREFIX="--- ""ケース"
+  SELF_TEST_CASE_TOTAL_COUNT="$(awk '$1 == "echo" && $2 ~ /^"---/ && index($0, "ケース") { count++ } END { print count + 0 }' "$0")"
+  echo() {
+    case "${1:-}" in
+      "$SELF_TEST_CASE_HEADING_PREFIX"*) SELF_TEST_CASE_EXECUTED_COUNT=$((SELF_TEST_CASE_EXECUTED_COUNT + 1)) ;;
+    esac
+    builtin echo "$@"
+  }
   record_self_test_case_failure() {
     SELF_TEST_CASE_FAIL_COUNT=$((SELF_TEST_CASE_FAIL_COUNT + 1))
     return 0
@@ -1673,6 +1684,12 @@ FIXTURE
   fi
   if [ "$case1_pass" -ne 1 ]; then
     echo "FAIL: --self-test ケース1（旧スキーマ互換）" >&2
+    record_self_test_case_failure
+  fi
+  # 改善課題1-243の恒久陰性fixture。通常のケース1が合格していても、呼び出し側から
+  # ケース1相当の不合格を注入し、後続ケースと末尾集計へ到達することを実測できる。
+  if [ "${BUILD_PORTAL_SELF_TEST_FORCE_CASE1_FAILURE:-0}" = "1" ]; then
+    echo "FAIL: --self-test ケース1（継続確認用の強制不合格fixture）" >&2
     record_self_test_case_failure
   fi
 
@@ -3759,7 +3776,7 @@ TEST34_D_MD
   run_project_name_self_test || record_self_test_case_failure
   run_prepared_detail_pages_self_test || record_self_test_case_failure
 
-  # --- ケース37: 信頼境界の宣言がポータルTOP・画面詳細設計書・画面基本設計書へ
+  # ケース37: 信頼境界の宣言がポータルTOP・画面詳細設計書・画面基本設計書へ
   # 機械挿入されること(1-171) ---
   test37_dir="$(create_physical_tmpdir "${TMPDIR:-/tmp}/build-portal-test37.XXXXXX")"
   test37_repo="$test37_dir/repo"
@@ -4439,12 +4456,16 @@ TEST48DETAIL
   # のcount_cases()）と衝突しないよう、この集計行は「PASS:」「FAIL:」で
   # 始めない（SELF-TEST SUMMARY: を接頭辞にする）。1件でも不合格を記録して
   # いれば非0で終了し、走り切ったことと不合格の有無を両立して報告する。
+  if [ "$SELF_TEST_CASE_EXECUTED_COUNT" -ne "$SELF_TEST_CASE_TOTAL_COUNT" ]; then
+    echo "FAIL: --self-test 走査件数（実行 ${SELF_TEST_CASE_EXECUTED_COUNT} 件 / 走査総数 ${SELF_TEST_CASE_TOTAL_COUNT} 件）" >&2
+    record_self_test_case_failure
+  fi
+  echo "SELF-TEST SUMMARY: 実行 ${SELF_TEST_CASE_EXECUTED_COUNT} 件 / 走査総数 ${SELF_TEST_CASE_TOTAL_COUNT} 件 / 不合格 ${SELF_TEST_CASE_FAIL_COUNT} 件 / 判定不能 ${SELF_TEST_CASE_UNKNOWN_COUNT} 件"
   set -e
   if [ "$SELF_TEST_CASE_UNKNOWN_COUNT" -ne 0 ]; then
-    echo "[UNKNOWN] SELF-TEST SUMMARY: 判定不能 ${SELF_TEST_CASE_UNKNOWN_COUNT} 件（実行環境の制約により合否を判定できません）" >&2
+    echo "[UNKNOWN] SELF-TEST SUMMARY: 実行 ${SELF_TEST_CASE_EXECUTED_COUNT} 件 / 走査総数 ${SELF_TEST_CASE_TOTAL_COUNT} 件 / 判定不能 ${SELF_TEST_CASE_UNKNOWN_COUNT} 件（実行環境の制約により合否を判定できません）" >&2
     exit 2
   fi
-  echo "SELF-TEST SUMMARY: 不合格 ${SELF_TEST_CASE_FAIL_COUNT} 件（ケース1件不合格でも以降のケースを打ち切らず走り切る。改善課題1-243）"
   if [ "$SELF_TEST_CASE_FAIL_COUNT" -ne 0 ]; then
     exit 1
   fi
