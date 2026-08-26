@@ -249,6 +249,11 @@ scaffold_missing_phase_files() {
       return 1
     fi
   done < <(find "$staging" -name '*.md' -type f)
+  if ! node "$script_dir/materialize-introduction-guidance.mjs" "$staging"; then
+    rm -rf "$staging"
+    echo "エラー: 冒頭案内の本文展開に失敗しました: $staging" >&2
+    return 1
+  fi
 
   if [ "$phase_dir_existed" -eq 0 ]; then
     # 通常生成は従来どおり、完成したstagingをディレクトリ単位で配置する。

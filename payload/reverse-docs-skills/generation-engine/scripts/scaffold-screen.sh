@@ -335,6 +335,7 @@ else
       exit 1
     fi
   done < <(find "$common_dir" -name '*.md' -type f)
+  node "$script_dir/materialize-introduction-guidance.mjs" "$common_dir" || exit 1
 fi
 
 # プレースホルダ置換（GNU/BSD sed 両対応: -i.bak + rm を使用）+ 相対パス補正を1回のfindループで行う。
@@ -354,6 +355,10 @@ while IFS= read -r file; do
     exit 1
   fi
 done < <(find "$staging" -name '*.md' -type f)
+node "$script_dir/materialize-introduction-guidance.mjs" "$staging" || {
+  rm -rf "$staging"
+  exit 1
+}
 
 # 全処理成功。ここで初めて最終位置へ移動する。
 mv "$staging" "$screen_dir"
