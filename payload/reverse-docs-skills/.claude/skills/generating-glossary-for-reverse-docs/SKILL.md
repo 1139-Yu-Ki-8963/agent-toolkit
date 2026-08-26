@@ -17,6 +17,8 @@ allowed-tools: [Bash, Glob, Grep, Read, Write]
 
 # 正本: reverse-docs-skills
 
+本スキルが生成する納品物は顧客提示の文書である。自由記述の本文（要約・説明文）は敬体（です・ます）で書く。記入規則・検証記録・作業記録は常体でもよい（`delivery-payload/references/設計書様式.md` §8）。
+
 # 意味用語の候補生成互換スキル
 
 互換名を維持しながら、リバース解析で観測した語を正式proposal schemaの`detected`候補へ変換する。

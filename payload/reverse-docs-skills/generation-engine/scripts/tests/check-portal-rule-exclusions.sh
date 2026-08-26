@@ -48,8 +48,10 @@ scan() {
   while IFS= read -r p; do
     [ -z "$p" ] && continue
     total=$((total + 1))
-    if ! ( cd "$base" && compgen -G "$p" >/dev/null 2>&1 ); then
+    local match_out
+    if ! match_out="$(cd "$base" && compgen -G "$p" 2>&1)"; then
       echo "[FAIL] 除外に書かれた場所が実在しない: $p"
+      printf '%s\n' "$match_out" | sed 's/^/    /'
       missing=$((missing + 1))
     fi
   done < <(extract_paths "$rule")

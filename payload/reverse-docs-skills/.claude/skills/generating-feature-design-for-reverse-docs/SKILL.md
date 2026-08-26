@@ -17,6 +17,8 @@ allowed-tools: [AskUserQuestion, Bash, Glob, Grep, Read, TaskCreate, TaskUpdate,
 
 # 正本: reverse-docs-skills
 
+本スキルが生成する納品物は顧客提示の文書である。自由記述の本文（要約・説明文）は敬体（です・ます）で書く。記入規則・検証記録・作業記録は常体でもよい（`delivery-payload/references/設計書様式.md` §8）。
+
 # 機能設計書の執筆スキル
 
 工程全体は orchestrating-ai-development-setup が案内する。本スキルは機能単位の集約設計書の執筆のみを担い、単独起動できる。起動引数は feature_manifest_path・output_dir・template_root の 3 つで、これらを渡せば動く。`unit_kind` は **feature 固定** であり、引数では受け取らない。

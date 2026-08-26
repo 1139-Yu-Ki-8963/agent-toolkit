@@ -17,6 +17,8 @@ allowed-tools: [Bash, Read, Write]
 
 # 正本: reverse-docs-skills
 
+本スキルが生成する納品物は顧客提示の文書である。自由記述の本文（要約・説明文）は敬体（です・ます）で書く。記入規則・検証記録・作業記録は常体でもよい（`delivery-payload/references/設計書様式.md` §8）。
+
 # 帳票基本設計書の生成スキル
 
 工程全体は orchestrating-ai-development-setup が案内する。本スキルは帳票 1 本ごとの基本設計書の執筆のみを担い、単独起動できる。起動引数は report_manifest_path・source_dir・output_dir・template_root の 4 つが必須で、これらを渡せば動く。`unit_kind` は **report 固定** であり、引数では受け取らない。

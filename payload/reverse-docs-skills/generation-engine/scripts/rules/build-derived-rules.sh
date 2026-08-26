@@ -992,7 +992,7 @@ EOF
 
 self_test() {
   local rc=0
-  local src out1 out2 bst_run1_log bst_diff_log
+  local src out1 out2 bst_case1_log bst_run1_log bst_diff_log
   src="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-src.XXXXXX")"
   bst_write_fixture "$src"
 
@@ -1000,9 +1000,10 @@ self_test() {
   out1="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-out1.XXXXXX")"
   rm -rf "$out1"
   APPLY=0
-  run_build "$src" "$out1" >/dev/null 2>&1 || true
+  bst_case1_log="$(run_build "$src" "$out1" 2>&1)" || true
   if [ -d "$out1" ]; then
     echo "  [FAIL] ケース1: --apply なしで出力先ディレクトリが作成された" >&2
+    printf '%s\n' "$bst_case1_log" | sed 's/^/    /' >&2
     rc=1
   else
     echo "  [PASS] ケース1: --apply なしでは書き込みが起きない"

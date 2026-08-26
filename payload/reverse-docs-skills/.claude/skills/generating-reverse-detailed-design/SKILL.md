@@ -17,6 +17,8 @@ allowed-tools: [Agent, Bash, Read, Write, Edit]
 
 # 正本: reverse-docs-skills
 
+本スキルが生成する納品物は顧客提示の文書である。自由記述の本文（要約・説明文）は敬体（です・ます）で書く。記入規則・検証記録・作業記録は常体でもよい（`delivery-payload/references/設計書様式.md` §8）。
+
 # 確定済みfactsからのリバース設計書執筆スキル
 
 確定済み facts（facts.yml）とプロジェクト共通文書だけを情報源に、リバース設計書（画面詳細設計書・DESIGN.md・画面テスト設計書・画面単体テスト設計書）を著述する執筆専任スキル。原本コードの読解は上流スキル extracting-unit-facts-from-code が担い、本スキルはその成果物（facts_ref）を受け取って書くだけの役割に限定する。**本スキル実行中に対象リポジトリの原本コードを Read することは全面禁止**（原本を見ないという原則を壊す契約違反）である。

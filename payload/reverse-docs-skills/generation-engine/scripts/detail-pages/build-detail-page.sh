@@ -660,8 +660,15 @@ self_test() {
 
   local outdir_sites="$tmp/out-sites"
   local out_sites_html="$outdir_sites/技術スタック.html"
-  if bash "$script_path" "$data_a" "$outdir_sites" --page techstack --sites "$sites_json" --site-key site-a >/dev/null 2>&1 \
-     && [ -f "$out_sites_html" ]; then
+  local sites_build_out sites_build_rc
+  if [ -n "${SELF_TEST_FORCE_SITE_BUILD_FAILURE:-}" ]; then
+    sites_build_out="$SELF_TEST_FORCE_SITE_BUILD_FAILURE"
+    sites_build_rc=97
+  else
+    sites_build_out="$(bash "$script_path" "$data_a" "$outdir_sites" --page techstack --sites "$sites_json" --site-key site-a 2>&1)"
+    sites_build_rc=$?
+  fi
+  if [ "$sites_build_rc" -eq 0 ] && [ -f "$out_sites_html" ]; then
     local sites_data="$tmp/sites-data.json"
     python3 -c '
 import re, sys
@@ -669,14 +676,17 @@ html = open(sys.argv[1], encoding="utf-8").read()
 m = re.search(r"<script type=\"application/json\" id=\"pt-sites-data\">([\s\S]*?)</script>", html)
 sys.stdout.write(m.group(1) if m else "")
 ' "$out_sites_html" > "$sites_data" 2>/dev/null || true
-    if jq -e 'length == 2 and ([.[] | select(.current == true) | .key] == ["site-a"])' "$sites_data" >/dev/null 2>&1; then
+    local sites_jq_out
+    if sites_jq_out="$(jq -e 'length == 2 and ([.[] | select(.current == true) | .key] == ["site-a"])' "$sites_data" 2>&1)"; then
       echo "  [PASS] ケースi: --sites/--site-key指定でpt-sites-dataに2件のサイトが描画され、現在のサイトが正しくマークされる"
     else
       echo "  [FAIL] ケースi: pt-sites-dataがサイト2件を含まない、または現在のサイトのマークが不正($(cat "$sites_data" 2>/dev/null))" >&2
+      printf '%s\n' "$sites_jq_out" | sed 's/^/    /' >&2
       rc=1
     fi
   else
     echo "  [FAIL] ケースi: 生成コマンド自体が失敗した、または出力ファイルが生成されなかった" >&2
+    printf '%s\n' "$sites_build_out" | sed 's/^/    /' >&2
     rc=1
   fi
 

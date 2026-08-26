@@ -17,6 +17,8 @@ allowed-tools: [Bash, Read, Write, Grep, Glob, AskUserQuestion, TaskCreate, Task
 
 # 正本: reverse-docs-skills
 
+本スキルが生成する納品物は顧客提示の文書である。自由記述の本文（要約・説明文）は敬体（です・ます）で書く。記入規則・検証記録・作業記録は常体でもよい（`delivery-payload/references/設計書様式.md` §8）。
+
 # シーケンス図生成スキル
 
 画面・API・機能の設計単位ごとに、設計文書または確定済みfactsが明示する呼び出し順序をシーケンス図にする。左サイドバーは設計単位を親、「基本設計・詳細設計・シーケンス図」を子、「操作／処理」を孫とする。切り替えにドロップダウンは使わない。

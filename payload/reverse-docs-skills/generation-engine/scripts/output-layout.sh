@@ -261,11 +261,12 @@ output_layout_self_test() {
   # ケース1: 既定のみでキーが取れる
   base="$(resolve_output_layout "$tmp" 2>"$tmp/.resolve-err")" || true
   _gt_resolve_err="$(cat "$tmp/.resolve-err" 2>/dev/null)"
-  if [ -n "$base" ] && printf '%s' "$base" | jq -e '.layout.unitsRoot == "project-portal/lists"' >/dev/null 2>&1; then
+  _gt_case1_jq=""
+  if [ -n "$base" ] && _gt_case1_jq="$(printf '%s' "$base" | jq -e '.layout.unitsRoot == "project-portal/lists"' 2>&1)"; then
     echo "  [PASS] ケース1: 既定解決でキーが取れる"
   else
     echo "  [FAIL] ケース1: 既定解決に失敗" >&2
-    { printf '%s\n' "$_gt_resolve_err"; printf 'base=%s\n' "$base"; } | sed 's/^/    /' >&2
+    { printf '%s\n' "$_gt_resolve_err"; printf '%s\n' "$_gt_case1_jq"; printf 'base=%s\n' "$base"; } | sed 's/^/    /' >&2
     rc=1
   fi
 
@@ -584,10 +585,12 @@ JSON
   #           unitPhaseDirNames の4キーが合成結果に含まれ、値が空でないこと
   ok21=0
   for key21 in kindDirNames directoryNamePolicy displayLabels unitPhaseDirNames; do
-    if printf '%s' "$base" | jq -e --arg k "$key21" '.[$k] != null and (.[$k] | type == "object") and (.[$k] | length > 0)' >/dev/null 2>&1; then
+    _gt_case21_jq="$(printf '%s' "$base" | jq -e --arg k "$key21" '.[$k] != null and (.[$k] | type == "object") and (.[$k] | length > 0)' 2>&1)"
+    if [ "$?" -eq 0 ]; then
       ok21=$((ok21 + 1))
     else
       echo "  [FAIL] ケース21: $key21 が合成結果に含まれないか空です" >&2
+      printf '%s\n' "$_gt_case21_jq" | sed 's/^/    /' >&2
     fi
   done
   if [ "$ok21" -eq 4 ]; then

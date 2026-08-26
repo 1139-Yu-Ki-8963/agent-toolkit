@@ -112,11 +112,12 @@ EOF
   bash "$script_path" "$tmp/src" "$out_json"
 
   # --- ケースa: validate-page-data.sh 全項目PASS ---
-  if bash "$detail_pages_dir/validate-page-data.sh" "$out_json" >/dev/null 2>&1; then
+  local validate_out
+  if validate_out="$(bash "$detail_pages_dir/validate-page-data.sh" "$out_json" 2>&1)"; then
     echo "  [PASS] ケースa: 出力JSONがvalidate-page-data.shを全項目PASSで通過"
   else
     echo "  [FAIL] ケースa: 出力JSONがvalidate-page-data.shをPASSしない" >&2
-    bash "$detail_pages_dir/validate-page-data.sh" "$out_json" 2>&1 | sed 's/^/    /' >&2 || true
+    printf '%s\n' "$validate_out" | sed 's/^/    /' >&2
     rc=1
   fi
 

@@ -549,14 +549,15 @@ EOF
     echo "  [FAIL] 1-16: 同一DDLの3表抽出がSIGPIPEを含む異常終了" >&2
     printf '%s\n' "$_gt_multi16_out" | sed 's/^/    /' >&2
     rc=1
-  elif jq -e '
+  elif _gt_multi16_jq_out="$(jq -e '
       (.units[] | select(.unitKey == "audit-logs") | .columnCount == 3)
       and (.units[] | select(.unitKey == "tags") | .columnCount == 2)
       and (.units[] | select(.unitKey == "post-tags") | .columnCount == 2)
-    ' "$multi_out" >/dev/null 2>&1; then
+    ' "$multi_out" 2>&1)"; then
     echo "  [PASS] 1-16: 同一DDLの3表抽出がpipefail下で完走"
   else
     echo "  [FAIL] 1-16: 同一DDLの3表抽出結果が不正" >&2
+    printf '%s\n' "$_gt_multi16_jq_out" | sed 's/^/    /' >&2
     rc=1
   fi
 

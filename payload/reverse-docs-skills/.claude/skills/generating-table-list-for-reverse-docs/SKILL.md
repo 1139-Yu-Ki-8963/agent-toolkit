@@ -17,6 +17,8 @@ allowed-tools: [AskUserQuestion, Bash, Grep, Read, Write]
 
 # 正本: reverse-docs-skills
 
+本スキルが生成する納品物は顧客提示の文書である。自由記述の本文（要約・説明文）は敬体（です・ます）で書く。記入規則・検証記録・作業記録は常体でもよい（`delivery-payload/references/設計書様式.md` §8）。
+
 # テーブル一覧生成スキル
 
 工程全体は orchestrating-ai-development-setup が案内する。本スキルはテーブル種別（`unit_kind=table` 固定）の一覧生成のみを担い、単独起動できる（起動引数 source_dir・output_dir の2つを渡せば動く）。
