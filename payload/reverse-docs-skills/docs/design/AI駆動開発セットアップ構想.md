@@ -73,7 +73,7 @@
 
 ## 現状の実測
 
-`docs/reverse-docs-overview.html` の 該当箇所は、物理配置を 3 層に分ける方針を既に定めている。AI が読む Markdown と根拠画像を置く `docs/`、人間向け HTML を置く `project-portal/`、各 AI ツールが定義へ到達するための派生アダプターである。
+`docs/guides/reverse-docs-overview.html` の §1.1「これは何か」節は、物理配置を 3 層に分ける方針を既に定めている。AI が読む Markdown と根拠画像を置く `docs/`、人間向け HTML を置く `project-portal/`、各 AI ツールが定義へ到達するための派生アダプターである。
 
 実装は追いついていない。実測値は次のとおり。
 
@@ -106,7 +106,7 @@
 **同じ形式は symlink、違う形式は変換で扱う。** `src/targets/link.ts` が `ln -s` で相対パスの symlink を作る。対象は 2 組ある。
 
 - `.agents/skills/<name>` から `../../.claude/skills/<name>`
-- `AGENTS.md` から `.claude/CLAUDE.md`
+- `AGENTS.md` から `CLAUDE.md`
 
 一方で `.mcp.json` と `.codex/config.toml` は `McpCanon` という中間表現を経て相互変換する。hooks はコマンド文字列を `«REPO»` トークンへ正準化する。展開先は Claude 向けが `${CLAUDE_PROJECT_DIR}`、Codex 向けが `$(git rev-parse --show-toplevel)` である。
 

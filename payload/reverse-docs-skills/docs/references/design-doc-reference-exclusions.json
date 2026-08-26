@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "note": "docs/scripts/check-design-doc-references.sh が抽出した「パス付きの参照」のうち、実在確認の対象から外す文字列の一覧。抽出した文字列は末尾の1個のスラッシュを除いた形で本一覧の reference と完全一致するかを見る。ここに載る文字列は次のいずれかである。(1) 納品先（対象アプリ）の出力配置を説明する記述で、このリポジトリ自身のパスを指さない。(2) 履歴の書き換え（2026-08-21のコミット2ee874944bdfc0ac9e6c354f4e9ceac5f5464f27）により実在を確認する手段が失われた過去のファイルへの言及。(3) 改称・リネームの完了を記録する文で、意図的に旧名のまま残した記述。書き換えると記録そのものが成立しなくなる。(4) 検証時点で一時的に使った fixture・古い版のサンプル配置など、当時の状態を記録する記述。この一覧は2026-08-26の実測時点で固定し、以後は手で追記する。新しく見つかった参照切れはこの一覧に無いため、そのまま不合格として検出される。",
+  "recordedAt": "2026-08-26",
+  "recordedBy": "check-design-doc-references.sh 新設時の実測（docs/design/ 配下を再帰走査し、実在するファイルへの移設で解消できるものは移設し、残った29件を分類した）",
+  "excludedReferences": [
+    {"reference": "docs/rules/business-domain/glossary", "reason": "納品先（対象アプリ）で承認済み用語定義を置く配置の説明であり、このリポジトリ自身のパスではない"},
+    {"reference": "docs/design/common", "reason": "納品先の共通文書の配置（output-layout.jsonのcommonRoot既定値）を説明する記述であり、このリポジトリ自身のパスではない"},
+    {"reference": "docs/common", "reason": "納品先の共通文書の配置を説明する記述であり、このリポジトリ自身のパスではない"},
+    {"reference": "docs/skills", "reason": "検討したが採用しなかった納品先の配置案であり、実装されていない"},
+    {"reference": ".claude/skills/orchestrating-reverse-docs-flow", "reason": "改称完了の記録の中で意図的に旧名のまま残した記述。書き換えると改称の記録そのものが成立しなくなる"},
+    {"reference": "docs/ledgers", "reason": "過去に存在した置き場を当時の名称のまま記録した歴史的記述。現在は docs/tasks/work-records/ 等へ移設済みで docs/ledgers 自体は廃止済みである"},
+    {"reference": "docs/ledgers/検証で見つかった改修課題.md", "reason": "2026-08-21の履歴書き換えにより実在・移設先を確認する手段が失われている"},
+    {"reference": "docs/ledgers/改善課題-写真書き起こし-2026-08-05.md", "reason": "同上。履歴書き換えにより確認する手段が失われている"},
+    {"reference": "docs/design/common/データ設計.md", "reason": "generation-engine/samples 配下の相対パスを省略記法で示した記述であり、このリポジトリ直下のパスではない"},
+    {"reference": "docs/design/tables", "reason": "同上。generation-engine/samples 配下の相対パスを省略記法で示した記述である"},
+    {"reference": "generation-engine/samples/一覧/用語辞書/用語辞書.html", "reason": "文書作成時点のサンプル配置を指す記述。後続のポータル英字リネームで project-portal/lists/semantic-glossary/ 配下へ移動したが、本文は当時の状態を記録している"},
+    {"reference": "generation-engine/samples/project-portal/図/状態遷移図.html", "reason": "ディレクトリ名の英字化（図→diagrams）より前の実験時点の記述。check-portal-dir-ascii.shの設計判断がdocs/配下をリネーム対象外と明記しており、本文はその対象外の歴史記述である"},
+    {"reference": "generation-engine/samples/project-portal/図/画面遷移図.html", "reason": "同上。英字化より前の実験時点の記述である"},
+    {"reference": "generation-engine/samples/project-portal/lists/screens/fixtures", "reason": "検証時に一時的に使ったfixtureを指す記述であり、恒久的な成果物として残っていない"}
+  ]
+}
