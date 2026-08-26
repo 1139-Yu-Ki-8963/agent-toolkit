@@ -277,7 +277,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>バッチ詳細設計生成スキル<br><span class="skill-name">generating-batch-detail-design-for-reverse-docs</span></h1>
+  <h1 data-phase-count="4">バッチの詳細設計書を作る<br><span class="skill-name">generating-batch-detail-design-for-reverse-docs</span></h1>
   <p>バッチ 1 本ごとに、処理の流れとコミットの単位を原本コードの処理定義から書き起こした <strong>バッチ詳細設計書.md</strong> を生成するスキルの確定仕様。基本設計スキルが担う業務的な意味は書かない。</p>
   <table class="meta-table">
     <tr>
@@ -288,7 +288,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>新規作成のため単独実機検証は未実施。Phase 構成と機械検査は型となる generating-api-basic-design-for-reverse-docs から踏襲した。スキル専用のテストスクリプトは持たない</td></tr>
     <tr>
       <td>依存</td>
-      <td>拡張マニフェスト <code>&lt;manifestsRoot&gt;/batch-manifest.ext.json</code> ／ テンプレート <code>delivery-payload/templates/リバース検証/バッチ/バッチ詳細設計書.md</code></td></tr>
+      <td>拡張マニフェスト <code>&lt;manifestsRoot&gt;/batch-manifest.ext.json</code> ／ テンプレート <code>delivery-payload/templates/リバース検証/バッチ/バッチ詳細設計書.md</code>。許可ツール: Bash、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/scaffold-design-unit.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>

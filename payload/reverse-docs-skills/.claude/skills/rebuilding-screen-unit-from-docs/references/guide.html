@@ -279,7 +279,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>設計書精度検証のための単体ファイル再構築<br><span class="skill-name">rebuilding-screen-unit-from-docs</span></h1>
+  <h1 data-phase-count="7">単一ファイルの再構築検証<br><span class="skill-name">rebuilding-screen-unit-from-docs</span></h1>
   <p>設計書だけから1ファイルを再生成し、元ファイルと軽量突合して設計書の欠落を発見する検証専任スキル（単体観点）。</p>
   <div class="def">
     <dt>こんな人向け</dt>
@@ -296,7 +296,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>2026-08-02: single-pass / iterative と output-layout の screenUnitRoot 解決済み画面ディレクトリ契約を整合確認済み</td></tr>
     <tr>
       <td>依存</td>
-      <td>管理者: orchestrating-ai-development-setup（args 配布・合格後の画面単位検証への引き継ぎ判断）</td></tr>
+      <td>管理者: orchestrating-ai-development-setup（args 配布・合格後の画面単位検証への引き継ぎ判断）。許可ツール: Agent、Bash、Edit、Read、Skill、TaskCreate、TaskUpdate、Write。SKILL.md本文で参照する実行用スクリプト: scripts/measure-file-diff.sh、generation-engine/scripts/scaffold-screen.sh、scripts/check-viewpoint-coverage.sh、generation-engine/scripts/audit-consistency.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>references/phase-details.md</code>, <code>references/ng-classification.md</code>, orchestrating-ai-development-setup の契約（<code>references/contract.md</code>）</td></tr>

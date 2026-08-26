@@ -278,7 +278,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>状態遷移図生成スキル<br><span class="skill-name">generating-entity-state-for-reverse-docs</span></h1>
+  <h1 data-phase-count="4">状態の移り変わりの図を作る<br><span class="skill-name">generating-entity-state-for-reverse-docs</span></h1>
   <p>データ設計.md の §6 状態遷移表を唯一の一次情報として、エンティティの状態遷移図（状態遷移図.html）を機械生成するスキルの確定仕様。表に記載のない遷移は捏造せず、判定・評価も行わない。</p>
   <div class="def">
     <dt>こんな人向け</dt>
@@ -301,7 +301,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>self-test・fixture による実挙動確認済み（2026-07-23）</td></tr>
     <tr>
       <td>依存</td>
-      <td><code>build-detail-page.sh</code> / <code>validate-page-data.sh</code> / データ設計.md の状態遷移表章</td></tr>
+      <td><code>build-detail-page.sh</code> / <code>validate-page-data.sh</code> / データ設計.md の状態遷移表章。許可ツール: Bash、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/detail-pages/validate-page-data.sh、generation-engine/scripts/detail-pages/build-detail-page.sh、generation-engine/scripts/build-portal.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>generating-sequence-diagram-for-reverse-docs</code>, <code>generation-engine/scripts/detail-pages/page-data-schema.md</code></td></tr>

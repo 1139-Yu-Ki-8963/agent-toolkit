@@ -277,7 +277,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>帳票一覧生成スキル<br><span class="skill-name">generating-report-list-for-reverse-docs</span></h1>
+  <h1 data-phase-count="4">帳票一覧のとりまとめ<br><span class="skill-name">generating-report-list-for-reverse-docs</span></h1>
   <p>既存コードベースを調査して帳票の単位を洗い出し、整合検証を通過したマニフェストだけから <strong>帳票一覧.html</strong> を生成する帳票専用スキルの確定仕様。</p>
   <table class="meta-table">
     <tr>
@@ -288,7 +288,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>共有エンジン（<code>validate-manifest.sh</code>・<code>build-unit-list.sh</code>）は分割元スキルの画面一覧生成で動作確認済み。帳票専用スキルとしての単独実機検証は分割直後のため未実施</td></tr>
     <tr>
       <td>依存</td>
-      <td>jq ／ 共有スクリプト <code>generation-engine/scripts/unit-list/validate-manifest.sh</code>・<code>build-unit-list.sh</code></td></tr>
+      <td>jq ／ 共有スクリプト <code>generation-engine/scripts/unit-list/validate-manifest.sh</code>・<code>build-unit-list.sh</code>。許可ツール: AskUserQuestion、Bash、Grep、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/unit-list/validate-manifest.sh、generation-engine/scripts/unit-list/build-unit-list.sh、generation-engine/scripts/extract/extract-report-metadata.sh、generation-engine/scripts/detect-encoding.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>references/report-detection.md</code></td></tr>

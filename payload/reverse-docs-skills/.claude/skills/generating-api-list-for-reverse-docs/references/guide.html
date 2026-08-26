@@ -277,7 +277,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>API一覧生成スキル<br><span class="skill-name">generating-api-list-for-reverse-docs</span></h1>
+  <h1 data-phase-count="4">接続窓口の一覧を作る<br><span class="skill-name">generating-api-list-for-reverse-docs</span></h1>
   <p>既存コードベースを調査し、API エンドポイントの単位にファイルをグルーピングした「API一覧.html」を、機械検証を通したマニフェストだけから生成するスキルの確定仕様。リバース設計で API 単位の設計書をどう分けるかを決めるための正本を作る。</p>
   <table class="meta-table">
     <tr>
@@ -288,7 +288,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>分割元スキル generating-unit-list-for-reverse-docs（unit_kind=api）の枠組みを踏襲。エンジンスクリプト（validate-manifest.sh・build-unit-list.sh）はサンプルプロジェクトで動作確認済み</td></tr>
     <tr>
       <td>依存</td>
-      <td>jq ／ <code>generation-engine/scripts/unit-list/validate-manifest.sh</code> ／ <code>generation-engine/scripts/unit-list/build-unit-list.sh</code></td></tr>
+      <td>jq ／ <code>generation-engine/scripts/unit-list/validate-manifest.sh</code> ／ <code>generation-engine/scripts/unit-list/build-unit-list.sh</code>。許可ツール: AskUserQuestion、Bash、Grep、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/unit-list/validate-manifest.sh、generation-engine/scripts/unit-list/build-unit-list.sh、generation-engine/scripts/extract/extract-api-metadata.sh、generation-engine/scripts/detect-encoding.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>references/api-detection.md</code></td></tr>

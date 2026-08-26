@@ -272,7 +272,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>確定済みfactsからの基本設計書執筆スキル<br><span class="skill-name">generating-reverse-basic-design</span></h1>
+  <h1 data-phase-count="3">基本設計書の書き起こし<br><span class="skill-name">generating-reverse-basic-design</span></h1>
   <p>確定済み facts（facts.yml）とプロジェクト共通文書だけを情報源に、業務語彙のみで書かれた画面基本設計書を著述する執筆専任スキル。対象リポジトリの原本コードは一切 Read しない。</p>
   <div class="def">
     <dt>こんな人向け</dt>
@@ -289,7 +289,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>2026-07-27: 標準の並列著述と、大規模ユニットの詳細設計完了後パス2の両契約を確認済み</td></tr>
     <tr>
       <td>依存</td>
-      <td>generation-engine/scripts/scaffold-screen.sh（Phase 1雛形の展開。起動引数scaffold_script_pathで受領）、generation-engine/scripts/seal-facts.sh（Phase 1確定検証）</td></tr>
+      <td>generation-engine/scripts/scaffold-screen.sh（Phase 1雛形の展開。起動引数scaffold_script_pathで受領）、generation-engine/scripts/seal-facts.sh（Phase 1確定検証）。許可ツール: Bash、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/scaffold-screen.sh、generation-engine/scripts/seal-facts.sh、generation-engine/scripts/validate-reverse-authoring-inputs.py</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code></td></tr>

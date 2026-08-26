@@ -277,7 +277,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>機能設計書生成スキル<br><span class="skill-name">generating-feature-design-for-reverse-docs</span></h1>
+  <h1 data-phase-count="5">機能の集約設計書を書く<br><span class="skill-name">generating-feature-design-for-reverse-docs</span></h1>
   <p>機能一覧マニフェストと配下ユニットの拡張マニフェストから、機能単位の集約設計書を執筆するスキルの確定仕様。機能一覧の生成スキルは一覧HTMLのみを担い、設計書の雛形展開・生成・記入をしないと明記しており、本スキルがその先を引き受ける。</p>
   <table class="meta-table">
     <tr>
@@ -288,7 +288,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>合成フィクスチャで実走確認済み。実在リポジトリでの実行実績はまだない</td></tr>
     <tr>
       <td>依存</td>
-      <td>機能一覧マニフェスト（<code>feature-manifest.json</code>）、配下ユニットの拡張マニフェスト、テンプレート <code>delivery-payload/templates/リバース検証/機能/機能設計書.md</code></td></tr>
+      <td>機能一覧マニフェスト（<code>feature-manifest.json</code>）、配下ユニットの拡張マニフェスト、テンプレート <code>delivery-payload/templates/リバース検証/機能/機能設計書.md</code>。許可ツール: AskUserQuestion、Bash、Glob、Grep、Read、TaskCreate、TaskUpdate、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/scaffold-design-unit.sh、<code>&lt;template_root&gt;/rules/checkers/check-unit-test-design-doc-sections.sh</code></td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>delivery-payload/references/chapter-map.md</code>, <code>delivery-payload/references/納品物フォルダ体系.md</code>, <code>generating-feature-list-for-reverse-docs</code>, <code>generating-api-detail-design-for-reverse-docs</code></td></tr>
@@ -369,6 +369,10 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>全対象機能の設計書が記入済みである</td></tr>
     <tr>
       <td>Phase 4</td>
+      <td>機能テスト設計書・機能単体テスト設計書の執筆</td>
+      <td>機能の連携試験と単体試験の観点が記入済みである</td></tr>
+    <tr>
+      <td>Phase 5</td>
       <td>検証</td>
       <td>4 検査すべてが合格している</td></tr>
   </table>
@@ -383,7 +387,10 @@ Phase 2  集約材料の収集
 Phase 3  執筆
    │  テンプレート展開 → §1〜§10記入 → 空欄を§11要確認事項へ
    ▼
-Phase 4  検証
+Phase 4  機能テスト設計書・機能単体テスト設計書の執筆
+   │  集約設計書を入力に連携試験と単体試験の観点を記入
+   ▼
+Phase 5  検証
    │  検査1 章の完備 / 検査2 全章の充足 / 検査3 参照実在 / 検査4 プレースホルダの残存
    │  不合格ならPhase 3へ差し戻し（上限3回）
    ▼
@@ -391,7 +398,7 @@ Phase 4  検証
 </section>
 <section id="s6">
   <h2><span class="sec-num">§6</span>検証</h2>
-  <p>Phase 4 で実行する 4 つの機械検査。1 つでも不合格なら Phase 3 へ差し戻し、上限 3 回で収束しなければ <code>status=ERROR</code> とする。</p>
+  <p>Phase 5 で実行する 4 つの機械検査。1 つでも不合格なら Phase 3 へ差し戻し、上限 3 回で収束しなければ <code>status=ERROR</code> とする。</p>
   <table class="spec">
     <tr>
       <th>検査</th>

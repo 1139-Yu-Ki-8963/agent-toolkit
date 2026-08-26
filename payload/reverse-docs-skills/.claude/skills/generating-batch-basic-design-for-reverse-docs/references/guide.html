@@ -277,7 +277,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>バッチ基本設計生成スキル<br><span class="skill-name">generating-batch-basic-design-for-reverse-docs</span></h1>
+  <h1 data-phase-count="5">バッチの基本設計書を作る<br><span class="skill-name">generating-batch-basic-design-for-reverse-docs</span></h1>
   <p>バッチ 1 本ごとに、起動の契機と業務上の目的を業務語彙だけで書いた <strong>バッチ基本設計書.md</strong> を生成するスキルの確定仕様。処理の流れ・コミットの単位・排他の制御は書かない。</p>
   <table class="meta-table">
     <tr>
@@ -288,7 +288,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>新規作成のため単独実機検証は未実施。Phase 構成と機械検査は型となる generating-api-basic-design-for-reverse-docs から踏襲した。スキル専用のテストスクリプトは持たない</td></tr>
     <tr>
       <td>依存</td>
-      <td>拡張マニフェスト <code>&lt;manifestsRoot&gt;/batch-manifest.ext.json</code> ／ テンプレート <code>delivery-payload/templates/リバース検証/バッチ/バッチ基本設計書.md</code> と <code>delivery-payload/templates/リバース検証/バッチ/バッチテスト設計書.md</code></td></tr>
+      <td>拡張マニフェスト <code>&lt;manifestsRoot&gt;/batch-manifest.ext.json</code> ／ テンプレート <code>delivery-payload/templates/リバース検証/バッチ/バッチ基本設計書.md</code> と <code>delivery-payload/templates/リバース検証/バッチ/バッチテスト設計書.md</code>。許可ツール: Bash、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/scaffold-design-unit.sh、<code>&lt;template_root&gt;/rules/checkers/check-unit-test-design-doc-sections.sh</code></td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>

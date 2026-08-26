@@ -273,7 +273,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>用語管理<br><span class="skill-name">managing-semantic-glossary</span></h1>
+  <h1 data-phase-count="5">用語の変更と公開の管理<br><span class="skill-name">managing-semantic-glossary</span></h1>
   <p>承認済みの意味定義を、候補と混ぜずに変更・検証・公開する統制スキル。</p>
   <div class="def"><dt>こんな人向け</dt><dd>用語steward、業務・技術承認者、基盤保守者</dd><dt>こんな場面で使う</dt><dd>用語の追加・更新・廃止、候補審査、portal公開</dd></div>
   <table class="meta-table">
@@ -285,7 +285,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>2026-08-02 指定14列のschema・portal投影CLI・Skill契約テストを実行し、管理手順とai_index境界を照合</td></tr>
     <tr>
       <td>依存</td>
-      <td>Python 3.13、正式validator、portal投影CLI</td></tr>
+      <td>Python 3.13、正式validator、portal投影CLI。許可ツール: Read、Write、Edit、Bash、Grep、Glob、AskUserQuestion。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/glossary/validate-semantic-glossary.sh、generation-engine/scripts/detail-pages/project-semantic-glossary.py</td></tr>
     <tr>
       <td>関連資料</td>
       <td>semantic-glossary共通契約、用語管理Skill仕様書、用語運用ルール</td></tr>
@@ -347,8 +347,8 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <p>review-proposal、add、update、deprecate、retireでは<code>--registry &lt;file-or-dir&gt;</code>が必須。省略時はreview_requiredとして適用を止める。</p>
 </section>
 <section id="s4">
-  <h2><span class="sec-num">§4</span>処理フロー</h2>
-  <pre>入力確定 → validator → report schema検証 → 影響確認 → 二者承認 → 適用（任意） → portal投影</pre>
+  <h2><span class="sec-num">§4</span>処理フロー（Phase 1〜5）</h2>
+  <pre>Phase 1 入力確定 → Phase 2 validator・影響確認 → Phase 3 二者承認・適用（任意） → Phase 4 portal投影 → Phase 5 結果確定</pre>
   <table class="spec">
     <tr>
       <th>exit / status</th>

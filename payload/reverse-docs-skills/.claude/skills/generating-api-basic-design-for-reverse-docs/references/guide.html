@@ -277,7 +277,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>API基本設計生成スキル<br><span class="skill-name">generating-api-basic-design-for-reverse-docs</span></h1>
+  <h1 data-phase-count="5">接続窓口の基本設計書を作る<br><span class="skill-name">generating-api-basic-design-for-reverse-docs</span></h1>
   <p>API 1 本ごとに、何のために存在するかを業務語彙だけで書いた <strong>API基本設計書.md</strong> を生成するスキルの確定仕様。実装の詳細は書かない。</p>
   <table class="meta-table">
     <tr>
@@ -288,7 +288,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>新規作成のため単独実機検証は未実施。Phase 構成と機械検査は兄弟スキル generating-api-detail-design-for-reverse-docs と generating-reverse-basic-design から踏襲した。スキル専用のテストスクリプトは持たない</td></tr>
     <tr>
       <td>依存</td>
-      <td>拡張マニフェスト <code>&lt;manifestsRoot&gt;/api-manifest.ext.json</code> ／ テンプレート <code>delivery-payload/templates/リバース検証/API/API基本設計書.md</code></td></tr>
+      <td>拡張マニフェスト <code>&lt;manifestsRoot&gt;/api-manifest.ext.json</code> ／ テンプレート <code>delivery-payload/templates/リバース検証/API/API基本設計書.md</code>。許可ツール: AskUserQuestion、Bash、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/scaffold-design-unit.sh、<code>&lt;template_root&gt;/rules/checkers/check-unit-test-design-doc-sections.sh</code></td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>
@@ -300,7 +300,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li><a href="#s1">概要</a></li>
     <li><a href="#s2">出力</a></li>
     <li><a href="#s3">用語</a></li>
-    <li><a href="#s4">動作フロー（Phase 1〜4）</a></li>
+    <li><a href="#s4">動作フロー（Phase 1〜5）</a></li>
     <li><a href="#s5">守り（禁止事項と機械検証）</a></li>
     <li><a href="#s6">関連スキル・資料</a></li>
   </ol>
@@ -368,7 +368,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   </dl>
 </section>
 <section id="s4">
-  <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜4）</h2>
+  <h2><span class="sec-num">§4</span>動作フロー（Phase 1〜5）</h2>
   <table class="spec">
     <tr>
       <th>Phase</th>
@@ -390,9 +390,14 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>全対象ユニットの設計書が業務語彙のみで記入済みである</td>
     </tr>
     <tr>
-      <td><strong>Phase 4</strong><br>機械検査</td>
-      <td>業務語彙の検査・注記の残存検査・frontmatter の検査・章の完備検査の4検査を実行する。不合格が1件でもあれば Phase 3 へ戻る（上限3回）</td>
-      <td>4検査すべてが合格している</td>
+      <td><strong>Phase 4</strong><br>APIテスト設計書の執筆</td>
+      <td>API基本設計書だけを入力として、1つのAPIの外部契約を検証するAPIテスト設計書を作成する</td>
+      <td>正常・異常・境界の観点と、その由来となる基本設計書の章が記入済みである</td>
+    </tr>
+    <tr>
+      <td><strong>Phase 5</strong><br>機械検査</td>
+      <td>業務語彙、注記残存、frontmatter、章の完備、実装位置、由来、情報源、配置、12節の9検査を実行する。不合格が1件でもあれば Phase 3 へ戻る（上限3回）</td>
+      <td>9検査すべてが合格している</td>
     </tr>
   </table>
 </section>
@@ -407,7 +412,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li>子スキルへ委任しない。原本読解と執筆（Phase 1〜3）は業務語彙の一貫性を保つため単一のメインエージェントが通しで担う</li>
   </ul>
   <h3>機械検証</h3>
-  <p>Phase 4 で次の4検査を実行する。検査1は生成した本文に実装用語（フレームワーク用語・型構文・原本の拡張子・内部の成果物名等）が含まれないことを grep で確認する。検査2はテンプレートの記入規則を書いた HTML コメントが残っていないことを確認する。検査3は frontmatter の <code>status</code> が <code>authored</code> になっていることを確認する。検査4はテンプレートが持つ全ての章見出しが出力に存在することを確認する。1つでも不合格なら Phase 3 へ戻り、上限3回で収束しなければ <code>status=ERROR</code> とする。</p>
+  <p>Phase 5 で9検査を実行する。業務語彙、注記残存、frontmatter、章の完備、実装位置、由来、情報源、配置、APIテスト設計書の12節を順に確認する。1つでも不合格なら Phase 3 へ戻り、上限3回で収束しなければ <code>status=ERROR</code> とする。</p>
 </section>
 <section id="s6">
   <h2><span class="sec-num">§6</span>関連スキル・資料</h2>

@@ -277,7 +277,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>テスト観点表生成スキル<br><span class="skill-name">generating-test-viewpoint-list-for-reverse-docs</span></h1>
+  <h1 data-phase-count="4">テスト観点表の生成<br><span class="skill-name">generating-test-viewpoint-list-for-reverse-docs</span></h1>
   <p>全設計種別の各単位にある2つのテスト設計書を横断集約し、整合検証を通過したデータだけから <strong>テスト観点表.html</strong> を生成する派生一覧スキルの確定仕様。</p>
   <table class="meta-table">
     <tr>
@@ -288,7 +288,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>2026-08-23 に横断集約・専用検証・一覧生成の self-test と、APIのみ・画面rootなしの一時入力による結合確認を実施済み</td></tr>
     <tr>
       <td>依存</td>
-      <td>共有スクリプト <code>generation-engine/scripts/extract/aggregate-test-viewpoints.sh</code>・<code>generation-engine/scripts/unit-list/validate-test-viewpoint-manifest.sh</code>・<code>generation-engine/scripts/unit-list/build-unit-list.sh</code> ／ 任意 <code>generation-engine/scripts/build-portal.sh</code></td></tr>
+      <td>共有スクリプト <code>generation-engine/scripts/extract/aggregate-test-viewpoints.sh</code>・<code>generation-engine/scripts/unit-list/validate-test-viewpoint-manifest.sh</code>・<code>generation-engine/scripts/unit-list/build-unit-list.sh</code> ／ 任意 <code>generation-engine/scripts/build-portal.sh</code>。許可ツール: Bash、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/extract/aggregate-test-viewpoints.sh、generation-engine/scripts/unit-list/validate-test-viewpoint-manifest.sh、generation-engine/scripts/unit-list/build-unit-list.sh、generation-engine/scripts/build-portal.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>

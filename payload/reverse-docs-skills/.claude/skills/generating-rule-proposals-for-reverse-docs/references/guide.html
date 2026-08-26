@@ -278,7 +278,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>規約提案HTML生成スキル<br><span class="skill-name">generating-rule-proposals-for-reverse-docs</span></h1>
+  <h1 data-phase-count="5">規約提案の書き出し<br><span class="skill-name">generating-rule-proposals-for-reverse-docs</span></h1>
   <p>対象リポジトリのコードを調査し、観測した実装慣行を規約提案HTMLとしてリポジトリ外へ出力するスキルの確定仕様。</p>
   <div class="def">
     <dt>こんな人向け</dt>
@@ -301,7 +301,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>エンジンスクリプト（build-rule-proposal.sh）はself-testと手動スモークテストでの動作確認済み。スキル単体の実機検証は未実施</td></tr>
     <tr>
       <td>依存</td>
-      <td>jq ／ <code>generation-engine/scripts/rule-proposal/build-rule-proposal.sh</code>（スキルフォルダ相対 <code>../../../generation-engine/scripts/rule-proposal/</code>）／ 生成後の静的検査には node と <code>verify-html-static.mjs</code>（不在時は警告のみでスキップ）</td></tr>
+      <td>jq ／ <code>generation-engine/scripts/rule-proposal/build-rule-proposal.sh</code>（スキルフォルダ相対 <code>../../../generation-engine/scripts/rule-proposal/</code>）／ 生成後の静的検査には node と <code>verify-html-static.mjs</code>（不在時は警告のみでスキップ）。許可ツール: Bash、Read、Write、Grep、Glob。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/rule-proposal/build-rule-proposal.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>../../../delivery-payload/references/規約定義と派生生成の設計.md</code></td></tr>

@@ -272,15 +272,31 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>結合テスト仕様書生成スキル<br><span class="skill-name">generating-integration-test-spec-for-reverse-docs</span></h1>
+  <h1 data-phase-count="3">結合テスト仕様書の生成<br><span class="skill-name">generating-integration-test-spec-for-reverse-docs</span></h1>
   <p>複数の設計単位をまたぐ試験を、プロジェクト全体で1冊の仕様書へまとめる。</p>
+  <table class="meta-table">
+    <caption>スキル情報</caption>
+    <tr>
+      <td>対応 OS</td>
+      <td>Windows WSL2 環境</td></tr>
+    <tr>
+      <td>検証状況</td>
+      <td>生成、必須項目の検査、ポータル反映の手順を定義済み</td></tr>
+    <tr>
+      <td>依存</td>
+      <td>許可ツール: Read、Bash、Edit、Grep、Glob。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/generate-integration-test-spec.sh、generation-engine/scripts/build-portal.sh</td></tr>
+    <tr>
+      <td>関連資料</td>
+      <td><code>SKILL.md</code>、<code>delivery-payload/references/output-layout.json</code></td></tr>
+  </table>
 </header>
 <nav class="toc">
   <div class="toc-title">目次</div>
   <ol>
     <li><a href="#s1">概要</a></li>
-    <li><a href="#s2">動作フロー</a></li>
-    <li><a href="#s3">検証</a></li>
+    <li><a href="#s2">出力</a></li>
+    <li><a href="#s3">動作フロー</a></li>
+    <li><a href="#s4">検証</a></li>
   </ol>
 </nav>
 <section id="s1">
@@ -288,11 +304,18 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <p>画面、機能、API、テーブル、バッチ、帳票、外部連携のうち、2つ以上の設計単位をまたぐ連携だけを対象とする。</p>
 </section>
 <section id="s2">
-  <h2><span class="sec-num">§2</span>動作フロー</h2>
-  <pre class="flow">対象確定 → 仕様書生成 → 設計書の事実を記入 → 必須項目を検証 → ポータル反映</pre>
+  <h2><span class="sec-num">§2</span>出力</h2>
+  <p>複数の設計単位をまたぐ試験について、次の成果物と状態が生まれる。</p>
+  <div class="def"><dt>結合テスト仕様書</dt><dd>操作手順、期待結果、障害時の回復方法を連携単位で確認できる文書。</dd><dt>ポータルから参照できる状態</dt><dd>生成した仕様書が納品物の入口から辿れる状態。</dd></div>
 </section>
 <section id="s3">
-  <h2><span class="sec-num">§3</span>検証</h2>
+  <h2><span class="sec-num">§3</span>動作フロー</h2>
+  <pre class="flow">Phase 1 対象確定
+  → Phase 2 仕様書生成・設計書の事実を記入
+  → Phase 3 必須項目を検証・ポータル反映</pre>
+</section>
+<section id="s4">
+  <h2><span class="sec-num">§4</span>検証</h2>
   <p>対象範囲に2つ以上の設計単位があり、操作手順、期待結果、障害時の回復方法が記入されていることを確認する。</p>
 </section>
 </body>

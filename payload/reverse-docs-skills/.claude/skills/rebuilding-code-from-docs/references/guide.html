@@ -278,7 +278,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>設計書精度検証のためのコード再構築<br><span class="skill-name">rebuilding-code-from-docs</span></h1>
+  <h1 data-phase-count="9">設計書からのコード再構築<br><span class="skill-name">rebuilding-code-from-docs</span></h1>
   <p>設計書だけからコードを再生成し、元コードと機械突合して設計書の欠落を発見する往復検証スキル。</p>
   <div class="def">
     <dt>こんな人向け</dt>
@@ -295,7 +295,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>実機検証済み</td></tr>
     <tr>
       <td>依存</td>
-      <td>起動引数 <code>mode</code>（<code>implement</code> | <code>judge</code>）。環境同期・比較エンジンは管理者が仲介する</td></tr>
+      <td>起動引数 <code>mode</code>（<code>implement</code> | <code>judge</code>）。環境同期・比較エンジンは管理者が仲介する。許可ツール: Bash、Edit、Read、TaskCreate、TaskUpdate、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/validate-reverse-authoring-inputs.py、scripts/check-freeze.sh、generation-engine/scripts/audit-consistency.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>references/phase-details.md</code>, <code>references/ng-classification.md</code>, <code>references/test-item-patterns.md</code>, <code>references/report-format.md</code>, <code><reverse_docs_root>/.claude/skills/orchestrating-ai-development-setup/references/contract.md</code></td></tr>

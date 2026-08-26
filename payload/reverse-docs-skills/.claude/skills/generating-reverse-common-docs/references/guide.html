@@ -272,7 +272,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>プロジェクト共通書き起こしスキル<br><span class="skill-name">generating-reverse-common-docs</span></h1>
+  <h1 data-phase-count="5">共通文書の書き起こし<br><span class="skill-name">generating-reverse-common-docs</span></h1>
   <p>アーキテクチャ調査書を前提に、対象リポジトリのコードから層化サンプリングでプロジェクト共通6文書のv0を書き起こす。実装済みコードに現に存在する規約・共通仕様の事実だけを記録し、理想論は書かない。</p>
   <div class="def">
     <dt>こんな人向け</dt>
@@ -289,7 +289,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>サンプルプロジェクトで動作確認済み</td></tr>
     <tr>
       <td>依存</td>
-      <td>find / sort / head / grep 等の決定的コマンド、機械ゲート実行に scripts/check-common-docs.sh を使用</td></tr>
+      <td>find / sort / head / grep 等の決定的コマンド、機械ゲート実行に scripts/check-common-docs.sh を使用。許可ツール: Bash、Read、Write、Edit。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/rules/scaffold-rule-definitions.sh、scripts/check-common-docs.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>scripts/check-common-docs.sh</code>, <code>references/sampling-rules.md</code></td></tr>

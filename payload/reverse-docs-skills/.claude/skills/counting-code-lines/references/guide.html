@@ -278,7 +278,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>コード行数計測スキル<br><span class="skill-name">counting-code-lines</span></h1>
+  <h1 data-phase-count="6">コードの行数を数える<br><span class="skill-name">counting-code-lines</span></h1>
   <p>対象ディレクトリのコード行数・ファイル数を FE/BE 別に計測し、code-metrics.json を機械的に生成するスキルの確定仕様。</p>
   <table class="meta-table">
     <tr>
@@ -289,7 +289,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>counting-code-lines スキルとして独立動作確認済み</td></tr>
     <tr>
       <td>依存</td>
-      <td>cloc（推奨。不在時は wc -l へフォールバック）、jq</td></tr>
+      <td>cloc（推奨。不在時は wc -l へフォールバック）、jq。許可ツール: Bash、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/validate-code-metrics.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>orchestrating-ai-development-setup</code> SKILL.md（Phase 4A から起動）</td></tr>

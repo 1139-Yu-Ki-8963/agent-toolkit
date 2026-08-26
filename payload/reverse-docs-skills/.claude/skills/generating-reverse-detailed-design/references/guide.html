@@ -272,7 +272,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>確定済みfactsからのリバース設計書執筆スキル<br><span class="skill-name">generating-reverse-detailed-design</span></h1>
+  <h1 data-phase-count="6">詳細設計書の書き起こし<br><span class="skill-name">generating-reverse-detailed-design</span></h1>
   <p>確定済み facts（facts.yml）とプロジェクト共通文書だけを情報源に、リバース設計書（画面詳細設計書・DESIGN.md・単体テスト観点表）を著述する執筆専任スキル。対象リポジトリの原本コードは一切 Read しない。</p>
   <div class="def">
     <dt>こんな人向け</dt>
@@ -289,7 +289,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>2026-07-27: verification_url未確定時の著述に加え、大規模ユニットのdetail-only→companion-docs 2パス契約を確認済み</td></tr>
     <tr>
       <td>依存</td>
-      <td>generation-engine/scripts/scaffold-screen.sh（Phase 1雛形の展開。起動引数scaffold_script_pathで受領）、generation-engine/scripts/seal-facts.sh（Phase 2確定検証）、scripts/check-fact-coverage.sh（Phase 5完全性ゲート）、generation-engine/scripts/audit-consistency.sh（Phase 5内部整合性）</td></tr>
+      <td>generation-engine/scripts/scaffold-screen.sh（Phase 1雛形の展開。起動引数scaffold_script_pathで受領）、generation-engine/scripts/seal-facts.sh（Phase 2確定検証）、scripts/check-fact-coverage.sh（Phase 5完全性ゲート）、generation-engine/scripts/audit-consistency.sh（Phase 5内部整合性）。許可ツール: Agent、Bash、Read、Write、Edit。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/scaffold-screen.sh、generation-engine/scripts/seal-facts.sh、generation-engine/scripts/check-facts-sufficiency.sh、generation-engine/scripts/prefill-design-from-facts.sh、generation-engine/scripts/check-prefill-markers.sh、scripts/check-fact-coverage.sh、generation-engine/scripts/audit-consistency.sh、generation-engine/scripts/validate-reverse-authoring-inputs.py、generation-engine/scripts/backtest-facts-against-gold.sh、generation-engine/scripts/check-doc-coverage-against-gold.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>references/phase-details.md</code>, <code>references/writing-rules.md</code></td></tr>

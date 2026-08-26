@@ -277,7 +277,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>コンポーネント棚卸し生成スキル<br><span class="skill-name">generating-component-inventory-for-reverse-docs</span></h1>
+  <h1 data-phase-count="4">部品の棚卸し表を作る<br><span class="skill-name">generating-component-inventory-for-reverse-docs</span></h1>
   <p>対象リポジトリの UI 部品ファイルを走査し、ディレクトリ由来の分類だけを付けた <strong>コンポーネント棚卸し.html</strong> を生成する基盤ページ生成スキルの確定仕様。</p>
   <table class="meta-table">
     <tr>
@@ -288,7 +288,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>共有エンジン（<code>validate-page-data.sh</code>・<code>build-detail-page.sh</code>）は他の詳細ページ生成スキルで動作確認済み。コンポーネント抽出（<code>extract-component-inventory.sh</code>）の単独実機検証は未実施。スキル専用のテストスクリプトは持たない</td></tr>
     <tr>
       <td>依存</td>
-      <td>共有スクリプト <code>generation-engine/scripts/extract/extract-component-inventory.sh</code>・<code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>generation-engine/scripts/detail-pages/build-detail-page.sh</code> ／ 任意 <code>generation-engine/scripts/build-portal.sh</code></td></tr>
+      <td>共有スクリプト <code>generation-engine/scripts/extract/extract-component-inventory.sh</code>・<code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>generation-engine/scripts/detail-pages/build-detail-page.sh</code> ／ 任意 <code>generation-engine/scripts/build-portal.sh</code>。許可ツール: Bash、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/extract/extract-component-inventory.sh、generation-engine/scripts/detail-pages/validate-page-data.sh、generation-engine/scripts/detail-pages/build-detail-page.sh、generation-engine/scripts/build-portal.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>

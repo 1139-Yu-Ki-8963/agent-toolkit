@@ -277,7 +277,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>マトリクス・対応表生成スキル<br><span class="skill-name">generating-cross-views-for-reverse-docs</span></h1>
+  <h1 data-phase-count="4">対応表とエージェント設定の一覧を作る<br><span class="skill-name">generating-cross-views-for-reverse-docs</span></h1>
   <p>既存のマニフェスト群を突き合わせ、<strong>5 つの横断ページ</strong>を機械生成する交差ビュー生成スキルの確定仕様。</p>
   <table class="meta-table">
     <tr>
@@ -288,7 +288,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>生成エンジン（<code>build-matrix-pages.sh</code>）が必須トップレベルキーの検査を内部で兼ねる。5 ページ横断での単独実機検証は未実施。スキル専用のテストスクリプトは持たない</td></tr>
     <tr>
       <td>依存</td>
-      <td>共有スクリプト <code>generation-engine/scripts/</code> 配下の <code>extract-screen-metadata.sh</code>・<code>extract-api-metadata.sh</code>・<code>build-matrix-data.sh</code>・<code>build-permission-function-data.sh</code>・<code>extract-ai-assets.sh</code>・<code>build-matrix-pages.sh</code> ／ 任意 <code>build-portal.sh</code></td></tr>
+      <td>共有スクリプト <code>generation-engine/scripts/</code> 配下の <code>extract-screen-metadata.sh</code>・<code>extract-api-metadata.sh</code>・<code>build-matrix-data.sh</code>・<code>build-permission-function-data.sh</code>・<code>extract-ai-assets.sh</code>・<code>build-matrix-pages.sh</code> ／ 任意 <code>build-portal.sh</code>。許可ツール: Bash、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/extract/extract-screen-metadata.sh、generation-engine/scripts/extract/extract-api-metadata.sh、generation-engine/scripts/extract/build-matrix-data.sh、generation-engine/scripts/extract/extract-ai-assets.sh、generation-engine/scripts/matrix/build-matrix-pages.sh、generation-engine/scripts/build-portal.sh、generation-engine/scripts/unit-list/validate-manifest.sh、generation-engine/scripts/detect-encoding.sh、generation-engine/scripts/extract/build-permission-function-data.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>

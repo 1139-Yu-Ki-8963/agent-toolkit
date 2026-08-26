@@ -277,7 +277,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>外部連携一覧生成スキル<br><span class="skill-name">generating-external-list-for-reverse-docs</span></h1>
+  <h1 data-phase-count="4">外部連携の一覧を作る<br><span class="skill-name">generating-external-list-for-reverse-docs</span></h1>
   <p>既存コードベースを調査し、外部連携（API クライアント・webhook ハンドラ・メッセージキュー連携等）の単位にファイルをグルーピングして「外部連携一覧.html」を作成するスキルの確定仕様。リバース設計の工程で、設計書をどの単位で書くかを決める判断材料を作る。</p>
   <table class="meta-table">
     <tr>
@@ -288,7 +288,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>分割元スキル generating-unit-list-for-reverse-docs の external 種別動作（個別に組み立てる抽出）を踏襲。分割後の単独スキルとしての実機検証は未実施</td></tr>
     <tr>
       <td>依存</td>
-      <td>jq / <code>../../../generation-engine/scripts/unit-list/validate-manifest.sh</code> / <code>../../../generation-engine/scripts/unit-list/build-unit-list.sh</code>（スキルフォルダ相対）</td></tr>
+      <td>jq / <code>../../../generation-engine/scripts/unit-list/validate-manifest.sh</code> / <code>../../../generation-engine/scripts/unit-list/build-unit-list.sh</code>（スキルフォルダ相対）。許可ツール: AskUserQuestion、Bash、Grep、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/unit-list/validate-manifest.sh、generation-engine/scripts/unit-list/build-unit-list.sh、generation-engine/scripts/extract/extract-external-metadata.sh、generation-engine/scripts/detect-encoding.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>references/external-detection.md</code></td></tr>

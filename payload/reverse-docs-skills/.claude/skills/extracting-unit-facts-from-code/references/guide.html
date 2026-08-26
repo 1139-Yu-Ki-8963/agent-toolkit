@@ -272,7 +272,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>ユニット事実抽出スキル<br><span class="skill-name">extracting-unit-facts-from-code</span></h1>
+  <h1 data-phase-count="6">元のコードから事実を取り出す<br><span class="skill-name">extracting-unit-facts-from-code</span></h1>
   <p>対象ユニットの原本コードから宣言的契約factsを抽出し、独立再計数・確定・再現性検証を通して「執筆工程が原本を読まずに済む」品質のfacts.ymlを確定する。仕事はfacts.yml等3ファイルの確定のみで、対象リポジトリへの書き込み・変更は一切行わない。</p>
   <div class="def">
     <dt>こんな人向け</dt>
@@ -289,7 +289,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>2026-07-27: handler通常ヘルパー除外と、error_handlingのコメント・文字列除外を含むself-testを確認済み</td></tr>
     <tr>
       <td>依存</td>
-      <td>find / grep / awk 等の決定的コマンド、機械ゲート実行に scripts/recount-facts.sh・generation-engine/scripts/seal-facts.sh を使用</td></tr>
+      <td>find / grep / awk 等の決定的コマンド、機械ゲート実行に scripts/recount-facts.sh・generation-engine/scripts/seal-facts.sh を使用。許可ツール: Bash、Read、Write、Edit。SKILL.md本文で参照する実行用スクリプト: scripts/extract-python-facts.py、scripts/recount-facts.sh、scripts/seal-facts.sh、generation-engine/scripts/seal-facts.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>references/profile-screen.md</code>, <code>delivery-payload/references/facts-schema.md</code></td></tr>

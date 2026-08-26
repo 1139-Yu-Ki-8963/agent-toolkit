@@ -278,7 +278,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>シーケンス図生成スキル<br><span class="skill-name">generating-sequence-diagram-for-reverse-docs</span></h1>
+  <h1 data-phase-count="3">シーケンス図の書き出し<br><span class="skill-name">generating-sequence-diagram-for-reverse-docs</span></h1>
   <p>画面・API・機能の設計単位について、確定済みfactsまたは設計文書の順序表をシーケンス図へ機械変換するスキルの確定仕様。画面はfactsのcall_order、APIはAPI詳細設計書§4.1、機能は機能設計書§3.1だけを順序の定義元とする。</p>
   <div class="def">
     <dt>こんな人向け</dt>
@@ -301,7 +301,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>2026-08-19: API・機能の合成ユニットでHTML生成PASS、非対象5種別のテストデータで<code>sequencePath</code>削除後のリンク表示0件、既存data／DOM／SVG各15件・artifact 5件・分割3件PASS</td></tr>
     <tr>
       <td>依存</td>
-      <td><code>render-template.sh</code> / <code>screen-sequence-template.html</code> / <code>sequence-kind-policy.json</code> / 画面factsのcall_order / API§4.1 / 機能§3.1</td></tr>
+      <td><code>render-template.sh</code> / <code>screen-sequence-template.html</code> / <code>sequence-kind-policy.json</code> / 画面factsのcall_order / API§4.1 / 機能§3.1。許可ツール: Bash、Read、Write、Grep、Glob、AskUserQuestion、TaskCreate、TaskUpdate。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/render-template.sh、generation-engine/scripts/build-portal.sh、generation-engine/scripts/shell-injection.sh、scripts/test-sequence-kind-policy.mjs</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>generating-entity-state-for-reverse-docs</code>, <code>delivery-payload/references/facts-schema.md</code></td></tr>

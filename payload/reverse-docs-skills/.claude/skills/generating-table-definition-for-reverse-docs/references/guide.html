@@ -277,7 +277,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>テーブル定義書生成スキル<br><span class="skill-name">generating-table-definition-for-reverse-docs</span></h1>
+  <h1 data-phase-count="4">テーブル定義書の書き起こし<br><span class="skill-name">generating-table-definition-for-reverse-docs</span></h1>
   <p>テーブル 1 本ごとに、カラムの名前・型・長さ・必須の別・既定値・制約・索引・外部キーの参照先を原本の schema 定義から書き起こした <strong>テーブル定義書.md</strong> を生成するスキルの確定仕様。業務上の意味は書かない。</p>
   <table class="meta-table">
     <tr>
@@ -288,7 +288,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>新規作成のため単独実機検証は未実施。Phase 構成と機械検査は型となる generating-api-basic-design-for-reverse-docs から踏襲した。スキル専用のテストスクリプトは持たない</td></tr>
     <tr>
       <td>依存</td>
-      <td>拡張マニフェスト <code>&lt;manifestsRoot&gt;/table-manifest.ext.json</code> ／ テンプレート <code>delivery-payload/templates/リバース検証/テーブル/テーブル定義書.md</code></td></tr>
+      <td>拡張マニフェスト <code>&lt;manifestsRoot&gt;/table-manifest.ext.json</code> ／ テンプレート <code>delivery-payload/templates/リバース検証/テーブル/テーブル定義書.md</code>。許可ツール: Bash、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/scaffold-design-unit.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>

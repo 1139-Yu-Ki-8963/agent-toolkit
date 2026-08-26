@@ -277,7 +277,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>外部連携詳細設計生成スキル<br><span class="skill-name">generating-external-detail-design-for-reverse-docs</span></h1>
+  <h1 data-phase-count="4">外部連携の詳細設計書を書く<br><span class="skill-name">generating-external-detail-design-for-reverse-docs</span></h1>
   <p>外部連携 1 本ごとに、原本コードの電文の項目の定義・変換の処理・タイムアウト・リトライ・冪等性の担保を根拠付きで書き起こした <strong>外部連携詳細設計書.md</strong> を生成するスキルの確定仕様。</p>
   <table class="meta-table">
     <tr>
@@ -288,7 +288,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>新規作成のため単独実機検証は未実施。Phase 構成と機械検査は型となる generating-api-basic-design-for-reverse-docs から踏襲した。スキル専用のテストスクリプトは持たない</td></tr>
     <tr>
       <td>依存</td>
-      <td>拡張マニフェスト <code>&lt;manifestsRoot&gt;/external-manifest.ext.json</code> ／ テンプレート <code>delivery-payload/templates/リバース検証/外部連携/外部連携詳細設計書.md</code></td></tr>
+      <td>拡張マニフェスト <code>&lt;manifestsRoot&gt;/external-manifest.ext.json</code> ／ テンプレート <code>delivery-payload/templates/リバース検証/外部連携/外部連携詳細設計書.md</code>。許可ツール: Bash、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/scaffold-design-unit.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>

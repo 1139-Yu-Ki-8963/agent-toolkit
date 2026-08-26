@@ -278,7 +278,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>画面単位リバース検証バッチスキル<br><span class="skill-name">running-reverse-screen-batch</span></h1>
+  <h1 data-phase-count="5">画面単位の無人一括検証<br><span class="skill-name">running-reverse-screen-batch</span></h1>
   <p>画面単位のリバース設計検証を claude CLI のヘッドレスモード（<code>claude -p</code>、対話画面を介さず1回の呼び出しで完結する実行方式）による無人バッチループで実行するスキルの確定仕様。</p>
   <div class="def">
     <dt>こんな人向け</dt>
@@ -301,7 +301,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>2026-07-27: docs-only の静的終端、未開通時の静的リバース継続、single-pass / iterative 分岐を契約・雛形で整合確認済み</td></tr>
     <tr>
       <td>依存</td>
-      <td>claude CLI（<code>claude -p</code> ヘッドレスモード）、orchestrating-ai-development-setup（起動元）</td></tr>
+      <td>claude CLI（<code>claude -p</code> ヘッドレスモード）、orchestrating-ai-development-setup（起動元）。許可ツール: Bash、Edit、Read、Write</td></tr>
     <tr>
       <td>関連資料</td>
       <td>orchestrating-ai-development-setup SKILL.md、<code>references/gotchas.md</code>、<code>references/loop-design.md</code></td></tr>

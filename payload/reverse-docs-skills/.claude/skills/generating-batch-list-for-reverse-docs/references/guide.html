@@ -277,7 +277,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>バッチ一覧生成スキル<br><span class="skill-name">generating-batch-list-for-reverse-docs</span></h1>
+  <h1 data-phase-count="4">バッチの一覧を作る<br><span class="skill-name">generating-batch-list-for-reverse-docs</span></h1>
   <p>既存コードベースからバッチ（定期実行ジョブ・トリガー起動ジョブ）の単位を洗い出し、検証済みマニフェストだけを材料に「バッチ一覧.html」を生成するスキルの確定仕様。種別はバッチ固定で、他種別（画面・API 等）は対応する種別別スキルが担う。</p>
   <table class="meta-table">
     <tr>
@@ -288,7 +288,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>整合検証・HTML生成エンジン（<code>validate-manifest.sh</code>・<code>build-unit-list.sh</code>）は画面一覧生成で実プロジェクト動作確認済み。バッチ種別のカスタム抽出はこの仕様に基づく設計段階</td></tr>
     <tr>
       <td>依存</td>
-      <td>jq / <code>generation-engine/scripts/unit-list/validate-manifest.sh</code> / <code>generation-engine/scripts/unit-list/build-unit-list.sh</code></td></tr>
+      <td>jq / <code>generation-engine/scripts/unit-list/validate-manifest.sh</code> / <code>generation-engine/scripts/unit-list/build-unit-list.sh</code>。許可ツール: AskUserQuestion、Bash、Grep、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/unit-list/validate-manifest.sh、generation-engine/scripts/unit-list/build-unit-list.sh、generation-engine/scripts/extract/extract-batch-metadata.sh、generation-engine/scripts/detect-encoding.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>references/batch-detection.md</code></td></tr>

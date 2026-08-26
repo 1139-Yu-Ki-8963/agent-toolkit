@@ -278,7 +278,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>ローカル環境調査スキル<br><span class="skill-name">surveying-local-environment</span></h1>
+  <h1 data-phase-count="4">実行環境の調査<br><span class="skill-name">surveying-local-environment</span></h1>
   <p>実行環境の OS・パッケージ管理ツール・必要ツールの有無を調査し、env-config.json を生成するスキルの確定仕様。</p>
   <table class="meta-table">
     <tr>
@@ -289,7 +289,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>surveying-local-environment スキルとして独立動作確認済み</td></tr>
     <tr>
       <td>依存</td>
-      <td>bash、jq</td></tr>
+      <td>bash、jq。許可ツール: Bash、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/validate-env-config.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>orchestrating-ai-development-setup</code> SKILL.md（Phase 4A から起動）</td></tr>

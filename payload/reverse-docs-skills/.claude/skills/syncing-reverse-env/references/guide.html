@@ -278,7 +278,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>リバース環境同期スキル<br><span class="skill-name">syncing-reverse-env</span></h1>
+  <h1 data-phase-count="8">元コードと設計書の環境をそろえる<br><span class="skill-name">syncing-reverse-env</span></h1>
   <p>リバース元の「オリジナルコード環境」と設計書由来の「リバースコード環境」の 2 つの worktree を用意・名前管理し、ポート番号以外の完全同一を検証して、一致証明済みの「基準コミット」を確立するスキルの確定仕様。</p>
   <div class="def">
     <dt>こんな人向け</dt>
@@ -303,7 +303,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>サンプルプロジェクトで動作確認済み（E2E: setup → sync → 基準タグ確立 → reset）。node-script 方式（MCP 非接続）でも実プロジェクト（WSL2 環境の drvfs＝Windows 側ドライブのマウント領域）で、動的検証 5 段階のうち L1〜L4 まで実機検証済み</td></tr>
     <tr>
       <td>依存</td>
-      <td>git / Playwright（MCP または node-script 直実行のいずれか）</td></tr>
+      <td>git / Playwright（MCP または node-script 直実行のいずれか）。許可ツール: AskUserQuestion、Bash、Edit、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/check-worktree-commit-guard.sh、scripts/audit-doc-consistency.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>config.yml</code>, <code>references/syncing-reverse-env-concept.html</code>, <code>scripts/audit-doc-consistency.sh</code></td></tr>

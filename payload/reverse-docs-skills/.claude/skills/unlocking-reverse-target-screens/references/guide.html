@@ -272,7 +272,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>リバース対象画面の開通スキル<br><span class="skill-name">unlocking-reverse-target-screens</span></h1>
+  <h1 data-phase-count="5">対象画面の疑似接続<br><span class="skill-name">unlocking-reverse-target-screens</span></h1>
   <p>standalone は設計書なし画面を基準確立まで、dynamic-only は静的設計後の画面を動的検証準備まで開通する。</p>
   <div class="def">
     <dt>こんな人向け</dt>
@@ -289,7 +289,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>2026-07-27: standalone / dynamic-only の適用条件と引き渡し契約を整合確認済み</td></tr>
     <tr>
       <td>依存</td>
-      <td>reverse_worktree 上の対象画面ソースコード一式、<code>manifest.yml</code> の <code>projects.&lt;system&gt;</code> エントリ</td></tr>
+      <td>reverse_worktree 上の対象画面ソースコード一式、<code>manifest.yml</code> の <code>projects.&lt;system&gt;</code> エントリ。許可ツール: Bash、Edit、Glob、Grep、Read、Skill、TaskUpdate、Write</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>manifest.yml</code>, <code>assets/manifest-template.yml</code>, <code>orchestrating-ai-development-setup/references/contract.md</code>, <code>syncing-reverse-env/config.yml</code></td></tr>

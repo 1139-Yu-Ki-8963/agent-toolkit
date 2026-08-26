@@ -277,7 +277,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>意味用語候補生成スキル<br><span class="skill-name">generating-glossary-for-reverse-docs</span></h1>
+  <h1 data-phase-count="4">用語の候補を挙げる<br><span class="skill-name">generating-glossary-for-reverse-docs</span></h1>
   <p>コードと既存文書から意味用語の候補を取り出し、<strong>未承認の提案</strong>としてリポジトリ外へ渡す互換スキルの確定仕様。正式な用語集には一切触れない。</p>
   <table class="meta-table">
     <tr>
@@ -288,7 +288,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td><code>scripts/test-generating-glossary-proposal-contract.sh</code> が外部パス・リポジトリ内への出力拒否・シンボリックリンク拒否・提案の検証・直接 HTML 経路と自動承認文言の不在を確認する</td></tr>
     <tr>
       <td>依存</td>
-      <td><code>python3</code> ／ <code>scripts/write-glossary-proposal-output.py</code>・<code>verify-glossary-proposal-receipt.py</code>・<code>validate-verified-glossary-proposal-bundle.py</code> ／ <code>generation-engine/scripts/glossary/validate-semantic-glossary.sh</code> ／ <code>generation-engine/schemas/semantic-glossary/1.0.0/proposal.schema.yaml</code></td></tr>
+      <td><code>python3</code> ／ <code>scripts/write-glossary-proposal-output.py</code>・<code>verify-glossary-proposal-receipt.py</code>・<code>validate-verified-glossary-proposal-bundle.py</code> ／ <code>generation-engine/scripts/glossary/validate-semantic-glossary.sh</code> ／ <code>generation-engine/schemas/semantic-glossary/1.0.0/proposal.schema.yaml</code>。許可ツール: Bash、Glob、Grep、Read、Write。SKILL.md本文で参照する実行用スクリプト: scripts/write-glossary-proposal-output.py、scripts/verify-glossary-proposal-receipt.py、scripts/validate-verified-glossary-proposal-bundle.py、generation-engine/scripts/glossary/validate-semantic-glossary.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>references/glossary-extraction.md</code>, <code>references/test-cases.md</code></td></tr>

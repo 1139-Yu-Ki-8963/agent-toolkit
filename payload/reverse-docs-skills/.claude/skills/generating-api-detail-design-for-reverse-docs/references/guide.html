@@ -277,7 +277,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>API詳細設計書生成スキル<br><span class="skill-name">generating-api-detail-design-for-reverse-docs</span></h1>
+  <h1 data-phase-count="4">接続窓口の詳細設計書を作る<br><span class="skill-name">generating-api-detail-design-for-reverse-docs</span></h1>
   <p>既存のバックエンドコードから API 1 本ごとの詳細設計書を、原本コードの読解によって作るスキルの確定仕様。対象はエンドポイント単位であり、複数の API をまとめた機能単位の設計書とは別物である。</p>
   <table class="meta-table">
     <tr>
@@ -288,7 +288,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>2026-08-20: 合成API詳細設計書3件で、現行テンプレートの全見出しと全表列への一致、および節名・列見出しの逸脱検出を実測</td></tr>
     <tr>
       <td>依存</td>
-      <td>API 一覧の拡張マニフェスト（<code>api-manifest.ext.json</code>）、テンプレート <code>delivery-payload/templates/リバース検証/API/API詳細設計書.md</code>、検査 <code>generation-engine/scripts/tests/check-design-doc-section-consistency.sh</code></td></tr>
+      <td>API 一覧の拡張マニフェスト（<code>api-manifest.ext.json</code>）、テンプレート <code>delivery-payload/templates/リバース検証/API/API詳細設計書.md</code>、検査 <code>generation-engine/scripts/tests/check-design-doc-section-consistency.sh</code>。許可ツール: AskUserQuestion、Bash、Glob、Grep、Read、TaskCreate、TaskUpdate、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/extract/build-implementation-contract-section.sh、generation-engine/scripts/scaffold-design-unit.sh、generation-engine/scripts/portal-input/build-manifests-from-docs.sh、generation-engine/scripts/build-portal.sh、generation-engine/scripts/tests/check-detailed-design-conventions.cjs、generation-engine/scripts/tests/check-detail-design-frontmatter-keys.sh、generation-engine/scripts/validate-api-design-decisions.mjs、generation-engine/scripts/tests/check-design-doc-section-consistency.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>delivery-payload/references/chapter-map.md</code>, <code>delivery-payload/references/納品物フォルダ体系.md</code>, <code>generating-api-list-for-reverse-docs</code></td></tr>

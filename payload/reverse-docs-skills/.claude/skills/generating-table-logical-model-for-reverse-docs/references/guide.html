@@ -277,7 +277,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>テーブル論理データモデル生成スキル<br><span class="skill-name">generating-table-logical-model-for-reverse-docs</span></h1>
+  <h1 data-phase-count="5">論理データモデルの書き起こし<br><span class="skill-name">generating-table-logical-model-for-reverse-docs</span></h1>
   <p>テーブル 1 本ごとに、業務上の何を表すかを業務語彙だけで書いた <strong>論理データモデル.md</strong> を生成するスキルの確定仕様。カラムの型・制約・索引・物理名は書かない。</p>
   <table class="meta-table">
     <tr>
@@ -288,7 +288,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>新規作成のため単独実機検証は未実施。Phase 構成と機械検査は型となる generating-api-basic-design-for-reverse-docs から踏襲した。スキル専用のテストスクリプトは持たない</td></tr>
     <tr>
       <td>依存</td>
-      <td>拡張マニフェスト <code>&lt;manifestsRoot&gt;/table-manifest.ext.json</code> ／ テンプレート <code>delivery-payload/templates/リバース検証/テーブル/論理データモデル.md</code> と <code>delivery-payload/templates/リバース検証/テーブル/テーブルテスト設計書.md</code></td></tr>
+      <td>拡張マニフェスト <code>&lt;manifestsRoot&gt;/table-manifest.ext.json</code> ／ テンプレート <code>delivery-payload/templates/リバース検証/テーブル/論理データモデル.md</code> と <code>delivery-payload/templates/リバース検証/テーブル/テーブルテスト設計書.md</code>。許可ツール: Bash、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/scaffold-design-unit.sh、<code>&lt;template_root&gt;/rules/checkers/check-unit-test-design-doc-sections.sh</code></td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>

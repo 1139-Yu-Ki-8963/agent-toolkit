@@ -278,7 +278,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>環境構築手順ページ生成スキル<br><span class="skill-name">generating-env-guide-for-reverse-docs</span></h1>
+  <h1 data-phase-count="4">環境構築の手順書を作る<br><span class="skill-name">generating-env-guide-for-reverse-docs</span></h1>
   <p>アーキテクチャ調査書 §3 と任意の env-config.json から、対象リポジトリの起動手順・前提ツール・割当を機械検証付きで「環境構築手順.html」として生成するスキルの確定仕様。</p>
   <div class="def">
     <dt>こんな人向け</dt>
@@ -301,7 +301,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>2026-08-20: build-portal.shケース48aで永続page-dataからの再生成を確認。validate-page-data.sh / build-detail-page.shはフィクスチャで動作確認済み</td></tr>
     <tr>
       <td>依存</td>
-      <td>jq ／ <code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>build-detail-page.sh</code>（スキルフォルダ相対 <code>../../../generation-engine/scripts/detail-pages/</code>）／ <code>generation-engine/scripts/build-portal.sh</code>（任意・カード反映時）／ <code>surveying-local-environment</code>（任意・env-config.json 生成時）</td></tr>
+      <td>jq ／ <code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>build-detail-page.sh</code>（スキルフォルダ相対 <code>../../../generation-engine/scripts/detail-pages/</code>）／ <code>generation-engine/scripts/build-portal.sh</code>（任意・カード反映時）／ <code>surveying-local-environment</code>（任意・env-config.json 生成時）。許可ツール: Bash、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/detail-pages/validate-page-data.sh、generation-engine/scripts/detail-pages/build-detail-page.sh、generation-engine/scripts/build-portal.sh、generation-engine/scripts/output-layout.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>../../../generation-engine/scripts/detail-pages/page-data-schema.md</code></td></tr>

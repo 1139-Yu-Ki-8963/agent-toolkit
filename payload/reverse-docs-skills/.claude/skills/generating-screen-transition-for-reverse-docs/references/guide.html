@@ -278,7 +278,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>画面遷移図生成スキル<br><span class="skill-name">generating-screen-transition-for-reverse-docs</span></h1>
+  <h1 data-phase-count="4">画面遷移図の書き出し<br><span class="skill-name">generating-screen-transition-for-reverse-docs</span></h1>
   <p>永続正本 screen-manifest.json、そこから生成した screen-manifest.ext.json、対象リポジトリのルーティング定義を突合し、「画面遷移図.html」を機械検証付きで生成するスキルの確定仕様。</p>
   <div class="def">
     <dt>こんな人向け</dt>
@@ -301,7 +301,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>エンジンスクリプト（validate-page-data.sh / build-detail-page.sh）はフィクスチャでの動作確認済み。スキル単体の実機検証は未実施</td></tr>
     <tr>
       <td>依存</td>
-      <td>jq ／ <code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>build-detail-page.sh</code>（スキルフォルダ相対 <code>../../../generation-engine/scripts/detail-pages/</code>）／ <code>generation-engine/scripts/build-portal.sh</code>（任意・カード反映時）</td></tr>
+      <td>jq ／ <code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>build-detail-page.sh</code>（スキルフォルダ相対 <code>../../../generation-engine/scripts/detail-pages/</code>）／ <code>generation-engine/scripts/build-portal.sh</code>（任意・カード反映時）。許可ツール: AskUserQuestion、Bash、Grep、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/detail-pages/validate-page-data.sh、generation-engine/scripts/detail-pages/build-detail-page.sh、generation-engine/scripts/build-portal.sh、generation-engine/scripts/detail-pages/check-screen-transition-manifest-alignment.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>references/transition-detection.md</code>, <code>../../../generation-engine/scripts/detail-pages/page-data-schema.md</code></td></tr>

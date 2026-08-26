@@ -278,7 +278,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>ER図生成スキル<br><span class="skill-name">generating-er-diagram-for-reverse-docs</span></h1>
+  <h1 data-phase-count="4">表同士のつながりを図にする<br><span class="skill-name">generating-er-diagram-for-reverse-docs</span></h1>
   <p>テーブル一覧.html に埋め込まれた manifest をエンティティの正としつつ、対象リポジトリのマイグレーション／ORM モデルから外部キーを抽出し、「ER図.html」を機械検証付きで生成するスキルの確定仕様。</p>
   <div class="def">
     <dt>こんな人向け</dt>
@@ -301,7 +301,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>エンジンスクリプト（validate-page-data.sh / build-detail-page.sh）とテーブル一覧の埋め込み manifest 契約（unit-manifest）はフィクスチャでの動作確認済み。スキル単体の実機検証は未実施</td></tr>
     <tr>
       <td>依存</td>
-      <td>jq ／ <code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>build-detail-page.sh</code>（スキルフォルダ相対 <code>../../../generation-engine/scripts/detail-pages/</code>）／ <code>generation-engine/scripts/build-portal.sh</code>（任意・カード反映時）</td></tr>
+      <td>jq ／ <code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>build-detail-page.sh</code>（スキルフォルダ相対 <code>../../../generation-engine/scripts/detail-pages/</code>）／ <code>generation-engine/scripts/build-portal.sh</code>（任意・カード反映時）。許可ツール: AskUserQuestion、Bash、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/detail-pages/validate-page-data.sh、generation-engine/scripts/detail-pages/build-detail-page.sh、generation-engine/scripts/build-portal.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>references/er-detection.md</code>, <code>../../../generation-engine/scripts/detail-pages/page-data-schema.md</code></td></tr>

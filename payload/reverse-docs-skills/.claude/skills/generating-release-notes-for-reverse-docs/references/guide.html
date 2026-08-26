@@ -277,7 +277,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>リリースノート生成スキル<br><span class="skill-name">generating-release-notes-for-reverse-docs</span></h1>
+  <h1 data-phase-count="4">更新履歴のページを作る<br><span class="skill-name">generating-release-notes-for-reverse-docs</span></h1>
   <p>対象リポジトリの git 履歴をコミットの接頭辞で機械分類し、<strong>リリースノート.html</strong> を生成する基盤ページ生成スキルの確定仕様。</p>
   <table class="meta-table">
     <tr>
@@ -288,7 +288,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>共有エンジン（<code>validate-page-data.sh</code>・<code>build-detail-page.sh</code>）は他の詳細ページ生成スキルで動作確認済み。分類結果は Phase 2 で <code>jq</code> による 3 値検査を手順内で機械実行する。スキル専用のテストスクリプトは持たない</td></tr>
     <tr>
       <td>依存</td>
-      <td><code>git</code> ／ <code>jq</code> ／ 共有スクリプト <code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>generation-engine/scripts/detail-pages/build-detail-page.sh</code> ／ 任意 <code>generation-engine/scripts/build-portal.sh</code></td></tr>
+      <td><code>git</code> ／ <code>jq</code> ／ 共有スクリプト <code>generation-engine/scripts/detail-pages/validate-page-data.sh</code>・<code>generation-engine/scripts/detail-pages/build-detail-page.sh</code> ／ 任意 <code>generation-engine/scripts/build-portal.sh</code>。許可ツール: Bash、Read、Write。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/detail-pages/validate-page-data.sh、generation-engine/scripts/detail-pages/build-detail-page.sh、generation-engine/scripts/build-portal.sh、generation-engine/scripts/output-layout.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>references/test-cases.md</code></td></tr>

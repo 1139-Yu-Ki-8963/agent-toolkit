@@ -273,7 +273,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 </head>
 <body>
 <header>
-  <h1>用語保守<br><span class="skill-name">maintaining-semantic-glossary</span></h1>
+  <h1 data-phase-count="5">用語変更の検査と影響分析<br><span class="skill-name">maintaining-semantic-glossary</span></h1>
   <p>用語変更の品質と影響を調べ、人が裁定できる変更要求へ整えるスキル。</p>
   <div class="def"><dt>こんな人向け</dt><dd>用語steward、レビュー担当、移行計画担当</dd><dt>こんな場面で使う</dt><dd>追加・更新・廃止の事前検査、重複・未使用調査、影響分析</dd></div>
   <table class="meta-table">
@@ -285,7 +285,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>2026-08-02 指定14列の名称別衝突検査契約とSkill契約テストを実行し、保守手順とai_index境界を照合</td></tr>
     <tr>
       <td>依存</td>
-      <td>Python 3.13、正式validator、対象資産の読取権限</td></tr>
+      <td>Python 3.13、正式validator、対象資産の読取権限。許可ツール: Read、Write、Bash、Grep、Glob、AskUserQuestion。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/glossary/validate-semantic-glossary.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td>semantic-glossary共通契約、用語保守Skill仕様書、用語運用ルール</td></tr>
@@ -338,7 +338,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
   <p>deleteモードは持たない。review-proposal、add、update、deprecate、retireでは<code>--registry &lt;file-or-dir&gt;</code>が必須。省略時はreview_requiredとして、変更要求を管理Skillへ渡さない。</p>
 </section>
 <section id="s4">
-  <h2><span class="sec-num">§4</span>検査順序</h2>
+  <h2><span class="sec-num">§4</span>検査順序（Phase 1〜5）</h2>
   <pre>正式CLI → report schema → schema → key → label正規化 → alias/禁止語 → representation → 類義候補 → 参照整合</pre>
   <p>exit 0でもreview_requiredがあれば適用可能と判定しない。SGS/SGK/SGR/SGL/SGP/SGV/SGDのcode familyとseverityを保持する。類義語はdefinition、kind、scope、relation、representationも比較し、自動統合しない。</p>
 </section>
