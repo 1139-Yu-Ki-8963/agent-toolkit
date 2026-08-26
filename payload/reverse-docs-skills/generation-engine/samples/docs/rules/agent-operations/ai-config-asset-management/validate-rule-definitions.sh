@@ -23,7 +23,8 @@ set -euo pipefail
 #   階層-一致       parent が親フォルダ名、key が子フォルダ名と一致
 #   矯正-矛盾なし   全rule.mdのformatter指定（none以外）が単一の値に揃っている
 #   派生-未承認除外  status が draft/approved のいずれか（値域検査。除外自体はbuild側）
-#   規則-検査列     '## 規則' 直後の表ヘッダが「| 規則 | 内容 | 根拠 | 検査 |」の4列
+#   規則-検査列     '## 規則' 直後の表ヘッダが「規則・内容・検査」の3列、または
+#                   「規則・内容・根拠・検査」の4列
 #   検査-手段明示   '## 規則' の表の各行の検査列が手段（静的解析/テスト/レビュー/判定不能）で始まる
 #
 # 警告のみの検査（不合格でも終了コード0のまま通す）:
@@ -49,6 +50,9 @@ set -euo pipefail
 # macOS bash 3.2 互換（連想配列・mapfileは不使用）。
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+TAXONOMY_JSON="${REPO_ROOT}/delivery-payload/references/rule-taxonomy.json"
+CHECKERS_DIR="${REPO_ROOT}/delivery-payload/templates/rules/checkers"
 
 EXPECTED_KEYS="key title parent summary scope paths enforcement checkable checker uncheckableReason formatter status origin"
 
@@ -70,6 +74,103 @@ add_warning() {
   WARNINGS="${WARNINGS}${1}: [${2}] ${3}
 "
   WARN_COUNT=$((WARN_COUNT + 1))
+}
+
+# 一時ファイルを作る。
+#
+# 実装判断: プロセス置換（<(...)）を diff・comm など外部コマンドの引数へ
+# 渡すと /dev/fd/N が渡るが、実行環境によってはこれを開けない
+# （実測 2026-08-24: diff: /dev/fd/11: Operation not permitted）。
+# 比較そのものが失敗するため、失敗を「不合格」と読み違えると、中身に問題が
+# 無いのに不合格を報告する。一時ファイルを経由してこの揺れを断つ。
+#
+# 置き場を明示するのは、引数なしの mktemp が既定の置き場へ書こうとして
+# 失敗するためである（実測 2026-08-24:
+# mktemp: mkstemp failed on /var/folders/.../T/tmp.XXXX: Operation not
+# permitted）。TMPDIR を明示すると成功する。
+# この形を素直な mktemp へ戻してはならない。手元で動いても環境が変われば
+# 再び壊れる。
+_mk_tmp() {
+  mktemp "${TMPDIR:-/tmp}/$(basename "${BASH_SOURCE[0]}" .sh).XXXXXX" 2>/dev/null
+}
+
+# taxonomy が checker 本体を漏れなく宣言していることを検査する。
+# parents[].children[] は配布する27規約、crossCuttingChecks[] は規約を横断して
+# 顧客提示文書や作業指示書そのものを検査する補助的な宣言として分けて数える。
+validate_checker_declarations() {
+  local actual declared duplicates undeclared missing rc=0 _ta _tb mktemp_ok=1
+
+  # 宣言データが無い環境では、宣言の網羅を判定する材料そのものが無い。
+  # 配備先（対象プロジェクトの docs/rules/ 配下）へ配ったこのスクリプトは
+  # delivery-payload を持たないため、この経路を必ず通る。
+  # 材料が無いことを「値が不正」と報告すると、対象の欠陥と実行環境の不足を
+  # 取り違える。宣言の検査だけを飛ばし、他の検査は続ける。
+  # 判定不能の規約: .claude/rules/always/verification/indeterminate-result/rule.md
+  if [ ! -f "$TAXONOMY_JSON" ]; then
+    echo "[UNKNOWN] 宣言データが無いため checker の宣言を判定できません（参照したパス: ${TAXONOMY_JSON}。配備先には delivery-payload が無いため、この経路では宣言の検査を行いません）" >&2
+    return 0
+  fi
+
+  if ! jq -e '
+    (.crossCuttingChecks | type == "array") and
+    (.crossCuttingChecks | all(
+      (.key | type == "string" and length > 0) and
+      (.title | type == "string" and length > 0) and
+      (.rules | type == "array" and length > 0 and all(type == "string" and length > 0)) and
+      (.checker | type == "string" and length > 0) and
+      (.scope == "always" or .scope == "scoped") and
+      (.paths | type == "array") and
+      (.phases | type == "array" and length > 0)
+    ))
+  ' "$TAXONOMY_JSON" >/dev/null 2>&1; then
+    echo "$TAXONOMY_JSON: [検査-宣言形式] crossCuttingChecks の必須項目または値域が不正" >&2
+    return 1
+  fi
+
+  actual="$(find "$CHECKERS_DIR" -maxdepth 1 -type f -name 'check-*.sh' ! -name '*.test.sh' -exec basename {} \; | LC_ALL=C sort -u)"
+  declared="$(jq -r '(.parents[].children[]), (.crossCuttingChecks[]?) | .checker // empty' "$TAXONOMY_JSON" | LC_ALL=C sort)"
+  duplicates="$(printf '%s\n' "$declared" | LC_ALL=C uniq -d)"
+  declared="$(printf '%s\n' "$declared" | LC_ALL=C sort -u)"
+
+  if [ -n "$duplicates" ]; then
+    echo "$TAXONOMY_JSON: [検査-宣言重複] 同じcheckerが複数回宣言されている: $(printf '%s' "$duplicates" | tr '\n' ' ')" >&2
+    rc=1
+  fi
+
+  # undeclared/missing の突合は comm を一時ファイル経由で呼ぶ。プロセス置換
+  # （<(...)）を渡すと実行環境によっては /dev/fd/N を開けず失敗し（実測
+  # 2026-08-24: diff: /dev/fd/11: Operation not permitted）、この関数の
+  # 呼び出し元（main の `|| exit 1`・self_test の `|| rc=1`）はどちらも
+  # 「set -e が無効化される文脈」から呼ぶため、comm の失敗はシェルを
+  # 止めずに空文字の undeclared/missing を返し、本来検出すべき欠落を
+  # 「欠落なし」として見逃す。判定できない場合は、この関数の冒頭にある
+  # 「宣言データが無い環境」と同じ扱い（[UNKNOWN] を出し、この検査だけを
+  # 飛ばして呼び出し元の他の検査は続ける）に倣う。
+  if ! _ta="$(_mk_tmp)" || [ -z "$_ta" ] || ! _tb="$(_mk_tmp)" || [ -z "$_tb" ]; then
+    rm -f "${_ta:-}" "${_tb:-}"
+    echo "[UNKNOWN] 一時ファイルを作れないためchecker宣言の欠落・実在を判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    mktemp_ok=0
+  else
+    printf '%s\n' "$actual" > "$_ta"
+    printf '%s\n' "$declared" > "$_tb"
+    undeclared="$(LC_ALL=C comm -23 "$_ta" "$_tb")"
+    missing="$(LC_ALL=C comm -13 "$_ta" "$_tb")"
+    rm -f "$_ta" "$_tb"
+
+    if [ -n "$undeclared" ]; then
+      echo "$TAXONOMY_JSON: [検査-宣言欠落] 宣言の無いchecker: $(printf '%s' "$undeclared" | tr '\n' ' ')" >&2
+      rc=1
+    fi
+    if [ -n "$missing" ]; then
+      echo "$TAXONOMY_JSON: [検査-実在] 宣言したcheckerが実在しない: $(printf '%s' "$missing" | tr '\n' ' ')" >&2
+      rc=1
+    fi
+  fi
+
+  if [ "$rc" -eq 0 ] && [ "$mktemp_ok" -eq 1 ]; then
+    echo "検査宣言合格: $(printf '%s\n' "$actual" | grep -c . | tr -d ' ') 件のchecker本体を宣言済み"
+  fi
+  return "$rc"
 }
 
 # front matter本体（1行目と2行目の "---" に挟まれた範囲）を取り出す。
@@ -301,15 +402,16 @@ validate_one_rule() {
     add_failure "$rule_file" "階層-一致" "front matter の key '${v_key}' が子フォルダ名 '${child_key_expected}' と不一致"
   fi
 
-  # 規則-検査列（'## 規則' 直後の表ヘッダが規則・内容・根拠・検査の4列であること）
+  # 規則-検査列（根拠を別資料へ分ける3列と、従来の4列を受理する）
   local doc_body rule_table_header
   doc_body="$(body_extract "$rule_file")"
   rule_table_header="$(printf '%s\n' "$doc_body" | awk '
     /^## 規則/{found=1; next}
     found && /^\|/{print; exit}
   ')"
-  if [ "$rule_table_header" != "| 規則 | 内容 | 根拠 | 検査 |" ]; then
-    add_failure "$rule_file" "規則-検査列" "'## 規則' 直後の表ヘッダが規則・内容・根拠・検査の4列ではない（値: '${rule_table_header}'）"
+  if [ "$rule_table_header" != "| 規則 | 内容 | 検査 |" ] \
+    && [ "$rule_table_header" != "| 規則 | 内容 | 根拠 | 検査 |" ]; then
+    add_failure "$rule_file" "規則-検査列" "'## 規則' 直後の表ヘッダが規則・内容・検査の3列または規則・内容・根拠・検査の4列ではない（値: '${rule_table_header}'）"
   fi
 
   # 検査-手段明示（'## 規則' の表の各行の検査列が手段の接頭辞を持つこと）
@@ -601,6 +703,10 @@ st_case() {
 
   case "$name" in
     pass) : ;;
+    pass-three-columns)
+      sed -i.bak 's/^| 規則 | 内容 | 根拠 | 検査 |$/| 規則 | 内容 | 検査 |/; s/^|---|---|---|---|$/|---|---|---|/; s/^| 例 | 例 | 例 | 静的解析: 例 |$/| 例 | 例 | 静的解析: 例 |/' "${tmp}/code-standards/naming/rule.md"
+      rm -f "${tmp}/code-standards/naming/rule.md.bak"
+      ;;
     key-consistency)
       sed -i.bak 's/^checker: check-naming.sh$/checker: null/' "${tmp}/code-standards/naming/rule.md"
       rm -f "${tmp}/code-standards/naming/rule.md.bak"
@@ -634,7 +740,7 @@ st_case() {
       rm -f "${tmp}/agent-operations/parent.yml.bak"
       ;;
     rule-table-columns)
-      sed -i.bak 's/^| 規則 | 内容 | 根拠 | 検査 |$/| 規則 | 内容 | 根拠 |/' "${tmp}/code-standards/naming/rule.md"
+      sed -i.bak 's/^| 規則 | 内容 | 根拠 | 検査 |$/| 規則 | 内容 |/' "${tmp}/code-standards/naming/rule.md"
       rm -f "${tmp}/code-standards/naming/rule.md.bak"
       ;;
     project-section-missing)
@@ -675,7 +781,9 @@ st_case() {
 
 self_test() {
   local rc=0
+  validate_checker_declarations || rc=1
   st_case "pass" 0 "" || rc=1
+  st_case "pass-three-columns" 0 "" || rc=1
   st_case "key-consistency" 1 "鍵-対応整合" || rc=1
   st_case "test-companion" 1 "検査-テスト同伴" || rc=1
   st_case "scope-paths" 1 "適用範囲-必須" || rc=1
@@ -708,13 +816,15 @@ main() {
     self_test
     exit $?
   fi
-  if [ "$#" -ne 1 ]; then
+  if [ "$#" -gt 1 ]; then
     echo "使い方: $(basename "$0") <docs/rules のルート>" >&2
     echo "        $(basename "$0") --self-test" >&2
     exit 1
   fi
-  check_rules_root_hint "$1"
-  run_validate "$1"
+  local rules_root="${1:-${REPO_ROOT}/generation-engine/samples/docs/rules}"
+  validate_checker_declarations || exit 1
+  check_rules_root_hint "$rules_root"
+  run_validate "$rules_root"
   exit $?
 }
 

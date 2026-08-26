@@ -13,7 +13,7 @@
 #   verification-loop/設計.md の「網羅の分母」節は規約の階層を55件（親7+子27+子27=61の
 #   誤算、または子24件だった当時の値の取り残し）、総分母を76件と記す。本スクリプトは
 #   その場しのぎで55/76に合わせるのではなく、rule-taxonomy.json の実データ（本稿時点
-#   で子27件）から動的に61件（合計82件）を導出する。設計文書側の数値更新は本スクリプト
+#   で子27件）から動的に61件（現在は合計83件）を導出する。設計文書側の数値更新は本スクリプト
 #   の担当外（Read専用ファイル）のため、乖離はそのまま報告する。
 #
 # Usage:
@@ -90,7 +90,7 @@ build_denominator() {
   printf '画面拡張マニフェスト\t%s\n' "$screen_manifest_ext"
   printf '画面一覧\t%s\n' "$screen_list_html"
 
-  # --- 2) 種別別の一覧（9） ---
+  # --- 2) 種別別の一覧（カタログから動的に導出） ---
   jq -r --argjson exclude "$LIST_EXCLUDE_JSON" '
     .categories[] | select(.key=="list") | .blueprints[]
     | select(.kind as $k | ($exclude | index($k) | not))
@@ -217,9 +217,11 @@ _self_test() {
   denom_all="$(build_denominator "$repo" "$dummy_out")"
   total_actual="$(printf '%s\n' "$denom_all" | grep -c .)"
   rules_total=$((parent_count + child_count * 2))
-  expected_total=$((3 + 9 + 5 + rules_total + 3 + 1))
+  local list_total
+  list_total="$(jq --argjson exclude "$LIST_EXCLUDE_JSON" '[.categories[] | select(.key=="list") | .blueprints[] | select(.kind as $k | ($exclude | index($k) | not))] | length' "${repo}/delivery-payload/references/portal-catalog.json")"
+  expected_total=$((3 + list_total + 5 + rules_total + 3 + 1))
   if [ "$total_actual" -eq "$expected_total" ]; then
-    _case_pass "分母-件数" "分母の総件数が ${expected_total} 件（3+9+5+${rules_total}+3+1。設計文書記載の76とは既知の乖離があり本ケースは動的導出の内部整合性を検査する）"
+    _case_pass "分母-件数" "分母の総件数が ${expected_total} 件（3+${list_total}+5+${rules_total}+3+1。設計文書記載の76とは既知の乖離があり本ケースは動的導出の内部整合性を検査する）"
   else
     _case_fail "分母-件数" "分母の総件数が ${total_actual} 件（期待 ${expected_total} 件）"
   fi

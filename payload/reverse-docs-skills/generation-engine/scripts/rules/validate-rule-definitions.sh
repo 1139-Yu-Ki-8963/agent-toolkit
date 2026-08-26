@@ -22,7 +22,8 @@ set -euo pipefail
 #   階層-一致       parent が親フォルダ名、key が子フォルダ名と一致
 #   矯正-矛盾なし   全rule.mdのformatter指定（none以外）が単一の値に揃っている
 #   派生-未承認除外  status が draft/approved のいずれか（値域検査。除外自体はbuild側）
-#   規則-検査列     '## 規則' 直後の表ヘッダが「| 規則 | 内容 | 根拠 | 検査 |」の4列
+#   規則-検査列     '## 規則' 直後の表ヘッダが「規則・内容・検査」の3列、または
+#                   「規則・内容・根拠・検査」の4列
 #   検査-手段明示   '## 規則' の表の各行の検査列が手段（静的解析/テスト/レビュー/判定不能）で始まる
 #
 # 警告のみの検査（不合格でも終了コード0のまま通す）:
@@ -400,15 +401,16 @@ validate_one_rule() {
     add_failure "$rule_file" "階層-一致" "front matter の key '${v_key}' が子フォルダ名 '${child_key_expected}' と不一致"
   fi
 
-  # 規則-検査列（'## 規則' 直後の表ヘッダが規則・内容・根拠・検査の4列であること）
+  # 規則-検査列（根拠を別資料へ分ける3列と、従来の4列を受理する）
   local doc_body rule_table_header
   doc_body="$(body_extract "$rule_file")"
   rule_table_header="$(printf '%s\n' "$doc_body" | awk '
     /^## 規則/{found=1; next}
     found && /^\|/{print; exit}
   ')"
-  if [ "$rule_table_header" != "| 規則 | 内容 | 根拠 | 検査 |" ]; then
-    add_failure "$rule_file" "規則-検査列" "'## 規則' 直後の表ヘッダが規則・内容・根拠・検査の4列ではない（値: '${rule_table_header}'）"
+  if [ "$rule_table_header" != "| 規則 | 内容 | 検査 |" ] \
+    && [ "$rule_table_header" != "| 規則 | 内容 | 根拠 | 検査 |" ]; then
+    add_failure "$rule_file" "規則-検査列" "'## 規則' 直後の表ヘッダが規則・内容・検査の3列または規則・内容・根拠・検査の4列ではない（値: '${rule_table_header}'）"
   fi
 
   # 検査-手段明示（'## 規則' の表の各行の検査列が手段の接頭辞を持つこと）
@@ -700,6 +702,10 @@ st_case() {
 
   case "$name" in
     pass) : ;;
+    pass-three-columns)
+      sed -i.bak 's/^| 規則 | 内容 | 根拠 | 検査 |$/| 規則 | 内容 | 検査 |/; s/^|---|---|---|---|$/|---|---|---|/; s/^| 例 | 例 | 例 | 静的解析: 例 |$/| 例 | 例 | 静的解析: 例 |/' "${tmp}/code-standards/naming/rule.md"
+      rm -f "${tmp}/code-standards/naming/rule.md.bak"
+      ;;
     key-consistency)
       sed -i.bak 's/^checker: check-naming.sh$/checker: null/' "${tmp}/code-standards/naming/rule.md"
       rm -f "${tmp}/code-standards/naming/rule.md.bak"
@@ -733,7 +739,7 @@ st_case() {
       rm -f "${tmp}/agent-operations/parent.yml.bak"
       ;;
     rule-table-columns)
-      sed -i.bak 's/^| 規則 | 内容 | 根拠 | 検査 |$/| 規則 | 内容 | 根拠 |/' "${tmp}/code-standards/naming/rule.md"
+      sed -i.bak 's/^| 規則 | 内容 | 根拠 | 検査 |$/| 規則 | 内容 |/' "${tmp}/code-standards/naming/rule.md"
       rm -f "${tmp}/code-standards/naming/rule.md.bak"
       ;;
     project-section-missing)
@@ -776,6 +782,7 @@ self_test() {
   local rc=0
   validate_checker_declarations || rc=1
   st_case "pass" 0 "" || rc=1
+  st_case "pass-three-columns" 0 "" || rc=1
   st_case "key-consistency" 1 "鍵-対応整合" || rc=1
   st_case "test-companion" 1 "検査-テスト同伴" || rc=1
   st_case "scope-paths" 1 "適用範囲-必須" || rc=1

@@ -13,7 +13,7 @@ proposed_term:
   category: business
   scope: {level: product, includes: [commerce_platform], excludes: []}
   representations:
-    - {channel: code, value: Customer, symbol_kind: class, location: src/domain/customer.ts:12}
+    - {channel: code, value: Customer, symbol_kind: class, location: src/domain/customer.ts}
   aliases:
     - {value: お客様, type: synonym, language: ja, usage: allowed}
   relations:

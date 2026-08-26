@@ -58,7 +58,9 @@ _prepared_body() {
     skip && /^---$/ { skip = 0; next }
     skip { next }
     /^## 章マップ/ { exit }
-    { print }
+    /<!--/ { in_comment = 1 }
+    !in_comment { print }
+    /-->/ { in_comment = 0 }
   ' "$file"
 }
 

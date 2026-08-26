@@ -13,6 +13,12 @@
     "order": "root-declaration-then-relative-path-bytewise",
     "duplicateInstanceKey": "first-root-wins"
   },
+  "ruleEvidence": {
+    "unit": "rule.md",
+    "path": "evidence.md",
+    "columns": ["規則", "根拠種別", "根拠", "確認日"],
+    "listedInPortal": false
+  },
   "categories": [
     {
       "key": "project",

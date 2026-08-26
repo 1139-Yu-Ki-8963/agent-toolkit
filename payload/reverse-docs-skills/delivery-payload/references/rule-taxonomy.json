@@ -55,6 +55,18 @@
       "scope": "scoped",
       "paths": ["docs/**/*.md", "docs/**/*.html", "project-portal/**"],
       "phases": ["2-基本設計", "3-詳細設計", "フロー外"]
+    },
+    {
+      "key": "portal-unmaintainable-content",
+      "title": "ポータルへ保守できない内容を載せない",
+      "rules": [
+        "ポータルと設計書に根拠列・根拠パス列を設けない",
+        "ポータルと設計書へ対象コードの中身を写さない"
+      ],
+      "checker": "check-portal-unmaintainable-content.sh",
+      "scope": "scoped",
+      "paths": ["docs/**/*.md", "docs/**/*.html", "project-portal/**"],
+      "phases": ["2-基本設計", "3-詳細設計", "フロー外"]
     }
   ],
   "parents": [

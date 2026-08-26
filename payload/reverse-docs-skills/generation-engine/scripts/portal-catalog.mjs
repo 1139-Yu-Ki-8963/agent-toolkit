@@ -175,6 +175,22 @@ function validateDiscoveryMergePolicy(value) {
   }
 }
 
+function validateRuleEvidence(value) {
+  assertObject(value, "catalog.ruleEvidence");
+  assertExactKeys(
+    value,
+    new Set(["unit", "path", "columns", "listedInPortal"]),
+    ["unit", "path", "columns", "listedInPortal"],
+    "catalog.ruleEvidence",
+  );
+  if (value.unit !== "rule.md") fail("catalog.ruleEvidence.unit must be rule.md");
+  if (value.path !== "evidence.md") fail("catalog.ruleEvidence.path must be evidence.md");
+  if (JSON.stringify(value.columns) !== JSON.stringify(["規則", "根拠種別", "根拠", "確認日"])) {
+    fail("catalog.ruleEvidence.columns is invalid");
+  }
+  if (value.listedInPortal !== false) fail("catalog.ruleEvidence.listedInPortal must be false");
+}
+
 // output-layout.sh の output_layout_get と同じ規則で解決する。
 // output_layout_get は {labelDir} を「kindLabels の逆引きで kind を求め、
 // kindDirNames[kind] を当てる」ことで解決する（unitListHtml 等）。
@@ -218,11 +234,12 @@ function resolveDefaultRootPrefix(value, defaultRoots, outputLayout, kind) {
 
 export function validateCatalog(catalog) {
   assertObject(catalog, "catalog");
-  assertExactKeys(catalog, new Set(["schemaVersion", "categories", "defaultRoots", "discoveryRoots", "discoveryMergePolicy"]), ["schemaVersion", "categories"], "catalog");
+  assertExactKeys(catalog, new Set(["schemaVersion", "categories", "defaultRoots", "discoveryRoots", "discoveryMergePolicy", "ruleEvidence"]), ["schemaVersion", "categories"], "catalog");
   if (catalog.schemaVersion !== 1) fail("catalog.schemaVersion must be 1");
   if ("defaultRoots" in catalog) validateDefaultRoots(catalog.defaultRoots);
   if ("discoveryRoots" in catalog) validateDiscoveryRoots(catalog.discoveryRoots, "catalog.discoveryRoots");
   if ("discoveryMergePolicy" in catalog) validateDiscoveryMergePolicy(catalog.discoveryMergePolicy);
+  if ("ruleEvidence" in catalog) validateRuleEvidence(catalog.ruleEvidence);
   if (!Array.isArray(catalog.categories)) fail("catalog.categories must be an array");
   const categoryKeys = new Set();
   const artifactTypes = new Set();

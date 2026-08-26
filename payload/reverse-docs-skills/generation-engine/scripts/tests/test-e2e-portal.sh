@@ -2,9 +2,8 @@
 # test-e2e-portal.sh — ポータル静的 E2E テスト
 #
 # 集約には名前で収集される（run-layer-machine-checks.sh が test-*.sh を無条件に拾う）。
-# ポータル一式に対する試験用スクリプト（E2Eテストスイート）であり、--self-test フラグを
-# 持つ本番経路スクリプトではないため、追加の --self-test 実装は行わない（本ファイルの
-# 実行自体が検証にあたる）。
+# 通常実行はポータル一式のE2E検査、--self-testは壊れた埋め込みJSONパスを検出できるかの
+# 負試験を行う。
 #
 # Usage: test-e2e-portal.sh <portal-root-dir>
 #   引数省略時はスクリプト位置から ../samples を解決する。
@@ -51,6 +50,32 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+if [ "${1:-}" = "--self-test" ]; then
+  SELF_TEST_DIR="$(mktemp -d "${TMPDIR:-/tmp}/e2e-portal-self-test.XXXXXX")"
+  trap 'rm -rf "$SELF_TEST_DIR"' EXIT
+  mkdir -p "$SELF_TEST_DIR/project-portal"
+  cat > "$SELF_TEST_DIR/project-portal/index.html" <<'HTML'
+<!doctype html>
+<html lang="ja"><body>
+<script type="application/json">[{"id":"fixture","tools":[]}]</script>
+<script type="application/json">{"testCasePath":"missing-test-case.html"}</script>
+<footer></footer>
+</body></html>
+HTML
+  self_test_output="$(bash "$0" "$SELF_TEST_DIR" 2>&1)"
+  self_test_rc=$?
+  if [ "$self_test_rc" -eq 1 ] \
+    && printf '%s\n' "$self_test_output" | grep -q '\[FAIL\] リンク-文書存在確認 project-portal/index.html' \
+    && printf '%s\n' "$self_test_output" | grep -q 'missing-test-case.html'; then
+    echo "[PASS] 壊れた埋め込みJSONの文書パスを検出して終了コード1"
+    exit 0
+  fi
+  echo "[FAIL] 壊れた埋め込みJSONの文書パスを検出できない（本体終了コード=$self_test_rc）" >&2
+  printf '%s\n' "$self_test_output" >&2
+  exit 1
+fi
+
 SAMPLES_DIR="${1:-$SCRIPT_DIR/../../samples}"
 SAMPLES_DIR="$(cd "$SAMPLES_DIR" 2>/dev/null && pwd)" || {
   echo "ERROR: samples ディレクトリが見つからない: ${1:-$SCRIPT_DIR/../../samples}" >&2

@@ -1,10 +1,10 @@
 ---
 name: generating-integration-test-spec-for-reverse-docs
 日本語名: 結合テスト仕様書の生成
-description: "複数の設計単位をまたぐ結合テスト仕様書を生成する。"
+description: "複数の設計単位をまたぐ結合テスト仕様書を生成する。 TRIGGER when: 結合テスト仕様書を生成する時。 SKIP: 単一設計単位のテスト設計。"
 invocation: generating-integration-test-spec-for-reverse-docs
 type: transform
-allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
+allowed-tools: [Read, Bash, Edit, Grep, Glob]
 ---
 
 # 正本: reverse-docs-skills
@@ -15,14 +15,51 @@ allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
 
 設計単位ごとのテスト設計書が揃い、複数の画面・機能・API・テーブル・バッチ・帳票・外部連携をまたぐ試験をプロジェクト全体で定義するときに使う。
 
-## 基本ワークフロー
+## Phase 1: 対象の確定
 
-1. `output_dir` とプロジェクト名を確定する。
-2. `../../../generation-engine/scripts/generate-integration-test-spec.sh <output_dir> <project_name>` を実行する。
-3. `<output_dir>/docs/test-cases/結合テスト仕様書.md` を読み、対象範囲へ2つ以上の設計単位、テストケース一覧へ操作手順と期待結果が記載されていることを確認する。
-4. `portal_output_dir` が指定された場合は `../../../generation-engine/scripts/build-portal.sh` を再実行し、結合テスト仕様書のカードをポータルへ反映する。
+## Step 1-1: 出力先と対象を確定する
 
-生成後は、各単位のテスト設計書と設計書内の節を事実源として表を記入する。コードのファイルパスや行番号は記録しない。確定できない事項は要確認事項一覧へ記録する。
+`output_dir` とプロジェクト名を確定し、対象に2つ以上の設計単位があることを確認する。
+
+使用ツール: Read, Glob
+
+**完了**: 出力先、プロジェクト名、対象の設計単位が確定している。
+
+## Phase 2: 仕様書の生成
+
+## Step 2-1: 生成スクリプトを実行する
+
+`../../../generation-engine/scripts/generate-integration-test-spec.sh <output_dir> <project_name>` を実行する。
+
+使用ツール: Bash
+
+**完了**: `<output_dir>/docs/test-cases/結合テスト仕様書.md` が生成されている。
+
+## Step 2-2: 設計書の事実を記入する
+
+各単位のテスト設計書と設計書内の節を事実源として表を記入する。コードのファイルパスや行番号は記録しない。確定できない事項は関連資料の要確認事項一覧へ記録する。
+
+使用ツール: Read, Edit
+
+**完了**: 対象範囲に2つ以上の設計単位があり、各ケースに操作手順と期待結果が記入されている。
+
+## Phase 3: 検証とポータル反映
+
+## Step 3-1: 生成結果を検証する
+
+生成した仕様書を読み、対象範囲、操作手順、期待結果、回復方法が記入されていることを確認する。
+
+使用ツール: Read, Grep
+
+**完了**: 必須項目の欠落がない。
+
+## Step 3-2: ポータルへ反映する
+
+`portal_output_dir` が指定された場合は `../../../generation-engine/scripts/build-portal.sh` を再実行し、結合テスト仕様書のカードをポータルへ反映する。指定がない場合は対象外として完了する。
+
+使用ツール: Bash
+
+**完了**: 指定時はカードが反映され、未指定時は対象外であることが確認されている。
 
 ## 出力
 
@@ -37,6 +74,15 @@ allowed-tools: [Read, Bash, Write, Edit, Grep, Glob]
 ## 予想を裏切る挙動
 
 本書は単位ごとの結合テスト文書ではなく、プロジェクト全体で1冊だけ生成する。
+
+## 完了条件
+
+| Phase | 完了条件 |
+|---|---|
+| Phase 1 | 出力先と2つ以上の対象設計単位が確定している。 |
+| Phase 2 | 結合テスト仕様書を生成し、設計書の事実を記入している。 |
+| Phase 3 | 必須項目を検証し、指定時はポータルへ反映している。 |
+| Goal | プロジェクト全体で1冊の結合テスト仕様書が検証済みである。 |
 
 ## 完了報告
 

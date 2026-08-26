@@ -26,7 +26,7 @@ terms:
       - channel: code
         value: Customer
         symbol_kind: class
-        location: src/domain/customer.ts:12
+        location: src/domain/customer.ts
     aliases:
       - value: お客様
         type: synonym

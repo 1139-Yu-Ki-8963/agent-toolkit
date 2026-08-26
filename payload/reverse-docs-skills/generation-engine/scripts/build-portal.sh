@@ -4269,6 +4269,48 @@ RULE47
   fi
   rm -rf "$test47_dir"
 
+  echo "--- ケース47b: 3列の規則表を描画し、根拠別資料をポータルへ出さない ---"
+  test47b_dir="$(create_physical_tmpdir)"
+  test47b_repo="$test47b_dir/repo"
+  test47b_root="$test47b_dir/root"
+  test47b_rule_dir="$test47b_root/docs/rules/親カテゴリ/子カテゴリ"
+  test47b_portal="$test47b_root/project-portal"
+  mkdir -p "$test47b_repo" "$test47b_rule_dir" "$test47b_portal"
+  cat > "$test47b_rule_dir/rule.md" <<'RULE47B'
+---
+title: 3列テスト規約
+status: approved
+---
+# 3列テスト規約
+
+## 規則
+
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 例 | 根拠を表示しない | レビュー: 目視する |
+RULE47B
+  cat > "$test47b_rule_dir/evidence.md" <<'EVIDENCE47B'
+# 根拠別資料
+
+| 規則 | 根拠種別 | 根拠 | 確認日 |
+|---|---|---|---|
+| 例 | 対象実装 | 非表示にする秘密の根拠 | 2026-08-26 |
+EVIDENCE47B
+  test47b_status=0
+  bash "$SCRIPT_DIR/build-portal.sh" "$test47b_repo" "$test47b_root" "$test47b_portal" \
+    --generated-at 2026-08-26T00:00:00Z >/dev/null 2>&1 || test47b_status=$?
+  if [ "$test47b_status" -ne 0 ] \
+    || [ ! -f "$test47b_rule_dir/rule.html" ] \
+    || grep -qF '<th>根拠</th>' "$test47b_rule_dir/rule.html" \
+    || grep -qF '秘密の根拠' "$test47b_rule_dir/rule.html" \
+    || [ -f "$test47b_rule_dir/evidence.html" ]; then
+    echo "FAIL: --self-test ケース47b（3列規則表の生成、根拠列の非表示、または根拠別資料の除外が不正）" >&2
+    record_self_test_case_failure
+  else
+    echo "PASS: --self-test ケース47b（3列規則表を生成し、根拠列・根拠別資料をポータルへ表示しない）"
+  fi
+  rm -rf "$test47b_dir"
+
   echo "--- ケース48: 画面設計書のテストケースリンクは新配置を優先し、旧配置へfallbackする ---"
   test48_dir="$(create_physical_tmpdir)"
   test48_repo="$test48_dir/repo"
@@ -4567,6 +4609,10 @@ if [ ! -f "$CATALOG" ]; then
 fi
 if [ ! -f "$CATALOG_ENGINE" ]; then
   echo "ERROR: portal catalog engine not found: $CATALOG_ENGINE" >&2
+  exit 1
+fi
+if jq -e 'has("ruleEvidence") and (.ruleEvidence.listedInPortal != false)' "$CATALOG" >/dev/null 2>&1; then
+  echo "ERROR: ruleEvidence must not be listed in the portal" >&2
   exit 1
 fi
 if [ -n "$SCREEN_MANIFEST" ] && [ ! -f "$SCREEN_MANIFEST" ]; then
@@ -5151,6 +5197,8 @@ fi
 # 規約置き場の一本化（output-layout.jsonの専用ルート廃止）に伴い、規約は docs/rules/ 配下の
 # 親子構造から読む。ファイル名が rule.md で全件揃うため、共通文書ループ（*.md 全件探索。
 # design-notes.md まで拾ってしまう）とは別に、rule.md だけを対象にする専用ループで処理する。
+# evidence.md は根拠の非表示別資料であり、portal-catalog.json の ruleEvidence に従って
+# 入口にも変換対象にも加えない。規則表は3列・4列のどちらもMarkdownの列数どおり描画する。
 # 表示名は front matter の title を使い、status: draft の規約はタイトルへ「（下書き）」を
 # 付けて未承認であることを示す（新しい色・新しいCSSクラスは導入しない）。
 RULES_ROOT="$DOCS_ROOT/$LAYOUT_RULES_ROOT"

@@ -112,7 +112,7 @@ extract_table_headers() {
     /^### / { h3 = substr($0, 5) }
     {
       if ($0 ~ /^\|[|: -]+\|[[:space:]]*$/ && $0 ~ /---/ && previous ~ /^\|.*\|[[:space:]]*$/) {
-        print h2 "\t" h3 "\t" previous
+        if (h2 != "") print h2 "\t" h3 "\t" previous
       }
       previous = $0
     }
@@ -318,7 +318,7 @@ function tableHeaders(file) {
     if (line.startsWith("## ")) { h2 = line.slice(3); h3 = ""; }
     if (line.startsWith("### ")) h3 = line.slice(4);
     if (/^\|[|: \-]+\|[\s]*$/.test(line) && line.includes("---") && /^\|.*\|[\s]*$/.test(previous)) {
-      result.push(`${h2}\t${h3}\t${previous}`);
+      if (h2 !== "") result.push(`${h2}\t${h3}\t${previous}`);
     }
     previous = line;
   }
@@ -678,7 +678,7 @@ JSON
     "$REPO_ROOT/.claude/skills/generating-api-detail-design-for-reverse-docs/SKILL.md" \
     "$REPO_ROOT/.claude/skills/generating-feature-design-for-reverse-docs/SKILL.md" \
     "$REPO_ROOT/.claude/skills/generating-reverse-basic-design/SKILL.md" | wc -l | tr -d ' ')"
-  assert_eq "課題1-223-関連資料節を持つテンプレート数" 26 "$related_count"
+  assert_eq "課題1-223-関連資料節を持つテンプレート数" 27 "$related_count"
   assert_eq "課題1-223-廃止済み資料名を含む参照の残存数" 0 "$evidence_ref_count"
   assert_eq "課題1-223-要確認事項節の残存数" 0 "$old_heading_count"
   assert_eq "課題1-223-旧回送文言の残存数" 0 "$old_move_count"
