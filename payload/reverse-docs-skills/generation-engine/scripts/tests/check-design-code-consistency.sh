@@ -2,12 +2,12 @@
 # 設計文書同士で完結する整合性を検査する。
 #
 # 対象コードの行番号を納品物へ保存すると、コード変更のたびに位置情報が腐る。
-# そのため、対象コード・行を入力にする定数値検査と業務ルール近傍検査は廃止し、
-# 次の2種類だけを残す。
-#   1. 本文の件数と直後の表の実データ行数
-#   2. 単体テスト設計書の境界値キーと詳細設計書の判定表キー
+# 行番号へ依存する検査は廃止し、次の3種類を扱う。
+#   1. 検証用TSVの設計値と、定数名で特定した実装値
+#   2. 本文の件数と直後の表の実データ行数
+#   3. 単体テスト設計書の境界値キーと詳細設計書の判定表キー
 #
-# 2種目の対象節（既定は「境界値」）は、このスクリプトへ直書きせず
+# 境界値検査の対象節（既定は「境界値」）は、このスクリプトへ直書きせず
 # delivery-payload/references/design-code-consistency.json の
 # categories.boundaryValueConsistency.targetSectionHeading から解決する。
 # 単体テスト設計書はテストケース一覧・テスト観点・異常系・要確認事項など
@@ -29,10 +29,39 @@
 #   check-design-code-consistency.sh <project_root> [source_dir]
 #   check-design-code-consistency.sh --self-test
 #
-# source_dir は旧呼び出しとの引数互換のため受理するが、読み取らない。
+# source_dir と verification/design-code-constants.tsv の両方がある場合は
+# 定数値も照合する。TSVは「ソース相対パス<TAB>定数名<TAB>設計値」である。
 # 終了コード: 0=一致、1=不一致、2=判定不能（self-test用一時領域の作成失敗）
 set -uo pipefail
 export LC_ALL=C
+
+check_constant_values() {
+  local manifest="$1" source_dir="$2" rc=0
+  local relative_path constant_name expected source_file matching_lines actual_values
+  while IFS=$'\t' read -r relative_path constant_name expected; do
+    [ -n "$relative_path" ] || continue
+    case "$relative_path" in \#*) continue ;; esac
+    if ! [[ "$constant_name" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]] \
+      || ! [[ "$expected" =~ ^[0-9]+([.][0-9]+)?$ ]]; then
+      echo "FAIL 定数値-定義不正 ${relative_path}: 定数名または設計値の形式が不正"
+      rc=1
+      continue
+    fi
+    source_file="$source_dir/$relative_path"
+    if [ ! -f "$source_file" ]; then
+      echo "FAIL 定数値-対象コード不在 ${relative_path}"
+      rc=1
+      continue
+    fi
+    matching_lines="$(grep -E "(^|[^[:alnum:]_])${constant_name}([^[:alnum:]_]|$)" "$source_file" 2>/dev/null)"
+    actual_values="$(printf '%s\n' "$matching_lines" | grep -oE '[0-9]+([.][0-9]+)?' | sort -u)"
+    if ! printf '%s\n' "$actual_values" | grep -qFx "$expected"; then
+      echo "FAIL 定数値-不一致 ${relative_path}: 定数「${constant_name}」に設計値「${expected}」が見つからない"
+      rc=1
+    fi
+  done < "$manifest"
+  return "$rc"
+}
 
 # 数値と、直後の表の実データ行数の対を1行1組で出力する（<行番号>:<数値>:<表の実数>）。
 # 抽出位置は表の行の中とコードの囲みの中を除いた本文の行に限り、
@@ -230,10 +259,14 @@ check_boundary_value() {
 }
 
 run_check() {
-  local project_root="$1" rc=0
+  local project_root="$1" source_dir="${2:-}" rc=0
   if [ ! -d "$project_root" ]; then
     echo "ERROR: ディレクトリが存在しません: $project_root" >&2
     return 1
+  fi
+  local constant_manifest="$project_root/verification/design-code-constants.tsv"
+  if [ -n "$source_dir" ] && [ -f "$constant_manifest" ]; then
+    check_constant_values "$constant_manifest" "$source_dir" || rc=1
   fi
   local repo_root section_heading count_root
   repo_root="$(_repo_root)"
@@ -414,11 +447,33 @@ MD
   fi
 
   repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
-  if jq -e '.categories | keys == ["boundaryValueConsistency", "countConsistency"]' \
+  if jq -e '.categories | keys == ["boundaryValueConsistency", "constantValueConsistency", "countConsistency"]' \
     "$repo_root/delivery-payload/references/design-code-consistency.json" >/dev/null; then
-    echo "  [PASS] 定義は文書内整合の2種類だけ"; pass=$((pass + 1))
+    echo "  [PASS] 定義は定数値と文書内整合の3種類"; pass=$((pass + 1))
   else
-    echo "  [FAIL] 定義に廃止済みのコード位置検査が残る" >&2; fail=$((fail + 1))
+    echo "  [FAIL] 定義の検査カテゴリが不足または過剰" >&2; fail=$((fail + 1))
+  fi
+
+  mkdir -p "$tmp/constant-pass/docs/design" "$tmp/constant-pass/verification" "$tmp/constant-source"
+  printf 'handler.py\tMAX_BID\t500\n' > "$tmp/constant-pass/verification/design-code-constants.tsv"
+  printf 'MAX_BID = 500\n' > "$tmp/constant-source/handler.py"
+  run_check "$tmp/constant-pass" "$tmp/constant-source" >/dev/null 2>&1; rc=$?
+  assert_rc "定数値が一致" 0 "$rc"
+  printf 'MAX_BID = 400\n' > "$tmp/constant-source/handler.py"
+  out="$(run_check "$tmp/constant-pass" "$tmp/constant-source" 2>&1)"; rc=$?
+  assert_rc "実装の定数変更を検出" 1 "$rc"
+  if printf '%s' "$out" | grep -qF 'FAIL 定数値-不一致'; then
+    echo "  [PASS] 定数値不一致の理由を出力"; pass=$((pass + 1))
+  else
+    echo "  [FAIL] 定数値不一致の理由が無い" >&2; fail=$((fail + 1))
+  fi
+  printf 'handler.py\tMAX[BID\t500\n' > "$tmp/constant-pass/verification/design-code-constants.tsv"
+  out="$(run_check "$tmp/constant-pass" "$tmp/constant-source" 2>&1)"; rc=$?
+  assert_rc "不正な定数名を検出" 1 "$rc"
+  if printf '%s' "$out" | grep -qF 'FAIL 定数値-定義不正'; then
+    echo "  [PASS] 定数定義不正の理由を出力"; pass=$((pass + 1))
+  else
+    echo "  [FAIL] 定数定義不正の理由が無い" >&2; fail=$((fail + 1))
   fi
 
   if [ "$(jq -r '.categories.boundaryValueConsistency.targetSectionHeading // empty' \
@@ -603,7 +658,7 @@ main() {
     echo "        $(basename "$0") --self-test" >&2
     exit 1
   fi
-  run_check "$1"
+  run_check "$1" "${2:-}"
 }
 
 main "$@"

@@ -2,9 +2,15 @@
   "schemaVersion": 1,
   "sourceOfTruth": {
     "documentWritingRule": "delivery-payload/templates/rules/tool-defined/document-writing.md",
-    "note": "納品後に陳腐化する対象コードの行番号を使わず、設計文書同士で完結する整合検査だけを定義する。実装との意味的な一致は、リバース生成時の読解とレビューで確認し、保守対象となる位置台帳は作らない。"
+    "note": "納品後に陳腐化する対象コードの行番号は使わない。定数は検証用TSVのソース相対パスと定数名で照合する。実装との意味的な一致は、リバース生成時の読解とレビューで確認し、保守対象となる位置台帳は作らない。"
   },
   "categories": {
+    "constantValueConsistency": {
+      "label": "設計値と実装定数の一致",
+      "mechanizable": true,
+      "input": ["verification/design-code-constants.tsv", "対象コード"],
+      "method": "TSVのソース相対パスと定数名で実装箇所を特定し、設計値と実装の数値リテラルを突合する。行番号は保存しない。"
+    },
     "countConsistency": {
       "label": "本文の件数と表の実数の一致",
       "mechanizable": true,

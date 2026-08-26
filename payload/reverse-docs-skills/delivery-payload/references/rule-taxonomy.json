@@ -16,6 +16,15 @@
   },
   "crossCuttingChecks": [
     {
+      "key": "document-style-register",
+      "title": "顧客向け文書の文体を確かめる",
+      "rules": ["顧客向け文書の地の文を敬体にする"],
+      "checker": "check-document-style-register.sh",
+      "scope": "scoped",
+      "paths": ["docs/**/*.md"],
+      "phases": ["2-基本設計", "3-詳細設計"]
+    },
+    {
       "key": "customer-facing-adequacy",
       "title": "顧客へ提示する文書の適合を確かめる",
       "rules": [
