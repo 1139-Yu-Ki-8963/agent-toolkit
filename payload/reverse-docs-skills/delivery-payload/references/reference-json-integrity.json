@@ -1,0 +1,231 @@
+{
+  "specVersion": 1,
+  "expectedCheckCount": 23,
+  "checks": [
+    {
+      "id": "portal-inventory-kind-one-to-one",
+      "description": "portal-catalog の blueprint kind と deliverable-inventory の item kind を1対1で対応させる",
+      "relation": "equal",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "uniqueSource": true,
+      "uniqueTarget": true,
+      "source": { "file": "portal-catalog.json", "query": ".categories[].blueprints[].kind" },
+      "target": { "file": "deliverable-inventory.json", "query": ".items[].kind" }
+    },
+    {
+      "id": "portal-default-root-key-to-layout-key",
+      "description": "portal-catalog の defaultRoots のキーを output-layout の layout キーへ対応させる",
+      "relation": "subset",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "source": { "file": "portal-catalog.json", "query": ".defaultRoots | keys[]" },
+      "target": { "file": "output-layout.json", "query": ".layout | keys[]" }
+    },
+    {
+      "id": "portal-default-root-value-to-layout-value",
+      "description": "portal-catalog の defaultRoots の値を同じキーの output-layout の layout 値へ対応させる",
+      "relation": "subset",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "source": { "file": "portal-catalog.json", "query": ".defaultRoots | to_entries[] | \"\\(.key)\\t\\(.value)\"" },
+      "target": { "file": "output-layout.json", "query": ".layout | to_entries[] | \"\\(.key)\\t\\(.value)\"" }
+    },
+    {
+      "id": "portal-discovery-root",
+      "description": "blueprint の discovery root と roots を portal-catalog の discoveryRoots へ対応させる",
+      "relation": "subset",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "source": { "file": "portal-catalog.json", "query": "[.categories[].blueprints[].discovery | .root?, .roots[]?] | .[] | select(. != null)" },
+      "target": { "file": "portal-catalog.json", "query": ".discoveryRoots[]" }
+    },
+    {
+      "id": "inventory-dependency-kind",
+      "description": "deliverable-inventory の dependsOnKind を portal-catalog の blueprint kind へ対応させる",
+      "relation": "subset",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "source": { "file": "deliverable-inventory.json", "query": ".items[].dependsOnKind? | select(. != null)" },
+      "target": { "file": "portal-catalog.json", "query": ".categories[].blueprints[].kind" }
+    },
+    {
+      "id": "output-kind-directory-name",
+      "description": "output-layout の kindLabels と kindDirNames のキーを1対1で対応させる",
+      "relation": "equal",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "uniqueSource": true,
+      "uniqueTarget": true,
+      "source": { "file": "output-layout.json", "query": ".kindLabels | keys[]" },
+      "target": { "file": "output-layout.json", "query": ".kindDirNames | keys[]" }
+    },
+    {
+      "id": "design-kind-label",
+      "description": "design-unit-layout の kinds を output-layout の kindLabels へ対応させる",
+      "relation": "subset",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "source": { "file": "design-unit-layout.json", "query": ".kinds | keys[]" },
+      "target": { "file": "output-layout.json", "query": ".kindLabels | keys[]" }
+    },
+    {
+      "id": "design-kind-label-pair",
+      "description": "design-unit-layout の kind と表示名を output-layout の kindLabels の同じ組へ対応させる",
+      "relation": "subset",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "source": { "file": "design-unit-layout.json", "query": ".kinds | to_entries[] | \"\\(.key)\\t\\(.value.label)\"" },
+      "target": { "file": "output-layout.json", "query": ".kindLabels | to_entries[] | \"\\(.key)\\t\\(.value)\"" }
+    },
+    {
+      "id": "doc-extraction-kind",
+      "description": "doc-extraction の抽出種別を design-unit-layout の kinds へ対応させる",
+      "relation": "subset",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "source": { "file": "doc-extraction.json", "query": ".kinds | keys[]" },
+      "target": { "file": "design-unit-layout.json", "query": ".kinds | keys[]" }
+    },
+    {
+      "id": "doc-extraction-separated-kind",
+      "description": "doc-extraction の除外種別と別契約種別を design-unit-layout の kinds へ対応させる",
+      "relation": "subset",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "source": { "file": "doc-extraction.json", "query": "[.excluded, .separateKindContracts] | map(keys) | add | .[]" },
+      "target": { "file": "design-unit-layout.json", "query": ".kinds | keys[]" }
+    },
+    {
+      "id": "doc-extraction-layout-key",
+      "description": "doc-extraction の unitRootKey と directoryKey を output-layout の layout キーへ対応させる",
+      "relation": "subset",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "source": { "file": "doc-extraction.json", "query": "(.kinds[], .separateKindContracts[]) | .unitRootKey, .testDocuments.directoryKey" },
+      "target": { "file": "output-layout.json", "query": ".layout | keys[]" }
+    },
+    {
+      "id": "doc-extraction-test-document-alias",
+      "description": "doc-extraction の testDocuments が指す文書名を同じ種別と役割の documents へ1対1で対応させる",
+      "relation": "equal",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "uniqueSource": true,
+      "uniqueTarget": true,
+      "source": { "file": "doc-extraction.json", "query": "(.kinds + .separateKindContracts) | to_entries[] | .key as $kind | .value.testDocuments | to_entries[] | select(.key == \"externalBehavior\" or .key == \"functionUnit\") | \"\\($kind)\\t\\(.key)\\t\\(.value)\"" },
+      "target": { "file": "doc-extraction.json", "query": "(.kinds + .separateKindContracts) | to_entries[] | .key as $kind | .value.documents[] | select(.role == \"externalBehavior\" or .role == \"functionUnit\") | \"\\($kind)\\t\\(.role)\\t\\(.fileName)\"" }
+    },
+    {
+      "id": "doc-extraction-screen-only-test-document",
+      "description": "doc-extraction の画面専用テスト文書名を design-unit-layout の同じ宣言へ対応させる",
+      "relation": "equal",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "uniqueSource": true,
+      "uniqueTarget": true,
+      "source": { "file": "doc-extraction.json", "query": ".separateKindContracts.screen.testDocuments.screenOnly[]" },
+      "target": { "file": "design-unit-layout.json", "query": ".kinds.screen.screenOnlyTestDocuments[]" }
+    },
+    {
+      "id": "design-generation-phase",
+      "description": "design-unit-layout の生成規則が指す phase を kinds 内に実在する phase へ対応させる",
+      "relation": "subset",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "source": { "file": "design-unit-layout.json", "query": ".generationRules[] as $rule | .kinds | keys[] as $kind | select(($rule.excludedKinds | index($kind)) == null) | \"\\($kind)\\t\\($rule.sourcePhase)\", \"\\($kind)\\t\\($rule.targetPhase)\"" },
+      "target": { "file": "design-unit-layout.json", "query": ".kinds | to_entries[] | .key as $kind | .value.phases | keys[] | \"\\($kind)\\t\\(.)\"" }
+    },
+    {
+      "id": "design-generation-excluded-kind",
+      "description": "design-unit-layout の生成規則が除外する kind を同ファイルの kinds へ対応させる",
+      "relation": "subset",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "source": { "file": "design-unit-layout.json", "query": ".generationRules[].excludedKinds[]" },
+      "target": { "file": "design-unit-layout.json", "query": ".kinds | keys[]" }
+    },
+    {
+      "id": "unit-axis-source-kind",
+      "description": "unit-axes の sourceKind 値域を design-unit-layout の kinds と1対1で対応させる",
+      "relation": "equal",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "uniqueSource": true,
+      "uniqueTarget": true,
+      "source": { "file": "unit-axes.json", "query": ".columns[] | select(.key == \"sourceKind\") | .values[].key" },
+      "target": { "file": "design-unit-layout.json", "query": ".kinds | keys[]" }
+    },
+    {
+      "id": "inventory-manifest-layout-key",
+      "description": "deliverable-inventory の manifestKey を output-layout の layout キーへ対応させる",
+      "relation": "subset",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "source": { "file": "deliverable-inventory.json", "query": ".items[] | select(.evidenceSource == \"manifest\") | .manifestKey" },
+      "target": { "file": "output-layout.json", "query": ".layout | keys[]" }
+    },
+    {
+      "id": "inventory-unit-test-document",
+      "description": "deliverable-inventory の種別別テスト文書名を design-unit-layout の test phase へ対応させる",
+      "relation": "subset",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "source": { "file": "deliverable-inventory.json", "query": ".items[] | select(.unitTestDocuments != null) | .kind as $kind | .unitTestDocuments[] | \"\\($kind)\\t\\(.)\"" },
+      "target": { "file": "design-unit-layout.json", "query": ".kinds | to_entries[] | .key as $kind | .value.phases.test[] | \"\\($kind)\\t\\(.)\"" }
+    },
+    {
+      "id": "inventory-screen-only-test-document",
+      "description": "deliverable-inventory の画面専用テスト文書名を design-unit-layout の同じ宣言へ対応させる",
+      "relation": "equal",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "uniqueSource": true,
+      "uniqueTarget": true,
+      "source": { "file": "deliverable-inventory.json", "query": ".items[] | select(.screenOnlyTestDocuments != null) | .screenOnlyTestDocuments[]" },
+      "target": { "file": "design-unit-layout.json", "query": ".kinds.screen.screenOnlyTestDocuments[]" }
+    },
+    {
+      "id": "doc-extraction-document-file",
+      "description": "doc-extraction の文書役割とファイル名を design-unit-layout の対応 phase へ対応させる",
+      "relation": "subset",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "source": { "file": "doc-extraction.json", "query": "def phase: if . == \"basic\" or . == \"design\" then \"basic\" elif . == \"detail\" then \"detail\" elif . == \"externalBehavior\" or . == \"functionUnit\" then \"test\" else empty end; (.kinds + .separateKindContracts) | to_entries[] | .key as $kind | .value.documents[] | (.role | phase) as $phase | \"\\($kind)\\t\\($phase)\\t\\(.fileName)\"" },
+      "target": { "file": "design-unit-layout.json", "query": ".kinds | to_entries[] | .key as $kind | .value.phases | to_entries[] | .key as $phase | .value[] | \"\\($kind)\\t\\($phase)\\t\\(.)\"" }
+    },
+    {
+      "id": "rule-taxonomy-standard-kind",
+      "description": "rule-taxonomy の子キーへ standard 接尾辞を加え、portal-catalog の規約 blueprint kind と1対1で対応させる",
+      "relation": "equal",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "uniqueSource": true,
+      "uniqueTarget": true,
+      "source": { "file": "rule-taxonomy.json", "query": ".parents[].children[].key + \"-standard\"" },
+      "target": { "file": "portal-catalog.json", "query": ".categories[] | select(.key == \"standards\") | .blueprints[].kind" }
+    },
+    {
+      "id": "rule-taxonomy-standard-directory",
+      "description": "rule-taxonomy の親子キーから作る規約ディレクトリを portal-catalog の規約 blueprint dir と1対1で対応させる",
+      "relation": "equal",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "uniqueSource": true,
+      "uniqueTarget": true,
+      "source": { "file": "rule-taxonomy.json", "query": ".parents[] | .key as $parent | .children[] | \"docs/rules/\\($parent)/\\(.key)\"" },
+      "target": { "file": "portal-catalog.json", "query": ".categories[] | select(.key == \"standards\") | .blueprints[].dir" }
+    },
+    {
+      "id": "rule-taxonomy-standard-discovery-glob",
+      "description": "rule-taxonomy の親子キーから作る規約HTMLパスを portal-catalog の規約 discovery glob と1対1で対応させる",
+      "relation": "equal",
+      "minimumSourceCount": 1,
+      "minimumTargetCount": 1,
+      "uniqueSource": true,
+      "uniqueTarget": true,
+      "source": { "file": "rule-taxonomy.json", "query": ".parents[] | .key as $parent | .children[] | \"docs/rules/\\($parent)/\\(.key)/rule.html\"" },
+      "target": { "file": "portal-catalog.json", "query": ".categories[] | select(.key == \"standards\") | .blueprints[].discovery.glob" }
+    }
+  ]
+}
