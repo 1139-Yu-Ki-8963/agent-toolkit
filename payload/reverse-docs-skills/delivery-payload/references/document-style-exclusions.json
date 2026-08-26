@@ -1,28 +1,28 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "sourceOfTruth": {
     "documentStyleRule": "delivery-payload/references/設計書様式.md",
-    "note": "様式の定義（設計書様式.md §8 文体の区分）が「私たちの作業のための文書は常体でよい」と定めた対象を、ファイル名（basename）の一覧として機械可読に持つ。文書の文体の検査（generation-engine/scripts/check-document-style-register.sh）はこの一覧だけを除外の根拠として読み、一覧をスクリプト内へ直書きしない（1-260）。判定単位はファイル名（basename）の完全一致とする。ここに無い名前は除外しない。"
+    "note": "様式の定義（設計書様式.md §8 文体の区分）が「私たちの作業のための文書は常体でよい」と定めた対象を、ファイル名（basename）と内部文書の配置条件（allowedPathFragments）の組として機械可読に持つ。文書の文体の検査はこの一覧だけを除外の根拠として読み、一覧をスクリプト内へ直書きしない（1-260）。basenameと正規化したパスに含まれる配置条件が両方一致する場合だけ除外する。同じbasenameでも顧客提示の配置にある文書は除外しない。"
   },
   "excludedBasenames": [
-    {"basename": "design-notes.md", "reason": "検査できない理由を記録する文書"},
-    {"basename": "SKILL.md", "reason": "納品するスキルの定義"},
-    {"basename": "rule-reviewer.md", "reason": "レビューを担う定義"},
-    {"basename": "facts-schema.md", "reason": "facts抽出・再計数・転記が共有する内部スキーマ正本"},
-    {"basename": "manifest-schema-extensions.md", "reason": "生成・検証スクリプトが共有するマニフェスト内部仕様"},
-    {"basename": "semantic-glossary-contract-v0.1.md", "reason": "用語管理・検証スキルが共有する内部契約正本"},
-    {"basename": "リバース工程設計.md", "reason": "生成スキル群のPhase・Step対応を管理する内部工程正本"},
-    {"basename": "完了報告の書き方.md", "reason": "スキルが完了報告を組み立てるための内部記入規則"},
-    {"basename": "実装契約定義.md", "reason": "設計書へ実装契約節を記入するための内部執筆規律"},
-    {"basename": "規約定義と派生生成の設計.md", "reason": "規約定義からAIツール用派生物を生成する内部実装設計"},
-    {"basename": "規約定義の執筆手順.md", "reason": "規約定義へ観測結果を記入するための内部執筆手順"},
-    {"basename": "設計書様式.md", "reason": "設計書の様式と記入手順そのものを定める内部文書"},
-    {"basename": "ai-behavior.md", "reason": "対象リポジトリで人とAIの作業境界を定める内部規約テンプレート"},
-    {"basename": "ai-config-asset-management.md", "reason": "AI設定資産の定義・派生管理を定める内部規約テンプレート"},
-    {"basename": "document-writing.md", "reason": "設計書の執筆規律を定める内部規約テンプレート"},
-    {"basename": "naming.md", "reason": "識別子の命名規律を定める内部規約テンプレート"},
-    {"basename": "portal-maintenance.md", "reason": "生成物の保守手順を定める内部規約テンプレート"},
-    {"basename": "review-checklist.md", "reason": "レビューの実施規律を定める内部規約テンプレート"},
-    {"basename": "test-policy.md", "reason": "単体テスト設計書の作成規律を定める内部規約テンプレート"}
+    {"basename": "design-notes.md", "allowedPathFragments": ["/docs/rules/"], "reason": "検査できない理由を記録する内部規約の設計判断"},
+    {"basename": "SKILL.md", "allowedPathFragments": ["/.claude/skills/", "/docs/skills/", "/delivery-payload/templates/delivered-skills/"], "reason": "内部作業を定義する納品スキル"},
+    {"basename": "rule-reviewer.md", "allowedPathFragments": ["/.claude/agents/", "/delivery-payload/templates/delivered-agents/"], "reason": "レビューを担う内部エージェント定義"},
+    {"basename": "facts-schema.md", "allowedPathFragments": ["/delivery-payload/references/"], "reason": "facts抽出・再計数・転記が共有する内部スキーマ正本"},
+    {"basename": "manifest-schema-extensions.md", "allowedPathFragments": ["/delivery-payload/references/"], "reason": "生成・検証スクリプトが共有するマニフェスト内部仕様"},
+    {"basename": "semantic-glossary-contract-v0.1.md", "allowedPathFragments": ["/delivery-payload/references/"], "reason": "用語管理・検証スキルが共有する内部契約正本"},
+    {"basename": "リバース工程設計.md", "allowedPathFragments": ["/delivery-payload/references/"], "reason": "生成スキル群のPhase・Step対応を管理する内部工程正本"},
+    {"basename": "完了報告の書き方.md", "allowedPathFragments": ["/delivery-payload/references/"], "reason": "スキルが完了報告を組み立てるための内部記入規則"},
+    {"basename": "実装契約定義.md", "allowedPathFragments": ["/delivery-payload/references/"], "reason": "設計書へ実装契約節を記入するための内部執筆規律"},
+    {"basename": "規約定義と派生生成の設計.md", "allowedPathFragments": ["/delivery-payload/references/"], "reason": "規約定義からAIツール用派生物を生成する内部実装設計"},
+    {"basename": "規約定義の執筆手順.md", "allowedPathFragments": ["/delivery-payload/references/"], "reason": "規約定義へ観測結果を記入するための内部執筆手順"},
+    {"basename": "設計書様式.md", "allowedPathFragments": ["/delivery-payload/references/"], "reason": "設計書の様式と記入手順そのものを定める内部文書"},
+    {"basename": "ai-behavior.md", "allowedPathFragments": ["/delivery-payload/templates/rules/tool-defined/"], "reason": "対象リポジトリで人とAIの作業境界を定める内部規約テンプレート"},
+    {"basename": "ai-config-asset-management.md", "allowedPathFragments": ["/delivery-payload/templates/rules/tool-defined/"], "reason": "AI設定資産の定義・派生管理を定める内部規約テンプレート"},
+    {"basename": "document-writing.md", "allowedPathFragments": ["/delivery-payload/templates/rules/tool-defined/"], "reason": "設計書の執筆規律を定める内部規約テンプレート"},
+    {"basename": "naming.md", "allowedPathFragments": ["/delivery-payload/templates/rules/tool-defined/"], "reason": "識別子の命名規律を定める内部規約テンプレート"},
+    {"basename": "portal-maintenance.md", "allowedPathFragments": ["/delivery-payload/templates/rules/tool-defined/"], "reason": "生成物の保守手順を定める内部規約テンプレート"},
+    {"basename": "review-checklist.md", "allowedPathFragments": ["/delivery-payload/templates/rules/tool-defined/"], "reason": "レビューの実施規律を定める内部規約テンプレート"},
+    {"basename": "test-policy.md", "allowedPathFragments": ["/delivery-payload/templates/rules/tool-defined/"], "reason": "単体テスト設計書の作成規律を定める内部規約テンプレート"}
   ]
 }
