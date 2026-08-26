@@ -1,7 +1,7 @@
 ---
 name: generating-integration-test-spec-for-reverse-docs
 日本語名: 結合テスト仕様書の生成
-description: "複数の設計単位をまたぐ結合テスト仕様書を生成する。 TRIGGER when: 結合テスト仕様書を生成する時。 SKIP: 単一設計単位のテスト設計。"
+description: "複数の設計単位をまたぐ結合テスト仕様書を生成する。"
 invocation: generating-integration-test-spec-for-reverse-docs
 type: transform
 allowed-tools: [Read, Bash, Edit, Grep, Glob]
@@ -16,6 +16,7 @@ allowed-tools: [Read, Bash, Edit, Grep, Glob]
 ## 使用タイミング
 
 設計単位ごとのテスト設計書が揃い、複数の画面・機能・API・テーブル・バッチ・帳票・外部連携をまたぐ試験をプロジェクト全体で定義するときに使う。
+単一の設計単位で完結するテスト設計は対象外とする。
 
 ## Phase 1: 対象の確定
 
