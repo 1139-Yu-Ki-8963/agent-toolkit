@@ -232,7 +232,7 @@ record() {
           ;;
       esac
     fi
-    mode="$(stat -c '%a' "$root/$rel" 2>/dev/null || stat -f '%Lp' "$root/$rel")"
+    mode="$(LC_ALL=C ls -ld "$root/$rel" | awk '{print $1}')"
     if command -v shasum >/dev/null 2>&1; then hash="$(shasum -a 256 "$root/$rel" | awk '{print $1}')"
     else hash="$(sha256sum "$root/$rel" | awk '{print $1}')"; fi
     printf '%s\t%s\t%s\n' "$rel" "$mode" "$hash" >> "$out"

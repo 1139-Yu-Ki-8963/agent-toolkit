@@ -292,25 +292,25 @@ assert (second_parent / "second-created-moved.json").read_bytes() == diagnostics
 assert second_protected.read_text(encoding="utf-8") == "second-protected\n"
 PY
 
-if rg -n 'build-detail-page\.sh|--page glossary|<output_dir>/用語辞書\.html' "$skill_dir/SKILL.md" >/dev/null; then
+if grep -En 'build-detail-page\.sh|--page glossary|<output_dir>/用語辞書\.html' "$skill_dir/SKILL.md" >/dev/null; then
   echo "FAIL: 互換Skillに直接HTML生成経路が再導入された" >&2
   exit 1
 fi
-rg -n 'write-glossary-proposal-output\.py' "$skill_dir/SKILL.md" >/dev/null
-if rg -n 'proposal\.observations' "$extraction_guide" >/dev/null; then
+grep -En 'write-glossary-proposal-output\.py' "$skill_dir/SKILL.md" >/dev/null
+if grep -En 'proposal\.observations' "$extraction_guide" >/dev/null; then
   echo "FAIL: 抽出ガイドに旧proposal.observationsが残っている" >&2
   exit 1
 fi
-rg -n 'proposal\.extracted_facts\[\]' "$extraction_guide" >/dev/null
-if rg -n '既定値で自動承認|候補の全採用|自動承認したものとして扱う' "$skill_dir/SKILL.md" "$contract" >/dev/null; then
+grep -En 'proposal\.extracted_facts\[\]' "$extraction_guide" >/dev/null
+if grep -En '既定値で自動承認|候補の全採用|自動承認したものとして扱う' "$skill_dir/SKILL.md" "$contract" >/dev/null; then
   echo "FAIL: headless自動承認が再導入された" >&2
   exit 1
 fi
-if rg -n 'generating-glossary-for-reverse-docs.*<output_dir>/用語辞書\.html|generating-glossary-for-reverse-docs（.*二段承認' "$orchestrator" "$contract" >/dev/null; then
+if grep -En 'generating-glossary-for-reverse-docs.*<output_dir>/用語辞書\.html|generating-glossary-for-reverse-docs（.*二段承認' "$orchestrator" "$contract" >/dev/null; then
   echo "FAIL: orchestratorに旧HTML正規経路が再導入された" >&2
   exit 1
 fi
-if rg -n 'generating-glossary-for-reverse-docs.*用語辞書\.html|用語辞書\.html.*generating-glossary-for-reverse-docs' "$readme" "$delivery_layout" >/dev/null; then
+if grep -En 'generating-glossary-for-reverse-docs.*用語辞書\.html|用語辞書\.html.*generating-glossary-for-reverse-docs' "$readme" "$delivery_layout" >/dev/null; then
   echo "FAIL: READMEまたは納品体系に旧HTML正規経路が再導入された" >&2
   exit 1
 fi

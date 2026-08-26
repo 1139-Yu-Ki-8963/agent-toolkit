@@ -172,7 +172,7 @@ check_cross_check() {
       [ "$token" = "—" ] && continue
       printf '%s\t%s\n' "$token" "$file" >> "$tmpdir/referenced-keys.tsv"
     done
-  done < <(rg --files "$tasks_dir" -g '*指示書.md' | LC_ALL=C sort)
+  done < <(find "$tasks_dir" -type f -name '*指示書.md' | LC_ALL=C sort)
 
   while IFS=$'\t' read -r token file; do
     [ -n "$token" ] || continue

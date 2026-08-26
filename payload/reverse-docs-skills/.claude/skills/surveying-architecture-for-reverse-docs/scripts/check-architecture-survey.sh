@@ -211,7 +211,7 @@ extract_section8() {
 }
 
 # 実測では3.9GiB・96,660ファイルの全体複製が9分半でも検査1から進まず、判定を
-# 返せなかった。したがって、この処理を全体cpへ戻さず、grep/rg/findの引数をshlexで
+# 返せなかった。したがって、この処理を全体cpへ戻さず、grep/findの引数をshlexで
 # 分解して実際に読む相対パスだけを抽出する。
 # オプション値をパスと誤認すると無関係な範囲を複製するため、未対応・曖昧な構文は
 # 全体複製へ倒さず判定不能にする。親パスが含まれる子パスはここで除き、同じ木を1回だけ扱う。
@@ -226,7 +226,7 @@ try:
     tokens = shlex.split(cmd, posix=True)
 except ValueError:
     sys.exit(2)
-if not tokens or tokens[0] not in {"grep", "rg", "find"}:
+if not tokens or tokens[0] not in {"grep", "find"}:
     sys.exit(2)
 
 command = tokens[0]
@@ -256,37 +256,24 @@ if command == "find":
 else:
     value_options = {
         "--after-context", "--before-context", "--binary-files",
-        "--color", "--colors", "--context", "--context-separator",
-        "--dfa-size-limit", "--directories", "--encoding", "--engine",
+        "--color", "--context", "--directories",
         "--exclude", "--exclude-dir", "--field-context-separator",
-        "--field-match-separator", "--file", "--glob", "--iglob",
-        "--ignore-file", "--include", "--label", "--max-columns",
-        "--max-count", "--max-depth", "--max-filesize", "--path-separator",
-        "--pre", "--pre-glob", "--regex-size-limit", "--regexp", "--replace",
-        "--sort", "--sortr", "--threads", "--type", "--type-add", "--type-clear"
+        "--field-match-separator", "--file", "--include", "--label",
+        "--max-count", "--regexp"
     }
     boolean_options = {
         "--binary", "--block-buffered", "--byte-offset", "--column",
-        "--count", "--count-matches", "--debug", "--files",
+        "--count", "--debug",
         "--files-with-matches", "--files-without-match", "--fixed-strings",
-        "--follow", "--glob-case-insensitive", "--heading", "--hidden",
-        "--invert-match", "--json", "--line-buffered", "--line-number",
-        "--max-columns-preview", "--messages", "--mmap", "--multiline",
-        "--multiline-dotall", "--no-config", "--no-filename", "--no-heading",
-        "--no-ignore", "--no-ignore-dot", "--no-ignore-exclude",
-        "--no-ignore-files", "--no-ignore-global", "--no-ignore-parent",
-        "--no-ignore-vcs", "--no-line-number", "--no-messages", "--null",
-        "--null-data", "--one-file-system", "--only-matching", "--passthru",
-        "--pcre2", "--pretty", "--quiet", "--recursive", "--search-zip",
-        "--smart-case", "--stats", "--stop-on-nonmatch", "--text", "--trim",
-        "--type-list", "--unrestricted", "--version", "--vimgrep",
+        "--follow", "--invert-match", "--line-buffered", "--line-number",
+        "--no-filename", "--no-messages", "--null", "--null-data",
+        "--only-matching", "--quiet", "--recursive", "--text",
+        "--version",
         "--with-filename", "--word-regexp", "--extended-regexp",
         "--basic-regexp", "--perl-regexp", "--line-regexp", "--files-without-match"
     }
     grep_value_short = set("ABCdefm")
     grep_boolean_short = set("EFGHILPRUVZabchilnoqrsuvwxyz")
-    rg_value_short = set("ABCEefgjmMrtT")
-    rg_boolean_short = set("FHILNPSUTVclnopsqtuvwxz")
     pattern_from_option = False
     files_mode = False
     operands = []
@@ -300,8 +287,6 @@ else:
             continue
         if not options_done and arg.startswith("--"):
             opt = arg.split("=", 1)[0]
-            if command == "rg" and opt == "--files":
-                files_mode = True
             if opt in {"-e", "--regexp", "-f", "--file"}:
                 pattern_from_option = True
             if opt in value_options and "=" not in arg:
@@ -314,8 +299,8 @@ else:
                 sys.exit(2)
             continue
         if not options_done and arg.startswith("-") and arg != "-":
-            value_short = grep_value_short if command == "grep" else rg_value_short
-            boolean_short = grep_boolean_short if command == "grep" else rg_boolean_short
+            value_short = grep_value_short
+            boolean_short = grep_boolean_short
             short = arg[1:]
             pos = 0
             consumed_next = False
@@ -383,18 +368,12 @@ run_mirror_child() {
 
 logical_file_size() {
   size_path="$1"
-  if stat -f '%z' "$size_path" >/dev/null 2>&1; then
-    stat -f '%z' "$size_path"
-  elif stat -c '%s' "$size_path" >/dev/null 2>&1; then
-    stat -c '%s' "$size_path"
-  else
-    return 2
-  fi
+  wc -c < "$size_path" | tr -d '[:space:]'
 }
 
 # 重複除去済みの対象木だけを走査し、通常ファイルの論理バイト数を測る。
 # 疎ファイルも実サイズでなく論理サイズによって1GiB上限へ掛ける必要がある。findは
-# シンボリックリンクをたどらず、環境依存差を隠さないためstatはDarwin/Linuxを明示分岐する。
+# シンボリックリンクをたどらず、POSIXのwcで環境に依存せず測る。
 measure_hint_paths() {
   measure_repo="$1"
   measure_paths="$2"
@@ -406,11 +385,7 @@ measure_hint_paths() {
       file_bytes="$(logical_file_size "$full_measure_path")" || return 2
       total_bytes=$((total_bytes + file_bytes))
     elif [ -d "$full_measure_path" ] && [ ! -L "$full_measure_path" ]; then
-      if stat -f '%z' "$0" >/dev/null 2>&1; then
-        subtree_bytes="$(find "$full_measure_path" -type f -exec stat -f '%z' {} \; 2>/dev/null | awk '{s += $1} END {printf "%.0f", s + 0}')"
-      else
-        subtree_bytes="$(find "$full_measure_path" -type f -exec stat -c '%s' {} \; 2>/dev/null | awk '{s += $1} END {printf "%.0f", s + 0}')"
-      fi
+      subtree_bytes="$(find "$full_measure_path" -type f -exec wc -c {} \; 2>/dev/null | awk '{s += $1} END {printf "%.0f", s + 0}')"
       case "$subtree_bytes" in ''|*[!0-9]*) return 2 ;; esac
       total_bytes=$((total_bytes + subtree_bytes))
     fi
@@ -623,19 +598,19 @@ PY
         continue
       fi
 
-      # 安全のため検索系(grep/rg/find)で始まるコマンドのみ再実行する。
+      # 安全のため検索系(grep/find)で始まるコマンドのみ再実行する。
       # クオート外にシェル連結記号（; & | ` $( ）がある場合も、
       # 「検索系コマンドのみ」とはみなさず再実行しない。クオート内の「|」
       # （grepのOR条件等）は連結とみなさない。
       case "$hint_cmd" in
-        'grep '*|'rg '*|'find '*) is_search=1 ;;
+        'grep '*|'find '*) is_search=1 ;;
         *) is_search=0 ;;
       esac
       if has_unquoted_shell_chain "$hint_cmd"; then
         is_search=0
       fi
       if [ "$is_search" -eq 0 ]; then
-        echo "  検証不能: ${kind_cell}の検出手がかりは検索系コマンド（grep/rg/find）でないため再実行しません: ${hint_cmd}" >&2
+        echo "  検証不能: ${kind_cell}の検出手がかりは検索系コマンド（grep/find）でないため再実行しません: ${hint_cmd}" >&2
         continue
       fi
 
@@ -1721,12 +1696,12 @@ MD
     rc=1
   fi
 
-  if [ "$(extract_hint_paths 'rg --sort path needle src/selected')" = "src/selected" ] \
-    && [ "$(extract_hint_paths 'rg --threads 4 needle src/selected')" = "src/selected" ] \
-    && [ "$(extract_hint_paths 'rg -t py needle src/selected')" = "src/selected" ] \
-    && [ "$(extract_hint_paths 'rg -T py needle src/selected')" = "src/selected" ] \
+  if [ "$(extract_hint_paths 'grep --after-context 2 needle src/selected')" = "src/selected" ] \
+    && [ "$(extract_hint_paths 'grep --include *.py needle src/selected')" = "src/selected" ] \
+    && [ "$(extract_hint_paths 'grep -m 2 needle src/selected')" = "src/selected" ] \
+    && [ "$(extract_hint_paths 'grep -e needle src/selected')" = "src/selected" ] \
     && [ "$(extract_hint_paths 'find -H src/selected -name target.txt')" = "src/selected" ] \
-    && ! extract_hint_paths 'rg --未対応 値 needle src/selected' >/dev/null 2>&1; then
+    && ! extract_hint_paths 'grep --未対応 値 needle src/selected' >/dev/null 2>&1; then
     echo "  [PASS] 1-258引数解析: 値付きoptionとfind前置きoptionをパスから除外し未対応構文を拒否"
   else
     echo "  [FAIL] 1-258引数解析: option値または検索patternを参照パスとして誤採用" >&2

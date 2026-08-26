@@ -96,8 +96,10 @@ _checkrepro_is_excluded() {
 # ディレクトリの別名（symlink、macOS の firmlink 等）を同一生成物として検出する。
 # まず pwd -P で symlink を解決し、それでも表記が異なる場合は device/inode を比べる。
 _checkrepro_dir_identity() {
-  local dir="$1"
-  stat -f '%d:%i' "$dir" 2>/dev/null || stat -c '%d:%i' "$dir" 2>/dev/null
+  local dir="$1" filesystem inode
+  filesystem="$(df -P "$dir" | awk 'END {print $1}')" || return 1
+  inode="$(LC_ALL=C ls -di "$dir" | awk '{print $1}')" || return 1
+  printf '%s:%s\n' "$filesystem" "$inode"
 }
 
 _checkrepro_same_directory() {

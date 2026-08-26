@@ -131,7 +131,7 @@ JSON
       build-portal.sh) script_path="$SCRIPT_DIR/../$script" ;;
       *) script_path="$SCRIPT_DIR/$script" ;;
     esac
-    if rg -q 'get_(kind|future|derived|cross)_(label|icon|desc|dir|group)|CATEGORIES_JSON=.*"id"' "$script_path"; then
+    if grep -Eq 'get_(kind|future|derived|cross)_(label|icon|desc|dir|group)|CATEGORIES_JSON=.*"id"' "$script_path"; then
       echo "FAIL: duplicated portal card literals remain in $script" >&2
       return 1
     fi

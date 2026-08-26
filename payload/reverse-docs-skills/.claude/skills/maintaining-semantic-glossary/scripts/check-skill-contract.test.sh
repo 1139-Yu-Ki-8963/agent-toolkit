@@ -12,6 +12,7 @@ fixtures="$repo_root/generation-engine/scripts/glossary/fixtures"
 canonical_registry="$fixtures/canonical-registry"
 report_schema="$repo_root/generation-engine/schemas/semantic-glossary/1.0.0/validation-report.schema.yaml"
 python_bin="$repo_root/generation-engine/scripts/glossary/.venv/bin/python"
+[ -x "$python_bin" ] || python_bin="python3"
 
 require() {
   local pattern="$1"
@@ -90,13 +91,13 @@ require 'business_approver:<actor>.*technical_approver:<actor>.*role-qualified a
 require '--registry <file-or-dir>' 'registry argument contract'
 require 'registry省略時.*review_required.*変更要求を管理Skillへ渡さない|registryが省略されたら.*review_required' 'registry omission blocking'
 
-if rg -n 'proposal\.observations|proposalのobservations' "$guide_file" >/dev/null; then
+if grep -En 'proposal\.observations|proposalのobservations' "$guide_file" >/dev/null; then
   printf 'FAIL: maintaining guide contains legacy proposal observations\n' >&2
   exit 1
 fi
-rg -n 'proposal(の|\.)extracted_facts\[\].*proposal(の|\.)inferences\[\]' "$guide_file" >/dev/null
+grep -En 'proposal(の|\.)extracted_facts\[\].*proposal(の|\.)inferences\[\]' "$guide_file" >/dev/null
 
-if [ ! -x "$validator" ] || [ ! -x "$python_bin" ]; then
+if [ ! -x "$validator" ] || ! command -v "$python_bin" >/dev/null 2>&1; then
   printf 'FAIL: validator runtime is unavailable\n' >&2
   exit 1
 fi
