@@ -31,6 +31,15 @@
         ]
       },
       {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "docs/rules/agent-operations/routine-operations/check-routine-procedure-doc.sh"
+          }
+        ]
+      },
+      {
         "matcher": "Write",
         "hooks": [
           {
@@ -189,6 +198,15 @@
           {
             "type": "command",
             "command": "docs/rules/non-functional-requirements/performance/check-loop-query-call.sh"
+          }
+        ]
+      },
+      {
+        "matcher": "Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "docs/rules/non-functional-requirements/scalability/check-full-scan-then-filter.sh"
           }
         ]
       },

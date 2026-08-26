@@ -48,6 +48,9 @@
         "command": "docs/rules/non-functional-requirements/performance/check-loop-query-call.sh"
       },
       {
+        "command": "docs/rules/non-functional-requirements/scalability/check-full-scan-then-filter.sh"
+      },
+      {
         "command": "docs/rules/non-functional-requirements/security/check-secret-literal-in-code.sh"
       },
       {
