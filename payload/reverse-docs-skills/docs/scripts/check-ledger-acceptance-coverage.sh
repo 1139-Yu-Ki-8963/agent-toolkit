@@ -67,12 +67,14 @@ analyze_ledger() {
         printf "[FAIL] %s 検収%d項目 / 状態%d判定\n", issue, acceptance_count, verdict_count
       }
     }
-    /^### [0-9]+-[0-9]+\./ {
+    /^### / {
       flush_issue()
-      issue = $2
-      sub(/\.$/, "", issue)
+      issue = ""
       acceptance_count = 0
       state = ""
+      if ($0 !~ /^### 1-[0-9]+\./) next
+      issue = $2
+      sub(/\.$/, "", issue)
       next
     }
     /^\*\*検収方法\*\*:/ {
@@ -108,11 +110,17 @@ run_self_test() {
     '**状態**: 完了（項目1「一つ目」=満たす: 詳細。判定2：満たす。検収3: 追加確認）' \
     '### 1-3. 完了以外' \
     '**検収方法**: 1. 一つ目 2. 二つ目' \
-    '**状態**: 対応中' > "$fixture"
+    '**状態**: 対応中' \
+    '### 1-5. 無番号見出しの直前' \
+    '**検収方法**: 1. 一つ目 2. 二つ目 3. 三つ目 4. 四つ目' \
+    '**状態**: 完了。検収1: 満たす。検収2: 満たす。検収3: 満たす。検収4: 満たす。' \
+    '### 台帳の構造を説明する見出し' \
+    '**検収方法**: 1. 一つ目 2. 二つ目 3. 三つ目 4. 四つ目 5. 五つ目 6. 六つ目' \
+    '**状態**: 完了。これは指摘の状態行ではない。' > "$fixture"
   output="$(analyze_ledger "$fixture")"
   code=$?
-  if [ "$code" -ne 0 ] || ! printf '%s\n' "$output" | grep -q '完了2件 / 判定不足0件'; then
-    echo "[FAIL] 正常系と表記揺れの自己テスト"
+  if [ "$code" -ne 0 ] || ! printf '%s\n' "$output" | grep -q '完了3件 / 判定不足0件'; then
+    echo "[FAIL] 正常系、表記揺れ、無番号見出しの自己テスト"
     printf '%s\n' "$output"
     return 1
   fi
