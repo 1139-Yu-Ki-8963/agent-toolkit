@@ -33,7 +33,9 @@ make_mismatch_project() {
   local base="$1" root
   root="$base/mismatch-project"
   mkdir -p "$root/docs/design/features/feature-with-doc" \
-    "$root/docs/design/features/feature-without-doc"
+    "$root/docs/design/features/feature-without-doc" \
+    "$root/src/features"
+  : > "$root/src/features/with_doc.py"
   cat > "$root/docs/design/features/feature-with-doc/機能設計書.md" <<'EOF'
 ---
 feature_key: with-doc
