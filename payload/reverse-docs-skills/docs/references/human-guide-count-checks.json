@@ -1,0 +1,65 @@
+{
+  "metrics": {
+    "skill_count": {
+      "kind": "directories",
+      "path": ".claude/skills"
+    },
+    "deliverable_count": {
+      "kind": "jq",
+      "path": "delivery-payload/references/portal-catalog.json",
+      "filter": "[.categories[].blueprints[]] | length"
+    },
+    "rule_count": {
+      "kind": "jq",
+      "path": "delivery-payload/references/rule-taxonomy.json",
+      "filter": "[.parents[].children[]] | length"
+    },
+    "published_skill_count": {
+      "kind": "fixed_string_count",
+      "path": "docs/guides/成果物一覧.html",
+      "pattern": "<tr><td class=\"id\">"
+    }
+  },
+  "assertions": [
+    {
+      "metric": "skill_count",
+      "path": "docs/guides/reverse-docs-overview.html",
+      "template": "リポジトリ内{{value}}本＋納品専用3本"
+    },
+    {
+      "metric": "skill_count",
+      "path": "docs/guides/スキル一覧.html",
+      "template": "配下のスキル数は {{value}} 本である"
+    },
+    {
+      "metric": "deliverable_count",
+      "path": "docs/guides/納品物ガイド.html",
+      "template": "納品物カタログには{{value}}件が定義されている"
+    },
+    {
+      "metric": "rule_count",
+      "path": "docs/guides/納品物ガイド.html",
+      "template": "規約は{{value}}件である"
+    },
+    {
+      "metric": "rule_count",
+      "path": "docs/guides/reverse-docs-overview.html",
+      "template": "規約({{value}}件)"
+    },
+    {
+      "metric": "published_skill_count",
+      "path": "docs/guides/成果物一覧.html",
+      "template": "<div class=\"label\">成果物数</div><div class=\"value\">{{value}}<span class=\"unit\">本</span></div>"
+    },
+    {
+      "metric": "published_skill_count",
+      "path": "docs/guides/成果物一覧.html",
+      "template": "<div class=\"label\">スキル</div><div class=\"value\">{{value}}<span class=\"unit\">本</span></div>"
+    },
+    {
+      "metric": "published_skill_count",
+      "path": "docs/guides/成果物一覧.html",
+      "template": "<span class=\"count\">{{value}}本</span>"
+    }
+  ]
+}
