@@ -491,9 +491,10 @@ JSON
   fi
 
   # --- 非画面種別(API等)のテスト設計書「§2 テストケース一覧」の集約 ---
-  local api_docs api_manifest
+  local api_docs api_manifest api_html
   api_docs="$tmp/api-docs"
   api_manifest="$tmp/api-test-case-manifest.json"
+  api_html="$tmp/api-test-case-list.html"
   mkdir -p "$api_docs/$api_unit_root/api-login/テスト設計"
   cat > "$api_docs/$api_unit_root/api-login/テスト設計/APIテスト設計書.md" <<'EOF'
 ## §1 テスト観点
@@ -517,12 +518,15 @@ EOF
 EOF
   if bash "$script_path" "$api_docs" "$api_manifest" >/dev/null 2>&1 \
     && bash "$script_dir/../unit-list/validate-test-case-manifest.sh" "$api_manifest" >/dev/null 2>&1 \
+    && bash "$script_dir/../unit-list/build-unit-list.sh" "$api_manifest" "$api_html" --unit-kind test_case >/dev/null 2>&1 \
     && jq -e '.summary.totalCount == 2
       and ([.units[].unitKey] | unique | length) == 2
       and any(.units[]; .caseKey == "認証-期限切れ拒否" and .viewpointKey == "認証-トークン期限切れ")
       and any(.units[]; .caseKey == "認証関数-期限切れ判定" and .viewpointKey == "認証関数-期限切れ")
-      and all(.units[]; .screenKey == "api-login" and .sourceKind == "api" and .testType == "unit" and .input == "" and .steps == "" and .expected == "")' "$api_manifest" >/dev/null 2>&1; then
-    echo "self-test PASS: API外部契約・関数単位の二文書を重複キーなしで集約"
+      and all(.units[]; .screenKey == "api-login" and .sourceKind == "api" and .testType == "unit" and .input == "" and .steps == "" and .expected == "")' "$api_manifest" >/dev/null 2>&1 \
+    && grep -Fq '"key":"sourceKind"' "$api_html" \
+    && grep -Fq '"sourceKind":"api"' "$api_html"; then
+    echo "self-test PASS: APIのみの入力を集約し、種別列仕様付きテストケース一覧HTMLを生成"
   else
     echo "self-test FAIL: 非画面種別(API)のテストケース集約が不正" >&2
     return 1

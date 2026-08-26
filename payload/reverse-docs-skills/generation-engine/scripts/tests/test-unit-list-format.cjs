@@ -65,6 +65,20 @@ function buildPage(name, units) {
   return outputPath;
 }
 
+function buildDerivedPage(name, unitKind, units) {
+  const manifestPath = path.join(fixtureRoot, `${name}.json`);
+  const outputPath = path.join(fixtureRoot, `${name}.html`);
+  const manifest = {
+    generatedAt: '2026-08-23T00:00:00Z',
+    unitKind,
+    units,
+    summary: {totalCount: units.length, byTestType: {unit: units.length}, byScreen: {'api-login': units.length}},
+  };
+  fs.writeFileSync(manifestPath, JSON.stringify(manifest));
+  execFileSync('bash', [builder, manifestPath, outputPath, '--unit-kind', unitKind], {stdio: 'pipe'});
+  return outputPath;
+}
+
 async function visibleKeys(page) {
   return page.locator('#unit-table tbody > tr:not(.row-detail)').evaluateAll(rows => rows
     .filter(row => getComputedStyle(row).display !== 'none')
@@ -90,6 +104,12 @@ async function visibleKeys(page) {
     const wordKey = String.fromCharCode(97 + Math.floor(index / 26)) + String.fromCharCode(97 + (index % 26));
     return makeUnit(index + 1, {unitKey: `item-entry-${wordKey}`});
   }));
+  const apiViewpointPage = buildDerivedPage('api-viewpoint', 'test_viewpoint', [{
+    unitKey: 'api-login-viewpoint-1', screenKey: 'api-login', sourceKind: 'api', testType: 'unit', category: '外部仕様', viewpoint: '期限切れトークンを拒否する',
+  }]);
+  const apiCasePage = buildDerivedPage('api-case', 'test_case', [{
+    unitKey: 'api-login-case-1', screenKey: 'api-login', sourceKind: 'api', testType: 'unit', unitNameGuess: '期限切れ拒否', kind: 'unit', caseKey: '期限切れ拒否', viewpointKey: 'トークン期限切れ', input: '', steps: '', expected: '401を返す',
+  }]);
 
   let browser;
   try {
@@ -138,7 +158,13 @@ async function visibleKeys(page) {
     assert.deepEqual(await visibleKeys(page), ['item-entry-by'], '次ボタンで2ページ目の1件へ移動する');
     assert.match(await page.locator('#page-info').textContent(), /^2 \/ 2（51件）$/, 'ページ番号を2 / 2へ更新する');
 
-    console.log('self-test: 5 PASS, 0 FAIL');
+    for (const derivedPage of [apiViewpointPage, apiCasePage]) {
+      await page.goto(pathToFileURL(derivedPage).href, {waitUntil: 'load'});
+      assert.equal((await page.locator('th[data-key="sourceKind"]').textContent()).trim(), '種別', 'APIのみの派生一覧に種別列を描画する');
+      assert.equal((await page.locator('#unit-table tbody > tr:not(.row-detail) td').filter({hasText: /^API$/}).count()), 1, '集約元のAPI種別を表示する');
+    }
+
+    console.log('self-test: 7 PASS, 0 FAIL');
   } finally {
     if (browser) await browser.close();
     fs.rmSync(fixtureRoot, {recursive: true, force: true});

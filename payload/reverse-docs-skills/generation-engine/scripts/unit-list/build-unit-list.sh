@@ -475,11 +475,13 @@ EOF
   local viewpoint_manifest="$tmp/viewpoint.json" viewpoint_out="$tmp/viewpoint.html"
   jq -n '{
     unitKind:"test_viewpoint", generatedAt:"2026-01-01T00:00:00Z",
-    units:[{unitKey:"screen-login-unit-1",screenKey:"screen-login",sourceKind:"screen",testType:"unit",category:"入力",viewpoint:"必須入力"}],
-    summary:{totalCount:1,byTestType:{unit:1},byScreen:{"screen-login":1}}
+    units:[{unitKey:"api-login-unit-1",screenKey:"api-login",sourceKind:"api",testType:"unit",category:"入力",viewpoint:"必須入力"}],
+    summary:{totalCount:1,byTestType:{unit:1},byScreen:{"api-login":1}}
   }' > "$viewpoint_manifest"
   if ! bash "$script_path" "$viewpoint_manifest" "$viewpoint_out" --unit-kind test_viewpoint >/dev/null 2>&1 \
-    || ! grep -q '<code>screen-login</code>' "$viewpoint_out" \
+    || ! grep -q '<code>api-login</code>' "$viewpoint_out" \
+    || ! grep -Fq '"key":"sourceKind"' "$viewpoint_out" \
+    || ! grep -Fq '"sourceKind":"api"' "$viewpoint_out" \
     || ! grep -q 'href="../../index.html"' "$viewpoint_out"; then
     derived_ok=0
   fi
@@ -490,11 +492,13 @@ EOF
   local test_case_manifest="$tmp/test-case.json" test_case_out="$tmp/test-case.html"
   jq -n '{
     unitKind:"test_case", generatedAt:"2026-01-01T00:00:00Z",
-    units:[{unitKey:"screen-login-unit-1",screenKey:"screen-login",sourceKind:"screen",testType:"unit",unitNameGuess:"合計0円-登録不可",kind:"unit",caseKey:"合計0円-登録不可",viewpointKey:"金額-下限境界",input:"total: 0",steps:"",expected:"isRegisterableがfalseを返す"}],
-    summary:{totalCount:1,byTestType:{unit:1},byScreen:{"screen-login":1}}
+    units:[{unitKey:"api-login-unit-1",screenKey:"api-login",sourceKind:"api",testType:"unit",unitNameGuess:"合計0円-登録不可",kind:"unit",caseKey:"合計0円-登録不可",viewpointKey:"金額-下限境界",input:"total: 0",steps:"",expected:"isRegisterableがfalseを返す"}],
+    summary:{totalCount:1,byTestType:{unit:1},byScreen:{"api-login":1}}
   }' > "$test_case_manifest"
   if ! bash "$script_path" "$test_case_manifest" "$test_case_out" --unit-kind test_case >/dev/null 2>&1 \
-    || ! grep -q '<code>screen-login</code>' "$test_case_out" \
+    || ! grep -q '<code>api-login</code>' "$test_case_out" \
+    || ! grep -Fq '"key":"sourceKind"' "$test_case_out" \
+    || ! grep -Fq '"sourceKind":"api"' "$test_case_out" \
     || ! grep -q 'href="../../index.html"' "$test_case_out"; then
     derived_ok=0
   fi

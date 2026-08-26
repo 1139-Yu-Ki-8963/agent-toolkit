@@ -205,9 +205,10 @@ JSON
   fi
 
   # --- 非画面種別(API等)のテスト設計書「§1 テスト観点」の集約 ---
-  local api_docs api_manifest
+  local api_docs api_manifest api_html
   api_docs="$tmp/api-docs"
   api_manifest="$tmp/api-test-viewpoint-manifest.json"
+  api_html="$tmp/api-test-viewpoint-list.html"
   mkdir -p "$api_docs/$api_unit_root/api-login/テスト設計"
   cat > "$api_docs/$api_unit_root/api-login/テスト設計/APIテスト設計書.md" <<'EOF'
 ## §1 テスト観点
@@ -234,12 +235,15 @@ EOF
 EOF
   if bash "$script_path" "$api_docs" "$api_manifest" >/dev/null 2>&1 \
     && bash "$script_dir/../unit-list/validate-test-viewpoint-manifest.sh" "$api_manifest" >/dev/null 2>&1 \
+    && bash "$script_dir/../unit-list/build-unit-list.sh" "$api_manifest" "$api_html" --unit-kind test_viewpoint >/dev/null 2>&1 \
     && jq -e '.summary.totalCount == 2
       and ([.units[].unitKey] | unique | length) == 2
       and all(.units[]; .sourceKind == "api")
       and any(.units[]; .category == "外部仕様" and .viewpoint == "期限切れトークンで401を返す")
-      and any(.units[]; .category == "§6 エラー処理" and .viewpoint == "期限切れを判定する")' "$api_manifest" >/dev/null 2>&1; then
-    echo "self-test PASS: API外部契約・関数単位の由来章を重複キーなしで集約"
+      and any(.units[]; .category == "§6 エラー処理" and .viewpoint == "期限切れを判定する")' "$api_manifest" >/dev/null 2>&1 \
+    && grep -Fq '"key":"sourceKind"' "$api_html" \
+    && grep -Fq '"sourceKind":"api"' "$api_html"; then
+    echo "self-test PASS: APIのみの入力を集約し、種別列仕様付きテスト観点表HTMLを生成"
   else
     echo "self-test FAIL: 非画面種別(API)のテスト観点集約が不正" >&2
     return 1
