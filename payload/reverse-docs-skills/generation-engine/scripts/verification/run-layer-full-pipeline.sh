@@ -233,6 +233,8 @@ resolve_extraction_source_dir() {
 excluded_kinds_file() {
   local candidate
   for candidate in \
+    "${OUTPUT_DIR}/docs/scope-and-progress/excluded-kinds.json" \
+    "${OUTPUT_DIR}/一覧/excluded-kinds.json" \
     "${REPO}/docs/scope-and-progress/excluded-kinds.json" \
     "${REPO}/一覧/excluded-kinds.json"; do
     if [ -f "${candidate}" ]; then
@@ -270,7 +272,13 @@ stage_prepare_input() {
     record_result prepare-input SKIP "prepare-verification-input.sh が存在しない"
     return 0
   fi
-  if excluded_kinds_file >/dev/null; then
+  local excluded_source excluded_destination
+  if excluded_source="$(excluded_kinds_file)"; then
+    excluded_destination="${OUTPUT_DIR}/docs/scope-and-progress/excluded-kinds.json"
+    if [ "${excluded_source}" != "${excluded_destination}" ]; then
+      mkdir -p "$(dirname "${excluded_destination}")"
+      cp "${excluded_source}" "${excluded_destination}"
+    fi
     record_result prepare-input OK "対象側の対象外宣言を使用するため疑似入力を配置しない"
     return 0
   fi
@@ -322,6 +330,10 @@ stage_type_extraction() {
   local scr_script="${REPO_SELF}/generation-engine/scripts/unit-list/detect-screens.sh"
   local screen_manifest_path="${MANIFESTS_DIR}/screen-manifest.json"
   if [ -f "${scr_script}" ]; then
+    if kind_is_excluded screen; then
+      write_empty_screen_manifest "${screen_manifest_path}"
+      detail="${detail}screen=0(対象外宣言に基づき抽出を実行しない); "
+    else
     # detect-screens.sh に出力先を直接渡すと、検出0件の結果(exit 0で0件・または
     # 検出失敗で0件相当の内容だけ書いて後続処理でexit非0になる場合の両方を含む)で
     # 既存の一覧を無条件に上書きしてしまう(このリポジトリ自身のようにアプリケーション
@@ -346,11 +358,7 @@ stage_type_extraction() {
       case "${screen_detected_count}" in ''|*[!0-9]*) screen_detected_count=0 ;; esac
     fi
 
-    if [ "${screen_detected_count}" -eq 0 ] && kind_is_excluded screen; then
-      rm -f "${screen_detected_path}"
-      write_empty_screen_manifest "${screen_manifest_path}"
-      detail="${detail}screen=0(対象外宣言に基づく0件); "
-    elif [ "${screen_detected_count}" -eq 0 ] && [ "${screen_existing_count}" -ge 1 ]; then
+    if [ "${screen_detected_count}" -eq 0 ] && [ "${screen_existing_count}" -ge 1 ]; then
       # 検出0件(検出失敗を含む)・既存1件以上のときは上書きせず既存を残す。
       rm -f "${screen_detected_path}"
       detail="${detail}screen=${screen_rc}(検出0件・既存${screen_existing_count}件のため既存を残した); "
@@ -366,6 +374,7 @@ stage_type_extraction() {
       # 空の妥当なマニフェストで続行する。
       write_empty_screen_manifest "${screen_manifest_path}"
       detail="${detail}screen=${screen_rc}(空マニフェストで続行); "
+    fi
     fi
   else
     any_fail=1
@@ -479,7 +488,9 @@ stage_unit_lists() {
   local screen_script="${REPO_SELF}/generation-engine/scripts/unit-list/build-screen-list.sh"
   local screen_html_rel
   screen_html_rel="$(output_layout_get "${unit_layout_json}" screenListHtml 2>/dev/null)" || screen_html_rel="${units_root}/screens/画面一覧.html"
-  if [ -f "${screen_script}" ] && [ -f "${screen_manifest}" ]; then
+  if kind_is_excluded screen; then
+    detail="${detail}screen=対象外; "
+  elif [ -f "${screen_script}" ] && [ -f "${screen_manifest}" ]; then
     mkdir -p "$(dirname "${OUTPUT_DIR}/${screen_html_rel}")"
     run_cmd bash "${screen_script}" "${screen_manifest}" "${OUTPUT_DIR}/${screen_html_rel}" --source-file-root "${REPO}"
     [ "${LAST_RC}" -ne 0 ] && any_fail=1
@@ -543,7 +554,9 @@ stage_unit_lists() {
 
   local viewpoint_manifest="${MANIFESTS_DIR}/test_viewpoint-manifest.json"
   local viewpoint_html_rel="${units_root}/test-viewpoint-list/テスト観点表.html"
-  if [ -f "${unit_script}" ] && [ -f "${viewpoint_manifest}" ]; then
+  if kind_is_excluded screen; then
+    detail="${detail}test-viewpoint=対象外; "
+  elif [ -f "${unit_script}" ] && [ -f "${viewpoint_manifest}" ]; then
     mkdir -p "$(dirname "${OUTPUT_DIR}/${viewpoint_html_rel}")"
     run_cmd bash "${unit_script}" "${viewpoint_manifest}" "${OUTPUT_DIR}/${viewpoint_html_rel}" --unit-kind test_viewpoint
     [ "${LAST_RC}" -ne 0 ] && any_fail=1
@@ -554,7 +567,9 @@ stage_unit_lists() {
 
   local testcase_manifest="${MANIFESTS_DIR}/test_case-manifest.json"
   local testcase_html_rel="${units_root}/test-case-list/テストケース一覧.html"
-  if [ -f "${unit_script}" ] && [ -f "${testcase_manifest}" ]; then
+  if kind_is_excluded screen; then
+    detail="${detail}test-case=対象外; "
+  elif [ -f "${unit_script}" ] && [ -f "${testcase_manifest}" ]; then
     mkdir -p "$(dirname "${OUTPUT_DIR}/${testcase_html_rel}")"
     run_cmd bash "${unit_script}" "${testcase_manifest}" "${OUTPUT_DIR}/${testcase_html_rel}" --unit-kind test_case
     [ "${LAST_RC}" -ne 0 ] && any_fail=1
@@ -592,6 +607,10 @@ stage_unit_lists() {
 
 stage_matrix() {
   local any_fail=0 detail=""
+  if kind_is_excluded screen; then
+    record_result matrix OK "画面依存の5納品物=対象外"
+    return 0
+  fi
   local data_script="${REPO_SELF}/generation-engine/scripts/extract/build-matrix-data.sh"
   local pages_script="${REPO_SELF}/generation-engine/scripts/matrix/build-matrix-pages.sh"
   local convert_script="${REPO_SELF}/generation-engine/scripts/extract/build-permission-function-data.sh"
@@ -763,7 +782,9 @@ stage_design_pages() {
   local comp_json="${OUTPUT_DIR}/.component-inventory.json"
   local icon_json="${OUTPUT_DIR}/.icon-usage.json"
 
-  if [ -f "${tok_script}" ] && [ -f "${design_md}" ]; then
+  if kind_is_excluded screen; then
+    detail="${detail}tokens=対象外; "
+  elif [ -f "${tok_script}" ] && [ -f "${design_md}" ]; then
     run_cmd bash "${tok_script}" "${design_md}" "${tok_json}"
     [ "${LAST_RC}" -ne 0 ] && any_fail=1
     detail="${detail}tokens=${LAST_RC}; "
@@ -771,7 +792,9 @@ stage_design_pages() {
     detail="${detail}tokens=skip; "
   fi
 
-  if [ -f "${comp_script}" ]; then
+  if kind_is_excluded screen; then
+    detail="${detail}components=対象外; "
+  elif [ -f "${comp_script}" ]; then
     run_cmd bash "${comp_script}" "${REPO}" "${comp_json}"
     [ "${LAST_RC}" -ne 0 ] && any_fail=1
     detail="${detail}components=${LAST_RC}; "
@@ -780,7 +803,9 @@ stage_design_pages() {
     detail="${detail}components=missing-script; "
   fi
 
-  if [ -f "${icon_script}" ]; then
+  if kind_is_excluded screen; then
+    detail="${detail}icons=対象外; "
+  elif [ -f "${icon_script}" ]; then
     run_cmd bash "${icon_script}" "${REPO}" "${icon_json}"
     [ "${LAST_RC}" -ne 0 ] && any_fail=1
     detail="${detail}icons=${LAST_RC}; "
@@ -853,7 +878,9 @@ stage_design_pages() {
 
     local tr_script="${REPO_SELF}/generation-engine/scripts/portal-input/extract-transition-page-data.sh"
     local tr_json="${OUTPUT_DIR}/.transition-page-data.json"
-    if [ -f "${tr_script}" ]; then
+    if kind_is_excluded screen; then
+      detail="${detail}page-transition=対象外; "
+    elif [ -f "${tr_script}" ]; then
       run_cmd bash "${tr_script}" "${OUTPUT_DIR}" "${tr_json}"
       if [ "${LAST_RC}" -eq 0 ] && [ -f "${tr_json}" ]; then
         run_cmd bash "${detail_script}" "${tr_json}" "${diagrams_dir}" --page transition --portal-dir "${PORTAL_DIR}"

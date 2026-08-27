@@ -1,5 +1,15 @@
 {
   "specVersion": 1,
+  "absencePolicies": {
+    "screen": {
+      "declarationSource": "excludedKinds",
+      "dependentDeliverableState": "対象なし",
+      "dependentGeneration": "skip",
+      "portalPresentation": "disabled-card",
+      "reasonTemplate": "このプロジェクトでは画面がないため対象外",
+      "missingWithoutDeclarationState": "未生成"
+    }
+  },
   "items": [
     {
       "kind": "tech-stack",

@@ -203,15 +203,13 @@ resolve_state() {
   local output_root="$1" html_glob="$2" kind="$3" inventory_def="$4" layout_json="$5" excluded_json="$6"
   local evidence_source manifest_key count_pointer manifest_rel manifest_path item_count
   local own_reason depends_on depends_reason jq_path_json item_count_output
-
-  if has_matching_html "$output_root" "$html_glob"; then
-    printf '出力あり\t\n'
-    return 0
-  fi
+  local absence_reason missing_without_declaration_state
 
   own_reason="$(excluded_reason_for_kind "$excluded_json" "$kind")"
   if [ -n "$own_reason" ]; then
-    printf '対象なし\t%s\n' "$own_reason"
+    absence_reason="$(jq -r --arg k "$kind" '.absencePolicies[$k].reasonTemplate // empty' "$inventory_def")"
+    [ -n "$absence_reason" ] || absence_reason="$own_reason"
+    printf '対象なし\t%s\n' "$absence_reason"
     return 0
   fi
 
@@ -219,9 +217,16 @@ resolve_state() {
   if [ -n "$depends_on" ]; then
     depends_reason="$(excluded_reason_for_kind "$excluded_json" "$depends_on")"
     if [ -n "$depends_reason" ]; then
-      printf '対象なし\t依存先「%s」が対象外のため生成されない(%s)\n' "$depends_on" "$depends_reason"
+      absence_reason="$(jq -r --arg k "$depends_on" '.absencePolicies[$k].reasonTemplate // empty' "$inventory_def")"
+      [ -n "$absence_reason" ] || absence_reason="依存先「${depends_on}」が対象外のため生成されない(${depends_reason})"
+      printf '対象なし\t%s\n' "$absence_reason"
       return 0
     fi
+  fi
+
+  if has_matching_html "$output_root" "$html_glob"; then
+    printf '出力あり\t\n'
+    return 0
   fi
 
   evidence_source="$(jq -r --arg k "$kind" '.items[] | select(.kind==$k) | .evidenceSource' "$inventory_def")"
@@ -252,7 +257,12 @@ resolve_state() {
   item_count="$item_count_output"
 
   if [ "$item_count" = "0" ]; then
-    printf '対象なし\t対象0件のため生成されない\n'
+    missing_without_declaration_state="$(jq -r --arg k "$kind" '.absencePolicies[$k].missingWithoutDeclarationState // empty' "$inventory_def")"
+    if [ -n "$missing_without_declaration_state" ]; then
+      printf '%s\t対象外宣言がないため対象なしと判定できない\n' "$missing_without_declaration_state"
+    else
+      printf '対象なし\t対象0件のため生成されない\n'
+    fi
   else
     printf '未生成\tマニフェストは存在するがHTML未生成(不整合)\n'
   fi
@@ -518,7 +528,7 @@ self_test() {
     rc=1
   fi
 
-  # ケース5: 状態がハードコードでなく、証拠(マニフェスト有無・件数)の入力に追従する
+  # ケース5: 宣言なしの0件は未生成のまま、HTML実在時だけ出力ありになる
   #   合成 output_root を3通り用意する: (a) マニフェスト無し (b) マニフェスト0件 (c) HTML実在
   #   screenブループリントのdiscovery.globとoutput-layoutのscreenManifestを使う。
   local screen_glob screen_manifest_rel
@@ -543,8 +553,8 @@ self_test() {
   out_b="$(resolve_state "$root_b" "$screen_glob" "screen" "$inventory_def" "$layout_json_b" '[]' | cut -f1)"
   out_c="$(resolve_state "$root_c" "$screen_glob" "screen" "$inventory_def" "$layout_json_c" '[]' | cut -f1)"
 
-  if [ "$out_a" = "未生成" ] && [ "$out_b" = "対象なし" ] && [ "$out_c" = "出力あり" ]; then
-    echo "  [PASS] ケース5: 状態がマニフェスト有無・件数・HTML実在の入力に追従する(未生成→対象なし→出力あり)"
+  if [ "$out_a" = "未生成" ] && [ "$out_b" = "未生成" ] && [ "$out_c" = "出力あり" ]; then
+    echo "  [PASS] ケース5: 宣言なし0件を対象なしへ倒さず、HTML実在を出力ありと判定する"
   else
     echo "  [FAIL] ケース5: 状態が入力に追従しない(a=${out_a:-なし} b=${out_b:-なし} c=${out_c:-なし}、期待=未生成/対象なし/出力あり)" >&2
     rc=1
@@ -632,13 +642,13 @@ self_test() {
     rc=1
   fi
 
-  # ケース9: 0件のマニフェストは従来どおり対象なしと判定される(root_bの再確認)
+  # ケース9: 0件でも対象外宣言がなければ未生成と判定される
   local out_e_sr out_e reason_e
   out_e_sr="$(resolve_state "$root_b" "$screen_glob" "screen" "$inventory_def" "$layout_json_b" '[]')"
   out_e="$(printf '%s' "$out_e_sr" | cut -f1)"
   reason_e="$(printf '%s' "$out_e_sr" | cut -f2)"
-  if [ "$out_e" = "対象なし" ] && printf '%s' "$reason_e" | grep -q '対象0件'; then
-    echo "  [PASS] ケース9: 0件のマニフェストは従来どおり対象なしと判定される"
+  if [ "$out_e" = "未生成" ] && printf '%s' "$reason_e" | grep -q '対象外宣言がない'; then
+    echo "  [PASS] ケース9: 宣言なしの0件画面マニフェストは未生成と判定される"
   else
     echo "  [FAIL] ケース9: 0件のマニフェストの判定が変わった(状態=${out_e:-なし}, 理由=${reason_e:-なし})" >&2
     rc=1
