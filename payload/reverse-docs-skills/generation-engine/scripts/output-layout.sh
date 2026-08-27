@@ -19,6 +19,12 @@
 # macOS bash 3.2 互換（mapfile / declare -A 不使用）。
 
 OUTPUT_LAYOUT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# 書き込み先の判定を1箇所へ寄せた共通モジュール（lib/safe-write-path.cjs）。
+# ここで設定すると、output-layout.sh を読み込む全スクリプトへ届く。
+# scaffold-screen.sh・scaffold-design-unit.sh は build-portal.sh を通らないため、
+# 呼び出し側ごとに設定すると抜けが生じる。
+: "${SAFE_WRITE_PATH_LIB:=${OUTPUT_LAYOUT_DIR}/lib/safe-write-path.cjs}"
+export SAFE_WRITE_PATH_LIB
 OUTPUT_LAYOUT_DEFAULT="$OUTPUT_LAYOUT_DIR/../../delivery-payload/references/output-layout.json"
 
 # 複数の宣言ファイルをキー単位で deep merge する（各トップレベルキーのオブジェクトを

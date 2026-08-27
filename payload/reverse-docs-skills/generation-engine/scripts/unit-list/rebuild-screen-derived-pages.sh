@@ -3,6 +3,8 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# 書き込み先の判定を1箇所へ寄せた共通モジュール。インラインの Node.js から require する。
+export SAFE_WRITE_PATH_LIB="${SCRIPT_DIR}/../lib/safe-write-path.cjs"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 # shellcheck source=../output-layout.sh
 source "$REPO_ROOT/generation-engine/scripts/output-layout.sh"
@@ -115,7 +117,7 @@ function lstatIfPresent(target) {
 }
 
 const rootStat = lstatIfPresent(outputRoot);
-if (rootStat && rootStat.isSymbolicLink()) {
+if (rootStat && rootStat.isSymbolicLink() && !require(process.env.SAFE_WRITE_PATH_LIB).isOsStandardLink(outputRoot)) {
   throw new Error(`output-root must not be a symbolic link: ${outputRoot}`);
 }
 
@@ -132,7 +134,7 @@ for (const relative of managed) {
     current = path.join(current, segment);
     const stat = lstatIfPresent(current);
     if (!stat) break;
-    if (stat.isSymbolicLink()) {
+    if (stat.isSymbolicLink() && !require(process.env.SAFE_WRITE_PATH_LIB).isOsStandardLink(current)) {
       throw new Error(`managed path ancestor must not be a symbolic link: ${current}`);
     }
   }

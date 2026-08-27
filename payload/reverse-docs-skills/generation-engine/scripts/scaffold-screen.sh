@@ -47,7 +47,7 @@ function assertNoLexicalSymlink(raw) {
     }
     current = path.join(current, segment);
     try {
-      if (fs.lstatSync(current).isSymbolicLink()) {
+      if (fs.lstatSync(current).isSymbolicLink() && !require(process.env.SAFE_WRITE_PATH_LIB).isOsStandardLink(current)) {
         throw new Error(`write path must not contain a symbolic link: ${current}`);
       }
     } catch (error) {
@@ -75,7 +75,7 @@ for (const segment of target.slice(parsed.root.length).split(path.sep).filter(Bo
     if (error && error.code === "ENOENT") break;
     throw error;
   }
-  if (stat.isSymbolicLink()) {
+  if (stat.isSymbolicLink() && !require(process.env.SAFE_WRITE_PATH_LIB).isOsStandardLink(current)) {
     throw new Error(`write path must not contain a symbolic link: ${current}`);
   }
 }
