@@ -487,7 +487,16 @@ run_all() {
     # 扱いにすると、実行の環境に道具が無いだけの検査を成果物の欠陥と読み違える。
     # 2026-08-19 実測: 用語の一覧を検査する 2 本が道具（PyYAML・venv）を持たない
     # ために終了コード 2 を返し、失敗として数えられていた。中身の不備ではない。
-    if [ "$n" -eq 0 ] && [ "$RUN_RC" -eq 0 ]; then
+    # 実行 0 件でも、検査が「対象なし」を申告していれば途中停止ではない。
+    # このリポジトリ専用の検査は本体を .claude/rules/ に置き、配布先へは配られない。
+    # 入口だけが届くため、配布先では測る対象そのものが無い。
+    # 実測（2026-08-28）で、この形の4本が途中停止の疑いとして数えられていた。
+    # 「測れなかった」でも「途中で止まった」でもなく「測る対象が無い」である。
+    if [ "$n" -eq 0 ] && [ "$RUN_RC" -eq 0 ] \
+       && printf '%s\n' "$RUN_OUTPUT" | grep -q '^\[SKIP\]'; then
+      status="PASS"
+      passed=$((passed + 1))
+    elif [ "$n" -eq 0 ] && [ "$RUN_RC" -eq 0 ]; then
       status="SUSPECT"
       suspect=$((suspect + 1))
     elif [ "$RUN_RC" -eq 0 ]; then
@@ -996,6 +1005,29 @@ EOS
     assert_true "途中停止-検出" 0
   else
     assert_true "途中停止-検出" 1
+  fi
+
+  # --- フィクスチャ準備（repoC2: 対象なしの申告を途中停止にしない検証用） ---
+  # 実行0件でも [SKIP] を申告していれば途中停止ではない。
+  # 配布先へ本体が配られない入口がこの形になる。
+  local scanC2="$tmp/repoC2/generation-engine/scripts"
+  mkdir -p "$scanC2"
+  printf '%s\n' '#!/usr/bin/env bash' \
+    'case "${1:-}" in ""|--self-test) echo "[SKIP] 本体が無いため対象なしです。"; exit 0 ;; esac' \
+    > "$scanC2/skipper.sh"
+  chmod +x "$scanC2/skipper.sh"
+
+  local outC2
+  outC2="$(run_all "$tmp/repoC2" "/dev/null/no-such-self" 30)"
+  if printf '%s' "$outC2" | grep -qF "[PASS] generation-engine/scripts/skipper.sh"; then
+    assert_true "対象なし-途中停止にしない" 0
+  else
+    assert_true "対象なし-途中停止にしない" 1
+  fi
+  if printf '%s' "$outC2" | grep -q '途中停止の疑い 0 本'; then
+    assert_true "対象なし-集計へ数えない" 0
+  else
+    assert_true "対象なし-集計へ数えない" 1
   fi
 
   # --- フィクスチャ準備（repoD: 時間上限の検証用） ---

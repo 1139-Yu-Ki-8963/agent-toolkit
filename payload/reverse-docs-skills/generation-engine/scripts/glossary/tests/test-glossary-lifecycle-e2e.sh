@@ -22,6 +22,16 @@ registry="$fixtures/canonical-registry"
 validator="$glossary_dir/validate-semantic-glossary.sh"
 projector="$repo_root/generation-engine/scripts/detail-pages/project-semantic-glossary.py"
 
+# 投影を動かす Python の実行系を決める。
+# 段4 は当初 python3 を直に呼んでいた。素の python3 は PyYAML を持たないことがある。
+# 実測（2026-08-28）で、配布先の集約がこの段だけ不合格になった。
+# 中身は「PyYAML が無い」であり、成果物の欠陥ではなく実行環境の制約である。
+# 判定不能を不合格として返していた。
+# 他の段が使う隔離環境と同じものを、この段も使う。
+# GLOSSARY_PYTHON で外から差し替えられる。
+projector_python="${GLOSSARY_PYTHON:-$glossary_dir/.venv/bin/python}"
+[ -x "$projector_python" ] || projector_python="python3"
+
 pass=0
 fail=0
 
@@ -73,7 +83,7 @@ else
 fi
 
 # 段4: 投影が page-data を作る
-if python3 "$projector" \
+if "$projector_python" "$projector" \
      --input "$fixtures/valid-glossary.yaml" \
      --registry "$registry" \
      --output "$tmp/page-data.json" >"$tmp/s4.log" 2>&1 \
@@ -81,7 +91,7 @@ if python3 "$projector" \
   ok "段4 投影が page-data を作る"
 else
   # 引数の形が違う場合に備え、使い方を読んで再試行する
-  if python3 "$projector" --help >"$tmp/help.txt" 2>&1; then
+  if "$projector_python" "$projector" --help >"$tmp/help.txt" 2>&1; then
     ng "段4 投影が page-data を作れない（使い方: $(grep -m1 'usage' "$tmp/help.txt" | cut -c1-70)）"
   else
     ng "段4 投影を実行できない（$(tail -1 "$tmp/s4.log" | cut -c1-80)）"
