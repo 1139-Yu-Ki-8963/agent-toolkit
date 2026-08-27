@@ -8,6 +8,23 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 LEDGER="${LEDGER_COMMANDS_PORTABLE_LEDGER:-$REPO_ROOT/docs/tasks/指摘改善一覧.md}"
 WORK_DIR=""
 
+# 配布対象から外したスキルのパスかを判定する。除外名は公開資産へ直書きせず、
+# 非公開の定義（PAYLOAD_EXCLUSIONS で場所を指す。既定は agent-home 配下）
+# から読む。定義が無い実行環境では除外なしとして扱う。
+_is_excluded_skill_path() {
+  local path="$1" defs name
+  defs="${PAYLOAD_EXCLUSIONS:-$HOME/agent-home/state/payload-forbidden-content.json}"
+  [ -f "$defs" ] || return 1
+  command -v jq >/dev/null 2>&1 || return 1
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    case "$path" in
+      .claude/skills/"$name"/*) return 0 ;;
+    esac
+  done < <(jq -r '.. | strings' "$defs" 2>/dev/null | sort -u)
+  return 1
+}
+
 unknown() {
   echo "[UNKNOWN] $1" >&2
   return 2
@@ -97,9 +114,13 @@ is_excluded() {
       # このリポジトリの出荷物が自立しているかを測る道具であり、配布先に検査対象がない。
       return 0
       ;;
-    .claude/skills/prioritizing-improvement-tasks-from-images/*)
-      # このリポジトリ固有の改善課題と台帳を扱い、配布先には対応する台帳がない。
-      return 0
+    .claude/skills/*)
+      # 配布対象から外したスキルは、配布先に対応する置き場を持たない。
+      # 名前は公開資産へ直書きせず、除外の定義から読む
+      # （公開資産の固有値分離。~/agent-home/rules/always/agent/global-config-change/rule.md）。
+      if _is_excluded_skill_path "$path"; then
+        return 0
+      fi
       ;;
   esac
   return 1
@@ -145,7 +166,7 @@ self_test() {
     print "### public. 公開対象" > output
     print "**状態**: 完了。コマンド: `bash generation-engine/scripts/build-portal.sh --self-test`" > output
     print "### excluded. 公開除外" > output
-    print "**状態**: 完了。コマンド: `grep -r x docs/tasks/work-records/a.md docs/session-prompts/a.md docs/scripts/check-self-contained.sh .claude/skills/prioritizing-improvement-tasks-from-images/SKILL.md`" > output
+    print "**状態**: 完了。コマンド: `grep -r x docs/tasks/work-records/a.md docs/session-prompts/a.md docs/scripts/check-self-contained.sh`" > output
     print "### private. 配布対象外" > output
     print "**状態**: 完了。コマンド: `node package.json`" > output
     print "### open. 未完了" > output

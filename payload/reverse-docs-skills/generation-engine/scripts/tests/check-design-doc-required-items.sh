@@ -186,6 +186,42 @@ _has_empty_cell() {
   '
 }
 
+# 文書内の「非該当項目」宣言に、対象の節が理由付きで挙がっているかを判定する。
+# 宣言の形式（31箇所の実測に基づく）:
+#   > 非該当項目: §14.1 ユーザー入力チェック（入力フォームを持たない画面のため）
+#   複数はセミコロン区切り。丸括弧の理由が無いものは認めない（理由なしの逃げ道を塞ぐため）。
+# 標準出力: 認める場合のみ理由を出力する。
+#
+# 実装判断（ロケール）: 全角括弧を含む正規表現によるパターン抽出のため
+# LC_ALL=en_US.UTF-8 を都度明示する。LC_ALL=C の下では awk の match() が
+# 負の文字クラスに含む全角文字を認識できず、常に0件になる
+# （.claude/rules/always/design-record/implementation-decision/rule.md「ロケールの使い分け」既定2）。
+non_applicable_reason() {
+  local doc_file="$1" heading="$2" key
+  # 見出しから節番号の部分だけを取り出す（"### 14.1 ユーザー入力チェック" → "14.1"）
+  key="$(printf '%s' "$heading" | sed -E 's/^#+[[:space:]]*//; s/^§//; s/^([0-9]+(\.[0-9]+)*).*/\1/')"
+  [ -n "$key" ] || return 1
+  LC_ALL=en_US.UTF-8 awk -v key="$key" '
+    /非該当項目/ {
+      n = split($0, parts, /;/)
+      for (i = 1; i <= n; i++) {
+        seg = parts[i]
+        if (index(seg, "§" key) == 0) continue
+        # 節番号の直後が数字（14.1 に対する 14.10 等）なら別の節として扱う
+        pos = index(seg, "§" key) + length("§" key)
+        nxt = substr(seg, pos, 1)
+        if (nxt ~ /[0-9.]/) continue
+        if (match(seg, /（[^（）]+）/)) {
+          print substr(seg, RSTART, RLENGTH)
+          found = 1
+          exit
+        }
+      }
+    }
+    END { if (!found) exit 1 }
+  ' "$doc_file"
+}
+
 # sections配列の中から「直後に表を持つ最初の見出し」を選び、その見出しと
 # 見出し不在フラグ・表なしフラグ・空セルフラグを呼び出し側へ返す。
 # 標準出力: "<status>\t<heading>"
@@ -203,6 +239,10 @@ resolve_item_status() {
     table_body="$(_body_after_heading "$doc_file" "$heading")"
     has_table="$(printf '%s\n' "$table_body" | _has_table)"
     if [ -z "$has_table" ]; then
+      if non_applicable_reason "$doc_file" "$heading" >/dev/null 2>&1; then
+        printf 'ok\t%s\n' "$heading"
+        return 0
+      fi
       continue
     fi
     has_table_any=1
@@ -217,6 +257,14 @@ resolve_item_status() {
     fi
     printf 'ok\t%s\n' "$heading"
     return 0
+  done < <(printf '%s' "$sections_json" | jq -r '.[]')
+
+  while IFS= read -r heading; do
+    [ -n "$heading" ] || continue
+    if non_applicable_reason "$doc_file" "$heading" >/dev/null 2>&1; then
+      printf 'ok\t%s\n' "$heading"
+      return 0
+    fi
   done < <(printf '%s' "$sections_json" | jq -r '.[]')
 
   if [ "$found_any" -eq 0 ]; then
@@ -681,6 +729,30 @@ JSON
   feature_fail_count="$(printf '%s\n' "$out_feature" | grep -c '^FAIL' || true)"
   assert_eq "追加回帰8-機能設計書のFAILは0件" 0 "$feature_fail_count"
   rm -rf "$tmp_feature"
+
+  # 追加回帰9: 「非該当項目」の宣言（理由を丸括弧で伴うもの）を持つ節は、
+  # 表を持たなくても合格とする。理由の無い宣言は認めない（逃げ道を作らないため）。
+  # この宣言は見本・テンプレートで31箇所に使われている確立した方式であり、
+  # 検査が読まないと理由付きで正しく非該当を宣言した文書まで不合格になる。
+  local tmp_na out_na rc_na
+  tmp_na="$(new_tmp_dir)"
+  cat > "$tmp_na/output-layout.json" <<JSON
+{ "specVersion": 1, "layout": { "screenUnitRoot": "screen" } }
+JSON
+  mkdir -p "$tmp_na/screen/fixture"
+  cp "$REPO_ROOT/generation-engine/samples/docs/design/screens/screen-home/詳細設計/画面詳細設計書.md" \
+     "$tmp_na/screen/fixture/画面詳細設計書.md"
+  out_na="$(run_check "$tmp_na")"; rc_na=$?
+  assert_eq "追加回帰9-理由付き非該当宣言は終了コード0" 0 "$rc_na"
+  assert_not_contains "追加回帰9-表欠落は出ない" 'FAIL 必須項目-表欠落' "$out_na"
+
+  # 理由の丸括弧を削ると、非該当として認めず表欠落でFAILになること
+  LC_ALL=en_US.UTF-8 perl -i -pe 's/（入力フォームを持たない画面のため）//' \
+    "$tmp_na/screen/fixture/画面詳細設計書.md"
+  out_na="$(run_check "$tmp_na")"; rc_na=$?
+  assert_eq "追加回帰9-理由なし宣言は終了コード1" 1 "$rc_na"
+  assert_contains "追加回帰9-理由なし宣言は表欠落でFAIL" 'FAIL 必須項目-表欠落' "$out_na"
+  rm -rf "$tmp_na"
 
   echo "self-test: $pass PASS, $fail FAIL"
   [ "$fail" -eq 0 ]

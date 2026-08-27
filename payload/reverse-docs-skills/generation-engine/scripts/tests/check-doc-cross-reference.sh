@@ -53,13 +53,18 @@ resolve_kind_roots() {
 # を切り捨てた本文を返す。
 _prepared_body() {
   local file="$1"
+  # 除いた行は落とさず空行へ置き換える。落とすと以降の行番号がずれ、
+  # 不合格の報告が実際とは別の行を指してしまう（2026-08-28実測: 44行目の
+  # 参照が32行目として報告された）。
   awk '
-    NR == 1 && /^---$/ { skip = 1; next }
-    skip && /^---$/ { skip = 0; next }
-    skip { next }
-    /^## 章マップ/ { exit }
+    NR == 1 && /^---$/ { skip = 1; print ""; next }
+    skip && /^---$/ { skip = 0; print ""; next }
+    skip { print ""; next }
+    /^## 章マップ/ { after_map = 1 }
+    after_map { print ""; next }
     /<!--/ { in_comment = 1 }
-    !in_comment { print }
+    !in_comment { print; next }
+    { print "" }
     /-->/ { in_comment = 0 }
   ' "$file"
 }
@@ -79,6 +84,51 @@ _extract_section_headings() {
   ' | sort -u
 }
 
+# 文書が宣言する短縮参照のラベルと、その参照先の文書名を返す。
+# 決まり（document-writing.md「他文書への参照の短縮」）は、初出で参照先を
+# 述べたうえで「以後、この参照を（<短縮ラベル>: <キー名>）と表記する」と
+# 宣言する形を定める。宣言文と同じ行に書かれた文書名を参照先として扱う。
+# 出力: <ラベル><TAB><文書名>
+#
+# 実装判断（ロケール）: 全角の括弧とコロンを含む正規表現のため
+# LC_ALL=en_US.UTF-8 を都度明示する。LC_ALL=C ではバイト単位で扱われ、
+# 全角文字の一部が別の全角文字のバイトと衝突する。
+_extract_shorthand_labels() {
+  local file="$1"
+  LC_ALL=en_US.UTF-8 awk '
+    /この参照を（/ {
+      line = $0
+      if (!match(line, /この参照を（[^：:）]+/)) next
+      label = substr(line, RSTART, RLENGTH)
+      sub(/^この参照を（/, "", label)
+      # 同じ行から文書名を取り出す。日本語は語の間に空白を持たないため、
+      # 素朴な最長一致では「本書はAPI基本設計書.md」のように前置きまで
+      # 取り込んでしまう（実測2026-08-28）。逆引用符で囲まれた名前だけを
+      # 文書名として認め、囲みが無い宣言は解決しない。
+      doc = ""
+      if (match(line, /`[^`]+`/)) {
+        doc = substr(line, RSTART + 1, RLENGTH - 2)
+        if (doc !~ /(\.md|設計書|定義書|仕様書|一覧|台帳)$/) doc = ""
+      }
+      if (label != "" && doc != "") printf "%s\t%s\n", label, doc
+    }
+  ' "$file" | sort -u
+}
+
+# 短縮ラベル付きの参照（（<ラベル>: §N））を、宣言された文書名へ解決する。
+# 解決できれば文書名を返し、できなければ何も返さない。
+_resolve_shorthand() {
+  local file="$1" label="$2" lbl doc
+  while IFS=$'\t' read -r lbl doc; do
+    [ -n "$lbl" ] || continue
+    if [ "$lbl" = "$label" ]; then
+      printf '%s\n' "$doc"
+      return 0
+    fi
+  done < <(_extract_shorthand_labels "$file")
+  return 1
+}
+
 # 本文（見出し行を除く）から §N 参照を、直前の文書名の有無と共に抽出する。
 # 出力: <行番号><TAB><文書名（無ければプレースホルダ "-"）><TAB>§N
 #
@@ -88,17 +138,40 @@ _extract_section_headings() {
 # "-" を「文書名なし」の印として判定する。
 _extract_references() {
   local file="$1"
-  _prepared_body "$file" | grep -vE '^#{2,4} ' | \
-    grep -noE '([^ 	|]+\.md[ 	]+)?§[0-9]+(\.[0-9]+)?' | \
-    awk -F: '{
-      line = $1
-      $1 = ""
-      sub(/^:/, "", $0)
-      rest = $0
-      sub(/^ /, "", rest)
+  # 実装判断（ロケール）: この grep は否定文字クラス（[^ \t|（(、。]）へ全角文字を
+  # 含むため LC_ALL=en_US.UTF-8 を都度明示する。LC_ALL=C の下ではバイト単位で
+  # 扱われ、全角の区切り文字のバイトが文書名の途中のバイトと衝突する。
+  # 実測（2026-08-28）: 「API基本設計書.md §20」に対し、「計」（E8 A8 88）の
+  # 3バイト目 88 が「（」（EF BC 88）の一部と一致して区切りと誤認され、
+  # 文書名が「書.md」として切り出された。
+  # 規約: .claude/rules/always/design-record/implementation-decision/rule.md
+  #       「ロケールの使い分け」既定2（負の文字クラスに全角文字を含む場合）
+  # 見出し行は落とさず中身だけを空にする。落とすと以降の行番号がずれる。
+  # 「非該当項目」の宣言行も同様に空にする。この行は「その節を持たない」ことを
+  # 述べるものであり参照ではない。参照として扱うと必ず自書節不在になる。
+  _prepared_body "$file" | sed -E 's/^#{2,4} .*//' | sed -E 's/^.*非該当項目.*$//' | \
+    LC_ALL=en_US.UTF-8 grep -noE '((（[^：:）（]+[：:][ 	]*)|(`?[^ 	|（(、。`]+(\.md|設計書|定義書|仕様書|一覧|台帳)`?[ 	]+))?§[0-9]+(\.[0-9]+)?' | \
+    LC_ALL=en_US.UTF-8 awk '{
+      # grep -n の出力は「<行番号>:<本文>」。本文が全角コロンや半角コロンを
+      # 含みうるため -F: は使えない。最初のコロンだけで切り分ける
+      # （実測2026-08-28: 短縮ラベル「（基本: §20」が -F: で壊れた）。
+      p = index($0, ":")
+      if (p == 0) next
+      line = substr($0, 1, p - 1)
+      rest = substr($0, p + 1)
+      sub(/^[ \t]+/, "", rest)
       doc = rest
       sub(/§[0-9]+(\.[0-9]+)?[ \t]*$/, "", doc)
       gsub(/[ \t]+$/, "", doc)
+      gsub(/`/, "", doc)
+      # 短縮ラベルの形（（<ラベル>: ）は "@<ラベル>" として返し、
+      # 呼び出し側が宣言を引いて文書名へ解決する。
+      if (doc ~ /^（/) {
+        sub(/^（/, "", doc)
+        sub(/[：:][ \t]*$/, "", doc)
+        gsub(/[ \t]+$/, "", doc)
+        if (doc != "") doc = "@" doc
+      }
       if (doc == "") doc = "-"
       match(rest, /§[0-9]+(\.[0-9]+)?$/)
       sect = substr(rest, RSTART, RLENGTH)
@@ -116,11 +189,35 @@ check_document() {
 
   while IFS=$'\t' read -r line doc sect; do
     [ -n "$sect" ] || continue
+    case "$doc" in
+      @*)
+        local label resolved
+        label="${doc#@}"
+        resolved="$(_resolve_shorthand "$file" "$label" || true)"
+        if [ -n "$resolved" ]; then
+          doc="$resolved"
+        else
+          # 宣言の無い短縮ラベルは他文書参照として扱えない。自書参照として判定する。
+          doc="-"
+        fi
+        ;;
+    esac
     if [ "$doc" != "-" ]; then
       local target
-      target="$(find "$project_root" -type f -name "$doc" 2>/dev/null | head -1)"
+      local doc_file="$doc"
+      # 相対パスの接頭辞を落とす（「./画面詳細設計書.md」等）
+      doc_file="${doc_file##*/}"
+      case "$doc_file" in *.md) ;; *) doc_file="${doc_file}.md" ;; esac
+      # 同名の文書が複数あるとき、参照元と同じ設計単位のものを優先する。
+      # 設計単位は <root>/<単位>/<工程>/<文書>.md の形で、単位は2つ上の階層。
+      local unit_dir
+      unit_dir="$(dirname "$(dirname "$file")")"
+      target="$(find "$unit_dir" -type f -name "$doc_file" 2>/dev/null | head -1)"
       if [ -z "$target" ]; then
-        echo "FAIL 相互参照-他文書不在 ${file}:${line}: 「${doc} ${sect}」が指す文書が実在しない"
+        target="$(find "$project_root" -type f -name "$doc_file" 2>/dev/null | head -1)"
+      fi
+      if [ -z "$target" ]; then
+        echo "FAIL 相互参照-他文書不在 ${file}:${line}: 「${doc} ${sect}」が指す文書（${doc_file}）が実在しない"
         rc=1
         continue
       fi
@@ -420,6 +517,48 @@ DOC
   local locale_out
   locale_out="$(LC_ALL=en_US.UTF-8 bash -c 'export LC_ALL=C; echo "$LC_ALL"')"
   assert_eq "追加回帰5-LC_ALL=Cが有効" "C" "$locale_out"
+
+  # 追加回帰6: 短縮の宣言を持つ文書では、短縮ラベル付きの参照を
+  # 宣言された文書への参照として解決する。宣言が無ければ解決しない。
+  # 決まり: document-writing.md「他文書への参照の短縮」
+  local tmp_sh out_sh rc_sh
+  tmp_sh="$(new_tmp_dir)"
+  write_layout_override "$tmp_sh"
+  mkdir -p "$tmp_sh/api/fixture" "$tmp_sh/api/other"
+  cat > "$tmp_sh/api/fixture/API詳細設計書.md" <<'DOC'
+# 題
+
+## §5 ロジック
+
+本書は `API基本設計書.md` を参照する。以後、この参照を（基本: 節番号）と表記する。
+
+| 節 | 内容 |
+|---|---|
+| （基本: §20） | 記述規約 |
+DOC
+  cat > "$tmp_sh/api/other/API基本設計書.md" <<'DOC'
+# 題
+
+## §20 記述規約
+
+本文。
+DOC
+  out_sh="$(run_check "$tmp_sh")"; rc_sh=$?
+  assert_eq "追加回帰6-宣言ありは終了コード0" 0 "$rc_sh"
+  assert_eq "追加回帰6-宣言ありは出力0件" '' "$out_sh"
+
+  # 宣言を消すと解決できず、自書の節に無いため不合格になること
+  LC_ALL=en_US.UTF-8 python3 - "$tmp_sh/api/fixture/API詳細設計書.md" <<'PYEOF'
+import io, sys
+p = sys.argv[1]
+s = io.open(p, encoding='utf-8').read()
+s = s.replace('以後、この参照を（基本: 節番号）と表記する。', '')
+io.open(p, 'w', encoding='utf-8').write(s)
+PYEOF
+  out_sh="$(run_check "$tmp_sh")"; rc_sh=$?
+  assert_eq "追加回帰6-宣言なしは終了コード1" 1 "$rc_sh"
+  assert_contains "追加回帰6-宣言なしは自書節不在でFAIL" 'FAIL 相互参照-自書節不在' "$out_sh"
+  rm -rf "$tmp_sh"
 
   echo "self-test: $pass PASS, $fail FAIL"
   [ "$fail" -eq 0 ]
