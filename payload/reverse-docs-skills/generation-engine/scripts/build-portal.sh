@@ -52,6 +52,9 @@ command -v jq >/dev/null 2>&1 || { echo "ERROR: jq is required but not installed
 #   5. テンプレートのプレースホルダを置換して出力
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+# 書き込み先の判定を1箇所へ寄せた共通モジュール（generation-engine/scripts/lib/safe-write-path.cjs）。
+# インラインの Node.js から require するため、絶対パスを環境変数で渡す。
+export SAFE_WRITE_PATH_LIB="${SCRIPT_DIR}/lib/safe-write-path.cjs"
 TEMPLATE="$SCRIPT_DIR/../../delivery-payload/templates/portal-template.html"
 TOKENS_CSS_FILE="$SCRIPT_DIR/../../delivery-payload/templates/tokens.css"
 DEFAULT_CATALOG="$SCRIPT_DIR/../../delivery-payload/references/portal-catalog.json"
@@ -159,6 +162,8 @@ assert_no_symlink_output_paths() {
   node - "$@" <<'NODE'
 const fs = require("fs");
 const path = require("path");
+const __safeWritePath = require(process.env.SAFE_WRITE_PATH_LIB);
+
 function lexicalAbsolute(raw) {
   return path.isAbsolute(raw) ? raw : `${process.cwd()}${path.sep}${raw}`;
 }
@@ -174,7 +179,7 @@ function assertNoLexicalSymlink(raw) {
     }
     current = path.join(current, segment);
     try {
-      if (fs.lstatSync(current).isSymbolicLink()) {
+      if (fs.lstatSync(current).isSymbolicLink() && !__safeWritePath.isOsStandardLink(current)) {
         throw new Error(`write path must not contain a symbolic link: ${current}`);
       }
     } catch (error) {
@@ -204,7 +209,7 @@ for (const rawTarget of process.argv.slice(3)) {
       if (error && error.code === "ENOENT") break;
       throw error;
     }
-    if (stat.isSymbolicLink()) {
+    if (stat.isSymbolicLink() && !__safeWritePath.isOsStandardLink(current)) {
       throw new Error(`write path must not contain a symbolic link: ${current}`);
     }
   }

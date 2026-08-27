@@ -266,7 +266,7 @@ let current = path.parse(candidatePath).root;
 for (const segment of candidatePath.slice(current.length).split(path.sep).filter(Boolean)) {
   current = path.join(current, segment);
   try {
-    if (fs.lstatSync(current).isSymbolicLink()) {
+    if (fs.lstatSync(current).isSymbolicLink() && !require(process.env.SAFE_WRITE_PATH_LIB).isOsStandardLink(current)) {
       process.stderr.write(`ERROR: ${key} の出力先にシンボリックリンクを含められません: ${current}\n`);
       process.exit(2);
     }
