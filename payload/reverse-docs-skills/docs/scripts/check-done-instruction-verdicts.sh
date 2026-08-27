@@ -149,7 +149,7 @@ analyze_done_dir() {
       state = cols[state_col]
       reason = cols[reason_col]
       gsub(/^`|`$/, "", method)
-      if (state != "完了") has_bad_state = 1
+      if (state != "完了" && state != "対象外") has_bad_state = 1
       if (method == "目視") {
         has_visual = 1
         if (!allowed_reason(reason)) has_bad_visual = 1
@@ -161,7 +161,7 @@ analyze_done_dir() {
       printf "判定表を持つ指示書: %d件\n", table_files
       printf "判定表なし: %d件\n", total - table_files
       if (total > table_files) printf "  %s\n", no_table_names
-      printf "完了以外の状態が残る指示書: %d件\n", bad_state_files
+      printf "未着手・対応中などが残る指示書: %d件\n", bad_state_files
       if (bad_state_files > 0) printf "  %s\n", bad_state_names
       printf "目視の行を持つ指示書: %d件\n", visual_files
       if (visual_files > 0) printf "  %s\n", visual_names
@@ -198,7 +198,8 @@ run_self_test() {
     '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |' \
     '|---|---|---|---|---|' \
     '| 1 | `printf "a" | grep a` | 完了 | abc | 完了 |' \
-    '| 2 | 目視 | 完了 | abc | 文面の評価を要するため |' > "$good/正常.md"
+    '| 2 | 目視 | 完了 | abc | 文面の評価を要するため |' \
+    '| 3 | `true` | 対象外 | — | 実行対象が存在しないため |' > "$good/正常.md"
   output="$(analyze_done_dir "$good")"
   code=$?
   if [ "$code" -ne 0 ] || ! printf '%s\n' "$output" | grep -q '目視の行を持つ指示書: 1件'; then
@@ -233,7 +234,7 @@ run_self_test() {
   set -e
   if [ "$code" -ne 1 ] ||
     ! printf '%s\n' "$output" | grep -q '判定表なし: 1件' ||
-    ! printf '%s\n' "$output" | grep -q '完了以外の状態が残る指示書: 3件' ||
+    ! printf '%s\n' "$output" | grep -q '未着手・対応中などが残る指示書: 3件' ||
     ! printf '%s\n' "$output" | grep -q '理由なし・不適切な理由の目視を持つ指示書: 1件'; then
     echo "[FAIL] 不備検出の自己テスト"
     printf '%s\n' "$output"

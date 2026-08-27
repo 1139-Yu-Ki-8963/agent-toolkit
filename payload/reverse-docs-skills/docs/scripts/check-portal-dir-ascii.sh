@@ -96,6 +96,7 @@ scan_dirs() {
 run_self_test() {
   local pass=0 fail=0
   local tmp
+  local legacy_root='project-portal/'
   # 明示テンプレート付き mktemp。引数なしの mktemp は $TMPDIR を無視し書き込みを
   # 拒む環境で失敗する（.claude/rules/always/verification/indeterminate-result/rule.md）。
   if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-portal-dir-ascii.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
@@ -117,24 +118,24 @@ run_self_test() {
     echo "[FAIL] ケース1(違反なし): ${out}" >&2
   fi
 
-  # ケース2: project-portal/基盤 への言及が1件 → 検出される
+  # ケース2: 基盤の旧配置への言及が1件 → 検出される
   mkdir -p "$tmp/case_bad1/generation-engine/scripts"
-  printf '%s\n' 'const p = "project-portal/基盤/共通設計書.html";' \
+  printf '%s\n' "const p = \"${legacy_root}基盤/共通設計書.html\";" \
     > "$tmp/case_bad1/generation-engine/scripts/bad.mjs"
   if out="$(_run_scan_over "$tmp/case_bad1")" && printf '%s' "$out" | grep -q 'bad.mjs:1:'; then
     pass=$((pass + 1))
   else
     fail=$((fail + 1))
-    echo "[FAIL] ケース2(project-portal/基盤の検出): ${out}" >&2
+    echo "[FAIL] ケース2(基盤の旧配置の検出): ${out}" >&2
   fi
 
-  # ケース3: project-portal/対応表・図・画面 への言及もそれぞれ検出される
+  # ケース3: 対応表・図・画面の旧配置への言及もそれぞれ検出される
   mkdir -p "$tmp/case_bad2/delivery-payload/references"
-  printf '%s\n' '対応表: project-portal/対応表/CRUD図/CRUD図.html' \
+  printf '%s\n' "対応表: ${legacy_root}対応表/CRUD図/CRUD図.html" \
     > "$tmp/case_bad2/delivery-payload/references/bad1.md"
-  printf '%s\n' '図: project-portal/図/ER図.html' \
+  printf '%s\n' "図: ${legacy_root}図/ER図.html" \
     >> "$tmp/case_bad2/delivery-payload/references/bad1.md"
-  printf '%s\n' '画面: project-portal/画面/screen-a/シーケンス図.html' \
+  printf '%s\n' "画面: ${legacy_root}画面/screen-a/シーケンス図.html" \
     >> "$tmp/case_bad2/delivery-payload/references/bad1.md"
   if out="$(_run_scan_over "$tmp/case_bad2")" \
     && printf '%s' "$out" | grep -q '対応表' \
@@ -162,7 +163,7 @@ run_self_test() {
 
   # ケース5: docs/ 配下は走査対象外（TARGET_DIRSに含まれない）
   mkdir -p "$tmp/case_docs_exempt/docs/tasks"
-  printf '%s\n' '旧配置は project-portal/基盤 だった。' \
+  printf '%s\n' "旧配置は ${legacy_root}基盤 だった。" \
     > "$tmp/case_docs_exempt/docs/tasks/記録.md"
   if out="$(_run_scan_over "$tmp/case_docs_exempt")" && [ -z "$out" ]; then
     pass=$((pass + 1))
@@ -196,7 +197,7 @@ run_self_test() {
 
   # ケース8: このスクリプト自身は自己言及として除外され、violationにならない
   # （本ファイルはコメント・自己テストのフィクスチャ文字列の中に
-  # project-portal/基盤 等の文字列を含むため、除外が無いと自身を検出してしまう）
+  # 日本語の旧配置を表す文字列を含むため、除外が無いと自身を検出してしまう）
   if out="$(scan_dirs "$REPO_ROOT")" 2>/dev/null; then
     if ! printf '%s' "$out" | grep -q 'check-portal-dir-ascii.sh:'; then
       pass=$((pass + 1))

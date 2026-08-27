@@ -136,8 +136,8 @@ _resolve_catalog_glob() {
 #
 # 画面ありの回帰確認は generation-engine/samples/ を複製せず、実効globの
 # 位置へ空のHTMLを置いた最小のフィクスチャで行う。samples/ 配下の該当3件は
-# 出力先が英字ディレクトリ(project-portal/foundation)へ統一される前の構成
-# (project-portal/基盤)のまま残っており、そのまま使うと本項目と無関係な
+# 出力先が英字ディレクトリ(project-portal/foundation)へ統一される前の
+# 日本語の旧配置のまま残っており、そのまま使うと本項目と無関係な
 # 理由（配置の食い違い）で「未生成」になり、判定の意味が変わってしまう
 # ため使わない。
 run_check_resolution() {
