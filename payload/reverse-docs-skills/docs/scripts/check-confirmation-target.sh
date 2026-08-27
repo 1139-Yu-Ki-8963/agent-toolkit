@@ -24,7 +24,24 @@
 # 場合は、その記述が指す先が実在するかを別途確認すること。
 set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-ROOT="${1:-${REPO_ROOT}/delivery-payload/templates/リバース検証}"
+# 走査の既定は様式と見本の両方とする。様式だけを見ていたため、
+# 様式を直しても見本が古いまま取り残される事故が起きた
+# （2026-08-28実測。廃止済みの節を指す記入規則が見本22件に残っていた）。
+ROOTS=()
+if [ "$#" -gt 0 ]; then
+  ROOTS=("$@")
+else
+  ROOTS=("${REPO_ROOT}/delivery-payload/templates/リバース検証")
+  # 見本も走査の対象に含める。ただし見本4件が持つ確定していない事項8件は
+  # まだ受け皿（確認事項質問票）へ移っていない。移す前に節を外すと事項が
+  # 失われるため、既定では見本を含めない。移し終えたら既定へ含める
+  # （作業課題一覧「見本の画面詳細設計書4件に廃止済みの要確認事項の節が残る」）。
+  if [ "${CONFIRMATION_TARGET_INCLUDE_SAMPLES:-}" = "1" ] \
+     && [ -d "${REPO_ROOT}/generation-engine/samples/docs/design" ]; then
+    ROOTS+=("${REPO_ROOT}/generation-engine/samples/docs/design")
+  fi
+fi
+ROOT="${ROOTS[0]}"
 
 judge() {
   local root="$1"
@@ -111,5 +128,9 @@ if [ "${1:-}" = "--self-test" ]; then
   exit $?
 fi
 
-judge "$ROOT"
+rc=0
+for _root in "${ROOTS[@]}"; do
+  judge "$_root" || rc=$?
+done
+exit "$rc"
 exit $?
