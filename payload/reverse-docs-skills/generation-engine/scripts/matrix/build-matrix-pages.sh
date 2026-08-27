@@ -24,6 +24,7 @@
 #                        ページ自体は常に公開する)
 #   ai-assets           delivery-payload/templates/ai-assets/ai-assets-template.html
 #                       マーカー: ASSETS_JSON / 必須キー: rules, skills, subagents, hooks
+#                       (必須キーが0件でも、設定資産0件という走査結果を示すため生成する)
 #
 # 必須キーは各テンプレート内 JS が実際に参照するトップレベルキーと一致させている
 # (テンプレートのヘッダコメント・JS 実装が契約の正本。二重管理・ドリフト禁止)。
@@ -44,8 +45,8 @@
 #   破壊的な結果を伝える。
 #   一部キーのみ0件の場合はページを生成し、テンプレート内JSが欠けた成分を示す
 #   空状態コールアウトを表示する(写真指摘1-101)。
-#   例外: confirmation-survey は必須キー(questions)が0件でも常にページを生成する
-#   (改善課題1-169: 確認事項が0件という状態そのものが利用者に伝えるべき結果のため)。
+#   例外: confirmation-survey と ai-assets は必須キーが0件でも常にページを生成する。
+#   0件という走査結果そのものを利用者へ示し、未生成と区別するためである。
 
 ## 設計判断
 ##
@@ -656,6 +657,7 @@ case "$PAGE_TYPE" in
     TEMPLATE="$TEMPLATES_DIR/ai-assets/ai-assets-template.html"
     JSON_MARKER="<!--ASSETS_JSON-->"
     REQUIRED_KEYS="rules skills subagents hooks"
+    ALWAYS_GENERATE=true
     ;;
   *)
     echo "ERROR: unknown page-type: $PAGE_TYPE" >&2

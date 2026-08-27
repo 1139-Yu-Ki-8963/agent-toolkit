@@ -117,6 +117,7 @@ ${repo}/generation-engine/scripts/matrix/build-matrix-pages.sh
 ${repo}/generation-engine/scripts/extract/extract-design-tokens-from-designmd.sh
 ${repo}/generation-engine/scripts/extract/extract-component-inventory.sh
 ${repo}/generation-engine/scripts/extract/extract-icon-usage.sh
+${repo}/generation-engine/scripts/extract/extract-ai-assets.sh
 ${repo}/generation-engine/scripts/detail-pages/build-detail-page.sh
 ${repo}/generation-engine/scripts/portal-input/extract-entity-state-page-data.sh
 ${repo}/generation-engine/scripts/portal-input/extract-er-page-data.sh
@@ -982,6 +983,17 @@ EOF
     pageKind:"release-notes", generatedAt:$generatedAt, title:"リリースノート",
     description:"対象リポジトリの変更履歴です。", releases:[]
   }' > "${detail_dir}/release-notes-page-data.json"
+  jq -n --arg generatedAt "${generated_at}" '{
+    pageKind:"glossary", generatedAt:$generatedAt, title:"用語辞書",
+    description:"承認済みの用語を示します。現在の承認済み用語は0件です。",
+    projectionVersion:"0.2", glossarySchemaVersion:"1.0.0", glossaryContentVersion:"0.0.0",
+    categories:[
+      {key:"entity",label:"エンティティ"},{key:"attribute",label:"属性"},
+      {key:"value",label:"値"},{key:"process",label:"処理"},
+      {key:"event",label:"イベント"},{key:"role",label:"役割"},
+      {key:"rule",label:"ルール"},{key:"metric",label:"指標"}
+    ], terms:[]
+  }' > "${detail_dir}/glossary-page-data.json"
 
   local detail_script="${REPO_SELF}/generation-engine/scripts/detail-pages/build-detail-page.sh"
   local validate_script="${REPO_SELF}/generation-engine/scripts/detail-pages/validate-page-data.sh"
@@ -1014,10 +1026,34 @@ stage_portal_build() {
     return 0
   fi
   run_cmd bash "${script}" "${REPO}" "${OUTPUT_DIR}" "${PORTAL_DIR}"
-  if [ "${LAST_RC}" -eq 0 ]; then
-    record_result portal-build OK "ポータルを生成した"
-  else
+  if [ "${LAST_RC}" -ne 0 ]; then
     record_result portal-build FAIL "終了コード ${LAST_RC}"
+    return 0
+  fi
+
+  # 対象にAI設定資産が無い場合も、走査結果0件を未生成と区別できるページにする。
+  # build-portal.shの通常生成後に決定的抽出器とページ生成器を呼び、portal-onlyで
+  # 新しいページを索引へ反映する。資産が実在する場合も同じ経路で再生成する。
+  local layout_json manifests_root foundation_root ai_data ai_output
+  local extract_ai_script="${REPO_SELF}/generation-engine/scripts/extract/extract-ai-assets.sh"
+  local matrix_script="${REPO_SELF}/generation-engine/scripts/matrix/build-matrix-pages.sh"
+  layout_json="$(resolve_output_layout "${OUTPUT_DIR}")" || layout_json=""
+  manifests_root="$(output_layout_get "${layout_json}" manifestsRoot 2>/dev/null)" || manifests_root="manifests"
+  foundation_root="$(output_layout_get "${layout_json}" foundationDir 2>/dev/null)" || foundation_root="project-portal/foundation"
+  ai_data="${OUTPUT_DIR}/${manifests_root}/ai-assets.json"
+  ai_output="${OUTPUT_DIR}/${foundation_root}/AI設定資産.html"
+  run_cmd bash "${extract_ai_script}" "${REPO}" "${ai_data}"
+  if [ "${LAST_RC}" -eq 0 ]; then
+    run_cmd bash "${matrix_script}" ai-assets "${ai_data}" "${ai_output}" \
+      --portal-dir "${PORTAL_DIR}"
+  fi
+  if [ "${LAST_RC}" -eq 0 ]; then
+    run_cmd bash "${script}" "${REPO}" "${OUTPUT_DIR}" "${PORTAL_DIR}" --portal-only
+  fi
+  if [ "${LAST_RC}" -eq 0 ]; then
+    record_result portal-build OK "ポータルを生成し、AI設定資産の走査結果を反映した"
+  else
+    record_result portal-build FAIL "AI設定資産の反映=終了コード ${LAST_RC}"
   fi
 }
 
