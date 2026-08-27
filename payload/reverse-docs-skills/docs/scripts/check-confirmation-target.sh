@@ -32,14 +32,13 @@ if [ "$#" -gt 0 ]; then
   ROOTS=("$@")
 else
   ROOTS=("${REPO_ROOT}/delivery-payload/templates/リバース検証")
-  # 見本も走査の対象に含める。ただし見本4件が持つ確定していない事項8件は
-  # まだ受け皿（確認事項質問票）へ移っていない。移す前に節を外すと事項が
-  # 失われるため、既定では見本を含めない。移し終えたら既定へ含める
-  # （作業課題一覧「見本の画面詳細設計書4件に廃止済みの要確認事項の節が残る」）。
-  if [ "${CONFIRMATION_TARGET_INCLUDE_SAMPLES:-}" = "1" ] \
-     && [ -d "${REPO_ROOT}/generation-engine/samples/docs/design" ]; then
-    ROOTS+=("${REPO_ROOT}/generation-engine/samples/docs/design")
-  fi
+  # 見本も走査の対象に含める。様式を直しても見本が古いまま取り残される
+  # 事故を検知するためである（2026-08-28実測。廃止済みの節を指す記入規則が
+  # 見本22件に、節そのものが4件に残っていた）。
+  # 見本4件が持っていた確定していない事項は、単位ごとの台帳
+  # （要確認事項台帳.json）へ移し終えた。
+  [ -d "${REPO_ROOT}/generation-engine/samples/docs/design" ] \
+    && ROOTS+=("${REPO_ROOT}/generation-engine/samples/docs/design")
 fi
 ROOT="${ROOTS[0]}"
 
@@ -49,7 +48,15 @@ judge() {
 
   local list_count unresolved_count unresolved_lines rc=0
   list_count="$(grep -rn '要確認事項一覧' "$root" --include='*.md' 2>/dev/null | wc -l | tr -d ' ')"
-  unresolved_lines="$(grep -rn '要確認事項' "$root" --include='*.md' 2>/dev/null | grep -v '根拠を記録する資料' || true)"
+  # 検査2は様式だけを対象にする。様式からは「要確認事項」という語自体を
+  # 無くしたため分母は0件になる。見本は単位ごとの台帳（要確認事項台帳.json）を
+  # 持ち、章マップや観点表がその台帳を正当に指すため語が残る
+  # （2026-08-28実測。台帳へ4件の事項を移した）。
+  # 見本に対しては検査1（廃止した節への指示が無いこと）だけを見る。
+  case "$root" in
+    */generation-engine/samples/*) unresolved_lines="" ;;
+    *) unresolved_lines="$(grep -rn '要確認事項' "$root" --include='*.md' 2>/dev/null | grep -v '根拠を記録する資料' || true)" ;;
+  esac
   unresolved_count="$(printf '%s\n' "$unresolved_lines" | grep -c . || true)"
   [ -z "$unresolved_lines" ] && unresolved_count=0
 

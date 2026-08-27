@@ -1,0 +1,12 @@
+{
+  "unitKey": "screen-order-list",
+  "designDocument": "画面詳細設計書.md",
+  "items": [
+    {
+      "key": "csv出力-上限件数の根拠",
+      "question": "CSV出力の上限件数5,000件が業務要件として妥当か経理部門へ確認する（暫定にしている節: §16.1 / 解消の条件: 経理部門からの確認回答を得る）",
+      "status": "未確認",
+      "answer": ""
+    }
+  ]
+}
