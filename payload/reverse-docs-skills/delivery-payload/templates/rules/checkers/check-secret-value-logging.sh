@@ -460,7 +460,10 @@ function login() {}'
 
   # 系12: 監視の設定ファイルが cwd に無い → 対象外として許可
   local tmp12
-  tmp12="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-value-logging-self-test.XXXXXX")"
+  if ! tmp12="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-value-logging-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp12" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp12/docs"
   printf '# メモ\n' > "$tmp12/docs/メモ.md"
   if msg="$(judge "app.js" "$c5" "$tmp12")"; then code=0; else code=$?; fi
@@ -474,7 +477,10 @@ function login() {}'
 
   # 系13: 監視の設定ファイルは実在するが指標の記述が無い → 拒否（監視する指標を先に決める）
   local tmp13
-  tmp13="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-value-logging-self-test.XXXXXX")"
+  if ! tmp13="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-value-logging-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp13" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp13/docs"
   printf '# 監視設定\n\n通知先: ops@example.com\n' > "$tmp13/docs/監視設定.md"
   if msg="$(judge "app.js" "$c5" "$tmp13")"; then code=0; else code=$?; fi
@@ -488,7 +494,10 @@ function login() {}'
 
   # 系14: 監視の設定ファイルに指標はあるが通知の条件・宛先が無い → 拒否（知らせる条件と宛先を決める）
   local tmp14
-  tmp14="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-value-logging-self-test.XXXXXX")"
+  if ! tmp14="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-value-logging-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp14" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp14/docs"
   printf '# 監視設定\n\n指標: CPU使用率\n' > "$tmp14/docs/監視設定.md"
   if msg="$(judge "app.js" "$c5" "$tmp14")"; then code=0; else code=$?; fi
@@ -502,7 +511,10 @@ function login() {}'
 
   # 系15: 監視の設定ファイルに指標・通知の条件・宛先がすべて揃っている → 許可
   local tmp15
-  tmp15="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-value-logging-self-test.XXXXXX")"
+  if ! tmp15="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-value-logging-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp15" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp15/docs"
   printf '# 監視設定\n\n指標: CPU使用率\nしきい値: 80%%\n宛先: ops@example.com\n' > "$tmp15/docs/監視設定.md"
   if msg="$(judge "app.js" "$c5" "$tmp15")"; then code=0; else code=$?; fi
@@ -516,7 +528,10 @@ function login() {}'
 
   # 系16: 記録の出力の呼び出しが無い → 対象外（記録に追跡の鍵を含める）
   local tmp16
-  tmp16="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-value-logging-self-test.XXXXXX")"
+  if ! tmp16="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-value-logging-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp16" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   local c16='function add(a, b) { return a + b; }'
   if msg="$(judge "app.js" "$c16" "$tmp16")"; then code=0; else code=$?; fi
   rm -rf "$tmp16"
@@ -529,7 +544,10 @@ function login() {}'
 
   # 系17: 記録の出力はあるが追跡の鍵の宣言が無い → 通知（記録に追跡の鍵を含める）
   local tmp17
-  tmp17="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-value-logging-self-test.XXXXXX")"
+  if ! tmp17="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-value-logging-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp17" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   local c17='logger.info("service started");'
   if msg="$(judge "app.js" "$c17" "$tmp17")"; then code=0; else code=$?; fi
   rm -rf "$tmp17"
@@ -542,7 +560,10 @@ function login() {}'
 
   # 系18: 宣言はあるが追跡の鍵が記録の出力に含まれない → 拒否（記録に追跡の鍵を含める）
   local tmp18
-  tmp18="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-value-logging-self-test.XXXXXX")"
+  if ! tmp18="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-value-logging-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp18" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp18/docs/rules/observability/trace-key"
   cat > "$tmp18/docs/rules/observability/trace-key/rule.md" <<'EOF'
 # 監視要件
@@ -565,7 +586,10 @@ EOF
 
   # 系19: 宣言があり追跡の鍵が記録の出力に含まれる → 許可（記録に追跡の鍵を含める）
   local tmp19
-  tmp19="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-value-logging-self-test.XXXXXX")"
+  if ! tmp19="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-value-logging-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp19" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp19/docs/rules/observability/trace-key"
   cat > "$tmp19/docs/rules/observability/trace-key/rule.md" <<'EOF'
 # 監視要件

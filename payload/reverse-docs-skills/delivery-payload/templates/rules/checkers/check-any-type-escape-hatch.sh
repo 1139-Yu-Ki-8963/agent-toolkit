@@ -540,7 +540,10 @@ ${body_lines}}")"; then code=0; else code=$?; fi
 
   # 系14: 整形の設定ファイルが cwd に無い → 対象外として許可
   local tmp14
-  tmp14="$(mktemp -d "${TMPDIR:-/tmp}/check-any-type-escape-hatch-self-test.XXXXXX")"
+  if ! tmp14="$(mktemp -d "${TMPDIR:-/tmp}/check-any-type-escape-hatch-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp14" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf 'function shortFn() {\n  return 1;\n}\n' > "$tmp14/app.js"
   if msg="$(judge "$tmp14/app.js" 'function shortFn() {
   return 1;
@@ -555,7 +558,10 @@ ${body_lines}}")"; then code=0; else code=$?; fi
 
   # 系15: 整形の設定ファイルは実在するが統合の検査への登録が見当たらない → 拒否
   local tmp15
-  tmp15="$(mktemp -d "${TMPDIR:-/tmp}/check-any-type-escape-hatch-self-test.XXXXXX")"
+  if ! tmp15="$(mktemp -d "${TMPDIR:-/tmp}/check-any-type-escape-hatch-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp15" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf '{}\n' > "$tmp15/.prettierrc"
   printf '{"name": "app"}\n' > "$tmp15/package.json"
   if msg="$(judge "$tmp15/app.js" 'function shortFn() {
@@ -571,7 +577,10 @@ ${body_lines}}")"; then code=0; else code=$?; fi
 
   # 系16: 整形の設定ファイルが実在し、統合の検査（package.json）に登録されている → 許可
   local tmp16
-  tmp16="$(mktemp -d "${TMPDIR:-/tmp}/check-any-type-escape-hatch-self-test.XXXXXX")"
+  if ! tmp16="$(mktemp -d "${TMPDIR:-/tmp}/check-any-type-escape-hatch-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp16" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf '{}\n' > "$tmp16/.prettierrc"
   printf '{"scripts": {"format": "prettier --check ."}}\n' > "$tmp16/package.json"
   if msg="$(judge "$tmp16/app.js" 'function shortFn() {

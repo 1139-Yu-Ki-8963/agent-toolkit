@@ -38,7 +38,7 @@ real_python="$repo_root/generation-engine/scripts/glossary/.venv/bin/python"
 [ -x "$real_python" ] || real_python="python3"
 
 if ! "$real_python" -c 'import yaml' >/dev/null 2>&1; then
-  # PyYAMLがこの環境（$real_python）に無いのは実行できなかったことであり、検査対象
+  # PyYAMLがこの環境（${real_python}）に無いのは実行できなかったことであり、検査対象
   # （TOCTOU対策）が不合格だったことではない。判定不能の決まり（indeterminate-result）
   # に従い、test-validate-semantic-glossary.shと同じ書式で終了コード2を返す。
   echo "[UNKNOWN] PyYAMLの読み込みに失敗したため判定できません（$real_python で import yaml を実行できませんでした。PyYAMLが未導入、または選択したPython実行系から参照できない可能性があります）" >&2

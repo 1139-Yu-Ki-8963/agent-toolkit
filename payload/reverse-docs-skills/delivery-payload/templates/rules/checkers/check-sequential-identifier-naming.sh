@@ -371,7 +371,10 @@ const order_total = 100;')"; then code=0; else code=$?; fi
 
   # 系9: 不透明な省略を使わない — 対象でない拡張子 → 対象外
   local tmp
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-sequential-identifier-naming-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-sequential-identifier-naming-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge 'const value = 1;' "docs/notes.txt" "$tmp")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '対象外\[不透明な省略を使わない\]'; then
@@ -382,7 +385,10 @@ const order_total = 100;')"; then code=0; else code=$?; fi
   fi
 
   # 系10: 不透明な省略を使わない — 宣言が無い → 通知
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-sequential-identifier-naming-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-sequential-identifier-naming-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge 'const value = 1;' "src/app.ts" "$tmp")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '通知\[不透明な省略を使わない\]'; then
@@ -393,7 +399,10 @@ const order_total = 100;')"; then code=0; else code=$?; fi
   fi
 
   # 系11: 不透明な省略を使わない — 宣言があり違反する場合 → 通知（止めない）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-sequential-identifier-naming-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-sequential-identifier-naming-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp/docs/rules/naming/opaque-abbreviation"
   cat > "$tmp/docs/rules/naming/opaque-abbreviation/rule.md" <<'EOF'
 # 規約
@@ -414,7 +423,10 @@ EOF
   fi
 
   # 系12: 不透明な省略を使わない — 宣言があり満たしている場合 → 許可
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-sequential-identifier-naming-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-sequential-identifier-naming-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp/docs/rules/naming/opaque-abbreviation"
   cat > "$tmp/docs/rules/naming/opaque-abbreviation/rule.md" <<'EOF'
 # 規約

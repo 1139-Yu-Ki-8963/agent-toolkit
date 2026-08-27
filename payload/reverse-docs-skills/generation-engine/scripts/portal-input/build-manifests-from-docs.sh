@@ -422,7 +422,7 @@ build_manifest_for_kind() {
   root_dir="$output_dir/$unit_root_rel"
 
   # 1-36: 一覧の行から個別ページへ遷移できるよう、この時点で実在確認済みの設計書単位文書
-  # （findで見つかった$file自体）から、一覧HTMLの置き場を基点にした相対パスを機械的に導き
+  # （findで見つかった${file自体}）から、一覧HTMLの置き場を基点にした相対パスを機械的に導き
   # designDocPathへ供給する。変換先(.html)はbuild-portal.sh側でcommon_rootsへ合流させた
   # 同じUnitRootのmd→html変換が担う(generation-engine/scripts/build-portal.sh参照)。文書が実在しない
   # ユニットには値を入れない(このループ自体が実在文書だけを対象に回るため自然に満たされる)。

@@ -47,7 +47,7 @@ check_definition() {
         .excludedBasenames[]? |
         select(.basename == $name and (.allowedPathFragments | length > 0))
       ' "$exclusion_json" >/dev/null 2>&1; then
-        echo "FAIL: 除外一覧に配置条件付きの$nameがありません"
+        echo "FAIL: 除外一覧に配置条件付きの${nameがありませ}ん"
         fail=1
       fi
     done
@@ -68,7 +68,7 @@ check_definition() {
     fi
     for name in "${REQUIRED_NAMES[@]}"; do
       if grep -qF -- "$name" <<< "$production_code"; then
-        echo "FAIL: 検査本体の本番コードに$nameが直書きされています"
+        echo "FAIL: 検査本体の本番コードに${nameが直書きされていま}す"
         fail=1
       fi
     done

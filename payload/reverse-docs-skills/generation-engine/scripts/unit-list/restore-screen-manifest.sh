@@ -194,8 +194,8 @@ if [ ! -f "$HTML_PATH" ]; then
 fi
 
 mkdir -p "$(dirname "$MANIFEST_OUT")"
-# tmp_outは${TMPDIR:-/tmp}ではなく$MANIFEST_OUTと同じディレクトリへ作る。244行目で
-# $MANIFEST_OUTへmvするが、別ファイルシステムだとmvがcopy+deleteへ縮退し、検証済み
+# tmp_outは${TMPDIR:-/tmp}ではなく${MANIFEST_OUTと同じディレクトリへ作る}。244行目で
+# ${MANIFEST_OUTへmvするが}、別ファイルシステムだとmvがcopy+deleteへ縮退し、検証済み
 # JSONへの原子的な置き換え(冒頭コメント「Restore...atomically」)が崩れるため。
 tmp_out="$(mktemp "$(dirname "$MANIFEST_OUT")/.screen-manifest.XXXXXX")"
 trap 'rm -f "$tmp_out"' EXIT

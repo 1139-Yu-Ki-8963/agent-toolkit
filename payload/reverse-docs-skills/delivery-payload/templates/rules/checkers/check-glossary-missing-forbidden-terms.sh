@@ -428,7 +428,10 @@ self_test() {
 
   # 系9: 画面の文言を持つファイルの拡張子ではない → 対象外（表示の文言と語を揃える）
   local tmp9
-  tmp9="$(mktemp -d "${TMPDIR:-/tmp}/check-glossary-missing-forbidden-terms-self-test.XXXXXX")"
+  if ! tmp9="$(mktemp -d "${TMPDIR:-/tmp}/check-glossary-missing-forbidden-terms-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp9" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   local c9='ページのコンテンツ'
   if msg="$(judge "src/util.py" "$c9" "$tmp9")"; then code=0; else code=$?; fi
   rm -rf "$tmp9"
@@ -441,7 +444,10 @@ self_test() {
 
   # 系10: 画面の文言を持つファイルだが宣言が無い → 通知（表示の文言と語を揃える）
   local tmp10
-  tmp10="$(mktemp -d "${TMPDIR:-/tmp}/check-glossary-missing-forbidden-terms-self-test.XXXXXX")"
+  if ! tmp10="$(mktemp -d "${TMPDIR:-/tmp}/check-glossary-missing-forbidden-terms-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp10" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   local c10='<div>ようこそ</div>'
   if msg="$(judge "src/page.html" "$c10" "$tmp10")"; then code=0; else code=$?; fi
   rm -rf "$tmp10"
@@ -454,7 +460,10 @@ self_test() {
 
   # 系11: 宣言があり使わない語が画面の文言に含まれる → 拒否（表示の文言と語を揃える）
   local tmp11
-  tmp11="$(mktemp -d "${TMPDIR:-/tmp}/check-glossary-missing-forbidden-terms-self-test.XXXXXX")"
+  if ! tmp11="$(mktemp -d "${TMPDIR:-/tmp}/check-glossary-missing-forbidden-terms-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp11" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp11/docs/rules/business-domain/glossary-wording"
   cat > "$tmp11/docs/rules/business-domain/glossary-wording/rule.md" <<'EOF'
 # 用語定義
@@ -477,7 +486,10 @@ EOF
 
   # 系12: 宣言があり使わない語が画面の文言に含まれない → 許可（表示の文言と語を揃える）
   local tmp12
-  tmp12="$(mktemp -d "${TMPDIR:-/tmp}/check-glossary-missing-forbidden-terms-self-test.XXXXXX")"
+  if ! tmp12="$(mktemp -d "${TMPDIR:-/tmp}/check-glossary-missing-forbidden-terms-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp12" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp12/docs/rules/business-domain/glossary-wording"
   cat > "$tmp12/docs/rules/business-domain/glossary-wording/rule.md" <<'EOF'
 # 用語定義

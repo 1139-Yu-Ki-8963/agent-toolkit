@@ -16,7 +16,7 @@ API_LIST_HTML_REL="$(output_layout_get "$LAYOUT_JSON" unitListHtml API)" || exit
 SCREEN_LIST_HTML_REL="$(output_layout_get "$LAYOUT_JSON" screenListHtml)" || exit 1
 PERMISSION_FUNCTION_MATRIX_HTML_REL="$(output_layout_get "$LAYOUT_JSON" permissionFunctionMatrixHtml)" || exit 1
 tmp="$(mktemp -d "${TMPDIR:-/tmp}/screen-rebuild-test.XXXXXX")"
-# macOSでは/tmpや$TMPDIR配下が/privateへのsymlinkであり、build-portal.shの
+# macOSでは/tmpや${TMPDIR配下}が/privateへのsymlinkであり、build-portal.shの
 # assertNoLexicalSymlink（書込先の祖先path componentにsymlinkを許さないfail-closed検査）が
 # symlink祖先を理由にrebuildそのものを拒否してしまう(改善課題1-97)。
 # mktemp直後に物理pathへ解決し、以降のrun_rebuild出力がsymlink祖先を持たないようにする。

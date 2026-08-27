@@ -370,7 +370,10 @@ self_test() {
   fi
 
   # 系6: 環境構築手順.htmlが無い → 拒否（構築手順の集約）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_setup_guide_consolidated "$tmp")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ]; then
     echo "  [PASS] 系6: 環境構築手順.htmlが無ければ通知される（${msg}）"
@@ -381,7 +384,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系7: 環境構築手順.htmlが1件だけ → 許可（構築手順の集約）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp/docs"
   printf '<html></html>\n' > "$tmp/docs/環境構築手順.html"
   if msg="$(judge_setup_guide_consolidated "$tmp")"; then code=0; else code=$?; fi
@@ -394,7 +400,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系8: 手順書はあるが版宣言ファイルが無い → 拒否（版の明示）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp/docs"
   printf '<html></html>\n' > "$tmp/docs/環境構築手順.html"
   if msg="$(judge_version_pinned "$tmp")"; then code=0; else code=$?; fi
@@ -407,7 +416,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系9: 手順書と .nvmrc がある → 許可（版の明示）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp/docs"
   printf '<html></html>\n' > "$tmp/docs/環境構築手順.html"
   printf '20\n' > "$tmp/.nvmrc"
@@ -421,7 +433,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系10: .gitignoreに.env除外があるが雛形が無い → 拒否（環境変数の雛形）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf '.env\n' > "$tmp/.gitignore"
   if msg="$(judge_env_template_present "$tmp")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ]; then
@@ -433,7 +448,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系11: .gitignoreに.env除外があり雛形もある → 許可（環境変数の雛形）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf '.env\n' > "$tmp/.gitignore"
   printf 'KEY=\n' > "$tmp/.env.example"
   if msg="$(judge_env_template_present "$tmp")"; then code=0; else code=$?; fi
@@ -446,7 +464,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系12: package.jsonはあるがdev/start入口が無い → 拒否（起動の口）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf '{"scripts":{"build":"tsc"}}\n' > "$tmp/package.json"
   if msg="$(judge_single_launch_entry "$tmp")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ]; then
@@ -458,7 +479,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系13: package.jsonにdev入口がある → 許可（起動の口）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf '{"scripts":{"dev":"vite"}}\n' > "$tmp/package.json"
   if msg="$(judge_single_launch_entry "$tmp")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ]; then
@@ -470,7 +494,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系14: 手順書に動作環境の記述が無い → 拒否（環境の差）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp/docs"
   printf '<html><body>手順です</body></html>\n' > "$tmp/docs/環境構築手順.html"
   if msg="$(judge_env_difference_documented "$tmp")"; then code=0; else code=$?; fi
@@ -483,7 +510,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系15: 手順書にWindows WSL2の記述がある → 許可（環境の差）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp/docs"
   printf '<html><body>対応OS: Windows WSL2環境</body></html>\n' > "$tmp/docs/環境構築手順.html"
   if msg="$(judge_env_difference_documented "$tmp")"; then code=0; else code=$?; fi
@@ -517,7 +547,10 @@ self_test() {
   # 環境変数の雛形・起動の口・環境の差）のみが該当するgit commitは、
   # 集約の処理を通しても終了コード0のままになる
   local tmp18 out18 rc18
-  tmp18="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX")"
+  if ! tmp18="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-filename-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp18" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   out18="$(printf '%s' "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git commit -m ok\"},\"cwd\":\"${tmp18}\"}" | bash "$0" 2>&1 1>/dev/null)"
   rc18=$?
   rm -rf "$tmp18"

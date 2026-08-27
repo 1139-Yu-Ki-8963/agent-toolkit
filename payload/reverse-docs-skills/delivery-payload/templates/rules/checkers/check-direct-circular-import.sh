@@ -261,7 +261,10 @@ self_test() {
   fi
 
   # 系2: 直接の相互 import（a.ts と b.ts が互いを import）→ 拒否
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-direct-circular-import-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-direct-circular-import-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf 'import { y } from "./a";\nexport const x = 1;\n' > "$tmp/b.ts"
   if msg="$(judge "$tmp/a.ts" 'import { x } from "./b";
 export const y = 1;')"; then code=0; else code=$?; fi
@@ -275,7 +278,10 @@ export const y = 1;')"; then code=0; else code=$?; fi
   fi
 
   # 系3: 一方向のimport（循環なし）→ 許可
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-direct-circular-import-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-direct-circular-import-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf 'export const z = 1;\n' > "$tmp/d.ts"
   if msg="$(judge "$tmp/c.ts" 'import { z } from "./d";
 export const w = z + 1;')"; then code=0; else code=$?; fi
@@ -288,7 +294,10 @@ export const w = z + 1;')"; then code=0; else code=$?; fi
   fi
 
   # 系4: import先がまだ存在しない（新規作成順）→ 許可（判定不能でスキップ）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-direct-circular-import-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-direct-circular-import-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge "$tmp/e.ts" 'import { f } from "./f";
 export const g = f;')"; then code=0; else code=$?; fi
   rm -rf "$tmp"

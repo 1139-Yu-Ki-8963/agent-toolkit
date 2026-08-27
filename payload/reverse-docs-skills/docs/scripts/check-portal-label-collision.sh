@@ -84,7 +84,7 @@ run_self_test() {
       ok=0
     fi
   else
-    echo "[FAIL] ケース1: label同名の置き場に終了コード1を返さなかった（exit $case1_rc）"
+    echo "[FAIL] ケース1: label同名の置き場に終了コード1を返さなかった（exit ${case1_rc}）"
     ok=0
   fi
 
@@ -100,7 +100,7 @@ run_self_test() {
       ok=0
     fi
   else
-    echo "[FAIL] ケース2: 英字の置き場に終了コード0を返さなかった（exit $case2_rc）"
+    echo "[FAIL] ケース2: 英字の置き場に終了コード0を返さなかった（exit ${case2_rc}）"
     ok=0
   fi
 

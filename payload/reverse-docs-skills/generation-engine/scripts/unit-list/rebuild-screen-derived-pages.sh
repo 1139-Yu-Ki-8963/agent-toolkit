@@ -143,8 +143,8 @@ NODE
 
 parent="$(dirname "$output_root")"
 mkdir -p "$parent"
-# transaction_root/backup_rootは${TMPDIR:-/tmp}ではなく$output_rootの親(sibling)へ
-# 作る。コミット段でtransaction_root配下から$output_root配下へmvするため、両者が
+# transaction_root/backup_rootは${TMPDIR:-/tmp}ではなく${output_rootの}親(sibling)へ
+# 作る。コミット段でtransaction_root配下から${output_root配下へmvするため}、両者が
 # 別ファイルシステムだとmvがcopy+deleteへ縮退し、中断時に一部だけ移動済みという
 # 非原子的な状態を許してしまう。siblingにすることで同一ファイルシステム上のrenameを
 # 保証し、トランザクションの原子性を成り立たせている。TMPDIR配下へ戻すな。

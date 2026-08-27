@@ -602,7 +602,10 @@ self_test() {
 
   # 系5: .gitignore で除外されている一時ファイル → 対象外として許可（実ディレクトリで検証）
   local tmp
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   ( cd "$tmp" && git init -q 2>/dev/null && printf '*.bak\n' > .gitignore )
   if msg="$(judge "$tmp/dropped.bak" 0)"; then code=0; else code=$?; fi
   rm -rf "$tmp"
@@ -614,7 +617,10 @@ self_test() {
   fi
 
   # 系6: 直下を許可の一覧で管理する — 許可一覧に無い直下ディレクトリの新設 → 拒否
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   ( cd "$tmp" && git init -q 2>/dev/null )
   mkdir -p "$tmp/.claude/rules/always/project-context"
   cat > "$tmp/.claude/rules/always/project-context/rule.md" <<'EOF'
@@ -635,7 +641,10 @@ EOF
   fi
 
   # 系7: 直下を許可の一覧で管理する — 許可一覧にあるディレクトリの直下作成 → 許可
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   ( cd "$tmp" && git init -q 2>/dev/null )
   mkdir -p "$tmp/.claude/rules/always/project-context"
   cat > "$tmp/.claude/rules/always/project-context/rule.md" <<'EOF'
@@ -656,7 +665,10 @@ EOF
   fi
 
   # 系8: 深い入れ子を作らない（5階層超）→ 拒否
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   ( cd "$tmp" && git init -q 2>/dev/null )
   if msg="$(judge "$tmp/a/b/c/d/e/f/file.ts" 1)"; then code=0; else code=$?; fi
   rm -rf "$tmp"
@@ -668,7 +680,10 @@ EOF
   fi
 
   # 系9: 浅い階層 → 許可
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   ( cd "$tmp" && git init -q 2>/dev/null )
   if msg="$(judge "$tmp/a/b/file.ts" 1)"; then code=0; else code=$?; fi
   rm -rf "$tmp"
@@ -680,7 +695,10 @@ EOF
   fi
 
   # 系10: 名前の付け方を階層内で揃える — kebab-case の兄弟の中に snake_case を新設 → 拒否
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   ( cd "$tmp" && git init -q 2>/dev/null )
   mkdir -p "$tmp/packages/module-one" "$tmp/packages/module-two"
   if msg="$(judge "$tmp/packages/module_three/file.ts" 1)"; then code=0; else code=$?; fi
@@ -693,7 +711,10 @@ EOF
   fi
 
   # 系11: 名前の付け方を階層内で揃える — 兄弟と同じ表記形式 → 許可
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   ( cd "$tmp" && git init -q 2>/dev/null )
   mkdir -p "$tmp/packages/module-one" "$tmp/packages/module-two"
   if msg="$(judge "$tmp/packages/module-three/file.ts" 1)"; then code=0; else code=$?; fi
@@ -706,7 +727,10 @@ EOF
   fi
 
   # 系12: 置き場を役割で分ける — 宣言はあるが / を含む語が無い → 通知
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp/docs/rules/dirstructure/role-separation"
   cat > "$tmp/docs/rules/dirstructure/role-separation/rule.md" <<'EOF'
 # 規約
@@ -727,7 +751,10 @@ EOF
   fi
 
   # 系13: 置き場を役割で分ける — 宣言が無い → 通知
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_role_separation "$tmp" "src/app.ts")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '通知\[置き場を役割で分ける\]'; then
@@ -738,7 +765,10 @@ EOF
   fi
 
   # 系14: 置き場を役割で分ける — 宣言があり違反する場合 → 通知（止めない）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp/docs/rules/dirstructure/role-separation"
   cat > "$tmp/docs/rules/dirstructure/role-separation/rule.md" <<'EOF'
 # 規約
@@ -759,7 +789,10 @@ EOF
   fi
 
   # 系15: 置き場を役割で分ける — 宣言があり満たしている場合 → 許可
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp/docs/rules/dirstructure/role-separation"
   cat > "$tmp/docs/rules/dirstructure/role-separation/rule.md" <<'EOF'
 # 規約
@@ -780,7 +813,10 @@ EOF
   fi
 
   # 系16: 依存の向きを一方向に保つ — 対象でない場合 → 対象外
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp/docs/rules/dirstructure/dependency-direction"
   cat > "$tmp/docs/rules/dirstructure/dependency-direction/rule.md" <<'EOF'
 # 規約
@@ -801,7 +837,10 @@ EOF
   fi
 
   # 系17: 依存の向きを一方向に保つ — 宣言が無い → 通知
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_dependency_direction "$tmp" "ui/App.ts" 'export const z = 1;')"; then code=0; else code=$?; fi
   rm -rf "$tmp"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '通知\[依存の向きを一方向に保つ\]'; then
@@ -812,7 +851,10 @@ EOF
   fi
 
   # 系18: 依存の向きを一方向に保つ — 宣言があり違反する場合 → 拒否
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp/docs/rules/dirstructure/dependency-direction"
   cat > "$tmp/docs/rules/dirstructure/dependency-direction/rule.md" <<'EOF'
 # 規約
@@ -833,7 +875,10 @@ EOF
   fi
 
   # 系19: 依存の向きを一方向に保つ — 宣言があり満たしている場合 → 許可
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp/docs/rules/dirstructure/dependency-direction"
   cat > "$tmp/docs/rules/dirstructure/dependency-direction/rule.md" <<'EOF'
 # 規約
@@ -855,7 +900,10 @@ export const z = 1;')"; then code=0; else code=$?; fi
   fi
 
   # 系20: 運営文書の置き場を固定する — 指示書が docs/tasks/ 直下なら許可
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_operational_document_placement "$tmp" "docs/tasks/作業指示書.md")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '許可\[運営文書の置き場を固定する\]'; then
@@ -866,7 +914,10 @@ export const z = 1;')"; then code=0; else code=$?; fi
   fi
 
   # 系21: 運営文書の置き場を固定する — 指示書が別の場所なら拒否
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_operational_document_placement "$tmp" "docs/作業指示書.md")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
   if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -q '拒否\[運営文書の置き場を固定する\]'; then
@@ -877,7 +928,10 @@ export const z = 1;')"; then code=0; else code=$?; fi
   fi
 
   # 系22: 運営文書の置き場を固定する — 日付付き検証記録が work-records なら許可
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_operational_document_placement "$tmp" "docs/tasks/work-records/2026-08-23-配る規約の検証.md")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '許可\[運営文書の置き場を固定する\]'; then
@@ -888,7 +942,10 @@ export const z = 1;')"; then code=0; else code=$?; fi
   fi
 
   # 系23: 運営文書の置き場を固定する — 台帳が work-records なら許可
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_operational_document_placement "$tmp" "docs/tasks/work-records/運営台帳.md")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '許可\[運営文書の置き場を固定する\]'; then
@@ -899,7 +956,10 @@ export const z = 1;')"; then code=0; else code=$?; fi
   fi
 
   # 系24: 運営文書の置き場を固定する — ADRが docs/decisions なら許可
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_operational_document_placement "$tmp" "docs/decisions/ADR-storage.md")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '許可\[運営文書の置き場を固定する\]'; then
@@ -910,7 +970,10 @@ export const z = 1;')"; then code=0; else code=$?; fi
   fi
 
   # 系25: 運営文書の置き場を固定する — 設計判断を別の場所へ置くと拒否
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_operational_document_placement "$tmp" "docs/設計判断.md")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
   if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -q '拒否\[運営文書の置き場を固定する\]'; then
@@ -921,7 +984,10 @@ export const z = 1;')"; then code=0; else code=$?; fi
   fi
 
   # 系26: 複数種類に一致する名前は対象外
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_operational_document_placement "$tmp" "docs/tasks/2026-08-23-検証指示書.md")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '対象外\[運営文書の置き場を固定する\]'; then

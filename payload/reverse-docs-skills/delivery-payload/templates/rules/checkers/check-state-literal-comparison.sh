@@ -387,7 +387,10 @@ self_test() {
 
   # 系11: 基本設計書らしき文書が cwd に無い → 対象外として許可
   local tmp11
-  tmp11="$(mktemp -d "${TMPDIR:-/tmp}/check-state-literal-comparison-self-test.XXXXXX")"
+  if ! tmp11="$(mktemp -d "${TMPDIR:-/tmp}/check-state-literal-comparison-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp11" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp11/docs"
   printf '# メモ\n' > "$tmp11/docs/メモ.md"
   if msg="$(judge "docs/note.md" '' "$tmp11")"; then code=0; else code=$?; fi
@@ -401,7 +404,10 @@ self_test() {
 
   # 系12: 基本設計書は実在するが状態の一覧の記述が無い → 拒否（状態を列挙する）
   local tmp12
-  tmp12="$(mktemp -d "${TMPDIR:-/tmp}/check-state-literal-comparison-self-test.XXXXXX")"
+  if ! tmp12="$(mktemp -d "${TMPDIR:-/tmp}/check-state-literal-comparison-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp12" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp12/docs"
   printf '# 注文機能基本設計書\n\n## 外部仕様\n画面の項目を定める。\n' > "$tmp12/docs/注文機能基本設計書.md"
   if msg="$(judge "docs/note.md" '' "$tmp12")"; then code=0; else code=$?; fi
@@ -415,7 +421,10 @@ self_test() {
 
   # 系13: 状態の一覧はあるが移り変わりの表が無い → 拒否（許す移り変わりを表で書く）
   local tmp13
-  tmp13="$(mktemp -d "${TMPDIR:-/tmp}/check-state-literal-comparison-self-test.XXXXXX")"
+  if ! tmp13="$(mktemp -d "${TMPDIR:-/tmp}/check-state-literal-comparison-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp13" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp13/docs"
   printf '# 注文機能基本設計書\n\n## 状態一覧\n- 未処理\n- 処理中\n- 完了\n' > "$tmp13/docs/注文機能基本設計書.md"
   if msg="$(judge "docs/note.md" '' "$tmp13")"; then code=0; else code=$?; fi
@@ -429,7 +438,10 @@ self_test() {
 
   # 系14: 状態の一覧・移り変わりの表はあるが終わりの状態の区分が無い → 拒否（終わりの状態を決める）
   local tmp14
-  tmp14="$(mktemp -d "${TMPDIR:-/tmp}/check-state-literal-comparison-self-test.XXXXXX")"
+  if ! tmp14="$(mktemp -d "${TMPDIR:-/tmp}/check-state-literal-comparison-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp14" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp14/docs"
   printf '# 注文機能基本設計書\n\n## 状態一覧\n- 未処理\n- 処理中\n- 完了\n\n## 状態遷移\n| 遷移元 | 遷移先 |\n|---|---|\n| 未処理 | 処理中 |\n' > "$tmp14/docs/注文機能基本設計書.md"
   if msg="$(judge "docs/note.md" '' "$tmp14")"; then code=0; else code=$?; fi
@@ -443,7 +455,10 @@ self_test() {
 
   # 系15: 状態の一覧・移り変わりの表・終わりの状態の区分がすべて揃っている → 許可
   local tmp15
-  tmp15="$(mktemp -d "${TMPDIR:-/tmp}/check-state-literal-comparison-self-test.XXXXXX")"
+  if ! tmp15="$(mktemp -d "${TMPDIR:-/tmp}/check-state-literal-comparison-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp15" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp15/docs"
   printf '# 注文機能基本設計書\n\n## 状態一覧\n- 未処理\n- 処理中\n- 完了状態\n\n## 状態遷移\n| 遷移元 | 遷移先 |\n|---|---|\n| 未処理 | 処理中 |\n' > "$tmp15/docs/注文機能基本設計書.md"
   if msg="$(judge "docs/note.md" '' "$tmp15")"; then code=0; else code=$?; fi

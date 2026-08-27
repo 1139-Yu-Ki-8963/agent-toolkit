@@ -71,7 +71,7 @@ HTML
     echo "[PASS] 壊れた埋め込みJSONの文書パスを検出して終了コード1"
     exit 0
   fi
-  echo "[FAIL] 壊れた埋め込みJSONの文書パスを検出できない（本体終了コード=$self_test_rc）" >&2
+  echo "[FAIL] 壊れた埋め込みJSONの文書パスを検出できない（本体終了コード=${self_test_rc}）" >&2
   printf '%s\n' "$self_test_output" >&2
   exit 1
 fi

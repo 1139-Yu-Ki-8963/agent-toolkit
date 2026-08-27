@@ -101,7 +101,10 @@ judge() {
   fi
 
   local tmp
-  tmp="$(mktemp "${TMPDIR:-/tmp}/check-loop-query-call.XXXXXX")"
+  if ! tmp="$(mktemp "${TMPDIR:-/tmp}/check-loop-query-call.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf '%s\n' "$text" > "$tmp"
 
   local total loop_lines

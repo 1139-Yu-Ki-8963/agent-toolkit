@@ -11,6 +11,12 @@
 # 判定不能（終了コード2）は不合格として数えない。依存の不在は実行環境の制約であり、
 #   成果物の欠陥ではない（.claude/rules/always/verification/indeterminate-result/rule.md）。
 #
+# ただし判定不能を放置しない。ブラウザを使う検査2本は、配布先に依存が無いため
+#   判定不能のまま残っていた。実測（2026-08-28）で、正本の node_modules を
+#   NODE_PATH で参照させるだけで両方とも合格することを確かめた。
+#   配布先へ依存を置くと版管理へ混入するため、置かずに参照だけを渡す。
+#   参照先が無い場合は従来どおり判定不能のまま進む。
+#
 # 自己テストを持たない。この道具は配布先の集約を実行するだけであり、
 #   偽の集約を用意して確かめると、その用意そのものが本物と食い違う。
 #   実際の配布先で走らせた結果だけを判定に使う。
@@ -29,7 +35,7 @@ fi
 
 AGG="$PAYLOAD_DIR/generation-engine/scripts/verification/run-layer-machine-checks.sh"
 if [ ! -f "$AGG" ]; then
-  echo "[UNKNOWN] 配布先に集約スクリプトが無いため判定できません（$AGG）"
+  echo "[UNKNOWN] 配布先に集約スクリプトが無いため判定できません（${AGG}）"
   exit 2
 fi
 
@@ -38,7 +44,15 @@ if ! LOG="$(mktemp "${TMPDIR:-/tmp}/payload-l1.XXXXXX" 2>/dev/null)" || [ -z "$L
   exit 2
 fi
 
-( cd "$PAYLOAD_DIR" && bash "$AGG" ) > "$LOG" 2>&1
+# 配布先に依存が無くても測れるよう、正本の依存を参照させる。
+# 参照先が無ければ何も渡さず、従来どおり判定不能のまま進む。
+DEPS="${PAYLOAD_LAYER1_NODE_PATH:-$HOME/Projects/reverse-docs-skills/node_modules}"
+if [ -d "$DEPS" ]; then
+  ( cd "$PAYLOAD_DIR" && NODE_PATH="$DEPS" bash "$AGG" ) > "$LOG" 2>&1
+else
+  echo "[INFO] 依存の参照先が無いため、ブラウザを使う検査は判定不能のまま進みます（${DEPS}）"
+  ( cd "$PAYLOAD_DIR" && bash "$AGG" ) > "$LOG" 2>&1
+fi
 
 SUMMARY="$(tail -1 "$LOG")"
 echo "$SUMMARY"
@@ -55,6 +69,20 @@ if [ "$FAILS" -ne 0 ]; then
   grep -E '^\[FAIL\]' "$LOG" | head -10
   rm -f "$LOG"
   exit 1
+fi
+
+UNKNOWNS="$(printf '%s' "$SUMMARY" | sed -n 's/.*判定不能 \([0-9]*\) 本.*/\1/p')"
+if [ -n "$UNKNOWNS" ] && [ "$UNKNOWNS" -ne 0 ]; then
+  echo "[INFO] 判定不能が $UNKNOWNS 本あります。不合格ではありませんが、測れていません。"
+  grep -E '^\[UNKNOWN\]' "$LOG" | head -10
+fi
+
+# 打ち切りは時間の上限を超えて止められたものである。合否が付いていない点は
+# 判定不能と同じであり、放置すると測れていないことに気付けない。
+ABORTED="$(printf '%s' "$SUMMARY" | sed -n 's/.*打ち切り \([0-9]*\) 本.*/\1/p')"
+if [ -n "$ABORTED" ] && [ "$ABORTED" -ne 0 ]; then
+  echo "[INFO] 打ち切りが $ABORTED 本あります。時間の上限を超えたため、合否が付いていません。"
+  grep -E '打ち切' "$LOG" | grep -vE '^対象 ' | head -10
 fi
 
 echo "[PASS] 配布先で失敗0本です。"

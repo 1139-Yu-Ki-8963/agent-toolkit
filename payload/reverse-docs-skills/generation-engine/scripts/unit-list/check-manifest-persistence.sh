@@ -200,7 +200,7 @@ self_test() {
       && printf '%s' "$mktemp_output" | grep -q '判定できない'; then
       echo "  [PASS] mktemp 失敗を[UNKNOWN]・終了コード2として区別"
     else
-      echo "  [FAIL] mktemp 失敗の[UNKNOWN]・終了コード2・判定不能理由を確認できない（実際の終了コード: $mktemp_rc）" >&2
+      echo "  [FAIL] mktemp 失敗の[UNKNOWN]・終了コード2・判定不能理由を確認できない（実際の終了コード: ${mktemp_rc}）" >&2
       printf '%s\n' "$mktemp_output" | sed 's/^/    /' >&2
       rc=1
     fi
@@ -221,7 +221,7 @@ self_test() {
     if [ "$emptyext_rc" -eq 1 ] && printf '%s' "$emptyext_output" | grep -q "追加項目がない"; then
       echo "  [PASS] 陰性: 追加項目なしの拡張マニフェストを終了コード1で検出"
     else
-      echo "  [FAIL] 陰性: 追加項目なしの終了コード1と理由を確認できない（実際の終了コード: $emptyext_rc）" >&2
+      echo "  [FAIL] 陰性: 追加項目なしの終了コード1と理由を確認できない（実際の終了コード: ${emptyext_rc}）" >&2
       rc=1
     fi
   fi
@@ -256,7 +256,7 @@ self_test() {
     if [ "$ng_rc" -eq 1 ] && printf '%s' "$ng_output" | grep -q "screen-manifest.json"; then
       echo "  [PASS] 陰性: マニフェスト不在で終了コード1・不足が列挙される"
     else
-      echo "  [FAIL] 陰性: マニフェスト不在の終了コード1と不足の列挙を確認できない（実際の終了コード: $ng_rc）" >&2
+      echo "  [FAIL] 陰性: マニフェスト不在の終了コード1と不足の列挙を確認できない（実際の終了コード: ${ng_rc}）" >&2
       rc=1
     fi
   fi
@@ -277,7 +277,7 @@ self_test() {
     if [ "$extng_rc" -eq 1 ] && printf '%s' "$extng_output" | grep -q "screen-manifest.ext.json"; then
       echo "  [PASS] 拡張マニフェスト不在で終了コード1・不足が列挙される"
     else
-      echo "  [FAIL] 拡張マニフェスト不在の終了コード1と不足の列挙を確認できない（実際の終了コード: $extng_rc）" >&2
+      echo "  [FAIL] 拡張マニフェスト不在の終了コード1と不足の列挙を確認できない（実際の終了コード: ${extng_rc}）" >&2
       rc=1
     fi
   fi

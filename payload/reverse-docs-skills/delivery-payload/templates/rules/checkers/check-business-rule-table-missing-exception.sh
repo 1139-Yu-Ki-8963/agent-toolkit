@@ -421,7 +421,10 @@ self_test() {
 
   # 系6: 同一の複雑な条件式が他のファイルにも現れる → 拒否（判定を1箇所に集める）
   local tmp
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-business-rule-table-missing-exception-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-business-rule-table-missing-exception-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   ( cd "$tmp" && git init -q 2>/dev/null )
   printf 'function isEligible(order) {\n  if (order.amount >= 10000 && order.status === "active") {\n    return true;\n  }\n}\n' > "$tmp/other.js"
   local c6='function checkOrder(order) {
@@ -439,7 +442,10 @@ self_test() {
   fi
 
   # 系7: 複雑な条件式だが他のファイルに重複が無い → 許可
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-business-rule-table-missing-exception-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-business-rule-table-missing-exception-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   ( cd "$tmp" && git init -q 2>/dev/null )
   printf 'export const z = 1;\n' > "$tmp/other.js"
   local c7='function checkOrder(order) {
@@ -486,7 +492,10 @@ self_test() {
 
   # 系10: 基本設計書らしき文書が cwd に無い → 対象外として許可（判定を表で書く）
   local tmp10
-  tmp10="$(mktemp -d "${TMPDIR:-/tmp}/check-business-rule-table-missing-exception-self-test.XXXXXX")"
+  if ! tmp10="$(mktemp -d "${TMPDIR:-/tmp}/check-business-rule-table-missing-exception-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp10" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp10/docs"
   printf '# メモ\n' > "$tmp10/docs/メモ.md"
   if msg="$(judge "docs/note.md" '' "$tmp10")"; then code=0; else code=$?; fi
@@ -500,7 +509,10 @@ self_test() {
 
   # 系11: 基本設計書は実在するが業務の判定表（条件・結果）が無い → 拒否（判定を表で書く）
   local tmp11
-  tmp11="$(mktemp -d "${TMPDIR:-/tmp}/check-business-rule-table-missing-exception-self-test.XXXXXX")"
+  if ! tmp11="$(mktemp -d "${TMPDIR:-/tmp}/check-business-rule-table-missing-exception-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp11" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp11/docs"
   printf '# 注文機能基本設計書\n\n## 外部仕様\n画面の項目を定める。\n' > "$tmp11/docs/注文機能基本設計書.md"
   if msg="$(judge "docs/note.md" '' "$tmp11")"; then code=0; else code=$?; fi
@@ -514,7 +526,10 @@ self_test() {
 
   # 系12: 基本設計書に業務の判定表（条件・結果）がある → 許可
   local tmp12
-  tmp12="$(mktemp -d "${TMPDIR:-/tmp}/check-business-rule-table-missing-exception-self-test.XXXXXX")"
+  if ! tmp12="$(mktemp -d "${TMPDIR:-/tmp}/check-business-rule-table-missing-exception-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp12" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp12/docs"
   printf '# 注文機能基本設計書\n\n## 業務仕様の確定\n| 条件 | 結果 |\n|---|---|\n| 在庫が0 | 注文を受け付けない |\n' > "$tmp12/docs/注文機能基本設計書.md"
   if msg="$(judge "docs/note.md" '' "$tmp12")"; then code=0; else code=$?; fi

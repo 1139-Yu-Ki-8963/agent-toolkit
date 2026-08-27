@@ -48,7 +48,7 @@ check_order() {
   ' "$file" > "$section_file"
 
   if [ ! -s "$section_file" ]; then
-    echo "不合格: 節「$SECTION_HEADING」が見つかりません"
+    echo "不合格: 節「${SECTION_HEADING}」が見つかりません"
     rm -f "$section_file"
     return 1
   fi

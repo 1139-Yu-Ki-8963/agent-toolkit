@@ -294,7 +294,10 @@ self_test() {
 
   # 系8: docs/rules が見当たらない → 通知
   local tmp8
-  tmp8="$(mktemp -d "${TMPDIR:-/tmp}/check-ai-config-derivative-manual-edit-self-test.XXXXXX")"
+  if ! tmp8="$(mktemp -d "${TMPDIR:-/tmp}/check-ai-config-derivative-manual-edit-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp8" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_definition_in_docs "$tmp8" "/repo/.claude/rules/foo/rule.md")"; then code=0; else code=$?; fi
   rm -rf "$tmp8"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '通知[定義は docs に置く]'; then
@@ -306,7 +309,10 @@ self_test() {
 
   # 系9: docs/rules はあるが対応する定義が無い → 拒否
   local tmp9
-  tmp9="$(mktemp -d "${TMPDIR:-/tmp}/check-ai-config-derivative-manual-edit-self-test.XXXXXX")"
+  if ! tmp9="$(mktemp -d "${TMPDIR:-/tmp}/check-ai-config-derivative-manual-edit-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp9" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp9/docs/rules"
   if msg="$(judge_definition_in_docs "$tmp9" "$tmp9/.claude/rules/foo/rule.md")"; then code=0; else code=$?; fi
   rm -rf "$tmp9"
@@ -319,7 +325,10 @@ self_test() {
 
   # 系10: docs/rules に対応するファイル名の定義が実在する → 許可
   local tmp10
-  tmp10="$(mktemp -d "${TMPDIR:-/tmp}/check-ai-config-derivative-manual-edit-self-test.XXXXXX")"
+  if ! tmp10="$(mktemp -d "${TMPDIR:-/tmp}/check-ai-config-derivative-manual-edit-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp10" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp10/docs/rules/foo" "$tmp10/.claude/rules/bar"
   printf '# 定義\n' > "$tmp10/docs/rules/foo/rule.md"
   if msg="$(judge_definition_in_docs "$tmp10" "$tmp10/.claude/rules/bar/rule.md")"; then code=0; else code=$?; fi
@@ -333,7 +342,10 @@ self_test() {
 
   # 系11: 台帳の置き場の宣言が無い → 通知
   local tmp11
-  tmp11="$(mktemp -d "${TMPDIR:-/tmp}/check-ai-config-derivative-manual-edit-self-test.XXXXXX")"
+  if ! tmp11="$(mktemp -d "${TMPDIR:-/tmp}/check-ai-config-derivative-manual-edit-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp11" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_drift_ledger "$tmp11")"; then code=0; else code=$?; fi
   rm -rf "$tmp11"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '通知[ずれは台帳で検知する]'; then
@@ -345,7 +357,10 @@ self_test() {
 
   # 系12: 宣言はあるが台帳の置き場を読み取れない → 通知
   local tmp12
-  tmp12="$(mktemp -d "${TMPDIR:-/tmp}/check-ai-config-derivative-manual-edit-self-test.XXXXXX")"
+  if ! tmp12="$(mktemp -d "${TMPDIR:-/tmp}/check-ai-config-derivative-manual-edit-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp12" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp12/docs/rules/foo"
   cat > "$tmp12/docs/rules/foo/rule.md" <<'EOF'
 # 規約
@@ -367,7 +382,10 @@ EOF
 
   # 系13: 宣言された台帳が実在しない → 拒否
   local tmp13
-  tmp13="$(mktemp -d "${TMPDIR:-/tmp}/check-ai-config-derivative-manual-edit-self-test.XXXXXX")"
+  if ! tmp13="$(mktemp -d "${TMPDIR:-/tmp}/check-ai-config-derivative-manual-edit-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp13" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp13/docs/rules/foo"
   cat > "$tmp13/docs/rules/foo/rule.md" <<'EOF'
 # 規約
@@ -389,7 +407,10 @@ EOF
 
   # 系14: 宣言された台帳が実在する → 許可
   local tmp14
-  tmp14="$(mktemp -d "${TMPDIR:-/tmp}/check-ai-config-derivative-manual-edit-self-test.XXXXXX")"
+  if ! tmp14="$(mktemp -d "${TMPDIR:-/tmp}/check-ai-config-derivative-manual-edit-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp14" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp14/docs/rules/foo"
   cat > "$tmp14/docs/rules/foo/rule.md" <<'EOF'
 # 規約

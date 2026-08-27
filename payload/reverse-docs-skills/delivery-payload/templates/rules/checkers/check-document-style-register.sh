@@ -240,7 +240,7 @@ self_test() {
       echo "  [PASS] $label"
       pass=$((pass + 1))
     else
-      echo "  [FAIL] $label (出力に「$needle」が含まれない)" >&2
+      echo "  [FAIL] $label (出力に「${needle}」が含まれない)" >&2
       fail=$((fail + 1))
     fi
   }

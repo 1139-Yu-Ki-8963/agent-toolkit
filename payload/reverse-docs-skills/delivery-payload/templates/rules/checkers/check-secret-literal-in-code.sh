@@ -462,7 +462,10 @@ jobs:
 
   # 系14: 処理の入口らしい記述が無い → 対象外（権限の確認を処理の側で行う）
   local tmp14
-  tmp14="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-literal-in-code-self-test.XXXXXX")"
+  if ! tmp14="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-literal-in-code-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp14" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   local t14='function add(a, b) { return a + b; }'
   if msg="$(judge "app.js" "$t14" "$tmp14")"; then code=0; else code=$?; fi
   rm -rf "$tmp14"
@@ -475,7 +478,10 @@ jobs:
 
   # 系15: 処理の入口はあるが権限の確認の宣言が無い → 通知（権限の確認を処理の側で行う）
   local tmp15
-  tmp15="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-literal-in-code-self-test.XXXXXX")"
+  if ! tmp15="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-literal-in-code-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp15" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   local t15='app.get("/admin", function (req, res) { res.send("ok"); });'
   if msg="$(judge "app.js" "$t15" "$tmp15")"; then code=0; else code=$?; fi
   rm -rf "$tmp15"
@@ -488,7 +494,10 @@ jobs:
 
   # 系16: 宣言はあるが権限の確認の呼び出しが処理の入口に無い → 拒否（権限の確認を処理の側で行う）
   local tmp16
-  tmp16="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-literal-in-code-self-test.XXXXXX")"
+  if ! tmp16="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-literal-in-code-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp16" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp16/docs/rules/security/permission-check"
   cat > "$tmp16/docs/rules/security/permission-check/rule.md" <<'EOF'
 # セキュリティ要件
@@ -511,7 +520,10 @@ EOF
 
   # 系17: 宣言があり権限の確認の呼び出しが処理の入口にある → 許可（権限の確認を処理の側で行う）
   local tmp17
-  tmp17="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-literal-in-code-self-test.XXXXXX")"
+  if ! tmp17="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-literal-in-code-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp17" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp17/docs/rules/security/permission-check"
   cat > "$tmp17/docs/rules/security/permission-check/rule.md" <<'EOF'
 # セキュリティ要件

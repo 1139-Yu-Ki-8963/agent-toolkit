@@ -428,7 +428,10 @@ self_test() {
   fi
 
   # 系6: 4個の無関係ディレクトリへ変更が及ぶ → 拒否（1コミット1目的）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-artifact-staged-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-artifact-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   git -C "$tmp" init -q
   mkdir -p "$tmp/a" "$tmp/b" "$tmp/c" "$tmp/d"
   printf 'x\n' > "$tmp/a/f.txt"
@@ -446,7 +449,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系7: 1個のディレクトリだけの変更 → 許可（1コミット1目的）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-artifact-staged-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-artifact-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   git -C "$tmp" init -q
   mkdir -p "$tmp/a"
   printf 'x\n' > "$tmp/a/f.txt"
@@ -462,7 +468,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系8: 表題が「修正」のみ → 拒否（表題の形式）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-artifact-staged-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-artifact-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_commit_title_format "$tmp" 'git commit -m "修正"')"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ]; then
     echo "  [PASS] 系8: 表題が「修正」だけなら通知される（${msg}）"
@@ -473,7 +482,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系9: 種別と対象を含む短い表題 → 許可（表題の形式）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-artifact-staged-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-artifact-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_commit_title_format "$tmp" 'git commit -m "ログイン画面のバリデーション不具合を修正"')"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ]; then
     echo "  [PASS] 系9: 種別と対象を含む表題は許可される（${msg}）"
@@ -484,7 +496,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系10: 枝の名前が種別/対象の形式でない → 拒否（枝の名前）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-artifact-staged-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-artifact-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_branch_name_format "$tmp" "git checkout -b 123")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ]; then
     echo "  [PASS] 系10: 通し番号だけの枝名は通知される（${msg}）"
@@ -495,7 +510,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系11: 枝の名前が <種別>/<対象> の形式 → 許可（枝の名前）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-artifact-staged-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-artifact-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_branch_name_format "$tmp" "git checkout -b feature/login-fix")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ]; then
     echo "  [PASS] 系11: <種別>/<対象>形式の枝名は許可される（${msg}）"
@@ -506,7 +524,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系12: 差分が上限行数を超える → 拒否（統合の単位）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-artifact-staged-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-artifact-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   git -C "$tmp" init -q
   seq 1 500 > "$tmp/big.txt"
   git -C "$tmp" add -A >/dev/null 2>&1
@@ -520,7 +541,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系13: 差分が上限行数以内 → 許可（統合の単位）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-artifact-staged-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-artifact-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   git -C "$tmp" init -q
   seq 1 10 > "$tmp/small.txt"
   git -C "$tmp" add -A >/dev/null 2>&1
@@ -558,7 +582,10 @@ self_test() {
   # 系16: run_hook経由で、知らせるだけの規則（1コミット1目的・表題の形式）
   # のみが該当するgit commitは、集約の処理を通しても終了コード0のままになる
   local tmp16 out16 rc16 input16
-  tmp16="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-artifact-staged-self-test.XXXXXX")"
+  if ! tmp16="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-artifact-staged-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp16" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   git -C "$tmp16" init -q
   mkdir -p "$tmp16/a" "$tmp16/b" "$tmp16/c" "$tmp16/d"
   printf 'x\n' > "$tmp16/a/f.txt"

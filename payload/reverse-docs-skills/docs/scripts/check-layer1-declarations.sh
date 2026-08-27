@@ -72,7 +72,7 @@ run_self_test() {
   if [ "$n" = "177" ]; then
     echo "  [PASS] 集計行から成功本数を読める"; pass=$((pass + 1))
   else
-    echo "  [FAIL] 集計行から成功本数を読める（読めた値=$n）" >&2; fail=$((fail + 1)); rc=1
+    echo "  [FAIL] 集計行から成功本数を読める（読めた値=${n}）" >&2; fail=$((fail + 1)); rc=1
   fi
 
   sample='集計行がない出力'

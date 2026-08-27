@@ -57,7 +57,10 @@ judge() {
   # 標準出力: 判定理由（1行1件、複数行）。戻り値は常に0。
   local cwd="$1"
   local docs_file count
-  docs_file="$(mktemp "${TMPDIR:-/tmp}/check-routine-procedure-doc-docs.XXXXXX")"
+  if ! docs_file="$(mktemp "${TMPDIR:-/tmp}/check-routine-procedure-doc-docs.XXXXXX" 2>/dev/null)" || [ -z "$docs_file" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   find_procedure_docs "$cwd" > "$docs_file"
   count="$(grep -c . "$docs_file" 2>/dev/null || true)"
   [ -z "$count" ] && count=0
@@ -133,7 +136,10 @@ self_test() {
 
   # 系1: 手順書が1件も無い → 通知（手順を文書に固定する）
   local tmp1
-  tmp1="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX")"
+  if ! tmp1="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp1" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp1/docs"
   printf '# メモ\n' > "$tmp1/docs/メモ.md"
   msg="$(judge "$tmp1")"
@@ -147,7 +153,10 @@ self_test() {
 
   # 系2: 手順書が1件ある → 許可（手順を文書に固定する）
   local tmp2
-  tmp2="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX")"
+  if ! tmp2="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp2" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp2/docs"
   printf '# 定例棚卸し手順書\n\n## 実行の間隔\n毎月1日を起点に実行する。\n\n## 失敗したとき\n失敗した場合は最初からやり直す。\n' > "$tmp2/docs/定例棚卸し手順書.md"
   msg="$(judge "$tmp2")"
@@ -161,7 +170,10 @@ self_test() {
 
   # 系3: 手順書が複数ある → 許可（手順を文書に固定する。件数を返す）
   local tmp3
-  tmp3="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX")"
+  if ! tmp3="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp3" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp3/docs"
   printf '# 定例棚卸し手順書\n\n## 実行の間隔\n毎月1日を起点に実行する。\n\n## 失敗したとき\n失敗した場合は最初からやり直す。\n' > "$tmp3/docs/定例棚卸し手順書.md"
   printf '# 監査手順書\n\n## 実行の間隔\n毎週月曜を起点に実行する。\n\n## 失敗したとき\nエラーが出た場合は再開する。\n' > "$tmp3/docs/監査手順書.md"
@@ -176,7 +188,10 @@ self_test() {
 
   # 系4（近傍事例）: 「手順書」を含まない文書は対象外（手順を文書に固定する。0件扱い）
   local tmp4
-  tmp4="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX")"
+  if ! tmp4="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp4" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp4/docs"
   printf '# 定例棚卸しの手引き\n\n## 実行の間隔\n毎月実行する。\n' > "$tmp4/docs/定例棚卸しの手引き.md"
   msg="$(judge "$tmp4")"
@@ -190,7 +205,10 @@ self_test() {
 
   # 系5: 手順書に実行の間隔・起点の記述が無い → 通知（実行の間隔と起点を書く）
   local tmp5
-  tmp5="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX")"
+  if ! tmp5="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp5" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp5/docs"
   printf '# 定例棚卸し手順書\n\n## 手順\n棚卸しを行う。\n\n## 失敗したとき\n失敗した場合は最初からやり直す。\n' > "$tmp5/docs/定例棚卸し手順書.md"
   msg="$(judge "$tmp5")"
@@ -204,7 +222,10 @@ self_test() {
 
   # 系6: 手順書に実行の間隔・起点の記述がある（複数手順書ですべて揃う）→ 許可（実行の間隔と起点を書く）
   local tmp6
-  tmp6="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX")"
+  if ! tmp6="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp6" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp6/docs"
   printf '# 定例棚卸し手順書\n\n## 実行の間隔\n毎月1日を起点に実行する。\n\n## 失敗したとき\nエラーが出た場合は再開する。\n' > "$tmp6/docs/定例棚卸し手順書.md"
   printf '# 監査手順書\n\n## 実行の間隔\n毎週ごとに実行する。\n\n## 失敗したとき\n失敗した場合はやり直す。\n' > "$tmp6/docs/監査手順書.md"
@@ -219,7 +240,10 @@ self_test() {
 
   # 系7: 手順書に失敗したときの扱いの記述が無い（状態語のみで対応の動詞が無い）→ 通知（失敗したときの扱いを書く）
   local tmp7
-  tmp7="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX")"
+  if ! tmp7="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp7" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp7/docs"
   printf '# 定例棚卸し手順書\n\n## 実行の間隔\n毎月1日を起点に実行する。\n\n## 注意\nエラーが起こることがある。\n' > "$tmp7/docs/定例棚卸し手順書.md"
   msg="$(judge "$tmp7")"
@@ -233,7 +257,10 @@ self_test() {
 
   # 系8: 手順書に失敗したときの扱いの記述がある → 許可（失敗したときの扱いを書く）
   local tmp8
-  tmp8="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX")"
+  if ! tmp8="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp8" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp8/docs"
   printf '# 定例棚卸し手順書\n\n## 実行の間隔\n毎月1日を起点に実行する。\n\n## 失敗したとき\n異常を検知したら再実行する。\n' > "$tmp8/docs/定例棚卸し手順書.md"
   msg="$(judge "$tmp8")"
@@ -258,7 +285,10 @@ self_test() {
 
   # 系10（近傍事例）: git commit 以外のコマンド → run_hook 経由で対象外
   local tmp10 out10 rc10
-  tmp10="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX")"
+  if ! tmp10="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp10" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   out10="$(printf '%s' "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"npm test\"},\"cwd\":\"${tmp10}\"}" | bash "$0" 2>&1 1>/dev/null)"
   rc10=$?
   rm -rf "$tmp10"
@@ -282,7 +312,10 @@ self_test() {
 
   # 系12: run_hook 経由で git commit + 実在する cwd → 3規則とも標準エラーへ判定が出て exit 0
   local tmp12 out12 rc12
-  tmp12="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX")"
+  if ! tmp12="$(mktemp -d "${TMPDIR:-/tmp}/check-routine-procedure-doc-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp12" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp12/docs"
   printf '# 定例棚卸し手順書\n\n## 実行の間隔\n毎月1日を起点に実行する。\n\n## 失敗したとき\n異常を検知したら再実行する。\n' > "$tmp12/docs/定例棚卸し手順書.md"
   out12="$(printf '%s' "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git commit -m x\"},\"cwd\":\"${tmp12}\"}" | bash "$0" 2>&1 1>/dev/null)"

@@ -330,7 +330,7 @@ NODE
 
   # 改善課題 一時ディレクトリ-作成先: TMP_DIR生成が明示テンプレート
   # ("${TMPDIR:-/tmp}/extract-design-tokens-work.XXXXXX")を使っており、
-  # $TMPDIRを無視する裸のmktemp -dに戻っていないことを、mktempラッパーで
+  # ${TMPDIRを無視する裸}のmktemp -dに戻っていないことを、mktempラッパーで
   # 呼び出し引数を記録して構造的に検証する（システムの既定一時領域が書き込み
   # 可能かどうかに依存しない判定）。
   mktemp_shim_dir="$tmp/mktemp-shim"
@@ -346,9 +346,9 @@ SHIM
 
   if PATH="$mktemp_shim_dir:$PATH" bash "$script_path" "$design_md_fm" "$tmp/out-mktemp-check.json" >/dev/null 2>&1 \
     && grep -q -- '-d .*extract-design-tokens-work' "$mktemp_log"; then
-    echo "  [PASS] TMP_DIR生成が明示テンプレートを使う（\$TMPDIRを無視する裸のmktemp -dではない）"
+    echo "  [PASS] TMP_DIR生成が明示テンプレートを使う（\${TMPDIRを無視する裸}のmktemp -dではない）"
   else
-    echo "  [FAIL] TMP_DIR生成が\$TMPDIRを無視する裸のmktemp -dのままである、または検証に失敗した" >&2
+    echo "  [FAIL] TMP_DIR生成が\${TMPDIRを無視する裸}のmktemp -dのままである、または検証に失敗した" >&2
     rc=1
   fi
 

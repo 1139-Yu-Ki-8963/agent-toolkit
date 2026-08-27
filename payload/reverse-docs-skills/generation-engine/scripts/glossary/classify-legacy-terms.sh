@@ -64,7 +64,7 @@ YAML
     if [ "$got" = "$want" ]; then
       echo "PASS: $name"; pass=$((pass + 1))
     else
-      echo "FAIL: $name（期待 $want・実際 $got）"; fail=$((fail + 1))
+      echo "FAIL: ${name}（期待 ${want}・実際 ${got}）"; fail=$((fail + 1))
     fi
   }
 

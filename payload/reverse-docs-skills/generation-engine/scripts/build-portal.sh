@@ -4500,7 +4500,15 @@ LAYOUT_JSON="$(resolve_output_layout "$DOCS_ROOT")" || exit 1
 # 渡していなかった）。他の20箇所と同じ合成済みLAYOUT_JSONを、readOutputLayoutが要求する
 # ファイル形式（{specVersion, layout, kindLabels}のJSONファイル）として一時ファイルへ書き出し、
 # render呼び出しへ渡す。新しい正本ファイルは作らず、ビルド実行中だけの一時ファイルとして作る。
-OUTPUT_LAYOUT_RESOLVED_FILE="$(mktemp "${TMPDIR:-/tmp}/portal-output-layout.XXXXXX")"
+# mktemp の戻り値を見ないと、失敗しても空文字のまま処理が進む。実測（2026-08-28）で
+# サンドボックスの下では「Operation not permitted」を返し、/repo や /docs という
+# 絶対パスへ書こうとして62件の自己テストがまとめて不合格になった。
+# 対象の中身には何の問題も無かった。判定不能の規約に従い、実行できなかったことを
+# 不合格と区別して終了コード2で止める。
+if ! OUTPUT_LAYOUT_RESOLVED_FILE="$(mktemp "${TMPDIR:-/tmp}/portal-output-layout.XXXXXX" 2>/dev/null)" || [ -z "$OUTPUT_LAYOUT_RESOLVED_FILE" ]; then
+  echo "[UNKNOWN] 一時ファイルを作れないため実行できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+  exit 2
+fi
 OUTPUT_LAYOUT_VALUES_FILE="${OUTPUT_LAYOUT_RESOLVED_FILE}.values"
 trap 'rm -f "$OUTPUT_LAYOUT_RESOLVED_FILE" "$OUTPUT_LAYOUT_VALUES_FILE"' EXIT
 printf '%s' "$LAYOUT_JSON" > "$OUTPUT_LAYOUT_RESOLVED_FILE"
@@ -5056,7 +5064,10 @@ done
 # 判定はこれから実行する変換ループ自身が使うのと同じ基盤文書振り分けロジックを先取り
 # するだけで、新しい正本ファイルは作らない（ビルド実行中だけ使う一時ファイル）。
 # 手元にある情報（これから変換するmd→htmlの対応）から機械的に導く。
-PORTAL_MD_MAP_FILE="$(mktemp "${TMPDIR:-/tmp}/portal-md-map.XXXXXX")"
+if ! PORTAL_MD_MAP_FILE="$(mktemp "${TMPDIR:-/tmp}/portal-md-map.XXXXXX" 2>/dev/null)" || [ -z "$PORTAL_MD_MAP_FILE" ]; then
+  echo "[UNKNOWN] 一時ファイルを作れないため実行できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+  exit 2
+fi
 : > "$PORTAL_MD_MAP_FILE"
 for md_map_dir in "${common_roots[@]}"; do
   [ -d "$md_map_dir" ] || continue
@@ -5108,7 +5119,10 @@ export PORTAL_MD_MAP_FILE
 # 「実装ファイル名 → 生成後のページ」の対応表を機械的に作る。画面以外の種別は一覧データが
 # 生成後のページのパスを持たないため対象外（1-36が扱う供給経路の範囲）。新しい正本ファイルは
 # 作らず、上記のmd→html対応表と同じくビルド実行中だけの一時ファイルとして作る。
-PORTAL_IMPL_MAP_FILE="$(mktemp "${TMPDIR:-/tmp}/portal-impl-map.XXXXXX")"
+if ! PORTAL_IMPL_MAP_FILE="$(mktemp "${TMPDIR:-/tmp}/portal-impl-map.XXXXXX" 2>/dev/null)" || [ -z "$PORTAL_IMPL_MAP_FILE" ]; then
+  echo "[UNKNOWN] 一時ファイルを作れないため実行できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+  exit 2
+fi
 : > "$PORTAL_IMPL_MAP_FILE"
 screen_manifest_for_impl_map="$DOCS_ROOT/$LAYOUT_MANIFESTS_ROOT/screen-manifest.json"
 if [ -f "$screen_manifest_for_impl_map" ]; then

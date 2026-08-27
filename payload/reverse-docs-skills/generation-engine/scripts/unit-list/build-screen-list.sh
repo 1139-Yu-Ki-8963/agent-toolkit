@@ -105,7 +105,7 @@ self_test() {
 
   # unit-axes.sh の source は trap ... RETURN 設定より前に済ませる。source(.)の
   # 完了自体がRETURNトラップの発火条件になるため、後段で source するとtrap設定後に
-  # 即座に発火し$tmpが未使用のまま削除される(既知のbash挙動)。
+  # 即座に発火し${tmpが未使用のまま削除され}る(既知のbash挙動)。
   . "$script_dir/../unit-axes.sh"
 
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/build-screen-list-self-test.XXXXXX")"
@@ -848,7 +848,7 @@ print(os.path.abspath(os.path.join(sys.argv[1], "index.html")))
   fi
 
   # --- --repo-root: 指定した基準ディレクトリで相対sourceDirを解決できること ---
-  # sourceDirはmock-repo-root配下からの相対値のまま保持し、manifest自身は$tmp直下(mock-repo-rootの外)に置く。
+  # sourceDirはmock-repo-root配下からの相対値のまま保持し、manifest自身は${tmp直}下(mock-repo-rootの外)に置く。
   # .git祖先もgeneration-engine/DESIGN.mdもmock-repo-root配下には無いため、--repo-root省略時の
   # 既定解決(マニフェスト所在ディレクトリへのフォールバック)では実在確認が失敗するはずである。
   mkdir -p "$tmp/mock-repo-root/screens"

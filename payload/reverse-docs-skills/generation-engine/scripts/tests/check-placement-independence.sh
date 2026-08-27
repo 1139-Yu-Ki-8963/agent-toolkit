@@ -29,7 +29,7 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# generation-engine一式を$dst直下へ複製する。引数: repo（リポジトリルート）、dst（複製先の親）
+# generation-engine一式を${dst直下へ複製する}。引数: repo（リポジトリルート）、dst（複製先の親）
 copy_generation_engine() {
   local repo="$1" dst="$2"
   mkdir -p "$dst"
@@ -43,7 +43,7 @@ copy_generation_engine() {
     "$dst/generation-engine/samples/docs/manifests/screen-manifest.json"
 }
 
-# 見本マニフェストを$placement配下のvalidate-manifest.shで検証する。
+# 見本マニフェストを${placement配下}のvalidate-manifest.shで検証する。
 # 引数: placement（generation-engineを直下に持つディレクトリ）
 # 複製時にsourceDirを配布物ルート起点へ正規化しているため、境界目印または.git祖先から
 # 自動解決させる。ここで--repo-rootを明示すると、境界目印を外した退行ケースでも
@@ -60,7 +60,7 @@ run_gold_validation() {
 }
 
 # 置き方1（独立したリポジトリ）と置き方2（上位にリポジトリを持つ配置）の両方を
-# $tmp配下に用意し、見本マニフェストの検証結果を比較する。
+# ${tmp配下に用意し}、見本マニフェストの検証結果を比較する。
 # 引数: repo（複製元のリポジトリルート）、tmp（作業用の一時ディレクトリ）
 # 標準出力: 判定行。戻り値: 両方とも終了コード0で一致すれば0、それ以外は1。
 compare_placements() {

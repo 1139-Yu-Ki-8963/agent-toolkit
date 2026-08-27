@@ -132,7 +132,7 @@ fill_state_transition_rows() {
 # テーブル定義書.md §6.3 外部キー
 # （列: カラム|参照先のテーブル|参照先のカラム|削除時の動作|関連の種別|出典参照）。
 # このパイプラインでは代表テーブル1件しか展開されないため、参照先を自テーブル
-# （$TABLE_KEY）自身にした自己参照FK行を1件足す（階層構造でよくある parent_id 相当。
+# （${TABLE_KEY}）自身にした自己参照FK行を1件足す（階層構造でよくある parent_id 相当。
 # extract-er-page-data.sh の解決は table_key の一致だけを見ており自己参照を除外しない）。
 fill_foreign_key_rows() {
   local f="$1"

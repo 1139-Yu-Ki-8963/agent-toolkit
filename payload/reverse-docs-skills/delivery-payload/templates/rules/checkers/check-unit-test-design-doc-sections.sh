@@ -647,7 +647,10 @@ API単位で自動化する
 
   # 系3: 合成フィクスチャ3件をファイルとして書き出し、12節を正順で持つ → すべて許可
   local fixture fixture_path fixture_ok=1 tmp3
-  tmp3="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX")"
+  if ! tmp3="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp3" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   for fixture in api-login api-list api-update; do
     fixture_path="$tmp3/${fixture}-API単体テスト設計書.md"
     printf '%s\n' "$full" > "$fixture_path"
@@ -733,7 +736,10 @@ ${full}"
 
   # 系5: 単体テスト設計書は基本設計フェーズで作る - 宣言が無い → 通知
   local tmp5
-  tmp5="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX")"
+  if ! tmp5="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp5" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_unit_test_doc_exists "$tmp5")"; then code=0; else code=$?; fi
   rm -rf "$tmp5"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '通知[単体テスト設計書は基本設計フェーズで作る]'; then
@@ -745,7 +751,10 @@ ${full}"
 
   # 系6: 単体テスト設計書は基本設計フェーズで作る - 宣言はあるが / を含む語が無い → 通知
   local tmp6
-  tmp6="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX")"
+  if ! tmp6="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp6" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp6/docs/rules/example"
   cat > "$tmp6/docs/rules/example/rule.md" <<'EOF'
 # 例
@@ -767,7 +776,10 @@ EOF
 
   # 系7: 単体テスト設計書は基本設計フェーズで作る - 基本設計フォルダに単体テスト設計書が無い → 拒否
   local tmp7
-  tmp7="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX")"
+  if ! tmp7="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp7" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp7/docs/rules/example"
   cat > "$tmp7/docs/rules/example/rule.md" <<'EOF'
 # 例
@@ -791,7 +803,10 @@ EOF
 
   # 系8: 単体テスト設計書は基本設計フェーズで作る - 基本設計フォルダのすべてに単体テスト設計書がある → 許可
   local tmp8
-  tmp8="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX")"
+  if ! tmp8="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp8" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp8/docs/rules/example"
   cat > "$tmp8/docs/rules/example/rule.md" <<'EOF'
 # 例
@@ -825,7 +840,10 @@ EOF
 
   # 系10: 規約が求めるテストを観点へ取り込む - docs/rules が無い → 通知
   local tmp10
-  tmp10="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX")"
+  if ! tmp10="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp10" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_test_viewpoint_coverage "$tmp10" "docs/design/screens/画面A/単体テスト設計書.md" "$full")"; then code=0; else code=$?; fi
   rm -rf "$tmp10"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '通知[規約が求めるテストを観点へ取り込む]'; then
@@ -837,7 +855,10 @@ EOF
 
   # 系11: 規約が求めるテストを観点へ取り込む - 規則名がテスト観点に現れない → 拒否
   local tmp11
-  tmp11="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX")"
+  if ! tmp11="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp11" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp11/docs/rules/example"
   cat > "$tmp11/docs/rules/example/rule.md" <<'EOF'
 # 例
@@ -859,7 +880,10 @@ EOF
 
   # 系12: 規約が求めるテストを観点へ取り込む - 規則名がテスト観点に現れる → 許可
   local tmp12
-  tmp12="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX")"
+  if ! tmp12="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp12" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp12/docs/rules/example"
   cat > "$tmp12/docs/rules/example/rule.md" <<'EOF'
 # 例
@@ -923,7 +947,10 @@ EOF
 
   # 系15: 観点の部分集合と全ケースが整合する → §2の行数を実行件数として許可
   local tmp15 role_file
-  tmp15="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX")"
+  if ! tmp15="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp15" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   role_file="$tmp15/APIテスト設計書.md"
   printf '%s\n' "$role_valid" > "$role_file"
   if msg="$(run_file_check "$role_file")"; then code=0; else code=$?; fi

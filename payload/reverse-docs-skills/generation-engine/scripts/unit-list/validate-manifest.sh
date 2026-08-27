@@ -339,7 +339,7 @@ run_validate() {
     done
   fi
   # 呼び出し元のカレントディレクトリ($PWD)には依存しない。.git祖先が見つからない場合は
-  # マニフェスト自身の所在ディレクトリ(manifest_dir。$MANIFESTの絶対パスから一意に決まり、
+  # マニフェスト自身の所在ディレクトリ(manifest_dir。${MANIFESTの絶対パスから一意に決まり}、
   # 実行時のカレントディレクトリには依存しない)を基準にする。
   [ -z "$resolve_base" ] && resolve_base="$manifest_dir"
   source_external="$(jq -r '(.strategy.sourceExternal == true)' "$MANIFEST" 2>/dev/null || echo false)"
@@ -1189,7 +1189,7 @@ self_test() {
   # TMPDIR が末尾スラッシュ付きの場合(例: macOSの既定/var/folders/.../T/)、
   # mktempの返り値に二重スラッシュが混入する。本体側は解決時にcd && pwdで
   # パスを組み立てており、cdが二重スラッシュを暗黙に正規化するため、比較に
-  # そのまま$tmpの生値を使うと一致しない。以降の比較・フィクスチャ生成で
+  # そのまま${tmpの生値を使うと一致しない}。以降の比較・フィクスチャ生成で
   # 本体側と同じ正規化済みの値を使うよう、生成直後にここで揃える。
   tmp="$(cd "$tmp" && pwd)"
   trap 'rm -rf "$tmp"' RETURN

@@ -125,7 +125,10 @@ judge() {
   fi
 
   local tmp
-  tmp="$(mktemp "${TMPDIR:-/tmp}/check-outbound-call-missing-timeout.XXXXXX")"
+  if ! tmp="$(mktemp "${TMPDIR:-/tmp}/check-outbound-call-missing-timeout.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf '%s\n' "$text" > "$tmp"
 
   local total call_lines
@@ -321,7 +324,10 @@ self_test() {
 
   # 系9: 復旧の手順書らしきファイルが cwd に無い → 対象外として許可
   local tmp9
-  tmp9="$(mktemp -d "${TMPDIR:-/tmp}/check-outbound-call-missing-timeout-self-test.XXXXXX")"
+  if ! tmp9="$(mktemp -d "${TMPDIR:-/tmp}/check-outbound-call-missing-timeout-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp9" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp9/docs"
   printf '# 障害対応\n\n概要のみ。\n' > "$tmp9/docs/障害対応方針.md"
   if msg="$(judge "$t4" "$tmp9")"; then code=0; else code=$?; fi
@@ -335,7 +341,10 @@ self_test() {
 
   # 系10: 復旧の手順書は実在するが手順らしい記述（箇条書き）が無い → 拒否
   local tmp10
-  tmp10="$(mktemp -d "${TMPDIR:-/tmp}/check-outbound-call-missing-timeout-self-test.XXXXXX")"
+  if ! tmp10="$(mktemp -d "${TMPDIR:-/tmp}/check-outbound-call-missing-timeout-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp10" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp10/docs"
   printf '# 復旧手順書\n\n未着手。\n' > "$tmp10/docs/復旧手順書.md"
   if msg="$(judge "$t4" "$tmp10")"; then code=0; else code=$?; fi
@@ -349,7 +358,10 @@ self_test() {
 
   # 系11: 復旧の手順書に番号付きの手順が書かれている → 許可
   local tmp11
-  tmp11="$(mktemp -d "${TMPDIR:-/tmp}/check-outbound-call-missing-timeout-self-test.XXXXXX")"
+  if ! tmp11="$(mktemp -d "${TMPDIR:-/tmp}/check-outbound-call-missing-timeout-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp11" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp11/docs"
   printf '# 復旧手順書\n\n1. サービスを停止する\n2. バックアップから復元する\n3. サービスを再開する\n' > "$tmp11/docs/復旧手順書.md"
   if msg="$(judge "$t4" "$tmp11")"; then code=0; else code=$?; fi

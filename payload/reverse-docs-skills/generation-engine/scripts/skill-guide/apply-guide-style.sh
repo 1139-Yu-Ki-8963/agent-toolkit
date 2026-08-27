@@ -284,7 +284,7 @@ apply_one() (
   local relative_path="${f#"$repo_root"/}"
   local tracked_mode
   # 明示テンプレート付きmktemp（"${TMPDIR:-/tmp}/<name>.XXXXXX"）を使う。裸のmktempは
-  # $TMPDIRを無視し書き込み許可の外にある既定領域を使うため、サンドボックス実行環境では
+  # ${TMPDIRを無視し書き込み許可の外にある既定領域を使うため}、サンドボックス実行環境では
   # 失敗する（改善課題「一時ディレクトリ-作成先」。手元の環境で動いても裸の形へ戻すな）。
   local css_tmp=""
   local formatted_tmp=""

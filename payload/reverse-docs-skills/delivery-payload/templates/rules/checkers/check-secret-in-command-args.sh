@@ -334,7 +334,10 @@ self_test() {
   fi
 
   # 系6: 依存宣言ファイルにツールの宣言が無い → 拒否（使うツールを宣言で定める）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-in-command-args-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-in-command-args-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf '{"name":"app"}\n' > "$tmp/package.json"
   if msg="$(judge_tools_declared "$tmp")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ]; then
@@ -346,7 +349,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系7: 依存宣言ファイルにツールの宣言がある → 許可（使うツールを宣言で定める）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-in-command-args-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-in-command-args-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf '{"name":"app","devDependencies":{"eslint":"^9.0.0"}}\n' > "$tmp/package.json"
   if msg="$(judge_tools_declared "$tmp")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ]; then
@@ -358,7 +364,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系8: package.jsonはあるがロックファイルが無い → 拒否（版を固定する）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-in-command-args-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-in-command-args-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf '{"name":"app"}\n' > "$tmp/package.json"
   if msg="$(judge_dependency_lockfile "$tmp")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ]; then
@@ -370,7 +379,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系9: package-lock.jsonが実在し除外されていない → 許可（版を固定する）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-in-command-args-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-in-command-args-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf '{"name":"app"}\n' > "$tmp/package.json"
   printf '{}\n' > "$tmp/package-lock.json"
   if msg="$(judge_dependency_lockfile "$tmp")"; then code=0; else code=$?; fi
@@ -383,7 +395,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系10: package.jsonにtest/lint/formatの入口が無い → 拒否（宣言した入口から呼ぶ）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-in-command-args-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-in-command-args-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf '{"scripts":{"build":"tsc"}}\n' > "$tmp/package.json"
   if msg="$(judge_declared_entrypoints "$tmp")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ]; then
@@ -395,7 +410,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系11: package.jsonにtestの入口がある → 許可（宣言した入口から呼ぶ）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-in-command-args-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-in-command-args-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf '{"scripts":{"test":"jest"}}\n' > "$tmp/package.json"
   if msg="$(judge_declared_entrypoints "$tmp")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ]; then
@@ -427,7 +445,10 @@ self_test() {
   # 系14: run_hook経由で、知らせるだけの3規則（使うツール・版固定・宣言した入口）
   # のみが該当するgit commitは、集約の処理を通しても終了コード0のままになる
   local tmp14 out14 rc14
-  tmp14="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-in-command-args-self-test.XXXXXX")"
+  if ! tmp14="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-in-command-args-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp14" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf '{"name":"app"}\n' > "$tmp14/package.json"
   out14="$(printf '%s' "{\"tool_name\":\"Bash\",\"tool_input\":{\"command\":\"git commit -m ok\"},\"cwd\":\"${tmp14}\"}" | bash "$0" 2>&1 1>/dev/null)"
   rc14=$?

@@ -428,7 +428,7 @@ EOF
   fi
 
   # --- --repo-root: 指定した基準ディレクトリで相対sourceDirを解決できること ---
-  # sourceDirはmock-repo-root配下からの相対値のまま保持し、manifest自身は$tmp直下(mock-repo-rootの外)に置く。
+  # sourceDirはmock-repo-root配下からの相対値のまま保持し、manifest自身は${tmp直}下(mock-repo-rootの外)に置く。
   # .git祖先もgeneration-engine/DESIGN.mdもmock-repo-root配下には無いため、--repo-root省略時の
   # 既定解決(マニフェスト所在ディレクトリへのフォールバック)では実在確認が失敗するはずである。
   mkdir -p "$tmp/mock-repo-root/features"

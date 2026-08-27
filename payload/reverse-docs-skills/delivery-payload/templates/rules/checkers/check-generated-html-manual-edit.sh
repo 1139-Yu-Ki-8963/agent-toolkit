@@ -102,7 +102,10 @@ run_hook() {
 
 self_test() {
   local tmp rc=0 msg code
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-html-manual-edit-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-generated-html-manual-edit-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
 
   # 系1: 新規作成（未存在） → 許可

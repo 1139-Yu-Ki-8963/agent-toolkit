@@ -270,7 +270,10 @@ self_test() {
   fi
 
   # 系2: npm publish + CHANGELOG不在 → 拒否
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-release-changelog-entry-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-release-changelog-entry-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_changelog_entry "$tmp" "npm publish")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ]; then
     echo "  [PASS] 系2: CHANGELOG不在は拒否される（${msg}）"
@@ -281,7 +284,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系3: npm version + CHANGELOG実在・版の項目あり → 許可
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-release-changelog-entry-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-release-changelog-entry-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf '## [1.2.3] - 2026-01-01\n- 変更内容\n' > "$tmp/CHANGELOG.md"
   if msg="$(judge_changelog_entry "$tmp" "npm version patch")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ]; then
@@ -293,7 +299,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系4: git tag + CHANGELOG実在だが版の項目なし → 拒否
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-release-changelog-entry-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-release-changelog-entry-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf '# 変更履歴\n未整理\n' > "$tmp/CHANGELOG.md"
   if msg="$(judge_changelog_entry "$tmp" "git tag -a v1.0.0 -m release")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ]; then
@@ -323,7 +332,10 @@ self_test() {
   fi
 
   # 系7: CI設定が無い → 拒否（公開の手順の自動化）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-release-changelog-entry-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-release-changelog-entry-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_release_automated "$tmp")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ]; then
     echo "  [PASS] 系7: CI設定が無ければ拒否される（${msg}）"
@@ -334,7 +346,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系8: CI設定にpublishの手順がある → 許可（公開の手順の自動化）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-release-changelog-entry-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-release-changelog-entry-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp/.github/workflows"
   printf 'jobs:\n  release:\n    steps:\n      - run: npm publish\n' > "$tmp/.github/workflows/release.yml"
   if msg="$(judge_release_automated "$tmp")"; then code=0; else code=$?; fi
@@ -347,7 +362,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系9: CI設定にpublishはあるがtestが無い → 拒否（検査を通った成果物だけを公開）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-release-changelog-entry-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-release-changelog-entry-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp/.github/workflows"
   printf 'jobs:\n  release:\n    steps:\n      - run: npm publish\n' > "$tmp/.github/workflows/release.yml"
   if msg="$(judge_publish_gated_by_test "$tmp")"; then code=0; else code=$?; fi
@@ -360,7 +378,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系10: CI設定にpublishとtestの両方がある → 許可（検査を通った成果物だけを公開）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-release-changelog-entry-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-release-changelog-entry-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp/.github/workflows"
   printf 'jobs:\n  release:\n    steps:\n      - run: npm test\n      - run: npm publish\n' > "$tmp/.github/workflows/release.yml"
   if msg="$(judge_publish_gated_by_test "$tmp")"; then code=0; else code=$?; fi
@@ -373,7 +394,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系11: タグもrelease記述も無い → 拒否（公開の記録）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-release-changelog-entry-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-release-changelog-entry-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   git -C "$tmp" init -q
   if msg="$(judge_release_recorded "$tmp" "npm publish")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ]; then
@@ -385,7 +409,10 @@ self_test() {
   rm -rf "$tmp"
 
   # 系12: git tag コマンド自体 → 許可（公開の記録）
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-release-changelog-entry-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-release-changelog-entry-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   git -C "$tmp" init -q
   if msg="$(judge_release_recorded "$tmp" "git tag v1.0.0")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ]; then

@@ -362,7 +362,10 @@ const active = users.filter(u => u.active);'
 
   # 系6: 要件定義書・基本設計書が見当たらない → 対象外（増加の見込みを数値で置く）
   local tmp6
-  tmp6="$(mktemp -d "${TMPDIR:-/tmp}/check-full-scan-then-filter-self-test.XXXXXX")"
+  if ! tmp6="$(mktemp -d "${TMPDIR:-/tmp}/check-full-scan-then-filter-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp6" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp6/docs"
   printf '# メモ\n' > "$tmp6/docs/メモ.md"
   msg="$(judge_growth_estimate "$tmp6")"
@@ -376,7 +379,10 @@ const active = users.filter(u => u.active);'
 
   # 系7: 要件定義書はあるが増加の見込みの記述が無い → 通知（増加の見込みを数値で置く）
   local tmp7
-  tmp7="$(mktemp -d "${TMPDIR:-/tmp}/check-full-scan-then-filter-self-test.XXXXXX")"
+  if ! tmp7="$(mktemp -d "${TMPDIR:-/tmp}/check-full-scan-then-filter-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp7" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp7/docs"
   printf '# 注文機能要件定義書\n\n## 対象範囲\n注文機能を対象とする。\n' > "$tmp7/docs/注文機能要件定義書.md"
   msg="$(judge_growth_estimate "$tmp7")"
@@ -390,7 +396,10 @@ const active = users.filter(u => u.active);'
 
   # 系8: 要件定義書に増加の見込みの記述がある → 許可（増加の見込みを数値で置く）
   local tmp8
-  tmp8="$(mktemp -d "${TMPDIR:-/tmp}/check-full-scan-then-filter-self-test.XXXXXX")"
+  if ! tmp8="$(mktemp -d "${TMPDIR:-/tmp}/check-full-scan-then-filter-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp8" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp8/docs"
   printf '# 注文機能要件定義書\n\n## 対象範囲\n利用者数は3年後に10万人まで増える見込み。\n' > "$tmp8/docs/注文機能要件定義書.md"
   msg="$(judge_growth_estimate "$tmp8")"
@@ -404,7 +413,10 @@ const active = users.filter(u => u.active);'
 
   # 系9: 基本設計書が見当たらない → 対象外（増やす方向を決める）
   local tmp9
-  tmp9="$(mktemp -d "${TMPDIR:-/tmp}/check-full-scan-then-filter-self-test.XXXXXX")"
+  if ! tmp9="$(mktemp -d "${TMPDIR:-/tmp}/check-full-scan-then-filter-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp9" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp9/docs"
   printf '# メモ\n' > "$tmp9/docs/メモ.md"
   msg="$(judge_scaling_direction "$tmp9")"
@@ -418,7 +430,10 @@ const active = users.filter(u => u.active);'
 
   # 系10: 基本設計書はあるが拡張の方向の記述が無い → 通知（増やす方向を決める）
   local tmp10
-  tmp10="$(mktemp -d "${TMPDIR:-/tmp}/check-full-scan-then-filter-self-test.XXXXXX")"
+  if ! tmp10="$(mktemp -d "${TMPDIR:-/tmp}/check-full-scan-then-filter-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp10" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp10/docs"
   printf '# 注文機能基本設計書\n\n## 外部仕様\n画面の項目を定める。\n' > "$tmp10/docs/注文機能基本設計書.md"
   msg="$(judge_scaling_direction "$tmp10")"
@@ -432,7 +447,10 @@ const active = users.filter(u => u.active);'
 
   # 系11: 基本設計書に拡張の方向の記述がある → 許可（増やす方向を決める）
   local tmp11
-  tmp11="$(mktemp -d "${TMPDIR:-/tmp}/check-full-scan-then-filter-self-test.XXXXXX")"
+  if ! tmp11="$(mktemp -d "${TMPDIR:-/tmp}/check-full-scan-then-filter-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp11" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp11/docs"
   printf '# 注文機能基本設計書\n\n## 方式設計\n水平にサーバーの台数を増やして対応する。\n' > "$tmp11/docs/注文機能基本設計書.md"
   msg="$(judge_scaling_direction "$tmp11")"

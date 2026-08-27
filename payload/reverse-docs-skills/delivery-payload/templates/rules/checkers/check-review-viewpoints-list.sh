@@ -288,7 +288,10 @@ self_test() {
 
   # 系6: 機械で見つかるものは機械へ任せる - 設定ファイルが何も無い → 通知
   local tmp6
-  tmp6="$(mktemp -d "${TMPDIR:-/tmp}/check-review-viewpoints-list-self-test.XXXXXX")"
+  if ! tmp6="$(mktemp -d "${TMPDIR:-/tmp}/check-review-viewpoints-list-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp6" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   if msg="$(judge_static_analysis_configured "$tmp6")"; then code=0; else code=$?; fi
   rm -rf "$tmp6"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '通知[機械で見つかるものは機械へ任せる]'; then
@@ -300,7 +303,10 @@ self_test() {
 
   # 系7: 機械で見つかるものは機械へ任せる - pyproject.toml はあるが該当節が無い → 通知
   local tmp7
-  tmp7="$(mktemp -d "${TMPDIR:-/tmp}/check-review-viewpoints-list-self-test.XXXXXX")"
+  if ! tmp7="$(mktemp -d "${TMPDIR:-/tmp}/check-review-viewpoints-list-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp7" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf '[tool.poetry]\nname = "x"\n' > "$tmp7/pyproject.toml"
   if msg="$(judge_static_analysis_configured "$tmp7")"; then code=0; else code=$?; fi
   rm -rf "$tmp7"
@@ -313,7 +319,10 @@ self_test() {
 
   # 系8: 機械で見つかるものは機械へ任せる - 静的解析の設定が実在する → 許可
   local tmp8
-  tmp8="$(mktemp -d "${TMPDIR:-/tmp}/check-review-viewpoints-list-self-test.XXXXXX")"
+  if ! tmp8="$(mktemp -d "${TMPDIR:-/tmp}/check-review-viewpoints-list-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp8" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   printf '{}\n' > "$tmp8/.eslintrc.json"
   if msg="$(judge_static_analysis_configured "$tmp8")"; then code=0; else code=$?; fi
   rm -rf "$tmp8"

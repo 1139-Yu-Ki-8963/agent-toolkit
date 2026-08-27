@@ -65,7 +65,7 @@ list_targets() {
 cmd_check() {
   local rules_root="$1" out_root="$2"
   # 明示テンプレート付きmktemp -d（"${TMPDIR:-/tmp}/<name>.XXXXXX"）を使う。裸のmktemp -dは
-  # $TMPDIRを無視し書き込み許可の外にある既定領域を使うため、サンドボックス実行環境では
+  # ${TMPDIRを無視し書き込み許可の外にある既定領域を使うため}、サンドボックス実行環境では
   # 失敗する（改善課題「一時ディレクトリ-作成先」。手元の環境で動いても裸の形へ戻すな）。
   local tmp
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-rule-drift.XXXXXX")"

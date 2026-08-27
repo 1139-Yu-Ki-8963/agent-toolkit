@@ -468,7 +468,10 @@ self_test() {
 
   # 系12: 基本設計書らしき文書が cwd に無い → 対象外として許可（式を設計書へ書く）
   local tmp12
-  tmp12="$(mktemp -d "${TMPDIR:-/tmp}/check-currency-float-type-self-test.XXXXXX")"
+  if ! tmp12="$(mktemp -d "${TMPDIR:-/tmp}/check-currency-float-type-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp12" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp12/docs"
   printf '# メモ\n' > "$tmp12/docs/メモ.md"
   if msg="$(judge "docs/note.md" '' "$tmp12")"; then code=0; else code=$?; fi
@@ -482,7 +485,10 @@ self_test() {
 
   # 系13: 基本設計書は実在するが「計算式」の語が見当たらない → 拒否（式を設計書へ書く）
   local tmp13
-  tmp13="$(mktemp -d "${TMPDIR:-/tmp}/check-currency-float-type-self-test.XXXXXX")"
+  if ! tmp13="$(mktemp -d "${TMPDIR:-/tmp}/check-currency-float-type-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp13" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp13/docs"
   printf '# 注文機能基本設計書\n\n## 外部仕様\n画面の項目を定める。\n' > "$tmp13/docs/注文機能基本設計書.md"
   if msg="$(judge "docs/note.md" '' "$tmp13")"; then code=0; else code=$?; fi
@@ -496,7 +502,10 @@ self_test() {
 
   # 系14: 基本設計書が実在し「計算式」の記述もある → 許可
   local tmp14
-  tmp14="$(mktemp -d "${TMPDIR:-/tmp}/check-currency-float-type-self-test.XXXXXX")"
+  if ! tmp14="$(mktemp -d "${TMPDIR:-/tmp}/check-currency-float-type-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp14" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp14/docs"
   printf '# 注文機能基本設計書\n\n## 計算式\n税抜額 * 税率 で消費税額を求める。\n' > "$tmp14/docs/注文機能基本設計書.md"
   if msg="$(judge "docs/note.md" '' "$tmp14")"; then code=0; else code=$?; fi
@@ -510,7 +519,10 @@ self_test() {
 
   # 系15: 計算らしい記述が無いコード → 対象外（境界の値で確かめる）
   local tmp15
-  tmp15="$(mktemp -d "${TMPDIR:-/tmp}/check-currency-float-type-self-test.XXXXXX")"
+  if ! tmp15="$(mktemp -d "${TMPDIR:-/tmp}/check-currency-float-type-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp15" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   local c15='public class Point { private double distance; }'
   if msg="$(judge "Point.java" "$c15" "$tmp15")"; then code=0; else code=$?; fi
   rm -rf "$tmp15"
@@ -523,7 +535,10 @@ self_test() {
 
   # 系16: 計算らしい記述はあるが試験の置き場の宣言が無い → 通知（境界の値で確かめる）
   local tmp16
-  tmp16="$(mktemp -d "${TMPDIR:-/tmp}/check-currency-float-type-self-test.XXXXXX")"
+  if ! tmp16="$(mktemp -d "${TMPDIR:-/tmp}/check-currency-float-type-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp16" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   local c16='public class Order { int total = price * quantity; }'
   if msg="$(judge "Order.java" "$c16" "$tmp16")"; then code=0; else code=$?; fi
   rm -rf "$tmp16"
@@ -536,7 +551,10 @@ self_test() {
 
   # 系17: 宣言はあるが対応する試験が無い → 拒否（境界の値で確かめる）
   local tmp17
-  tmp17="$(mktemp -d "${TMPDIR:-/tmp}/check-currency-float-type-self-test.XXXXXX")"
+  if ! tmp17="$(mktemp -d "${TMPDIR:-/tmp}/check-currency-float-type-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp17" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp17/docs/rules/business-domain/calculation-rules"
   cat > "$tmp17/docs/rules/business-domain/calculation-rules/rule.md" <<'EOF'
 # 金額と数量の計算の決まり
@@ -559,7 +577,10 @@ EOF
 
   # 系18: 系17と同じ宣言があり、対応する試験が実在する → 許可（境界の値で確かめる）
   local tmp18
-  tmp18="$(mktemp -d "${TMPDIR:-/tmp}/check-currency-float-type-self-test.XXXXXX")"
+  if ! tmp18="$(mktemp -d "${TMPDIR:-/tmp}/check-currency-float-type-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp18" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    exit 2
+  fi
   mkdir -p "$tmp18/docs/rules/business-domain/calculation-rules"
   cat > "$tmp18/docs/rules/business-domain/calculation-rules/rule.md" <<'EOF'
 # 金額と数量の計算の決まり

@@ -41,8 +41,8 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 TESTS_DIR="$REPO_ROOT/generation-engine/scripts/tests"
-# 保存先はリポジトリルートからの固定パスにする（$TMPDIRを使わない）。
-# $TMPDIRは実行するシェルごとに値が変わるため、保存したシェルと読むシェルが
+# 保存先はリポジトリルートからの固定パスにする（${TMPDIRを使わない}）。
+# ${TMPDIRは実行するシェルごとに値が変わるため}、保存したシェルと読むシェルが
 # 別だと場所が一致せず、判定不能(見つからない)が恒常的に発生していた。
 DEFAULT_LOG="$REPO_ROOT/.cache/check-browser-test-unknown/layer1-aggregate.log"
 DEFAULT_UNRESTRICTED_LOG="$REPO_ROOT/.cache/check-browser-test-unknown/layer1-unrestricted.log"
