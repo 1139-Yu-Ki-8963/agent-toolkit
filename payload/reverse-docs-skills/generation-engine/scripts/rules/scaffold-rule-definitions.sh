@@ -718,8 +718,8 @@ EOF
   write_if_new "${out_root}/.claude/rules/always/project-context/rule.md" "$(build_project_context_rule_md "$out_root")" "other"
 
   if [ "$WITH_SKILLS" -eq 1 ]; then
-    deliver_skills "$out_root"
-    deliver_agent "$out_root"
+    deliver_skills "$out_root" || return 1
+    deliver_agent "$out_root" || return 1
     # maintaining-portal（deliver_skillsで配る納品スキルの1つ）が生成器の再実行を
     # 前提にするため、生成器一式の配布も --with-skills と同じ扱いにする
     # （--with-skills 無しの規約定義のみの配布では生成器一式は要らない）。
@@ -827,6 +827,13 @@ deliver_skill_file() {
       mkdir -p "$(dirname "$def_dest")"
       cp "$src" "$def_dest"
     fi
+  fi
+
+  # 定義側はテンプレートの欠落ない複製でなければならない。既存ファイルを保護する
+  # 場合も、古い版を残したまま派生側へ配らないよう、内容不一致を明示的に止める。
+  if [ "$APPLY" -eq 1 ] && ! cmp -s "$src" "$def_dest"; then
+    echo "ERROR: 納品スキルのテンプレートと定義側の内容が一致しません: ${src} ${def_dest}" >&2
+    return 1
   fi
 
   # 2段目（派生）: 定義ファイルから複製する（派生物のため既存でも常に上書きする）。
@@ -1145,6 +1152,29 @@ EOF
     echo "  [FAIL] ケース6: 納品スキルの配備が不正" >&2
     rc=1
   fi
+
+  # ケース6a: 配布後にひな形を1行変えた場合、既存の定義側との不一致を検出する
+  local mismatch_src mismatch_backup mismatch_log mismatch_rc
+  mismatch_src="${SKILLS_TEMPLATE_DIR}/dev-flow/SKILL.md"
+  mismatch_backup="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-skill-backup.XXXXXX")"
+  mismatch_log="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-skill-mismatch.XXXXXX")"
+  cp "$mismatch_src" "$mismatch_backup"
+  printf '\n<!-- self-test mismatch -->\n' >> "$mismatch_src"
+  if run_scaffold "$out1" >"$mismatch_log" 2>&1; then
+    mismatch_rc=0
+  else
+    mismatch_rc=$?
+  fi
+  cp "$mismatch_backup" "$mismatch_src"
+  rm -f "$mismatch_backup"
+  if [ "$mismatch_rc" -ne 0 ] && grep -q 'テンプレートと定義側の内容が一致しません' "$mismatch_log"; then
+    echo "  [PASS] ケース6a: ひな形変更後の再配布が内容不一致を検出して非0で終了する"
+  else
+    echo "  [FAIL] ケース6a: ひな形変更後の内容不一致を検出できない (rc=$mismatch_rc)" >&2
+    cat "$mismatch_log" >&2
+    rc=1
+  fi
+  rm -f "$mismatch_log"
 
   # ケース6b: --with-skillsで.claude/agents/rule-reviewer.mdも配られる
   local ok6b=1
