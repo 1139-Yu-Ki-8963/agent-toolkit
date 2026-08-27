@@ -24,6 +24,7 @@
 #              <output_dir> 引数としてそのまま渡せる構造で配置する。
 #   --repo     このリポジトリ（reverse-docs-skills）のパス。省略時は本スクリプト自身の
 #              位置から解決したリポジトリルートを使う。
+#   --common-design-only  基盤・共通・データ・メッセージ・UI共通の5文書だけを配置する。
 #   --self-test  一時ディレクトリで検査を行い、雛形には一切書き込まない。
 #
 # 配置構造:
@@ -61,7 +62,7 @@ DUMMY_COMMIT="0000000000000000000000000000000000000000"
 usage() {
   cat <<'EOF'
 Usage:
-  prepare-verification-input.sh --output <出力先ディレクトリ> [--repo <リポジトリのパス>]
+  prepare-verification-input.sh --output <出力先ディレクトリ> [--repo <リポジトリのパス>] [--common-design-only]
   prepare-verification-input.sh --self-test
 EOF
 }
@@ -73,16 +74,16 @@ replace_token() {
   local file="$1" token="$2" value="$3"
   local esc_value
   esc_value="$(printf '%s' "$value" | sed -e 's/[\&|]/\\&/g')"
-  sed -i.bak "s|${token}|${esc_value}|g" "$file"
-  rm -f "${file}.bak"
+  sed -i.bak "s|${token}|${esc_value}|g" "$file" || return 1
+  rm -f "${file}.bak" || return 1
 }
 
 fill_dates() {
   local file="$1"
   # より具体的なパターンを先に処理する（<実測: YYYY-MM-DD> は <YYYY-MM-DD> を包含しない
   # 別文字列だが、意図を明確にするため長い方から処理する）。
-  replace_token "$file" '<実測: YYYY-MM-DD>' "$FIXED_DATE"
-  replace_token "$file" '<YYYY-MM-DD>' "$FIXED_DATE"
+  replace_token "$file" '<実測: YYYY-MM-DD>' "$FIXED_DATE" || return 1
+  replace_token "$file" '<YYYY-MM-DD>' "$FIXED_DATE" || return 1
 }
 
 # ---- 関連図(状態遷移図・ER図・画面遷移図)の材料を埋めるヘルパー ----
@@ -493,6 +494,18 @@ run_prepare() {
   COMMON_ROOT="$(output_layout_get "$layout_json" commonRoot)" || return 1
   UNIT_TEST_DESIGN_DIR="$(output_layout_get "$layout_json" unitTestDesignDir)" || return 1
 
+  if [ "$COMMON_DESIGN_ONLY" -eq 1 ]; then
+    local common_name common_source common_dest
+    for common_name in 基盤設計.md 共通設計書.md データ設計.md メッセージ定義書.md UI共通設計.md; do
+      common_source="$TEMPLATE_ROOT/プロジェクト共通/$common_name"
+      common_dest="$output_dir/$COMMON_ROOT/$common_name"
+      mkdir -p "$(dirname "$common_dest")" || return 1
+      cp "$common_source" "$common_dest" || return 1
+      fill_dates "$common_dest" || return 1
+    done
+    return 0
+  fi
+
   API_SRC="$(first_fixture_relpath "$FIXTURES_BASE/api")"
   TABLE_SRC="$(first_fixture_relpath "$FIXTURES_BASE/table")"
   BATCH_SRC="$(first_fixture_relpath "$FIXTURES_BASE/batch")"
@@ -750,6 +763,27 @@ self_test() {
     fail=$((fail + 1))
   fi
 
+  # ケース: 共通設計限定-5文書だけ配置
+  total=$((total + 1))
+  local common_only_out="$tmp/common-only" common_only_count common_only_rc
+  COMMON_DESIGN_ONLY=1
+  run_prepare "$common_only_out" >/dev/null 2>&1
+  common_only_rc=$?
+  COMMON_DESIGN_ONLY=0
+  common_only_count="$(find "$common_only_out" -type f -name '*.md' 2>/dev/null | wc -l | tr -d ' ')"
+  if [ "$common_only_rc" -eq 0 ] && [ "$common_only_count" = "5" ] \
+    && [ -f "$common_only_out/docs/design/common/基盤設計.md" ] \
+    && [ -f "$common_only_out/docs/design/common/共通設計書.md" ] \
+    && [ -f "$common_only_out/docs/design/common/データ設計.md" ] \
+    && [ -f "$common_only_out/docs/design/common/メッセージ定義書.md" ] \
+    && [ -f "$common_only_out/docs/design/common/UI共通設計.md" ]; then
+    echo "[PASS] 共通設計限定-5文書だけ配置 — 担当文書5件を確認"
+    pass=$((pass + 1))
+  else
+    echo "[FAIL] 共通設計限定-5文書だけ配置 — 実行終了コード ${common_only_rc} / 文書 ${common_only_count}件"
+    fail=$((fail + 1))
+  fi
+
   echo "実行 ${total} 件 / 成功 ${pass} 件 / 失敗 ${fail} 件"
   [ "$fail" -eq 0 ]
 }
@@ -758,6 +792,7 @@ self_test() {
 OUTPUT_DIR=""
 REPO_ROOT="$REPO_ROOT_DEFAULT"
 SELF_TEST=0
+COMMON_DESIGN_ONLY=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -771,6 +806,10 @@ while [ $# -gt 0 ]; do
       ;;
     --self-test)
       SELF_TEST=1
+      shift
+      ;;
+    --common-design-only)
+      COMMON_DESIGN_ONLY=1
       shift
       ;;
     -h|--help)

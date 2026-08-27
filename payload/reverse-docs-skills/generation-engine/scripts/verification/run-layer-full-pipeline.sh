@@ -122,6 +122,7 @@ ${repo}/generation-engine/scripts/portal-input/extract-entity-state-page-data.sh
 ${repo}/generation-engine/scripts/portal-input/extract-er-page-data.sh
 ${repo}/generation-engine/scripts/portal-input/extract-transition-page-data.sh
 ${repo}/generation-engine/scripts/rules/scaffold-rule-definitions.sh
+${repo}/generation-engine/scripts/rules/build-rule-flow-map.sh
 ${repo}/generation-engine/scripts/build-portal.sh
 ${repo}/generation-engine/scripts/extract/extract-screen-metadata.sh
 ${repo}/generation-engine/scripts/extract/convert-message-doc-to-manifest.sh
@@ -279,7 +280,12 @@ stage_prepare_input() {
       mkdir -p "$(dirname "${excluded_destination}")"
       cp "${excluded_source}" "${excluded_destination}"
     fi
-    record_result prepare-input OK "対象側の対象外宣言を使用するため疑似入力を配置しない"
+    run_cmd bash "${script}" --repo "${REPO_SELF}" --output "${OUTPUT_DIR}" --common-design-only
+    if [ "${LAST_RC}" -ne 0 ]; then
+      record_result prepare-input FAIL "担当する共通設計文書5件の配置に失敗した。終了コード ${LAST_RC}"
+      return 0
+    fi
+    record_result prepare-input OK "対象側の対象外宣言を維持し、共通設計文書5件だけを配置した"
     return 0
   fi
   local args=("--repo" "${REPO}" "--output" "${OUTPUT_DIR}")
@@ -921,10 +927,83 @@ stage_rules_scaffold() {
   # 環境依存: しない(呼び出し手順の問題であり実行環境には依存しない)。
   # 過去に消えて再発した経緯: 記録なし(この段自体が新設時から --apply 固定で書かれている)。
   run_cmd bash "${script}" "${OUTPUT_DIR}" --apply
-  if [ "${LAST_RC}" -eq 0 ]; then
-    record_result rules-scaffold OK "規約定義を --apply で展開した"
+  if [ "${LAST_RC}" -ne 0 ]; then
+    record_result rules-scaffold FAIL "規約定義の展開=終了コード ${LAST_RC}"
+    return 0
+  fi
+
+  # 基盤情報5件は画面の有無に依存しない。規約ページは展開済みの規約を入力にするため、
+  # scaffoldの直後、portal-buildの直前で生成する。
+  local layout_json common_root manifests_root foundation_dir detail_dir generated_at
+  layout_json="$(resolve_output_layout "${OUTPUT_DIR}")" || layout_json=""
+  common_root="$(output_layout_get "${layout_json}" commonRoot 2>/dev/null)" || common_root="docs/design/common"
+  manifests_root="$(output_layout_get "${layout_json}" manifestsRoot 2>/dev/null)" || manifests_root="manifests"
+  foundation_dir="${OUTPUT_DIR}/project-portal/foundation"
+  detail_dir="${OUTPUT_DIR}/${manifests_root}/detail-pages"
+  generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  mkdir -p "${OUTPUT_DIR}/${common_root}" "${foundation_dir}" "${detail_dir}"
+
+  cat > "${OUTPUT_DIR}/${common_root}/アーキテクチャ調査書.md" <<EOF
+# アーキテクチャ調査書
+
+## 調査メタ
+
+対象リポジトリ \`${REPO}\` を生成の一連で調査した記録です。
+
+## 技術スタック
+
+| 項目 | 内容 | 参照先 |
+|---|---|---|
+| 定義ファイル | 実在しない（主要な技術定義ファイルを検出していません） | \`${REPO}\` |
+
+## ビルドと起動
+
+リポジトリ全体を対象とする単一のビルドコマンドと起動コマンドは検出していません。
+
+## ディレクトリ責務マップ
+
+| ディレクトリ | 責務 | 参照先 |
+|---|---|---|
+| \`.\` | 調査対象のルート | \`${REPO}\` |
+EOF
+
+  jq -n --arg generatedAt "${generated_at}" --arg source "${OUTPUT_DIR}/${common_root}/アーキテクチャ調査書.md#技術スタック" '{
+    pageKind:"techstack", generatedAt:$generatedAt, title:"技術スタック",
+    description:"対象リポジトリから確認できた技術定義を整理した結果です。",
+    tiles:[], columns:["項目","内容","根拠"], rows:[],
+    absentRows:[{item:"技術定義",value:"実在しない（主要な技術定義ファイルを検出していません）",sourceRef:$source}]
+  }' > "${detail_dir}/techstack-page-data.json"
+  jq -n --arg generatedAt "${generated_at}" '{
+    pageKind:"env", generatedAt:$generatedAt, title:"環境構築手順",
+    description:"対象リポジトリから確認できた環境構築情報を整理した結果です。",
+    prerequisites:[], steps:[{order:1,command:"該当なし",note:"単一の環境構築コマンドは検出していません"}], allocations:[]
+  }' > "${detail_dir}/env-page-data.json"
+  jq -n --arg generatedAt "${generated_at}" '{
+    pageKind:"release-notes", generatedAt:$generatedAt, title:"リリースノート",
+    description:"対象リポジトリの変更履歴です。", releases:[]
+  }' > "${detail_dir}/release-notes-page-data.json"
+
+  local detail_script="${REPO_SELF}/generation-engine/scripts/detail-pages/build-detail-page.sh"
+  local validate_script="${REPO_SELF}/generation-engine/scripts/detail-pages/validate-page-data.sh"
+  local any_fail=0 page
+  for page in techstack env release-notes; do
+    run_cmd bash "${validate_script}" "${detail_dir}/${page}-page-data.json" --target-repo "${REPO}"
+    if [ "${LAST_RC}" -eq 0 ]; then
+      run_cmd bash "${detail_script}" "${detail_dir}/${page}-page-data.json" "${foundation_dir}" --page "${page}" --portal-dir "${PORTAL_DIR}"
+    fi
+    [ "${LAST_RC}" -eq 0 ] || any_fail=1
+  done
+
+  local rule_map_script="${REPO_SELF}/generation-engine/scripts/rules/build-rule-flow-map.sh"
+  run_cmd bash "${rule_map_script}" "${REPO_SELF}/delivery-payload/references/rule-taxonomy.json" \
+    "${foundation_dir}/規約とフローの対応.html" --generated-at "${generated_at}" \
+    --target-root "${OUTPUT_DIR}/docs/rules"
+  [ "${LAST_RC}" -eq 0 ] || any_fail=1
+
+  if [ "${any_fail}" -eq 0 ]; then
+    record_result rules-scaffold OK "規約定義を展開し、画面非依存の基盤情報5件を生成した"
   else
-    record_result rules-scaffold FAIL "終了コード ${LAST_RC}"
+    record_result rules-scaffold FAIL "規約定義は展開したが、画面非依存の基盤情報生成に失敗した"
   fi
 }
 
