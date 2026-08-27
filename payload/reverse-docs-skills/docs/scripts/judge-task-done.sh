@@ -131,9 +131,26 @@
 set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null)"
+# 実装判断: 配布物の境界を先に探す。git の祖先探索だけに頼ると、公開先
+#   （agent-toolkit/payload/reverse-docs-skills/）へ埋め込まれたとき、外側の
+#   リポジトリのルートを掴んでしまう。実測（2026-08-27）で配布先の第1層集約が
+#   /Users/.../agent-toolkit/docs/tasks を探して失敗した。generation-engine/DESIGN.md
+#   を配布物の目印とし、それが見つかった時点で探索を止める。
+#   先例: generation-engine/scripts/unit-list/validate-manifest.sh の同じ停止条件。
+REPO_ROOT=""
+_probe="$SCRIPT_DIR"
+while [ "$_probe" != "/" ] && [ -n "$_probe" ]; do
+  if [ -f "$_probe/generation-engine/DESIGN.md" ]; then
+    REPO_ROOT="$_probe"
+    break
+  fi
+  _probe="$(dirname "$_probe")"
+done
 if [ -z "$REPO_ROOT" ]; then
-  echo "ERROR: git リポジトリの外で実行された" >&2
+  REPO_ROOT="$(git -C "$SCRIPT_DIR" rev-parse --show-toplevel 2>/dev/null)"
+fi
+if [ -z "$REPO_ROOT" ]; then
+  echo "ERROR: 配布物の境界も git リポジトリも見つからない" >&2
   exit 1
 fi
 
