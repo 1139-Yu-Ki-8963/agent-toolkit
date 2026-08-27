@@ -1,10 +1,9 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>用語辞書 — 設計ポータル</title>
-
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>audit_archive バッチ単体テスト設計書</title>
 <style>
 /* 設計ポータルのデザイントークン。
    本ファイルの全文が、ビルド時に各テンプレートのトークン注入マーカーへ差し込まれる。
@@ -598,101 +597,168 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
 @media (prefers-reduced-motion: reduce) {
   .pt *, .pt *::before, .pt *::after { transition: none !important; }
 }
+
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
 html, body { margin: 0; padding: 0; }
-.dp-controls { flex:none; display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:24px 0 12px; }
-.dp-controls .pt-input { flex:1; min-width:260px; }
-.filter-bar { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; margin-bottom:12px; }
-.filter-set { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }
-.filter-label,.sec-label { color:var(--muted); font:600 11px var(--mono); letter-spacing:.08em; text-transform:uppercase; }
-.chip { border:1px solid var(--line2); background:var(--panel); color:var(--sub); padding:5px 12px; font:inherit; font-size:12px; cursor:pointer; }
-.chip:hover,.chip:focus-visible { border-color:var(--accent); color:var(--accent); }
-.chip.active { border-color:var(--accent); background:var(--accent); color:var(--chipontext); font-weight:700; }
-.registry-note { margin:0 0 12px; border-left:4px solid var(--accent); background:var(--panel3); color:var(--sub); padding:9px 12px; font-size:12px; }
-.dp-tablewrap { flex:1; min-height:0; overflow-x:auto; border:1px solid var(--line2); }
-#dict-table { min-width:2380px; table-layout:fixed; }
-#dict-table th { white-space:nowrap; }
-#dict-table td { vertical-align:top; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-#dict-table th:nth-child(1),#dict-table td:nth-child(1) { width:130px; }
-#dict-table th:nth-child(2),#dict-table td:nth-child(2) { width:150px; }
-#dict-table th:nth-child(3),#dict-table td:nth-child(3) { width:150px; }
-#dict-table th:nth-child(4),#dict-table td:nth-child(4) { width:470px; }
-#dict-table th:nth-child(5),#dict-table td:nth-child(5) { width:130px; }
-#dict-table th:nth-child(6),#dict-table td:nth-child(6) { width:100px; }
-#dict-table th:nth-child(7),#dict-table td:nth-child(7) { width:150px; }
-#dict-table th:nth-child(8),#dict-table td:nth-child(8) { width:120px; }
-#dict-table th:nth-child(9),#dict-table td:nth-child(9) { width:150px; }
-#dict-table th:nth-child(10),#dict-table td:nth-child(10) { width:150px; }
-#dict-table th:nth-child(11),#dict-table td:nth-child(11) { width:150px; }
-#dict-table th:nth-child(12),#dict-table td:nth-child(12) { width:200px; }
-#dict-table th:nth-child(13),#dict-table td:nth-child(13) { width:110px; }
-#dict-table th:nth-child(14),#dict-table td:nth-child(14) { width:220px; }
-#dict-table td:nth-child(4),#dict-table td:nth-child(12),#dict-table td:nth-child(14) { overflow:hidden; text-overflow:ellipsis; white-space:normal; overflow-wrap:anywhere; display:-webkit-box; line-clamp:4; -webkit-line-clamp:4; -webkit-box-orient:vertical; }
-#dict-table tbody tr[data-interactive="true"] { cursor:pointer; }
-#dict-table tbody tr[data-interactive="true"]:hover td,#dict-table tbody tr[aria-selected="true"] td { background:var(--panel3); }
-#dict-table tbody tr:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
-#dict-table code { color:var(--accent); font:11.5px var(--mono); }
-.term-label { font-weight:700; }
-.meaning-key { display:block; border-left:4px solid var(--accent); padding:2px 0 2px 8px; color:var(--accent); font:600 11.5px var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
-.meaning-key.unmigrated { border-left-color:var(--muted); color:var(--muted); }
-.meaning-key.deprecated { border-left-color:var(--warning,var(--accent)); }
-.kind { font-weight:650; }
-.category { margin-top:3px; color:var(--muted); font-size:11px; }
-.state { display:inline-block; border:1px solid var(--line2); padding:2px 7px; white-space:nowrap; font-size:11px; }
-.state.active { border-color:var(--success,var(--accent)); }
-.state.deprecated { border-color:var(--warning,var(--accent)); }
-.state.retired,.state.unmigrated { color:var(--muted); }
-.successor { display:block; margin-top:4px; color:var(--muted); font:10.5px var(--mono); }
-.note-box { margin:14px 0 0; border:1px solid var(--line2); background:var(--panel3); color:var(--sub); padding:10px 14px; font-size:12.5px; }
-#unresolved-mount,.related-entities { flex:none; }
-.drawer-scrim { display:none; position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.46); }
-.drawer-scrim.is-open { display:block; }
-.drawer { position:fixed; z-index:101; top:0; right:0; bottom:0; width:min(460px,44vw); overflow:auto; transform:translateX(105%); transition:transform .18s ease; border-left:1px solid var(--line2); background:var(--panel); box-shadow:-7px 0 0 var(--accent-soft); }
-.drawer.is-open { transform:translateX(0); }
-.drawer-head { position:sticky; top:0; z-index:1; display:flex; justify-content:space-between; gap:16px; padding:22px; border-bottom:1px solid var(--line2); background:var(--panel); }
-.drawer-head h2 { margin:3px 0 0; font-size:19px; }
-.drawer-close { flex:none; width:34px; height:34px; border:1px solid var(--line2); background:var(--panel3); color:var(--text); cursor:pointer; }
-.drawer-body { padding:18px 22px 34px; }
-.drawer-definition { margin:0 0 14px; color:var(--sub); }
-.detail-group { padding:13px 0; border-top:1px solid var(--line2); }
-.detail-group h3 { margin:0 0 8px; color:var(--muted); font:600 11px var(--mono); letter-spacing:.08em; }
-.detail-group ul { margin:0; padding-left:18px; }
-.detail-group li { margin:4px 0; overflow-wrap:anywhere; }
-[hidden] { display:none !important; }
-@media (max-width:760px) {
-  .dp-controls .pt-input { min-width:0; width:100%; flex-basis:100%; }
-  .filter-set { flex-wrap:nowrap; max-width:100%; overflow-x:auto; padding-bottom:3px; }
-  .chip { flex:none; white-space:nowrap; }
-  .drawer { width:100vw; max-width:none; }
+a { text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+:root { --section-gap: clamp(28px, 4vw, 44px); }
+
+/* 文書 2 カラム（目次 + 本文。目次は共通サイドバーへ統合済み） */
+.dp-layout { display: block; margin-top: 28px; }
+
+.toc-link {
+  display: block; padding: 6px 10px; margin-left: -1.5px;
+  border-left: 3px solid transparent;
+  color: var(--sub); font-size: 12.5px; font-weight: 450; line-height: 1.4;
+  transition: color .12s, border-color .12s;
 }
-@media (prefers-reduced-motion:reduce) { .drawer { transition:none; } }
+.toc-link:hover { color: var(--text); border-left-color: var(--accent); text-decoration: none; }
+.toc-link.active { color: var(--accent); border-left-color: var(--accent); font-weight: 600; }
+
+.dp-panel {
+  width: 100%; min-width: 0; max-width: min(2200px, 96vw);
+  border: 1.5px solid var(--line2); background: var(--panel);
+  padding: 32px 40px; counter-reset: sec-num;
+}
+
+/* section */
+.sec-block { margin-bottom: var(--section-gap); scroll-margin-top: 24px; }
+.sec-label {
+  counter-increment: sec-num;
+  display: flex; align-items: baseline; gap: 10px;
+  font-size: 16.5px; font-weight: 700; color: var(--text);
+  margin: 0 0 14px; padding-bottom: 10px; border-bottom: 1px solid var(--line);
+}
+.sec-label::before {
+  content: counter(sec-num, decimal-leading-zero);
+  font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--stamp);
+}
+
+/* baseline prose（セクション固有クラスの対象外になる見出し・段落・引用・区切り線） */
+#doc-content h3 { font-size: 1.05rem; margin: 20px 0 8px; color: var(--text); }
+#doc-content h4 { font-size: 0.95rem; margin: 16px 0 6px; color: var(--sub); }
+#doc-content p { margin: 8px 0; font-size: 13.5px; color: var(--sub); line-height: 1.75; }
+#doc-content ol { padding-left: 22px; margin: 8px 0; font-size: 13.5px; color: var(--sub); line-height: 1.75; }
+#doc-content ol li { margin: 4px 0; }
+#doc-content ul { list-style: none; padding-left: 20px; margin: 8px 0; font-size: 13.5px; color: var(--sub); line-height: 1.75; }
+#doc-content ul li { position: relative; margin: 4px 0; }
+#doc-content ul li::before { content: "\25b8"; position: absolute; left: -18px; color: var(--accent); }
+#doc-content code {
+  background: var(--panel3); color: var(--text); padding: 1px 6px;
+  border: 1px solid var(--line); font-family: var(--mono); font-size: 0.85em;
+}
+#doc-content blockquote {
+  border-left: 3px solid var(--accent); margin: 12px 0; padding: 8px 16px;
+  background: var(--panel3); color: var(--sub); font-size: 0.95rem;
+}
+#doc-content hr { border: none; border-top: 1px solid var(--line); margin: 24px 0; }
+
+/* rule items（トップレベル ul のチェックリスト装飾。箇条書きと同じ体裁） */
+.rule-list { list-style: none; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; margin: 8px 0 0; }
+.rule-item { position: relative; font-size: 13.5px; line-height: 1.75; color: var(--sub); }
+.rule-item::before { content: "\25b8"; position: absolute; left: -18px; color: var(--accent); }
+.rule-item code {
+  background: var(--panel); color: var(--text); padding: 1px 5px;
+  border: 1px solid var(--line); font-family: var(--mono); font-size: .85em;
+}
+
+/* tables */
+.table-scroll-shell { position: relative; min-width: 0; margin-bottom: 14px; }
+.table-scroll-shell::before,
+.table-scroll-shell::after {
+  content: ""; position: absolute; z-index: 2; top: 1.5px; bottom: 1.5px; width: 30px;
+  opacity: 0; pointer-events: none; transition: opacity .12s;
+}
+.table-scroll-shell::before {
+  left: 1.5px; background: linear-gradient(to right, var(--panel), transparent);
+}
+.table-scroll-shell::after {
+  right: 1.5px; background: linear-gradient(to left, var(--panel), transparent);
+}
+.table-scroll-shell.can-scroll-left::before,
+.table-scroll-shell.can-scroll-right::after { opacity: .94; }
+.table-wrap {
+  width: 100%; overflow-x: auto; overscroll-behavior-inline: contain;
+  border: 1.5px solid var(--line2); scrollbar-gutter: stable;
+}
+table.data-table { width: max-content; min-width: 100%; border-collapse: collapse; font-size: 13px; background: var(--panel); }
+table.data-table thead { position: sticky; top: 0; z-index: 1; }
+table.data-table th {
+  text-align: left; font-size: 11.5px; font-weight: 700; color: var(--headtext);
+  background: var(--head); padding: 8px 12px; border-bottom: 1px solid var(--line2); white-space: nowrap;
+}
+table.data-table td {
+  min-width: 11rem; max-width: 34rem; padding: 9px 12px;
+  border-bottom: 1px solid var(--line); vertical-align: top;
+  overflow-wrap: normal; word-break: normal; hyphens: none;
+}
+table.data-table td:first-child { min-width: 7rem; }
+table.data-table tr:last-child td { border-bottom: none; }
+table.data-table code {
+  background: var(--panel3); color: var(--accent); padding: 1px 5px;
+  border: 1px solid var(--line); font-family: var(--mono); font-size: 11.5px; white-space: nowrap;
+}
+
+/* code blocks（手動で span を書いた場合にのみ配色が効く。MD パーサーは自動適用しない） */
+.code-block { width: 100%; border: 1px solid var(--line2); overflow: hidden; background: var(--code); margin-bottom: 14px; }
+.code-block-head {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px; font-size: 11px; font-weight: 600;
+  color: var(--muted); border-bottom: 1px solid var(--line2);
+  letter-spacing: .03em;
+}
+.code-block pre {
+  margin: 0; padding: 12px 14px; overflow-x: auto;
+  font-family: var(--mono); font-size: 12px; line-height: 1.8; color: var(--codetext);
+}
+#doc-content .code-block code {
+  display: block; padding: 0; border: 0; background: transparent;
+  color: inherit; font: inherit; white-space: pre;
+}
+.code-block .kw { color: #CBA6F7; }
+.code-block .fn { color: #89B4FA; }
+.code-block .str { color: #A6E3A1; }
+.code-block .num { color: #FAB387; }
+.code-block .cm { color: #6C7086; font-style: italic; }
+.code-block .op { color: #89DCEB; }
+.code-block .type { color: #F9E2AF; }
+
+@media (max-width: 820px) {
+  .dp-layout { margin-top: 20px; }
+  .dp-panel { max-width: none; padding: 20px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .toc-link, .table-scroll-shell::before, .table-scroll-shell::after { transition: none; }
+}
 </style>
 </head>
 <body>
-<div class="pt" id="dictionary-background">
+<div class="pt">
   <div class="pt-grid"></div>
   <div class="pt-row">
     <button type="button" class="pt-sidebar-toggle" id="pt-sidebar-toggle" aria-expanded="false" aria-controls="pt-sidebar-aside" aria-label="ナビゲーションを開く">
   <span></span><span></span><span></span>
 </button>
-<aside class="pt-sidebar" id="pt-sidebar-aside" data-portal-href="../../index.html" data-active-category="project">
+<aside class="pt-sidebar" id="pt-sidebar-aside" data-portal-href="../../../../../project-portal/index.html" data-active-category="design">
   <div class="pt-brand">
     <div class="pt-brand-stamp">DESIGN PORTAL</div>
     <div class="pt-brand-switch" id="pt-brand-switch">
-      <div class="pt-brand-name">commerce_platform</div>
+      <div class="pt-brand-name">api-only-design</div>
     </div>
-    <div class="pt-brand-sub">設計台帳 · 全61資料</div>
+    <div class="pt-brand-sub">設計台帳 · 全59資料</div>
   </div>
   <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
-  
+  <nav class="pt-doc-nav" aria-label="目次"><div class="pt-doc-nav__group">目次</div><ul class="pt-doc-nav__toc" id="toc-list"></ul></nav>
   <button type="button" class="pt-theme" id="pt-theme-toggle">
     <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
   </button>
-  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-01T00:00:00Z</span><span id="pt-meta-commit"><br>コミット </span></div>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-28</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
-<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":15},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":3},{"key":"list","num":"04","label":"一覧・設計図","count":15},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
 <script type="application/json" id="pt-sites-data">[]</script>
 <script>
 (function () {
@@ -968,266 +1034,417 @@ html, body { margin: 0; padding: 0; }
   }
 })();
 </script>
-    <main class="pt-main is-fixed">
+    <main class="pt-main" id="main-scroll">
       <div class="pt-head">
-        <div class="pt-crumb"><a href="../../index.html">TOP</a> ／ 基盤情報 ／ <span class="pt-crumb-current">用語辞書</span></div>
-        <div class="pt-title-row"><h1 class="pt-title">用語辞書</h1><span class="pt-title-sub">承認済みの業務概念とコード上の名称を対応付けます。</span></div>
+        <div class="pt-crumb"><a href="../../../../../project-portal/index.html">TOP</a> ／ 設計書 ／ <span class="pt-crumb-current">audit_archive バッチ単体テスト設計書</span></div>
+        <div class="pt-title-row">
+          <h1 class="pt-title" id="dp-hero-title">audit_archive バッチ単体テスト設計書</h1>
+        </div>
       </div>
-      <div class="dp-controls">
-        <input type="search" id="term-search" class="pt-input" aria-label="用語辞書を検索" placeholder="内容要約キー・日本語名・英語名・定義・各実装名で絞り込み">
-        <span class="pt-count" id="term-count" aria-live="polite"></span>
+      <div class="dp-layout">
+        <div class="dp-panel">
+          <div id="doc-empty-callout" class="pt-callout pt-callout--caution" role="status" hidden>
+            <p><span class="material-symbols-outlined pt-callout__icon" aria-hidden="true">info</span><span>この資料は本文が未記入です。情報が欠けているのか、調査の結果として空なのかは、この表示だけでは判別できません。</span></p>
+          </div>
+          <div id="doc-content"></div>
+        </div>
       </div>
-      <div class="filter-bar">
-        <div class="filter-set"><span class="filter-label">分類</span><span id="category-chips"></span></div>
-        <div class="filter-set"><span class="filter-label">状態</span><span id="status-chips"></span></div>
-      </div>
-      <p class="registry-note">内容要約キーは業務概念を一意に示します。コード名・型名・DB名・API名・UI表示名を分離して管理し、解析候補は承認されるまで表示しません。</p>
-      <div class="sec-label">承認済み用語</div>
-      <div class="pt-tablewrap dp-tablewrap">
-        <table id="dict-table">
-          <thead><tr><th>内容要約キー</th><th>日本語名</th><th>英語名</th><th>定義</th><th>適用範囲</th><th>分類</th><th>コード名</th><th>型名</th><th>DB名</th><th>API名</th><th>UI表示名</th><th>許容値</th><th>状態</th><th>備考</th></tr></thead>
-          <tbody id="dict-table-body"></tbody>
-        </table>
-      </div>
-      <div id="diagnostics-mount"></div>
-      <div id="unresolved-mount"></div>
     </main>
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta">commerce_platform · 更新 <span id="pt-footer-date">2026-08-01T00:00:00Z</span><span id="pt-footer-commit"> · コミット </span></span>
-  <span class="pt-footer-gen">生成: generation-engine/scripts/detail-pages/build-detail-page.sh</span>
+  <span class="pt-footer-meta">api-only-design · 更新 <span id="pt-footer-date">2026-08-28</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span>
 </footer>
 </div>
-<div class="drawer-scrim" id="drawer-scrim" aria-hidden="true"></div>
-<aside class="drawer" id="term-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true" tabindex="-1" hidden>
-  <div class="drawer-head"><div><div class="filter-label">承認済み用語の詳細</div><h2 id="drawer-title"></h2><div id="drawer-key" class="meaning-key"></div></div><button type="button" class="drawer-close" id="drawer-close" aria-label="詳細を閉じる"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div>
-  <div class="drawer-body"><p class="drawer-definition" id="drawer-definition"></p><div id="drawer-groups"></div></div>
-</aside>
-<script type="application/json" id="page-data">
-{
-  "pageKind": "glossary",
-  "generatedAt": "2026-08-01T00:00:00Z",
-  "title": "用語辞書",
-  "description": "承認済みの業務概念とコード上の名称を対応付けます。",
-  "projectName": "commerce_platform",
-  "projectionVersion": "0.2",
-  "glossarySchemaVersion": "1.0.0",
-  "glossaryContentVersion": "2.0.0",
-  "categories": [
-    {
-      "key": "entity",
-      "label": "エンティティ"
-    },
-    {
-      "key": "attribute",
-      "label": "属性"
-    },
-    {
-      "key": "value",
-      "label": "値"
-    },
-    {
-      "key": "process",
-      "label": "処理"
-    },
-    {
-      "key": "event",
-      "label": "イベント"
-    },
-    {
-      "key": "role",
-      "label": "役割"
-    },
-    {
-      "key": "rule",
-      "label": "ルール"
-    },
-    {
-      "key": "metric",
-      "label": "指標"
-    }
-  ],
-  "terms": [
-    {
-      "key": "customer",
-      "term_ja": "顧客",
-      "term_en": "",
-      "definition": "商品またはサービスを購入し継続的な取引関係を持つ主体",
-      "scope": "commerce_platform",
-      "category": "entity",
-      "code_name": "Customer",
-      "type_name": "Customer",
-      "db_name": "",
-      "api_name": "",
-      "ui_label": "顧客",
-      "allowed_values": [],
-      "status": "active",
-      "notes": "",
-      "representations": [
-        {
-          "channel": "code",
-          "value": "Customer",
-          "location": "src/domain/customer.ts",
-          "symbolKind": "class"
-        }
-      ],
-      "sourceRefs": [
-        "docs/domain/customer.md#customer"
-      ],
-      "aliases": [
-        "お客様"
-      ],
-      "relations": [
-        {
-          "type": "has_identifier",
-          "targetKey": "customer_id"
-        }
-      ],
-      "introducedIn": "1.0.0",
-      "approvers": [
-        "business_approver:domain-reviewer",
-        "technical_approver:architecture-reviewer"
-      ],
-      "decisionRef": "proposals/customer_update_from_document",
-      "changeRef": "changes/update_customer_from_proposal"
-    },
-    {
-      "key": "customer_id",
-      "term_ja": "顧客ID",
-      "term_en": "",
-      "definition": "顧客を他の顧客から一意に識別する値",
-      "scope": "commerce_platform",
-      "category": "attribute",
-      "code_name": "",
-      "type_name": "",
-      "db_name": "customers.customer_id",
-      "api_name": "",
-      "ui_label": "顧客ID",
-      "allowed_values": [],
-      "status": "active",
-      "notes": "",
-      "representations": [
-        {
-          "channel": "database",
-          "value": "customers.customer_id",
-          "location": "db/schema.sql:41"
-        }
-      ],
-      "sourceRefs": [
-        "db/schema.sql:41"
-      ],
-      "introducedIn": "1.0.0",
-      "approvers": [
-        "business_approver:domain-reviewer",
-        "technical_approver:architecture-reviewer"
-      ],
-      "decisionRef": "proposals/customer_id_from_schema",
-      "changeRef": "changes/add_customer_id_from_schema"
-    }
-  ]
-}
-</script>
+
+<script type="application/json" id="doc-md">"\n# audit_archive バッチ単体テスト設計書\n\n\n本書は関数・メソッド単位の内部処理を検証します。観点と具体的なケースを分けず、1文書で管理します。対応する設計書は `バッチ詳細設計書.md` です。\n\n## テスト対象\n\n対象は関数・メソッド単位の内部処理とする。\n\n## テストの粒度と自動化の方針\n\n反復可能なケースは自動化し、実装後のテスト参照をケースに記録する。単位配下へ結合テスト文書を生成しない。\n\n## 本書が扱わない範囲\n\n複数の画面・機能・APIにまたがる結合テストはプロジェクト全体の `docs/test-cases/結合テスト仕様書.md` が担う。操作の流れそのものは画面固有の操作シナリオ仕様書.mdが担い、それ以外の種別では生成しない。\n\n## §1 テスト観点\n\n§1は正常・異常・境界を含む全観点の一覧です。\n§5と§6は、§1のうち異常と境界の観点を列ごとに詳しく述べる部分集合です。\n§5と§6では新しい観点キーを作らず、§1と同じ観点キーを使います。\n実行する全ケースは§2だけに記載し、§1の全観点へ1件以上のケースを対応させます。\n実行するテストの件数は§2のデータ行数だけで数えます。\n\n| キー | 観点 | 由来する基本設計書の章 | 由来する詳細設計書の章 |\n|---|---|---|---|\n| `\u003c内容を要約したキー>` | `\u003c検証する振る舞い>` | `\u003c章または該当なし>` | `\u003c章または該当なし>` |\n\n## §2 テストケース一覧\n\n| キー | 対応観点キー | 入力・操作 | 期待結果 |\n|---|---|---|---|\n| `\u003c内容を要約したキー>` | `\u003c観点キー>` | `\u003c入力または操作>` | `\u003c外部から観測できる結果>` |\n\n## §3 入力条件\n\n| キー | データ | 用途 |\n|---|---|---|\n| `\u003c内容を要約したキー>` | `\u003c値>` | `\u003c用途>` |\n\n## §4 期待結果\n\n期待結果は観測可能な値・状態・表示で記載する。\n\n## §5 異常系\n\n| 観点のキー | 条件 | 期待結果 |\n|---|---|---|\n| `\u003c§1と同じ観点のキー>` | `\u003c異常条件>` | `\u003c結果>` |\n\n## §6 境界値\n\n| 観点のキー | 境界 | 期待結果 |\n|---|---|---|\n| `\u003c§1と同じ観点のキー>` | `\u003c境界値>` | `\u003c結果>` |\n\n## §7 網羅基準\n\n設計書に定義された分岐・状態・制約をすべて観点へ対応付ける。\n\n## §8 前提条件と終了条件\n\n| 区分 | 条件 |\n|---|---|\n| 前提条件 | `\u003c実行前の状態>` |\n| 終了条件 | `\u003c実行後に保証する状態>` |"</script>
+
 <script>
-(function() {
-  'use strict';
-  var data = JSON.parse(document.getElementById('page-data').textContent);
-  var projectionLegacy = data.projectionVersion === '0.1';
-  var stateLabels = {active:'現行',deprecated:'非推奨',retired:'履歴',unmigrated:'未移行'};
-  var categoryLabels = {entity:'エンティティ',attribute:'属性',value:'値',process:'プロセス',event:'イベント',role:'役割',rule:'ルール',metric:'指標'};
-  function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
-  function el(tag, attrs, children) {
-    var node = document.createElement(tag);
-    Object.keys(attrs || {}).forEach(function(key) { node.setAttribute(key, String(attrs[key])); });
-    (Array.isArray(children) ? children : [children]).forEach(function(child) {
-      if (child === null || child === undefined) return;
-      node.appendChild(typeof child === 'string' ? document.createTextNode(child) : child);
-    });
-    return node;
+(function () {
+  var sourceElement = document.getElementById('doc-md');
+  var contentElement = document.getElementById('doc-content');
+  if (!sourceElement || !contentElement) return;
+  var src = JSON.parse(sourceElement.textContent || '""');
+
+  // frontmatter 除去
+  src = src.replace(/^\s*---[\s\S]*?---\s*/, '');
+
+  var lines = src.split('\n');
+  var html = [];
+  var inTable = false;
+  var tableColCount = 0;
+  var inList = false;
+  var listType = '';
+  var inBlockquote = false;
+  var inFence = false;
+  var fenceLines = [];
+  // 改善課題1-51: 見出し以外の本文が無く、かつ表の行が無い場合に「未記入」を示す
+  var hasBodyContent = false;
+  var hasTableRow = false;
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
-  function values(value) { return Array.isArray(value) ? value : []; }
-  function normalize(term) {
-    if (Object.prototype.hasOwnProperty.call(term, 'term_ja')) return term;
-    if (Object.prototype.hasOwnProperty.call(term, 'term')) {
-      return {key:'',term_ja:term.term||'',term_en:'',definition:term.definition||'',scope:'',category:term.category||'',code_name:values(term.codeRefs)[0]||'',type_name:'',db_name:'',api_name:'',ui_label:term.term||'',allowed_values:[],status:'unmigrated',notes:term.sourceRef||'',representations:values(term.codeRefs).map(function(ref){return {channel:'code',value:String(ref),location:''};}),sourceRefs:term.sourceRef?[term.sourceRef]:[],aliases:[],forbiddenTerms:[],relations:[],examples:[],counterExamples:[],constraints:[],securityClassification:'未設定'};
+  function escAttr(s) {
+    return s.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+  function safeUrl(s) {
+    var value = s.replace(/[\u0000-\u001f\u007f]+/g, '').trim();
+    var scheme = value.match(/^([a-z][a-z0-9+.-]*):/i);
+    if (scheme && !/^(?:https?|mailto)$/i.test(scheme[1])) return '';
+    return escAttr(value);
+  }
+  // Markdown 文書間の参照（拡張子 .md）を .html へ書き換える処理は生成側
+  // （generation-engine/scripts/build-portal.sh の link_related_material_paths / existingFileHref）
+  // が担う。生成物が実際に出力される参照だけを解決するには参照先の実在確認が要り、
+  // ブラウザ上で動く本スクリプトはファイルの実在を確認できないため、ここでは行わない
+  // （改善課題1-40）。テンプレート側は safeUrl による無害化のみを行う。
+  // この処理が扱う記法: 見出し・段落・強調（太字）・強調（斜体）・インラインコード・
+  // コードブロック（囲み）・リンク・画像・表・引用・番号付きリスト・箇条書き・水平線。
+  // 扱わない記法: 取り消し線（~~text~~）。記号がそのまま本文へ残るのは意図した挙動であり、
+  // 変換の漏れではない。Markdown 仕様の全記法への対応は範囲外とし、必要になった時点で
+  // 実装を足したうえで本一覧を書き換える。screen-doc-template.html も同じ一覧に従う。
+  function inlineFormat(s) {
+    s = escHtml(s);
+    s = s.replace(/`([^`]+)`/g, '<code>$1</code>');
+    s = s.replace(/!\[([^\]]*)\]\(([^()\s]+)\)/g, function(_, alt, url) {
+      var sanitizedUrl = safeUrl(url);
+      return sanitizedUrl ? '<img src="' + sanitizedUrl + '" alt="' + escAttr(alt) + '" style="max-width:100%">' : alt;
+    });
+    s = s.replace(/\[([^\]]+)\]\(([^()\s]+)\)/g, function(_, label, url) {
+      var sanitizedUrl = safeUrl(url);
+      return sanitizedUrl ? '<a href="' + sanitizedUrl + '">' + label + '</a>' : label;
+    });
+    s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
+    return s;
+  }
+
+  // 表のセル分割: インラインコード（`...`）内の縦棒は列区切りとして扱わない
+  function splitTableRow(line) {
+    var masked = line.replace(/`[^`]*`/g, function (m) { return m.replace(/\|/g, '\u0001'); });
+    masked = masked.replace(/\\\|/g, '\u0002');
+    return masked.split('|')
+      .filter(function (c, j, a) { return j > 0 && j < a.length - 1; })
+      .map(function (c) { return c.replace(/\u0001/g, '|').replace(/\u0002/g, '|'); });
+  }
+  // 見出しの列数とデータ行の列数を照合し、食い違う行は最後の列へ寄せる（または不足分を空欄で補う）
+  function normalizeRowCells(cells, colCount) {
+    if (!colCount || cells.length === colCount) return cells;
+    if (cells.length > colCount) {
+      var head = cells.slice(0, colCount - 1);
+      var tail = cells.slice(colCount - 1).join('|');
+      return head.concat([tail]);
     }
-    if (projectionLegacy) {
-      return {key:term.key||'',term_ja:term.label||'',term_en:'',definition:term.definition||'',scope:typeof term.scope==='string'?term.scope:'',category:term.category||term.kind||'',code_name:values(term.representations)[0]&&values(term.representations)[0].value||'',type_name:'',db_name:'',api_name:'',ui_label:term.label||'',allowed_values:[],status:term.status||'unmigrated',notes:'',representations:values(term.representations),sourceRefs:values(term.sourceRefs),aliases:values(term.aliases),forbiddenTerms:values(term.forbiddenTerms),relations:values(term.relations),examples:values(term.examples),counterExamples:values(term.counterExamples),constraints:values(term.constraints),securityClassification:term.securityClassification||'未設定'};
+    var padded = cells.slice();
+    while (padded.length < colCount) padded.push('');
+    return padded;
+  }
+
+  function closeList() {
+    if (inList) { html.push(listType === 'ul' ? '</ul>' : '</ol>'); inList = false; }
+  }
+  function closeBlockquote() {
+    if (inBlockquote) { html.push('</blockquote>'); inBlockquote = false; }
+  }
+  function closeTable() {
+    if (inTable) { html.push('</tbody></table></div>'); inTable = false; tableColCount = 0; }
+  }
+  function closeFence() {
+    html.push('<div class="code-block"><pre><code>' + escHtml(fenceLines.join('\n')) + '</code></pre></div>');
+    hasBodyContent = true;
+    inFence = false;
+    fenceLines = [];
+  }
+
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    var trimmed = line.trim();
+
+    // フェンス内はMarkdownとして解釈せず、終了行まで文字列のまま保持する
+    if (inFence) {
+      if (/^```\s*$/.test(trimmed)) closeFence();
+      else fenceLines.push(line);
+      continue;
     }
-    return term;
+    if (/^```(?:\s*[^`\s]+)?\s*$/.test(trimmed)) {
+      closeList(); closeBlockquote(); closeTable();
+      inFence = true;
+      fenceLines = [];
+      continue;
+    }
+
+    // 空行
+    if (!trimmed) { closeList(); closeBlockquote(); continue; }
+
+    // 見出し
+    var hm = trimmed.match(/^(#{1,6})\s+(.*)$/);
+    if (hm) { closeList(); closeBlockquote(); closeTable(); var lv = hm[1].length; html.push('<h' + lv + '>' + inlineFormat(hm[2]) + '</h' + lv + '>'); continue; }
+
+    // 水平線
+    if (/^---+$/.test(trimmed) || /^\*\*\*+$/.test(trimmed)) { closeList(); closeBlockquote(); closeTable(); html.push('<hr>'); continue; }
+
+    // テーブル
+    if (trimmed.indexOf('|') !== -1 && trimmed.charAt(0) === '|') {
+      closeList(); closeBlockquote();
+      if (/^[\s|:-]+$/.test(trimmed)) continue; // separator 行
+      var cells = splitTableRow(trimmed);
+      if (!inTable) {
+        tableColCount = cells.length;
+        html.push('<div class="table-wrap"><table><thead><tr>');
+        cells.forEach(function(c) { html.push('<th>' + inlineFormat(c.trim()) + '</th>'); });
+        html.push('</tr></thead><tbody>');
+        inTable = true;
+      } else {
+        cells = normalizeRowCells(cells, tableColCount);
+        html.push('<tr>');
+        cells.forEach(function(c) { html.push('<td>' + inlineFormat(c.trim()) + '</td>'); });
+        html.push('</tr>');
+        hasTableRow = true;
+      }
+      continue;
+    } else { closeTable(); }
+
+    // 引用
+    if (trimmed.charAt(0) === '>') {
+      closeList(); closeTable();
+      if (!inBlockquote) { html.push('<blockquote>'); inBlockquote = true; }
+      html.push('<p>' + inlineFormat(trimmed.substring(1).trim()) + '</p>');
+      // 改善課題1-51（4回目）: build-portal.sh が挿入する「本書の位置づけ」注記は
+      // 本文が空の資料にも自動挿入されるため、この注記だけは本文ありの判定に数えない。
+      // 注記の挿入元（build-portal.sh）に印（data属性等）を持たせられなかったため、
+      // 文言一致による判定にとどめている（挿入元の文言が変わると判定が壊れる弱点あり）。
+      if (trimmed.indexOf('**本書の位置づけ**') === -1) { hasBodyContent = true; }
+      continue;
+    } else { closeBlockquote(); }
+
+    // 番号付きリスト
+    var olm = trimmed.match(/^(\d+)\.\s+(.*)$/);
+    if (olm) {
+      closeTable(); closeBlockquote();
+      if (!inList || listType !== 'ol') { closeList(); html.push('<ol>'); inList = true; listType = 'ol'; }
+      html.push('<li>' + inlineFormat(olm[2]) + '</li>');
+      hasBodyContent = true;
+      continue;
+    }
+
+    // 箇条書き
+    if (trimmed.charAt(0) === '-' && trimmed.charAt(1) === ' ') {
+      closeTable(); closeBlockquote();
+      if (!inList || listType !== 'ul') { closeList(); html.push('<ul>'); inList = true; listType = 'ul'; }
+      html.push('<li>' + inlineFormat(trimmed.substring(2)) + '</li>');
+      hasBodyContent = true;
+      continue;
+    }
+
+    // 通常段落
+    closeList(); closeTable(); closeBlockquote();
+    html.push('<p>' + inlineFormat(trimmed) + '</p>');
+    hasBodyContent = true;
   }
-  var terms = values(data.terms).map(normalize);
-  var activeCategory = 'all', activeStatus = 'normal', lastTrigger = null;
-  function addList(cell, list, limit) {
-    values(list).slice(0, limit || list.length).forEach(function(item, index) { if (index) cell.appendChild(document.createTextNode(' · ')); cell.appendChild(el('code', null, String(item))); });
+  if (inFence) closeFence();
+  closeList(); closeTable(); closeBlockquote();
+
+  contentElement.innerHTML = html.join('\n');
+  // 改善課題1-51: 見出し以外の本文が無く、かつ表の行が無い場合に未記入の注記を表示する
+  if (!hasBodyContent && !hasTableRow) {
+    var emptyCallout = document.getElementById('doc-empty-callout');
+    if (emptyCallout) emptyCallout.hidden = false;
   }
-  function renderButtons(mount, choices, active, onSelect) {
-    clear(mount);
-    choices.forEach(function(choice) {
-      var button = el('button',{type:'button',class:'chip' + (choice.key === active ? ' active' : ''),'aria-pressed':choice.key === active},choice.label);
-      button.addEventListener('click',function(){onSelect(choice.key);}); mount.appendChild(button);
+
+  // --- 拡張: h1 をヒーローへ、h2 をセクションブロック化 + 目次生成、テーブル/リストの装飾付与 ---
+  (function enhance() {
+    var container = document.getElementById('doc-content');
+    var heroTitle = document.getElementById('dp-hero-title');
+    var tocList = document.getElementById('toc-list');
+    if (!container || !heroTitle || !tocList) return;
+
+    // 最初の h1 はヒーローへ移し、本文からは除去する
+    var h1 = container.querySelector('h1');
+    if (h1) {
+      heroTitle.textContent = h1.textContent;
+      h1.parentNode.removeChild(h1);
+    }
+
+    // テーブルに data-table クラスを付与（sticky thead は CSS 側で対応済み）
+    Array.prototype.forEach.call(container.querySelectorAll('table'), function (t) {
+      t.classList.add('data-table');
+    });
+
+    // 横スクロールが必要な表だけ端フェードとキーボード操作の手掛かりを付ける
+    var tableWraps = Array.prototype.slice.call(container.querySelectorAll('.table-wrap'));
+    var updateScrollCues = [];
+    tableWraps.forEach(function (wrap) {
+      var shell = document.createElement('div');
+      shell.className = 'table-scroll-shell';
+      wrap.parentNode.insertBefore(shell, wrap);
+      shell.appendChild(wrap);
+
+      function updateScrollCue() {
+        var overflowing = wrap.scrollWidth > wrap.clientWidth + 1;
+        var atStart = wrap.scrollLeft <= 1;
+        var atEnd = wrap.scrollLeft + wrap.offsetWidth >= wrap.scrollWidth - 1;
+        shell.classList.toggle('can-scroll-left', overflowing && !atStart);
+        shell.classList.toggle('can-scroll-right', overflowing && !atEnd);
+        if (overflowing) {
+          wrap.tabIndex = 0;
+          wrap.setAttribute('role', 'region');
+          wrap.setAttribute('aria-label', '横にスクロールできます');
+        } else {
+          wrap.removeAttribute('tabindex');
+          wrap.removeAttribute('role');
+          wrap.removeAttribute('aria-label');
+        }
+      }
+
+      wrap.addEventListener('scroll', updateScrollCue, {passive: true});
+      updateScrollCues.push(updateScrollCue);
+    });
+
+    function updateAllScrollCues() {
+      updateScrollCues.forEach(function (updateScrollCue) { updateScrollCue(); });
+    }
+    window.addEventListener('resize', updateAllScrollCues);
+    requestAnimationFrame(updateAllScrollCues);
+
+    function sectionSlug(text) {
+      var normalized = text.trim();
+      if (normalized.normalize) normalized = normalized.normalize('NFKC');
+      normalized = normalized.toLowerCase()
+        .replace(/[^a-z0-9぀-ヿ㐀-鿿._~-]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+      return normalized || 'section';
+    }
+
+    // h2 ごとにセクションブロック化 + 目次エントリを生成
+    var h2s = Array.prototype.slice.call(container.querySelectorAll('h2'));
+    h2s.forEach(function (h2, idx) {
+      var text = h2.textContent;
+      var baseId = 'sec-' + sectionSlug(text);
+      var id = baseId;
+      var duplicate = 2;
+      while (document.getElementById(id)) {
+        id = baseId + '-' + duplicate;
+        duplicate += 1;
+      }
+
+      var section = document.createElement('section');
+      section.className = 'sec-block';
+      section.id = id;
+
+      var label = document.createElement('div');
+      label.className = 'sec-label';
+      label.textContent = text;
+      section.appendChild(label);
+
+      h2.parentNode.insertBefore(section, h2);
+      var node = h2.nextSibling;
+      h2.parentNode.removeChild(h2);
+      while (node && !(node.nodeType === 1 && node.tagName === 'H2')) {
+        var next = node.nextSibling;
+        section.appendChild(node);
+        node = next;
+      }
+
+      // セクション直下（トップレベル）の ul のみをチェックリスト装飾する。入れ子リストは変換しない
+      Array.prototype.forEach.call(section.children, function (child) {
+        if (child.tagName === 'UL') {
+          child.classList.add('rule-list');
+          Array.prototype.forEach.call(child.children, function (li) {
+            if (li.tagName !== 'LI') return;
+            li.classList.add('rule-item');
+            var content = document.createElement('div');
+            while (li.firstChild) content.appendChild(li.firstChild);
+            li.appendChild(content);
+          });
+        }
+      });
+
+      var li = document.createElement('li');
+      var a = document.createElement('a');
+      a.className = 'toc-link';
+      a.href = '#' + id;
+      var label2 = document.createElement('span');
+      label2.textContent = text;
+      a.appendChild(label2);
+      li.appendChild(a);
+      tocList.appendChild(li);
+    });
+
+    var firstLink = tocList.querySelector('.toc-link');
+    if (firstLink) firstLink.classList.add('active');
+  })();
+})();
+</script>
+
+<script>
+(function(){
+  var links = document.querySelectorAll('.toc-link');
+  var sections = document.querySelectorAll('.sec-block');
+  var mainEl = document.getElementById('main-scroll');
+
+  function prefersReducedMotion() {
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+
+  function fragmentToId(fragment) {
+    var raw = fragment && fragment.charAt(0) === '#' ? fragment.substring(1) : (fragment || '');
+    if (!raw) return '';
+    try {
+      return decodeURIComponent(raw);
+    } catch (error) {
+      return '';
+    }
+  }
+
+  function scrollToFragment(fragment, behavior) {
+    var targetId = fragmentToId(fragment);
+    var target = targetId ? document.getElementById(targetId) : null;
+    if (!target) return false;
+    target.scrollIntoView({behavior: behavior, block:'start'});
+    return true;
+  }
+
+  var observer = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      if(e.isIntersecting){
+        links.forEach(function(l){l.classList.remove('active')});
+        var a = Array.prototype.find.call(links, function (link) {
+          return link.getAttribute('href') === '#' + e.target.id;
+        });
+        if(a) a.classList.add('active');
+      }
+    });
+  },{root: mainEl, rootMargin:'-10% 0px -80% 0px'});
+  sections.forEach(function(s){observer.observe(s)});
+
+  links.forEach(function(l){
+    l.addEventListener('click',function(e){
+      e.preventDefault();
+      var href = this.getAttribute('href');
+      if(scrollToFragment(href, prefersReducedMotion() ? 'auto' : 'smooth')) {
+        if (window.history && window.history.pushState) window.history.pushState(null, '', href);
+        else window.location.hash = fragmentToId(href);
+      }
+    });
+  });
+
+  if (window.location.hash) {
+    requestAnimationFrame(function(){
+      scrollToFragment(window.location.hash, 'auto');
     });
   }
-  function categoryChoices() {
-    var fromData = values(data.categories).map(function(category){return {key:category.key,label:category.label || categoryLabels[category.key] || category.key};});
-    return [{key:'all',label:'すべて'}].concat(fromData);
-  }
-  function renderFilters() {
-    renderButtons(document.getElementById('category-chips'),categoryChoices(),activeCategory,function(key){activeCategory=key === activeCategory && key !== 'all' ? 'all' : key;renderFilters();renderRows();});
-    renderButtons(document.getElementById('status-chips'),[{key:'normal',label:'通常'},{key:'active',label:'現行'},{key:'deprecated',label:'非推奨'},{key:'unmigrated',label:'未移行'},{key:'retired',label:'履歴'}],activeStatus,function(key){activeStatus=key === activeStatus && key !== 'normal' ? 'normal' : key;renderFilters();renderRows();});
-  }
-  function visibleTerms() {
-    var query = document.getElementById('term-search').value.trim().toLowerCase();
-    return terms.filter(function(term) {
-      var stateOk = activeStatus === 'normal' ? term.status !== 'retired' : term.status === activeStatus;
-      var categoryOk = activeCategory === 'all' || term.category === activeCategory;
-      var haystack = [term.key,term.term_ja,term.term_en,term.definition,term.scope,term.category,term.code_name,term.type_name,term.db_name,term.api_name,term.ui_label,values(term.allowed_values).join(' '),term.status,term.notes].concat(values(term.representations).map(function(rep){return rep.value;})).join(' ').toLowerCase();
-      return stateOk && categoryOk && (!query || haystack.indexOf(query) !== -1);
+
+  window.addEventListener('popstate', function(){
+    requestAnimationFrame(function(){
+      if (!scrollToFragment(window.location.hash, 'auto') && mainEl) {
+        mainEl.scrollTo({top: 0, behavior: 'auto'});
+      }
     });
-  }
-  function formatForbidden(entry) { return typeof entry === 'string' ? entry : (entry.term || '') + (entry.reason ? ' — ' + entry.reason : ''); }
-  function formatRepresentation(rep) { return [rep.channel,rep.value,rep.location].filter(Boolean).join(': '); }
-  function formatRelation(relation) { return typeof relation === 'string' ? relation : [relation.type,relation.targetKey || relation.target_key].filter(Boolean).join(': '); }
-  function openDrawer(term, trigger) {
-    lastTrigger = trigger;
-    document.getElementById('drawer-title').textContent = term.term_ja;
-    document.getElementById('drawer-definition').textContent = term.definition;
-    var key = document.getElementById('drawer-key'); key.textContent = term.key || '未移行'; key.className = 'meaning-key ' + (!term.key ? 'unmigrated' : term.status === 'deprecated' ? 'deprecated' : '');
-    var groups = document.getElementById('drawer-groups'); clear(groups);
-    var examples = values(term.examples).map(function(item){return '例: ' + item;}).concat(values(term.counterExamples).map(function(item){return '反例: ' + item;}));
-    var details = [
-      {key:'aliases',label:'別名',items:values(term.aliases)},
-      {key:'forbidden',label:'禁止語',items:values(term.forbiddenTerms).map(formatForbidden)},
-      {key:'representations',label:'全representations',items:values(term.representations).map(formatRepresentation)},
-      {key:'relations',label:'relations',items:values(term.relations).map(formatRelation)},
-      {key:'examples',label:'例 / 反例',items:examples},
-      {key:'constraints',label:'constraints',items:values(term.constraints)},
-      {key:'security',label:'security',items:[term.securityClassification || term.security || '未設定']},
-      {key:'evidence',label:'全根拠',items:values(term.sourceRefs).concat(term.notes ? [term.notes] : [])}
-    ];
-    details.forEach(function(detail){var list=el('ul');(detail.items.length?detail.items:['なし']).forEach(function(item){list.appendChild(el('li',null,String(item)));});groups.appendChild(el('section',{class:'detail-group','data-group':detail.key},[el('h3',null,detail.label),list]));});
-    var drawer=document.getElementById('term-drawer'),background=document.getElementById('dictionary-background'); drawer.hidden=false; drawer.classList.add('is-open'); drawer.setAttribute('aria-hidden','false'); document.getElementById('drawer-scrim').classList.add('is-open'); background.inert=true; background.setAttribute('aria-hidden','true'); document.getElementById('drawer-close').focus();
-  }
-  function closeDrawer() { var drawer=document.getElementById('term-drawer'); if(drawer.hidden)return; drawer.classList.remove('is-open');drawer.hidden=true;drawer.setAttribute('aria-hidden','true');document.getElementById('drawer-scrim').classList.remove('is-open');var background=document.getElementById('dictionary-background');background.inert=false;background.removeAttribute('aria-hidden');if(lastTrigger){lastTrigger.setAttribute('aria-expanded','false');lastTrigger.setAttribute('aria-selected','false');lastTrigger.focus();} }
-  function trapDrawerFocus(event) { if(event.key!=='Tab')return;var nodes=Array.prototype.slice.call(document.getElementById('term-drawer').querySelectorAll('button:not([disabled]),[href],[tabindex]:not([tabindex="-1"])'));if(!nodes.length)return;var first=nodes[0],last=nodes[nodes.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();} }
-  function renderRows() {
-    var body=document.getElementById('dict-table-body'),list=visibleTerms();clear(body);
-    if(!list.length){body.appendChild(el('tr',null,el('td',{colspan:'15'},'なし')));}
-    list.forEach(function(term){
-      var keyValue=term.key||'未移行',allowed=el('td');addList(allowed,values(term.allowed_values));
-      var status=el('td');status.appendChild(el('span',{class:'state '+term.status},stateLabels[term.status]||term.status));if(term.replacementKey)status.appendChild(el('span',{class:'successor'},'後継: '+term.replacementKey));
-      var row=el('tr',{tabindex:'0',role:'button','aria-controls':'term-drawer','aria-expanded':'false','aria-selected':'false','data-interactive':'true'},[el('td',null,el('span',{class:'meaning-key '+(!term.key?'unmigrated':term.status==='deprecated'?'deprecated':'')},keyValue)),el('td',{class:'term-label'},term.term_ja||'—'),el('td',null,term.term_en||'—'),el('td',null,term.definition||'—'),el('td',null,term.scope||'—'),el('td',null,categoryLabels[term.category]||term.category||'—'),el('td',null,el('code',null,term.code_name||'—')),el('td',null,el('code',null,term.type_name||'—')),el('td',null,el('code',null,term.db_name||'—')),el('td',null,el('code',null,term.api_name||'—')),el('td',null,term.ui_label||'—'),allowed,status,el('td',null,term.notes||'—')]);
-      function activate(){Array.prototype.forEach.call(body.querySelectorAll('tr'),function(item){item.setAttribute('aria-selected',String(item===row));item.setAttribute('aria-expanded',String(item===row));});openDrawer(term,row);}
-      row.addEventListener('click',activate);row.addEventListener('keydown',function(event){if(event.key === 'Enter' || event.key === ' '){event.preventDefault();activate();}});body.appendChild(row);
-    });
-    document.getElementById('term-count').textContent=list.length+' / '+terms.length+' 件';
-  }
-  function diagnostic(mount,entry,label){if(!entry)return;mount.appendChild(el(entry.warning?'div':'p',{class:entry.warning?'pt-callout pt-callout--warning':'note-box'},label+' '+(entry.count||0)+' / '+(entry.total||0)+' 件'));}
-  var diagnostics=data.diagnostics||{},diagMount=document.getElementById('diagnostics-mount');diagnostic(diagMount,diagnostics.missingSource,'欠落した採録源');diagnostic(diagMount,diagnostics.unimplementedLayer,'未実施の層');
-  if(values(data.unresolved).length){var unresolvedMount=document.getElementById('unresolved-mount'),box=el('div',{class:'note-box'});values(data.unresolved).forEach(function(item){box.appendChild(el('div',null,(item.label||'')+'（'+(item.reason||'')+'）'));});unresolvedMount.appendChild(el('div',{class:'sec-label'},'未解決'));unresolvedMount.appendChild(box);}
-  document.getElementById('term-search').addEventListener('input',renderRows);document.getElementById('drawer-close').addEventListener('click',closeDrawer);document.getElementById('drawer-scrim').addEventListener('click',closeDrawer);document.getElementById('term-drawer').addEventListener('keydown',trapDrawerFocus);document.addEventListener('keydown',function(event){if(event.key === 'Escape')closeDrawer();});
-  renderFilters();renderRows();
-}());
+  });
+})();
 </script>
 </body>
 </html>

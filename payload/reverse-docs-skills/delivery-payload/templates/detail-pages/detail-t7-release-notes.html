@@ -30,7 +30,7 @@
   page-data.json 想定構造(定義スキーマの正本は
   generation-engine/scripts/detail-pages/page-data-schema.md の T7: release-notes 節):
     releases: [{ id, date, title, pr, prUrl, flow, summary[], changes[], verifySteps[] }]
-  releases[] をタイムライン形式(左: バージョン・日付／右: PR単位のアコーディオンカード)で
+  releases[] を時系列形式(左: バージョン・日付／右: PR単位のアコーディオンカード)で
   一覧表示する。各カードの中身は「変更概要」「変更内容」「確認手順」の3折りたたみで構成し、
   確認手順のチェック状態は localStorage に永続化する。全チェック完了のカードは完了表示に切り替わる。
 -->
@@ -53,7 +53,7 @@ html, body { margin: 0; padding: 0; }
 
 .rn-wrap { padding: 6px 0 60px; }
 
-/* ============ タイムライン行（左: バージョン・日付／右: カード） ============ */
+/* ============ 時系列行（左: バージョン・日付／右: カード） ============ */
 .release-list { display: flex; flex-direction: column; gap: 14px; max-width: 1040px; }
 .rn-row { display: grid; grid-template-columns: 92px 1fr; gap: 16px; }
 .rn-rail { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; padding-top: 16px; text-align: right; }

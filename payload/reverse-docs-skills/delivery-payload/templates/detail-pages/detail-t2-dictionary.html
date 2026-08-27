@@ -90,18 +90,18 @@ html, body { margin: 0; padding: 0; }
         <div class="pt-title-row"><h1 class="pt-title">{{TITLE}}</h1><span class="pt-title-sub">{{DESCRIPTION}}</span></div>
       </div>
       <div class="dp-controls">
-        <input type="search" id="term-search" class="pt-input" aria-label="用語辞書を検索" placeholder="意味キー・日本語名・英語名・定義・各実装名で絞り込み">
+        <input type="search" id="term-search" class="pt-input" aria-label="用語辞書を検索" placeholder="内容要約キー・日本語名・英語名・定義・各実装名で絞り込み">
         <span class="pt-count" id="term-count" aria-live="polite"></span>
       </div>
       <div class="filter-bar">
         <div class="filter-set"><span class="filter-label">分類</span><span id="category-chips"></span></div>
         <div class="filter-set"><span class="filter-label">状態</span><span id="status-chips"></span></div>
       </div>
-      <p class="registry-note">意味キーは業務概念を一意に示します。コード名・型名・DB名・API名・UI表示名を分離して管理し、解析候補は承認されるまで表示しません。</p>
+      <p class="registry-note">内容要約キーは業務概念を一意に示します。コード名・型名・DB名・API名・UI表示名を分離して管理し、解析候補は承認されるまで表示しません。</p>
       <div class="sec-label">承認済み用語</div>
       <div class="pt-tablewrap dp-tablewrap">
         <table id="dict-table">
-          <thead><tr><th>意味キー</th><th>日本語名</th><th>英語名</th><th>定義</th><th>適用範囲</th><th>分類</th><th>コード名</th><th>型名</th><th>DB名</th><th>API名</th><th>UI表示名</th><th>許容値</th><th>状態</th><th>備考</th></tr></thead>
+          <thead><tr><th>内容要約キー</th><th>日本語名</th><th>英語名</th><th>定義</th><th>適用範囲</th><th>分類</th><th>コード名</th><th>型名</th><th>DB名</th><th>API名</th><th>UI表示名</th><th>許容値</th><th>状態</th><th>備考</th></tr></thead>
           <tbody id="dict-table-body"></tbody>
         </table>
       </div>
