@@ -363,7 +363,7 @@ if [ "${1:-}" = "--self-test" ]; then
         selftest_layout_json_st="$(resolve_output_layout "$tmp/docs_ok")" || { ok_all=0; continue; }
         selftest_unit_root_key_st="$(unit_root_key_for_kind "$kind")" || { ok_all=0; continue; }
         selftest_unit_root_rel_st="$(output_layout_get "$selftest_layout_json_st" "$selftest_unit_root_key_st")" || { ok_all=0; continue; }
-        selftest_phase_label_st="$(design_unit_phase_label "$phase")" || { ok_all=0; continue; }
+        selftest_phase_label_st="$(design_unit_phase_label "$phase" "$tmp/docs_ok")" || { ok_all=0; continue; }
         selftest_phase_dir_st="$tmp/docs_ok/$selftest_unit_root_rel_st/${kind}-selftest-${kind}/$selftest_phase_label_st"
         while IFS= read -r selftest_fill_file; do
           [ -z "$selftest_fill_file" ] && continue
@@ -381,6 +381,41 @@ if [ "${1:-}" = "--self-test" ]; then
       pass=$((pass + 1))
     else
       echo "FAIL: 5種別×2phaseの展開とverifyのいずれかが失敗" >&2
+      fail=$((fail + 1))
+    fi
+
+    # 対象側のoutput-layout.jsonで3phaseの名前を変えた場合も、その宣言値へ展開する。
+    custom_phase_root="$tmp/docs_custom_phase"
+    mkdir -p "$custom_phase_root"
+    cat > "$custom_phase_root/output-layout.json" <<'JSON'
+{
+  "specVersion": 1,
+  "unitPhaseDirNames": {
+    "basic": "foundation-spec",
+    "detail": "implementation-spec"
+  },
+  "layout": {
+    "unitTestDesignDir": "quality-spec"
+  }
+}
+JSON
+    custom_phase_ok=1
+    for custom_phase_pair in "basic:foundation-spec" "detail:implementation-spec" "test:quality-spec"; do
+      custom_phase="${custom_phase_pair%%:*}"
+      custom_phase_dir="${custom_phase_pair#*:}"
+      if ! bash "$self_path" api "$custom_phase" "$custom_phase_root" custom-layout-api "宣言追従API" >/dev/null 2>&1; then
+        custom_phase_ok=0
+        continue
+      fi
+      if [ ! -d "$custom_phase_root/docs/design/apis/api-custom-layout-api/$custom_phase_dir" ]; then
+        custom_phase_ok=0
+      fi
+    done
+    if [ "$custom_phase_ok" -eq 1 ]; then
+      echo "PASS: 基本設計・詳細設計・テスト設計を対象側の配置宣言どおりに展開" >&2
+      pass=$((pass + 1))
+    else
+      echo "FAIL: 対象側の3phase配置宣言への追従" >&2
       fail=$((fail + 1))
     fi
 
