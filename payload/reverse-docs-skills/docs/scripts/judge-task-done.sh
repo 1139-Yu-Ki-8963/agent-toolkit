@@ -403,7 +403,17 @@ judge_publish() {
   # （名前をこのスクリプトへ直接書き込まない）。ファイルが読めない場合は
   # 除外なしで判定を続けず、判定不能として止める（除外漏れによる
   # 誤った「未反映」判定を避けるため）。
-  local -a exclude_args=(--exclude=.DS_Store --exclude=node_modules --exclude='*.local.yml')
+  # .venv と __pycache__ は依存を構築したときに実行環境ごとに作られる。
+  # 配る対象ではないが、正本と配布先の両方に残ると diff が差として拾い、
+  # 中身の食い違いを「未反映」と誤って報告する。実測（2026-08-28）で
+  # この誤報が起き、原因を探すのに時間を要した。
+  local -a exclude_args=(
+    --exclude=.DS_Store
+    --exclude=node_modules
+    --exclude='*.local.yml'
+    --exclude=.venv
+    --exclude=__pycache__
+  )
   if [ ! -f "$PUBLISH_FORBIDDEN_NAMES_FILE" ]; then
     PUBLISH_MSG="判定不能（除外名の定義ファイルが無い: ${PUBLISH_FORBIDDEN_NAMES_FILE}）"
     rm -rf "$tmp_src" "$tmp_pub"
