@@ -294,7 +294,11 @@ stage_prepare_input() {
     record_result prepare-input OK "対象側の対象外宣言を維持し、共通設計文書5件だけを配置した"
     return 0
   fi
-  local args=("--repo" "${REPO}" "--output" "${OUTPUT_DIR}")
+  # --repo はテンプレートの置き場を探す起点であり、このリポジトリ自身を指す。
+  # 対象側（${REPO}）を渡すと、対象側にテンプレートが無いため必ず落ちる。
+  # 実測（2026-08-28）で、対象外宣言を持たない見本に対して3段が落ちていた。
+  # 対象外宣言を持つ経路は既に ${REPO_SELF} を渡しており、そちらが正しい。
+  local args=("--repo" "${REPO_SELF}" "--output" "${OUTPUT_DIR}")
   [ -n "${INPUT_LOCATION}" ] && args+=("--input" "${INPUT_LOCATION}")
   run_cmd bash "${script}" "${args[@]}"
   if [ "${LAST_RC}" -eq 0 ]; then
