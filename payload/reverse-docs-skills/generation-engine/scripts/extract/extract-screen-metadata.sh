@@ -533,6 +533,16 @@ EOF
       and (.screens[1] | has("scenarioPath") | not)
       and (.screens[1] | has("confirmationPath") | not)
     ' "$out_b"
+    check "1-40: 実在する設計書4リンクだけを付与" '
+      (.screens[0].designDocPath | type == "string")
+      and (.screens[0].detailDocPath | type == "string")
+      and (.screens[0].sequencePath | type == "string")
+      and (.screens[0].testCasePath | type == "string")
+      and (.screens[1] | has("designDocPath") | not)
+      and (.screens[1] | has("detailDocPath") | not)
+      and (.screens[1] | has("sequencePath") | not)
+      and (.screens[1] | has("testCasePath") | not)
+    ' "$out_b"
     check "1-41: 設計書見出しの確定画面名を書き戻し、推定名は保持" '
       .screens[0].confirmedScreenName == "確定ユーザー管理"
       and (.screens[0].screenNameGuess | not)

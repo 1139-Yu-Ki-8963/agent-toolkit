@@ -949,13 +949,13 @@ stage_rules_scaffold() {
 
 ## 調査メタ
 
-対象リポジトリ \`${REPO}\` を生成の一連で調査した記録です。
+対象リポジトリ \`$(basename "${REPO}")\` を生成の一連で調査した記録です。
 
 ## 技術スタック
 
 | 項目 | 内容 | 参照先 |
 |---|---|---|
-| 定義ファイル | 実在しない（主要な技術定義ファイルを検出していません） | \`${REPO}\` |
+| 定義ファイル | 実在しない（主要な技術定義ファイルを検出していません） | \`$(basename "${REPO}")\` |
 
 ## ビルドと起動
 
@@ -965,7 +965,7 @@ stage_rules_scaffold() {
 
 | ディレクトリ | 責務 | 参照先 |
 |---|---|---|
-| \`.\` | 調査対象のルート | \`${REPO}\` |
+| \`.\` | 調査対象のルート | \`$(basename "${REPO}")\` |
 EOF
 
   jq -n --arg generatedAt "${generated_at}" --arg source "${OUTPUT_DIR}/${common_root}/アーキテクチャ調査書.md#技術スタック" '{
@@ -1252,6 +1252,7 @@ DEPS
   mkdir -p "${scr_test_dir}"
   scr_manifest="${scr_test_dir}/screen-manifest.json"
   REPO="${scr_test_dir}" write_empty_screen_manifest "${scr_manifest}"
+
   if [ -f "${scr_manifest}" ] \
     && jq -e '(.detectionSummary.unitCount == 0) and (.screens == []) and ((.note // "") | length > 0)' "${scr_manifest}" >/dev/null 2>&1; then
     _case_pass "続行-画面検出失敗" "空の画面マニフェストが妥当なJSONで書き出され後続が進める"

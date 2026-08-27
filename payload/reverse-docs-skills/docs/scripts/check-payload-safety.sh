@@ -139,7 +139,7 @@ forbidden_skill_names() {
 check_no_local_paths() {
   local target="$1"
   local hits
-  hits="$(grep -rnE --exclude="$SELF_BASENAME" "$HOME_PATH_PATTERN" "$target" 2>/dev/null || true)"
+  hits="$(grep -rnE --exclude="$SELF_BASENAME" --exclude-dir=.venv --exclude-dir=node_modules --exclude-dir=__pycache__ --exclude-dir=.git "$HOME_PATH_PATTERN" "$target" 2>/dev/null || true)"
   if [ -n "$hits" ]; then
     echo "[FAIL] 実行環境の固有パスが含まれています:"
     printf '%s\n' "$hits" | sed 's/^/  /'
@@ -151,7 +151,7 @@ check_no_local_paths() {
 check_no_account_name() {
   local target="$1"
   local hits
-  hits="$(grep -rnE --exclude="$SELF_BASENAME" "$GH_ACCOUNT_PATTERN" "$target" 2>/dev/null || true)"
+  hits="$(grep -rnE --exclude="$SELF_BASENAME" --exclude-dir=.venv --exclude-dir=node_modules --exclude-dir=__pycache__ --exclude-dir=.git "$GH_ACCOUNT_PATTERN" "$target" 2>/dev/null || true)"
   if [ -n "$hits" ]; then
     echo "[FAIL] GitHubのアカウント名が含まれています:"
     printf '%s\n' "$hits" | sed 's/^/  /'
@@ -212,7 +212,7 @@ check_no_forbidden_mentions() {
     examined=$((examined + 1))
     escaped="$(escape_ere "$name")"
     pattern="(^|[^A-Za-z0-9_-])${escaped}([^A-Za-z0-9_-]|\$)"
-    hits="$(grep -rnE --exclude="$SELF_BASENAME" "$pattern" "$target" 2>/dev/null || true)"
+    hits="$(grep -rnE --exclude="$SELF_BASENAME" --exclude-dir=.venv --exclude-dir=node_modules --exclude-dir=__pycache__ --exclude-dir=.git "$pattern" "$target" 2>/dev/null || true)"
     if [ -n "$hits" ]; then
       echo "[FAIL] 非公開のスキルの名前が本文に含まれています: ${name}"
       printf '%s\n' "$hits" | sed 's/^/  /'

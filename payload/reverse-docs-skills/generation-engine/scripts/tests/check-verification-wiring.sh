@@ -229,7 +229,7 @@ run_check2() {
           case "$rel" in
             "$repo"/*) rel="${rel#"$repo"/}" ;;
           esac
-          echo "WARN2: 目印があるが集約に含まれる: $rel"
+          echo "WARN2: 二重に実行される（本体からの委譲と集約からの直接実行）: $rel"
           count2=$((count2 + 1))
         fi
         continue
@@ -237,6 +237,13 @@ run_check2() {
       # 名前で集約される一発実行テストは、--self-test を持たなくても実際の
       # 集約一覧にあること自体が配線済みの証拠になる。
       if [ -n "$listed" ] && listed_contains "$listed" "$f"; then
+        continue
+      fi
+      # 同じ場所に <名前>.test.sh の入口があり、それが集約一覧に載っているなら
+      # 本体は入口経由で実行される。本体を改名せずに集約へ載せる形であり、
+      # 配線済みとして扱う（2026-08-28に10件へこの形を適用した）。
+      entry="${f%.sh}.test.sh"
+      if [ -f "$entry" ] && [ -n "$listed" ] && listed_contains "$listed" "$entry"; then
         continue
       fi
       rel="$f"
@@ -481,7 +488,7 @@ EOS
   chmod +x "$repoG/generation-engine/scripts/tests/test-exempt-but-listed.sh"
   local outG
   outG="$(run_check2 "$repoG")"
-  if printf '%s\n' "$outG" | grep -qF 'WARN2: 目印があるが集約に含まれる' \
+  if printf '%s\n' "$outG" | grep -qF 'WARN2: 二重に実行される' \
     && printf '%s\n' "$outG" | grep -qE '検査2b: 目印を持ちながら集約に含まれるもの 1 件' \
     && printf '%s\n' "$outG" | grep -qE '検査2: 自己テストを持たない判定スクリプト 0 件'; then
     assert_true "検査2-目印付きだが集約に含まれると別警告" 0

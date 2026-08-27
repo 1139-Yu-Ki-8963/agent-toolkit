@@ -89,6 +89,10 @@ _has_declaration() {
   grep -qF "この参照を（${label}" "$file" 2>/dev/null
 }
 
+# 短縮ラベルは繰り返し使う識別語であり短い（実測: 正当なラベルは最長7文字）。
+# 補足の括弧書き
+# （例:「（詳細設計書であれば6項目: クラス設計・…）」）を短縮参照と
+# 読み違えないよう、ラベルの長さで絞る（2026-08-28実測で2件の誤検知）。
 # ファイル本文中の短縮形参照「（<ラベル>: <値>）」のラベル部分を、重複を
 # まとめて1行1レコードで返す。awk の match()/substr() で抽出する（ファイル
 # 冒頭の「ロケールについて」の注記のとおり、LC_ALL=C は設定しない）。
@@ -106,7 +110,16 @@ _extract_shorthand_labels() {
       print s
       $0 = substr($0, RSTART + RLENGTH)
     }
-  }' "$file" 2>/dev/null | sed -E 's/^（([^:：]+): .*/\1/' | sort -u
+  }' "$file" 2>/dev/null | sed -E 's/^（([^:：]+): .*/\1/' \
+    | while IFS= read -r _label; do
+        # awk の length はバイト単位で数える（実測: 7文字の日本語が21）。
+        # 文字数で数えるため wc -m を使う。
+        # 実装判断（ロケール）: wc -m は LC_ALL=C の下でバイト単位で数える。
+        # 呼び出し元が LC_ALL=C を設定していても文字数で数えるため都度明示する
+        # （2026-08-28実測。C の下では7文字の日本語が21と数えられた）。
+        [ "$(printf '%s' "$_label" | LC_ALL=en_US.UTF-8 wc -m | tr -d ' ')" -le 8 ] \
+          && printf '%s\n' "$_label"
+      done | sort -u
 }
 
 check_document() {

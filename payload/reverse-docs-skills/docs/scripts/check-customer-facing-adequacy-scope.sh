@@ -117,7 +117,7 @@ run_self_test() {
   local pass=0 fail=0
   local tmp
 
-  if ! tmp="$(mktemp -d 2>/dev/null)" || [ -z "$tmp" ]; then
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/customer-facing-scope.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
     echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境のサンドボックス制約等が原因である可能性があります）"
     return 2
   fi
