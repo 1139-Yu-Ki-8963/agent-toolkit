@@ -233,11 +233,16 @@ resolve_extraction_source_dir() {
 }
 
 excluded_kinds_file() {
+  # 一覧の置き場は英字（lists）へ移した。日本語（一覧）は移行前の名前であり、
+  # 既に配った成果物のために残す。実測（2026-08-28）で、英字を探さないため
+  # 画面0件の見本に対する生成連鎖が3段落ちていた。
   local candidate
   for candidate in \
     "${OUTPUT_DIR}/docs/scope-and-progress/excluded-kinds.json" \
+    "${OUTPUT_DIR}/lists/excluded-kinds.json" \
     "${OUTPUT_DIR}/一覧/excluded-kinds.json" \
     "${REPO}/docs/scope-and-progress/excluded-kinds.json" \
+    "${REPO}/lists/excluded-kinds.json" \
     "${REPO}/一覧/excluded-kinds.json"; do
     if [ -f "${candidate}" ]; then
       printf '%s' "${candidate}"
