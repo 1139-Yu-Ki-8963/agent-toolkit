@@ -19,7 +19,13 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 DRIFT_SCRIPT="$REPO_ROOT/generation-engine/scripts/check-derived-drift.sh"
-SAMPLES_ROOT="$REPO_ROOT/generation-engine/samples"
+# 見本は2つある。画面を持つものと持たないものである。
+# 画面を持たない見本は台帳を持たず、手作業の書き換えを検知できない
+# 状態だった（2026-08-28実測）。両方を走査の対象にする。
+SAMPLES_ROOTS=(
+  "$REPO_ROOT/generation-engine/samples"
+  "$REPO_ROOT/generation-engine/samples-no-screen"
+)
 
 usage() {
   echo "usage: $0 [--self-test]" >&2
@@ -27,17 +33,23 @@ usage() {
 }
 
 run_check() {
-  local out rc=0
-  out="$(bash "$DRIFT_SCRIPT" status "$SAMPLES_ROOT" 2>&1)" || rc=$?
-  if [ "$rc" -eq 0 ]; then
-    echo "PASS: 台帳(derived-fingerprints.json)と generation-engine/samples が一致"
-    echo "実行 1 件 / 合格 1 件 / 不合格 0 件"
-    return 0
-  fi
-  echo "FAIL: 台帳と generation-engine/samples が不一致(終了コード $rc)" >&2
-  printf '%s\n' "$out" >&2
-  echo "実行 1 件 / 合格 0 件 / 不合格 1 件"
-  return 1
+  local out rc root name pass=0 fail=0
+  for root in "${SAMPLES_ROOTS[@]}"; do
+    [ -d "$root" ] || continue
+    name="${root#"$REPO_ROOT/"}"
+    rc=0
+    out="$(bash "$DRIFT_SCRIPT" status "$root" 2>&1)" || rc=$?
+    if [ "$rc" -eq 0 ]; then
+      echo "PASS: 台帳(derived-fingerprints.json)と ${name} が一致"
+      pass=$((pass + 1))
+    else
+      echo "FAIL: 台帳と ${name} が不一致(終了コード $rc)" >&2
+      printf '%s\n' "$out" >&2
+      fail=$((fail + 1))
+    fi
+  done
+  echo "実行 $((pass + fail)) 件 / 合格 ${pass} 件 / 不合格 ${fail} 件"
+  [ "$fail" -eq 0 ]
 }
 
 case "${1:-}" in

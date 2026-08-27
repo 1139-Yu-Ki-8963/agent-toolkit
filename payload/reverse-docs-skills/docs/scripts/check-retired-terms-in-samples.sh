@@ -45,7 +45,12 @@ run_check() {
     terms+=("$term")
   done < <(jq -r '.terms[].term' "$terms_file")
 
+  # 見本は2つある。画面を持つものと持たないものである。
+  # 片方だけを走査すると、もう片方に廃止語が残っても検知できない
+  # （2026-08-28実測。同じ構造の取り残しが文体の検査とずれ台帳で起きた）。
   targets=("$repo_root/generation-engine/samples" "$repo_root/delivery-payload/templates")
+  [ -d "$repo_root/generation-engine/samples-no-screen" ] \
+    && targets+=("$repo_root/generation-engine/samples-no-screen")
   for target in "${targets[@]}"; do
     if [ ! -d "$target" ]; then
       echo "[SKIP] 対象なし: ${target#$repo_root/}"
