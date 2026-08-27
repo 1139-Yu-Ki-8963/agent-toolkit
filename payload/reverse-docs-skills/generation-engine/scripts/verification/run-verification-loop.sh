@@ -92,7 +92,6 @@ ${repo}/generation-engine/scripts/verification/verification-env.sh
 ${repo}/generation-engine/scripts/verification/run-layer-machine-checks.sh
 ${repo}/generation-engine/scripts/verification/run-layer-full-pipeline.sh
 ${repo}/generation-engine/scripts/verification/check-coverage.sh
-${repo}/generation-engine/scripts/verification/check-self-contained.sh
 ${repo}/generation-engine/scripts/verification/check-reproducible.sh
 ${repo}/generation-engine/scripts/verification/check-sound.sh
 EOS
@@ -177,8 +176,17 @@ run_loop() {
   local coverage_line
   coverage_line="$(printf '%s\n' "$cov_out" | tail -1)"
 
-  sc_out="$(bash "${repo}/generation-engine/scripts/verification/check-self-contained.sh" --repo "$repo" 2>&1)"
-  sc_rc=$?
+  # check-self-contained.sh はこのリポジトリ自身を測る道具であり、公開対象から外している
+  # （.claude/rules/always/publish/complete/rule.md の「公開対象から外す資産」）。
+  # 配布先には存在しないため、在るときだけ実行し、無いときは対象なしとして扱う。
+  local sc_script="${repo}/generation-engine/scripts/verification/check-self-contained.sh"
+  if [ -f "$sc_script" ]; then
+    sc_out="$(bash "$sc_script" --repo "$repo" 2>&1)"
+    sc_rc=$?
+  else
+    sc_out="自立: 対象なし（check-self-contained.sh は公開対象外のため配布先に存在しない）"
+    sc_rc=0
+  fi
   emit_child_output "$sc_out"
   local self_contained_line
   self_contained_line="$(printf '%s\n' "$sc_out" | tail -1)"
