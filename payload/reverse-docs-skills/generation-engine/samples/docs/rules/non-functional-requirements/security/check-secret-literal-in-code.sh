@@ -309,7 +309,10 @@ self_test() {
   local rc=0 msg code
 
   # 系1: AWS アクセスキー形式 → 拒否
-  local t1='const key = "AKIAABCDEFGHIJKLMNOP";'
+  # 秘密の値を検出する側の hook(push 時の検査)が、この自己テストの入力そのものを秘密の値と読み違えないよう、
+  # 接頭辞と残りを分けて実行時に連結する(値は同じ。実測 2026-08-28: 配布先の push が止まった)
+  local aws_key_suffix='ABCDEFGHIJKLMNOP'
+  local t1='const key = "AKIA'"$aws_key_suffix"'";'
   if msg="$(judge "app.js" "$t1")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF "秘密の値をコードへ書かない"; then
     echo "  [PASS] 系1: AWSキー形式は拒否される（${msg}）"
@@ -319,7 +322,9 @@ self_test() {
   fi
 
   # 系2: 秘密鍵ヘッダ → 拒否
-  local t2='-----BEGIN RSA PRIVATE KEY-----
+  # 系1と同じ理由で、鍵の見出し語を実行時に連結する(値は同じ)
+  local pk_word='PRIVATE'
+  local t2='-----BEGIN RSA '"$pk_word"' KEY-----
 MIIEpAIBAAKCAQEA...
 -----END RSA PRIVATE KEY-----'
   if msg="$(judge "app.js" "$t2")"; then code=0; else code=$?; fi
@@ -462,7 +467,10 @@ jobs:
 
   # 系14: 処理の入口らしい記述が無い → 対象外（権限の確認を処理の側で行う）
   local tmp14
-  tmp14="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-literal-in-code-self-test.XXXXXX")"
+  if ! tmp14="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-literal-in-code-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp14" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
+    exit 2
+  fi
   local t14='function add(a, b) { return a + b; }'
   if msg="$(judge "app.js" "$t14" "$tmp14")"; then code=0; else code=$?; fi
   rm -rf "$tmp14"
@@ -475,7 +483,10 @@ jobs:
 
   # 系15: 処理の入口はあるが権限の確認の宣言が無い → 通知（権限の確認を処理の側で行う）
   local tmp15
-  tmp15="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-literal-in-code-self-test.XXXXXX")"
+  if ! tmp15="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-literal-in-code-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp15" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
+    exit 2
+  fi
   local t15='app.get("/admin", function (req, res) { res.send("ok"); });'
   if msg="$(judge "app.js" "$t15" "$tmp15")"; then code=0; else code=$?; fi
   rm -rf "$tmp15"
@@ -488,7 +499,10 @@ jobs:
 
   # 系16: 宣言はあるが権限の確認の呼び出しが処理の入口に無い → 拒否（権限の確認を処理の側で行う）
   local tmp16
-  tmp16="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-literal-in-code-self-test.XXXXXX")"
+  if ! tmp16="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-literal-in-code-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp16" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
+    exit 2
+  fi
   mkdir -p "$tmp16/docs/rules/security/permission-check"
   cat > "$tmp16/docs/rules/security/permission-check/rule.md" <<'EOF'
 # セキュリティ要件
@@ -511,7 +525,10 @@ EOF
 
   # 系17: 宣言があり権限の確認の呼び出しが処理の入口にある → 許可（権限の確認を処理の側で行う）
   local tmp17
-  tmp17="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-literal-in-code-self-test.XXXXXX")"
+  if ! tmp17="$(mktemp -d "${TMPDIR:-/tmp}/check-secret-literal-in-code-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp17" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
+    exit 2
+  fi
   mkdir -p "$tmp17/docs/rules/security/permission-check"
   cat > "$tmp17/docs/rules/security/permission-check/rule.md" <<'EOF'
 # セキュリティ要件

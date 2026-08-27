@@ -42,11 +42,11 @@
     },
     {
       "id": "inventory-dependency-kind",
-      "description": "deliverable-inventory の dependsOnKind を portal-catalog の blueprint kind へ対応させる",
+      "description": "deliverable-inventory の依存宣言(requiresAllOf / requiresAnyOf / 旧 dependsOnKind)の種別を portal-catalog の blueprint kind へ対応させる",
       "relation": "subset",
       "minimumSourceCount": 1,
       "minimumTargetCount": 1,
-      "source": { "file": "deliverable-inventory.json", "query": ".items[].dependsOnKind? | select(. != null)" },
+      "source": { "file": "deliverable-inventory.json", "query": ".items[] | ((.requiresAllOf // []) + (.requiresAnyOf // []) + (if .dependsOnKind then [.dependsOnKind] else [] end))[]" },
       "target": { "file": "portal-catalog.json", "query": ".categories[].blueprints[].kind" }
     },
     {

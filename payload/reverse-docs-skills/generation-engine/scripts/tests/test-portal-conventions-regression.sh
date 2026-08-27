@@ -15,7 +15,7 @@ if ! grep -Fq 'SKIP: 色トークン（生成時に tokens.css を注入）' <<<
 fi
 
 if ! tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/portal-conventions-regression.XXXXXX" 2>/dev/null)" || [ -z "$tmp_dir" ]; then
-  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
   exit 2
 fi
 trap 'rm -rf "$tmp_dir"' EXIT
@@ -50,7 +50,7 @@ echo "PASS portal conventions raw-template scope regression"
 # 持つ無関係なHTMLと生成物が混ざる。--file-list で生成物だけを渡した場合、無関係な
 # HTML由来のFAILが出ないことを確認する（ディレクトリ指定では両方のFAILが混在する）。
 if ! scope_dir="$(mktemp -d "${TMPDIR:-/tmp}/portal-conventions-scope.XXXXXX" 2>/dev/null)" || [ -z "$scope_dir" ]; then
-  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
   exit 2
 fi
 trap 'rm -rf "$tmp_dir" "$scope_dir"' EXIT

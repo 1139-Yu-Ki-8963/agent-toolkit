@@ -1,0 +1,64 @@
+{
+  "generatedAt": "2026-08-27T23:44:05Z",
+  "sourceDir": "docs/design/externals",
+  "unitKind": "external",
+  "strategy": {
+    "extractionMethod": "document-frontmatter",
+    "approvedByUser": true,
+    "unitIdRegex": null
+  },
+  "detectionSummary": {
+    "unitCount": 1,
+    "unresolvedCount": 0,
+    "diagnostics": {
+      "extensionExtraction": {
+        "addedUnitCount": 1,
+        "total": 1,
+        "weakEvidence": {
+          "count": 0,
+          "total": 1,
+          "ratio": 0,
+          "warning": false
+        },
+        "rules": [
+          {
+            "name": "direction",
+            "searchedFor": "送信 client または受信 endpoint",
+            "matchedUnitCount": 1
+          },
+          {
+            "name": "protocol",
+            "searchedFor": "SFTP webhook REST の通信記法",
+            "matchedUnitCount": 1
+          },
+          {
+            "name": "authMethod",
+            "searchedFor": "OAuth API key Basic の認証記法",
+            "matchedUnitCount": 1
+          }
+        ]
+      }
+    }
+  },
+  "units": [
+    {
+      "sourceFile": "src/integrations/address_verify.py",
+      "unitId": "external-address_verify",
+      "unitKey": "address_verify",
+      "designDocPath": "../../../docs/design/externals/external-address_verify/基本設計/外部連携基本設計書.html",
+      "detailDocPath": "../../../docs/design/externals/external-address_verify/詳細設計/外部連携詳細設計書.html",
+      "integrationTestViewpointPath": "../../../docs/design/externals/external-address_verify/テスト設計/外部連携テスト設計書.md",
+      "integrationTestCasePath": "../../../docs/design/externals/external-address_verify/テスト設計/外部連携テスト設計書.md",
+      "testCasePath": "../../../docs/design/externals/external-address_verify/テスト設計/外部連携単体テスト設計書.md",
+      "unitTestViewpointPath": "../../../docs/design/externals/external-address_verify/テスト設計/外部連携単体テスト設計書.md",
+      "identifier": "未確認",
+      "kind": "client",
+      "confidence": "high",
+      "detectionMethod": "document-frontmatter",
+      "fileCount": null,
+      "direction": "送信",
+      "protocol": "REST",
+      "authMethod": "OAuth2"
+    }
+  ]
+}

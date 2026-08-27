@@ -149,7 +149,7 @@ function project(name, inputPath, expectedStatus=0, registryPath=canonicalRegist
 
 try {
   const source = fs.readFileSync(template, 'utf8');
-  assert.match(source, /<th>意味キー<\/th>[\s\S]*<th>日本語名<\/th>[\s\S]*<th>英語名<\/th>[\s\S]*<th>定義<\/th>[\s\S]*<th>適用範囲<\/th>[\s\S]*<th>分類<\/th>[\s\S]*<th>コード名<\/th>[\s\S]*<th>型名<\/th>[\s\S]*<th>DB名<\/th>[\s\S]*<th>API名<\/th>[\s\S]*<th>UI表示名<\/th>[\s\S]*<th>許容値<\/th>[\s\S]*<th>状態<\/th>[\s\S]*<th>備考<\/th>/);
+  assert.match(source, /<th>内容要約キー<\/th>[\s\S]*<th>日本語名<\/th>[\s\S]*<th>英語名<\/th>[\s\S]*<th>定義<\/th>[\s\S]*<th>適用範囲<\/th>[\s\S]*<th>分類<\/th>[\s\S]*<th>コード名<\/th>[\s\S]*<th>型名<\/th>[\s\S]*<th>DB名<\/th>[\s\S]*<th>API名<\/th>[\s\S]*<th>UI表示名<\/th>[\s\S]*<th>許容値<\/th>[\s\S]*<th>状態<\/th>[\s\S]*<th>備考<\/th>/);
   assert.doesNotMatch(source, /責任者|\bowner\b/);
   assert.match(source, /TOP<\/a> ／ \{\{ACTIVE_CATEGORY_LABEL\}\} ／/, 'template breadcrumb must resolve the middle segment from the active category label placeholder (改善課題1-35)');
   ['aliases','forbidden','representations','relations','examples','constraints','security','evidence'].forEach(group => assert.match(source, new RegExp("key:'" + group + "'")));
@@ -260,7 +260,7 @@ try {
       new RegExp('TOP</a> ／ ' + glossaryCategoryLabel + ' ／'),
       'built glossary page breadcrumb must resolve the "project" category label from portal-catalog.json (改善課題1-35)'
     );
-    assert.match(projectedHtml, /<th>意味キー<\/th>[\s\S]*<th>DB名<\/th>[\s\S]*<th>API名<\/th>[\s\S]*<th>備考<\/th>/);
+    assert.match(projectedHtml, /<th>内容要約キー<\/th>[\s\S]*<th>DB名<\/th>[\s\S]*<th>API名<\/th>[\s\S]*<th>備考<\/th>/);
     assert.deepEqual(Object.keys(projected.data.terms[0]).slice(0, 14), ['key','term_ja','term_en','definition','scope','category','code_name','type_name','db_name','api_name','ui_label','allowed_values','status','notes']);
     ['aliases','forbidden','representations','relations','examples','constraints','security','evidence'].forEach(group => assert.match(projectedHtml, new RegExp("key:'" + group + "'")));
     runtimeCheck(path.join(projectedOut, '用語辞書.html'));

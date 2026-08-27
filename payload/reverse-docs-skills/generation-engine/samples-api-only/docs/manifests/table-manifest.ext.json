@@ -1,0 +1,69 @@
+{
+  "generatedAt": "2026-08-27T23:44:07Z",
+  "sourceDir": "docs/design/tables",
+  "unitKind": "table",
+  "strategy": {
+    "extractionMethod": "document-frontmatter",
+    "approvedByUser": true,
+    "unitIdRegex": null
+  },
+  "detectionSummary": {
+    "unitCount": 1,
+    "unresolvedCount": 0,
+    "diagnostics": {
+      "extensionExtraction": {
+        "addedUnitCount": 1,
+        "total": 1,
+        "weakEvidence": {
+          "count": 0,
+          "total": 1,
+          "ratio": 0,
+          "warning": false
+        },
+        "rules": [
+          {
+            "name": "foreignKeys",
+            "searchedFor": "CREATE TABLE と FOREIGN KEY 制約",
+            "matchedUnitCount": 1
+          },
+          {
+            "name": "columnCount",
+            "searchedFor": "最終状態の列定義",
+            "matchedUnitCount": 1
+          },
+          {
+            "name": "mainColumns",
+            "searchedFor": "主キーまたは主要列の定義",
+            "matchedUnitCount": 1
+          }
+        ]
+      }
+    }
+  },
+  "units": [
+    {
+      "sourceFile": "001_create_users.sql",
+      "unitId": "table-users",
+      "unitKey": "users",
+      "designDocPath": "../../../docs/design/tables/table-users/基本設計/論理データモデル.html",
+      "detailDocPath": "../../../docs/design/tables/table-users/詳細設計/テーブル定義書.html",
+      "integrationTestViewpointPath": "../../../docs/design/tables/table-users/テスト設計/テーブルテスト設計書.md",
+      "integrationTestCasePath": "../../../docs/design/tables/table-users/テスト設計/テーブルテスト設計書.md",
+      "testCasePath": "../../../docs/design/tables/table-users/テスト設計/テーブル単体テスト設計書.md",
+      "unitTestViewpointPath": "../../../docs/design/tables/table-users/テスト設計/テーブル単体テスト設計書.md",
+      "identifier": "users",
+      "kind": "table",
+      "confidence": "high",
+      "detectionMethod": "document-frontmatter",
+      "fileCount": null,
+      "columnCount": 4,
+      "mainColumns": [
+        "id",
+        "email",
+        "organization_id",
+        "created_at"
+      ],
+      "foreignKeys": []
+    }
+  ]
+}

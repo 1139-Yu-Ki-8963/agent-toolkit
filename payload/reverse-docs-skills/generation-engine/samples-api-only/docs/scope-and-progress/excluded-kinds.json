@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-01-01T00:00:00+09:00",
+  "surveyDocPath": "プロジェクト共通/アーキテクチャ調査書.md",
+  "allKinds": [
+    "screen",
+    "api",
+    "table",
+    "batch",
+    "report",
+    "external"
+  ],
+  "presentKinds": [
+    "api",
+    "table",
+    "batch",
+    "report",
+    "external"
+  ],
+  "excludedKinds": [
+    {
+      "kind": "screen",
+      "label": "画面",
+      "reason": "画面を持たず API だけを持つ対象のため画面が存在しない"
+    }
+  ]
+}

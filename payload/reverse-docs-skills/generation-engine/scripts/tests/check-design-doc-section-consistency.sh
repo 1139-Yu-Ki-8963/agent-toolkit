@@ -509,7 +509,7 @@ JSON
   # 課題1-196回帰: 文書の置き場ではなくプロジェクトルートを要求し、0件を合格にしない。
   local tmp_root_arg req_root_arg out_wrong_root rc_wrong_root usage_out
   if ! tmp_root_arg="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_root_arg" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   SELF_TEST_DIRS+=("$tmp_root_arg")
@@ -527,7 +527,7 @@ JSON
   # 検収1: 必須節を欠いた文書はFAILかつ非0。
   local tmp_1 req_1 out_1 rc_1
   if ! tmp_1="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_1" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   SELF_TEST_DIRS+=("$tmp_1")
@@ -542,7 +542,7 @@ JSON
   # 検収2: 規約適合の2件が少数でもFAILにせず、欠落した5件だけをFAILにする。
   local tmp_2 req_2 out_2 rc_2 i
   if ! tmp_2="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_2" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   SELF_TEST_DIRS+=("$tmp_2")
@@ -564,7 +564,7 @@ JSON
   # 検収3: 必須節が揃う文書だけなら無FAIL・exit 0。
   local tmp_3 req_3 out_3 rc_3
   if ! tmp_3="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_3" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   SELF_TEST_DIRS+=("$tmp_3")
@@ -580,7 +580,7 @@ JSON
   # 検収4: 定義だけに必須節を追加すると、スクリプトを変えずに新たな欠落を検出する。
   local tmp_4 req_4 out_4 rc_4
   if ! tmp_4="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_4" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   SELF_TEST_DIRS+=("$tmp_4")
@@ -596,7 +596,7 @@ JSON
   # 検収5: 必須節が揃い順だけ違う場合はWARN・exit 0。
   local tmp_5 req_5 out_5 rc_5
   if ! tmp_5="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_5" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   SELF_TEST_DIRS+=("$tmp_5")
@@ -612,7 +612,7 @@ JSON
   # 追加回帰1: 定義JSONの構造をfail closedで検証する。
   local tmp_validation req_validation
   if ! tmp_validation="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_validation" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   SELF_TEST_DIRS+=("$tmp_validation")
@@ -635,7 +635,7 @@ JSON
   # 追加回帰2: 欠落と順序相違が併存すればFAILとWARNを両方出す。
   local tmp_both req_both out_both rc_both
   if ! tmp_both="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_both" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   SELF_TEST_DIRS+=("$tmp_both")
@@ -651,7 +651,7 @@ JSON
   # 追加回帰3: 未定義basenameは同一kind/basenameにつき1回だけWARN・exit 0。
   local tmp_undefined req_undefined out_undefined rc_undefined undefined_count
   if ! tmp_undefined="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_undefined" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   SELF_TEST_DIRS+=("$tmp_undefined")
@@ -672,7 +672,7 @@ JSON
   # macOSのTMPDIRは /var 経由であり、この契約に抵触するため、物理パスである
   # リポジトリ直下に短命のfixtureを置く。
   if ! tmp_6="$(mktemp -d "$REPO_ROOT/.design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_6" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   SELF_TEST_DIRS+=("$tmp_6")
@@ -719,7 +719,7 @@ JSON
 
   local tmp_7 out_7 rc_7 kind basename source_dir target_dir
   if ! tmp_7="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_7" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   SELF_TEST_DIRS+=("$tmp_7")
@@ -761,7 +761,7 @@ EOF
   # scaffold-design-unit.sh は出力先の親にsymlinkがある場合を拒否する。macOSの
   # TMPDIRは /var 経由になるため、検収6と同じく物理パスのリポジトリ直下を使う。
   if ! tmp_201="$(mktemp -d "$REPO_ROOT/.design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_201" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   SELF_TEST_DIRS+=("$tmp_201")
@@ -795,7 +795,7 @@ EOF
   # 区別して報告すること、表列の相違も検出することを確認する。
   local tmp_268 doc_268 out_268_ok rc_268_ok
   if ! tmp_268="$(mktemp -d "$REPO_ROOT/.design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_268" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   SELF_TEST_DIRS+=("$tmp_268")

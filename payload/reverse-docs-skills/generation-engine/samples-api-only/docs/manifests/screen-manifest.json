@@ -1,0 +1,23 @@
+{
+  "generatedAt": "2026-08-27T23:44:07Z",
+  "sourceDir": "docs/design/screens",
+  "unitKind": "screen",
+  "note": "対象外の記録に基づき画面の抽出を行わない(画面を持たない対象)",
+  "strategy": {
+    "extractionMethod": "excluded-by-declaration",
+    "approvedByUser": true,
+    "screenIdRegex": null,
+    "unitIdRegex": null
+  },
+  "detectionSummary": {
+    "unitCount": 0,
+    "unresolvedCount": 0,
+    "method": "detection-failed",
+    "screenCount": 0,
+    "clusterCount": 0,
+    "sharedScreenCount": 0,
+    "embeddedCandidateCount": 0
+  },
+  "screens": [],
+  "units": []
+}

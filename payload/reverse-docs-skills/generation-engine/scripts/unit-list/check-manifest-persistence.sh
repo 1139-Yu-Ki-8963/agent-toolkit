@@ -98,8 +98,22 @@ run_check() {
     if [ -f "$ext_manifest_path" ]; then
       local base_unit_count
       base_unit_count="$(jq -r '(.screens // .units // []) | length' "$manifest_path" 2>/dev/null)"
+      # 生成器(extract/finalize-extension-manifest.sh)が残す診断
+      # detectionSummary.diagnostics.extensionExtraction の addedUnitCount と
+      # weakEvidence を読む。対象1件以上で追加項目0件、または弱い根拠の割合が1.0
+      # (全件が弱い根拠)なら、抽出が機能していないため不合格にする(改善課題1-88 項目4)。
+      # 診断が無い旧い拡張版は、下の項目差分の検査だけで判定する。
+      local ext_diag
+      ext_diag="$(jq -r '
+        (.detectionSummary.diagnostics.extensionExtraction // empty)
+        | "\(.addedUnitCount // "-")\t\(.weakEvidence.ratio // "-")\t\(.weakEvidence.warning // false)"
+      ' "$ext_manifest_path" 2>/dev/null)"
       if [ "$base_unit_count" = "0" ]; then
         printf '  [PASS] %s: %s (対象0件のため追加項目検査を省略)\n' "$folder_name" "$ext_manifest_name"
+      elif [ -n "$ext_diag" ] && { [ "$(printf '%s' "$ext_diag" | cut -f1)" = "0" ] || [ "$(printf '%s' "$ext_diag" | cut -f3)" = "true" ]; }; then
+        printf '  [FAIL] %s: %s は追加項目が0件、または全件が弱い根拠 (addedUnitCount=%s weakEvidence.ratio=%s)\n' \
+          "$folder_name" "$ext_manifest_name" "$(printf '%s' "$ext_diag" | cut -f1)" "$(printf '%s' "$ext_diag" | cut -f2)" >&2
+        this_ok=0
       elif _gt_out1="$(jq -e --slurpfile base "$manifest_path" '
         (.screens // .units // []) as $extended
         | ([$extended | to_entries[] | .key as $i | .value as $after
@@ -222,6 +236,28 @@ self_test() {
       echo "  [PASS] 陰性: 追加項目なしの拡張マニフェストを終了コード1で検出"
     else
       echo "  [FAIL] 陰性: 追加項目なしの終了コード1と理由を確認できない（実際の終了コード: ${emptyext_rc}）" >&2
+      rc=1
+    fi
+  fi
+
+  # ケース4-診断: 項目の差分はあるが、生成器の診断が「追加0件・全件が弱い根拠」を
+  # 示す拡張版は不合格になる(addedUnitCount / weakEvidence を読む経路の確認)
+  local weak_dir="$tmp/weak-output"
+  mkdir -p "$weak_dir/$self_test_units_root/画面一覧" "$weak_dir/$self_test_manifests_root"
+  echo '<html></html>' > "$weak_dir/$self_test_units_root/画面一覧/画面一覧.html"
+  echo '{"screens":[{"screenKey":"s1"}]}' > "$weak_dir/$self_test_manifests_root/screen-manifest.json"
+  echo '{"screens":[{"screenKey":"s1","route":"/x"}],"detectionSummary":{"diagnostics":{"extensionExtraction":{"addedUnitCount":0,"total":1,"weakEvidence":{"count":1,"total":1,"ratio":1,"warning":true}}}}}' \
+    > "$weak_dir/$self_test_manifests_root/screen-manifest.ext.json"
+  local weak_output weak_rc
+  if weak_output=$(run_check "$weak_dir" 2>&1); then
+    echo "  [FAIL] 陰性: 診断が全件弱い根拠を示す拡張マニフェストがPASSした" >&2
+    rc=1
+  else
+    weak_rc=$?
+    if [ "$weak_rc" -eq 1 ] && printf '%s' "$weak_output" | grep -q "addedUnitCount=0"; then
+      echo "  [PASS] 陰性: 診断の addedUnitCount=0・weakEvidence.warning=true を終了コード1で検出"
+    else
+      echo "  [FAIL] 陰性: 診断による不合格の終了コード1と理由を確認できない（実際の終了コード: ${weak_rc}）" >&2
       rc=1
     fi
   fi

@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-08-28T08:44:20+09:00",
+  "dataSource": "api-manifest.json + feature-manifest.json + table-manifest.json",
+  "tables": [
+    {
+      "physicalName": "users"
+    }
+  ],
+  "features": []
+}

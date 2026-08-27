@@ -33,6 +33,8 @@ EXPECTED_STEP4='4. `[UNKNOWN]` または更新の失敗時は統合せず、原�
 EXPECTED_DETECTION='更新後に `/maintaining-portal --mode regenerate --root "$PWD" --source-root "$PWD"` で一覧とポータルの表示値を作り直し、`bash reverse-docs-engine/generation-engine/scripts/check-derived-values.sh "$PWD" --commits-only` を実行する。「表示コミット-ポータル」または「表示コミット-画面」が検知された場合は統合せず、本段へ戻る。鮮度判定、`source_ref` の更新、同じ `/maintaining-portal --mode regenerate`、表示コミットの検査を順に再実行する。'
 EXPECTED_RECORD_LINE='| 設計書 | <更新した場合は「更新: `<設計単位のキーと更新後のコミット（全長40桁）の一覧>`」、更新しなかった場合は「影響なし: <鮮度判定が示した根拠>」> |'
 
+# 見出しの完全一致比較($0 == "### …")は LC_ALL=C で行う。macOS 標準 LC_ALL=C awk は UTF-8 ロケールで
+# 多バイト文字列の == を誤り、1件の見出しを7件と数えた(実測 2026-08-28)。手元で動いても戻さない。
 run_awk_capture() {
   local label="$1" rc output
   shift
@@ -40,7 +42,7 @@ run_awk_capture() {
     echo "[UNKNOWN] ${label}でawkの故障を検知したため判定できません" >&2
     return 2
   fi
-  output="$(awk "$@" 2>&1)"
+  output="$(LC_ALL=C awk "$@" 2>&1)"
   rc=$?
   if [ "$rc" -gt 1 ]; then
     echo "[UNKNOWN] ${label}でawkが失敗したため判定できません: $output" >&2
@@ -57,7 +59,7 @@ run_awk_text_capture() {
     echo "[UNKNOWN] ${label}でawkの故障を検知したため判定できません" >&2
     return 2
   fi
-  output="$(awk "$@" <<< "$input" 2>&1)"
+  output="$(LC_ALL=C awk "$@" <<< "$input" 2>&1)"
   rc=$?
   if [ "$rc" -gt 1 ]; then
     echo "[UNKNOWN] ${label}でawkが失敗したため判定できません: $output" >&2
@@ -391,7 +393,7 @@ run_self_test() {
   assert_fail "設計書欄が完了記録の外なら不合格になる" run_step_check "$misplaced_record"
 
   sibling_record="$SELF_TEST_TMP/sibling-record.md"
-  if ! awk -v expected="$EXPECTED_RECORD_LINE" '
+  if ! LC_ALL=C awk -v expected="$EXPECTED_RECORD_LINE" '
     $0 == expected { next }
     /^ファイルを新規作成する場合/ && inserted == 0 {
       print "### 別の完了欄"
@@ -446,7 +448,7 @@ run_self_test() {
   assert_fail "手順番号付きでも必須語の羅列だけなら機械選択検査は不合格になる" run_mechanized_check "$numbered_keyword_salad"
 
   multiline_valid="$SELF_TEST_TMP/multiline-valid.md"
-  if ! awk '{
+  if ! LC_ALL=C awk '{
     gsub("。各詳細設計書", "。\n   各詳細設計書")
     gsub("。非画面6種別", "。\n   非画面6種別")
     gsub("。画面は", "。\n   画面は")
@@ -484,7 +486,7 @@ run_self_test() {
   assert_fail "検知リンクの必須語を1行に羅列しただけなら不合格になる" run_detection_check "$detection_keyword_salad"
 
   overridden_step="$SELF_TEST_TMP/overridden-step.md"
-  if ! awk '
+  if ! LC_ALL=C awk '
     BEGIN { in_section = 0; inserted = 0 }
     /^### 設計書の表示コミットを更新する$/ { in_section = 1 }
     in_section == 1 && /^### / && $0 != "### 設計書の表示コミットを更新する" {
@@ -507,7 +509,7 @@ run_self_test() {
   assert_fail "有効な更新段を否定・人手選択の指示で上書きしたら不合格になる" run_all "$overridden_step"
 
   excluded_step="$SELF_TEST_TMP/excluded-step.md"
-  if ! awk '
+  if ! LC_ALL=C awk '
     BEGIN { in_section = 0; inserted = 0 }
     /^### 設計書の表示コミットを更新する$/ { in_section = 1 }
     in_section == 1 && /^### / && $0 != "### 設計書の表示コミットを更新する" {
@@ -530,7 +532,7 @@ run_self_test() {
   assert_fail "有効な更新段を適用除外・担当者裁量で上書きしたら不合格になる" run_all "$excluded_step"
 
   unneeded_step="$SELF_TEST_TMP/unneeded-step.md"
-  if ! awk '
+  if ! LC_ALL=C awk '
     /^### 入口のページを更新する$/ && inserted == 0 {
       print "本段は実施不要とし、更新対象は担当者が決定する。"
       inserted = 1
@@ -544,7 +546,7 @@ run_self_test() {
   assert_fail "実施不要・担当者決定で上書きしたら不合格になる" run_all "$unneeded_step"
 
   safe_override="$SELF_TEST_TMP/safe-override.md"
-  if ! awk '
+  if ! LC_ALL=C awk '
     /^### 入口のページを更新する$/ && inserted == 0 {
       print "担当者の裁量に委ねず、機械判定へ従う。"
       inserted = 1
@@ -565,7 +567,7 @@ run_self_test() {
   assert_fail "更新の段がPhase5外なら不合格になる" run_all "$wrong_phase"
 
   wrong_position="$SELF_TEST_TMP/wrong-position.md"
-  if ! awk '
+  if ! LC_ALL=C awk '
     /^### 入口のページを更新する$/ && inserted == 0 {
       print "### 別の更新段"
       print "別の処理を行う。"
@@ -582,7 +584,7 @@ run_self_test() {
   duplicate_before_phase="$SELF_TEST_TMP/duplicate-before-phase.md"
   if ! {
     printf '### 設計書の表示コミットを更新する\n\n前方に置いた偽の段。\n\n'
-    awk '
+    LC_ALL=C awk '
       /^### 設計書の表示コミットを更新する$/ { in_target = 1; print; next }
       in_target == 1 && /^### 入口のページを更新する$/ { in_target = 0; print; next }
       in_target == 1 { next }
@@ -595,7 +597,7 @@ run_self_test() {
   assert_fail "文書前方に同名節がありPhase5側が空でも不合格になる" run_all "$duplicate_before_phase"
 
   fenced_section="$SELF_TEST_TMP/fenced-section.md"
-  if ! awk '
+  if ! LC_ALL=C awk '
     /^### 設計書の表示コミットを更新する$/ && opened == 0 {
       print "```markdown"
       opened = 1
@@ -613,7 +615,7 @@ run_self_test() {
   assert_fail "コードフェンス内の同名見出しは実効sectionとして扱わない" run_all "$fenced_section"
 
   extra_sentence="$SELF_TEST_TMP/extra-sentence.md"
-  if ! awk '
+  if ! LC_ALL=C awk '
     /^### 入口のページを更新する$/ && inserted == 0 {
       print "判定結果を参考に、最終的な対象は状況に応じて調整する。"
       inserted = 1
@@ -627,7 +629,7 @@ run_self_test() {
   assert_fail "canonical grammar外の任意の非空追記は不合格になる" run_all "$extra_sentence"
 
   assert_unknown "存在しない入力は判定不能になる" run_step_check "$SELF_TEST_TMP/missing.md"
-  assert_unknown "section抽出awkの失敗はUNKNOWNとして伝播する" run_forced_internal_failure awk "$fixture"
+  assert_unknown "section抽出awkの失敗はUNKNOWNとして伝播する" run_forced_internal_failure LC_ALL=C awk "$fixture"
   assert_unknown "意味検査grepの失敗はUNKNOWNとして伝播する" run_forced_internal_failure grep "$fixture"
   assert_unknown "self-test driverは故障注入のUNKNOWNと終了コード2を伝播する" env SOURCE_REF_SELF_TEST_FORCE_UNKNOWN=1 bash "$0" --self-test
 

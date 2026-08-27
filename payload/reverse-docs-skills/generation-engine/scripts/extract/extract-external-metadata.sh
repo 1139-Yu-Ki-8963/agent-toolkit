@@ -64,7 +64,7 @@ self_test() {
   script_dir="$(cd "$(dirname "$script_path")" && pwd)"
   local tmp rc=0
   if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-external-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   trap 'rm -rf "$tmp"' RETURN
@@ -265,7 +265,7 @@ resolve_path() {
 mkdir -p "$(dirname "$OUTPUT_JSON")"
 
 if ! units_tmp="$(mktemp "${TMPDIR:-/tmp}/extract-external-units.XXXXXX" 2>/dev/null)" || [ -z "$units_tmp" ]; then
-  echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
   exit 2
 fi
 
@@ -274,7 +274,7 @@ _EXTRACT_EXTERNAL_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../detect-encoding.sh
 source "$_EXTRACT_EXTERNAL_SCRIPT_DIR/../detect-encoding.sh"
 if ! SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-external-metadata-scan.XXXXXX" 2>/dev/null)" || [ -z "$SCAN_WORKDIR" ]; then
-  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
   exit 2
 fi
 
@@ -353,7 +353,7 @@ diagnostics_json="{}"
 #     実装コードから参照されているかを、パターンファイルへの単一 grep -rhoFf 走査で判定する ---
 if [ -n "$DEFINITION_FILE" ] && [ -f "$DEFINITION_FILE" ]; then
   if ! def_entries="$(mktemp "${TMPDIR:-/tmp}/extract-external-defs.XXXXXX" 2>/dev/null)" || [ -z "$def_entries" ]; then
-    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   grep -vE '^[[:space:]]*(#|$)' "$DEFINITION_FILE" > "$def_entries" || true

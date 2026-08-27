@@ -1,0 +1,67 @@
+{
+  "generatedAt": "2026-08-27T23:44:05Z",
+  "sourceDir": "docs/design/batches",
+  "unitKind": "batch",
+  "strategy": {
+    "extractionMethod": "document-frontmatter",
+    "approvedByUser": true,
+    "unitIdRegex": null
+  },
+  "detectionSummary": {
+    "unitCount": 1,
+    "unresolvedCount": 0,
+    "diagnostics": {
+      "extensionExtraction": {
+        "addedUnitCount": 1,
+        "total": 1,
+        "weakEvidence": {
+          "count": 0,
+          "total": 1,
+          "ratio": 0,
+          "warning": false
+        },
+        "rules": [
+          {
+            "name": "schedule",
+            "searchedFor": "cron ファイルの5フィールド式",
+            "matchedUnitCount": 0
+          },
+          {
+            "name": "targetTables",
+            "searchedFor": "ジョブ内のテーブル識別子",
+            "matchedUnitCount": 0
+          },
+          {
+            "name": "downstreamJobs",
+            "searchedFor": "enqueue または実行呼び出し",
+            "matchedUnitCount": 0
+          },
+          {
+            "name": "execMethod",
+            "searchedFor": "shebang または main ガード",
+            "matchedUnitCount": 1
+          }
+        ]
+      }
+    }
+  },
+  "units": [
+    {
+      "sourceFile": "src/jobs/audit_archive.py",
+      "unitId": "batch-audit_archive",
+      "unitKey": "audit_archive",
+      "designDocPath": "../../../docs/design/batches/batch-audit_archive/基本設計/バッチ基本設計書.html",
+      "detailDocPath": "../../../docs/design/batches/batch-audit_archive/詳細設計/バッチ詳細設計書.html",
+      "integrationTestViewpointPath": "../../../docs/design/batches/batch-audit_archive/テスト設計/バッチテスト設計書.md",
+      "integrationTestCasePath": "../../../docs/design/batches/batch-audit_archive/テスト設計/バッチテスト設計書.md",
+      "testCasePath": "../../../docs/design/batches/batch-audit_archive/テスト設計/バッチ単体テスト設計書.md",
+      "unitTestViewpointPath": "../../../docs/design/batches/batch-audit_archive/テスト設計/バッチ単体テスト設計書.md",
+      "identifier": "未確認",
+      "kind": "scheduled",
+      "confidence": "high",
+      "detectionMethod": "document-frontmatter",
+      "fileCount": null,
+      "execMethod": "python3 src/jobs/audit_archive.py"
+    }
+  ]
+}

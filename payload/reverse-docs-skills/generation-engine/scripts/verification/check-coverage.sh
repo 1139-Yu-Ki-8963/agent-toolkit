@@ -52,6 +52,36 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # として扱うため、本カテゴリの9件からは除く。
 LIST_EXCLUDE_JSON='["screen","screen-transition","semantic-glossary","er-diagram","entity-state"]'
 
+# dropped_kinds_json <repo> <output_dir> <layout_json>
+# 分母から外す種別の JSON 配列を標準出力へ返す。対象外の記録が無ければ [] を返す。
+# 外すのは (1) 対象外の記録に載る種別、(2) deliverable-inventory.json の依存宣言が
+# 成立しない納品物の種別(requiresAllOf に対象外の種別を含む、または requiresAnyOf が
+# すべて対象外。旧 dependsOnKind は requiresAllOf 1件と同じ扱い)。
+dropped_kinds_json() {
+  local repo="$1" output_dir="$2" layout_json="$3"
+  local excluded_rel excluded_path inventory_json
+  inventory_json="${repo}/delivery-payload/references/deliverable-inventory.json"
+  excluded_rel="$(output_layout_get "$layout_json" excludedKinds 2>/dev/null)" || excluded_rel="docs/scope-and-progress/excluded-kinds.json"
+  excluded_path="${output_dir}/${excluded_rel}"
+  if [ ! -f "$excluded_path" ] || [ ! -f "$inventory_json" ]; then
+    printf '[]'
+    return 0
+  fi
+  jq -c --slurpfile ex "$excluded_path" '
+    ([($ex[0].excludedKinds // [])[].kind] + [($ex[0].excludedDeliverables // [])[].kind]) as $excluded
+    | [ .items[]
+        | . as $item
+        | (($item.requiresAllOf // []) + (if $item.dependsOnKind then [$item.dependsOnKind] else [] end)) as $all
+        | ($item.requiresAnyOf // []) as $any
+        | select(
+            ($excluded | index($item.kind)) != null
+            or ([$all[] | select(. as $d | $excluded | index($d))] | length) > 0
+            or (($any | length) > 0 and ([$any[] | select(. as $d | ($excluded | index($d)) | not)] | length) == 0)
+          )
+        | .kind ] | unique
+  ' "$inventory_json"
+}
+
 # repo: リポジトリのパス
 # 1行1件、"<成果物の名前>\t<output_dirからの相対パス>" 形式で標準出力へ返す。
 build_denominator() {
@@ -85,21 +115,34 @@ build_denominator() {
   screen_list_html="$(output_layout_get "$layout_json" screenListHtml)" || return 1
   rules_root="$(output_layout_get "$layout_json" rulesRoot)" || return 1
 
-  # --- 1) 画面一覧のマニフェストと一覧（3） ---
-  printf '画面マニフェストraw正本\t%s\n' "$screen_manifest"
-  printf '画面拡張マニフェスト\t%s\n' "$screen_manifest_ext"
-  printf '画面一覧\t%s\n' "$screen_list_html"
+  # --- 対象の輪郭に従って分母から外す種別を決める ---
+  # 対象外の記録(output-layout の excludedKinds キーの位置)が唯一の定義である。
+  # 対象外の種別そのものと、依存の集合宣言(deliverable-inventory.json の
+  # requiresAllOf / requiresAnyOf)が成立しない納品物を分母から外す。
+  # 以前は画面3件を無条件に分母へ入れ、記録を読まなかったため、画面を持たず
+  # API だけを持つ対象で網羅判定が通らなかった(docs/design/画面なしAPIのみ対象の設計.md 3節)。
+  local dropped_json
+  dropped_json="$(dropped_kinds_json "$repo" "$output_dir" "$layout_json")" || return 1
 
-  # --- 2) 種別別の一覧（カタログから動的に導出） ---
-  jq -r --argjson exclude "$LIST_EXCLUDE_JSON" '
+  # --- 1) 画面一覧のマニフェストと一覧（3。画面が対象外なら0） ---
+  if ! printf '%s' "$dropped_json" | jq -e 'index("screen")' >/dev/null; then
+    printf '画面マニフェストraw正本\t%s\n' "$screen_manifest"
+    printf '画面拡張マニフェスト\t%s\n' "$screen_manifest_ext"
+    printf '画面一覧\t%s\n' "$screen_list_html"
+  fi
+
+  # --- 2) 種別別の一覧（カタログから動的に導出。対象外の種別は外す） ---
+  jq -r --argjson exclude "$LIST_EXCLUDE_JSON" --argjson dropped "$dropped_json" '
     .categories[] | select(.key=="list") | .blueprints[]
     | select(.kind as $k | ($exclude | index($k) | not))
+    | select(.kind as $k | ($dropped | index($k) | not))
     | .label + "\t" + .discovery.glob
   ' "$catalog_json"
 
-  # --- 3) マトリクスと対応表（5） ---
-  jq -r '
+  # --- 3) マトリクスと対応表（5。依存が成立しないものは外す） ---
+  jq -r --argjson dropped "$dropped_json" '
     .categories[] | select(.key=="cross") | .blueprints[]
+    | select(.kind as $k | ($dropped | index($k) | not))
     | .label + "\t" + .discovery.glob
   ' "$catalog_json"
 
@@ -129,9 +172,10 @@ EOF
 $parent_lines
 EOF
 
-  # --- 5) デザインシステムと棚卸しとアイコン（3） ---
-  jq -r '
+  # --- 5) デザインシステムと棚卸しとアイコン（3。画面だけに依存するため画面が対象外なら0） ---
+  jq -r --argjson dropped "$dropped_json" '
     .categories[] | select(.key=="design-tools") | .blueprints[]
+    | select(.kind as $k | ($dropped | index($k) | not))
     | .label + "\t" + .discovery.glob
   ' "$catalog_json"
 
@@ -224,6 +268,25 @@ _self_test() {
     _case_pass "分母-件数" "分母の総件数が ${expected_total} 件（3+${list_total}+5+${rules_total}+3+1。設計文書記載の76とは既知の乖離があり本ケースは動的導出の内部整合性を検査する）"
   else
     _case_fail "分母-件数" "分母の総件数が ${total_actual} 件（期待 ${expected_total} 件）"
+  fi
+
+  # 分母-画面対象外（対象外の記録に画面だけが載る出力先では、画面のマニフェスト2件と
+  # 画面一覧、画面だけに依存する納品物(権限画面マトリクス・デザイン3件)が分母から外れ、
+  # API で成立する対応表4件と種別別一覧は残る）
+  local api_only_out="${tmp}/api-only-output" denom_api_only total_api_only expected_api_only
+  mkdir -p "${api_only_out}/docs/scope-and-progress"
+  printf '{"allKinds":["screen","api","table","batch","report","external"],"presentKinds":["api","table","batch","report","external"],"excludedKinds":[{"kind":"screen","label":"画面","reason":"検査用"}]}\n' \
+    > "${api_only_out}/docs/scope-and-progress/excluded-kinds.json"
+  denom_api_only="$(build_denominator "$repo" "$api_only_out")"
+  total_api_only="$(printf '%s\n' "$denom_api_only" | grep -c .)"
+  expected_api_only=$((total_actual - 3 - 1 - 3))
+  if [ "$total_api_only" -eq "$expected_api_only" ] \
+    && ! printf '%s\n' "$denom_api_only" | grep -q '権限画面マトリクス' \
+    && printf '%s\n' "$denom_api_only" | grep -q 'CRUD図' \
+    && printf '%s\n' "$denom_api_only" | grep -q 'API一覧'; then
+    _case_pass "分母-画面対象外" "画面だけが対象外の出力先で分母が ${total_api_only} 件（全種別ありの ${total_actual} 件から画面3件・権限画面1件・デザイン3件を外した値）"
+  else
+    _case_fail "分母-画面対象外" "分母が ${total_api_only} 件（期待 ${expected_api_only} 件）。権限画面の残存または CRUD図・API一覧の欠落"
   fi
 
   # 検出-存在 / 検出-欠落 / 終了コード-欠落時

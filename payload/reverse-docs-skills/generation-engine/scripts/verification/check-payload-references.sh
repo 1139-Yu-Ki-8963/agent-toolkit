@@ -82,6 +82,7 @@ collect_files() {
         -not -path "$base/delivery-payload/templates/リバース検証/*" \
         -not -path "$base/generation-engine/samples/*" \
         -not -path "$base/generation-engine/samples-no-screen/*" \
+        -not -path "$base/generation-engine/samples-api-only/*" \
         2>/dev/null
     elif [ -f "$p" ]; then
       printf '%s\n' "$p"

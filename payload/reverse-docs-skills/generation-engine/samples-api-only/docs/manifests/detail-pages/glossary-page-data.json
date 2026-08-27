@@ -1,0 +1,44 @@
+{
+  "pageKind": "glossary",
+  "generatedAt": "2026-08-27T23:44:18Z",
+  "title": "用語辞書",
+  "description": "承認済みの用語を示します。現在の承認済み用語は0件です。",
+  "projectionVersion": "0.2",
+  "glossarySchemaVersion": "1.0.0",
+  "glossaryContentVersion": "0.0.0",
+  "categories": [
+    {
+      "key": "entity",
+      "label": "エンティティ"
+    },
+    {
+      "key": "attribute",
+      "label": "属性"
+    },
+    {
+      "key": "value",
+      "label": "値"
+    },
+    {
+      "key": "process",
+      "label": "処理"
+    },
+    {
+      "key": "event",
+      "label": "イベント"
+    },
+    {
+      "key": "role",
+      "label": "役割"
+    },
+    {
+      "key": "rule",
+      "label": "ルール"
+    },
+    {
+      "key": "metric",
+      "label": "指標"
+    }
+  ],
+  "terms": []
+}

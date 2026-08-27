@@ -62,9 +62,88 @@ DUMMY_COMMIT="0000000000000000000000000000000000000000"
 usage() {
   cat <<'EOF'
 Usage:
-  prepare-verification-input.sh --output <出力先ディレクトリ> [--repo <リポジトリのパス>] [--common-design-only]
+  prepare-verification-input.sh --output <出力先ディレクトリ> [--repo <リポジトリのパス>] [--common-design-only] [--profile api-only]
   prepare-verification-input.sh --self-test
+
+  --profile api-only  画面を持たず API だけを持つ対象の輪郭で配置する。画面の雛形と
+                      画面一覧のマニフェストを置かず、対象外の記録
+                      (output-layout の excludedKinds キーの位置。既定
+                      docs/scope-and-progress/excluded-kinds.json)へ画面を対象外として書く。
+                      他の6種別(API・テーブル・バッチ・帳票・外部連携・機能)は通常どおり置く。
+                      設計: docs/design/画面なしAPIのみ対象の設計.md
 EOF
+}
+
+# 対象外の記録を書く。引数: 出力先ファイル, 対象外にする種別(空白区切り)。
+# 対象の輪郭はこのファイルだけが定義する(設計原則1)。生成連鎖・納品物一覧・
+# 網羅判定はすべてここから導く。
+write_excluded_kinds_record() {
+  local dest="$1" excluded="$2" kinds_json
+  kinds_json="$(printf '%s' "$excluded" | tr ' ' '\n' | grep -v '^$' | jq -R . | jq -s .)"
+  mkdir -p "$(dirname "$dest")"
+  jq -n --arg at "${FIXED_DATE}T00:00:00+09:00" --argjson ex "$kinds_json" '
+    ["screen","api","table","batch","report","external"] as $all
+    | {
+        generatedAt: $at,
+        surveyDocPath: "プロジェクト共通/アーキテクチャ調査書.md",
+        allKinds: $all,
+        presentKinds: ($all | map(select(. as $k | $ex | index($k) | not))),
+        excludedKinds: ($ex | map({kind: ., label: (if . == "screen" then "画面" else . end), reason: "画面を持たず API だけを持つ対象のため画面が存在しない"}))
+      }' > "$dest"
+}
+
+# ---- 関連資料の欄と本文の記入欄を埋めるヘルパー ----
+# 本文の記入欄は書き手が実際のコードを読んで埋める前提のため原則として対象外だが、
+# 見本(generation-engine/samples-api-only)は未置換の記入欄が残らない状態を
+# docs/scripts/check-sample-placeholders.sh が求める。同検査が拾う形
+# (<…のパス>・<…名>・<実測: 参照先カラム名>)だけを、検証用の固定値で埋める。
+# 値は決定的(同じ入力で同じ出力)にし、設計文書の相対配置に沿った参照先を書く。
+fill_related_paths() {
+  local relpath="$1" file="$2" kind_label related
+  case "$relpath" in
+    API/*) kind_label="API" ;;
+    テーブル/*) kind_label="テーブル" ;;
+    バッチ/*) kind_label="バッチ" ;;
+    帳票/*) kind_label="帳票" ;;
+    外部連携/*) kind_label="外部連携" ;;
+    *) kind_label="" ;;
+  esac
+  case "$relpath" in
+    */*テスト設計書.md|*/*基本設計書.md|*/論理データモデル.md)
+      related="../詳細設計/${kind_label}詳細設計書.md"
+      [ "$kind_label" = "テーブル" ] && related="../詳細設計/テーブル定義書.md"
+      ;;
+    */*詳細設計書.md|*/テーブル定義書.md)
+      related="../${UNIT_TEST_DESIGN_DIR}/${kind_label}テスト設計書.md"
+      ;;
+    機能/*)
+      related="./機能設計書.md"
+      ;;
+    *)
+      related="./機能要件一覧.md"
+      ;;
+  esac
+  replace_token "$file" '<対応する文書のパス>' "$related" || return 1
+  # <<文書名>のパス> は文書名の末尾から置き場を導く(基本設計/詳細設計/テスト設計)。
+  # perl を使うのは、多バイト文字を含む後方参照つきの置換を sed の実装差に
+  # 左右されず行うため(-Mutf8 を付けないと日本語の文字クラスが一致しない)。
+  UNIT_TEST_DESIGN_DIR="$UNIT_TEST_DESIGN_DIR" perl -CSD -Mutf8 -pi -e '
+    s{<([^<>]+?)のパス>}{
+      my $n = $1;
+      $n =~ /テスト設計書$/ ? "../$ENV{UNIT_TEST_DESIGN_DIR}/$n.md"
+      : $n =~ /基本設計書$|論理データモデル$/ ? "../基本設計/$n.md"
+      : "../詳細設計/$n.md"
+    }ge;
+    s/<実測: 参照先カラム名>/id/g;
+    s/<実測: 外部キーカラム名>/organization_id/g;
+    s/<実測: 状態名>/有効/g;
+    s/<実測: エンティティ名>/ユーザー/g;
+    s/<実測: 参照先テーブル名>/organizations/g;
+    s/<ブレークポイント名>/md/g;
+    s/<コンポーネント名>/Button/g;
+    s/<プロジェクト名>/検証用プロジェクト/g;
+    s/<画面名>/該当なし/g;
+  ' "$file" || return 1
 }
 
 # ---- token置換ヘルパー ----
@@ -515,10 +594,11 @@ run_prepare() {
   SCREEN_SRC="$(first_fixture_relpath "$FIXTURES_BASE/screen")"
 
   if [ -z "$API_SRC" ] || [ -z "$TABLE_SRC" ] || [ -z "$BATCH_SRC" ] || [ -z "$REPORT_SRC" ] \
-    || [ -z "$EXTERNAL_SRC" ] || [ -z "$FEATURE_SRC" ] || [ -z "$SCREEN_SRC" ]; then
+    || [ -z "$EXTERNAL_SRC" ] || [ -z "$FEATURE_SRC" ] || { [ "$PROFILE" != "api-only" ] && [ -z "$SCREEN_SRC" ]; }; then
     echo "ERROR: 代表とする疑似コードが1件以上見つかりません: $FIXTURES_BASE" >&2
     return 1
   fi
+  [ -n "$SCREEN_SRC" ] || SCREEN_SRC="screen/none.tsx"
 
   API_KEY="$(derive_key_from_relpath "$API_SRC")"
   TABLE_KEY="$(derive_key_from_relpath "$TABLE_SRC")"
@@ -531,17 +611,35 @@ run_prepare() {
   local file relpath dest
   while IFS= read -r file; do
     relpath="${file#"$TEMPLATE_ROOT"/}"
+    # API のみの輪郭では画面の雛形を置かない。対象の輪郭は対象外の記録が定義し、
+    # 画面の設計文書が1件も無い状態を作る(画面だけに依存する納品物は対象なしになる)。
+    # 共通文書のうち共通設計書・UI共通設計は画面だけに依存する
+    # (generating-reverse-common-docs の common-document-definitions.json が
+    # dependsOnKinds=["screen"] と宣言する)ため、同じく置かない。
+    if [ "$PROFILE" = "api-only" ]; then
+      case "$relpath" in
+        画面/*) continue ;;
+        "プロジェクト共通/共通設計書.md"|"プロジェクト共通/UI共通設計.md") continue ;;
+      esac
+    fi
     dest="$(dest_path_for "$relpath")" || return 1
     mkdir -p "$output_dir/$(dirname "$dest")"
     cp "$file" "$output_dir/$dest"
     fill_dates "$output_dir/$dest"
     apply_kind_fill "$relpath" "$output_dir/$dest" || return 1
+    fill_related_paths "$relpath" "$output_dir/$dest" || return 1
   # LC_ALL=C sort の理由は first_fixture_relpath() 直上のコメント参照（ロケール非依存の決定的順序）。
   done < <(find "$TEMPLATE_ROOT" -type f -name '*.md' | LC_ALL=C sort)
 
-  local screen_manifest_rel
-  screen_manifest_rel="$(output_layout_get "$layout_json" screenManifest)" || return 1
-  build_screen_manifest "$output_dir/$screen_manifest_rel"
+  if [ "$PROFILE" = "api-only" ]; then
+    local excluded_rel
+    excluded_rel="$(output_layout_get "$layout_json" excludedKinds)" || return 1
+    write_excluded_kinds_record "$output_dir/$excluded_rel" "screen"
+  else
+    local screen_manifest_rel
+    screen_manifest_rel="$(output_layout_get "$layout_json" screenManifest)" || return 1
+    build_screen_manifest "$output_dir/$screen_manifest_rel"
+  fi
 
   stage_fixture_code "$output_dir"
   stage_fixture_for_sourcefile_check "$output_dir" "$layout_json"
@@ -590,7 +688,7 @@ collect_frontmatter() {
 self_test() {
   local tmp pass=0 fail=0 total=0
   if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/prepare-verification-input-selftest.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   trap 'rm -rf "$tmp"' RETURN
@@ -787,6 +885,29 @@ self_test() {
     fail=$((fail + 1))
   fi
 
+  # ケース: APIのみ-画面不在と対象外記録
+  #   --profile api-only で配置すると、画面の設計文書と画面一覧のマニフェストを置かず、
+  #   対象外の記録へ画面だけを対象外として書き、他の6種別は通常どおり置く
+  total=$((total + 1))
+  local api_only_out="$tmp/api-only" api_only_rc screen_docs api_docs excluded_file
+  PROFILE="api-only"
+  run_prepare "$api_only_out" >/dev/null 2>&1
+  api_only_rc=$?
+  PROFILE=""
+  screen_docs="$(find "$api_only_out" -type d -name 'screen-*' 2>/dev/null | wc -l | tr -d ' ')"
+  api_docs="$(find "$api_only_out" -type f -name 'API詳細設計書.md' 2>/dev/null | wc -l | tr -d ' ')"
+  excluded_file="$api_only_out/docs/scope-and-progress/excluded-kinds.json"
+  if [ "$api_only_rc" -eq 0 ] && [ "$screen_docs" = "0" ] && [ "$api_docs" = "1" ] \
+    && [ ! -f "$api_only_out/docs/manifests/screen-manifest.json" ] \
+    && [ -f "$excluded_file" ] \
+    && jq -e '(.excludedKinds | map(.kind)) == ["screen"] and (.presentKinds | index("api")) != null' "$excluded_file" >/dev/null 2>&1; then
+    echo "[PASS] APIのみ-画面不在と対象外記録 — 画面の文書0件・API詳細設計書1件・対象外の記録は画面だけ"
+    pass=$((pass + 1))
+  else
+    echo "[FAIL] APIのみ-画面不在と対象外記録 — 実行終了コード ${api_only_rc} / 画面フォルダ ${screen_docs} 件 / API詳細設計書 ${api_docs} 件 / 記録 $([ -f "$excluded_file" ] && echo 有 || echo 無)"
+    fail=$((fail + 1))
+  fi
+
   echo "実行 ${total} 件 / 成功 ${pass} 件 / 失敗 ${fail} 件"
   [ "$fail" -eq 0 ]
 }
@@ -796,11 +917,20 @@ OUTPUT_DIR=""
 REPO_ROOT="$REPO_ROOT_DEFAULT"
 SELF_TEST=0
 COMMON_DESIGN_ONLY=0
+PROFILE=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --output)
       OUTPUT_DIR="${2:?--output には出力先ディレクトリが必要です}"
+      shift 2
+      ;;
+    --profile)
+      PROFILE="${2:?--profile には輪郭の名前が必要です}"
+      case "$PROFILE" in
+        api-only) ;;
+        *) echo "ERROR: --profile に指定できるのは api-only だけです: $PROFILE" >&2; exit 1 ;;
+      esac
       shift 2
       ;;
     --repo)

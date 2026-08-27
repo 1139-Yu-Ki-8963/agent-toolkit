@@ -1,0 +1,24 @@
+{
+  "unitKind": "test_case",
+  "generatedAt": "2026-08-27T23:44:09Z",
+  "units": [],
+  "summary": {
+    "totalCount": 0,
+    "byTestType": {
+      "unit": 0,
+      "integration": 0,
+      "scenario": 0
+    },
+    "byScreen": {},
+    "scannedByTestType": {
+      "unit": 12,
+      "integration": 0,
+      "scenario": 0
+    },
+    "excludedExampleRows": {
+      "unit": 5,
+      "integration": 0,
+      "scenario": 0
+    }
+  }
+}

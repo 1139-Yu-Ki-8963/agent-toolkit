@@ -152,19 +152,35 @@ run_cmd() {
 # 欠けても壊れないが、実際の検出結果と同じ形に揃えておく)を足したもの。
 # 失敗を隠さないよう、note に続行理由を記録する。
 write_empty_screen_manifest() {
-  local dest="$1"
-  local generated_at
+  local dest="$1" reason="${2:-detection-failed}"
+  local generated_at note method source_dir layout_json
   generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+  # sourceDir は他の種別のマニフェストと同じく出力先からの相対パス(画面の設計単位
+  # ルート)で書く。原本コードの絶対パスを書くと、実行環境の固有パスが生成物へ混入し
+  # 見本として保存できない(実測 2026-08-28: API のみの輪郭の見本で2ファイルに混入した)。
+  layout_json="$(resolve_output_layout "${OUTPUT_DIR}")" || layout_json=""
+  source_dir="$(output_layout_get "${layout_json}" screenUnitRoot 2>/dev/null)" || source_dir="docs/design/screens"
+  case "${reason}" in
+    excluded)
+      method="excluded-by-declaration"
+      note="対象外の記録に基づき画面の抽出を行わない(画面を持たない対象)"
+      ;;
+    *)
+      method="detection-failed"
+      note="画面の検出に失敗したため空のマニフェストで続行する"
+      ;;
+  esac
   jq -n \
     --arg generatedAt "${generated_at}" \
-    --arg sourceDir "${REPO}" \
-    --arg note "画面の検出に失敗したため空のマニフェストで続行する" \
+    --arg sourceDir "${source_dir}" \
+    --arg method "${method}" \
+    --arg note "${note}" \
     '{
       generatedAt: $generatedAt,
       sourceDir: $sourceDir,
       unitKind: "screen",
       note: $note,
-      strategy: { extractionMethod: "detection-failed", approvedByUser: true, screenIdRegex: null, unitIdRegex: null },
+      strategy: { extractionMethod: $method, approvedByUser: true, screenIdRegex: null, unitIdRegex: null },
       detectionSummary: {
         unitCount: 0, unresolvedCount: 0,
         method: "detection-failed", screenCount: 0, clusterCount: 0,
@@ -259,6 +275,17 @@ kind_is_excluded() {
     'any((.excludedKinds // [])[]; .kind == $kind)' "${file}" >/dev/null 2>&1
 }
 
+# 設計単位の6種別すべてが対象外か(何も持たない対象か)。
+# 種別横断で成立する納品物(テスト観点表・テストケース一覧・確認事項質問票)を
+# 飛ばしてよいのはこの場合だけである。
+all_unit_kinds_excluded() {
+  local kind
+  for kind in screen api table batch report external; do
+    kind_is_excluded "${kind}" || return 1
+  done
+  return 0
+}
+
 # ---- 各段の実行 ----------------------------------------------------------
 
 stage_prepare_output() {
@@ -277,6 +304,17 @@ stage_prepare_input() {
   local script="${REPO_SELF}/generation-engine/scripts/verification/prepare-verification-input.sh"
   if [ ! -f "${script}" ]; then
     record_result prepare-input SKIP "prepare-verification-input.sh が存在しない"
+    return 0
+  fi
+  # 輪郭の指定(--profile api-only)があるときは、疑似入力の配置が対象外の記録も
+  # 一緒に書く。対象側の記録を探す経路(下)より先に判定する。
+  if [ -n "${PROFILE}" ]; then
+    run_cmd bash "${script}" --repo "${REPO_SELF}" --output "${OUTPUT_DIR}" --profile "${PROFILE}"
+    if [ "${LAST_RC}" -eq 0 ]; then
+      record_result prepare-input OK "輪郭 ${PROFILE} の疑似入力と対象外の記録を配置した"
+    else
+      record_result prepare-input FAIL "輪郭 ${PROFILE} の配置に失敗した。終了コード ${LAST_RC}"
+    fi
     return 0
   fi
   local excluded_source excluded_destination
@@ -347,7 +385,7 @@ stage_type_extraction() {
   local screen_manifest_path="${MANIFESTS_DIR}/screen-manifest.json"
   if [ -f "${scr_script}" ]; then
     if kind_is_excluded screen; then
-      write_empty_screen_manifest "${screen_manifest_path}"
+      write_empty_screen_manifest "${screen_manifest_path}" excluded
       detail="${detail}screen=0(対象外宣言に基づき抽出を実行しない); "
     else
     # detect-screens.sh に出力先を直接渡すと、検出0件の結果(exit 0で0件・または
@@ -568,9 +606,13 @@ stage_unit_lists() {
     detail="${detail}message=skip; "
   fi
 
+  # テスト観点表・テストケース一覧は設計単位の全種別のテスト設計書を横断集約する
+  # (deliverable-inventory.json の requiresAnyOf=7種別)。画面が対象外でも API 等の
+  # 単位があれば生成する。以前は画面が対象外なら一律に飛ばしており、API のみの対象で
+  # この2件が欠けていた(docs/design/画面なしAPIのみ対象の設計.md 3節)。
   local viewpoint_manifest="${MANIFESTS_DIR}/test_viewpoint-manifest.json"
   local viewpoint_html_rel="${units_root}/test-viewpoint-list/テスト観点表.html"
-  if kind_is_excluded screen; then
+  if all_unit_kinds_excluded; then
     detail="${detail}test-viewpoint=対象外; "
   elif [ -f "${unit_script}" ] && [ -f "${viewpoint_manifest}" ]; then
     mkdir -p "$(dirname "${OUTPUT_DIR}/${viewpoint_html_rel}")"
@@ -583,7 +625,7 @@ stage_unit_lists() {
 
   local testcase_manifest="${MANIFESTS_DIR}/test_case-manifest.json"
   local testcase_html_rel="${units_root}/test-case-list/テストケース一覧.html"
-  if kind_is_excluded screen; then
+  if all_unit_kinds_excluded; then
     detail="${detail}test-case=対象外; "
   elif [ -f "${unit_script}" ] && [ -f "${testcase_manifest}" ]; then
     mkdir -p "$(dirname "${OUTPUT_DIR}/${testcase_html_rel}")"
@@ -623,10 +665,19 @@ stage_unit_lists() {
 
 stage_matrix() {
   local any_fail=0 detail=""
-  if kind_is_excluded screen; then
-    record_result matrix OK "画面依存の5納品物=対象外"
+  # 対応表5件のうち画面だけに依存するのは権限画面マトリクスの1件である
+  # (deliverable-inventory.json の requiresAllOf=["screen"])。CRUD 図・画面-API-
+  # テーブル対応表・権限機能マトリクスは API があれば成立し(requiresAnyOf=["api"])、
+  # 確認事項質問票はどの種別でも成立する。以前は画面が対象外なら5件を一律に
+  # 飛ばしており、API のみの対象で4件が欠けていた(docs/design/画面なしAPIのみ対象の設計.md 3節)。
+  if kind_is_excluded api && ! kind_is_excluded screen; then
+    :
+  elif kind_is_excluded api && all_unit_kinds_excluded; then
+    record_result matrix OK "対応表5件=対象外(設計単位の全種別が対象外)"
     return 0
   fi
+  local screen_excluded=0
+  kind_is_excluded screen && screen_excluded=1
   local data_script="${REPO_SELF}/generation-engine/scripts/extract/build-matrix-data.sh"
   local pages_script="${REPO_SELF}/generation-engine/scripts/matrix/build-matrix-pages.sh"
   local convert_script="${REPO_SELF}/generation-engine/scripts/extract/build-permission-function-data.sh"
@@ -731,6 +782,10 @@ stage_matrix() {
   if [ -f "${pages_script}" ]; then
     local pt pt_file pt_out pt_label
     for pt in permission-screen permission-function crud traceability confirmation-survey; do
+      if [ "${pt}" = "permission-screen" ] && [ "${screen_excluded}" -eq 1 ]; then
+        detail="${detail}permission-screen=対象外; "
+        continue
+      fi
       case "${pt}" in
         permission-screen) pt_file="${matrix_out}/permission-matrix.json"; pt_label="権限画面マトリクス" ;;
         permission-function)
@@ -977,7 +1032,10 @@ stage_rules_scaffold() {
 | \`.\` | 調査対象のルート | \`$(basename "${REPO}")\` |
 EOF
 
-  jq -n --arg generatedAt "${generated_at}" --arg source "${OUTPUT_DIR}/${common_root}/アーキテクチャ調査書.md#技術スタック" '{
+  # 根拠の参照は出力先からの相対パスで書く。絶対パス(${OUTPUT_DIR} 付き)にすると、
+  # 実行環境の固有パスが生成物へ混入し、見本として保存できず再現判定でも相違になる
+  # (実測 2026-08-28: API のみの輪郭で技術スタックの2ファイルだけが相違した)。
+  jq -n --arg generatedAt "${generated_at}" --arg source "${common_root}/アーキテクチャ調査書.md#技術スタック" '{
     pageKind:"techstack", generatedAt:$generatedAt, title:"技術スタック",
     description:"対象リポジトリから確認できた技術定義を整理した結果です。",
     tiles:[], columns:["項目","内容","根拠"], rows:[],
@@ -1051,7 +1109,14 @@ stage_portal_build() {
   foundation_root="$(output_layout_get "${layout_json}" foundationDir 2>/dev/null)" || foundation_root="project-portal/foundation"
   ai_data="${OUTPUT_DIR}/${manifests_root}/ai-assets.json"
   ai_output="${OUTPUT_DIR}/${foundation_root}/AI設定資産.html"
-  run_cmd bash "${extract_ai_script}" "${REPO}" "${ai_data}"
+  # AI設定資産の走査起点は対象側(${REPO})である。対象を指定せずこのリポジトリ自身を
+  # 起点にしている場合(疑似入力による検証・見本の生成)は、このリポジトリの規約・
+  # スキルではなく、生成連鎖が出力先へ作った規約(.claude/rules 等)を走査する。
+  # 実測(2026-08-28): 見本の AI設定資産にこのリポジトリ自身の公開規約の要約が混入し、
+  # 辞書の検査に掛かったうえ、納品先の見本として意味を持たなかった。
+  local ai_assets_root="${REPO}"
+  [ "${REPO}" = "${REPO_SELF}" ] && ai_assets_root="${OUTPUT_DIR}"
+  run_cmd bash "${extract_ai_script}" "${ai_assets_root}" "${ai_data}"
   if [ "${LAST_RC}" -eq 0 ]; then
     run_cmd bash "${matrix_script}" ai-assets "${ai_data}" "${ai_output}" \
       --portal-dir "${PORTAL_DIR}"
@@ -1487,18 +1552,27 @@ JSON
 
 usage() {
   cat <<'EOS'
-使い方: run-layer-full-pipeline.sh --output <出力先> [--repo <リポジトリのパス>] [--input <疑似入力の位置>] [--keep] [--self-test]
+使い方: run-layer-full-pipeline.sh --output <出力先> [--repo <リポジトリのパス>] [--input <疑似入力の位置>] [--profile api-only] [--keep] [--self-test]
+  --profile api-only  画面を持たず API だけを持つ対象の輪郭で疑似入力を配置し、対象外の記録に
+                      画面だけを対象外として書いてから生成連鎖を走らせる
 EOS
 }
 
 main() {
-  local output="" repo="" input="" keep=0 self_test_mode=0
+  local output="" repo="" input="" keep=0 self_test_mode=0 profile=""
 
   while [ $# -gt 0 ]; do
     case "$1" in
       --output) output="${2:-}"; shift 2 ;;
       --repo) repo="${2:-}"; shift 2 ;;
       --input) input="${2:-}"; shift 2 ;;
+      --profile)
+        profile="${2:-}"
+        case "${profile}" in
+          api-only) ;;
+          *) echo "ERROR: --profile に指定できるのは api-only だけです: ${profile}" >&2; exit 2 ;;
+        esac
+        shift 2 ;;
       --keep) keep=1; shift ;;
       --self-test) self_test_mode=1; shift ;;
       -h|--help) usage; exit 0 ;;
@@ -1541,6 +1615,7 @@ main() {
   [ -n "${repo}" ] && REPO_EXPLICIT=1
   [ -z "${REPO}" ] && REPO="${REPO_SELF}"
   INPUT_LOCATION="${input}"
+  PROFILE="${profile}"
   KEEP="${keep}"
 
   MANIFESTS_DIR="${OUTPUT_DIR}/docs/manifests"

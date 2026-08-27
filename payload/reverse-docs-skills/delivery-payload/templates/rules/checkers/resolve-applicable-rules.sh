@@ -164,7 +164,7 @@ self_test() {
   # 系1: glob にマッチしないファイルで (none) が返る
   local tmp1
   if ! tmp1="$(mktemp -d "${TMPDIR:-/tmp}/resolve-applicable-rules-self-test1.XXXXXX" 2>/dev/null)" || [ -z "$tmp1" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
     exit 2
   fi
   mkdir -p "$tmp1/docs/rules/code/naming"
@@ -193,7 +193,7 @@ EOF
   # 系2: scope: always の規約が glob によらず全ファイルに適用される
   local tmp2
   if ! tmp2="$(mktemp -d "${TMPDIR:-/tmp}/resolve-applicable-rules-self-test2.XXXXXX" 2>/dev/null)" || [ -z "$tmp2" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
     exit 2
   fi
   mkdir -p "$tmp2/docs/rules/agent/behavior"
@@ -222,7 +222,7 @@ EOF
   # 系3: 1つのファイルに複数の規約が適用されるとき、複数行が返る
   local tmp3
   if ! tmp3="$(mktemp -d "${TMPDIR:-/tmp}/resolve-applicable-rules-self-test3.XXXXXX" 2>/dev/null)" || [ -z "$tmp3" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
     exit 2
   fi
   mkdir -p "$tmp3/docs/rules/a/one" "$tmp3/docs/rules/b/two"
@@ -264,7 +264,7 @@ EOF
   # 系4: docs/rules/ が存在しない場合は判定不能として (none) を返す（素通し）
   local tmp4
   if ! tmp4="$(mktemp -d "${TMPDIR:-/tmp}/resolve-applicable-rules-self-test4.XXXXXX" 2>/dev/null)" || [ -z "$tmp4" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼"
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
     exit 2
   fi
   local out4

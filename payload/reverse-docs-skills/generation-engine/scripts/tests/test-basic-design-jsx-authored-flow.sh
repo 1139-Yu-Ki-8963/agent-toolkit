@@ -34,7 +34,7 @@ AUTHORING_INPUTS="$SCRIPT_DIR/../validate-reverse-authoring-inputs.py"
 # macOS では TMPDIR/tmp がsymlinkのため、scaffold-screen.sh の
 # symlink拒否ガードに抵触しないよう実体パスへ解決してから使う。
 if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/basic-design-jsx-authored.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
-  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
   exit 2
 fi
 tmp="$(cd "$tmp" && pwd -P)"

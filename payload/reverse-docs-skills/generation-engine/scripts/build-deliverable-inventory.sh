@@ -15,10 +15,14 @@ set -euo pipefail
 #         カタログには無い「状態をどの証拠で判定するか」だけを持つ。60件全kindを
 #         カバーし、7種別(screen/api/table/batch/report/external/feature)は
 #         output-layout.jsonのマニフェストキー名とマニフェスト内の件数ポインタ(JSON
-#         Pointer形式)を宣言する。screenに依存する8種別(screen-transition・
-#         test-viewpoint-list・test-case-list・permission-screen・permission-function・
-#         crud・traceability・confirmation-survey)は dependsOnKind で依存先kindを
-#         宣言する。残りは証拠なし(none)を宣言する。
+#         Pointer形式)を宣言する。他の種別に依存する納品物は集合で依存先を宣言する。
+#         requiresAllOf(列挙した種別が1つでも対象外なら対象なし。画面だけに依存する
+#         screen-transition・permission-screen・design-system・component-inventory・
+#         icon-catalog の5件)と requiresAnyOf(列挙した種別がすべて対象外のときだけ
+#         対象なし。crud・traceability・permission-function は ["api"]、
+#         test-viewpoint-list・test-case-list・confirmation-survey は7種別)がある。
+#         旧 dependsOnKind(単一値)は requiresAllOf に1件書いたものと同じ扱いで読む。
+#         残りは証拠なし(none)を宣言する。
 #   状態判定:
 #     出力あり: discovery.glob の実ファイルが存在する
 #     対象なし: (a) 実ファイルは無いが、自身のkindが対象外種別の記録
@@ -28,7 +32,8 @@ set -euo pipefail
 #               label・reason・categoryを持つ。形式は
 #               .claude/skills/orchestrating-ai-development-setup/references/
 #               contract.md の「excludedDeliverables」節を参照)に載っている。
-#               (b) dependsOnKindの依存先kindが対象外種別の記録に載っている。
+#               (b) 依存の集合宣言(requiresAllOf / requiresAnyOf)が対象外種別の記録に
+#                   よって成立しない(resolve_dependency_absence を参照)。
 #               (c) 対応マニフェストが存在し件数0を示す
 #     未生成:   実ファイルもマニフェストも無い、対象外の記録も無い、またはそもそも
 #               証拠(マニフェスト概念)が無い kind。理由文は区別して書く
@@ -196,6 +201,24 @@ excluded_reason_for_kind() {
   printf '%s' "$excluded_json" | jq -r --arg k "$kind" '[.[] | select(.kind==$k)][0].reason // empty'
 }
 
+# --- 依存の集合宣言(requiresAllOf / requiresAnyOf / 旧 dependsOnKind)を解決し、
+#     依存先が対象外で「対象なし」になる場合はその依存先の種別を1つ返す。
+#     成立する(依存先が対象内、または宣言なし)場合は空を返す ---
+resolve_dependency_absence() {
+  local kind="$1" inventory_def="$2" excluded_json="${3:-[]}"
+  [ -n "$excluded_json" ] || excluded_json='[]'
+  jq -r --arg k "$kind" --argjson ex "$excluded_json" '
+    ($ex | map(.kind)) as $excluded
+    | (.items[] | select(.kind==$k)) as $item
+    | (($item.requiresAllOf // []) + (if $item.dependsOnKind then [$item.dependsOnKind] else [] end)) as $all
+    | ($item.requiresAnyOf // []) as $any
+    | ([$all[] | select(. as $d | $excluded | index($d))] | first) as $all_hit
+    | if $all_hit then $all_hit
+      elif ($any | length) > 0 and ([$any[] | select(. as $d | ($excluded | index($d)) | not)] | length) == 0 then $any[0]
+      else empty end
+  ' "$inventory_def"
+}
+
 # --- 1件のkindの状態と理由を判定する。標準出力へ "状態<TAB>理由" を1行返す。
 #     件数の取得に失敗した場合はエラーを標準エラーへ出し、戻り値1で返す
 #     (既定値0へ倒さない。呼び出し元はset -eで停止する) ---
@@ -213,15 +236,20 @@ resolve_state() {
     return 0
   fi
 
-  depends_on="$(jq -r --arg k "$kind" '.items[] | select(.kind==$k) | .dependsOnKind // empty' "$inventory_def")"
+  # 依存の集合宣言を解決する。
+  #   requiresAllOf: 列挙した種別のうち1つでも対象外なら「対象なし」
+  #   requiresAnyOf: 列挙した種別がすべて対象外のときだけ「対象なし」
+  #   dependsOnKind(旧・単一値): requiresAllOf に1件だけ書いたものと同じ扱い
+  # 画面を持たず API だけを持つ対象で、API×テーブルの対応表のように画面以外の
+  # 種別で成立する納品物を「対象なし」へ倒さないため、単一値の宣言を集合へ改めた
+  # (設計: docs/design/画面なしAPIのみ対象の設計.md 5.1 節)。
+  depends_on="$(resolve_dependency_absence "$kind" "$inventory_def" "$excluded_json")"
   if [ -n "$depends_on" ]; then
     depends_reason="$(excluded_reason_for_kind "$excluded_json" "$depends_on")"
-    if [ -n "$depends_reason" ]; then
-      absence_reason="$(jq -r --arg k "$depends_on" '.absencePolicies[$k].reasonTemplate // empty' "$inventory_def")"
-      [ -n "$absence_reason" ] || absence_reason="依存先「${depends_on}」が対象外のため生成されない(${depends_reason})"
-      printf '対象なし\t%s\n' "$absence_reason"
-      return 0
-    fi
+    absence_reason="$(jq -r --arg k "$depends_on" '.absencePolicies[$k].reasonTemplate // empty' "$inventory_def")"
+    [ -n "$absence_reason" ] || absence_reason="依存先「${depends_on}」が対象外のため生成されない(${depends_reason})"
+    printf '対象なし\t%s\n' "$absence_reason"
+    return 0
   fi
 
   if has_matching_html "$output_root" "$html_glob"; then
@@ -473,7 +501,7 @@ self_test() {
   local script_path="$0"
   local tmp rc=0
   if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/build-deliverable-inventory-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   trap 'rm -rf "$tmp"' RETURN
@@ -676,30 +704,55 @@ self_test() {
     rc=1
   fi
 
-  # ケース11・12: ある種別(screen)を対象外として記録すると、依存する成果物
-  #   (confirmation-survey)が対象なしと判定される。除外の記録が無ければ従来どおり未生成
-  local confirmation_glob root_g layout_json_g excluded_json_g
+  # ケース11・12: ある種別(screen)を対象外として記録すると、画面だけに依存する成果物
+  #   (screen-transition。requiresAllOf=["screen"])が対象なしと判定される。
+  #   除外の記録が無ければ従来どおり未生成
+  local transition_glob root_g layout_json_g excluded_json_g
   local out_h_sr out_h out_i_sr out_i
-  confirmation_glob="$(jq -r '.categories[].blueprints[] | select(.kind=="confirmation-survey") | .discovery.glob' "$catalog")"
+  transition_glob="$(jq -r '.categories[].blueprints[] | select(.kind=="screen-transition") | .discovery.glob' "$catalog")"
   root_g="$tmp/case11-dependent-kind"; mkdir -p "$root_g"
   layout_json_g="$(resolve_output_layout "$root_g")"
   excluded_json_g='[{"kind":"screen","label":"画面","reason":"画面を持たないバックエンドのみのプロジェクトのため画面が存在しない"}]'
 
-  out_h_sr="$(resolve_state "$root_g" "$confirmation_glob" "confirmation-survey" "$inventory_def" "$layout_json_g" "$excluded_json_g")"
+  out_h_sr="$(resolve_state "$root_g" "$transition_glob" "screen-transition" "$inventory_def" "$layout_json_g" "$excluded_json_g")"
   out_h="$(printf '%s' "$out_h_sr" | cut -f1)"
   if [ "$out_h" = "対象なし" ]; then
-    echo "  [PASS] ケース11: 対象外種別(screen)に依存するconfirmation-surveyが対象なしと判定される"
+    echo "  [PASS] ケース11: 対象外種別(screen)だけに依存するscreen-transitionが対象なしと判定される"
   else
     echo "  [FAIL] ケース11: 依存先が対象外でも対象なしにならない(状態=${out_h:-なし})" >&2
     rc=1
   fi
 
-  out_i_sr="$(resolve_state "$root_g" "$confirmation_glob" "confirmation-survey" "$inventory_def" "$layout_json_g" '[]')"
+  out_i_sr="$(resolve_state "$root_g" "$transition_glob" "screen-transition" "$inventory_def" "$layout_json_g" '[]')"
   out_i="$(printf '%s' "$out_i_sr" | cut -f1)"
   if [ "$out_i" = "未生成" ]; then
-    echo "  [PASS] ケース12: 除外の記録が無ければconfirmation-surveyは従来どおり未生成と判定される"
+    echo "  [PASS] ケース12: 除外の記録が無ければscreen-transitionは従来どおり未生成と判定される"
   else
     echo "  [FAIL] ケース12: 除外の記録が無いのに判定が変わった(状態=${out_i:-なし})" >&2
+    rc=1
+  fi
+
+  # ケース11-API: 画面だけが対象外(API のみの対象)のとき、API で成立する成果物
+  #   (crud。requiresAnyOf=["api"])と、どの種別でも成立する成果物
+  #   (confirmation-survey。requiresAnyOf=7種別)は対象なしへ倒れず未生成のまま残る。
+  #   6種別すべてが対象外なら両方とも対象なしになる
+  local crud_glob out_j out_k excluded_json_all
+  crud_glob="$(jq -r '.categories[].blueprints[] | select(.kind=="crud") | .discovery.glob' "$catalog")"
+  out_j="$(resolve_state "$root_g" "$crud_glob" "crud" "$inventory_def" "$layout_json_g" "$excluded_json_g" | cut -f1)"
+  out_k="$(resolve_state "$root_g" "$transition_glob" "confirmation-survey" "$inventory_def" "$layout_json_g" "$excluded_json_g" | cut -f1)"
+  if [ "$out_j" = "未生成" ] && [ "$out_k" = "未生成" ]; then
+    echo "  [PASS] ケース11-API: 画面だけが対象外のとき crud と confirmation-survey は対象なしへ倒れない"
+  else
+    echo "  [FAIL] ケース11-API: 画面だけが対象外なのに対象なしへ倒れた(crud=${out_j:-なし} confirmation-survey=${out_k:-なし})" >&2
+    rc=1
+  fi
+  excluded_json_all='[{"kind":"screen","reason":"x"},{"kind":"api","reason":"x"},{"kind":"table","reason":"x"},{"kind":"batch","reason":"x"},{"kind":"report","reason":"x"},{"kind":"external","reason":"x"},{"kind":"feature","reason":"x"}]'
+  out_j="$(resolve_state "$root_g" "$crud_glob" "crud" "$inventory_def" "$layout_json_g" "$excluded_json_all" | cut -f1)"
+  out_k="$(resolve_state "$root_g" "$transition_glob" "confirmation-survey" "$inventory_def" "$layout_json_g" "$excluded_json_all" | cut -f1)"
+  if [ "$out_j" = "対象なし" ] && [ "$out_k" = "対象なし" ]; then
+    echo "  [PASS] ケース11-全種別なし: 7種別すべてが対象外なら crud と confirmation-survey は対象なしになる"
+  else
+    echo "  [FAIL] ケース11-全種別なし: 7種別すべてが対象外なのに対象なしにならない(crud=${out_j:-なし} confirmation-survey=${out_k:-なし})" >&2
     rc=1
   fi
 

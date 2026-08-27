@@ -536,6 +536,17 @@ feature（機能一覧）は派生一覧のため本ファイルの管理対象�
 
 `excludedKinds` と異なり `allKinds`・`presentKinds` との完全分割は求めない。`excludedDeliverables` は `build-deliverable-inventory.sh` の `load_excluded_kinds` が `excludedKinds` と連結して読み、載っているkindの行を「対象なし」と判定する。`check-excluded-kinds-consistency.sh` はこのキーを読まない。
 
+### 納品物の依存宣言（requiresAllOf / requiresAnyOf）
+
+対象の輪郭（どの種別が対象で、どの種別が対象外か）は `excluded-kinds.json` の `presentKinds`・`excludedKinds` だけが定義する。他の種別に依存する納品物は、`delivery-payload/references/deliverable-inventory.json` の各項目へ、必要とする種別の集合を宣言する。個々の生成器・検査が画面の有無を独自に判断してはならない。
+
+| 鍵 | 意味 | 例 |
+|---|---|---|
+| `requiresAllOf` | 列挙した種別が1つでも対象外なら「対象なし」 | 画面遷移図・権限画面マトリクス・デザインシステム・部品棚卸し・アイコンカタログは `["screen"]` |
+| `requiresAnyOf` | 列挙した種別がすべて対象外のときだけ「対象なし」。1つでも対象なら成立する | CRUD 図・画面-API-テーブル対応表・権限機能マトリクスは `["api"]`。テスト観点表・テストケース一覧・確認事項質問票は7種別すべて |
+
+旧い単一値の `dependsOnKind: "<種別>"` は `requiresAllOf: ["<種別>"]` と同じ扱いで読む。新しく書く宣言は集合の形だけを使う。画面を持たず API だけを持つ対象では、`requiresAnyOf: ["api"]` の納品物が成立し、`requiresAllOf: ["screen"]` の5件だけが「対象なし」になる（設計: `docs/design/画面なしAPIのみ対象の設計.md`）。
+
 ## 納品物ルート（output_dir）の正本レイアウト
 
 納品物一式は `<output_dir>` を単一ルートとして自己完結する（`generation-engine/samples/` と同一構成が正）。人が読むHTMLは `project-portal/` 配下へ集約し、機械が読む定義・データは `docs/` 配下に置く。ポータル・一覧・基盤ページの配置は以下に固定する。

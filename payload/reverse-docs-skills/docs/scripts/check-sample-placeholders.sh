@@ -19,6 +19,8 @@ else
   ROOTS=("${REPO_ROOT}/generation-engine/samples/docs/design")
   [ -d "${REPO_ROOT}/generation-engine/samples-no-screen" ] \
     && ROOTS+=("${REPO_ROOT}/generation-engine/samples-no-screen")
+  [ -d "${REPO_ROOT}/generation-engine/samples-api-only/docs/design" ] \
+    && ROOTS+=("${REPO_ROOT}/generation-engine/samples-api-only/docs/design")
 fi
 ROOT="${ROOTS[0]}"
 

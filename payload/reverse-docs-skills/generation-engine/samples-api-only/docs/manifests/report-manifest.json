@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2026-08-27T23:44:06Z",
+  "sourceDir": "docs/design/reports",
+  "unitKind": "report",
+  "strategy": {
+    "extractionMethod": "document-frontmatter",
+    "approvedByUser": true,
+    "unitIdRegex": null
+  },
+  "detectionSummary": {
+    "unitCount": 1,
+    "unresolvedCount": 0
+  },
+  "units": [
+    {
+      "sourceFile": "src/reports/annual.py",
+      "unitId": "report-annual",
+      "unitKey": "annual",
+      "designDocPath": "../../../docs/design/reports/report-annual/基本設計/帳票基本設計書.html",
+      "detailDocPath": "../../../docs/design/reports/report-annual/詳細設計/帳票詳細設計書.html",
+      "integrationTestViewpointPath": "../../../docs/design/reports/report-annual/テスト設計/帳票テスト設計書.md",
+      "integrationTestCasePath": "../../../docs/design/reports/report-annual/テスト設計/帳票テスト設計書.md",
+      "testCasePath": "../../../docs/design/reports/report-annual/テスト設計/帳票単体テスト設計書.md",
+      "unitTestViewpointPath": "../../../docs/design/reports/report-annual/テスト設計/帳票単体テスト設計書.md",
+      "identifier": "未確認",
+      "kind": "template",
+      "confidence": "high",
+      "detectionMethod": "document-frontmatter",
+      "fileCount": null
+    }
+  ]
+}

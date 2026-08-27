@@ -109,7 +109,7 @@ self_test() {
   . "$script_dir/../unit-axes.sh"
 
   if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/build-screen-list-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   trap 'rm -rf "$tmp"' RETURN
@@ -1033,11 +1033,11 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # ここで解決済みの axes_resolved を一時ファイルへ書き出し --axes で明示的に渡す。
 axes_resolved="$(resolve_unit_axes "$MANIFEST" "$AXES_FILE")" || exit 1
 if ! DETECTED_MANIFEST="$(mktemp "${TMPDIR:-/tmp}/build-screen-list-detected.XXXXXX" 2>/dev/null)" || [ -z "$DETECTED_MANIFEST" ]; then
-  echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
   exit 2
 fi
 if ! AXES_RESOLVED_FILE="$(mktemp "${TMPDIR:-/tmp}/build-screen-list-axes-resolved.XXXXXX" 2>/dev/null)" || [ -z "$AXES_RESOLVED_FILE" ]; then
-  echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
   exit 2
 fi
 EMBED_MANIFEST_TMP_FILE=""

@@ -1,0 +1,32 @@
+{
+  "generatedAt": "2026-08-27T23:44:07Z",
+  "sourceDir": "docs/design/tables",
+  "unitKind": "table",
+  "strategy": {
+    "extractionMethod": "document-frontmatter",
+    "approvedByUser": true,
+    "unitIdRegex": null
+  },
+  "detectionSummary": {
+    "unitCount": 1,
+    "unresolvedCount": 0
+  },
+  "units": [
+    {
+      "sourceFile": "001_create_users.sql",
+      "unitId": "table-users",
+      "unitKey": "users",
+      "designDocPath": "../../../docs/design/tables/table-users/基本設計/論理データモデル.html",
+      "detailDocPath": "../../../docs/design/tables/table-users/詳細設計/テーブル定義書.html",
+      "integrationTestViewpointPath": "../../../docs/design/tables/table-users/テスト設計/テーブルテスト設計書.md",
+      "integrationTestCasePath": "../../../docs/design/tables/table-users/テスト設計/テーブルテスト設計書.md",
+      "testCasePath": "../../../docs/design/tables/table-users/テスト設計/テーブル単体テスト設計書.md",
+      "unitTestViewpointPath": "../../../docs/design/tables/table-users/テスト設計/テーブル単体テスト設計書.md",
+      "identifier": "users",
+      "kind": "table",
+      "confidence": "high",
+      "detectionMethod": "document-frontmatter",
+      "fileCount": null
+    }
+  ]
+}

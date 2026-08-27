@@ -1,0 +1,20 @@
+{
+  "pageKind": "techstack",
+  "generatedAt": "2026-08-27T23:44:18Z",
+  "title": "技術スタック",
+  "description": "対象リポジトリから確認できた技術定義を整理した結果です。",
+  "tiles": [],
+  "columns": [
+    "項目",
+    "内容",
+    "根拠"
+  ],
+  "rows": [],
+  "absentRows": [
+    {
+      "item": "技術定義",
+      "value": "実在しない（主要な技術定義ファイルを検出していません）",
+      "sourceRef": "docs/design/common/アーキテクチャ調査書.md#技術スタック"
+    }
+  ]
+}

@@ -16,7 +16,7 @@ API_LIST_HTML_REL="$(output_layout_get "$LAYOUT_JSON" unitListHtml API)" || exit
 SCREEN_LIST_HTML_REL="$(output_layout_get "$LAYOUT_JSON" screenListHtml)" || exit 1
 PERMISSION_FUNCTION_MATRIX_HTML_REL="$(output_layout_get "$LAYOUT_JSON" permissionFunctionMatrixHtml)" || exit 1
 if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/screen-rebuild-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
-  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
   exit 2
 fi
 # macOSでは/tmpや${TMPDIR配下}が/privateへのsymlinkであり、build-portal.shの

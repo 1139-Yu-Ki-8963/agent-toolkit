@@ -1,0 +1,16 @@
+{
+  "generatedAt": "2026-08-28T08:44:46+0900",
+  "dataSource": "samples-api-only",
+  "rules": [
+    {
+      "ruleName": "samples-api-only プロジェクトコンテキスト（PROJECT-CONTEXT）",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    }
+  ],
+  "skills": [],
+  "subagents": [],
+  "hooks": []
+}

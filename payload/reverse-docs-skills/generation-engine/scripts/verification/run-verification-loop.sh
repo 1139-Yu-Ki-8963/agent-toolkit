@@ -46,6 +46,8 @@ SELF_PATH="${SCRIPT_DIR}/$(basename "${BASH_SOURCE[0]}")"
 . "${SCRIPT_DIR}/verification-env.sh"
 
 REPO_SELF="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
+# 第3層へ渡す対象の輪郭(--profile)。空なら従来どおり全種別の疑似入力で実行する。
+LOOP_PROFILE=""
 
 # ---------------------------------------------------------------------------
 # 段の定義
@@ -155,14 +157,16 @@ run_loop() {
 
   echo "[実行中] 疑似入力の整備と第3層の1回目"
   local run1_out run1_rc
-  run1_out="$(bash "${repo}/generation-engine/scripts/verification/run-layer-full-pipeline.sh" --output "$out_dir1" --repo "$repo" 2>&1)"
+  local profile_args=()
+  [ -n "${LOOP_PROFILE:-}" ] && profile_args=(--profile "${LOOP_PROFILE}")
+  run1_out="$(bash "${repo}/generation-engine/scripts/verification/run-layer-full-pipeline.sh" --output "$out_dir1" --repo "$repo" "${profile_args[@]}" 2>&1)"
   run1_rc=$?
   echo "$run1_out"
   echo
 
   echo "[実行中] 疑似入力の整備と第3層の2回目"
   local run2_out run2_rc
-  run2_out="$(bash "${repo}/generation-engine/scripts/verification/run-layer-full-pipeline.sh" --output "$out_dir2" --repo "$repo" 2>&1)"
+  run2_out="$(bash "${repo}/generation-engine/scripts/verification/run-layer-full-pipeline.sh" --output "$out_dir2" --repo "$repo" "${profile_args[@]}" 2>&1)"
   run2_rc=$?
   echo "$run2_out"
   echo
@@ -316,7 +320,9 @@ DEPS
 
 usage() {
   cat <<'EOS'
-使い方: run-verification-loop.sh [--repo <対象>] [--skip-layer1] [--layer1-timeout <秒>] [--self-test]
+使い方: run-verification-loop.sh [--repo <対象>] [--skip-layer1] [--layer1-timeout <秒>] [--profile api-only] [--self-test]
+  --profile api-only  画面を持たず API だけを持つ対象の輪郭で第3層を2回実行する
+                      (run-layer-full-pipeline.sh の --profile へそのまま渡す)
 EOS
 }
 
@@ -326,6 +332,13 @@ main() {
   while [ $# -gt 0 ]; do
     case "$1" in
       --repo) repo="${2:-}"; shift 2 ;;
+      --profile)
+        LOOP_PROFILE="${2:-}"
+        case "$LOOP_PROFILE" in
+          api-only) ;;
+          *) echo "ERROR: --profile に指定できるのは api-only だけです: $LOOP_PROFILE" >&2; exit 2 ;;
+        esac
+        shift 2 ;;
       --skip-layer1) skip_layer1=1; shift ;;
       --layer1-timeout) layer1_timeout="${2:-}"; shift 2 ;;
       --self-test) self_test_mode=1; shift ;;

@@ -1,6 +1,6 @@
 # reverse-docs-skills AI作業案内
 
-このリポジトリは、既存コードから設計書・一覧・検証記録をリバース生成し、設計書からの再生成と原本突合までを行うスキル群の正本です。スキルの実体は `.claude/skills/`、納品先へ配るテンプレート・参照文書は `delivery-payload/`、納品物を作る生成器・見本は `generation-engine/`、全体ガイドは `docs/guides/reverse-docs-overview.html`、納品物ガイドは `docs/guides/納品物ガイド.html` にあります。
+このリポジトリは、既存コードから設計書・一覧・検証記録をリバース生成し、設計書からの再生成と原本突合までを行うスキル群の定義です。スキルの実体は `.claude/skills/`、納品先へ配るテンプレート・参照文書は `delivery-payload/`、納品物を作る生成器・見本は `generation-engine/`、全体ガイドは `docs/guides/reverse-docs-overview.html`、納品物ガイドは `docs/guides/納品物ガイド.html` にあります。
 
 ## 索引
 
@@ -25,4 +25,4 @@
 
 ## 公開完遂フロー
 
-このリポジトリの変更は、正本 commit、`~/github-public/agent-toolkit/payload/reverse-docs-skills/` への同期、`origin/main` への push までを完了条件とする。同期対象と手順の詳細は [公開完遂規約](.claude/rules/always/publish/complete/rule.md) と [RUNBOOK.md](RUNBOOK.md) を正本として参照する。
+このリポジトリの変更は、定義の commit、`~/github-public/agent-toolkit/payload/reverse-docs-skills/` への同期、`origin/main` への push までを完了条件とする。同期対象と手順の詳細は [公開完遂規約](.claude/rules/always/publish/complete/rule.md) と [RUNBOOK.md](RUNBOOK.md) を定義として参照する。

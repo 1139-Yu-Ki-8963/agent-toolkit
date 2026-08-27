@@ -1,0 +1,15 @@
+{
+  "pageKind": "env",
+  "generatedAt": "2026-08-27T23:44:18Z",
+  "title": "環境構築手順",
+  "description": "対象リポジトリから確認できた環境構築情報を整理した結果です。",
+  "prerequisites": [],
+  "steps": [
+    {
+      "order": 1,
+      "command": "該当なし",
+      "note": "単一の環境構築コマンドは検出していません"
+    }
+  ],
+  "allocations": []
+}

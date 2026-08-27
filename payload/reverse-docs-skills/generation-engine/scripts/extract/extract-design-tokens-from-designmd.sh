@@ -67,7 +67,7 @@ self_test() {
   local detail_pages_dir="$script_dir/../detail-pages"
   local tmp rc=0
   if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-design-tokens-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   trap 'rm -rf "$tmp"' RETURN
@@ -388,7 +388,7 @@ _EXTRACT_DESIGN_TOKENS_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../detect-encoding.sh
 source "$_EXTRACT_DESIGN_TOKENS_SCRIPT_DIR/../detect-encoding.sh"
 if ! SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-design-tokens-scan.XXXXXX" 2>/dev/null)" || [ -z "$SCAN_WORKDIR" ]; then
-  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
   exit 2
 fi
 
@@ -396,7 +396,7 @@ fi
 # $TMPDIR を無視し書き込み許可の外にある既定の一時領域を使うため、サンドボックス実行環境では
 # 失敗する(改善課題「一時ディレクトリ-作成先」。手元の許可された環境で動いても裸の形へ戻すな)。
 if ! TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-design-tokens-work.XXXXXX" 2>/dev/null)" || [ -z "$TMP_DIR" ]; then
-  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
   exit 2
 fi
 trap 'rm -rf "$TMP_DIR" "$SCAN_WORKDIR"' EXIT

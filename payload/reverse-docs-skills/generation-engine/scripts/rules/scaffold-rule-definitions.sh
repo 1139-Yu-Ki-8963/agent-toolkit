@@ -258,7 +258,7 @@ merge_project_rule_section() {
   # そのため awk -v ではなく、行番号を求めて head/tail で継ぎ合わせる。
   local tmp_new
   if ! tmp_new="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-merge.XXXXXX" 2>/dev/null)" || [ -z "$tmp_new" ]; then
-    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   printf '%s\n' "$new_content" > "$tmp_new"
@@ -921,7 +921,7 @@ scan_banned_terms() {
   # 失敗する（改善課題「一時ディレクトリ-作成先」。手元の環境で動いても裸の形へ戻すな）。
   local patterns_file
   if ! patterns_file="$(mktemp "${TMPDIR:-/tmp}/rule-banned-terms.XXXXXX" 2>/dev/null)" || [ -z "$patterns_file" ]; then
-    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   jq -r '.terms[] | select(.scope | index("rule-definitions")) | .term' "$term_file" >"$patterns_file" 2>/dev/null || true
@@ -943,7 +943,7 @@ scan_banned_terms() {
     # 行（"<path>:<lineno>:<content>"）のうちパスにこの断片を含むものだけを除外する。
     local exempt_file
     if ! exempt_file="$(mktemp "${TMPDIR:-/tmp}/rule-banned-terms-exempt.XXXXXX" 2>/dev/null)" || [ -z "$exempt_file" ]; then
-      echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+      echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
       exit 2
     fi
     jq -r --arg scope "rule-definitions" \
@@ -1016,7 +1016,7 @@ self_test() {
 
   # ケース1: --apply なしでは書き込みが起きない
   if ! out1="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-self-test-out1.XXXXXX" 2>/dev/null)" || [ -z "$out1" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   rm -rf "$out1"
@@ -1037,14 +1037,14 @@ self_test() {
 
   # 以降は --apply --with-skills で実データを生成して検証する
   if ! out1="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-self-test-out1.XXXXXX" 2>/dev/null)" || [ -z "$out1" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   APPLY=1
   WITH_SKILLS=1
   local run1_log
   if ! run1_log="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-bst-run1.XXXXXX" 2>/dev/null)" || [ -z "$run1_log" ]; then
-    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   run_scaffold "$out1" >"$run1_log" 2>&1
@@ -1125,7 +1125,7 @@ EOF
   # ケース5: 生成した定義がvalidate-rule-definitions.shの検査を通る
   local validate_out
   if ! validate_out="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-bst-validate.XXXXXX" 2>/dev/null)" || [ -z "$validate_out" ]; then
-    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   if run_validate "${out1}/docs/rules" >"$validate_out" 2>&1; then
@@ -1178,11 +1178,11 @@ EOF
   local mismatch_src mismatch_backup mismatch_log mismatch_rc
   mismatch_src="${SKILLS_TEMPLATE_DIR}/dev-flow/SKILL.md"
   if ! mismatch_backup="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-skill-backup.XXXXXX" 2>/dev/null)" || [ -z "$mismatch_backup" ]; then
-    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   if ! mismatch_log="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-skill-mismatch.XXXXXX" 2>/dev/null)" || [ -z "$mismatch_log" ]; then
-    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   cp "$mismatch_src" "$mismatch_backup"
@@ -1240,7 +1240,7 @@ EOF
 
   # ケース8: 2回実行しても既存が壊れない（冪等性）
   if ! out2="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-self-test-out2.XXXXXX" 2>/dev/null)" || [ -z "$out2" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   rm -rf "$out2"
@@ -1250,7 +1250,7 @@ EOF
   capture_scaffold "$out1"
   local diff_log
   if ! diff_log="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-bst-diff.XXXXXX" 2>/dev/null)" || [ -z "$diff_log" ]; then
-    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   if [ "$scaffold_rc" -ne 0 ]; then
@@ -1624,7 +1624,7 @@ EOF
   # 現場が「このプロジェクトの規則」節へ観測内容を書き足した既存ファイルを装う。
   local existing18_file
   if ! existing18_file="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-case18-existing.XXXXXX" 2>/dev/null)" || [ -z "$existing18_file" ]; then
-    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   printf '%s\n' "$new18" | awk '
@@ -1795,19 +1795,19 @@ EOF
 
   local root11_none root11_zero root11_some root11_screen
   if ! root11_none="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-applies-none.XXXXXX" 2>/dev/null)" || [ -z "$root11_none" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   if ! root11_zero="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-applies-zero.XXXXXX" 2>/dev/null)" || [ -z "$root11_zero" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   if ! root11_some="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-applies-some.XXXXXX" 2>/dev/null)" || [ -z "$root11_some" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   if ! root11_screen="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-applies-screen.XXXXXX" 2>/dev/null)" || [ -z "$root11_screen" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
 
@@ -1894,7 +1894,7 @@ EOF
   # (d) taxonomyの複製で本文だけを変えても、スクリプトを変えずに生成行へ反映される。
   local taxonomy21 original_taxonomy21 changed21 unique_content21
   if ! taxonomy21="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-placeholder-taxonomy.XXXXXX" 2>/dev/null)" || [ -z "$taxonomy21" ]; then
-    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   original_taxonomy21="$TAXONOMY_JSON"
@@ -1914,7 +1914,7 @@ EOF
   # (e) 内容の入った節はmerge_project_rule_sectionで1文字も変えずに保持される。
   local existing21_file expected_section21 merged21 merged_section21
   if ! existing21_file="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-placeholder-existing.XXXXXX" 2>/dev/null)" || [ -z "$existing21_file" ]; then
-    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   cat > "$existing21_file" <<'EOF'

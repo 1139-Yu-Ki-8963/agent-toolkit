@@ -13,7 +13,7 @@ set -euo pipefail
 self_test() {
   local tmp rc=0 base ext rules
   if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/finalize-extension-manifest-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   trap 'rm -rf "$tmp"' RETURN
@@ -159,11 +159,11 @@ output_dir="$(dirname "$EXTENDED_MANIFEST")"
 # 手元の正常系だけを理由に、直接リダイレクトへ戻さないこと。
 # 経緯：a2c015e1導入時から一時ファイル方式だったが、理由の記録がなかった。
 if ! tmp_output="$(mktemp "$output_dir/.finalize-extension-manifest.XXXXXX" 2>/dev/null)" || [ -z "$tmp_output" ]; then
-  echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
   exit 2
 fi
 if ! overrides_tmp="$(mktemp "$output_dir/.finalize-extension-manifest-overrides.XXXXXX" 2>/dev/null)" || [ -z "$overrides_tmp" ]; then
-  echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
   exit 2
 fi
 trap 'rm -f "$tmp_output" "$overrides_tmp"' EXIT

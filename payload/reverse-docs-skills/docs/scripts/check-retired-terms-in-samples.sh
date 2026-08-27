@@ -51,6 +51,8 @@ run_check() {
   targets=("$repo_root/generation-engine/samples" "$repo_root/delivery-payload/templates")
   [ -d "$repo_root/generation-engine/samples-no-screen" ] \
     && targets+=("$repo_root/generation-engine/samples-no-screen")
+  [ -d "$repo_root/generation-engine/samples-api-only" ] \
+    && targets+=("$repo_root/generation-engine/samples-api-only")
   for target in "${targets[@]}"; do
     if [ ! -d "$target" ]; then
       echo "[SKIP] 対象なし: ${target#$repo_root/}"

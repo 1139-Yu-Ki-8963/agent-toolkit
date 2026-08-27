@@ -145,7 +145,8 @@
     },
     {
       "kind": "common-design",
-      "evidenceSource": "none"
+      "evidenceSource": "none",
+      "requiresAllOf": ["screen"]
     },
     {
       "kind": "data-design",
@@ -157,7 +158,8 @@
     },
     {
       "kind": "ui-common-design",
-      "evidenceSource": "none"
+      "evidenceSource": "none",
+      "requiresAllOf": ["screen"]
     },
     {
       "kind": "screen",
@@ -170,7 +172,7 @@
     {
       "kind": "screen-transition",
       "evidenceSource": "none",
-      "dependsOnKind": "screen"
+      "requiresAllOf": ["screen"]
     },
     {
       "kind": "semantic-glossary",
@@ -233,17 +235,17 @@
     {
       "kind": "test-viewpoint-list",
       "evidenceSource": "none",
-      "dependsOnKind": "screen"
+      "requiresAnyOf": ["screen", "api", "table", "batch", "report", "external", "feature"]
     },
     {
       "kind": "test-case-list",
       "evidenceSource": "none",
-      "dependsOnKind": "screen"
+      "requiresAnyOf": ["screen", "api", "table", "batch", "report", "external", "feature"]
     },
     {
       "kind": "permission-screen",
       "evidenceSource": "none",
-      "dependsOnKind": "screen"
+      "requiresAllOf": ["screen"]
     },
     {
       "kind": "integration-test-spec",
@@ -252,22 +254,22 @@
     {
       "kind": "permission-function",
       "evidenceSource": "none",
-      "dependsOnKind": "screen"
+      "requiresAnyOf": ["api"]
     },
     {
       "kind": "crud",
       "evidenceSource": "none",
-      "dependsOnKind": "screen"
+      "requiresAnyOf": ["api"]
     },
     {
       "kind": "traceability",
       "evidenceSource": "none",
-      "dependsOnKind": "screen"
+      "requiresAnyOf": ["api"]
     },
     {
       "kind": "confirmation-survey",
       "evidenceSource": "none",
-      "dependsOnKind": "screen"
+      "requiresAnyOf": ["screen", "api", "table", "batch", "report", "external", "feature"]
     },
     {
       "kind": "ai-assets",
@@ -276,17 +278,17 @@
     {
       "kind": "design-system",
       "evidenceSource": "none",
-      "dependsOnKind": "screen"
+      "requiresAllOf": ["screen"]
     },
     {
       "kind": "component-inventory",
       "evidenceSource": "none",
-      "dependsOnKind": "screen"
+      "requiresAllOf": ["screen"]
     },
     {
       "kind": "icon-catalog",
       "evidenceSource": "none",
-      "dependsOnKind": "screen"
+      "requiresAllOf": ["screen"]
     }
   ]
 }

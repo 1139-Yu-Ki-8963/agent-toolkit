@@ -25,6 +25,7 @@ DRIFT_SCRIPT="$REPO_ROOT/generation-engine/scripts/check-derived-drift.sh"
 SAMPLES_ROOTS=(
   "$REPO_ROOT/generation-engine/samples"
   "$REPO_ROOT/generation-engine/samples-no-screen"
+  "$REPO_ROOT/generation-engine/samples-api-only"
 )
 
 usage() {

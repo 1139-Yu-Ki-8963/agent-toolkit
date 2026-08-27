@@ -596,7 +596,7 @@ append_multiline_literal_blocks() { # $1=facts.yml $2=design.md
   # （extract群・check-derived-drift.shと同種の対策）。実測値なし。環境に依存する。
   # 手元で裸の mktemp に戻して動いて見えてもそれを理由に外すな。
   if ! blocks="$(mktemp "${TMPDIR:-/tmp}/prefill-code-blocks.XXXXXX" 2>/dev/null)" || [ -z "$blocks" ]; then
-    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   for sec in handler local_type function; do
@@ -765,7 +765,7 @@ main() {
   local workdir
   # 明示テンプレート付き mktemp -d（理由は append_multiline_literal_blocks と同じ）。
   if ! workdir="$(mktemp -d "${TMPDIR:-/tmp}/prefill-design.XXXXXX" 2>/dev/null)" || [ -z "$workdir" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   trap 'rm -rf "$workdir"' RETURN
@@ -820,7 +820,7 @@ main() {
 self_test() {
   local tmp
   if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/prefill-design-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   trap 'rm -rf "$tmp"' RETURN

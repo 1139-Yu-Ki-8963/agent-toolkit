@@ -1,0 +1,62 @@
+{
+  "generatedAt": "2026-08-27T23:44:07Z",
+  "sourceDir": "docs/design/screens",
+  "unitKind": "screen",
+  "note": "対象外の記録に基づき画面の抽出を行わない(画面を持たない対象)",
+  "strategy": {
+    "extractionMethod": "excluded-by-declaration",
+    "approvedByUser": true,
+    "screenIdRegex": null,
+    "unitIdRegex": null
+  },
+  "detectionSummary": {
+    "unitCount": 0,
+    "unresolvedCount": 0,
+    "method": "detection-failed",
+    "screenCount": 0,
+    "clusterCount": 0,
+    "sharedScreenCount": 0,
+    "embeddedCandidateCount": 0,
+    "diagnostics": {
+      "extensionExtraction": {
+        "addedUnitCount": 0,
+        "total": 0,
+        "weakEvidence": {
+          "count": 0,
+          "total": 0,
+          "ratio": 0,
+          "warning": false
+        },
+        "rules": [
+          {
+            "name": "category",
+            "searchedFor": "route prefix と画面構成ファイル",
+            "matchedUnitCount": 0
+          },
+          {
+            "name": "permissions",
+            "searchedFor": "認可ロール指定",
+            "matchedUnitCount": 0
+          },
+          {
+            "name": "relatedApis",
+            "searchedFor": "fetch または API client のパス",
+            "matchedUnitCount": 0
+          },
+          {
+            "name": "designDocStatus",
+            "searchedFor": "設計書ディレクトリ",
+            "matchedUnitCount": 0
+          },
+          {
+            "name": "sourceHash",
+            "searchedFor": "実在構成ファイル",
+            "matchedUnitCount": 0
+          }
+        ]
+      }
+    }
+  },
+  "screens": [],
+  "units": []
+}

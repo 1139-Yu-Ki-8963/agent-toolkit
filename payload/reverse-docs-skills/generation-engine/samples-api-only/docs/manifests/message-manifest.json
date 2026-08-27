@@ -1,0 +1,21 @@
+{
+  "sourceDir": "common",
+  "unitKind": "message",
+  "generatedAt": "2026-08-27T23:44:09Z",
+  "strategy": {
+    "extractionMethod": "message-definition-table",
+    "approvedByUser": false,
+    "unitIdRegex": null,
+    "excludePatterns": []
+  },
+  "detectionSummary": {
+    "method": "message-definition-table",
+    "unitCount": 0,
+    "unresolvedCount": 0
+  },
+  "units": [],
+  "summary": {
+    "totalCount": 0,
+    "byType": {}
+  }
+}

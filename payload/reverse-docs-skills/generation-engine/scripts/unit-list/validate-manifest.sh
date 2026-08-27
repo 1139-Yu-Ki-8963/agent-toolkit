@@ -1135,7 +1135,7 @@ run_validate() {
       # 「一時ファイル名の乱数展開を効かせる」で拡張子なしのmktemp+mvの2段へ改めた。
       # 単純化して1回のmktempへ戻すな。
       if ! _recompute_out_base="$(mktemp "${TMPDIR:-/tmp}/validate-manifest-table-history.XXXXXX" 2>/dev/null)" || [ -z "$_recompute_out_base" ]; then
-        echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+        echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
         exit 2
       fi
       recompute_out="${_recompute_out_base}.json"
@@ -1189,7 +1189,7 @@ run_validate() {
 self_test() {
   local tmp
   if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/validate-manifest-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   # TMPDIR が末尾スラッシュ付きの場合(例: macOSの既定/var/folders/.../T/)、

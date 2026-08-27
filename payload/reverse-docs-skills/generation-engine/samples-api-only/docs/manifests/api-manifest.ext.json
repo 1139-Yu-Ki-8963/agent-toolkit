@@ -1,0 +1,79 @@
+{
+  "generatedAt": "2026-08-27T23:44:04Z",
+  "sourceDir": "docs/design/apis",
+  "unitKind": "api",
+  "strategy": {
+    "extractionMethod": "document-frontmatter",
+    "approvedByUser": true,
+    "unitIdRegex": null
+  },
+  "detectionSummary": {
+    "unitCount": 1,
+    "unresolvedCount": 0,
+    "diagnostics": {
+      "fallback": {
+        "count": 1,
+        "total": 1,
+        "ratio": 1,
+        "threshold": 0.5,
+        "warning": true
+      },
+      "extensionExtraction": {
+        "addedUnitCount": 1,
+        "total": 1,
+        "weakEvidence": {
+          "count": 0,
+          "total": 1,
+          "ratio": 0,
+          "warning": false
+        },
+        "rules": [
+          {
+            "name": "method",
+            "searchedFor": "HTTP method と framework route call",
+            "matchedUnitCount": 1
+          },
+          {
+            "name": "authRequired",
+            "searchedFor": "認証依存または認証除外パターン",
+            "matchedUnitCount": 0
+          },
+          {
+            "name": "callers",
+            "searchedFor": "画面マニフェストの relatedApis",
+            "matchedUnitCount": 0
+          },
+          {
+            "name": "targetTables",
+            "searchedFor": "関数ブロック内のテーブル識別子",
+            "matchedUnitCount": 0
+          },
+          {
+            "name": "ioSummary",
+            "searchedFor": "入出力モデルの型注釈",
+            "matchedUnitCount": 0
+          }
+        ]
+      }
+    }
+  },
+  "units": [
+    {
+      "method": "GET",
+      "sourceFile": "src/api/audit.py",
+      "unitId": "api-audit",
+      "unitKey": "audit",
+      "designDocPath": "../../../docs/design/apis/api-audit/基本設計/API基本設計書.html",
+      "detailDocPath": "../../../docs/design/apis/api-audit/詳細設計/API詳細設計書.html",
+      "integrationTestViewpointPath": "../../../docs/design/apis/api-audit/テスト設計/APIテスト設計書.md",
+      "integrationTestCasePath": "../../../docs/design/apis/api-audit/テスト設計/APIテスト設計書.md",
+      "testCasePath": "../../../docs/design/apis/api-audit/テスト設計/API単体テスト設計書.md",
+      "unitTestViewpointPath": "../../../docs/design/apis/api-audit/テスト設計/API単体テスト設計書.md",
+      "identifier": "GET /api/audit",
+      "kind": "endpoint",
+      "confidence": "high",
+      "detectionMethod": "document-frontmatter",
+      "fileCount": null
+    }
+  ]
+}

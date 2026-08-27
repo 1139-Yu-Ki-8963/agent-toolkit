@@ -103,11 +103,11 @@ run_integrity_check() {
       LC_ALL=C sort -u "$temporary_dir/$index.target" -o "$temporary_dir/$index.target"
     fi
 
-    comm -23 "$temporary_dir/$index.source" "$temporary_dir/$index.target" >"$temporary_dir/$index.missing"
+    LC_ALL=C comm -23 "$temporary_dir/$index.source" "$temporary_dir/$index.target" >"$temporary_dir/$index.missing"
     local missing_count reverse_count=0
     missing_count="$(wc -l <"$temporary_dir/$index.missing" | tr -d ' ')"
     if [ "$relation" = "equal" ]; then
-      comm -13 "$temporary_dir/$index.source" "$temporary_dir/$index.target" >"$temporary_dir/$index.reverse"
+      LC_ALL=C comm -13 "$temporary_dir/$index.source" "$temporary_dir/$index.target" >"$temporary_dir/$index.reverse"
       reverse_count="$(wc -l <"$temporary_dir/$index.reverse" | tr -d ' ')"
     fi
     if [ "$missing_count" -gt 0 ] || [ "$reverse_count" -gt 0 ]; then

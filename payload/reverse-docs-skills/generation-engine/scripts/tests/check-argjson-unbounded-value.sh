@@ -63,7 +63,10 @@ DEFAULT_TARGET="$(cd "$SCRIPT_DIR/.." && pwd)"
 # 該当する行が無ければ本検査はFAILする。安全な固定長の値だと判断した
 # 場合のみ、レビューのうえで行を追記する。
 ALLOWLIST_TSV="$(cat <<'EOF'
+build-deliverable-inventory.sh	ex	$excluded_json
 build-deliverable-inventory.sh	keys	$required_layout_keys
+verification/check-coverage.sh	dropped	$dropped_json
+verification/prepare-verification-input.sh	ex	$kinds_json
 build-deliverable-inventory.sh	layout	$layout_json
 build-deliverable-inventory.sh	p	$jq_path_json
 build-portal.sh	be	$be_lines
@@ -244,7 +247,7 @@ run_check() {
 self_test() {
   local tmp rc=0
   if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-argjson-unbounded-value-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   trap 'rm -rf "$tmp"' RETURN

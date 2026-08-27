@@ -345,7 +345,7 @@ run_build() {
   # 検証結果を表示せず、不合格時だけ内容をまとめて表示するため。
   local validate_out
   if ! validate_out="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-validate.XXXXXX" 2>/dev/null)" || [ -z "$validate_out" ]; then
-    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   if ! run_validate "$root" >"$validate_out" 2>&1; then
@@ -561,11 +561,11 @@ ${agents_block}"
   # 対処法。extract-table-metadata.shのmainColumnsを参考実装とする）。
   local pre_hooks_file stop_hooks_file
   if ! pre_hooks_file="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-pre-hooks.XXXXXX" 2>/dev/null)" || [ -z "$pre_hooks_file" ]; then
-    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   if ! stop_hooks_file="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-stop-hooks.XXXXXX" 2>/dev/null)" || [ -z "$stop_hooks_file" ]; then
-    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   printf '%s' "$pre_hook_entries_json" > "$pre_hooks_file"
@@ -595,7 +595,7 @@ ${agents_block}"
   # ため、一時ファイル経由の--slurpfileへ渡す（理由は上記pre_hooks_file/stop_hooks_fileと同じ）。
   local cursor_hooks_file
   if ! cursor_hooks_file="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-cursor-hooks.XXXXXX" 2>/dev/null)" || [ -z "$cursor_hooks_file" ]; then
-    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   printf '%s' "$cursor_hook_entries_json" > "$cursor_hooks_file"
@@ -1006,14 +1006,14 @@ self_test() {
   local rc=0
   local src out1 out2 bst_case1_log bst_run1_log bst_diff_log
   if ! src="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-src.XXXXXX" 2>/dev/null)" || [ -z "$src" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   bst_write_fixture "$src"
 
   # ケース1: --apply なしでは書き込みが起きない
   if ! out1="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-out1.XXXXXX" 2>/dev/null)" || [ -z "$out1" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   rm -rf "$out1"
@@ -1029,12 +1029,12 @@ self_test() {
 
   # 以降は --apply で実データを生成して検証する
   if ! out1="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-out1.XXXXXX" 2>/dev/null)" || [ -z "$out1" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   APPLY=1
   if ! bst_run1_log="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-bst-run1.XXXXXX" 2>/dev/null)" || [ -z "$bst_run1_log" ]; then
-    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   run_build "$src" "$out1" >"$bst_run1_log" 2>&1
@@ -1111,7 +1111,7 @@ self_test() {
 
   # ケース6: 同じ入力で2回実行した結果がbyte単位で同一（決定的生成・冪等）
   if ! out2="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-out2.XXXXXX" 2>/dev/null)" || [ -z "$out2" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   APPLY=1
@@ -1119,7 +1119,7 @@ self_test() {
   # out1 に対してもう一度 --apply して、既存生成物への再適用が冪等であることも確認する
   run_build "$src" "$out1" >/dev/null 2>&1
   if ! bst_diff_log="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-bst-diff.XXXXXX" 2>/dev/null)" || [ -z "$bst_diff_log" ]; then
-    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   if diff -r "$out1" "$out2" >"$bst_diff_log" 2>&1; then
@@ -1182,13 +1182,13 @@ self_test() {
   # ケース12: mcp-servers.json が不在の入力では .mcp.json・mcp_servers ブロックを生成しない(skip)
   local src_nomcp out12 ok12
   if ! src_nomcp="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-nomcp.XXXXXX" 2>/dev/null)" || [ -z "$src_nomcp" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   bst_write_fixture "$src_nomcp"
   rm -f "${src_nomcp}/mcp-servers.json"
   if ! out12="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-out12.XXXXXX" 2>/dev/null)" || [ -z "$out12" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   APPLY=1
@@ -1309,7 +1309,7 @@ self_test() {
   # ケース8: --deploy-rule-scripts で4本が配備され、実行可能である
   local deploy_out ok8 deploy_dir
   if ! deploy_out="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-deploy.XXXXXX" 2>/dev/null)" || [ -z "$deploy_out" ]; then
-    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
   deploy_dir="${deploy_out}/docs/rules/agent-operations/ai-config-asset-management"
