@@ -189,12 +189,44 @@ run_self_test() {
     echo "[FAIL] ケース7(--self-testの実装確認)" >&2
   fi
 
+  # 追加回帰: 実ディレクトリの名前が旧い日本語の置き場になっていれば検知する。
+  # 中身の言及が0件でも検知することを確かめる（2026-08-28実測。
+  # 画面0件の見本が中身の言及0件のまま日本語の置き場を持っていた）。
+  mkdir -p "$tmp/case_legacy_dir/generation-engine/x/project-portal/一覧"
+  if out="$(scan_legacy_dirs "$tmp/case_legacy_dir")" && [ -n "$out" ]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "[FAIL] 追加回帰(日本語の置き場): 検知できなかった" >&2
+  fi
+
+  mkdir -p "$tmp/case_ascii_dir/generation-engine/x/project-portal/lists"
+  if out="$(scan_legacy_dirs "$tmp/case_ascii_dir")" && [ -z "$out" ]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "[FAIL] 追加回帰(英字の置き場): 誤って検知した: ${out}" >&2
+  fi
+
   echo "self-test: ${pass} PASS, ${fail} FAIL" >&2
   [ "$fail" -eq 0 ]
 }
 
 # _run_scan_over: 自己テスト用に、指定した疑似リポジトリ配下を走査した結果
 # （違反行の一覧）を返す。
+# scan_legacy_dirs: 実ディレクトリの名前そのものが旧い日本語の置き場に
+# なっていないかを見る。中身の言及を走査するだけでは、実ディレクトリが
+# 日本語のままでも中身に言及が無ければ検知できない
+# （2026-08-28実測。画面0件の見本の置き場が日本語のまま残っていた）。
+scan_legacy_dirs() {
+  local root="$1" d
+  for d in "${TARGET_DIRS[@]}"; do
+    [ -d "$root/$d" ] || continue
+    find "$root/$d" -type d -name '一覧' 2>/dev/null \
+      | grep -v '/node_modules/' | grep -v '/\.venv/' || true
+  done
+}
+
 _run_scan_over() {
   local root="$1"
   scan_dirs "$root"
@@ -224,18 +256,38 @@ main() {
     exit 2
   fi
 
-  local out
+  local out dirs
   out="$(scan_dirs "$repo_root")"
-  if [ -z "$out" ]; then
+  dirs="$(scan_legacy_dirs "$repo_root")"
+
+  if [ -z "$out" ] && [ -z "$dirs" ]; then
     echo "[PASS] project-portal/一覧 への言及は0件"
+    echo "[PASS] 旧い日本語の置き場は0件"
     exit 0
   fi
 
-  printf '%s\n' "$out"
-  local violations
-  violations="$(printf '%s\n' "$out" | grep -c .)"
-  echo "[FAIL] project-portal/一覧 への言及が ${violations} 件ある"
-  exit 1
+  local rc=0
+  if [ -n "$out" ]; then
+    printf '%s\n' "$out"
+    local violations
+    violations="$(printf '%s\n' "$out" | grep -c .)"
+    echo "[FAIL] project-portal/一覧 への言及が ${violations} 件ある"
+    rc=1
+  else
+    echo "[PASS] project-portal/一覧 への言及は0件"
+  fi
+
+  if [ -n "$dirs" ]; then
+    printf '%s\n' "$dirs"
+    local dir_count
+    dir_count="$(printf '%s\n' "$dirs" | grep -c .)"
+    echo "[FAIL] 旧い日本語の置き場が ${dir_count} 件ある"
+    rc=1
+  else
+    echo "[PASS] 旧い日本語の置き場は0件"
+  fi
+
+  exit "$rc"
 }
 
 if [ "${1:-}" = "--self-test" ]; then
