@@ -75,6 +75,25 @@ LEGACY_NAMES='図|対応表|基盤|画面'
 # scan_dirs: <root> 配下の TARGET_DIRS を走査し、project-portal/ の直後に
 # 4つの既知の旧名が来る行を「ファイル:行番号:内容」の形で標準出力へ書く。
 # 除外対象（このスクリプト自身）は含めない。
+# scan_legacy_dirs: 実ディレクトリの名前そのものが旧い日本語の置き場に
+# なっていないかを見る。中身の言及を走査するだけでは、実ディレクトリが
+# 日本語のままでも中身に言及が無ければ検知できない
+# （2026-08-28実測。同じ抜けが一覧の置き場の検査にもあった）。
+scan_legacy_dirs() {
+  local root="$1" d name
+  for d in "${TARGET_DIRS[@]}"; do
+    [ -d "$root/$d" ] || continue
+    while IFS= read -r name; do
+      [ -n "$name" ] || continue
+      find "$root/$d" -type d -path '*/project-portal/*' -name "$name" 2>/dev/null \
+        | grep -v '/node_modules/' | grep -v '/\.venv/' || true
+    done <<NAMES
+$(printf '%s\n' "$LEGACY_NAMES" | tr '|' '\n')
+NAMES
+  done
+  return 0
+}
+
 scan_dirs() {
   local root="$1"
   local self_rel="docs/scripts/check-portal-dir-ascii.sh"
@@ -210,6 +229,25 @@ run_self_test() {
     echo "[FAIL] ケース8(自己言及の除外): scan_dirs実行時にエラー" >&2
   fi
 
+  # 追加回帰: 実ディレクトリの名前が旧い日本語の置き場になっていれば検知する。
+  # 中身の言及が0件でも検知することを確かめる（2026-08-28実測。
+  # 同じ抜けが一覧の置き場の検査にもあった）。
+  mkdir -p "$tmp/case_legacy_dir/generation-engine/x/project-portal/図"
+  if out="$(scan_legacy_dirs "$tmp/case_legacy_dir")" && [ -n "$out" ]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "[FAIL] 追加回帰(日本語のフォルダ): 検知できなかった" >&2
+  fi
+
+  mkdir -p "$tmp/case_ascii_dir/generation-engine/x/project-portal/diagrams"
+  if out="$(scan_legacy_dirs "$tmp/case_ascii_dir")" && [ -z "$out" ]; then
+    pass=$((pass + 1))
+  else
+    fail=$((fail + 1))
+    echo "[FAIL] 追加回帰(英字のフォルダ): 誤って検知した: ${out}" >&2
+  fi
+
   echo "self-test: ${pass} PASS, ${fail} FAIL" >&2
   [ "$fail" -eq 0 ]
 }
@@ -245,18 +283,38 @@ main() {
     exit 2
   fi
 
-  local out
+  local out dirs
   out="$(scan_dirs "$repo_root")"
-  if [ -z "$out" ]; then
+  dirs="$(scan_legacy_dirs "$repo_root")"
+
+  if [ -z "$out" ] && [ -z "$dirs" ]; then
     echo "[PASS] project-portal/ 直下の日本語フォルダ名への言及は0件"
+    echo "[PASS] project-portal/ 直下の日本語フォルダは0件"
     exit 0
   fi
 
-  printf '%s\n' "$out"
-  local violations
-  violations="$(printf '%s\n' "$out" | grep -c .)"
-  echo "[FAIL] project-portal/ 直下の日本語フォルダ名への言及が ${violations} 件ある"
-  exit 1
+  local rc=0
+  if [ -n "$out" ]; then
+    printf '%s\n' "$out"
+    local violations
+    violations="$(printf '%s\n' "$out" | grep -c .)"
+    echo "[FAIL] project-portal/ 直下の日本語フォルダ名への言及が ${violations} 件ある"
+    rc=1
+  else
+    echo "[PASS] project-portal/ 直下の日本語フォルダ名への言及は0件"
+  fi
+
+  if [ -n "$dirs" ]; then
+    printf '%s\n' "$dirs"
+    local dir_count
+    dir_count="$(printf '%s\n' "$dirs" | grep -c .)"
+    echo "[FAIL] project-portal/ 直下の日本語フォルダが ${dir_count} 件ある"
+    rc=1
+  else
+    echo "[PASS] project-portal/ 直下の日本語フォルダは0件"
+  fi
+
+  exit "$rc"
 }
 
 if [ "${1:-}" = "--self-test" ]; then
