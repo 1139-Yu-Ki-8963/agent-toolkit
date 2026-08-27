@@ -1,0 +1,14 @@
+{
+  "generatedAt": "2026-08-01T00:00:00+09:00",
+  "surveyDocPath": "プロジェクト共通/アーキテクチャ調査書.md",
+  "allKinds": ["screen", "api", "table", "batch", "report", "external"],
+  "presentKinds": [],
+  "excludedKinds": [
+    { "kind": "screen", "label": "画面", "reason": "画面を持たないバックエンドのみのプロジェクトのため画面が存在しない" },
+    { "kind": "api", "label": "API", "reason": "この種別に当たるものが実装に存在しません" },
+    { "kind": "table", "label": "テーブル", "reason": "この種別に当たるものが実装に存在しません" },
+    { "kind": "batch", "label": "バッチ", "reason": "この種別に当たるものが実装に存在しません" },
+    { "kind": "report", "label": "帳票", "reason": "この種別に当たるものが実装に存在しません" },
+    { "kind": "external", "label": "外部連携", "reason": "この種別に当たるものが実装に存在しません" }
+  ]
+}
