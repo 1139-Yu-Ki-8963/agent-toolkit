@@ -1,0 +1,1155 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>用語辞書 — 設計ポータル</title>
+
+<style>
+/* 設計ポータルのデザイントークン。
+   本ファイルの全文が、ビルド時に各テンプレートのトークン注入マーカーへ差し込まれる。
+   既定はダークテーマ。ライトは OS 設定または data-theme="light" で切り替える。
+   色は 26 種の基本トークンだけをテーマ別に定義し、
+   既存の別名トークンは var() 参照でテーマへ自動追従させる。 */
+
+:root {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-synthesis: none;
+
+  /* 基本色（ダーク） */
+  --bg: #0F1217;
+  --panel: #161C23;
+  --panel2: #1C232E;
+  --panel3: #141A23;
+  --line: #2B3443;
+  --line2: #3A4658;
+  --text: #E7ECF4;
+  --sub: #A8B3C3;
+  --muted: #8A96A7;
+  --faint: #798496;
+  --accent: #4CC2FE;
+  --accent-hi: #9ADCFF;
+  --accent-soft: rgba(76,194,255,0.17);
+  /* 濃色ヘッダのハイライト。背景色を差し替えず元の背景へ重ねるため、明暗どちらの配色でも文字との明度差を保つ */
+  --head-hl: rgba(255,255,255,0.16);
+  --stamp: #FF6E4F;
+  --stamp-soft: rgba(255,110,78,0.16);
+  --green: #4ADE81;
+  --green-soft: rgba(74,222,129,0.16);
+  --grid: rgba(255,255,255,0.036);
+  --head: #202B3B;
+  --headtext: #E7ECF4;
+  --code: #0B0E13;
+  --codetext: #C9E8FF;
+  --navon: #EAF6FF;
+  --chipontext: #0F1217;
+  --rowopen: #1A212B;
+  --neutral-soft: rgba(255,255,255,0.06);
+
+  /* 別名。既存テンプレートの参照を壊さないために残す。値は基本色を参照するのでテーマに自動追従する */
+  --panel-2: var(--panel2);
+  --border: var(--line);
+  --border-strong: var(--line2);
+  --text-sub: var(--sub);
+  --text-muted: var(--muted);
+  --accent-2: var(--accent-hi);
+  --accent-border: var(--accent);
+  --gold: var(--stamp);
+  --gold-soft: var(--stamp-soft);
+  --gold-border: var(--stamp);
+  --warn: var(--stamp);
+  --danger: var(--stamp);
+  --danger-soft: var(--stamp-soft);
+  --success: var(--green);
+  --success-soft: var(--green-soft);
+  --highlight: var(--accent);
+  --highlight-soft: var(--accent-soft);
+  --highlight-border: var(--accent);
+  --nav-tag: var(--faint);
+  --nav-tag-soft: var(--neutral-soft);
+  --self-tag: var(--green);
+  --self-tag-soft: var(--green-soft);
+  --code-bg: var(--code);
+  --code-fg: var(--codetext);
+  --cat-list: var(--accent);
+  --cat-standards: var(--accent);
+  --cat-design: var(--accent);
+  --cat-project: var(--accent);
+
+  /* 非色トークン。テーマで変えない */
+  --font-body: "Hiragino Kaku Gothic ProN","Hiragino Sans","Noto Sans JP","BIZ UDPGothic","Yu Gothic","Meiryo",system-ui,-apple-system,sans-serif;
+  --mono: "SFMono-Regular","Menlo","Cascadia Code","Consolas",monospace;
+  --radius: 0;
+  --radius-sm: 0;
+  --shadow-sm: 3px 3px 0 var(--accent-soft);
+  --shadow-md: 4px 4px 0 var(--accent-soft);
+  --sidebar-w: 248px;
+  --page-gutter: 40px;
+  --grid-size: 24px;
+}
+
+/* OS がライト設定で、かつダークを明示指定していない場合 */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #F1F4F8;
+    --panel: #FFFFFF;
+    --panel2: #E9EEF4;
+    --panel3: #F7F9FC;
+    --line: #D8DFE8;
+    --line2: #243040;
+    --text: #1A222E;
+    --sub: #4B5A70;
+    --muted: #657285;
+    --faint: #627387;
+    --accent: #0272AC;
+    --accent-hi: #075985;
+    --accent-soft: rgba(2,132,199,0.10);
+    --stamp: #BF3C22;
+    --stamp-soft: rgba(217,72,43,0.12);
+    --green: #137538;
+    --green-soft: rgba(21,128,61,0.16);
+    --grid: rgba(16,34,64,0.05);
+    --head: #243040;
+    --headtext: #F1F4F8;
+    --code: #101722;
+    --codetext: #C9E8FF;
+    --navon: #102A43;
+    --chipontext: #FFFFFF;
+    --rowopen: #F0F4F9;
+    --neutral-soft: rgba(16,34,64,0.06);
+  }
+}
+
+/* ユーザーがライトを明示指定した場合 */
+[data-theme="light"] {
+  --bg: #F1F4F8;
+  --panel: #FFFFFF;
+  --panel2: #E9EEF4;
+  --panel3: #F7F9FC;
+  --line: #D8DFE8;
+  --line2: #243040;
+  --text: #1A222E;
+  --sub: #4B5A70;
+  --muted: #657285;
+  --faint: #627387;
+  --accent: #0272AC;
+  --accent-hi: #075985;
+  --accent-soft: rgba(2,132,199,0.10);
+  --stamp: #BF3C22;
+  --stamp-soft: rgba(217,72,43,0.12);
+  --green: #137538;
+  --green-soft: rgba(21,128,61,0.16);
+  --grid: rgba(16,34,64,0.05);
+  --head: #243040;
+  --headtext: #F1F4F8;
+  --code: #101722;
+  --codetext: #C9E8FF;
+  --navon: #102A43;
+  --chipontext: #FFFFFF;
+  --rowopen: #F0F4F9;
+  --neutral-soft: rgba(16,34,64,0.06);
+}
+
+/* ユーザーがダークを明示指定した場合。OS がライトでも :root の既定値へ戻す */
+[data-theme="dark"] {
+  --bg: #0F1217;
+  --panel: #161C23;
+  --panel2: #1C232E;
+  --panel3: #141A23;
+  --line: #2B3443;
+  --line2: #3A4658;
+  --text: #E7ECF4;
+  --sub: #A8B3C3;
+  --muted: #8A96A7;
+  --faint: #798496;
+  --accent: #4CC2FE;
+  --accent-hi: #9ADCFF;
+  --accent-soft: rgba(76,194,255,0.17);
+  --stamp: #FF6E4F;
+  --stamp-soft: rgba(255,110,78,0.16);
+  --green: #4ADE81;
+  --green-soft: rgba(74,222,129,0.16);
+  --grid: rgba(255,255,255,0.036);
+  --head: #202B3B;
+  --headtext: #E7ECF4;
+  --code: #0B0E13;
+  --codetext: #C9E8FF;
+  --navon: #EAF6FF;
+  --chipontext: #0F1217;
+  --rowopen: #1A212B;
+  --neutral-soft: rgba(255,255,255,0.06);
+}
+/* 設計ポータルの共通シェル。サイドバー・メインペイン・フッター・方眼紙背景・ページヘッダの
+   共通クラスを定義する。色と寸法は tokens.css のトークンだけを参照し、実値を直書きしない。
+   本ファイルの全文は、ビルド時に各テンプレートのシェル注入マーカーへ差し込まれる。 */
+
+.pt {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.7;
+}
+.pt *, .pt *::before, .pt *::after { box-sizing: border-box; }
+.pt a { color: var(--accent); text-decoration: none; }
+.pt a:hover { color: var(--accent-hi); text-decoration: underline; }
+.pt ::selection { background: var(--accent-soft); }
+.pt :focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+.pt-grid {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: var(--grid-size) var(--grid-size);
+}
+
+.pt-row {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  align-items: stretch;
+}
+
+/* サイドバー */
+.pt-sidebar {
+  width: var(--sidebar-w);
+  flex: none;
+  border-right: 1.5px solid var(--line2);
+  background: var(--panel3);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.pt-brand { padding: 20px 20px 16px; border-bottom: 1.5px solid var(--line2); }
+.pt-brand-stamp { font-family: var(--mono); font-size: 10px; letter-spacing: 3px; color: var(--stamp); font-weight: 600; }
+.pt-brand-name { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; margin-top: 4px; line-height: 1.35; }
+.pt-brand-sub { font-family: var(--mono); font-size: 10.5px; color: var(--muted); margin-top: 5px; }
+
+/* サイト切替（モノレポ複数サイト時のみ JS が pt-brand-name を差し替える） */
+.pt-brand-switch { position: relative; }
+.pt-brand-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 4px;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  appearance: none;
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  line-height: 1.35;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+.pt-brand-toggle:hover { color: var(--accent); }
+.pt-brand-caret {
+  flex: none;
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--text-muted);
+  transition: transform 0.12s;
+}
+.pt-brand-toggle[aria-expanded="true"] .pt-brand-caret { transform: rotate(180deg); }
+.pt-brand-list {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 100%;
+  margin-top: 8px;
+  border: 1.5px solid var(--border);
+  background: var(--panel-2);
+  z-index: 2;
+}
+.pt-brand-list-item {
+  display: block;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text-decoration: none; }
+.pt-brand-list-item.is-current { color: var(--text-muted); font-weight: 600; cursor: default; }
+
+.pt-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; }
+.pt-nav-group { font-family: var(--mono); font-size: 9.5px; letter-spacing: 2px; color: var(--faint); padding: 14px 10px 5px; }
+.pt-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  color: var(--sub);
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pt-nav-item:hover { background: var(--panel2); color: var(--text); text-decoration: none; }
+.pt-nav-item.is-active { color: var(--navon); background: var(--accent-soft); border-left-color: var(--accent); font-weight: 600; }
+.pt-nav-num { font-family: var(--mono); font-size: 10px; color: var(--muted); }
+.pt-nav-count { margin-left: auto; font-family: var(--mono); font-size: 10px; color: var(--faint); font-variant-numeric: tabular-nums; }
+
+/* 現在地のナビ項目に限り、番号と件数の文字色をコントラスト基準（4.5:1）を満たす値へ個別に上げる（改善課題1-49）。
+   --muted/--faint 本体は変更しない（他の使用箇所へ影響するため）。tokens.css と同じ4ブロック切り替えに揃える。 */
+:root {
+  --nav-current-num: #919DAE;
+  --nav-current-count: #929DAF;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --nav-current-num: #5E6B7E;
+    --nav-current-count: #5B6C80;
+  }
+}
+[data-theme="light"] {
+  --nav-current-num: #5E6B7E;
+  --nav-current-count: #5B6C80;
+}
+[data-theme="dark"] {
+  --nav-current-num: #919DAE;
+  --nav-current-count: #929DAF;
+}
+.pt-nav-item.is-active .pt-nav-num { color: var(--nav-current-num); }
+.pt-nav-item.is-active .pt-nav-count { color: var(--nav-current-count); }
+
+/* 文書ビューア型ページの章目次ブロック（旧 .dp-toc を共通サイドバーへ統合） */
+.pt-doc-nav { padding: 14px 12px; display: flex; flex-direction: column; gap: 2px; border-top: 1.5px solid var(--line2); }
+.pt-doc-nav__group { font-family: var(--mono); font-size: 9.5px; letter-spacing: 2px; color: var(--faint); padding: 14px 10px 5px; }
+.pt-doc-nav .nav-item,
+.pt-doc-nav .back-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  font-size: 12.5px;
+  color: var(--sub);
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pt-doc-nav .nav-item:hover,
+.pt-doc-nav .back-link:hover { background: var(--panel2); color: var(--text); text-decoration: none; }
+.pt-doc-nav .nav-item.active { color: var(--navon); background: var(--accent-soft); border-left-color: var(--accent); font-weight: 600; }
+.pt-doc-nav__toc { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1px; }
+.pt-doc-nav__toc a {
+  display: block;
+  padding: 6px 10px 6px 20px;
+  font-size: 11px;
+  color: var(--sub);
+  border-left: 3px solid transparent;
+  transition: all 0.12s;
+}
+.pt-doc-nav__toc a:hover { background: var(--panel2); color: var(--text); text-decoration: none; }
+.pt-doc-nav__toc a.active { color: var(--navon); border-left-color: var(--accent); font-weight: 600; }
+
+.pt-theme {
+  margin: auto 12px 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: calc(100% - 24px);
+  border: 1px solid var(--line2);
+  background: transparent;
+  padding: 8px 12px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--sub);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pt-theme:hover { border-color: var(--accent); color: var(--accent); }
+.pt-theme-next { font-family: var(--mono); font-size: 10px; color: var(--faint); }
+.pt-sidebar-meta { padding: 14px 20px; font-family: var(--mono); font-size: 10px; color: var(--muted); line-height: 1.9; }
+
+/* サイドバー開閉ボタン（狭幅時のみ表示。広幅では常に非表示） */
+.pt-sidebar-toggle {
+  display: none;
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 30;
+  width: 40px;
+  height: 40px;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  border: 1.5px solid var(--line2);
+  background: var(--panel3);
+  padding: 0;
+  cursor: pointer;
+}
+.pt-sidebar-toggle span { display: block; width: 20px; height: 2px; background: var(--text); }
+
+/* サイドバー開放中に背後を覆うオーバーレイ */
+.pt-sidebar-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  background: rgba(0, 0, 0, 0.5);
+}
+.pt-sidebar-scrim[hidden] { display: none; }
+
+@media (max-width: 900px) {
+  :root { --page-gutter: 16px; }
+  .pt-sidebar-toggle { display: flex; }
+  .pt-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 20;
+    width: var(--sidebar-w);
+    max-width: 82vw;
+    transform: translateX(-100%);
+    transition: transform 0.2s ease;
+  }
+  .pt-sidebar.is-open { transform: translateX(0); }
+  .pt-main { padding-top: 64px; }
+}
+
+/* メインペイン */
+.pt-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 0 var(--page-gutter) 72px;
+}
+.pt-main.is-fixed { overflow-y: hidden; display: flex; flex-direction: column; padding-bottom: 24px; }
+
+/* ページヘッダ */
+.pt-head { flex: none; padding: 32px 0 16px; border-bottom: 2px solid var(--line2); }
+.pt-crumb { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+.pt-crumb-current { color: var(--text); }
+.pt-title-row { display: flex; align-items: baseline; gap: 16px; margin-top: 10px; flex-wrap: wrap; }
+.pt-title { margin: 0; font-size: 26px; font-weight: 700; letter-spacing: 1px; }
+.pt-title-sub { font-size: 12px; color: var(--muted); }
+
+/* 汎用パーツ */
+.pt-panel { background: var(--panel); border: 1.5px solid var(--line2); }
+.pt-input {
+  border: 1.5px solid var(--line2);
+  background: var(--panel);
+  padding: 8px 13px;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--text);
+  outline: none;
+  transition: all 0.12s;
+}
+.pt-input:focus { border-color: var(--accent); box-shadow: 3px 3px 0 var(--accent-soft); }
+.pt-seg { display: flex; border: 1px solid var(--line2); }
+.pt-seg button {
+  border: 0;
+  border-right: 1px solid var(--line);
+  padding: 7px 16px;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--panel);
+  color: var(--sub);
+  cursor: pointer;
+  transition: all 0.12s;
+}
+.pt-seg button:last-child { border-right: 0; }
+.pt-seg button.is-active { background: var(--accent); color: var(--chipontext); }
+.pt-chip { font-size: 11px; border: 1px solid var(--line); background: var(--panel3); padding: 2px 8px; font-family: var(--mono); }
+.pt-badge { font-size: 10.5px; font-weight: 600; padding: 2px 9px; }
+.pt-badge.is-done { color: var(--accent); background: var(--accent-soft); }
+.pt-badge.is-stale { color: var(--stamp); background: var(--stamp-soft); }
+.pt-badge.is-todo { color: var(--muted); background: var(--neutral-soft); }
+.pt-count { font-family: var(--mono); font-size: 11px; color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* Google Fonts障害時も3段階アイコンを保つ、公式サブセットのローカルフォールバック */
+@font-face {
+  font-family: "Material Symbols Outlined Local";
+  font-style: normal;
+  font-weight: 400;
+  font-display: block;
+  src: url("data:font/ttf;base64,AAEAAAAOAIAAAwBgR1NVQiNaLJ8AAANUAAAAsk9TLzJhaFcNAAAB6AAAAGBTVEFUfXRs8gAAAkgAAABwY21hcKUX5/QAAAK4AAAAnGdhc3AAAAAQAAAA9AAAAAhnbHlmFt7rfgAABoQAAASMaGVhZC/T8XoAAAGwAAAANmhoZWEH4wcVAAABPAAAACRobXR4BxMC2gAAAWAAAAAmbG9jYQxQCvQAAAGIAAAAJm1heHAANQFkAAAA/AAAACBuYW1lOOZhpQAABAgAAAJ6cG9zdAADAAEAAAEcAAAAIHByZXBoBoyFAAAA7AAAAAe4Af+FsASNAAABAAH//wAPAAEAAAASAWMAIgAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAwAAAAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAABAAAEIP+gAAADwP/0//QDzAPAAAAAAAAAAAAAAAAAAAAAAQPAAMgAUAAoAZAAAAAAAG0AQABtADsAbQBFAG0AbQAvABgABwAuAAAAAAAnAHQAngC7ALsA1gDqASEBOAFPAWoBlAG5AeMB9QIeAjoCRgAAAAEAAAAC9gTeP6CwXw889QACA8AAAAAA5n3RgAAAAADmfeXV//T/pQPMA8EAAAAGAAIAAAAAAAAABAPAAZAABQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAUKAQMBAgICAgIAAAABEAAAAAAAAAAAAAAAR09PRwDAACDwgwQg/6AAAAQmAFsAAAABAAAAAAPAA8AAAAAgACsAAQABAAgABAAAABQABAAAADQAAkZJTEwBAAAAR1JBRAEBAAFvcHN6AQIAAndnaHQBAwADADAAJAAYAAgAAwADAAIAAgGQAAACvAAAAAEAAgACAQsAGAAAAAEAAQACAQoAAAAAAAEAAAACAQoAAAAAAAAAAgAAAAMAAAAUAAMAAQAAABQABACIAAAAHgAQAAMADgAgAF8AYQBpAHAAcgB0AHcAeeAC5kXojuiy8IP//wAAACAAXwBhAGYAbgByAHQAdwB54ALmReiO6LLwg////+T/sv+k/6D/nP+b/5r/mP+XIAAZvhdzF1APfwABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAAAKACQAMgACREZMVAAObGF0bgAOAAQAAAAA//8AAQAAAAFybGlnAAgAAAABAAAAAQAEAAcAAAACAEYACgABAAQAAAAIAAEALAACAB4ACgABAAQAAgAHAAUADQAKAAkACgAHAAEABAABAAQACgAGAAsAAQACAAkADwABAAQAAAAIAAEAKAABAAgAAQAEAAMADQANAAkACwANAAkADgAQABEACAAJAAcACAABAAEADAAAAAAADQCiAAMAAQQJAAAAYAF4AAMAAQQJAAEAMgFGAAMAAQQJAAIADgE4AAMAAQQJAAMAVADkAAMAAQQJAAQAQgCiAAMAAQQJAAUAGgCIAAMAAQQJAAYAPgBKAAMAAQQJAQAACABCAAMAAQQJAQEACgA4AAMAAQQJAQIAGAAgAAMAAQQJAQMADAAUAAMAAQQJAQoADAAIAAMAAQQJAQsACAAAADIANABwAHQATgBvAHIAbQBhAGwAVwBlAGkAZwBoAHQATwBwAHQAaQBjAGEAbAAgAFMAaQB6AGUARwByAGEAZABlAEYAaQBsAGwATQBhAHQAZQByAGkAYQBsAFMAeQBtAGIAbwBsAHMATwB1AHQAbABpAG4AZQBkAC0AUgBlAGcAdQBsAGEAcgBWAGUAcgBzAGkAbwBuACAAMgAuADkANgAxAE0AYQB0AGUAcgBpAGEAbAAgAFMAeQBtAGIAbwBsAHMAIABPAHUAdABsAGkAbgBlAGQAIABSAGUAZwB1AGwAYQByADIALgA5ADYAMQA7AEcATwBPAEcAOwBNAGEAdABlAHIAaQBhAGwAUwB5AG0AYgBvAGwAcwBPAHUAdABsAGkAbgBlAGQALQBSAGUAZwB1AGwAYQByAFIAZQBnAHUAbABhAHIATQBhAHQAZQByAGkAYQBsACAAUwB5AG0AYgBvAGwAcwAgAE8AdQB0AGwAaQBuAGUAZABDAG8AcAB5AHIAaQBnAGgAdAAgADIAMAAyADYAIABHAG8AbwBnAGwAZQAgAEwATABDAC4AIAAgAEEAbABsACAAUgBpAGcAaAB0AHMAIABSAGUAcwBlAHIAdgBlAGQALgAAAAUAyAAAAvgDwAADAAYACQAMAA8AADMRIRElEwMBEQMDIQM1EyHIAjD+ILKyAZCyyAFksrD+oAPA/EB8AWQBZv02Asr+nP5uAWRaAWIAAAUAUABQA3ADcAADAA4AIgAuADoAAAEzNSM2NjU0JiMiBhUUFhMiLgI1ND4CMzIeAhUUDgInMjY1NCYjIgYVFBYTMDAxMDAxMDAxMDABuFBQORcXEREXFxFTkmw/P2ySU1OSbD8/bJJThrq6hoa6uoYBGPBQFxERFxcRERf9+D9sklNTkmw/P2ySU1OSbD9QuoaGurqGhroBQAAFACgAeAOYA3AAAgAFAA0AEQAUAAA3AQElIQESNjQmIgYUFiczNSMXMTEoAbgBuP0aAlz+0hEXFyIXFxdQUCh4Avj9CFACCP4gFyIXFyIXeMhkAAACAZAAeAIwA0gACwAPAAAlIiY1NDYzMhYVFAYnETMRAeAhLy8hIS8vcaB4LyEhLy8hIS/wAeD+IAAAAgAAAAADvQKvAAYACgAAMQEzASMBATc3IRcBrWUBq2r+if6IOCwCKi0Cr/1RAm/9kbFMTAAAAQBtAAADmwKrAAkAADMRIRUhFSEVIRFtAy79LAJ7/YUCq0vpSf7SAAEAQP/xA3oCuAAlAAAFIi4CNTQ+AjMyHgIXIy4DIyIGFRQWMzI2NzUhNSERBgYCAlaifkxGdZlTNYJ2WgxfC0ldYCKDxtqJWog6/tcBhU7PDyhWh19ZhVksEjBTQCo1HguMiph+ERyfSv71MyYAAQBtAAADUwKrAAsAADMRMxEhETMRIxEhEW1aAjBcXP3QAqv+2gEm/VUBO/7FAAEAOwAAA4UCqwALAAAzNSERITUhFSERIRU7AXj+iANK/ogBeEoCF0pK/elKAAABAG0AAANTAqsADQAAMxEzATMnETMRIwEjFxFtXgIyBARWX/3RBAICq/2+PwID/VUCP0D+AQACAEX/8QN8ArgADQAbAAAFIiY1NTQ2MzIWFRUUBicyNjU1NCYjIgYVFRQWAeGo9PSop/T0p4S8vISGu7wPpbYRtqWntBG0p05+jxGPf36QEZB9AAACAG0AAAORAqsADQAVAAAzESEyHgIUDgIjIRERITI2NCYjIW0CBTJmUjU0U2Yy/lUBq0SBg0L+VQKrFTBQdlAwFf71AVUzpjIAAAMAbQAAA5ICqwAKABIAFgAAMxEhMhYVFAYjIRERITI2NCYjIQEDNxNtAhFdkY5g/kkBtz5VVj3+SQJg4mDtAqtiZ2ph/ukBYECEPf2fASQR/ssAAAEALwAAA5ECqwAHAAAhESE1IRUhEQG0/nsDYv59AmBLS/2gAAEAGP/7A6gCqwAVAAAXAzMTFzM3EzMTFzM3EzMDIwMnIwcD3sZdjgoECpRjmQoECYpcxlyYDAQNlwUCsP39NjYCA/39OTkCA/1QAgo8PP32AAABAAcAAAO5AqsACwAAIREBMwEXMzcBMwERAbL+VYIBJjIEMwEnev5VAQABq/7RPz8BL/5V/wAAAAEALv+lA5L/8AADAAAXNSEVLgNkW0tL") format("truetype");
+}
+
+/* 重要度コールアウト。見出しを先頭要素に置き、色帯とMaterial Symbolsを併用する */
+.pt-callout {
+  --callout-color: var(--accent);
+  --callout-soft: var(--accent-soft);
+  position: relative;
+  background: var(--callout-soft);
+  color: var(--text);
+  box-shadow: inset 5px 0 0 var(--callout-color);
+}
+.pt-callout__icon {
+  display: none;
+  margin-right: 0.55em;
+  color: var(--callout-color);
+  font-family: "Material Symbols Outlined", "Material Symbols Outlined Local";
+  font-size: 1.45em;
+  font-style: normal;
+  font-weight: 400;
+  font-variation-settings: "FILL" 0, "wght" 500, "GRAD" 0, "opsz" 24;
+  line-height: 1;
+  vertical-align: -0.12em;
+}
+.pt-callout > :first-child > .pt-callout__icon { display: inline-block; }
+.pt-callout--caution {
+  --callout-color: var(--accent);
+  --callout-soft: var(--accent-soft);
+}
+.pt-callout--warning {
+  --callout-color: var(--stamp);
+  --callout-soft: var(--stamp-soft);
+}
+.pt-callout--important {
+  --callout-color: var(--green);
+  --callout-soft: var(--green-soft);
+}
+
+/* 表 */
+/* 横スクロール可能な表であることを示す端フェード（JS不要のCSSのみの手掛かり）。
+   background-attachment の local/scroll の組合せで、覆いレイヤー(local)はスクロール量に
+   応じて中身と一緒に動き、影レイヤー(scroll)は要素の表示領域に固定されたまま覆いの下に隠れる。
+   これにより端まで到達すると自動的に影が消え、途中では両端に影が現れる。 */
+.pt-tablewrap {
+  flex: 0 1 auto; min-height: 0; overflow: auto; border: 1.5px solid var(--line2);
+  background-color: var(--panel);
+  background-image:
+    linear-gradient(to right, var(--panel) 40%, transparent),
+    linear-gradient(to left, var(--panel) 40%, transparent),
+    linear-gradient(to right, color-mix(in srgb, var(--text) 22%, transparent), transparent),
+    linear-gradient(to left, color-mix(in srgb, var(--text) 22%, transparent), transparent);
+  background-repeat: no-repeat;
+  background-size: 30px 100%, 30px 100%, 14px 100%, 14px 100%;
+  background-position: left, right, left, right;
+  background-attachment: local, local, scroll, scroll;
+}
+/* 固定列を持つ表専用の横スクロール手掛かり。
+   固定列（position:sticky）は不透明な背景を持つため、影を表そのものの background として
+   置くと固定列の下に隠れてしまう（背景は常に子要素より奥の層に描画されるため、子要素の
+   z-index をどれだけ上げても背景の上に出てくることはない）。
+   代わりに表を包む専用のラッパーを置き、その ::before/::after を固定列より高い z-index で
+   重ねることで、固定列の陰にならない位置に手掛かりを出す。表示のON/OFFはスクロール量に応じて
+   共通ホスト（partials/shell-sidebar.html）の JS が can-scroll-left / can-scroll-right を切り替える。 */
+.pt-scroll-shell { position: relative; min-width: 0; }
+.pt-scroll-shell::before,
+.pt-scroll-shell::after {
+  content: ""; position: absolute; z-index: 20; top: 0; bottom: 0; width: 30px;
+  opacity: 0; pointer-events: none; transition: opacity .12s;
+}
+.pt-scroll-shell::before {
+  left: 0; background: linear-gradient(to right, color-mix(in srgb, var(--text) 22%, transparent), transparent);
+}
+.pt-scroll-shell::after {
+  right: 0; background: linear-gradient(to left, color-mix(in srgb, var(--text) 22%, transparent), transparent);
+}
+.pt-scroll-shell.can-scroll-left::before,
+.pt-scroll-shell.can-scroll-right::after { opacity: 1; }
+
+.pt-tablewrap table { width: 100%; border-collapse: separate; border-spacing: 0; }
+.pt-tablewrap thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--head);
+  color: var(--headtext);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  text-align: left;
+  padding: 9px 14px;
+}
+.pt-tablewrap tbody td { border-top: 1px solid var(--line); padding: 10px 14px; font-size: 13px; }
+.pt-tablewrap tbody tr:hover td { background: var(--panel3); }
+.pt-tablewrap tbody tr.is-open td { background: var(--rowopen); }
+.pt-mono { font-family: var(--mono); font-size: 11.5px; color: var(--sub); }
+
+/* フッター */
+.pt-footer {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  border-top: 1.5px solid var(--line2);
+  background: var(--panel3);
+  padding: 12px var(--page-gutter);
+  display: flex;
+  gap: 20px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.pt-footer-stamp { font-family: var(--mono); font-size: 10.5px; letter-spacing: 2px; color: var(--stamp); font-weight: 600; }
+.pt-footer-meta { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+.pt-footer-gen { margin-left: auto; font-size: 10.5px; color: var(--muted); }
+
+@media (prefers-reduced-motion: reduce) {
+  .pt *, .pt *::before, .pt *::after { transition: none !important; }
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+html, body { margin: 0; padding: 0; }
+.dp-controls { flex:none; display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin:24px 0 12px; }
+.dp-controls .pt-input { flex:1; min-width:260px; }
+.filter-bar { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; margin-bottom:12px; }
+.filter-set { display:flex; flex-wrap:wrap; align-items:center; gap:7px; }
+.filter-label,.sec-label { color:var(--muted); font:600 11px var(--mono); letter-spacing:.08em; text-transform:uppercase; }
+.chip { border:1px solid var(--line2); background:var(--panel); color:var(--sub); padding:5px 12px; font:inherit; font-size:12px; cursor:pointer; }
+.chip:hover,.chip:focus-visible { border-color:var(--accent); color:var(--accent); }
+.chip.active { border-color:var(--accent); background:var(--accent); color:var(--chipontext); font-weight:700; }
+.registry-note { margin:0 0 12px; border-left:4px solid var(--accent); background:var(--panel3); color:var(--sub); padding:9px 12px; font-size:12px; }
+.dp-tablewrap { flex:1; min-height:0; overflow-x:auto; border:1px solid var(--line2); }
+#dict-table { min-width:2380px; table-layout:fixed; }
+#dict-table th { white-space:nowrap; }
+#dict-table td { vertical-align:top; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+#dict-table th:nth-child(1),#dict-table td:nth-child(1) { width:130px; }
+#dict-table th:nth-child(2),#dict-table td:nth-child(2) { width:150px; }
+#dict-table th:nth-child(3),#dict-table td:nth-child(3) { width:150px; }
+#dict-table th:nth-child(4),#dict-table td:nth-child(4) { width:470px; }
+#dict-table th:nth-child(5),#dict-table td:nth-child(5) { width:130px; }
+#dict-table th:nth-child(6),#dict-table td:nth-child(6) { width:100px; }
+#dict-table th:nth-child(7),#dict-table td:nth-child(7) { width:150px; }
+#dict-table th:nth-child(8),#dict-table td:nth-child(8) { width:120px; }
+#dict-table th:nth-child(9),#dict-table td:nth-child(9) { width:150px; }
+#dict-table th:nth-child(10),#dict-table td:nth-child(10) { width:150px; }
+#dict-table th:nth-child(11),#dict-table td:nth-child(11) { width:150px; }
+#dict-table th:nth-child(12),#dict-table td:nth-child(12) { width:200px; }
+#dict-table th:nth-child(13),#dict-table td:nth-child(13) { width:110px; }
+#dict-table th:nth-child(14),#dict-table td:nth-child(14) { width:220px; }
+#dict-table td:nth-child(4),#dict-table td:nth-child(12),#dict-table td:nth-child(14) { overflow:hidden; text-overflow:ellipsis; white-space:normal; overflow-wrap:anywhere; display:-webkit-box; line-clamp:4; -webkit-line-clamp:4; -webkit-box-orient:vertical; }
+#dict-table tbody tr[data-interactive="true"] { cursor:pointer; }
+#dict-table tbody tr[data-interactive="true"]:hover td,#dict-table tbody tr[aria-selected="true"] td { background:var(--panel3); }
+#dict-table tbody tr:focus-visible { outline:2px solid var(--accent); outline-offset:-2px; }
+#dict-table code { color:var(--accent); font:11.5px var(--mono); }
+.term-label { font-weight:700; }
+.meaning-key { display:block; border-left:4px solid var(--accent); padding:2px 0 2px 8px; color:var(--accent); font:600 11.5px var(--mono); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
+.meaning-key.unmigrated { border-left-color:var(--muted); color:var(--muted); }
+.meaning-key.deprecated { border-left-color:var(--warning,var(--accent)); }
+.kind { font-weight:650; }
+.category { margin-top:3px; color:var(--muted); font-size:11px; }
+.state { display:inline-block; border:1px solid var(--line2); padding:2px 7px; white-space:nowrap; font-size:11px; }
+.state.active { border-color:var(--success,var(--accent)); }
+.state.deprecated { border-color:var(--warning,var(--accent)); }
+.state.retired,.state.unmigrated { color:var(--muted); }
+.successor { display:block; margin-top:4px; color:var(--muted); font:10.5px var(--mono); }
+.note-box { margin:14px 0 0; border:1px solid var(--line2); background:var(--panel3); color:var(--sub); padding:10px 14px; font-size:12.5px; }
+#unresolved-mount,.related-entities { flex:none; }
+.drawer-scrim { display:none; position:fixed; inset:0; z-index:100; background:rgba(0,0,0,.46); }
+.drawer-scrim.is-open { display:block; }
+.drawer { position:fixed; z-index:101; top:0; right:0; bottom:0; width:min(460px,44vw); overflow:auto; transform:translateX(105%); transition:transform .18s ease; border-left:1px solid var(--line2); background:var(--panel); box-shadow:-7px 0 0 var(--accent-soft); }
+.drawer.is-open { transform:translateX(0); }
+.drawer-head { position:sticky; top:0; z-index:1; display:flex; justify-content:space-between; gap:16px; padding:22px; border-bottom:1px solid var(--line2); background:var(--panel); }
+.drawer-head h2 { margin:3px 0 0; font-size:19px; }
+.drawer-close { flex:none; width:34px; height:34px; border:1px solid var(--line2); background:var(--panel3); color:var(--text); cursor:pointer; }
+.drawer-body { padding:18px 22px 34px; }
+.drawer-definition { margin:0 0 14px; color:var(--sub); }
+.detail-group { padding:13px 0; border-top:1px solid var(--line2); }
+.detail-group h3 { margin:0 0 8px; color:var(--muted); font:600 11px var(--mono); letter-spacing:.08em; }
+.detail-group ul { margin:0; padding-left:18px; }
+.detail-group li { margin:4px 0; overflow-wrap:anywhere; }
+[hidden] { display:none !important; }
+@media (max-width:760px) {
+  .dp-controls .pt-input { min-width:0; width:100%; flex-basis:100%; }
+  .filter-set { flex-wrap:nowrap; max-width:100%; overflow-x:auto; padding-bottom:3px; }
+  .chip { flex:none; white-space:nowrap; }
+  .drawer { width:100vw; max-width:none; }
+}
+@media (prefers-reduced-motion:reduce) { .drawer { transition:none; } }
+</style>
+</head>
+<body>
+<div class="pt" id="dictionary-background">
+  <div class="pt-grid"></div>
+  <div class="pt-row">
+    <button type="button" class="pt-sidebar-toggle" id="pt-sidebar-toggle" aria-expanded="false" aria-controls="pt-sidebar-aside" aria-label="ナビゲーションを開く">
+  <span></span><span></span><span></span>
+</button>
+<aside class="pt-sidebar" id="pt-sidebar-aside" data-portal-href="../../index.html" data-active-category="project">
+  <div class="pt-brand">
+    <div class="pt-brand-stamp">DESIGN PORTAL</div>
+    <div class="pt-brand-switch" id="pt-brand-switch">
+      <div class="pt-brand-name">api-only-design</div>
+    </div>
+    <div class="pt-brand-sub">設計台帳 · 全59資料</div>
+  </div>
+  <nav class="pt-nav" id="pt-nav" aria-label="資料カテゴリ"></nav>
+  
+  <button type="button" class="pt-theme" id="pt-theme-toggle">
+    <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
+  </button>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-28</span><span id="pt-meta-commit"><br>コミット </span></div>
+</aside>
+<div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
+<script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":3},{"key":"list","num":"04","label":"一覧・設計図","count":15},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
+<script type="application/json" id="pt-sites-data">[]</script>
+<script>
+(function () {
+  var root = document.documentElement;
+  function applyTheme(t) {
+    root.setAttribute('data-theme', t);
+    var label = document.getElementById('pt-theme-label');
+    var next = document.getElementById('pt-theme-next');
+    if (label) label.textContent = t === 'dark' ? 'テーマ: ダーク' : 'テーマ: ライト';
+    if (next) next.textContent = t === 'dark' ? '→ LIGHT' : '→ DARK';
+  }
+  var saved = null;
+  try { saved = localStorage.getItem('rd-portal-theme'); } catch (e) {}
+  if (saved === 'dark' || saved === 'light') {
+    applyTheme(saved);
+  } else {
+    applyTheme(window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  }
+  var btn = document.getElementById('pt-theme-toggle');
+  if (btn) {
+    btn.addEventListener('click', function () {
+      var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      applyTheme(next);
+      try { localStorage.setItem('rd-portal-theme', next); } catch (e) {}
+    });
+  }
+
+  function isCommitEmpty(text) {
+    return text.replace(/コミット/g, '').replace(/[·\s　]+/g, '') === '';
+  }
+  function removeIfEmptyCommit(id) {
+    var node = document.getElementById(id);
+    if (node && isCommitEmpty(node.textContent) && node.parentNode) {
+      node.parentNode.removeChild(node);
+    }
+  }
+  removeIfEmptyCommit('pt-meta-commit');
+
+  function formatDateOnly(text) {
+    return /^\d{4}-\d{2}-\d{2}/.test(text) ? text.slice(0, 10) : text;
+  }
+  function truncateDate(id) {
+    var node = document.getElementById(id);
+    if (node) node.textContent = formatDateOnly(node.textContent);
+  }
+  truncateDate('pt-sidebar-date');
+
+  function formatTitleSubDates() {
+    var nodes = document.querySelectorAll('.pt-title-sub');
+    for (var i = 0; i < nodes.length; i++) {
+      nodes[i].textContent = nodes[i].textContent.replace(
+        /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z/g,
+        function (m) { return m.slice(0, 10); }
+      );
+    }
+  }
+
+  function applyShellMetaFormatting() {
+    removeIfEmptyCommit('pt-footer-commit');
+    truncateDate('pt-footer-date');
+    formatTitleSubDates();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyShellMetaFormatting);
+  } else {
+    applyShellMetaFormatting();
+  }
+
+  var nav = document.getElementById('pt-nav');
+  var side = document.querySelector('.pt-sidebar');
+  var dataEl = document.getElementById('pt-nav-data');
+  if (!nav || !side || !dataEl) return;
+  var cats = [];
+  try { cats = JSON.parse(dataEl.textContent) || []; } catch (e) { return; }
+  var portalHref = side.getAttribute('data-portal-href') || 'index.html';
+  var active = side.getAttribute('data-active-category') || '';
+
+  function item(href, num, label, count, isActive) {
+    var a = document.createElement('a');
+    a.className = 'pt-nav-item' + (isActive ? ' is-active' : '');
+    a.href = href;
+    var n = document.createElement('span');
+    n.className = 'pt-nav-num';
+    n.textContent = num;
+    a.appendChild(n);
+    a.appendChild(document.createTextNode(label));
+    if (count !== null && count !== undefined) {
+      var c = document.createElement('span');
+      c.className = 'pt-nav-count';
+      c.textContent = String(count);
+      a.appendChild(c);
+    }
+    return a;
+  }
+
+  nav.appendChild(item(portalHref, '00', 'ダッシュボード', null, active === ''));
+  var head = document.createElement('div');
+  head.className = 'pt-nav-group';
+  head.textContent = '資料カテゴリ';
+  nav.appendChild(head);
+  cats.forEach(function (c) {
+    nav.appendChild(item(portalHref + '#cat-' + c.key, c.num, c.label, c.count, active === c.key));
+  });
+})();
+
+(function () {
+  var switchWrap = document.getElementById('pt-brand-switch');
+  var sitesEl = document.getElementById('pt-sites-data');
+  if (!switchWrap || !sitesEl) return;
+  var sites = [];
+  try { sites = JSON.parse(sitesEl.textContent) || []; } catch (e) { return; }
+  if (!Array.isArray(sites) || sites.length < 2) return;
+
+  var nameEl = switchWrap.querySelector('.pt-brand-name');
+  var label = nameEl ? nameEl.textContent : '';
+
+  var btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'pt-brand-toggle';
+  btn.id = 'pt-brand-toggle';
+  btn.setAttribute('aria-expanded', 'false');
+  btn.setAttribute('aria-controls', 'pt-brand-list');
+
+  var text = document.createElement('span');
+  text.className = 'pt-brand-toggle-label';
+  text.textContent = label;
+  btn.appendChild(text);
+
+  var caret = document.createElement('span');
+  caret.className = 'pt-brand-caret';
+  caret.setAttribute('aria-hidden', 'true');
+  btn.appendChild(caret);
+
+  if (nameEl) {
+    switchWrap.replaceChild(btn, nameEl);
+  } else {
+    switchWrap.appendChild(btn);
+  }
+
+  var list = document.createElement('div');
+  list.className = 'pt-brand-list';
+  list.id = 'pt-brand-list';
+  list.hidden = true;
+
+  sites.forEach(function (site) {
+    if (site.current) {
+      var current = document.createElement('div');
+      current.className = 'pt-brand-list-item is-current';
+      current.textContent = site.label;
+      list.appendChild(current);
+    } else {
+      var a = document.createElement('a');
+      a.className = 'pt-brand-list-item';
+      a.href = site.href;
+      a.textContent = site.label;
+      list.appendChild(a);
+    }
+  });
+
+  switchWrap.appendChild(list);
+
+  function close() {
+    btn.setAttribute('aria-expanded', 'false');
+    list.hidden = true;
+  }
+
+  btn.addEventListener('click', function () {
+    var expanded = btn.getAttribute('aria-expanded') === 'true';
+    if (expanded) {
+      close();
+    } else {
+      btn.setAttribute('aria-expanded', 'true');
+      list.hidden = false;
+    }
+  });
+
+  document.addEventListener('click', function (e) {
+    if (!switchWrap.contains(e.target)) close();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') close();
+  });
+})();
+
+(function () {
+  var toggle = document.getElementById('pt-sidebar-toggle');
+  var aside = document.getElementById('pt-sidebar-aside');
+  var scrim = document.getElementById('pt-sidebar-scrim');
+  if (!toggle || !aside || !scrim) return;
+
+  function openSidebar() {
+    aside.classList.add('is-open');
+    toggle.setAttribute('aria-expanded', 'true');
+    scrim.hidden = false;
+  }
+  function closeSidebar() {
+    aside.classList.remove('is-open');
+    toggle.setAttribute('aria-expanded', 'false');
+    scrim.hidden = true;
+  }
+
+  toggle.addEventListener('click', function () {
+    if (aside.classList.contains('is-open')) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
+  });
+  scrim.addEventListener('click', closeSidebar);
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeSidebar();
+  });
+})();
+
+(function () {
+  /* .pt-scroll-shell（固定列を持つ表の横スクロール手掛かり）のON/OFF切替。
+     CSS の定義は partials/shell.css の .pt-scroll-shell を参照。
+     固定列に隠れないよう表の外側に置いた ::before/::after の表示・非表示を、
+     内側の実スクロール要素（.table-wrap または .pt-tablewrap）のスクロール量から判定する。
+
+     data-scroll-cues="auto" を持つホスト配下の .table-wrap / .pt-tablewrap のうち、
+     まだ .pt-scroll-shell に包まれていないものは、実行時に .pt-scroll-shell で動的に包む。
+     生成スクリプトがテーブル本体を直接組み立てるページ（画面一覧の本体テーブル等）は
+     テンプレート側で静的に .pt-scroll-shell を配置できないため、この受け口を使う。
+     本処理は DOMContentLoaded 発火後に実行する（下の呼び出し部分を参照）。ページ本体側の
+     同期スクリプト（ページャ組み立て・任意列追加）は DOMContentLoaded 発火前に完了して
+     いるため、包む時点では最終的な DOM 構造になっている。 */
+  function wrapAutoHosts() {
+    var hosts = Array.prototype.slice.call(document.querySelectorAll('[data-scroll-cues="auto"]'));
+    hosts.forEach(function (host) {
+      var wraps = Array.prototype.slice.call(host.querySelectorAll('.table-wrap, .pt-tablewrap'));
+      wraps.forEach(function (wrap) {
+        if (wrap.closest('.pt-scroll-shell')) return;
+        var shell = document.createElement('div');
+        shell.className = 'pt-scroll-shell';
+        wrap.parentNode.insertBefore(shell, wrap);
+        shell.appendChild(wrap);
+      });
+    });
+  }
+  function initScrollCues() {
+    wrapAutoHosts();
+    var shells = Array.prototype.slice.call(document.querySelectorAll('.pt-scroll-shell'));
+    if (!shells.length) return;
+    var updaters = [];
+    shells.forEach(function (shell) {
+      var wrap = shell.querySelector(':scope > .table-wrap, :scope > .pt-tablewrap');
+      if (!wrap) return;
+      function update() {
+        var overflowing = wrap.scrollWidth > wrap.clientWidth + 1;
+        var atStart = wrap.scrollLeft <= 1;
+        var atEnd = wrap.scrollLeft + wrap.clientWidth >= wrap.scrollWidth - 1;
+        shell.classList.toggle('can-scroll-left', overflowing && !atStart);
+        shell.classList.toggle('can-scroll-right', overflowing && !atEnd);
+      }
+      wrap.addEventListener('scroll', update, {passive: true});
+      /* 任意列の追加等でレイアウト後にscrollWidthが変わる場合の追従(画面一覧の
+         data-scroll-cues="auto"経路向け。対応ブラウザのみ、無ければ何もしない)。 */
+      if (window.ResizeObserver) {
+        new ResizeObserver(update).observe(wrap);
+      }
+      updaters.push(update);
+    });
+    if (!updaters.length) return;
+    function updateAll() { updaters.forEach(function (fn) { fn(); }); }
+    window.addEventListener('resize', updateAll);
+    requestAnimationFrame(updateAll);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initScrollCues);
+  } else {
+    initScrollCues();
+  }
+})();
+</script>
+    <main class="pt-main is-fixed">
+      <div class="pt-head">
+        <div class="pt-crumb"><a href="../../index.html">TOP</a> ／ 基盤情報 ／ <span class="pt-crumb-current">用語辞書</span></div>
+        <div class="pt-title-row"><h1 class="pt-title">用語辞書</h1><span class="pt-title-sub">承認済みの用語を示します。現在の承認済み用語は0件です。</span></div>
+      </div>
+      <div class="dp-controls">
+        <input type="search" id="term-search" class="pt-input" aria-label="用語辞書を検索" placeholder="内容要約キー・日本語名・英語名・定義・各実装名で絞り込み">
+        <span class="pt-count" id="term-count" aria-live="polite"></span>
+      </div>
+      <div class="filter-bar">
+        <div class="filter-set"><span class="filter-label">分類</span><span id="category-chips"></span></div>
+        <div class="filter-set"><span class="filter-label">状態</span><span id="status-chips"></span></div>
+      </div>
+      <p class="registry-note">内容要約キーは業務概念を一意に示します。コード名・型名・DB名・API名・UI表示名を分離して管理し、解析候補は承認されるまで表示しません。</p>
+      <div class="sec-label">承認済み用語</div>
+      <div class="pt-tablewrap dp-tablewrap">
+        <table id="dict-table">
+          <thead><tr><th>内容要約キー</th><th>日本語名</th><th>英語名</th><th>定義</th><th>適用範囲</th><th>分類</th><th>コード名</th><th>型名</th><th>DB名</th><th>API名</th><th>UI表示名</th><th>許容値</th><th>状態</th><th>備考</th></tr></thead>
+          <tbody id="dict-table-body"></tbody>
+        </table>
+      </div>
+      <div id="diagnostics-mount"></div>
+      <div id="unresolved-mount"></div>
+    </main>
+  </div>
+  <footer class="pt-footer">
+  <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
+  <span class="pt-footer-meta">api-only-design · 更新 <span id="pt-footer-date">2026-08-28</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-gen">生成: generation-engine/scripts/detail-pages/build-detail-page.sh</span>
+</footer>
+</div>
+<div class="drawer-scrim" id="drawer-scrim" aria-hidden="true"></div>
+<aside class="drawer" id="term-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title" aria-hidden="true" tabindex="-1" hidden>
+  <div class="drawer-head"><div><div class="filter-label">承認済み用語の詳細</div><h2 id="drawer-title"></h2><div id="drawer-key" class="meaning-key"></div></div><button type="button" class="drawer-close" id="drawer-close" aria-label="詳細を閉じる"><span class="material-symbols-outlined" aria-hidden="true">close</span></button></div>
+  <div class="drawer-body"><p class="drawer-definition" id="drawer-definition"></p><div id="drawer-groups"></div></div>
+</aside>
+<script type="application/json" id="page-data">
+{
+  "pageKind": "glossary",
+  "generatedAt": "2026-08-27T23:44:18Z",
+  "title": "用語辞書",
+  "description": "承認済みの用語を示します。現在の承認済み用語は0件です。",
+  "projectionVersion": "0.2",
+  "glossarySchemaVersion": "1.0.0",
+  "glossaryContentVersion": "0.0.0",
+  "categories": [
+    {
+      "key": "entity",
+      "label": "エンティティ"
+    },
+    {
+      "key": "attribute",
+      "label": "属性"
+    },
+    {
+      "key": "value",
+      "label": "値"
+    },
+    {
+      "key": "process",
+      "label": "処理"
+    },
+    {
+      "key": "event",
+      "label": "イベント"
+    },
+    {
+      "key": "role",
+      "label": "役割"
+    },
+    {
+      "key": "rule",
+      "label": "ルール"
+    },
+    {
+      "key": "metric",
+      "label": "指標"
+    }
+  ],
+  "terms": []
+}
+</script>
+<script>
+(function() {
+  'use strict';
+  var data = JSON.parse(document.getElementById('page-data').textContent);
+  var projectionLegacy = data.projectionVersion === '0.1';
+  var stateLabels = {active:'現行',deprecated:'非推奨',retired:'履歴',unmigrated:'未移行'};
+  var categoryLabels = {entity:'エンティティ',attribute:'属性',value:'値',process:'プロセス',event:'イベント',role:'役割',rule:'ルール',metric:'指標'};
+  function clear(node) { while (node.firstChild) node.removeChild(node.firstChild); }
+  function el(tag, attrs, children) {
+    var node = document.createElement(tag);
+    Object.keys(attrs || {}).forEach(function(key) { node.setAttribute(key, String(attrs[key])); });
+    (Array.isArray(children) ? children : [children]).forEach(function(child) {
+      if (child === null || child === undefined) return;
+      node.appendChild(typeof child === 'string' ? document.createTextNode(child) : child);
+    });
+    return node;
+  }
+  function values(value) { return Array.isArray(value) ? value : []; }
+  function normalize(term) {
+    if (Object.prototype.hasOwnProperty.call(term, 'term_ja')) return term;
+    if (Object.prototype.hasOwnProperty.call(term, 'term')) {
+      return {key:'',term_ja:term.term||'',term_en:'',definition:term.definition||'',scope:'',category:term.category||'',code_name:values(term.codeRefs)[0]||'',type_name:'',db_name:'',api_name:'',ui_label:term.term||'',allowed_values:[],status:'unmigrated',notes:term.sourceRef||'',representations:values(term.codeRefs).map(function(ref){return {channel:'code',value:String(ref),location:''};}),sourceRefs:term.sourceRef?[term.sourceRef]:[],aliases:[],forbiddenTerms:[],relations:[],examples:[],counterExamples:[],constraints:[],securityClassification:'未設定'};
+    }
+    if (projectionLegacy) {
+      return {key:term.key||'',term_ja:term.label||'',term_en:'',definition:term.definition||'',scope:typeof term.scope==='string'?term.scope:'',category:term.category||term.kind||'',code_name:values(term.representations)[0]&&values(term.representations)[0].value||'',type_name:'',db_name:'',api_name:'',ui_label:term.label||'',allowed_values:[],status:term.status||'unmigrated',notes:'',representations:values(term.representations),sourceRefs:values(term.sourceRefs),aliases:values(term.aliases),forbiddenTerms:values(term.forbiddenTerms),relations:values(term.relations),examples:values(term.examples),counterExamples:values(term.counterExamples),constraints:values(term.constraints),securityClassification:term.securityClassification||'未設定'};
+    }
+    return term;
+  }
+  var terms = values(data.terms).map(normalize);
+  var activeCategory = 'all', activeStatus = 'normal', lastTrigger = null;
+  function addList(cell, list, limit) {
+    values(list).slice(0, limit || list.length).forEach(function(item, index) { if (index) cell.appendChild(document.createTextNode(' · ')); cell.appendChild(el('code', null, String(item))); });
+  }
+  function renderButtons(mount, choices, active, onSelect) {
+    clear(mount);
+    choices.forEach(function(choice) {
+      var button = el('button',{type:'button',class:'chip' + (choice.key === active ? ' active' : ''),'aria-pressed':choice.key === active},choice.label);
+      button.addEventListener('click',function(){onSelect(choice.key);}); mount.appendChild(button);
+    });
+  }
+  function categoryChoices() {
+    var fromData = values(data.categories).map(function(category){return {key:category.key,label:category.label || categoryLabels[category.key] || category.key};});
+    return [{key:'all',label:'すべて'}].concat(fromData);
+  }
+  function renderFilters() {
+    renderButtons(document.getElementById('category-chips'),categoryChoices(),activeCategory,function(key){activeCategory=key === activeCategory && key !== 'all' ? 'all' : key;renderFilters();renderRows();});
+    renderButtons(document.getElementById('status-chips'),[{key:'normal',label:'通常'},{key:'active',label:'現行'},{key:'deprecated',label:'非推奨'},{key:'unmigrated',label:'未移行'},{key:'retired',label:'履歴'}],activeStatus,function(key){activeStatus=key === activeStatus && key !== 'normal' ? 'normal' : key;renderFilters();renderRows();});
+  }
+  function visibleTerms() {
+    var query = document.getElementById('term-search').value.trim().toLowerCase();
+    return terms.filter(function(term) {
+      var stateOk = activeStatus === 'normal' ? term.status !== 'retired' : term.status === activeStatus;
+      var categoryOk = activeCategory === 'all' || term.category === activeCategory;
+      var haystack = [term.key,term.term_ja,term.term_en,term.definition,term.scope,term.category,term.code_name,term.type_name,term.db_name,term.api_name,term.ui_label,values(term.allowed_values).join(' '),term.status,term.notes].concat(values(term.representations).map(function(rep){return rep.value;})).join(' ').toLowerCase();
+      return stateOk && categoryOk && (!query || haystack.indexOf(query) !== -1);
+    });
+  }
+  function formatForbidden(entry) { return typeof entry === 'string' ? entry : (entry.term || '') + (entry.reason ? ' — ' + entry.reason : ''); }
+  function formatRepresentation(rep) { return [rep.channel,rep.value,rep.location].filter(Boolean).join(': '); }
+  function formatRelation(relation) { return typeof relation === 'string' ? relation : [relation.type,relation.targetKey || relation.target_key].filter(Boolean).join(': '); }
+  function openDrawer(term, trigger) {
+    lastTrigger = trigger;
+    document.getElementById('drawer-title').textContent = term.term_ja;
+    document.getElementById('drawer-definition').textContent = term.definition;
+    var key = document.getElementById('drawer-key'); key.textContent = term.key || '未移行'; key.className = 'meaning-key ' + (!term.key ? 'unmigrated' : term.status === 'deprecated' ? 'deprecated' : '');
+    var groups = document.getElementById('drawer-groups'); clear(groups);
+    var examples = values(term.examples).map(function(item){return '例: ' + item;}).concat(values(term.counterExamples).map(function(item){return '反例: ' + item;}));
+    var details = [
+      {key:'aliases',label:'別名',items:values(term.aliases)},
+      {key:'forbidden',label:'禁止語',items:values(term.forbiddenTerms).map(formatForbidden)},
+      {key:'representations',label:'全representations',items:values(term.representations).map(formatRepresentation)},
+      {key:'relations',label:'relations',items:values(term.relations).map(formatRelation)},
+      {key:'examples',label:'例 / 反例',items:examples},
+      {key:'constraints',label:'constraints',items:values(term.constraints)},
+      {key:'security',label:'security',items:[term.securityClassification || term.security || '未設定']},
+      {key:'evidence',label:'全根拠',items:values(term.sourceRefs).concat(term.notes ? [term.notes] : [])}
+    ];
+    details.forEach(function(detail){var list=el('ul');(detail.items.length?detail.items:['なし']).forEach(function(item){list.appendChild(el('li',null,String(item)));});groups.appendChild(el('section',{class:'detail-group','data-group':detail.key},[el('h3',null,detail.label),list]));});
+    var drawer=document.getElementById('term-drawer'),background=document.getElementById('dictionary-background'); drawer.hidden=false; drawer.classList.add('is-open'); drawer.setAttribute('aria-hidden','false'); document.getElementById('drawer-scrim').classList.add('is-open'); background.inert=true; background.setAttribute('aria-hidden','true'); document.getElementById('drawer-close').focus();
+  }
+  function closeDrawer() { var drawer=document.getElementById('term-drawer'); if(drawer.hidden)return; drawer.classList.remove('is-open');drawer.hidden=true;drawer.setAttribute('aria-hidden','true');document.getElementById('drawer-scrim').classList.remove('is-open');var background=document.getElementById('dictionary-background');background.inert=false;background.removeAttribute('aria-hidden');if(lastTrigger){lastTrigger.setAttribute('aria-expanded','false');lastTrigger.setAttribute('aria-selected','false');lastTrigger.focus();} }
+  function trapDrawerFocus(event) { if(event.key!=='Tab')return;var nodes=Array.prototype.slice.call(document.getElementById('term-drawer').querySelectorAll('button:not([disabled]),[href],[tabindex]:not([tabindex="-1"])'));if(!nodes.length)return;var first=nodes[0],last=nodes[nodes.length-1];if(event.shiftKey&&document.activeElement===first){event.preventDefault();last.focus();}else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first.focus();} }
+  function renderRows() {
+    var body=document.getElementById('dict-table-body'),list=visibleTerms();clear(body);
+    if(!list.length){body.appendChild(el('tr',null,el('td',{colspan:'15'},'なし')));}
+    list.forEach(function(term){
+      var keyValue=term.key||'未移行',allowed=el('td');addList(allowed,values(term.allowed_values));
+      var status=el('td');status.appendChild(el('span',{class:'state '+term.status},stateLabels[term.status]||term.status));if(term.replacementKey)status.appendChild(el('span',{class:'successor'},'後継: '+term.replacementKey));
+      var row=el('tr',{tabindex:'0',role:'button','aria-controls':'term-drawer','aria-expanded':'false','aria-selected':'false','data-interactive':'true'},[el('td',null,el('span',{class:'meaning-key '+(!term.key?'unmigrated':term.status==='deprecated'?'deprecated':'')},keyValue)),el('td',{class:'term-label'},term.term_ja||'—'),el('td',null,term.term_en||'—'),el('td',null,term.definition||'—'),el('td',null,term.scope||'—'),el('td',null,categoryLabels[term.category]||term.category||'—'),el('td',null,el('code',null,term.code_name||'—')),el('td',null,el('code',null,term.type_name||'—')),el('td',null,el('code',null,term.db_name||'—')),el('td',null,el('code',null,term.api_name||'—')),el('td',null,term.ui_label||'—'),allowed,status,el('td',null,term.notes||'—')]);
+      function activate(){Array.prototype.forEach.call(body.querySelectorAll('tr'),function(item){item.setAttribute('aria-selected',String(item===row));item.setAttribute('aria-expanded',String(item===row));});openDrawer(term,row);}
+      row.addEventListener('click',activate);row.addEventListener('keydown',function(event){if(event.key === 'Enter' || event.key === ' '){event.preventDefault();activate();}});body.appendChild(row);
+    });
+    document.getElementById('term-count').textContent=list.length+' / '+terms.length+' 件';
+  }
+  function diagnostic(mount,entry,label){if(!entry)return;mount.appendChild(el(entry.warning?'div':'p',{class:entry.warning?'pt-callout pt-callout--warning':'note-box'},label+' '+(entry.count||0)+' / '+(entry.total||0)+' 件'));}
+  var diagnostics=data.diagnostics||{},diagMount=document.getElementById('diagnostics-mount');diagnostic(diagMount,diagnostics.missingSource,'欠落した採録源');diagnostic(diagMount,diagnostics.unimplementedLayer,'未実施の層');
+  if(values(data.unresolved).length){var unresolvedMount=document.getElementById('unresolved-mount'),box=el('div',{class:'note-box'});values(data.unresolved).forEach(function(item){box.appendChild(el('div',null,(item.label||'')+'（'+(item.reason||'')+'）'));});unresolvedMount.appendChild(el('div',{class:'sec-label'},'未解決'));unresolvedMount.appendChild(box);}
+  document.getElementById('term-search').addEventListener('input',renderRows);document.getElementById('drawer-close').addEventListener('click',closeDrawer);document.getElementById('drawer-scrim').addEventListener('click',closeDrawer);document.getElementById('term-drawer').addEventListener('keydown',trapDrawerFocus);document.addEventListener('keydown',function(event){if(event.key === 'Escape')closeDrawer();});
+  renderFilters();renderRows();
+}());
+</script>
+</body>
+</html>
