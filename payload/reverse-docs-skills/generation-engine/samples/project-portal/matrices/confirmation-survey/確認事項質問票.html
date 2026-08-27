@@ -651,7 +651,7 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
   <button type="button" class="pt-theme" id="pt-theme-toggle">
     <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
   </button>
-  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-07-28T00:00:00Z</span><span id="pt-meta-commit"><br>コミット </span></div>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-27T18:18:18Z</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
 <script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":15},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
@@ -935,7 +935,7 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
         <div class="pt-crumb"><a href="../../index.html">TOP</a> ／ マトリクス・対応表 ／ <span class="pt-crumb-current">確認事項質問票</span></div>
         <div class="pt-title-row">
           <h1 class="pt-title">確認事項質問票</h1>
-          <span class="pt-title-sub">更新 2026-07-28T00:00:00Z</span>
+          <span class="pt-title-sub">更新 2026-08-27T18:18:18Z</span>
         </div>
       </div>
 
@@ -975,43 +975,43 @@ tr:hover .copy-btn, .copy-btn:focus { opacity: 1; }
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta"> · 更新 <span id="pt-footer-date">2026-07-28T00:00:00Z</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta"> · 更新 <span id="pt-footer-date">2026-08-27T18:18:18Z</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: generation-engine/scripts/matrix/build-matrix-pages.sh</span>
 </footer>
 </div>
 
 <script type="application/json" id="matrix-manifest">
 {
-  "generatedAt": "2026-07-28T00:00:00Z",
-  "dataSource": "画面一覧.html + バッチ一覧.html + permission-matrix.json",
+  "generatedAt": "2026-08-27T18:18:18Z",
+  "dataSource": "要確認事項台帳.json + 要確認事項台帳.json + 要確認事項台帳.json + 要確認事項台帳.json",
   "questions": [
     {
-      "questionKey": "job-daily-summary-業務名未確定",
-      "targetUnit": "job-daily-summary",
-      "question": "業務名を確定してください（現在の推定名: 日次集計）",
-      "evidence": "バッチ一覧.html: nameConfidence=inferred",
-      "answerTarget": ""
+      "questionKey": "screen-order-detail-要確認事項-キャンセル理由-必須化",
+      "targetUnit": "screen-order-detail",
+      "question": "キャンセルへの更新時に備考入力を必須にすべきか業務部門へ確認する（暫定にしている節: §12.2 / 解消の条件: 業務部門からの確認回答を得る）",
+      "evidence": "要確認事項台帳.json: 要確認事項台帳 status=未確認",
+      "answerTarget": "要確認事項台帳.json#unitKey=screen-order-detail&items[key=%E3%82%AD%E3%83%A3%E3%83%B3%E3%82%BB%E3%83%AB%E7%90%86%E7%94%B1-%E5%BF%85%E9%A0%88%E5%8C%96].answer"
     },
     {
-      "questionKey": "job-monthly-report-要手動確認",
-      "targetUnit": "job-monthly-report",
-      "question": "対象の実体を確認してください（identifier: jobs/monthly_report.py）",
-      "evidence": "バッチ一覧.html: kind=unresolved",
-      "answerTarget": ""
+      "questionKey": "screen-order-list-要確認事項-csv出力-上限件数の根拠",
+      "targetUnit": "screen-order-list",
+      "question": "CSV出力の上限件数5,000件が業務要件として妥当か経理部門へ確認する（暫定にしている節: §16.1 / 解消の条件: 経理部門からの確認回答を得る）",
+      "evidence": "要確認事項台帳.json: 要確認事項台帳 status=未確認",
+      "answerTarget": "要確認事項台帳.json#unitKey=screen-order-list&items[key=csv%E5%87%BA%E5%8A%9B-%E4%B8%8A%E9%99%90%E4%BB%B6%E6%95%B0%E3%81%AE%E6%A0%B9%E6%8B%A0].answer"
     },
     {
-      "questionKey": "legacy-report-権限未設定",
-      "targetUnit": "legacy-report",
-      "question": "legacy-reportのロール別アクセス可否を確定してください",
-      "evidence": "permission-matrix.json: permissions=null",
-      "answerTarget": ""
+      "questionKey": "screen-member-edit-要確認事項-削除権限-範囲確認",
+      "targetUnit": "screen-member-edit",
+      "question": "会員削除の権限を会員管理責任者のみとする方針で暫定しているが、運用部門との最終合意は未取得（暫定にしている節: §4.4 / 解消の条件: 運用部門との権限方針レビュー完了）",
+      "evidence": "要確認事項台帳.json: 要確認事項台帳 status=未確認",
+      "answerTarget": "要確認事項台帳.json#unitKey=screen-member-edit&items[key=%E5%89%8A%E9%99%A4%E6%A8%A9%E9%99%90-%E7%AF%84%E5%9B%B2%E7%A2%BA%E8%AA%8D].answer"
     },
     {
-      "questionKey": "screen-user-admin-要確認事項-96e1a3f2",
-      "targetUnit": "screen-user-admin",
-      "question": "削除ボタン押下後の確認ダイアログの有無を確認してください",
-      "evidence": "画面詳細設計書: 要確認事項一覧",
-      "answerTarget": ""
+      "questionKey": "screen-sales-dashboard-要確認事項-推移データ点上限-妥当性",
+      "targetUnit": "screen-sales-dashboard",
+      "question": "月次集計時の推移データ点上限を12件と暫定しているが、経営層からの表示期間拡張要望の有無は未確認（暫定にしている節: §12.1.5 / 解消の条件: 経営企画部門への要件確認完了）",
+      "evidence": "要確認事項台帳.json: 要確認事項台帳 status=未確認",
+      "answerTarget": "要確認事項台帳.json#unitKey=screen-sales-dashboard&items[key=%E6%8E%A8%E7%A7%BB%E3%83%87%E3%83%BC%E3%82%BF%E7%82%B9%E4%B8%8A%E9%99%90-%E5%A6%A5%E5%BD%93%E6%80%A7].answer"
     }
   ]
 }
