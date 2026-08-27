@@ -8,7 +8,10 @@ set -euo pipefail
 #   本スクリプトは ROOT_DIR を自身の配置位置から算出するため、self-test は合成リポジトリ構造
 #   （tmp配下に4資産一式を複製）を作り、本スクリプトのコピーをその中で実行する形にする。
 if [ "${1:-}" = "--self-test" ]; then
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-overview-consistency-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-overview-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' EXIT
 
   # shellcheck source=../output-layout.sh

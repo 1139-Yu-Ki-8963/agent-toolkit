@@ -76,7 +76,10 @@ run_validate() {
 self_test() {
   local script_dir tmp rc=0
   script_dir="$(cd "$(dirname "$0")" && pwd)"
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/validate-message-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/validate-message-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
   mkdir -p "$tmp/docs/プロジェクト共通" "$tmp/repo" "$tmp/docs/project-portal"
   cat > "$tmp/docs/プロジェクト共通/メッセージ定義書.md" <<'EOF'

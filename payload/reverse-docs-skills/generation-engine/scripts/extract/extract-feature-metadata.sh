@@ -79,7 +79,10 @@ self_test() {
   local script_dir
   script_dir="$(cd "$(dirname "$script_path")" && pwd)"
   local tmp rc=0
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-feature-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-feature-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
 
   mkdir -p "$tmp/src/features"
@@ -321,9 +324,15 @@ mkdir -p "$(dirname "$OUTPUT_JSON")"
 _EXTRACT_FEATURE_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../detect-encoding.sh
 source "$_EXTRACT_FEATURE_SCRIPT_DIR/../detect-encoding.sh"
-SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-feature-metadata-scan.XXXXXX")"
+if ! SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-feature-metadata-scan.XXXXXX" 2>/dev/null)" || [ -z "$SCAN_WORKDIR" ]; then
+  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 
-units_tmp="$(mktemp "${TMPDIR:-/tmp}/extract-feature-units.XXXXXX")"
+if ! units_tmp="$(mktemp "${TMPDIR:-/tmp}/extract-feature-units.XXXXXX" 2>/dev/null)" || [ -z "$units_tmp" ]; then
+  echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 trap 'rm -f "$units_tmp"; rm -rf "$SCAN_WORKDIR"' EXIT
 
 # --- 直接データアクセス経路(1-152・Stage 3b)の有効化判定 ---
@@ -333,7 +342,10 @@ if [ -n "$SCREEN_MANIFEST" ] && [ -f "$SCREEN_MANIFEST" ] \
   && [ -n "$TABLE_MANIFEST" ] && [ -f "$TABLE_MANIFEST" ] \
   && [ -n "$SOURCE_DIR" ] && [ -d "$SOURCE_DIR" ]; then
   DIRECT_ACCESS_ENABLED="true"
-  table_map="$(mktemp "${TMPDIR:-/tmp}/extract-feature-table-map.XXXXXX")"
+  if ! table_map="$(mktemp "${TMPDIR:-/tmp}/extract-feature-table-map.XXXXXX" 2>/dev/null)" || [ -z "$table_map" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   jq -r '.units[]? | select(.kind != "unresolved") | [(.identifier // ""), (.unitKey // "")] | @tsv' "$TABLE_MANIFEST" \
     | awk -F'\t' 'NF==2 && $1 != "" && $2 != ""' > "$table_map"
 fi

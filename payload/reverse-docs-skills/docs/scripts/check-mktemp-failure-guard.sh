@@ -36,19 +36,74 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd -P)"
 #   mktemp ... || …           … 直後に代替の処理を置く
 GUARD_RE='if ! [A-Za-z_][A-Za-z0-9_]*="\$\(mktemp|mktemp[^|]*\|\|'
 
+# mktemp を「呼んでいる」行だけを対象にする。行の中の mktemp の直前が
+# コマンドの始まる位置（行頭・パイプ・分号・かつ・または・$( ・逆引用符）で
+# ある行だけを数える。文字列の中の言及・コメント・ファイル名の一致は数えない。
+# 実測（2026-08-28）で、この絞りが無いと3本を誤って拾った。内訳は
+# ファイル名に mktemp を含むもの2本と、説明文の中で言及するもの1本である。
+#
+# perl の exit は END ブロックを実行してから終わるため、
+# 途中で exit 0 しても END の exit 1 が終了コードを上書きする。
+# 実測（2026-08-28）でこれを踏み、常に「呼んでいない」を返していた。
+# フラグを立てて END で一度だけ返す形にする。
+calls_mktemp() {
+  perl -ne 'BEGIN { $found = 0 }
+            $found = 1 if /(^|[|;&(`]|\$\()\s*(if\s+!\s+)?([A-Za-z_]\w*="?\$\()?\s*mktemp\b/;
+            END { exit($found ? 0 : 1) }' "$1" 2>/dev/null
+}
+
+# mktemp をヘルパー関数の中で呼び、その関数の戻り値を呼び出し側が
+# if ! で検査している形も失敗チェックとして認める。
+# 実測（2026-08-28）で、この形を認めないと正しく書かれた2本を
+# 誤って拾った。内訳は check-confirmation-doc-handover.sh と
+# check-sample-sections.sh である。どちらも呼び出し側で
+# `if ! tmp="$(_mk_tmp)" || [ -z "$tmp" ]` と検査していた。
+# 行末の継続（バックスラッシュ）で次の行へ `||` を置く形も認める。
+# GUARD_RE は1行の中だけを見るため、この形を拾えない。
+# 実測（2026-08-28）で、正しく書かれた2本を誤って拾った。内訳は
+# check-publish-complete.test.sh と check-template-sample-sync.test.sh である。
+guarded_by_continuation() {
+  perl -0777 -ne 'exit(/mktemp[^\n]*\\\s*\n\s*\|\|/ ? 0 : 1)' "$1" 2>/dev/null
+}
+
+guarded_via_helper() {
+  perl -0777 -ne '
+    my $found = 0;
+    # mktemp を呼ぶ行を含む関数の名前を集める
+    my %fn;
+    my $cur = "";
+    for my $line (split /\n/, $_) {
+      if ($line =~ /^\s*(?:function\s+)?([A-Za-z_]\w*)\s*\(\)\s*\{/) { $cur = $1; }
+      elsif ($line =~ /^\}/) { $cur = ""; }
+      elsif ($cur ne "" && $line =~ /\bmktemp\b/ && $line !~ /^\s*#/) { $fn{$cur} = 1; }
+    }
+    # その関数名が if ! で検査されているか
+    for my $name (keys %fn) {
+      $found = 1 if /if\s+!\s+[A-Za-z_]\w*="\$\(\s*\Q$name\E\b/;
+    }
+    exit($found ? 0 : 1);
+  ' "$1" 2>/dev/null
+}
+
 collect() {
   local root="$1" f
   [ -d "$root" ] || return 0
   while IFS= read -r f; do
-    grep -q 'mktemp' "$f" 2>/dev/null || continue
+    calls_mktemp "$f" || continue
     grep -qE "$GUARD_RE" "$f" 2>/dev/null && continue
+    guarded_by_continuation "$f" && continue
+    guarded_via_helper "$f" && continue
     printf '%s\n' "$f"
   done < <(find "$root" -name '*.sh' -type f 2>/dev/null | sort)
 }
 
 judge() {
-  local strict=0
-  if [ "${1:-}" = "--strict" ]; then strict=1; shift; fi
+  # 既定で止める。2026-08-28 に123本すべてを直し終え、該当0本になった。
+  # 以後に該当が生まれたら、それは新しく書かれた無防備な mktemp である。
+  # --lenient を渡すと報告のみで止めない（移行の途中で使う口を残す）。
+  local strict=1
+  if [ "${1:-}" = "--strict" ]; then shift
+  elif [ "${1:-}" = "--lenient" ]; then strict=0; shift; fi
 
   local roots=("$@")
   if [ "$#" -eq 0 ]; then
@@ -123,11 +178,18 @@ self_test() {
     echo "  [FAIL] 陰性: mktemp を使わない形を誤検出する"; fail=$((fail + 1))
   fi
 
-  # 既定は止めないこと。
+  # 既定は止めること。
   if judge "$tmp/bad" >/dev/null 2>&1; then
-    echo "  [PASS] 既定: 該当があっても止めない"; pass=$((pass + 1))
+    echo "  [FAIL] 既定: 該当があるのに止まらない"; fail=$((fail + 1))
   else
-    echo "  [FAIL] 既定: 該当があると止まってしまう"; fail=$((fail + 1))
+    echo "  [PASS] 既定: 該当があれば止める"; pass=$((pass + 1))
+  fi
+
+  # --lenient は止めないこと。
+  if judge --lenient "$tmp/bad" >/dev/null 2>&1; then
+    echo "  [PASS] 緩和: --lenient は該当があっても止めない"; pass=$((pass + 1))
+  else
+    echo "  [FAIL] 緩和: --lenient なのに止まってしまう"; fail=$((fail + 1))
   fi
 
   # 走査が実際に動いたことを確かめる。

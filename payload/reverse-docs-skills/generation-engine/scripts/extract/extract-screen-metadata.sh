@@ -284,7 +284,10 @@ resolve_wrapper_api_paths() {
   [ ! -s "$patterns_file" ] && return 0
   [ $# -eq 0 ] && return 0
   local matched_file
-  matched_file="$(mktemp "${TMPDIR:-/tmp}/api-client-matched.XXXXXX")"
+  if ! matched_file="$(mktemp "${TMPDIR:-/tmp}/api-client-matched.XXXXXX" 2>/dev/null)" || [ -z "$matched_file" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   grep -Fhof "$patterns_file" "$@" 2>/dev/null | sort -u > "$matched_file"
   if [ ! -s "$matched_file" ]; then
     rm -f "$matched_file"
@@ -309,7 +312,10 @@ self_test() {
   local script_dir
   script_dir="$(cd "$(dirname "$script_path")" && pwd)"
   local tmp rc=0
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-screen-metadata-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-screen-metadata-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
 
   # --- フィクスチャ: React 風 tsx 2画面 ---
@@ -751,9 +757,15 @@ fi
 _EXTRACT_SCREEN_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../detect-encoding.sh
 source "$_EXTRACT_SCREEN_SCRIPT_DIR/../detect-encoding.sh"
-SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-screen-metadata-scan.XXXXXX")"
+if ! SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-screen-metadata-scan.XXXXXX" 2>/dev/null)" || [ -z "$SCAN_WORKDIR" ]; then
+  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 
-TMP_WORK="$(mktemp -d "${TMPDIR:-/tmp}/extract-screen-metadata.XXXXXX")"
+if ! TMP_WORK="$(mktemp -d "${TMPDIR:-/tmp}/extract-screen-metadata.XXXXXX" 2>/dev/null)" || [ -z "$TMP_WORK" ]; then
+  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 trap 'rm -rf "$TMP_WORK" "$SCAN_WORKDIR"' EXIT
 ADDS_FILE="$TMP_WORK/adds.jsonl"
 : > "$ADDS_FILE"

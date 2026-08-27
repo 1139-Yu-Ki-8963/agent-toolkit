@@ -295,8 +295,14 @@ apply_one() (
   if [ -n "$tracked_mode" ]; then
     chmod "$tracked_mode" "$f"
   fi
-  css_tmp="$(mktemp "${TMPDIR:-/tmp}/apply-guide-style-css.XXXXXX")"
-  formatted_tmp="$(mktemp "${TMPDIR:-/tmp}/apply-guide-style-body.XXXXXX")"
+  if ! css_tmp="$(mktemp "${TMPDIR:-/tmp}/apply-guide-style-css.XXXXXX" 2>/dev/null)" || [ -z "$css_tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
+  if ! formatted_tmp="$(mktemp "${TMPDIR:-/tmp}/apply-guide-style-body.XXXXXX" 2>/dev/null)" || [ -z "$formatted_tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   awk -v cssfile="$style_css" '
     BEGIN { while ((getline line < cssfile) > 0) css = css line "\n" }
     /^<style>$/ { print; printf "%s", css; instyle=1; next }

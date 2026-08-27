@@ -344,7 +344,10 @@ run_build() {
   # run_validateの標準出力・標準エラーを一旦ファイルへ落とすのは、正常時（大半のケース）は
   # 検証結果を表示せず、不合格時だけ内容をまとめて表示するため。
   local validate_out
-  validate_out="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-validate.XXXXXX")"
+  if ! validate_out="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-validate.XXXXXX" 2>/dev/null)" || [ -z "$validate_out" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   if ! run_validate "$root" >"$validate_out" 2>&1; then
     cat "$validate_out" >&2
     rm -f "$validate_out"
@@ -557,8 +560,14 @@ ${agents_block}"
   # 同じ形）。一時ファイル経由の--slurpfileへ渡す（check-argjson-unbounded-value.shの
   # 対処法。extract-table-metadata.shのmainColumnsを参考実装とする）。
   local pre_hooks_file stop_hooks_file
-  pre_hooks_file="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-pre-hooks.XXXXXX")"
-  stop_hooks_file="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-stop-hooks.XXXXXX")"
+  if ! pre_hooks_file="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-pre-hooks.XXXXXX" 2>/dev/null)" || [ -z "$pre_hooks_file" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
+  if ! stop_hooks_file="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-stop-hooks.XXXXXX" 2>/dev/null)" || [ -z "$stop_hooks_file" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   printf '%s' "$pre_hook_entries_json" > "$pre_hooks_file"
   printf '%s' "$stop_hook_entries_json" > "$stop_hooks_file"
   settings_final="$(jq --slurpfile newPreArr "$pre_hooks_file" --slurpfile newStopArr "$stop_hooks_file" --arg notice "$GENERATED_NOTICE" '
@@ -585,7 +594,10 @@ ${agents_block}"
   # cursor_hook_entries_jsonも同様にcheckable:trueの規約定義数に比例して伸びる配列の
   # ため、一時ファイル経由の--slurpfileへ渡す（理由は上記pre_hooks_file/stop_hooks_fileと同じ）。
   local cursor_hooks_file
-  cursor_hooks_file="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-cursor-hooks.XXXXXX")"
+  if ! cursor_hooks_file="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-cursor-hooks.XXXXXX" 2>/dev/null)" || [ -z "$cursor_hooks_file" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   printf '%s' "$cursor_hook_entries_json" > "$cursor_hooks_file"
   cursor_hooks_final="$(jq --slurpfile newArr "$cursor_hooks_file" --arg notice "$GENERATED_NOTICE" '
     ._generatedNotice = $notice
@@ -993,11 +1005,17 @@ EOF
 self_test() {
   local rc=0
   local src out1 out2 bst_case1_log bst_run1_log bst_diff_log
-  src="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-src.XXXXXX")"
+  if ! src="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-src.XXXXXX" 2>/dev/null)" || [ -z "$src" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   bst_write_fixture "$src"
 
   # ケース1: --apply なしでは書き込みが起きない
-  out1="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-out1.XXXXXX")"
+  if ! out1="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-out1.XXXXXX" 2>/dev/null)" || [ -z "$out1" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   rm -rf "$out1"
   APPLY=0
   bst_case1_log="$(run_build "$src" "$out1" 2>&1)" || true
@@ -1010,9 +1028,15 @@ self_test() {
   fi
 
   # 以降は --apply で実データを生成して検証する
-  out1="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-out1.XXXXXX")"
+  if ! out1="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-out1.XXXXXX" 2>/dev/null)" || [ -z "$out1" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   APPLY=1
-  bst_run1_log="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-bst-run1.XXXXXX")"
+  if ! bst_run1_log="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-bst-run1.XXXXXX" 2>/dev/null)" || [ -z "$bst_run1_log" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   run_build "$src" "$out1" >"$bst_run1_log" 2>&1
   rc1=$?
   if [ "$rc1" -ne 0 ]; then
@@ -1086,12 +1110,18 @@ self_test() {
   fi
 
   # ケース6: 同じ入力で2回実行した結果がbyte単位で同一（決定的生成・冪等）
-  out2="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-out2.XXXXXX")"
+  if ! out2="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-out2.XXXXXX" 2>/dev/null)" || [ -z "$out2" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   APPLY=1
   run_build "$src" "$out2" >/dev/null 2>&1
   # out1 に対してもう一度 --apply して、既存生成物への再適用が冪等であることも確認する
   run_build "$src" "$out1" >/dev/null 2>&1
-  bst_diff_log="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-bst-diff.XXXXXX")"
+  if ! bst_diff_log="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-bst-diff.XXXXXX" 2>/dev/null)" || [ -z "$bst_diff_log" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   if diff -r "$out1" "$out2" >"$bst_diff_log" 2>&1; then
     echo "  [PASS] ケース6: 決定的生成（同一入力→byte単位で同一の出力）・再適用の冪等性"
   else
@@ -1151,10 +1181,16 @@ self_test() {
 
   # ケース12: mcp-servers.json が不在の入力では .mcp.json・mcp_servers ブロックを生成しない(skip)
   local src_nomcp out12 ok12
-  src_nomcp="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-nomcp.XXXXXX")"
+  if ! src_nomcp="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-nomcp.XXXXXX" 2>/dev/null)" || [ -z "$src_nomcp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   bst_write_fixture "$src_nomcp"
   rm -f "${src_nomcp}/mcp-servers.json"
-  out12="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-out12.XXXXXX")"
+  if ! out12="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-out12.XXXXXX" 2>/dev/null)" || [ -z "$out12" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   APPLY=1
   run_build "$src_nomcp" "$out12" >/dev/null 2>&1
   ok12=1
@@ -1272,7 +1308,10 @@ self_test() {
 
   # ケース8: --deploy-rule-scripts で4本が配備され、実行可能である
   local deploy_out ok8 deploy_dir
-  deploy_out="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-deploy.XXXXXX")"
+  if ! deploy_out="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-self-test-deploy.XXXXXX" 2>/dev/null)" || [ -z "$deploy_out" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   deploy_dir="${deploy_out}/docs/rules/agent-operations/ai-config-asset-management"
   deploy_rule_scripts "$deploy_out" >/dev/null 2>&1
   ok8=1

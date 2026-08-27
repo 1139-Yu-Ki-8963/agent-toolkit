@@ -40,7 +40,10 @@ self_test() {
   local script_dir
   script_dir="$(cd "$(dirname "$script_path")" && pwd)"
   local tmp rc=0
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-report-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-report-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
 
   mkdir -p "$tmp/src/jobs" "$tmp/src/views" "$tmp/src/reports"
@@ -252,9 +255,15 @@ mkdir -p "$(dirname "$OUTPUT_JSON")"
 _EXTRACT_REPORT_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../detect-encoding.sh
 source "$_EXTRACT_REPORT_SCRIPT_DIR/../detect-encoding.sh"
-SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-report-metadata-scan.XXXXXX")"
+if ! SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-report-metadata-scan.XXXXXX" 2>/dev/null)" || [ -z "$SCAN_WORKDIR" ]; then
+  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 
-units_tmp="$(mktemp "${TMPDIR:-/tmp}/extract-report-units.XXXXXX")"
+if ! units_tmp="$(mktemp "${TMPDIR:-/tmp}/extract-report-units.XXXXXX" 2>/dev/null)" || [ -z "$units_tmp" ]; then
+  echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 trap 'rm -f "$units_tmp"; rm -rf "$SCAN_WORKDIR"' EXIT
 
 while IFS= read -r row; do

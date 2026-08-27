@@ -116,7 +116,10 @@ self_test() {
   script_dir="$(cd "$(dirname "$script_path")" && pwd)"
   local validate="$script_dir/../unit-list/validate-manifest.sh"
   local tmp rc=0
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-api-metadata-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-api-metadata-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
 
   mkdir -p "$tmp/src/api"
@@ -804,7 +807,10 @@ done
 _EXTRACT_API_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../detect-encoding.sh
 source "$_EXTRACT_API_SCRIPT_DIR/../detect-encoding.sh"
-SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-api-metadata-scan.XXXXXX")"
+if ! SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-api-metadata-scan.XXXXXX" 2>/dev/null)" || [ -z "$SCAN_WORKDIR" ]; then
+  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 
 # 調査書のルーティング方式記載がメソッドチェーン呼び出し系を明示している場合のみ、
 # endpoint_block のメソッド呼び出し境界フォールバックを有効化する(opt-in。深い構文解析はしない)。
@@ -1234,8 +1240,14 @@ endpoint_block_call_style() {
   sed -n "${start_line},$((end_line - 1))p" "$src"
 }
 
-patches_jsonl="$(mktemp "${TMPDIR:-/tmp}/extract-api-patches.XXXXXX")"
-patches_json="$(mktemp "${TMPDIR:-/tmp}/extract-api-patches-arr.XXXXXX")"
+if ! patches_jsonl="$(mktemp "${TMPDIR:-/tmp}/extract-api-patches.XXXXXX" 2>/dev/null)" || [ -z "$patches_jsonl" ]; then
+  echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
+if ! patches_json="$(mktemp "${TMPDIR:-/tmp}/extract-api-patches-arr.XXXXXX" 2>/dev/null)" || [ -z "$patches_json" ]; then
+  echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 trap 'rm -f "$patches_jsonl" "$patches_json"; rm -rf "$SCAN_WORKDIR"' EXIT
 
 fallback_count=0

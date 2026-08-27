@@ -8,7 +8,10 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 run_self_test() {
   local tmp html restored invalid
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/restore-screen-manifest.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/restore-screen-manifest.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
   html="$tmp/画面一覧.html"
   restored="$tmp/screen-manifest.json"

@@ -67,7 +67,10 @@ self_test() {
   local script_dir
   script_dir="$(cd "$(dirname "$script_path")" && pwd)"
   local tmp rc=0
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-batch-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-batch-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
 
   mkdir -p "$tmp/src/jobs"
@@ -439,9 +442,15 @@ mkdir -p "$(dirname "$OUTPUT_JSON")"
 _EXTRACT_BATCH_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../detect-encoding.sh
 source "$_EXTRACT_BATCH_SCRIPT_DIR/../detect-encoding.sh"
-SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-batch-metadata-scan.XXXXXX")"
+if ! SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-batch-metadata-scan.XXXXXX" 2>/dev/null)" || [ -z "$SCAN_WORKDIR" ]; then
+  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 
-work_dir="$(mktemp -d "${TMPDIR:-/tmp}/extract-batch-work.XXXXXX")"
+if ! work_dir="$(mktemp -d "${TMPDIR:-/tmp}/extract-batch-work.XXXXXX" 2>/dev/null)" || [ -z "$work_dir" ]; then
+  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 trap 'rm -rf "$work_dir" "$SCAN_WORKDIR"' EXIT
 units_tmp="$work_dir/units.jsonl"
 : > "$units_tmp"

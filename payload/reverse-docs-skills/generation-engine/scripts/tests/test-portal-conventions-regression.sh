@@ -14,7 +14,10 @@ if ! grep -Fq 'SKIP: 色トークン（生成時に tokens.css を注入）' <<<
   exit 1
 fi
 
-tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/portal-conventions-regression.XXXXXX")"
+if ! tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/portal-conventions-regression.XXXXXX" 2>/dev/null)" || [ -z "$tmp_dir" ]; then
+  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 trap 'rm -rf "$tmp_dir"' EXIT
 fixture="$tmp_dir/generated-with-unresolved-token-marker.html"
 printf '%s\n' \
@@ -46,7 +49,10 @@ echo "PASS portal conventions raw-template scope regression"
 # ディレクトリ指定（既定挙動）は配下の*.htmlを無差別に走査するため、対象アプリが元から
 # 持つ無関係なHTMLと生成物が混ざる。--file-list で生成物だけを渡した場合、無関係な
 # HTML由来のFAILが出ないことを確認する（ディレクトリ指定では両方のFAILが混在する）。
-scope_dir="$(mktemp -d "${TMPDIR:-/tmp}/portal-conventions-scope.XXXXXX")"
+if ! scope_dir="$(mktemp -d "${TMPDIR:-/tmp}/portal-conventions-scope.XXXXXX" 2>/dev/null)" || [ -z "$scope_dir" ]; then
+  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 trap 'rm -rf "$tmp_dir" "$scope_dir"' EXIT
 # 作った直後に実体のパスへ解決する。macOS の TMPDIR は /var/... を返すが、
 # 検査の側は対象を cd と pwd で解決するため出力は /private/var/... になる。

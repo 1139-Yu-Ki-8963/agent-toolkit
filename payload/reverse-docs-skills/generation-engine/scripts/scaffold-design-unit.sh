@@ -342,7 +342,10 @@ if [ "${1:-}" = "--self-test" ]; then
   self_test() {
     local self_path pass=0 fail=0
     self_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/$(basename "${BASH_SOURCE[0]}")"
-    tmp="$(mktemp -d "${TMPDIR:-/tmp}/design-unit-scaffold-selftest.XXXXXX")"
+    if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/design-unit-scaffold-selftest.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+      echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+      exit 2
+    fi
     tmp="$(cd "$tmp" && pwd -P)"
     trap 'rm -rf "$tmp"' EXIT
 

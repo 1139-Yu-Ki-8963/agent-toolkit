@@ -697,7 +697,10 @@ st_case() {
   # $1: ケース名  $2: 期待exitコード  $3: 期待する検査キー(grep用。空なら未チェック)
   local name="$1" expected_rc="$2" expect_key="$3"
   local tmp
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/validate-rule-definitions-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/validate-rule-definitions-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   st_write_valid_pair "$tmp"
 
   case "$name" in

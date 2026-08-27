@@ -28,7 +28,10 @@ ORCHESTRATOR_GUIDE="$REPO_ROOT/.claude/skills/orchestrating-ai-development-setup
 RESTORE_SCREEN_MANIFEST="$SCRIPT_DIR/../unit-list/restore-screen-manifest.sh"
 SURVEY_CHECK="$REPO_ROOT/.claude/skills/surveying-architecture-for-reverse-docs/scripts/check-architecture-survey.sh"
 
-tmp="$(mktemp -d "${TMPDIR:-/tmp}/python-facts-flow.XXXXXX")"
+if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/python-facts-flow.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 tmp="$(cd "$tmp" && pwd -P)"
 trap 'rm -rf "$tmp"' EXIT
 fixture_repo="$tmp/repo"

@@ -370,7 +370,10 @@ extract_hooks() {
 run_extract() {
   local repo="$1" output="$2"
   local work
-  work="$(mktemp -d "${TMPDIR:-/tmp}/extract-ai-assets.XXXXXX")"
+  if ! work="$(mktemp -d "${TMPDIR:-/tmp}/extract-ai-assets.XXXXXX" 2>/dev/null)" || [ -z "$work" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   # RETURN trap は self_test 内呼び出しでも関数終了時に確実に清掃する
   trap 'rm -rf "$work"' RETURN
 
@@ -402,7 +405,10 @@ run_extract() {
 self_test() {
   local script_path="$0"
   local tmp rc=0
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-ai-assets-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-ai-assets-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
 
   # --- フィクスチャリポジトリ生成 ---
@@ -704,7 +710,10 @@ REPO_ROOT="$(cd "$REPO_ROOT" && pwd)"
 _EXTRACT_AI_ASSETS_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../detect-encoding.sh
 source "$_EXTRACT_AI_ASSETS_SCRIPT_DIR/../detect-encoding.sh"
-SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-ai-assets-scan.XXXXXX")"
+if ! SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-ai-assets-scan.XXXXXX" 2>/dev/null)" || [ -z "$SCAN_WORKDIR" ]; then
+  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 trap 'rm -rf "$SCAN_WORKDIR"' EXIT
 
 run_extract "$REPO_ROOT" "$OUTPUT_JSON"

@@ -63,7 +63,10 @@ self_test() {
   local script_dir
   script_dir="$(cd "$(dirname "$script_path")" && pwd)"
   local tmp rc=0
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-external-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-external-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
 
   mkdir -p "$tmp/src/clients" "$tmp/src/hooks" "$tmp/src/transfer"
@@ -261,13 +264,19 @@ resolve_path() {
 
 mkdir -p "$(dirname "$OUTPUT_JSON")"
 
-units_tmp="$(mktemp "${TMPDIR:-/tmp}/extract-external-units.XXXXXX")"
+if ! units_tmp="$(mktemp "${TMPDIR:-/tmp}/extract-external-units.XXXXXX" 2>/dev/null)" || [ -z "$units_tmp" ]; then
+  echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 
 # --- 非UTF-8原本の走査対応(改善課題1-131): detect-encoding.sh の走査ヘルパーを読み込む ---
 _EXTRACT_EXTERNAL_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../detect-encoding.sh
 source "$_EXTRACT_EXTERNAL_SCRIPT_DIR/../detect-encoding.sh"
-SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-external-metadata-scan.XXXXXX")"
+if ! SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-external-metadata-scan.XXXXXX" 2>/dev/null)" || [ -z "$SCAN_WORKDIR" ]; then
+  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 
 trap 'rm -f "$units_tmp"; rm -rf "$SCAN_WORKDIR"' EXIT
 
@@ -343,7 +352,10 @@ diagnostics_json="{}"
 # --- definitionWithoutImplementation(1-129): --definition-file の各エントリが source-dir 配下の
 #     実装コードから参照されているかを、パターンファイルへの単一 grep -rhoFf 走査で判定する ---
 if [ -n "$DEFINITION_FILE" ] && [ -f "$DEFINITION_FILE" ]; then
-  def_entries="$(mktemp "${TMPDIR:-/tmp}/extract-external-defs.XXXXXX")"
+  if ! def_entries="$(mktemp "${TMPDIR:-/tmp}/extract-external-defs.XXXXXX" 2>/dev/null)" || [ -z "$def_entries" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   grep -vE '^[[:space:]]*(#|$)' "$DEFINITION_FILE" > "$def_entries" || true
   def_total="$(wc -l < "$def_entries" | tr -d ' ')"
   def_missing=0

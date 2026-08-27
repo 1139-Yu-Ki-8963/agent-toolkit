@@ -148,8 +148,14 @@ mkdir -p "$parent"
 # 別ファイルシステムだとmvがcopy+deleteへ縮退し、中断時に一部だけ移動済みという
 # 非原子的な状態を許してしまう。siblingにすることで同一ファイルシステム上のrenameを
 # 保証し、トランザクションの原子性を成り立たせている。TMPDIR配下へ戻すな。
-transaction_root="$(mktemp -d "$parent/.screen-rebuild.transaction.XXXXXX")"
-backup_root="$(mktemp -d "$parent/.screen-rebuild.backup.XXXXXX")"
+if ! transaction_root="$(mktemp -d "$parent/.screen-rebuild.transaction.XXXXXX" 2>/dev/null)" || [ -z "$transaction_root" ]; then
+  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
+if ! backup_root="$(mktemp -d "$parent/.screen-rebuild.backup.XXXXXX" 2>/dev/null)" || [ -z "$backup_root" ]; then
+  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 commit_started=0
 commit_done=0
 

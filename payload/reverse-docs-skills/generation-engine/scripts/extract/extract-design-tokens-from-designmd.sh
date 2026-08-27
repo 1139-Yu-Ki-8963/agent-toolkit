@@ -66,7 +66,10 @@ self_test() {
   script_dir="$(cd "$(dirname "$script_path")" && pwd)"
   local detail_pages_dir="$script_dir/../detail-pages"
   local tmp rc=0
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-design-tokens-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-design-tokens-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
 
   # --- ケースa/b/d共通フィクスチャ: frontmatterありのDESIGN.md ---
@@ -384,12 +387,18 @@ mkdir -p "$(dirname "$OUTPUT_JSON")"
 _EXTRACT_DESIGN_TOKENS_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=../detect-encoding.sh
 source "$_EXTRACT_DESIGN_TOKENS_SCRIPT_DIR/../detect-encoding.sh"
-SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-design-tokens-scan.XXXXXX")"
+if ! SCAN_WORKDIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-design-tokens-scan.XXXXXX" 2>/dev/null)" || [ -z "$SCAN_WORKDIR" ]; then
+  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 
 # TMP_DIR は明示テンプレート("${TMPDIR:-/tmp}/...")で作る。裸の `mktemp -d` は
 # $TMPDIR を無視し書き込み許可の外にある既定の一時領域を使うため、サンドボックス実行環境では
 # 失敗する(改善課題「一時ディレクトリ-作成先」。手元の許可された環境で動いても裸の形へ戻すな)。
-TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-design-tokens-work.XXXXXX")"
+if ! TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/extract-design-tokens-work.XXXXXX" 2>/dev/null)" || [ -z "$TMP_DIR" ]; then
+  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 trap 'rm -rf "$TMP_DIR" "$SCAN_WORKDIR"' EXIT
 
 # scan_design_md: 非UTF-8原本ならUTF-8一時コピー(改善課題1-131)。DESIGN_MD自体は

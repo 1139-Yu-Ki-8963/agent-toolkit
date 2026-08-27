@@ -508,7 +508,10 @@ JSON
 
   # 課題1-196回帰: 文書の置き場ではなくプロジェクトルートを要求し、0件を合格にしない。
   local tmp_root_arg req_root_arg out_wrong_root rc_wrong_root usage_out
-  tmp_root_arg="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX")"
+  if ! tmp_root_arg="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_root_arg" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   SELF_TEST_DIRS+=("$tmp_root_arg")
   req_root_arg="$tmp_root_arg/requirements.json"
   write_layout_override "$tmp_root_arg"; write_requirements "$req_root_arg"
@@ -523,7 +526,10 @@ JSON
 
   # 検収1: 必須節を欠いた文書はFAILかつ非0。
   local tmp_1 req_1 out_1 rc_1
-  tmp_1="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX")"
+  if ! tmp_1="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_1" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   SELF_TEST_DIRS+=("$tmp_1")
   req_1="$tmp_1/requirements.json"
   write_layout_override "$tmp_1"; write_requirements "$req_1"
@@ -535,7 +541,10 @@ JSON
 
   # 検収2: 規約適合の2件が少数でもFAILにせず、欠落した5件だけをFAILにする。
   local tmp_2 req_2 out_2 rc_2 i
-  tmp_2="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX")"
+  if ! tmp_2="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_2" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   SELF_TEST_DIRS+=("$tmp_2")
   req_2="$tmp_2/requirements.json"
   write_layout_override "$tmp_2"; write_requirements "$req_2"
@@ -554,7 +563,10 @@ JSON
 
   # 検収3: 必須節が揃う文書だけなら無FAIL・exit 0。
   local tmp_3 req_3 out_3 rc_3
-  tmp_3="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX")"
+  if ! tmp_3="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_3" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   SELF_TEST_DIRS+=("$tmp_3")
   req_3="$tmp_3/requirements.json"
   write_layout_override "$tmp_3"; write_requirements "$req_3"
@@ -567,7 +579,10 @@ JSON
 
   # 検収4: 定義だけに必須節を追加すると、スクリプトを変えずに新たな欠落を検出する。
   local tmp_4 req_4 out_4 rc_4
-  tmp_4="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX")"
+  if ! tmp_4="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_4" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   SELF_TEST_DIRS+=("$tmp_4")
   req_4="$tmp_4/requirements.json"
   write_layout_override "$tmp_4"; write_requirements "$req_4"
@@ -580,7 +595,10 @@ JSON
 
   # 検収5: 必須節が揃い順だけ違う場合はWARN・exit 0。
   local tmp_5 req_5 out_5 rc_5
-  tmp_5="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX")"
+  if ! tmp_5="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_5" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   SELF_TEST_DIRS+=("$tmp_5")
   req_5="$tmp_5/requirements.json"
   write_layout_override "$tmp_5"; write_requirements "$req_5"
@@ -593,7 +611,10 @@ JSON
 
   # 追加回帰1: 定義JSONの構造をfail closedで検証する。
   local tmp_validation req_validation
-  tmp_validation="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX")"
+  if ! tmp_validation="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_validation" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   SELF_TEST_DIRS+=("$tmp_validation")
   req_validation="$tmp_validation/requirements.json"
   write_requirements "$req_validation"
@@ -613,7 +634,10 @@ JSON
 
   # 追加回帰2: 欠落と順序相違が併存すればFAILとWARNを両方出す。
   local tmp_both req_both out_both rc_both
-  tmp_both="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX")"
+  if ! tmp_both="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_both" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   SELF_TEST_DIRS+=("$tmp_both")
   req_both="$tmp_both/requirements.json"
   write_layout_override "$tmp_both"; write_requirements "$req_both"
@@ -626,7 +650,10 @@ JSON
 
   # 追加回帰3: 未定義basenameは同一kind/basenameにつき1回だけWARN・exit 0。
   local tmp_undefined req_undefined out_undefined rc_undefined undefined_count
-  tmp_undefined="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX")"
+  if ! tmp_undefined="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_undefined" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   SELF_TEST_DIRS+=("$tmp_undefined")
   req_undefined="$tmp_undefined/requirements.json"
   write_layout_override "$tmp_undefined"; write_requirements "$req_undefined"
@@ -644,7 +671,10 @@ JSON
   # build-portal.sh は出力先の親ディレクトリにsymlinkがないことを検査する。
   # macOSのTMPDIRは /var 経由であり、この契約に抵触するため、物理パスである
   # リポジトリ直下に短命のfixtureを置く。
-  tmp_6="$(mktemp -d "$REPO_ROOT/.design-doc-consistency-self-test.XXXXXX")"
+  if ! tmp_6="$(mktemp -d "$REPO_ROOT/.design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_6" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   SELF_TEST_DIRS+=("$tmp_6")
   req_6="$tmp_6/requirements.json"
   mkdir -p "$tmp_6/target"
@@ -688,7 +718,10 @@ JSON
   assert_eq "課題1-223-生成スキルの旧回送契約残存数" 0 "$stale_skill_route_count"
 
   local tmp_7 out_7 rc_7 kind basename source_dir target_dir
-  tmp_7="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX")"
+  if ! tmp_7="$(mktemp -d "${TMPDIR:-/tmp}/design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_7" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   SELF_TEST_DIRS+=("$tmp_7")
   cat > "$tmp_7/output-layout.json" <<'JSON'
 {
@@ -727,7 +760,10 @@ EOF
   local tmp_201 out_201 rc_201 generated_201_count bad_heading bad_columns out_bad_heading out_bad_columns rc_bad_heading rc_bad_columns
   # scaffold-design-unit.sh は出力先の親にsymlinkがある場合を拒否する。macOSの
   # TMPDIRは /var 経由になるため、検収6と同じく物理パスのリポジトリ直下を使う。
-  tmp_201="$(mktemp -d "$REPO_ROOT/.design-doc-consistency-self-test.XXXXXX")"
+  if ! tmp_201="$(mktemp -d "$REPO_ROOT/.design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_201" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   SELF_TEST_DIRS+=("$tmp_201")
   write_layout_override "$tmp_201"
   for i in 1 2 3; do
@@ -758,7 +794,10 @@ EOF
   # 検査を課す。様式どおりの入力で合格になること、欠落・余分・順序のみ相違を
   # 区別して報告すること、表列の相違も検出することを確認する。
   local tmp_268 doc_268 out_268_ok rc_268_ok
-  tmp_268="$(mktemp -d "$REPO_ROOT/.design-doc-consistency-self-test.XXXXXX")"
+  if ! tmp_268="$(mktemp -d "$REPO_ROOT/.design-doc-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp_268" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   SELF_TEST_DIRS+=("$tmp_268")
   write_layout_override "$tmp_268"
   bash "$SCRIPT_DIR/../scaffold-design-unit.sh" api test "$tmp_268" "fixture-268" "合成API 268" "$REPO_ROOT/delivery-payload/templates/リバース検証" >/dev/null

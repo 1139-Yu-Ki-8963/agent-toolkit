@@ -108,7 +108,10 @@ self_test() {
   # 即座に発火し${tmpが未使用のまま削除され}る(既知のbash挙動)。
   . "$script_dir/../unit-axes.sh"
 
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/build-screen-list-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/build-screen-list-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
 
   mkdir -p "$tmp/src/screens"
@@ -1029,8 +1032,14 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # 生まれる。resolve_unit_axes は明示ファイル指定時に再マージしない(冪等)ため、
 # ここで解決済みの axes_resolved を一時ファイルへ書き出し --axes で明示的に渡す。
 axes_resolved="$(resolve_unit_axes "$MANIFEST" "$AXES_FILE")" || exit 1
-DETECTED_MANIFEST="$(mktemp "${TMPDIR:-/tmp}/build-screen-list-detected.XXXXXX")"
-AXES_RESOLVED_FILE="$(mktemp "${TMPDIR:-/tmp}/build-screen-list-axes-resolved.XXXXXX")"
+if ! DETECTED_MANIFEST="$(mktemp "${TMPDIR:-/tmp}/build-screen-list-detected.XXXXXX" 2>/dev/null)" || [ -z "$DETECTED_MANIFEST" ]; then
+  echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
+if ! AXES_RESOLVED_FILE="$(mktemp "${TMPDIR:-/tmp}/build-screen-list-axes-resolved.XXXXXX" 2>/dev/null)" || [ -z "$AXES_RESOLVED_FILE" ]; then
+  echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 EMBED_MANIFEST_TMP_FILE=""
 trap 'rm -f "$DETECTED_MANIFEST" "$AXES_RESOLVED_FILE" "$EMBED_MANIFEST_TMP_FILE"' EXIT
 printf '%s' "$axes_resolved" > "$AXES_RESOLVED_FILE"

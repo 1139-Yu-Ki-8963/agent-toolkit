@@ -209,7 +209,10 @@ record_result() {
 
 self_test() {
   script_path="$1"
-  tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/run-authoring-mode-selftest.XXXXXX")"
+  if ! tmp_dir="$(mktemp -d "${TMPDIR:-/tmp}/run-authoring-mode-selftest.XXXXXX" 2>/dev/null)" || [ -z "$tmp_dir" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "${tmp_dir}"' EXIT
 
   # --- 既定-無効 -----------------------------------------------------

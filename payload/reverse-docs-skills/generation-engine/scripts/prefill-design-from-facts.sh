@@ -595,7 +595,10 @@ append_multiline_literal_blocks() { # $1=facts.yml $2=design.md
   # $TMPDIR を無視し書き込みを拒む環境（サンドボックス実行環境等）で失敗する
   # （extract群・check-derived-drift.shと同種の対策）。実測値なし。環境に依存する。
   # 手元で裸の mktemp に戻して動いて見えてもそれを理由に外すな。
-  blocks="$(mktemp "${TMPDIR:-/tmp}/prefill-code-blocks.XXXXXX")"
+  if ! blocks="$(mktemp "${TMPDIR:-/tmp}/prefill-code-blocks.XXXXXX" 2>/dev/null)" || [ -z "$blocks" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   for sec in handler local_type function; do
     while IFS=$'\x1f' read -r raw_key raw_value raw_evidence; do
       key="$(decode_fixed_scalar "$raw_key")"
@@ -761,7 +764,10 @@ main() {
 
   local workdir
   # 明示テンプレート付き mktemp -d（理由は append_multiline_literal_blocks と同じ）。
-  workdir="$(mktemp -d "${TMPDIR:-/tmp}/prefill-design.XXXXXX")"
+  if ! workdir="$(mktemp -d "${TMPDIR:-/tmp}/prefill-design.XXXXXX" 2>/dev/null)" || [ -z "$workdir" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$workdir"' RETURN
 
   pass1_insert "$facts" "$design_md" "$workdir/pass1.md" "$workdir"
@@ -813,7 +819,10 @@ main() {
 
 self_test() {
   local tmp
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/prefill-design-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/prefill-design-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
   local rc=0
 

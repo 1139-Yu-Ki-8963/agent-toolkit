@@ -185,7 +185,10 @@ run() {
 
 self_test() {
   local tmp pass=0 fail=0
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-entity-state-selftest.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/extract-entity-state-selftest.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
 
   mkdir -p "$tmp/docs/design/common"
@@ -280,7 +283,10 @@ EOF
   # 検査4: データ設計.mdが雛形のまま(プレースホルダ行のみ)の場合、0件のpage-data.jsonを
   # 書き出しWARNを出しつつexit 0であること(捏造しない)
   local t4_root t4_out t4_output t4_rc ok4=1
-  t4_root="$(mktemp -d "${TMPDIR:-/tmp}/extract-entity-state-t4.XXXXXX")"
+  if ! t4_root="$(mktemp -d "${TMPDIR:-/tmp}/extract-entity-state-t4.XXXXXX" 2>/dev/null)" || [ -z "$t4_root" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   mkdir -p "$t4_root/docs/design/common"
   cat > "$t4_root/docs/design/common/データ設計.md" <<'EOF'
 ## §6 状態遷移表（実測）
@@ -307,7 +313,10 @@ EOF
 
   # 検査5: データ設計.md自体が存在しない場合も0件のpage-data.jsonとWARNでexit 0であること
   local t5_root t5_out t5_output t5_rc ok5=1
-  t5_root="$(mktemp -d "${TMPDIR:-/tmp}/extract-entity-state-t5.XXXXXX")"
+  if ! t5_root="$(mktemp -d "${TMPDIR:-/tmp}/extract-entity-state-t5.XXXXXX" 2>/dev/null)" || [ -z "$t5_root" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   local t5_dest="$t5_root/out/page-data.json"
   t5_output="$(bash "$self_path" "$t5_root" "$t5_dest" 2>&1)"
   t5_rc=$?

@@ -85,7 +85,10 @@ check_all() {
   fi
 
   local tmp
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/design-unit-completeness.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/design-unit-completeness.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   tmp="$(cd "$tmp" && pwd -P)"
 
   local rc=0
@@ -164,7 +167,10 @@ self_test() {
 
   # ケース1: verify_unit_files 単体 — 宣言ファイルが全件実在すれば合格
   local tmp1
-  tmp1="$(mktemp -d "${TMPDIR:-/tmp}/design-unit-completeness-selftest.XXXXXX")"
+  if ! tmp1="$(mktemp -d "${TMPDIR:-/tmp}/design-unit-completeness-selftest.XXXXXX" 2>/dev/null)" || [ -z "$tmp1" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   tmp1="$(cd "$tmp1" && pwd -P)"
   cat > "$tmp1/layout.json" <<'JSON'
 {"kinds":{"widget":{"phases":{"basic":["A.md","B.md"]}}}}
@@ -198,7 +204,10 @@ JSON
 
   # ケース3: 1ファイルが欠落（機能テスト設計書0件の再現）→ 不合格・欠落ファイル名を報告
   local tmp2
-  tmp2="$(mktemp -d "${TMPDIR:-/tmp}/design-unit-completeness-missing-selftest.XXXXXX")"
+  if ! tmp2="$(mktemp -d "${TMPDIR:-/tmp}/design-unit-completeness-missing-selftest.XXXXXX" 2>/dev/null)" || [ -z "$tmp2" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   tmp2="$(cd "$tmp2" && pwd -P)"
   printf '%s\n' '{"kinds":{"widget":{"phases":{"basic":["A.md","B.md"]}}}}' > "$tmp2/layout.json"
   mkdir -p "$tmp2/out/widget-w1/基本設計"

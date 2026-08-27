@@ -54,7 +54,10 @@ if [ "${BASH_SOURCE[0]}" = "$0" ] && [ "${1:-}" = "--self-test" ]; then
   self_test() {
     local script_dir pass=0 fail=0 tmp
     script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-    tmp="$(mktemp -d "${TMPDIR:-/tmp}/shell-injection-self-test.XXXXXX")"
+    if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/shell-injection-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+      echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+      exit 2
+    fi
     trap 'rm -rf "$tmp"' EXIT
 
     mkdir -p "$tmp/partials"

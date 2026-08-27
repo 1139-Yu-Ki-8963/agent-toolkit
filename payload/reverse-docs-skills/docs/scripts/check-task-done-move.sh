@@ -100,7 +100,10 @@ run_check_for_repo() {
   fi
 
   local tmp_wt
-  tmp_wt="$(mktemp -d "${TMPDIR:-/tmp}/check-task-done-move-wt.XXXXXX")"
+  if ! tmp_wt="$(mktemp -d "${TMPDIR:-/tmp}/check-task-done-move-wt.XXXXXX" 2>/dev/null)" || [ -z "$tmp_wt" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    return 2
+  fi
   rmdir "$tmp_wt"
   if ! git -C "$repo_root" worktree add --detach "$tmp_wt" HEAD >/dev/null 2>&1; then
     echo "ERROR: 判定用の使い捨て worktree を作成できなかった" >&2
@@ -226,7 +229,10 @@ run_self_test() {
   fi
 
   local base_tmp
-  base_tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-task-done-move-selftest.XXXXXX")"
+  if ! base_tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-task-done-move-selftest.XXXXXX" 2>/dev/null)" || [ -z "$base_tmp" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    return 2
+  fi
   local no_toolkit="$base_tmp/no-toolkit"
 
   local -a NAMES=()

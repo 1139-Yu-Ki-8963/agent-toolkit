@@ -131,8 +131,14 @@ count_judgments() {
 mismatch_names() {
   local rule_md="$1" checker_sh="$2"
   local rule_names_file judgment_names_file
-  rule_names_file="$(mktemp "${TMPDIR:-/tmp}/vrjc-rule-names.XXXXXX")"
-  judgment_names_file="$(mktemp "${TMPDIR:-/tmp}/vrjc-judgment-names.XXXXXX")"
+  if ! rule_names_file="$(mktemp "${TMPDIR:-/tmp}/vrjc-rule-names.XXXXXX" 2>/dev/null)" || [ -z "$rule_names_file" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
+  if ! judgment_names_file="$(mktemp "${TMPDIR:-/tmp}/vrjc-judgment-names.XXXXXX" 2>/dev/null)" || [ -z "$judgment_names_file" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   rule_names_all "$rule_md" | LC_ALL=C sort -u > "$rule_names_file"
   extract_judgment_names "$checker_sh" | LC_ALL=C sort -u > "$judgment_names_file"
   LC_ALL=C comm -23 "$judgment_names_file" "$rule_names_file" 2>/dev/null
@@ -283,7 +289,10 @@ assert_case() {
 self_test() {
   local rc=0
   local tmp
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/validate-rule-judgment-coverage-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/validate-rule-judgment-coverage-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
 
   # ケース1: 規則3件・判定3件 → 一致
   cat > "$tmp/case1-rule.md" <<'EOF'

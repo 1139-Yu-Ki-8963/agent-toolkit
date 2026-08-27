@@ -20,7 +20,10 @@ done
 [ -n "$commit" ] && [ -n "$output" ] || { echo "$usage" >&2; exit 1; }
 git -C "$repo" cat-file -e "$commit^{commit}" 2>/dev/null || { echo "ERROR: commit not found" >&2; exit 1; }
 
-stage="$(mktemp -d "$(dirname "$output")/.screen-fixture.XXXXXX")"
+if ! stage="$(mktemp -d "$(dirname "$output")/.screen-fixture.XXXXXX" 2>/dev/null)" || [ -z "$stage" ]; then
+  echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため実行できません（mktempが出力先の隣へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+  exit 2
+fi
 trap 'rm -rf "$stage"' EXIT
 mkdir -p "$stage/raw"
 git -C "$repo" show "$commit:generation-engine/samples/一覧/画面一覧/画面一覧.html" > "$stage/screen.html"

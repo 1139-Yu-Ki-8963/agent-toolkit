@@ -7,9 +7,12 @@
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 TARGET="$SCRIPT_DIR/../../../.claude/rules/always/docs/audience-split/check-audience-split.sh"
+# 本体は .claude/rules/ にあり、配布先へは配られない。
+# 本体が無いのは「測れなかった」ではなく「測る対象が無い」である。
+# 判定不能ではなく対象なしとして 0 を返す。
 if [ ! -f "$TARGET" ]; then
-  echo "[UNKNOWN] 本体が見つからないため判定できません（${TARGET}）"
-  exit 2
+  echo "[SKIP] 本体が無いため対象なしです。このリポジトリ専用の検査であり、配布先には対象がありません。"
+  exit 0
 fi
 
 case "${1:-}" in

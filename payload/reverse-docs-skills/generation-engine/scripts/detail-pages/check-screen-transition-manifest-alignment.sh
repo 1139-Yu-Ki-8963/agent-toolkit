@@ -7,7 +7,10 @@ set -euo pipefail
 #   -for-reverse-docs の本番経路で使われる決定的チェックであり、正常系（3資産が整合）・
 #   異常系（manifestContentHash不一致）を自己テストで固定しておく。
 if [ "${1:-}" = "--self-test" ]; then
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-screen-transition-alignment-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-screen-transition-alignment-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' EXIT
 
   cat > "$tmp/raw.json" <<'JSON'

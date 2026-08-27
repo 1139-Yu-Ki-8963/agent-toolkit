@@ -68,7 +68,10 @@ cmd_check() {
   # ${TMPDIRを無視し書き込み許可の外にある既定領域を使うため}、サンドボックス実行環境では
   # 失敗する（改善課題「一時ディレクトリ-作成先」。手元の環境で動いても裸の形へ戻すな）。
   local tmp
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-rule-drift.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-rule-drift.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
 
   local build_rc=0
   "$BUILD_SCRIPT" "$rules_root" "$tmp" --apply >/dev/null 2>&1 || build_rc=$?
@@ -168,8 +171,14 @@ self_test() {
   local rc=0 pass=0 fail=0
   local rules_root out rel_rule rel_mdc
 
-  rules_root="$(mktemp -d "${TMPDIR:-/tmp}/check-rule-drift-self-test-rules.XXXXXX")"
-  out="$(mktemp -d "${TMPDIR:-/tmp}/check-rule-drift-self-test-out.XXXXXX")"
+  if ! rules_root="$(mktemp -d "${TMPDIR:-/tmp}/check-rule-drift-self-test-rules.XXXXXX" 2>/dev/null)" || [ -z "$rules_root" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
+  if ! out="$(mktemp -d "${TMPDIR:-/tmp}/check-rule-drift-self-test-out.XXXXXX" 2>/dev/null)" || [ -z "$out" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   bst_write_fixture "$rules_root"
 
   "$BUILD_SCRIPT" "$rules_root" "$out" --apply >/dev/null 2>&1

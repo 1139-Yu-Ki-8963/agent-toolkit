@@ -8,8 +8,10 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 TARGET="$SCRIPT_DIR/../../../.claude/rules/always/session/subagent-report-verification/check-subagent-report-verification.sh"
 if [ ! -f "$TARGET" ]; then
-  echo "[UNKNOWN] 本体が見つからないため判定できません（${TARGET}）"
-  exit 2
+  # 本体は .claude/rules/ にあり、配布先へは配られない。
+  # 本体が無いのは「測れなかった」ではなく「測る対象が無い」である。
+  echo "[SKIP] 本体が無いため対象なしです。このリポジトリ専用の検査であり、配布先には対象がありません。"
+  exit 0
 fi
 
 case "${1:-}" in

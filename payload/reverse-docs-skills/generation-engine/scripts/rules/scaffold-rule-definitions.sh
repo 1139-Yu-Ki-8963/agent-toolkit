@@ -257,7 +257,10 @@ merge_project_rule_section() {
   # このリポジトリは macOS bash 3.2 互換を前提とするため使えない）。
   # そのため awk -v ではなく、行番号を求めて head/tail で継ぎ合わせる。
   local tmp_new
-  tmp_new="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-merge.XXXXXX")"
+  if ! tmp_new="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-merge.XXXXXX" 2>/dev/null)" || [ -z "$tmp_new" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   printf '%s\n' "$new_content" > "$tmp_new"
 
   local start_line end_line total_lines
@@ -917,7 +920,10 @@ scan_banned_terms() {
   # ${TMPDIRを無視し書き込み許可の外にある既定領域を使うため}、サンドボックス実行環境では
   # 失敗する（改善課題「一時ディレクトリ-作成先」。手元の環境で動いても裸の形へ戻すな）。
   local patterns_file
-  patterns_file="$(mktemp "${TMPDIR:-/tmp}/rule-banned-terms.XXXXXX")"
+  if ! patterns_file="$(mktemp "${TMPDIR:-/tmp}/rule-banned-terms.XXXXXX" 2>/dev/null)" || [ -z "$patterns_file" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   jq -r '.terms[] | select(.scope | index("rule-definitions")) | .term' "$term_file" >"$patterns_file" 2>/dev/null || true
   if [ ! -s "$patterns_file" ]; then
     rm -f "$patterns_file"
@@ -936,7 +942,10 @@ scan_banned_terms() {
     # exemptions（parent/key）を "<parent>/<key>/" の形へ変換し、matches の
     # 行（"<path>:<lineno>:<content>"）のうちパスにこの断片を含むものだけを除外する。
     local exempt_file
-    exempt_file="$(mktemp "${TMPDIR:-/tmp}/rule-banned-terms-exempt.XXXXXX")"
+    if ! exempt_file="$(mktemp "${TMPDIR:-/tmp}/rule-banned-terms-exempt.XXXXXX" 2>/dev/null)" || [ -z "$exempt_file" ]; then
+      echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+      exit 2
+    fi
     jq -r --arg scope "rule-definitions" \
       '(.exemptions // [])[] | select(.scope == $scope) | "\(.parent)/\(.key)/"' \
       "$term_file" >"$exempt_file" 2>/dev/null || true
@@ -1006,7 +1015,10 @@ self_test() {
   }
 
   # ケース1: --apply なしでは書き込みが起きない
-  out1="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-self-test-out1.XXXXXX")"
+  if ! out1="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-self-test-out1.XXXXXX" 2>/dev/null)" || [ -z "$out1" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   rm -rf "$out1"
   APPLY=0
   WITH_SKILLS=0
@@ -1024,11 +1036,17 @@ self_test() {
   fi
 
   # 以降は --apply --with-skills で実データを生成して検証する
-  out1="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-self-test-out1.XXXXXX")"
+  if ! out1="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-self-test-out1.XXXXXX" 2>/dev/null)" || [ -z "$out1" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   APPLY=1
   WITH_SKILLS=1
   local run1_log
-  run1_log="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-bst-run1.XXXXXX")"
+  if ! run1_log="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-bst-run1.XXXXXX" 2>/dev/null)" || [ -z "$run1_log" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   run_scaffold "$out1" >"$run1_log" 2>&1
   local rc1=$?
   if [ "$rc1" -ne 0 ]; then
@@ -1106,7 +1124,10 @@ EOF
 
   # ケース5: 生成した定義がvalidate-rule-definitions.shの検査を通る
   local validate_out
-  validate_out="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-bst-validate.XXXXXX")"
+  if ! validate_out="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-bst-validate.XXXXXX" 2>/dev/null)" || [ -z "$validate_out" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   if run_validate "${out1}/docs/rules" >"$validate_out" 2>&1; then
     echo "  [PASS] ケース5: 生成した定義がvalidate-rule-definitions.shの検査を通る"
   else
@@ -1156,8 +1177,14 @@ EOF
   # ケース6a: 配布後にひな形を1行変えた場合、既存の定義側との不一致を検出する
   local mismatch_src mismatch_backup mismatch_log mismatch_rc
   mismatch_src="${SKILLS_TEMPLATE_DIR}/dev-flow/SKILL.md"
-  mismatch_backup="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-skill-backup.XXXXXX")"
-  mismatch_log="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-skill-mismatch.XXXXXX")"
+  if ! mismatch_backup="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-skill-backup.XXXXXX" 2>/dev/null)" || [ -z "$mismatch_backup" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
+  if ! mismatch_log="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-skill-mismatch.XXXXXX" 2>/dev/null)" || [ -z "$mismatch_log" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   cp "$mismatch_src" "$mismatch_backup"
   printf '\n<!-- self-test mismatch -->\n' >> "$mismatch_src"
   if run_scaffold "$out1" >"$mismatch_log" 2>&1; then
@@ -1212,14 +1239,20 @@ EOF
   fi
 
   # ケース8: 2回実行しても既存が壊れない（冪等性）
-  out2="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-self-test-out2.XXXXXX")"
+  if ! out2="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-self-test-out2.XXXXXX" 2>/dev/null)" || [ -z "$out2" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   rm -rf "$out2"
   cp -R "$out1" "$out2"
   APPLY=1
   WITH_SKILLS=1
   capture_scaffold "$out1"
   local diff_log
-  diff_log="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-bst-diff.XXXXXX")"
+  if ! diff_log="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-bst-diff.XXXXXX" 2>/dev/null)" || [ -z "$diff_log" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   if [ "$scaffold_rc" -ne 0 ]; then
     echo "  [FAIL] ケース8: 冪等性確認の再実行自体が失敗した" >&2
     print_scaffold_failure
@@ -1590,7 +1623,10 @@ EOF
 
   # 現場が「このプロジェクトの規則」節へ観測内容を書き足した既存ファイルを装う。
   local existing18_file
-  existing18_file="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-case18-existing.XXXXXX")"
+  if ! existing18_file="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-case18-existing.XXXXXX" 2>/dev/null)" || [ -z "$existing18_file" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   printf '%s\n' "$new18" | awk '
     /^## このプロジェクトの規則$/ {
       print
@@ -1758,10 +1794,22 @@ EOF
   manifests_root11="$(output_layout_get "$layout_json11" manifestsRoot)"
 
   local root11_none root11_zero root11_some root11_screen
-  root11_none="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-applies-none.XXXXXX")"
-  root11_zero="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-applies-zero.XXXXXX")"
-  root11_some="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-applies-some.XXXXXX")"
-  root11_screen="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-applies-screen.XXXXXX")"
+  if ! root11_none="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-applies-none.XXXXXX" 2>/dev/null)" || [ -z "$root11_none" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
+  if ! root11_zero="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-applies-zero.XXXXXX" 2>/dev/null)" || [ -z "$root11_zero" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
+  if ! root11_some="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-applies-some.XXXXXX" 2>/dev/null)" || [ -z "$root11_some" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
+  if ! root11_screen="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-applies-screen.XXXXXX" 2>/dev/null)" || [ -z "$root11_screen" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
 
   mkdir -p "${root11_zero}/${manifests_root11}"
   echo '{"units":[]}' > "${root11_zero}/${manifests_root11}/table-manifest.json"
@@ -1845,7 +1893,10 @@ EOF
 
   # (d) taxonomyの複製で本文だけを変えても、スクリプトを変えずに生成行へ反映される。
   local taxonomy21 original_taxonomy21 changed21 unique_content21
-  taxonomy21="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-placeholder-taxonomy.XXXXXX")"
+  if ! taxonomy21="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-placeholder-taxonomy.XXXXXX" 2>/dev/null)" || [ -z "$taxonomy21" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   original_taxonomy21="$TAXONOMY_JSON"
   unique_content21='1-76自己テスト用の定義変更が生成行へ反映される'
   if jq --arg content "$unique_content21" '.projectRulePlaceholders.unanalysed.content = $content' "$original_taxonomy21" > "${taxonomy21}.next"; then
@@ -1862,7 +1913,10 @@ EOF
 
   # (e) 内容の入った節はmerge_project_rule_sectionで1文字も変えずに保持される。
   local existing21_file expected_section21 merged21 merged_section21
-  existing21_file="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-placeholder-existing.XXXXXX")"
+  if ! existing21_file="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-placeholder-existing.XXXXXX" 2>/dev/null)" || [ -z "$existing21_file" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   cat > "$existing21_file" <<'EOF'
 ## このプロジェクトの規則
 

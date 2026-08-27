@@ -41,12 +41,18 @@ extract_commands() {
 
   awk -v output="$output" '
     BEGIN { printf "%s", "" > output; close(output) }
-    function emit_commands(text, rest, command) {
+    # 状態行の中で「配布対象外」と断ってあるものは、配布先で再現する意味を持たない。
+    # このリポジトリの公開手順そのものを確かめる検収がこれに当たる。
+    # 断り書きを求めるのは、理由なく除外を増やさないためである。
+    function emit_commands(text, rest, command, repo_only) {
+      repo_only = (text ~ /配布対象外/)
       rest = text
       while (match(rest, /`[^`]+`/)) {
         command = substr(rest, RSTART + 1, RLENGTH - 2)
         if (command ~ /^(bash|sh|grep|find|node|npm|npx|git|test|awk|diff|cmp|wc|make|jq|perl|mkdir|cp|ruby|python3?|rg|env|cd|command|LC_[A-Z_]+=|[A-Za-z_][A-Za-z0-9_]*=|if |for )/) {
-          print key "\t" command > output
+          if (!(repo_only && command ~ /\.claude\/rules\//)) {
+            print key "\t" command > output
+          }
         }
         rest = substr(rest, RSTART + RLENGTH)
       }

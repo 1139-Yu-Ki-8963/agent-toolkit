@@ -16,7 +16,10 @@ manifest_hash() {
 
 self_test() {
   local script="$0" tmp hash
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/screen-detail-bridge-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/screen-detail-bridge-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
   mkdir -p "$tmp/out"
   jq -n '{
@@ -105,7 +108,10 @@ else
   echo "INFO: 既存の画面遷移図-data.jsonが無いため edges を空にしました" >&2
 fi
 
-tmp_data="$(mktemp "$output_root/.transition-data.XXXXXX")"
+if ! tmp_data="$(mktemp "$output_root/.transition-data.XXXXXX" 2>/dev/null)" || [ -z "$tmp_data" ]; then
+  echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 trap 'rm -f "$tmp_data"' EXIT
 jq -S --arg generatedAt "$generated_at" --arg manifestContentHash "$hash" \
   --argjson edgesArg "$existing_edges" --arg edgesStatusArg "$existing_edges_status" '

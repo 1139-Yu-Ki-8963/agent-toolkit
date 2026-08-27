@@ -46,7 +46,10 @@ AUDIT_CONSISTENCY_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 self_test() {
   local script_path="$0"
   local tmp fail=0
-  tmp="$(mktemp -d -p "${TMPDIR:-/tmp}")"
+  if ! tmp="$(mktemp -d -p "${TMPDIR:-/tmp}" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    return 2
+  fi
   # macOS では /tmp・/var がsymlinkのため、字句パスのまま渡すと
   # scaffold-screen.sh 内 assertNoLexicalSymlink が誤検出する（1-39用フィクスチャ）。
   # scaffold-screen.sh 自身の自己テストと同じ実体パスへの解決を揃える。

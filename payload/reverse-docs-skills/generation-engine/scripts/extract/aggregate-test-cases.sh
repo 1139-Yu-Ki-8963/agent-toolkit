@@ -235,7 +235,10 @@ self_test() {
   layout_json="$(resolve_output_layout "")" || return 1
   screen_unit_root="$(output_layout_get "$layout_json" screenUnitRoot)" || return 1
   api_unit_root="$(output_layout_get "$layout_json" apiUnitRoot)" || return 1
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/aggregate-test-cases-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/aggregate-test-cases-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
   docs="$tmp/docs"
   manifest="$tmp/test-case-manifest.json"
@@ -407,7 +410,10 @@ EOF
 
   # --- 追加ケース: 仕様書は実在するが確定行0件の種別がある場合 ---
   local tmp2 docs2 manifest2
-  tmp2="$(mktemp -d "${TMPDIR:-/tmp}/aggregate-test-cases-self-test2.XXXXXX")"
+  if ! tmp2="$(mktemp -d "${TMPDIR:-/tmp}/aggregate-test-cases-self-test2.XXXXXX" 2>/dev/null)" || [ -z "$tmp2" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   docs2="$tmp2/docs"
   manifest2="$tmp2/test-case-manifest.json"
   mkdir -p "$docs2/$screen_unit_root/screen-orders/テスト項目書"
@@ -591,9 +597,18 @@ unit_test_design_dir="$(output_layout_get "$layout_json" unitTestDesignDir)" || 
 
 generated_at="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
-tmp_tsv="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases.XXXXXX")"
-tmp_scenario_expected="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases-scenario.XXXXXX")"
-tmp_excl="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases-excl.XXXXXX")"
+if ! tmp_tsv="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases.XXXXXX" 2>/dev/null)" || [ -z "$tmp_tsv" ]; then
+  echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
+if ! tmp_scenario_expected="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases-scenario.XXXXXX" 2>/dev/null)" || [ -z "$tmp_scenario_expected" ]; then
+  echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
+if ! tmp_excl="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases-excl.XXXXXX" 2>/dev/null)" || [ -z "$tmp_excl" ]; then
+  echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 cleanup() { rm -f "$tmp_tsv" "$tmp_scenario_expected" "$tmp_excl"; }
 trap cleanup EXIT
 
@@ -659,7 +674,10 @@ while IFS= read -r -d '' file; do
     integration) scanned_integration=$((scanned_integration + 1)) ;;
   esac
 
-  tmp_rows="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases-rows.XXXXXX")"
+  if ! tmp_rows="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases-rows.XXXXXX" 2>/dev/null)" || [ -z "$tmp_rows" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   if [ "$is_new_design" -eq 1 ]; then
     LC_ALL=C awk "$screen_test_section_slice_awk" "$file" \
       | LC_ALL=C awk -v firstHeader="キー" -v wantNames="$want_names" "$extract_named_table_awk" /dev/stdin > "$tmp_rows" 2>"$tmp_excl"
@@ -705,9 +723,18 @@ while IFS= read -r -d '' file; do
 
   scanned_scenario=$((scanned_scenario + 1))
 
-  tmp_top="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases-top.XXXXXX")"
-  tmp_expected="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases-exp.XXXXXX")"
-  tmp_yaml="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases-yaml.XXXXXX")"
+  if ! tmp_top="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases-top.XXXXXX" 2>/dev/null)" || [ -z "$tmp_top" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
+  if ! tmp_expected="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases-exp.XXXXXX" 2>/dev/null)" || [ -z "$tmp_expected" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
+  if ! tmp_yaml="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases-yaml.XXXXXX" 2>/dev/null)" || [ -z "$tmp_yaml" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   scenario_format="legacy"
   if [[ "$file" == */テスト設計/操作シナリオ仕様書.md ]]; then
     LC_ALL=C awk -v firstHeader="シナリオキー" -v wantNames="シナリオ名,対応往復検証観点キー,対応画面テストケースキー,開始状態" "$extract_named_table_awk" "$file" > "$tmp_top" 2>"$tmp_excl"

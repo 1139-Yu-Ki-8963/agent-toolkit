@@ -33,7 +33,10 @@ AUTHORING_INPUTS="$SCRIPT_DIR/../validate-reverse-authoring-inputs.py"
 
 # macOS では TMPDIR/tmp がsymlinkのため、scaffold-screen.sh の
 # symlink拒否ガードに抵触しないよう実体パスへ解決してから使う。
-tmp="$(mktemp -d "${TMPDIR:-/tmp}/basic-design-jsx-authored.XXXXXX")"
+if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/basic-design-jsx-authored.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+  echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 tmp="$(cd "$tmp" && pwd -P)"
 trap 'rm -rf "$tmp"' EXIT
 

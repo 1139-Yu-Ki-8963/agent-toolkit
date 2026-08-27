@@ -8,7 +8,10 @@ set -euo pipefail
 #   hash不一致）を自己テストで固定しておく。マトリクス・対応表4HTMLは必須成分0件時にSKIPされる
 #   任意出力のため、self-testの正常系フィクスチャからは意図的に省く（SKIP経路も同時に検証する）。
 if [ "${1:-}" = "--self-test" ]; then
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-screen-manifest-consistency-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-screen-manifest-consistency-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' EXIT
 
   SCRIPT_DIR_ST="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

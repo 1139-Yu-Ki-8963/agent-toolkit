@@ -191,7 +191,10 @@ check_commit_values() {
 self_test() {
   command -v jq >/dev/null 2>&1 || { echo "ERROR: jq が必要" >&2; return 2; }
   local t pass=0 fail=0
-  t="$(mktemp -d "${TMPDIR:-/tmp}/check-derived-values.XXXXXX")"
+  if ! t="$(mktemp -d "${TMPDIR:-/tmp}/check-derived-values.XXXXXX" 2>/dev/null)" || [ -z "$t" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap "rm -rf '$t'" RETURN
 
   local SHA_A SHA_B

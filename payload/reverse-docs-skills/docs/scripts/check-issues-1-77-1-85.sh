@@ -7,7 +7,10 @@ pages="$repo_root/generation-engine/scripts/matrix/build-matrix-pages.sh"
 data="$repo_root/generation-engine/scripts/extract/build-matrix-data.sh"
 prepare="$repo_root/generation-engine/scripts/verification/prepare-verification-input.sh"
 tmp_base="$(cd "${TMPDIR:-/tmp}" && pwd -P)"
-tmp="$(mktemp -d "$tmp_base/issues-1-77-1-85.XXXXXX")"
+if ! tmp="$(mktemp -d "$tmp_base/issues-1-77-1-85.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+  echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+  exit 2
+fi
 trap 'rm -rf "$tmp"' EXIT
 
 require_text() {

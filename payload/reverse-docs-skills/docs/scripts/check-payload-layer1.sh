@@ -11,9 +11,11 @@
 # 判定不能（終了コード2）は不合格として数えない。依存の不在は実行環境の制約であり、
 #   成果物の欠陥ではない（.claude/rules/always/verification/indeterminate-result/rule.md）。
 #
-# ただし判定不能を放置しない。ブラウザを使う検査2本は、配布先に依存が無いため
-#   判定不能のまま残っていた。実測（2026-08-28）で、正本の node_modules を
-#   NODE_PATH で参照させるだけで両方とも合格することを確かめた。
+# ただし判定不能を放置しない。配布先に依存が無いために判定不能のまま残る検査が
+#   2種類あった。ブラウザを使う検査2本と、用語管理の検査3本である。
+#   実測（2026-08-28）で、前者は正本の node_modules を NODE_PATH で、
+#   後者は正本の Python の実行系を GLOSSARY_PYTHON で参照させるだけで、
+#   どちらも合格することを確かめた。後者は91件の検査が通った。
 #   配布先へ依存を置くと版管理へ混入するため、置かずに参照だけを渡す。
 #   参照先が無い場合は従来どおり判定不能のまま進む。
 #
@@ -46,11 +48,29 @@ fi
 
 # 配布先に依存が無くても測れるよう、正本の依存を参照させる。
 # 参照先が無ければ何も渡さず、従来どおり判定不能のまま進む。
+#
+# Node.js の依存はブラウザを使う検査2本が要る。
+# Python の隔離環境は用語管理の検査3本が要る。実測（2026-08-28）で、
+# GLOSSARY_PYTHON へ正本の実行系を渡すだけで91件の検査が合格した。
+# どちらも配布先へ置くと版管理へ混入するため、置かずに参照だけを渡す。
 DEPS="${PAYLOAD_LAYER1_NODE_PATH:-$HOME/Projects/reverse-docs-skills/node_modules}"
+PY="${PAYLOAD_LAYER1_GLOSSARY_PYTHON:-$HOME/Projects/reverse-docs-skills/generation-engine/scripts/glossary/.venv/bin/python}"
+
+declare -a ENVS=()
 if [ -d "$DEPS" ]; then
-  ( cd "$PAYLOAD_DIR" && NODE_PATH="$DEPS" bash "$AGG" ) > "$LOG" 2>&1
+  ENVS+=("NODE_PATH=$DEPS")
 else
-  echo "[INFO] 依存の参照先が無いため、ブラウザを使う検査は判定不能のまま進みます（${DEPS}）"
+  echo "[INFO] Node.js の依存の参照先が無いため、ブラウザを使う検査は判定不能のまま進みます（${DEPS}）"
+fi
+if [ -x "$PY" ]; then
+  ENVS+=("GLOSSARY_PYTHON=$PY")
+else
+  echo "[INFO] Python の実行系の参照先が無いため、用語管理の検査は判定不能のまま進みます（${PY}）"
+fi
+
+if [ "${#ENVS[@]}" -gt 0 ]; then
+  ( cd "$PAYLOAD_DIR" && env "${ENVS[@]}" bash "$AGG" ) > "$LOG" 2>&1
+else
   ( cd "$PAYLOAD_DIR" && bash "$AGG" ) > "$LOG" 2>&1
 fi
 

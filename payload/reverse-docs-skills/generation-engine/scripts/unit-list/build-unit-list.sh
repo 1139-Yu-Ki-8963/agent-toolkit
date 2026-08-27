@@ -51,7 +51,10 @@ self_test() {
   local script_dir
   script_dir="$(cd "$(dirname "$script_path")" && pwd)"
   local tmp rc=0
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/build-unit-list-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/build-unit-list-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
 
   mkdir -p "$tmp/src/routes"
@@ -1012,7 +1015,10 @@ trap cleanup_axes_tmp EXIT
 AXES_PASS_FILE="$AXES_FILE"
 if [ -z "$AXES_PASS_FILE" ]; then
   axes_resolved_for_pass="$(resolve_unit_axes "$MANIFEST" "$AXES_FILE")" || exit 1
-  AXES_TMP_FILE="$(mktemp "${TMPDIR:-/tmp}/build-unit-list-axes.XXXXXX")"
+  if ! AXES_TMP_FILE="$(mktemp "${TMPDIR:-/tmp}/build-unit-list-axes.XXXXXX" 2>/dev/null)" || [ -z "$AXES_TMP_FILE" ]; then
+    echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   printf '%s' "$axes_resolved_for_pass" > "$AXES_TMP_FILE"
   AXES_PASS_FILE="$AXES_TMP_FILE"
 fi

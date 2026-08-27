@@ -12,7 +12,10 @@ set -euo pipefail
 
 self_test() {
   local tmp rc=0 base ext rules
-  tmp="$(mktemp -d "${TMPDIR:-/tmp}/finalize-extension-manifest-self-test.XXXXXX")"
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/finalize-extension-manifest-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] ä¸æãã£ã¬ã¯ããªã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+    exit 2
+  fi
   trap 'rm -rf "$tmp"' RETURN
   base="$tmp/base.json"
   ext="$tmp/ext.json"
@@ -155,8 +158,14 @@ output_dir="$(dirname "$EXTENDED_MANIFEST")"
 # 環境依存：なし。同一ディレクトリを使い、別ファイルシステムになる構成を避ける。
 # 手元の正常系だけを理由に、直接リダイレクトへ戻さないこと。
 # 経緯：a2c015e1導入時から一時ファイル方式だったが、理由の記録がなかった。
-tmp_output="$(mktemp "$output_dir/.finalize-extension-manifest.XXXXXX")"
-overrides_tmp="$(mktemp "$output_dir/.finalize-extension-manifest-overrides.XXXXXX")"
+if ! tmp_output="$(mktemp "$output_dir/.finalize-extension-manifest.XXXXXX" 2>/dev/null)" || [ -z "$tmp_output" ]; then
+  echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
+if ! overrides_tmp="$(mktemp "$output_dir/.finalize-extension-manifest-overrides.XXXXXX" 2>/dev/null)" || [ -z "$overrides_tmp" ]; then
+  echo "[UNKNOWN] ä¸æãã¡ã¤ã«ã®ä½æã«å¤±æããããå¤å®ã§ãã¾ããï¼mktempãä¸æé åã¸æ¸ãè¾¼ãã¾ããã§ãããå®è¡ç°å¢ã®å¶ç´ãåå ã§ããå¯è½æ§ãããã¾ãï¼" >&2
+  exit 2
+fi
 trap 'rm -f "$tmp_output" "$overrides_tmp"' EXIT
 printf '%s' "$OVERRIDES_JSON" > "$overrides_tmp"
 
