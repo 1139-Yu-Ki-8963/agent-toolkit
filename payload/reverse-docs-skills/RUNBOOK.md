@@ -22,6 +22,19 @@
 
 `node` の最低限必要な版は未検証である。22.16 での動作だけを確認している。
 
+ブラウザを使う検査の実行環境（`node_modules`）も配布物に同梱しない。配布物は `package.json` を持たないため、`npm install` だけでは依存を用意できない。初回利用前に次の手順で構築する。
+
+```bash
+npm init -y
+npm install --no-save playwright playwright-core
+npx playwright install chromium
+```
+
+この手順を踏まない場合、次の2本は判定不能（終了コード2）となる。実行環境の制約であり、成果物の欠陥ではない。
+
+- `generation-engine/scripts/tests/test-semantic-glossary-page.cjs`
+- `generation-engine/scripts/tests/test-unit-list-format.cjs`
+
 用語候補検証の実行環境（`.venv`）は配布物に同梱しない（`generation-engine/scripts/glossary/.gitignore` で除外）。初回利用前に次の手順で構築する。
 
 ```bash
