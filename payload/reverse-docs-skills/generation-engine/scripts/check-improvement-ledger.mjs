@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
+import { resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 function countPrecedingBackslashes(text, index) {
@@ -223,14 +223,17 @@ export function parseImprovementLedger(markdown) {
 }
 
 function runCli() {
-  const scriptDirectory = dirname(fileURLToPath(import.meta.url));
   const arg = process.argv[2];
+  if (!arg) {
+    process.stdout.write('改善反映台帳の検査は廃止しました。課題は docs/tasks/ の2一覧で管理します。\n');
+    return;
+  }
   // '-' はファイルパスではなく標準入力を意味する。ファイルディスクリプタ 0 を
   // 直接読むことで、環境依存のパス '/dev/stdin' を経由せず標準入力を取得できる。
   const source = arg === '-'
     ? readFileSync(0, 'utf8')
     : readFileSync(
-      arg ? resolve(process.cwd(), arg) : resolve(scriptDirectory, '../../docs/tasks/work-records/改善反映台帳.md'),
+      resolve(process.cwd(), arg),
       'utf8',
     );
   const result = parseImprovementLedger(source);

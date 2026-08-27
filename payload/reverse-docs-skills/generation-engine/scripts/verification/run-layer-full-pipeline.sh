@@ -230,6 +230,26 @@ resolve_extraction_source_dir() {
   fi
 }
 
+excluded_kinds_file() {
+  local candidate
+  for candidate in \
+    "${REPO}/docs/scope-and-progress/excluded-kinds.json" \
+    "${REPO}/一覧/excluded-kinds.json"; do
+    if [ -f "${candidate}" ]; then
+      printf '%s' "${candidate}"
+      return 0
+    fi
+  done
+  return 1
+}
+
+kind_is_excluded() {
+  local kind="$1" file
+  file="$(excluded_kinds_file)" || return 1
+  jq -e --arg kind "${kind}" \
+    'any((.excludedKinds // [])[]; .kind == $kind)' "${file}" >/dev/null 2>&1
+}
+
 # ---- 各段の実行 ----------------------------------------------------------
 
 stage_prepare_output() {
@@ -248,6 +268,10 @@ stage_prepare_input() {
   local script="${REPO_SELF}/generation-engine/scripts/verification/prepare-verification-input.sh"
   if [ ! -f "${script}" ]; then
     record_result prepare-input SKIP "prepare-verification-input.sh が存在しない"
+    return 0
+  fi
+  if excluded_kinds_file >/dev/null; then
+    record_result prepare-input OK "対象側の対象外宣言を使用するため疑似入力を配置しない"
     return 0
   fi
   local args=("--repo" "${REPO}" "--output" "${OUTPUT_DIR}")
@@ -322,7 +346,11 @@ stage_type_extraction() {
       case "${screen_detected_count}" in ''|*[!0-9]*) screen_detected_count=0 ;; esac
     fi
 
-    if [ "${screen_detected_count}" -eq 0 ] && [ "${screen_existing_count}" -ge 1 ]; then
+    if [ "${screen_detected_count}" -eq 0 ] && kind_is_excluded screen; then
+      rm -f "${screen_detected_path}"
+      write_empty_screen_manifest "${screen_manifest_path}"
+      detail="${detail}screen=0(対象外宣言に基づく0件); "
+    elif [ "${screen_detected_count}" -eq 0 ] && [ "${screen_existing_count}" -ge 1 ]; then
       # 検出0件(検出失敗を含む)・既存1件以上のときは上書きせず既存を残す。
       rm -f "${screen_detected_path}"
       detail="${detail}screen=${screen_rc}(検出0件・既存${screen_existing_count}件のため既存を残した); "

@@ -96,7 +96,11 @@ run_check() {
     fi
 
     if [ -f "$ext_manifest_path" ]; then
-      if _gt_out1="$(jq -e --slurpfile base "$manifest_path" '
+      local base_unit_count
+      base_unit_count="$(jq -r '(.screens // .units // []) | length' "$manifest_path" 2>/dev/null)"
+      if [ "$base_unit_count" = "0" ]; then
+        printf '  [PASS] %s: %s (対象0件のため追加項目検査を省略)\n' "$folder_name" "$ext_manifest_name"
+      elif _gt_out1="$(jq -e --slurpfile base "$manifest_path" '
         (.screens // .units // []) as $extended
         | ([$extended | to_entries[] | .key as $i | .value as $after
           | ($base[0].screens // $base[0].units // [])[$i] as $before
@@ -222,7 +226,21 @@ self_test() {
     fi
   fi
 
-  # ケース5: HTMLはあるがマニフェストが一時ディレクトリにしか無い合成 output_dir で
+  # ケース5: 対象0件の本体と拡張版は、追加項目を捏造せず終了コード0になる。
+  local zero_dir="$tmp/zero-output"
+  mkdir -p "$zero_dir/$self_test_units_root/画面一覧" "$zero_dir/$self_test_manifests_root"
+  echo '<html></html>' > "$zero_dir/$self_test_units_root/画面一覧/画面一覧.html"
+  echo '{"screens":[]}' > "$zero_dir/$self_test_manifests_root/screen-manifest.json"
+  echo '{"screens":[]}' > "$zero_dir/$self_test_manifests_root/screen-manifest.ext.json"
+  if _gt_out_zero="$(run_check "$zero_dir" 2>&1)"; then
+    echo "  [PASS] 対象0件: 空の本体と拡張版を終了コード0で受理"
+  else
+    echo "  [FAIL] 対象0件: 空の本体と拡張版がFAILした" >&2
+    printf '%s\n' "$_gt_out_zero" | sed 's/^/    /' >&2
+    rc=1
+  fi
+
+  # ケース6: HTMLはあるがマニフェストが一時ディレクトリにしか無い合成 output_dir で
   # 終了コード 1 になり、不足が列挙される
   local ng_dir="$tmp/ng-output"
   mkdir -p "$ng_dir/$self_test_units_root/画面一覧" "$ng_dir/tmp"

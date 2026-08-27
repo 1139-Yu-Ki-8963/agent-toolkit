@@ -899,10 +899,13 @@ extract_claimed_keys() {
 # 「裏付けの無いキー」として誤検知される。閉じ括弧「）」で終わることは要求し続ける
 # （外すと「原番号 1-7」が「原番号 1-76）」の一部として誤って一致してしまう）。
 key_backed_in_ledger() {
-  local key="$1" ledger_file="$2"
-  [ -f "$ledger_file" ] || return 1
+  local key="$1" findings_file="$2"
+  [ -f "$findings_file" ] || return 1
+  if LC_ALL=C grep -qE "^### ${key}\\." "$findings_file"; then
+    return 0
+  fi
   local rows line last
-  rows="$(LC_ALL=C grep -F "原番号 ${key}）" "$ledger_file" 2>/dev/null | LC_ALL=C grep -E '^\|')"
+  rows="$(LC_ALL=C grep -F "原番号 ${key}）" "$findings_file" 2>/dev/null | LC_ALL=C grep -E '^\|')"
   [ -z "$rows" ] && return 1
   while IFS= read -r line; do
     [ -z "$line" ] && continue
@@ -954,7 +957,7 @@ run_cross_check_core() {
 
 # 実際の docs/tasks/ 直下 + done/ を走査対象として照合を実行し、結果を表示する。
 run_cross_check() {
-  local ledger_file="$TASKS_DIR/work-records/改善反映台帳.md"
+  local ledger_file="$TASKS_DIR/指摘改善一覧.md"
   local all_files=()
   shopt -s nullglob
   all_files=("$TASKS_DIR"/*.md "$DONE_DIR"/*.md)
@@ -974,7 +977,7 @@ run_cross_check() {
       echo "- $key"
     done
   else
-    echo "すべてのキーに台帳の裏付けがある。"
+    echo "すべてのキーが指摘改善一覧に存在する。"
   fi
 }
 

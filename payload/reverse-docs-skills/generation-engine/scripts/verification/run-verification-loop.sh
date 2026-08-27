@@ -3,31 +3,28 @@
 #
 # 目的:
 #   このリポジトリ自身の検証設計文書（配布対象外）「どう回すか」の各段（版の取得・第1層・使い捨ての
-#   出力先の用意・疑似入力と第3層の2回実行・4判定・台帳への記録・前回との比較・
+#   出力先の用意・疑似入力と第3層の2回実行・4判定・
 #   出力先の破棄）を、1本のコマンドで順に実行する。個別に段を回す既存の各
 #   スクリプトはそのまま残し、本スクリプトはそれらを呼び出す入口に徹する。
 #
 # Usage:
 #   run-verification-loop.sh [--repo <対象>] [--skip-layer1] [--layer1-timeout <秒>] \
-#     [--no-record] [--self-test]
+#     [--self-test]
 #
 # オプション:
 #   --repo <path>          検証対象リポジトリのパス。省略時は本スクリプトの位置から
 #                           解決したこのリポジトリ（reverse-docs-skills）のルート
 #   --skip-layer1          第1層（run-layer-machine-checks.sh）を飛ばす（時間がかかるため）
 #   --layer1-timeout <秒>  第1層の1本あたりの実行時間上限（既定120秒）
-#   --no-record            台帳（このリポジトリ自身の実行記録。配布対象外）への記録を飛ばす
 #   --self-test             本スクリプト自身の自己テストを実行する（実際の生成は行わない）
 #
-# 実行する8段:
+# 実行する6段:
 #   1. version    版の取得（verification-env.sh）
 #   2. layer1     第1層の実行（--skip-layer1 で飛ばす）
 #   3. prepare-outputs 使い捨ての出力先を2つ用意する（verification-env.sh）
 #   4. layer3     疑似入力を用意して第3層を2回実行する（run-layer-full-pipeline.sh）
 #   5. judge      4判定を実行する（網羅・自立・健全は1回目、再現は2回の比較）
-#   6. record     結果を台帳へ記録する（--no-record で飛ばす）
-#   7. compare    前回と比較する（compare-with-previous.sh）
-#   8. teardown   出力先を破棄する（既定。--keep の引数は設けない）
+#   6. teardown   出力先を破棄する（既定。--keep の引数は設けない）
 #
 # 出力: 各段の結果に続けて、末尾に全体の合否と直った・壊れた・変わらないの件数を出す。
 #
@@ -61,8 +58,6 @@ layer1
 prepare-outputs
 layer3
 judge
-record
-compare
 teardown
 EOS
 }
@@ -74,20 +69,17 @@ stage_name() {
     prepare-outputs) echo "使い捨ての出力先の用意" ;;
     layer3) echo "疑似入力の整備と第3層の2回実行" ;;
     judge) echo "4判定の実行" ;;
-    record) echo "台帳への記録" ;;
-    compare) echo "前回との比較" ;;
     teardown) echo "出力先の破棄" ;;
     *) echo "$1" ;;
   esac
 }
 
-# skip_layer1・no_record の指定に応じて、実際に実行する段のキーを絞り込んで返す。
+# skip_layer1 の指定に応じて、実際に実行する段のキーを絞り込んで返す。
 # 実行本体と self-test の双方から共用する（引数-抑止 の判定ロジックを1箇所に閉じる）。
 loop_plan() {
-  local skip_layer1="$1" no_record="$2" key
+  local skip_layer1="$1" key
   for key in $(stage_keys); do
     [ "$key" = "layer1" ] && [ "$skip_layer1" -eq 1 ] && continue
-    [ "$key" = "record" ] && [ "$no_record" -eq 1 ] && continue
     echo "$key"
   done
 }
@@ -103,12 +95,8 @@ ${repo}/generation-engine/scripts/verification/check-coverage.sh
 ${repo}/generation-engine/scripts/verification/check-self-contained.sh
 ${repo}/generation-engine/scripts/verification/check-reproducible.sh
 ${repo}/generation-engine/scripts/verification/check-sound.sh
-${repo}/generation-engine/scripts/verification/record-verification-result.sh
-${repo}/generation-engine/scripts/verification/compare-with-previous.sh
 EOS
 }
-
-LEDGER_REL="docs/tasks/work-records/実行記録.md"
 
 # ---------------------------------------------------------------------------
 # 実行本体
@@ -133,8 +121,7 @@ verification_loop_result_rc() {
 }
 
 run_loop() {
-  local repo="$1" skip_layer1="$2" layer1_timeout="$3" no_record="$4"
-  local ledger="${repo}/${LEDGER_REL}"
+  local repo="$1" skip_layer1="$2" layer1_timeout="$3"
 
   local version
   version="$(verification_env_record_version "$repo")"
@@ -209,49 +196,14 @@ run_loop() {
   sound_line="$(printf '%s\n' "$snd_out" | tail -1)"
   echo
 
-  if [ "$no_record" -eq 1 ]; then
-    echo "[飛ばす] 台帳への記録（--no-record）"
-  else
-    echo "[実行中] 台帳への記録"
-    if [[ "$version" =~ ^[0-9a-fA-F]{40}$ ]]; then
-      bash "${repo}/generation-engine/scripts/verification/record-verification-result.sh" \
-        --ledger "$ledger" --version "$version" \
-        --layer1 "$layer1_line" --layer3 "$layer3_line" \
-        --coverage "$coverage_line" --self-contained "$self_contained_line" \
-        --reproducible "$reproducible_line" --sound "$sound_line"
-    else
-      echo "ERROR: 版が40文字の16進でないため記録を飛ばします（版=${version}）" >&2
-    fi
-  fi
-  echo
-
-  echo "[実行中] 前回との比較"
-  # 比較は台帳の最新2件を読む。記録を飛ばした場合、今回の結果は台帳に無く、
-  # 過去2件どうしを比べることになる。そのまま「変わらない」と出ると、
-  # 今回の結果がそう出たかのように読める（実測 2026-08-24: --no-record で
-  # 走らせた際、8日前の記録2件を比べた表が今回の結果として並んだ）。
-  # 何を比べたのかを先に書く。
-  if [ "$no_record" -eq 1 ]; then
-    echo "注意: 今回の結果は台帳へ記録していないため、下の表は台帳に残る過去 2 件どうしの比較である。今回の結果は含まれない"
-  fi
-  local cmp_out cmp_rc
-  cmp_out="$(bash "${repo}/generation-engine/scripts/verification/compare-with-previous.sh" --ledger "$ledger" 2>&1)"
-  cmp_rc=$?
-  echo "$cmp_out"
-  echo
-
   echo "[実行中] 出力先の破棄"
   verification_env_teardown "$base1" >/dev/null 2>&1
   verification_env_teardown "$base2" >/dev/null 2>&1
   echo "破棄した: ${out_dir1} / ${out_dir2}"
   echo
 
-  local kowareta
-  kowareta="$(printf '%s\n' "$cmp_out" | grep -oE '壊れた: [0-9]+ 件' | head -1 | grep -oE '[0-9]+')"
-  [ -n "$kowareta" ] || kowareta=0
-
   local overall_rc
-  verification_loop_result_rc "$layer1_rc" "$cov_rc" "$sc_rc" "$rep_rc" "$snd_rc" "$kowareta"
+  verification_loop_result_rc "$layer1_rc" "$cov_rc" "$sc_rc" "$rep_rc" "$snd_rc" 0
   overall_rc=$?
 
   if [ "$overall_rc" -eq 0 ]; then
@@ -275,13 +227,13 @@ _loop_self_test() {
   _case_pass() { run=$((run+1)); ok=$((ok+1)); echo "[PASS] $1 — $2"; }
   _case_fail() { run=$((run+1)); ng=$((ng+1)); echo "[FAIL] $1 — $2" >&2; }
 
-  # --- 順序-8段 ---
+  # --- 順序-6段 ---
   local count
   count="$(stage_keys | grep -c .)"
-  if [ "$count" -eq 8 ]; then
-    _case_pass "順序-8段" "実行する段の定義が8段ある"
+  if [ "$count" -eq 6 ]; then
+    _case_pass "順序-6段" "実行する段の定義が6段ある"
   else
-    _case_fail "順序-8段" "段の定義が8段でない（${count}段）"
+    _case_fail "順序-6段" "段の定義が6段でない（${count}段）"
   fi
 
   # --- 依存-スクリプト実在 ---
@@ -298,26 +250,9 @@ DEPS
     _case_fail "依存-スクリプト実在" "実在しないスクリプトが${missing}本ある"
   fi
 
-  # --- 引数-記録の抑止 ---
-  local plan_no_record
-  plan_no_record="$(loop_plan 0 1)"
-  # 記録を飛ばしたとき、比較が何を比べたのかを断る文が出ることを確かめる。
-  # 断りが無いと、過去 2 件どうしの比較が今回の結果として読める。
-  if LC_ALL=C grep -qF '注意: 今回の結果は台帳へ記録していないため' "${BASH_SOURCE[0]}"; then
-    _case_pass "比較-記録を飛ばしたときの断り" "何を比べたのかを先に書く"
-  else
-    _case_fail "比較-記録を飛ばしたときの断り" "断りの文が見当たらない"
-  fi
-
-  if printf '%s\n' "$plan_no_record" | grep -qx "record"; then
-    _case_fail "引数-記録の抑止" "--no-record 相当でも record 段に到達する"
-  else
-    _case_pass "引数-記録の抑止" "--no-record を指定すると記録の呼び出しに到達しない"
-  fi
-
   # --- 引数-第1層の抑止 ---
   local plan_skip_layer1
-  plan_skip_layer1="$(loop_plan 1 0)"
+  plan_skip_layer1="$(loop_plan 1)"
   if printf '%s\n' "$plan_skip_layer1" | grep -qx "layer1"; then
     _case_fail "引数-第1層の抑止" "--skip-layer1 相当でも layer1 段に到達する"
   else
@@ -373,19 +308,18 @@ DEPS
 
 usage() {
   cat <<'EOS'
-使い方: run-verification-loop.sh [--repo <対象>] [--skip-layer1] [--layer1-timeout <秒>] [--no-record] [--self-test]
+使い方: run-verification-loop.sh [--repo <対象>] [--skip-layer1] [--layer1-timeout <秒>] [--self-test]
 EOS
 }
 
 main() {
-  local repo="" skip_layer1=0 layer1_timeout=120 no_record=0 self_test_mode=0
+  local repo="" skip_layer1=0 layer1_timeout=120 self_test_mode=0
 
   while [ $# -gt 0 ]; do
     case "$1" in
       --repo) repo="${2:-}"; shift 2 ;;
       --skip-layer1) skip_layer1=1; shift ;;
       --layer1-timeout) layer1_timeout="${2:-}"; shift 2 ;;
-      --no-record) no_record=1; shift ;;
       --self-test) self_test_mode=1; shift ;;
       -h|--help) usage; exit 0 ;;
       *) echo "不明な引数: $1" >&2; usage >&2; exit 2 ;;
@@ -407,7 +341,7 @@ main() {
   [ -z "$repo" ] && repo="$REPO_SELF"
   repo="$(cd "$repo" && pwd)" || { echo "ERROR: --repo のパスが解決できません" >&2; exit 2; }
 
-  run_loop "$repo" "$skip_layer1" "$layer1_timeout" "$no_record"
+  run_loop "$repo" "$skip_layer1" "$layer1_timeout"
   exit $?
 }
 
