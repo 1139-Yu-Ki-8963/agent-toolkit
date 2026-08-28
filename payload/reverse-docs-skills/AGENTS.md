@@ -24,7 +24,7 @@
 ### このリポジトリの公開完遂
 
 - 意図: 正本commit、payload同期、agent-toolkitのorigin/main反映を確認する。
-- 正確な参照パス: `.claude/rules/always/publish/complete/rule.md`
+- 参照先: このリポジトリ自身の公開完遂規約。配布対象外のため配布先には存在しない
 
 ### 未確定事項
 

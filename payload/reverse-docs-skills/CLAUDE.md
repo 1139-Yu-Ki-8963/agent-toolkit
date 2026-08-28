@@ -21,8 +21,8 @@
 - 納品物ガイド: `docs/guides/納品物ガイド.html`
 - 作業の記録: `docs/tasks/work-records/`
 
-成果物の対象リポジトリへの配置は、対象リポジトリを分析して生成する `AGENTS.md` と `CLAUDE.md` の前半索引に記録します。このリポジトリ自身の公開手順は、次節と [公開完遂規約](.claude/rules/always/publish/complete/rule.md) を参照します。
+成果物の対象リポジトリへの配置は、対象リポジトリを分析して生成する `AGENTS.md` と `CLAUDE.md` の前半索引に記録します。このリポジトリ自身の公開手順は、次節と公開完遂規約を参照します。公開完遂規約はこのリポジトリ自身の規約であり、配布対象外のため配布先には無い。
 
 ## 公開完遂フロー
 
-このリポジトリの変更は、定義の commit、`~/github-public/agent-toolkit/payload/reverse-docs-skills/` への同期、`origin/main` への push までを完了条件とする。同期対象と手順の詳細は [公開完遂規約](.claude/rules/always/publish/complete/rule.md) と [RUNBOOK.md](RUNBOOK.md) を定義として参照する。
+このリポジトリの変更は、定義の commit、配布先への同期、`origin/main` への push までを完了条件とする。配布先は `~/github-public/agent-toolkit/payload/reverse-docs-skills/` である。同期対象と手順の詳細は公開完遂規約と [RUNBOOK.md](RUNBOOK.md) を定義として参照する。公開完遂規約はこのリポジトリ自身の規約であり、配布対象外のため配布先には無い。

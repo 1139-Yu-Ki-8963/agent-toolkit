@@ -63,6 +63,10 @@ TARGETS=(
   "delivery-payload"
   "generation-engine"
   "README.md"
+  "CLAUDE.md"
+  "AGENTS.md"
+  "RUNBOOK.md"
+  "docs/portal/index.html"
   ".claude/rules/always/verification/reverse-verification/rule.md"
   ".claude/rules/always/publish/complete/rule.md"
 )

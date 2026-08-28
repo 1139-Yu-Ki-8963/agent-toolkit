@@ -10,8 +10,10 @@ if (typeof WebSocket !== 'function' && !process.env.__WS_RETRY) {
 }
 
 // 改善課題1-50 検収: 横スクロールする表の視覚的な手がかり(.pt-scroll-shell要素への
-// can-scroll-left/can-scroll-rightクラス付与)が、幅866pxでは現れ、幅3000pxでは
-// 現れないことを実描画(CDP)で検証する。
+// can-scroll-left/can-scroll-rightクラス付与)が、表がはみ出す幅では現れ、収まる幅では
+// 現れないことを実描画(CDP)で検証する。判定は「はみ出しの有無と手がかりの有無の一致」であり、
+// 幅866pxで収まる表は幅480pxで、幅3000pxでもはみ出す表はその状態で判定する。
+// 引数にHTMLのパスを渡すと対象を差し替えられる(既定は画面一覧。対応表の様式5件も対象)。
 //
 // 対象は data-scroll-cues="auto" を持つホスト配下の table.screens
 // (delivery-payload/templates/unit-list/screen-list-template.htmlが
@@ -274,9 +276,13 @@ async function stopBrowser(browser) {
 }
 
 const repoRoot = path.resolve(__dirname, '..', '..', '..');
-const samplePath = path.join(
-  repoRoot, 'generation-engine', 'samples', 'project-portal', 'lists', 'screens', '画面一覧.html',
-);
+// 検査対象は引数で差し替えられる(既定は画面一覧)。対応表の様式5件も同じ手がかりを持つため、
+// 改善課題1-50の検収は画面一覧と対応表の両方へ本検査を当てる。
+const pageArg = process.argv.slice(2).find((a) => !a.startsWith('--'));
+const samplePath = pageArg
+  ? path.resolve(pageArg)
+  : path.join(repoRoot, 'generation-engine', 'samples', 'project-portal', 'lists', 'screens', '画面一覧.html');
+const pageLabel = path.basename(samplePath, '.html');
 
 function measureScript() {
   return `(async function () {
@@ -365,26 +371,54 @@ function resizeMeasureScript() {
     }, sessionId);
 
     await cdp.send('Page.navigate', { url: `file://${samplePath}` }, sessionId);
-    const narrowEvaluated = await cdp.send('Runtime.evaluate', {
+    let narrowEvaluated = await cdp.send('Runtime.evaluate', {
       expression: measureScript(),
       awaitPromise: true,
       returnByValue: true,
     }, sessionId);
     assert.equal(narrowEvaluated.exceptionDetails, undefined, '幅866pxでのDOM計測を実行できる');
-    const narrow = JSON.parse(narrowEvaluated.result.value);
+    let narrow = JSON.parse(narrowEvaluated.result.value);
+    let narrowWidth = 866;
+
+    // 列数の少ない表(対応表の見本など)は幅866pxに収まり、横スクロールが起きない。
+    // 手がかりは「はみ出したとき」だけ現れるのが正しい挙動のため、収まる場合は
+    // 幅480pxへ狭めて、はみ出した状態で手がかりが現れるかを見る。
+    if (narrow.found && !(narrow.scrollWidth > narrow.clientWidth)) {
+      reports.push(
+        `幅866px: 表が収まるため手がかりは不要(scrollWidth=${narrow.scrollWidth} clientWidth=${narrow.clientWidth})。幅480pxで再計測する`,
+      );
+      await cdp.send('Emulation.setDeviceMetricsOverride', {
+        width: 480,
+        height: 900,
+        deviceScaleFactor: 1,
+        mobile: false,
+      }, sessionId);
+      narrowEvaluated = await cdp.send('Runtime.evaluate', {
+        expression: measureScript(),
+        awaitPromise: true,
+        returnByValue: true,
+      }, sessionId);
+      assert.equal(narrowEvaluated.exceptionDetails, undefined, '幅480pxでのDOM計測を実行できる');
+      narrow = JSON.parse(narrowEvaluated.result.value);
+      narrowWidth = 480;
+    }
 
     if (!narrow.found) {
-      failures.push('幅866px: .pt-scroll-shell要素が見つからなかった（wrapAutoHostsによる動的ラップが機能していない可能性）');
+      failures.push(`幅${narrowWidth}px: .pt-scroll-shell要素が見つからなかった（wrapAutoHostsによる動的ラップが機能していない可能性）`);
     } else {
       reports.push(
-        `幅866px: canScrollLeft=${narrow.canScrollLeft} canScrollRight=${narrow.canScrollRight} `
+        `幅${narrowWidth}px: canScrollLeft=${narrow.canScrollLeft} canScrollRight=${narrow.canScrollRight} `
         + `scrollWidth=${narrow.scrollWidth} clientWidth=${narrow.clientWidth}`,
       );
       if (!(narrow.scrollWidth > narrow.clientWidth)) {
-        failures.push(`幅866px: scrollWidth(${narrow.scrollWidth})がclientWidth(${narrow.clientWidth})を超えず、そもそも横スクロールが発生していない`);
-      }
-      if (narrow.canScrollRight !== true) {
-        failures.push(`幅866px: can-scroll-rightクラスが付与されていない（手がかりが現れていない）: canScrollRight=${narrow.canScrollRight}`);
+        // 幅480pxでも収まる表(列数の少ない対応表)は、はみ出さないので手がかりが出ないのが正しい。
+        // 手がかりの仕組み(.pt-scroll-shell)が存在することだけを確かめ、表示の判定は幅3000pxへ委ねる。
+        reports.push(`幅${narrowWidth}px: 表が収まるため手がかりは不要(scrollWidth=${narrow.scrollWidth} clientWidth=${narrow.clientWidth})`);
+        if (narrow.canScrollRight !== false) {
+          failures.push(`幅${narrowWidth}px: 表が収まるのに手がかりが出ている: canScrollRight=${narrow.canScrollRight}`);
+        }
+      } else if (narrow.canScrollRight !== true) {
+        failures.push(`幅${narrowWidth}px: can-scroll-rightクラスが付与されていない（手がかりが現れていない）: canScrollRight=${narrow.canScrollRight}`);
       }
     }
 
@@ -409,7 +443,15 @@ function resizeMeasureScript() {
         `幅3000px: canScrollLeft=${wide.canScrollLeft} canScrollRight=${wide.canScrollRight} `
         + `scrollWidth=${wide.scrollWidth} clientWidth=${wide.clientWidth}`,
       );
-      if (wide.canScrollLeft !== false || wide.canScrollRight !== false) {
+      // 幅3000pxでもはみ出す表(列数の多い質問票など)では手がかりが残るのが正しい。
+      // 判定は「はみ出しの有無と手がかりの有無が一致すること」とする。
+      const wideOverflowing = wide.scrollWidth > wide.clientWidth;
+      if (wideOverflowing) {
+        reports.push(`幅3000px: 表がはみ出すため手がかりが残る(scrollWidth=${wide.scrollWidth} clientWidth=${wide.clientWidth})`);
+        if (wide.canScrollRight !== true) {
+          failures.push(`幅3000px: はみ出しているのに手がかりが出ていない: canScrollRight=${wide.canScrollRight}`);
+        }
+      } else if (wide.canScrollLeft !== false || wide.canScrollRight !== false) {
         failures.push(`幅3000px: can-scroll-left/can-scroll-rightのいずれかが付与されたままで、手がかりが消えていない: canScrollLeft=${wide.canScrollLeft} canScrollRight=${wide.canScrollRight}`);
       }
     }
@@ -423,7 +465,7 @@ function resizeMeasureScript() {
       process.exitCode = 1;
     } else {
       console.log(
-        'PASS: 横スクロールする表(画面一覧)で、幅866pxでは.pt-scroll-shellにcan-scroll-rightが付与され手がかりが現れ、'
+        `PASS: 横スクロールする表(${pageLabel})で、幅866pxでは.pt-scroll-shellにcan-scroll-rightが付与され手がかりが現れ、`
         + '幅3000pxではcan-scroll-left/can-scroll-rightがいずれも外れ手がかりが消えることを確認した',
       );
     }

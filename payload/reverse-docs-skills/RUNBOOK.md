@@ -59,7 +59,7 @@ python3.13 -m venv .venv
 
 ## 3. 安全柵（絶対厳守・逐語）
 
-本節の禁止事項は、配布先で本スキル群を無人モードで走行させる実行側（実行環境）に向けたものである。このリポジトリ自身（reverse-docs-skills）を保守・改善する側には及ばない。改善側が従うべき規約は、リポジトリ直下の `CLAUDE.md` が定める公開完遂フローと `.claude/rules/always/publish/complete/rule.md` である。
+本節の禁止事項は、配布先で本スキル群を無人モードで走行させる実行側（実行環境）に向けたものである。このリポジトリ自身（reverse-docs-skills）を保守・改善する側には及ばない。改善側が従うべき規約は、リポジトリ直下の `CLAUDE.md` が定める公開完遂フローと公開完遂規約（このリポジトリ自身の規約。配布対象外）である。
 
 - git push は絶対禁止
 - 対象リポジトリの main ブランチへの直接操作は禁止
@@ -101,7 +101,7 @@ python3.13 -m venv .venv
 
 ## 依存 agent-home スキル
 
-orchestrating-ai-development-setup が Skill ツールで呼び出す agent-home スキル。公開完遂規約（`.claude/rules/always/publish/complete/rule.md`）が定める main-未反映検査（コミット直後に自動発火する PostToolUse hook）で agent-toolkit の sync-manifest.json への登録有無を検査する。
+orchestrating-ai-development-setup が Skill ツールで呼び出す agent-home スキル。公開完遂規約（このリポジトリ自身の規約。配布対象外）が定める main-未反映検査（コミット直後に自動発火する PostToolUse hook）で agent-toolkit の sync-manifest.json への登録有無を検査する。
 
 | スキル名 |
 |---|

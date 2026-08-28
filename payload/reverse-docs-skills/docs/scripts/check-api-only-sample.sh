@@ -8,7 +8,7 @@
 #
 # 使い方:
 #   bash docs/scripts/check-api-only-sample.sh <検査名>
-#   検査名: shorthand | style | adequacy | conventions | cross-reference | persistence | survey | loop | shorthand-self | adequacy-self | instruction-writing-self | line-refs | feature-count | test-docs
+#   検査名: shorthand | style | adequacy | conventions | cross-reference | persistence | scroll-cues | survey | loop | shorthand-self | adequacy-self | instruction-writing-self | line-refs | feature-count | test-docs
 #
 # 終了コード: 各検査本体の終了コードをそのまま返す。line-refs は行番号の記録が
 #   記入規則の禁止文だけ(3件以下)なら0、それ以外は1。feature-count は機能の元データが
@@ -25,6 +25,7 @@ case "${1:-}" in
   conventions) exec bash generation-engine/scripts/tests/test-portal-conventions.sh "$S" ;;
   cross-reference) exec bash generation-engine/scripts/tests/check-doc-cross-reference.sh "$S" ;;
   persistence) exec bash generation-engine/scripts/unit-list/check-manifest-persistence.sh "$S" ;;
+  scroll-cues) exec node generation-engine/scripts/tests/test-scroll-cue-visibility.cjs "$S/project-portal/matrices/crud/CRUD図.html" ;;
   survey) exec bash .claude/skills/surveying-architecture-for-reverse-docs/scripts/check-architecture-survey.sh --self-test ;;
   loop) exec bash generation-engine/scripts/verification/run-verification-loop.sh --skip-layer1 --profile api-only ;;
   shorthand-self) exec bash generation-engine/scripts/tests/check-shorthand-reference-declaration.sh --self-test ;;
@@ -37,5 +38,5 @@ case "${1:-}" in
     n="$(jq '.units|length' "$S/docs/manifests/feature-manifest.json")"; echo "機能の元データ: ${n} 件"; [ "$n" -ge 1 ] ;;
   test-docs)
     n="$(find "$S/docs/design/apis" -path '*テスト設計*' -name '*.md' | wc -l | tr -d ' ')"; echo "API のテスト設計書: ${n} 件"; [ "$n" -eq 2 ] ;;
-  *) echo "usage: $0 <shorthand|style|adequacy|conventions|cross-reference|persistence|survey|loop|shorthand-self|adequacy-self|instruction-writing-self|line-refs|feature-count|test-docs>" >&2; exit 2 ;;
+  *) echo "usage: $0 <shorthand|style|adequacy|conventions|cross-reference|persistence|scroll-cues|survey|loop|shorthand-self|adequacy-self|instruction-writing-self|line-refs|feature-count|test-docs>" >&2; exit 2 ;;
 esac
