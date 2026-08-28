@@ -321,7 +321,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <dt>設計判断とその理由</dt>
     <dd>実装で選ばれている方式と理由を、観測（コードコメント）と推定（実装構造）に分けて記録する。原本に無い代替案は補わない。</dd>
     <dt>章の役割キーによる機械的な参照点</dt>
-    <dd>付録 B の章マップが、章の役割キーと節番号の対応を持つ。他のスキルや検査がこの設計書の特定の章を指すときに使える。</dd>
+    <dd>前付け（frontmatter）の chapter_map が、章の役割キーと節番号の対応を持つ。本文には表示しない。他のスキルや検査がこの設計書の特定の章を指すときに使える。</dd>
   </div>
 </section>
 <section id="s3">
@@ -405,7 +405,7 @@ Phase 4  検証
       <th>内容</th></tr>
     <tr>
       <td><strong>検査1 章の完備</strong></td>
-      <td>生成した各設計書に §1 から §13 と章マップ（付録B）が存在することを確認する</td></tr>
+      <td>生成した各設計書に §1 から §13 が存在し、前付けに chapter_map があることを確認する</td></tr>
     <tr>
       <td><strong>検査2 根拠の実在</strong></td>
       <td>記入した <code>file:line</code> 形式の根拠について、ファイルが <code>source_dir</code> 配下に実在することを確認する。実在しない根拠が 1 件でもあれば不合格とする</td></tr>
