@@ -156,11 +156,17 @@ require_marker 1-45 python-facts 'PASS: 1-45 facts封印後にscaffold' 'facts�
 require_marker 1-46 python-facts 'PASS: 1-46 非UTF-8原本' 'PEP 263入力の抽出・再計数'
 require_marker 1-47 python-facts 'PASS: 1-47 抽出factsと独立再計数' '抽出・再計数・封印の縦貫fixture'
 
+# 実装判断: diff -u <(...) <(...) （プロセス置換）を使わない。macOS の bash は
+# プロセス置換のFIFOを $TMPDIR ではなく /tmp 直下（sh-np-*）へ作るため、
+# サンドボックス実行環境では「diff: /dev/fd/N: Operation not permitted」で
+# 失敗する（実測2026-08-28。トリビアルな `diff <(echo a) <(echo a)` でも再現）。
+# $tmp（本スクリプト冒頭で ${TMPDIR:-/tmp} 配下に作成済み・書き込み確認済み）
+# へ両辺をファイルとして書き出してから diff することで、プロセス置換を避ける。
+printf '%s\n' "$expected_ids" | sort -V > "$tmp/expected_ids.sorted"
+sort -V "$passed_ids" > "$tmp/passed_ids.sorted"
 if [ "$(wc -l < "$passed_ids" | tr -d ' ')" -ne 29 ] \
   || [ "$(sort -u "$passed_ids" | wc -l | tr -d ' ')" -ne 29 ] \
-  || ! diff -u \
-      <(printf '%s\n' "$expected_ids" | sort -V) \
-      <(sort -V "$passed_ids"); then
+  || ! diff -u "$tmp/expected_ids.sorted" "$tmp/passed_ids.sorted"; then
   echo "FAIL: 実行済み番号付き検証が29件に一致しません" >&2
   exit 1
 fi

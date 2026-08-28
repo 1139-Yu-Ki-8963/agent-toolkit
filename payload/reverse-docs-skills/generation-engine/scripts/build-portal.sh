@@ -1078,9 +1078,26 @@ NODE
 # 環境（macOSのディレクトリ構成）に依存する。手元がLinux等でこの問題が起きない
 # 環境であっても、この物理パス解決を外すな（self-test群がmacOSで動かなくなる）。
 # 過去に消えて再発した経緯: 記録なし。
+#
+# 実装判断（テンプレート引数省略時の既定値）: 引数なしで呼ぶと mktemp -d は
+# macOS既定のシステム一時領域（/var/folders/.../T/）を使う。この領域は
+# Claude Codeのサンドボックス実行環境では書き込み許可対象に含まれず、
+# mktempが「Operation not permitted」で失敗する。失敗するとcreate_physical_tmpdir
+# はreturn 1するが、呼び出し元の大半（test43_dir="$(create_physical_tmpdir)"等、
+# 50箇所以上）は戻り値を確認していないため、変数が空文字のまま
+# "/repo"・"/docs"のような壊れたパスで処理が進み、自己テストがまとめて
+# 不合格になる（実測: 62件中85件不合格）。テンプレート引数が省略された場合は
+# ${TMPDIR:-/tmp} 配下を既定にすることで、サンドボックス環境でも書き込み可能な
+# 領域へ倒す。既に個別に ${TMPDIR:-/tmp}/build-portal-testNN.XXXXXX を渡している
+# 呼び出し（ケース36・37・48・49の一部）はそのまま渡した引数を使う。
+# 過去に消えて再発した経緯: 記録なし（本対応が初出）。
 create_physical_tmpdir() {
   local d
-  d="$(mktemp -d "$@")" || return 1
+  if [ "$#" -eq 0 ]; then
+    d="$(mktemp -d "${TMPDIR:-/tmp}/build-portal.XXXXXX")" || return 1
+  else
+    d="$(mktemp -d "$@")" || return 1
+  fi
   (cd "$d" && pwd -P)
 }
 
@@ -1525,6 +1542,19 @@ fi
 # 由来の決定的生成であり、短縮も改変も本ファイルの担当範囲外。第1層の集約実行では
 # TIMEOUT や途中停止の疑いとして数えず、DECLARED-LONG として区別だけ付けて扱う。
 if [ "${1:-}" = "--self-test" ]; then
+  # 判定不能の事前確認（.claude/rules/always/verification/indeterminate-result/rule.md）:
+  # 各ケースは create_physical_tmpdir 経由で mktemp -d を都度呼ぶ。実行環境の
+  # 制約（サンドボックス等）で一時領域への書き込みそのものが拒否される場合、
+  # 個々のケースが次々と壊れたパスで不合格になり、対象の中身の欠陥であるかの
+  # ように見えてしまう。self-test全体の先頭で一度だけ書き込み可否を確認し、
+  # 確認できない場合は個々のケースを実行せず [UNKNOWN] と exit 2 で終える。
+  if ! _preflight_dir="$(create_physical_tmpdir)" || [ -z "$_preflight_dir" ]; then
+    echo "[UNKNOWN] --self-test: 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境のサンドボックス制約等が原因である可能性があります）" >&2
+    exit 2
+  fi
+  rm -rf "$_preflight_dir"
+  unset _preflight_dir
+
   # 改善課題1-243: 1件のケース不合格で self-test 全体が exit 1 し、以降の
   # ケースが一度も実行されない問題への対応。ケースの FAIL は
   # record_self_test_case_failure で件数だけ記録し、exit で打ち切らない。
