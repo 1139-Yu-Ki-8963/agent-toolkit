@@ -1,5 +1,20 @@
 #!/usr/bin/env bash
 # ポータルと設計書へ廃止した根拠の列または対象コードの写しを載せない。
+#
+# 判定メッセージに付けた規則名ラベルについて:
+#   規約「生成した文書を直接編集しない決まり」（portal-maintenance）は
+#   「保守できない参照を載せない」「対象コードの中身を写さない」の2規則を
+#   持ち、どちらの検査列も本検査を名指しする。規則と検査の対応を測る検査
+#   （validate-rule-judgment-coverage.sh）は、検査スクリプトの中で「拒否」
+#   「通知」「許可」「対象外」のいずれかの語に続けて規則名を大括弧で囲んだ形
+#   （下記 judge_content 関数の出力を参照）が出ている箇所を静的に数える
+#   ため、ラベルが無いと判定が0件と数えられる。2026-08-28の実測で、本検査は
+#   この形の出力を1件も持たず、規約全体で「不足」（規則4件/判定1件）に
+#   数えられていた。廃止した「根拠」「根拠パス」の列見出しの検出は
+#   「保守できない参照を載せない」、コード柵・pre code・演算子を含む
+#   インラインの検出は「対象コードの中身を写さない」に対応する。規則名は
+#   規約の「## 規則」表の値と一字一句同じに
+#   する必要がある。
 set -uo pipefail
 
 STRICT=0
@@ -7,15 +22,15 @@ STRICT=0
 judge_content() {
   local content="$1" source="$2" hits=0
   if printf '%s\n' "$content" | LC_ALL=C grep -qE '\|[[:space:]]*(根拠|根拠パス)[[:space:]]*\|'; then
-    printf '%s\n' "[FOUND] ${source}: 廃止した根拠の列または根拠パス列"
+    printf '%s\n' "拒否[保守できない参照を載せない]: [FOUND] ${source}: 廃止した根拠の列または根拠パス列"
     hits=$((hits + 1))
   fi
   if printf '%s\n' "$content" | LC_ALL=C grep -qE '<pre[^>]*>[[:space:]]*<code|(^|[[:space:]])```[[:alnum:]_-]*[[:space:]]*$'; then
-    printf '%s\n' "[FOUND] ${source}: コード柵または pre code"
+    printf '%s\n' "拒否[対象コードの中身を写さない]: [FOUND] ${source}: コード柵または pre code"
     hits=$((hits + 1))
   fi
   if printf '%s\n' "$content" | LC_ALL=C grep -qE '`[^`]*(=>|==|!=|[[:space:]]=[[:space:]]|;|\{|\})[^`]*`'; then
-    printf '%s\n' "[FOUND] ${source}: インラインまたは表セル内の実装断片"
+    printf '%s\n' "拒否[対象コードの中身を写さない]: [FOUND] ${source}: インラインまたは表セル内の実装断片"
     hits=$((hits + 1))
   fi
   return "$hits"

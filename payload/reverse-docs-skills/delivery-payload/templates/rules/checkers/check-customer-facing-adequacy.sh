@@ -97,6 +97,24 @@ check_document() {
       if [ "$machine_flag" = "true" ]; then
         echo "FAIL ${category}-${term} ${file}:${no_}: ${match}"
         rc=1
+        # 判定メッセージに付けた規則名ラベルについて:
+        #   規約「設計書の書き方の決まり」（document-writing）の規則
+        #   「本文には成果物を作った作業の単位を指す語を書かない」の検査列は
+        #   本検査（第7カテゴリ: 対話エージェントの編集単位語）を名指しする。
+        #   規則と検査の対応を測る検査（validate-rule-judgment-coverage.sh）は
+        #   検査スクリプトの中で「拒否」「通知」「許可」「対象外」のいずれかの
+        #   語に続けて規則名を大括弧で囲んだ形（直後の echo の出力を参照）が
+        #   出ている箇所を静的に数えるため、ラベルが無いと判定が0件と
+        #   数えられる。2026-08-28の実測で、document-writing の taxonomy 上の
+        #   プライマリ検査（check-doc-heading-addendum.sh）はこのカテゴリを
+        #   検査しないため、規約全体で「不足」（規則5件/判定4件）に
+        #   数えられていた。規則名は規約の「## 規則」表の値と一字一句同じに
+        #   する必要がある。
+        case "$category" in
+          "第7: 対話エージェントの編集単位語"*)
+            echo "拒否[本文には成果物を作った作業の単位を指す語を書かない]: ${file}:${no_}: ${match}"
+            ;;
+        esac
       else
         echo "REVIEW ${category}-${term} ${file}:${no_}: ${match}"
       fi

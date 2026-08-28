@@ -26,7 +26,14 @@ set -uo pipefail
 #                判定が対応しているかを数える目的に対して動詞の別は関係
 #                しないため、4つとも数える（指示書との既知の差）。
 #   規約と検査の対応 — rule-taxonomy.json の parents[].children[].checker から
-#                引く。値が null または空の規約は「検査なし」として扱う。
+#                引く（プライマリ検査）。これに加え、規約自身の「## 規則」表の
+#                検査列が名指しする検査スクリプト（check-*.sh の形。逆引用符の
+#                有無を問わない）も判定対象へ加える（2026-08-28実測: 1規約が
+#                複数の検査スクリプトに担われている場合があり、プライマリ検査
+#                1本だけでは判定の数を数え切れなかった。詳細は
+#                checker_paths_for_rule のコメントを参照）。プライマリ検査が
+#                無く、かつ表が追加の検査スクリプトも名指ししない規約は
+#                「検査なし」として扱う。
 #   比較は日本語を含むため LC_ALL=C sort -u を使う。素の sort -u は日本語の
 #   文字列を誤って重複扱いすることが確認されている。
 #
@@ -137,6 +144,43 @@ rule_names_all() {
   extract_rule_rows "$1" | cut -f1
 }
 
+# $1: rule.md のパス → 「## 規則」の表の検査列が名指しする検査スクリプト名
+#     （check-*.sh の形。逆引用符の有無を問わない）の一覧（重複あり）
+#
+# 実装判断: taxonomy の checker は1規約に1検査という前提の単一文字列だが、
+#   実際には1規約が複数の検査スクリプトに担われている（portal-maintenance は
+#   3本、document-writing は2本。2026-08-28実測）。taxonomy の構造を配列へ
+#   広げる案（rule-taxonomy.json の checker を配列化する）も検討したが、
+#   validate-rule-definitions.sh の型検査（.checker | type == "string"）と
+#   scaffold-rule-definitions.sh の複数箇所（jq -r '.checker // empty' で
+#   単一文字列として読み、rule.md 生成テンプレートへ直接埋め込む）が
+#   単一文字列を前提にしており、配列化すると両スクリプトの追従修正が
+#   必要になり影響範囲が本作業の対象外まで広がる。規約の「## 規則」表の
+#   検査列は既に対応する検査スクリプト名を自然文で名指ししているため
+#   （例: `check-code-line-number-reference.sh` が...）、この既存の記述を
+#   読み取り元とすることで、taxonomy・他スクリプトを一切変更せずに
+#   複数検査の集約を実現できる。
+checkers_named_in_rule_md() {
+  local file="$1"
+  extract_rule_rows "$file" | cut -f2 | grep -oE 'check-[A-Za-z0-9_-]+\.sh' 2>/dev/null
+}
+
+# $1: rule.md のパス、$2: taxonomy 由来のプライマリ検査スクリプトのパス（無ければ空文字）、
+# $3: 検査スクリプトの置き場（省略時は CHECKERS_DIR）
+# → 判定に使う検査スクリプトの絶対パス一覧（空白区切り・重複なし）。
+#   プライマリの検査スクリプトに加え、規約の「## 規則」表の検査列が
+#   名指しする検査スクリプトも判定対象へ加える。
+checker_paths_for_rule() {
+  local rule_md="$1" primary="${2:-}" checkers_dir="${3:-$CHECKERS_DIR}"
+  local list="" name
+  [ -n "$primary" ] && list="$primary"
+  while IFS= read -r name; do
+    [ -z "$name" ] && continue
+    list="${list} ${checkers_dir}/${name}"
+  done < <(checkers_named_in_rule_md "$rule_md" | LC_ALL=C sort -u)
+  printf '%s\n' $list | LC_ALL=C sort -u | tr '\n' ' ' | sed -e 's/^ *//' -e 's/ *$//'
+}
+
 # $1: 検査スクリプトのパス → 拒否[...]/通知[...]/許可[...]/対象外[...] の
 # 括弧内の規則名一覧（重複あり）
 extract_judgment_names() {
@@ -146,17 +190,26 @@ extract_judgment_names() {
     | sed -E 's/^(拒否|通知|許可|対象外)\[(.*)\]$/\2/'
 }
 
-# $1: 検査スクリプトのパス → 判定の数（異なり数）
-count_judgments() {
-  local file="$1"
-  [ -f "$file" ] || { printf '0'; return 0; }
-  extract_judgment_names "$file" | LC_ALL=C sort -u | grep -c .
+# $1: 検査スクリプトのパス一覧（空白区切り。1件でも可） → 拒否/通知/許可/対象外 の
+#     規則名一覧（重複あり、複数ファイル分を連結）
+extract_judgment_names_multi() {
+  local files="$1" f
+  for f in $files; do
+    extract_judgment_names "$f"
+  done
 }
 
-# $1: rule.md のパス、$2: 検査スクリプトのパス
+# $1: 検査スクリプトのパス一覧（空白区切り。1件でも可） → 判定の数（異なり数）
+count_judgments() {
+  local files="$1"
+  [ -n "$files" ] || { printf '0'; return 0; }
+  extract_judgment_names_multi "$files" | LC_ALL=C sort -u | grep -c .
+}
+
+# $1: rule.md のパス、$2: 検査スクリプトのパス一覧（空白区切り。1件でも可）
 # → 検査が出す規則名のうち規約の表に無いもの（1行1件・異なり）
 mismatch_names() {
-  local rule_md="$1" checker_sh="$2"
+  local rule_md="$1" checker_files="$2"
   local rule_names_file judgment_names_file
   if ! rule_names_file="$(mktemp "${TMPDIR:-/tmp}/vrjc-rule-names.XXXXXX" 2>/dev/null)" || [ -z "$rule_names_file" ]; then
     echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
@@ -167,7 +220,7 @@ mismatch_names() {
     exit 2
   fi
   rule_names_all "$rule_md" | LC_ALL=C sort -u > "$rule_names_file"
-  extract_judgment_names "$checker_sh" | LC_ALL=C sort -u > "$judgment_names_file"
+  extract_judgment_names_multi "$checker_files" | LC_ALL=C sort -u > "$judgment_names_file"
   LC_ALL=C comm -23 "$judgment_names_file" "$rule_names_file" 2>/dev/null
   rm -f "$rule_names_file" "$judgment_names_file"
 }
@@ -176,21 +229,27 @@ mismatch_names() {
 # 1規約分の評価
 # ---------------------------------------------------------------------------
 
-# $1: rule.md のパス、$2: 検査スクリプトのパス（無い場合は空文字）
+# $1: rule.md のパス、$2: 検査スクリプトのパス一覧（空白区切り。無い場合は空文字）
 # → "<規則の数>\t<判定の数>\t<状態>" を1行出力する
 evaluate_regulation() {
-  local rule_md="$1" checker_sh="${2:-}"
+  local rule_md="$1" checker_files="${2:-}"
   local rule_count judgment_count mismatch_count state
+  local existing_files="" cf
 
   rule_count="$(count_rules "$rule_md")"
 
-  if [ -z "$checker_sh" ] || [ ! -f "$checker_sh" ]; then
+  for cf in $checker_files; do
+    [ -f "$cf" ] && existing_files="${existing_files} ${cf}"
+  done
+  existing_files="${existing_files# }"
+
+  if [ -z "$existing_files" ]; then
     printf '%s\t0\t検査なし\n' "$rule_count"
     return 0
   fi
 
-  judgment_count="$(count_judgments "$checker_sh")"
-  mismatch_count="$(mismatch_names "$rule_md" "$checker_sh" | grep -c .)"
+  judgment_count="$(count_judgments "$existing_files")"
+  mismatch_count="$(mismatch_names "$rule_md" "$existing_files" | grep -c .)"
 
   if [ "$mismatch_count" -gt 0 ]; then
     state="名前の不一致"
@@ -237,14 +296,18 @@ main_report() {
   local f
   for f in "$TOOLDEFINED_DIR"/*.md; do
     [ -f "$f" ] || continue
-    local key title checker checker_path result rc jc state bad
+    local key title checker checker_path checker_files result rc jc state bad
     key="$(basename "$f" .md)"
     title="$(title_for_key "$key")"
     checker="$(checker_for_key "$key")"
     checker_path=""
     [ -n "$checker" ] && checker_path="${CHECKERS_DIR}/${checker}"
+    # プライマリ検査（taxonomy由来）に加え、規約自身の「## 規則」表の検査列が
+    # 名指しする検査スクリプトも判定対象へ加える（1規約が複数の検査スクリプトに
+    # 担われている場合があるため。checker_paths_for_rule の実装判断コメントを参照）。
+    checker_files="$(checker_paths_for_rule "$f" "$checker_path")"
 
-    result="$(evaluate_regulation "$f" "$checker_path")"
+    result="$(evaluate_regulation "$f" "$checker_files")"
     rc="$(printf '%s' "$result" | cut -f1)"
     jc="$(printf '%s' "$result" | cut -f2)"
     state="$(printf '%s' "$result" | cut -f3)"
@@ -262,7 +325,7 @@ main_report() {
           [ -z "$bad" ] && continue
           mismatch_details="${mismatch_details}- ${title}: ${bad}
 "
-        done < <(mismatch_names "$f" "$checker_path")
+        done < <(mismatch_names "$f" "$checker_files")
         ;;
     esac
   done
@@ -535,6 +598,64 @@ EOF
     fi
   else
     echo "  [FAIL] ケース11（実データ document-writing.md）: ファイルが見つからない (${doc_writing})" >&2
+    rc=1
+  fi
+
+  # ケース12: 規則表の検査列が追加の検査スクリプト名を名指しする場合、
+  # checker_paths_for_rule がそれを判定対象へ加え、プライマリ検査だけでは
+  # 不足する判定数が複数検査の集約により一致することを確かめる
+  # （2026-08-28実測: portal-maintenance・document-writing はいずれも
+  # プライマリ検査1本だけでは判定数が不足していた）。
+  cat > "$tmp/case12-rule.md" <<'EOF'
+# 規約例12
+
+## 規則
+
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 規則A | 内容A | 静的解析: 検査A |
+| 規則B | 内容B | 静的解析: `check-case12-extra.sh` が検査する |
+EOF
+  cat > "$tmp/case12-primary.sh" <<'EOF'
+#!/usr/bin/env bash
+echo "拒否[規則A]: だめ"
+EOF
+  mkdir -p "$tmp/checkers-case12"
+  cat > "$tmp/checkers-case12/check-case12-extra.sh" <<'EOF'
+#!/usr/bin/env bash
+echo "拒否[規則B]: だめ"
+EOF
+  local case12_list
+  case12_list="$(checker_paths_for_rule "$tmp/case12-rule.md" "$tmp/case12-primary.sh" "$tmp/checkers-case12")"
+  assert_case "ケース12（複数checker集約）" "$tmp/case12-rule.md" "$case12_list" 2 2 一致 || rc=1
+
+  # ケース13（実データ）: document-writing.md は主checker
+  # （check-doc-heading-addendum.sh）だけでは規則5件/判定4件で不足だった
+  # （2026-08-28実測）。表の検査列が名指しする check-customer-facing-adequacy.sh
+  # を checker_paths_for_rule 経由で判定対象へ加えると一致になることを確かめる。
+  local dw_primary="${CHECKERS_DIR}/check-doc-heading-addendum.sh"
+  if [ -f "$doc_writing" ] && [ -f "$dw_primary" ]; then
+    local dw_list
+    dw_list="$(checker_paths_for_rule "$doc_writing" "$dw_primary")"
+    assert_case "ケース13（実データ document-writing.md 複数checker集約）" "$doc_writing" "$dw_list" 5 5 一致 || rc=1
+  else
+    echo "  [FAIL] ケース13（実データ document-writing.md）: ファイルが見つからない" >&2
+    rc=1
+  fi
+
+  # ケース14（実データ）: portal-maintenance.md は主checker
+  # （check-generated-html-manual-edit.sh）だけでは規則4件/判定1件で不足だった
+  # （2026-08-28実測）。表の検査列が名指しする check-code-line-number-reference.sh・
+  # check-portal-unmaintainable-content.sh を checker_paths_for_rule 経由で
+  # 判定対象へ加えると一致になることを確かめる。
+  local pm_rule="${TOOLDEFINED_DIR}/portal-maintenance.md"
+  local pm_primary="${CHECKERS_DIR}/check-generated-html-manual-edit.sh"
+  if [ -f "$pm_rule" ] && [ -f "$pm_primary" ]; then
+    local pm_list
+    pm_list="$(checker_paths_for_rule "$pm_rule" "$pm_primary")"
+    assert_case "ケース14（実データ portal-maintenance.md 複数checker集約）" "$pm_rule" "$pm_list" 4 4 一致 || rc=1
+  else
+    echo "  [FAIL] ケース14（実データ portal-maintenance.md）: ファイルが見つからない" >&2
     rc=1
   fi
 
