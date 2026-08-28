@@ -219,7 +219,7 @@ if [ "${1:-}" = "--verify" ]; then
   assert_no_symlink_output_path "$output_dir" "$screen_dir" || exit 1
   errors=0
   for req in 詳細設計/画面詳細設計書.md 詳細設計/DESIGN.md \
-             テスト設計/画面テスト設計書.md テスト設計/画面単体テスト設計書.md \
+             テスト設計/画面結合テスト設計書.md テスト設計/画面単体テスト設計書.md \
              テスト設計/操作シナリオ仕様書.md 基本設計/画面基本設計書.md; do
     if [ ! -f "$screen_dir/$req" ]; then
       echo "エラー: 必須ファイルがありません: $screen_dir/$req" >&2

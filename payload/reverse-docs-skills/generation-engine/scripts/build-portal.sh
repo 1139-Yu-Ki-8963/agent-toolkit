@@ -4384,7 +4384,7 @@ TEST48BASE
 # 受注一覧 画面詳細設計書
 TEST48DETAIL
   append_required_screen_sections "$test48_screen/詳細設計/画面詳細設計書.md"
-  : > "$test48_screen/テスト設計/画面テスト設計書.md"
+  : > "$test48_screen/テスト設計/画面結合テスト設計書.md"
   : > "$test48_screen/テスト項目書/単体テスト仕様書.md"
   # 改善課題1-243: 本ケースはパターンa/bの2つの独立したガードを経て末尾で
   # 1行のPASSを出す構造を持つ。片方のガードのみ不合格でもFAILとPASSの
@@ -4395,14 +4395,14 @@ TEST48DETAIL
   test48_out_a="$(bash "$SCRIPT_DIR/build-portal.sh" "$test48_repo" "$test48_root" "$test48_portal" 2>&1)" \
     || test48_status_a=$?
   if [ "$test48_status_a" -ne 0 ] \
-    || ! grep -q '画面テスト設計書.md' "$test48_html" \
+    || ! grep -q '画面結合テスト設計書.md' "$test48_html" \
     || grep -q '単体テスト仕様書.md' "$test48_html"; then
-    echo "FAIL: --self-test ケース48a（新配置の画面テスト設計書リンクが旧配置より優先されない。exit=${test48_status_a}）" >&2
+    echo "FAIL: --self-test ケース48a（新配置の画面結合テスト設計書リンクが旧配置より優先されない。exit=${test48_status_a}）" >&2
     printf '%s\n' "$test48_out_a" >&2
     rm -rf "$test48_dir"
     record_self_test_case_failure
   fi
-  rm -f "$test48_screen/テスト設計/画面テスト設計書.md"
+  rm -f "$test48_screen/テスト設計/画面結合テスト設計書.md"
   test48_status_b=0
   test48_out_b="$(bash "$SCRIPT_DIR/build-portal.sh" "$test48_repo" "$test48_root" "$test48_portal" 2>&1)" \
     || test48_status_b=$?
@@ -5433,8 +5433,8 @@ if [ -d "$DOCS_ROOT/$LAYOUT_SCREEN_UNIT_ROOT" ] && [ -f "$SCREEN_DOC_TEMPLATE_FI
         doc_nav="$doc_nav<a class=\"nav-item\" href=\"../シーケンス図.html\">シーケンス図</a>"
       fi
       test_case_doc=""
-      if [ -f "${screen_dir}テスト設計/画面テスト設計書.md" ]; then
-        test_case_doc="${screen_dir}テスト設計/画面テスト設計書.md"
+      if [ -f "${screen_dir}テスト設計/画面結合テスト設計書.md" ]; then
+        test_case_doc="${screen_dir}テスト設計/画面結合テスト設計書.md"
       elif [ -f "${screen_dir}テスト項目書/単体テスト仕様書.md" ]; then
         test_case_doc="${screen_dir}テスト項目書/単体テスト仕様書.md"
       fi

@@ -118,7 +118,7 @@ mkdir -p "$docs5"
 bash "$SCAFFOLD" api basic "$docs5" repeat-case "リピート" >/dev/null
 bash "$SCAFFOLD" api test "$docs5" repeat-case "リピート" >/dev/null
 target5_basic="$docs5/docs/design/apis/api-repeat-case/$BASIC_DIR/API基本設計書.md"
-target5_test="$docs5/docs/design/apis/api-repeat-case/テスト設計/APIテスト設計書.md"
+target5_test="$docs5/docs/design/apis/api-repeat-case/テスト設計/API結合テスト設計書.md"
 target5_unit="$docs5/docs/design/apis/api-repeat-case/テスト設計/API単体テスト設計書.md"
 printf '\n基本設計を保持するmarker\n' >> "$target5_basic"
 printf '\nテスト設計を保持するmarker\n' >> "$target5_test"
@@ -258,7 +258,7 @@ bash "$SCAFFOLD" api test "$docs12" dryrun-existing-case "既存ドライラン"
 rm -f "$docs12/docs/design/apis/api-dryrun-existing-case/テスト設計/API単体テスト設計書.md"
 dryrun12_out="$(bash "$SCAFFOLD" --dry-run api test "$docs12" dryrun-existing-case "既存ドライラン")"
 if ! printf '%s\n' "$dryrun12_out" | grep -q 'コピー元テンプレート: .*API単体テスト設計書.md' \
-   || printf '%s\n' "$dryrun12_out" | grep -q 'コピー元テンプレート: .*/APIテスト設計書.md'; then
+   || printf '%s\n' "$dryrun12_out" | grep -q 'コピー元テンプレート: .*/API結合テスト設計書.md'; then
   echo "FAIL: 既存phaseの--dry-runが不足ファイルだけを列挙しませんでした" >&2
   exit 1
 fi
@@ -271,7 +271,7 @@ before13="$(find "$docs13" | sort)"
 missing13_out="$(bash "$SCAFFOLD" --check-missing api test "$docs13" no-template-case \
   "テンプレート不要" "$tmp/存在しないテンプレート" 2>&1)" && missing13_rc=0 || missing13_rc=$?
 after13="$(find "$docs13" | sort)"
-missing13_test_count="$(printf '%s\n' "$missing13_out" | grep -c '^不足: .*/APIテスト設計書.md$' || true)"
+missing13_test_count="$(printf '%s\n' "$missing13_out" | grep -c '^不足: .*/API結合テスト設計書.md$' || true)"
 missing13_unit_count="$(printf '%s\n' "$missing13_out" | grep -c '^不足: .*API単体テスト設計書.md$' || true)"
 missing13_line_count="$(printf '%s\n' "$missing13_out" | grep -c '^不足: ' || true)"
 if [ "$missing13_rc" -eq 0 ] \

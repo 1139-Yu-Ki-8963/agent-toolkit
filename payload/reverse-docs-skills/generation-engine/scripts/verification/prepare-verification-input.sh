@@ -114,7 +114,7 @@ fill_related_paths() {
       [ "$kind_label" = "テーブル" ] && related="../詳細設計/テーブル定義書.md"
       ;;
     */*詳細設計書.md|*/テーブル定義書.md)
-      related="../${UNIT_TEST_DESIGN_DIR}/${kind_label}テスト設計書.md"
+      related="../${UNIT_TEST_DESIGN_DIR}/${kind_label}結合テスト設計書.md"
       ;;
     機能/*)
       related="./機能設計書.md"
@@ -485,34 +485,34 @@ dest_path_for() {
   local relpath="$1"
   case "$relpath" in
     "API/API基本設計書.md") printf '%s/api-%s/基本設計/API基本設計書.md' "$API_ROOT" "$API_KEY" ;;
-    "API/APIテスト設計書.md") printf '%s/api-%s/%s/APIテスト設計書.md' "$API_ROOT" "$API_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
+    "API/API結合テスト設計書.md") printf '%s/api-%s/%s/API結合テスト設計書.md' "$API_ROOT" "$API_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "API/API単体テスト設計書.md") printf '%s/api-%s/%s/API単体テスト設計書.md' "$API_ROOT" "$API_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "API/API詳細設計書.md") printf '%s/api-%s/詳細設計/API詳細設計書.md' "$API_ROOT" "$API_KEY" ;;
     "テーブル/論理データモデル.md") printf '%s/table-%s/基本設計/論理データモデル.md' "$TABLE_ROOT" "$TABLE_KEY" ;;
-    "テーブル/テーブルテスト設計書.md") printf '%s/table-%s/%s/テーブルテスト設計書.md' "$TABLE_ROOT" "$TABLE_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
+    "テーブル/テーブル結合テスト設計書.md") printf '%s/table-%s/%s/テーブル結合テスト設計書.md' "$TABLE_ROOT" "$TABLE_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "テーブル/テーブル単体テスト設計書.md") printf '%s/table-%s/%s/テーブル単体テスト設計書.md' "$TABLE_ROOT" "$TABLE_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "テーブル/テーブル定義書.md") printf '%s/table-%s/詳細設計/テーブル定義書.md' "$TABLE_ROOT" "$TABLE_KEY" ;;
     "バッチ/バッチ基本設計書.md") printf '%s/batch-%s/基本設計/バッチ基本設計書.md' "$BATCH_ROOT" "$BATCH_KEY" ;;
-    "バッチ/バッチテスト設計書.md") printf '%s/batch-%s/%s/バッチテスト設計書.md' "$BATCH_ROOT" "$BATCH_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
+    "バッチ/バッチ結合テスト設計書.md") printf '%s/batch-%s/%s/バッチ結合テスト設計書.md' "$BATCH_ROOT" "$BATCH_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "バッチ/バッチ単体テスト設計書.md") printf '%s/batch-%s/%s/バッチ単体テスト設計書.md' "$BATCH_ROOT" "$BATCH_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "バッチ/バッチ詳細設計書.md") printf '%s/batch-%s/詳細設計/バッチ詳細設計書.md' "$BATCH_ROOT" "$BATCH_KEY" ;;
     "帳票/帳票基本設計書.md") printf '%s/report-%s/基本設計/帳票基本設計書.md' "$REPORT_ROOT" "$REPORT_KEY" ;;
-    "帳票/帳票テスト設計書.md") printf '%s/report-%s/%s/帳票テスト設計書.md' "$REPORT_ROOT" "$REPORT_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
+    "帳票/帳票結合テスト設計書.md") printf '%s/report-%s/%s/帳票結合テスト設計書.md' "$REPORT_ROOT" "$REPORT_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "帳票/帳票単体テスト設計書.md") printf '%s/report-%s/%s/帳票単体テスト設計書.md' "$REPORT_ROOT" "$REPORT_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "帳票/帳票詳細設計書.md") printf '%s/report-%s/詳細設計/帳票詳細設計書.md' "$REPORT_ROOT" "$REPORT_KEY" ;;
     "外部連携/外部連携基本設計書.md") printf '%s/external-%s/基本設計/外部連携基本設計書.md' "$EXTERNAL_ROOT" "$EXTERNAL_KEY" ;;
-    "外部連携/外部連携テスト設計書.md") printf '%s/external-%s/%s/外部連携テスト設計書.md' "$EXTERNAL_ROOT" "$EXTERNAL_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
+    "外部連携/外部連携結合テスト設計書.md") printf '%s/external-%s/%s/外部連携結合テスト設計書.md' "$EXTERNAL_ROOT" "$EXTERNAL_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "外部連携/外部連携単体テスト設計書.md") printf '%s/external-%s/%s/外部連携単体テスト設計書.md' "$EXTERNAL_ROOT" "$EXTERNAL_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "外部連携/外部連携詳細設計書.md") printf '%s/external-%s/詳細設計/外部連携詳細設計書.md' "$EXTERNAL_ROOT" "$EXTERNAL_KEY" ;;
     "機能/機能設計書.md") printf '%s/feature-%s/機能設計書.md' "$FEATURE_ROOT" "$FEATURE_KEY" ;;
-    "機能/機能テスト設計書.md") printf '%s/feature-%s/%s/機能テスト設計書.md' "$FEATURE_ROOT" "$FEATURE_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
+    "機能/機能結合テスト設計書.md") printf '%s/feature-%s/%s/機能結合テスト設計書.md' "$FEATURE_ROOT" "$FEATURE_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "機能/機能単体テスト設計書.md") printf '%s/feature-%s/%s/機能単体テスト設計書.md' "$FEATURE_ROOT" "$FEATURE_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "画面/基本設計/画面基本設計書.md") printf '%s/screen-%s/基本設計/画面基本設計書.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
     "画面/詳細設計/画面詳細設計書.md") printf '%s/screen-%s/詳細設計/画面詳細設計書.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
     "画面/詳細設計/DESIGN.md") printf '%s/screen-%s/詳細設計/DESIGN.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
     "画面/詳細設計/結合テスト観点表.md") printf '%s/screen-%s/詳細設計/結合テスト観点表.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
     "画面/詳細設計/単体テスト観点表.md") printf '%s/screen-%s/詳細設計/単体テスト観点表.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
-    "画面/テスト設計/画面テスト設計書.md") printf '%s/screen-%s/テスト設計/画面テスト設計書.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
+    "画面/テスト設計/画面結合テスト設計書.md") printf '%s/screen-%s/テスト設計/画面結合テスト設計書.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
     "画面/テスト設計/画面単体テスト設計書.md") printf '%s/screen-%s/テスト設計/画面単体テスト設計書.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
     "画面/テスト設計/操作シナリオ仕様書.md") printf '%s/screen-%s/テスト設計/操作シナリオ仕様書.md' "$SCREEN_ROOT" "$SCREEN_KEY" ;;
     "プロジェクト共通/DESIGN.md") printf '%s/DESIGN.md' "$COMMON_ROOT" ;;

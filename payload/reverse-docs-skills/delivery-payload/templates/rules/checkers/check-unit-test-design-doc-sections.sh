@@ -10,7 +10,7 @@
 # 判定:
 #   （記載項目を省かない）
 #   書き込み先のファイル名に「単体テスト設計書」が含まれる場合、本文が
-#   テンプレートが定める12節の見出しを抽出し、名前・順序・件数が完全に一致するか
+#   テンプレートが定める13節の見出しを抽出し、名前・順序・件数が完全に一致するか
 #   を走査する。1つでも欠ける、順序が違う、余分な節がある場合は違反とする。
 #
 #   （単体テスト設計書は基本設計フェーズで作る）
@@ -76,7 +76,8 @@
 #   ファイル検査: check-unit-test-design-doc-sections.sh --check-file <単体テスト設計書.md>
 set -uo pipefail
 
-REQUIRED_SECTION_HEADINGS='テスト対象
+REQUIRED_SECTION_HEADINGS='本書が検証するもの
+テスト対象
 テストの粒度と自動化の方針
 本書が扱わない範囲
 §1 テスト観点
@@ -194,11 +195,11 @@ judge_required_sections() {
     expected_inline="$(printf '%s\n' "$REQUIRED_SECTION_HEADINGS" | awk 'BEGIN { ORS="" } NR > 1 { printf " → " } { printf "%s", $0 } END { print "" }')"
     actual_inline="$(printf '%s\n' "$actual_headings" | awk 'BEGIN { ORS="" } NR > 1 { printf " → " } { printf "%s", $0 } END { print "" }')"
     [ -n "$actual_inline" ] || actual_inline="（見出しなし）"
-    echo "拒否[記載項目を省かない]: 12節の名前・順序・件数がテンプレートと一致しません（期待: ${expected_inline}／実際: ${actual_inline}）"
+    echo "拒否[記載項目を省かない]: 13節の名前・順序・件数がテンプレートと一致しません（期待: ${expected_inline}／実際: ${actual_inline}）"
     return 2
   fi
 
-  echo "許可[記載項目を省かない]: 12節の名前・順序・件数がテンプレートと一致します"
+  echo "許可[記載項目を省かない]: 13節の名前・順序・件数がテンプレートと一致します"
   return 0
 }
 
@@ -596,7 +597,13 @@ run_hook() {
 self_test() {
   local rc=0 msg code
 
-  local full='## テスト対象
+  local full='## 本書が検証するもの
+
+| 段 | 検証する状態 | 対応する設計書 | 文書 |
+|---|---|---|---|
+| 単体 | 関数 | 詳細設計書 | 本書 |
+
+## テスト対象
 対象API
 ## テストの粒度と自動化の方針
 API単位で自動化する
@@ -647,7 +654,7 @@ API単位で自動化する
     rc=1
   fi
 
-  # 系3: 合成フィクスチャ3件をファイルとして書き出し、12節を正順で持つ → すべて許可
+  # 系3: 合成フィクスチャ3件をファイルとして書き出し、13節を正順で持つ → すべて許可
   local fixture fixture_path fixture_ok=1 tmp3
   if ! tmp3="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp3" ]; then
     echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
@@ -662,7 +669,7 @@ API単位で自動化する
   done
   rm -rf "$tmp3"
   if [ "$fixture_ok" -eq 1 ]; then
-    echo "  [PASS] 系3: 書き出した合成フィクスチャ3件の12節が名前・順序とも一致する"
+    echo "  [PASS] 系3: 書き出した合成フィクスチャ3件の13節が名前・順序とも一致する"
   else
     echo "  [FAIL] 系3: 合成フィクスチャ3件のいずれかが拒否された" >&2
     rc=1
@@ -715,13 +722,13 @@ API単位で自動化する
 ${full}"
   if msg="$(judge "docs/design/apis/api-indented-code/基本設計/API単体テスト設計書.md" "$indented_code_before_full")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ]; then
-    echo "  [PASS] 系4e: 4スペース字下げのコード行は後続の12節を隠さない（${msg}）"
+    echo "  [PASS] 系4e: 4スペース字下げのコード行は後続の13節を隠さない（${msg}）"
   else
     echo "  [FAIL] 系4e: 4スペース字下げのコード行をフェンスと誤認した（exit=${code}）" >&2
     rc=1
   fi
 
-  # 系4b: 12節が揃っていても順序が違う → 拒否
+  # 系4b: 13節が揃っていても順序が違う → 拒否
   local reordered
   reordered="$(printf '%s\n' "$full" | awk '
     /^## テストの粒度と自動化の方針$/ { second=$0; getline second_body; next }
@@ -730,9 +737,9 @@ ${full}"
   ')"
   if msg="$(judge "docs/design/apis/api-order/基本設計/API単体テスト設計書.md" "$reordered")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ]; then
-    echo "  [PASS] 系4b: 12節の順序が違えば拒否される（${msg}）"
+    echo "  [PASS] 系4b: 13節の順序が違えば拒否される（${msg}）"
   else
-    echo "  [FAIL] 系4b: 12節の順序が違うのに許可された（exit=${code}）" >&2
+    echo "  [FAIL] 系4b: 13節の順序が違うのに許可された（exit=${code}）" >&2
     rc=1
   fi
 
@@ -953,7 +960,7 @@ EOF
     echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
     exit 2
   fi
-  role_file="$tmp15/APIテスト設計書.md"
+  role_file="$tmp15/API結合テスト設計書.md"
   printf '%s\n' "$role_valid" > "$role_file"
   if msg="$(run_file_check "$role_file")"; then code=0; else code=$?; fi
   rm -rf "$tmp15"
@@ -967,7 +974,7 @@ EOF
   # 系16: §5・§6の第1列が「キー」のまま → 拒否
   local wrong_headers
   wrong_headers="$(printf '%s\n' "$role_valid" | sed 's/^| 観点のキー |/| キー |/')"
-  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$wrong_headers")"; then code=0; else code=$?; fi
+  if msg="$(judge_test_section_roles "API結合テスト設計書.md" "$wrong_headers")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '第1列'; then
     echo "  [PASS] 系16: §5・§6の旧見出し「キー」を拒否する（${msg}）"
   else
@@ -978,7 +985,7 @@ EOF
   # 系17: §5の観点が§1に無い → 拒否
   local orphan_abnormal
   orphan_abnormal="$(printf '%s\n' "$role_valid" | sed 's/^| api-失敗 | timeout | error |$/| 未登録-異常 | timeout | error |/')"
-  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$orphan_abnormal")"; then code=0; else code=$?; fi
+  if msg="$(judge_test_section_roles "API結合テスト設計書.md" "$orphan_abnormal")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '§5の観点'; then
     echo "  [PASS] 系17: §1に無い§5の観点を拒否する（${msg}）"
   else
@@ -989,7 +996,7 @@ EOF
   # 系18: §1の観点に対応するケースが§2に無い → 拒否
   local missing_case
   missing_case="$(printf '%s\n' "$role_valid" | grep -v '^| 金額境界-')"
-  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$missing_case")"; then code=0; else code=$?; fi
+  if msg="$(judge_test_section_roles "API結合テスト設計書.md" "$missing_case")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '対応するケースが§2にありません'; then
     echo "  [PASS] 系18: §2が網羅しない観点を拒否する（${msg}）"
   else
@@ -1008,7 +1015,7 @@ EOF
     }
     { print }
   ')"
-  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$role_with_auxiliary_table")"; then code=0; else code=$?; fi
+  if msg="$(judge_test_section_roles "API結合テスト設計書.md" "$role_with_auxiliary_table")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '§2の3ケース'; then
     echo "  [PASS] 系19: §2の補助データ表をケース件数から除外する（${msg}）"
   else
@@ -1019,7 +1026,7 @@ EOF
   # 系20: §2の実ケースが観点を参照しない → 拒否
   local missing_viewpoint_reference
   missing_viewpoint_reference="$(printf '%s\n' "$role_valid" | sed 's/^| 金額境界-直前 | 金額-境界 |/| 金額境界-直前 |  |/')"
-  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$missing_viewpoint_reference")"; then code=0; else code=$?; fi
+  if msg="$(judge_test_section_roles "API結合テスト設計書.md" "$missing_viewpoint_reference")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '対応する観点のキーがありません'; then
     echo "  [PASS] 系20: 観点を参照しない§2の実ケースを拒否する（${msg}）"
   else
@@ -1040,7 +1047,7 @@ EOF
     }
     { print }
   ')"
-  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$fenced_role_example")"; then code=0; else code=$?; fi
+  if msg="$(judge_test_section_roles "API結合テスト設計書.md" "$fenced_role_example")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '§2の3ケース'; then
     echo "  [PASS] 系21: コードフェンス内の偽の節と表を無視する（${msg}）"
   else
@@ -1059,7 +1066,7 @@ EOF
     }
     { print }
   ')"
-  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$multiple_case_tables")"; then code=0; else code=$?; fi
+  if msg="$(judge_test_section_roles "API結合テスト設計書.md" "$multiple_case_tables")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '§2の4ケース'; then
     echo "  [PASS] 系22: §2に分かれた複数のケース表を全て数える（${msg}）"
   else
@@ -1070,7 +1077,7 @@ EOF
   # 系23: §2の2つ目のケース表が未登録観点を参照する → 拒否
   local orphan_in_second_case_table
   orphan_in_second_case_table="$(printf '%s\n' "$multiple_case_tables" | sed 's/| api失敗-再試行 | api-失敗 |/| api失敗-再試行 | 未登録-観点 |/')"
-  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$orphan_in_second_case_table")"; then code=0; else code=$?; fi
+  if msg="$(judge_test_section_roles "API結合テスト設計書.md" "$orphan_in_second_case_table")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '§2が参照する観点'; then
     echo "  [PASS] 系23: §2の2表目が参照する未登録観点を拒否する（${msg}）"
   else
@@ -1089,7 +1096,7 @@ EOF
     }
     { print }
   ')"
-  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$uncovered_in_second_viewpoint_table")"; then code=0; else code=$?; fi
+  if msg="$(judge_test_section_roles "API結合テスト設計書.md" "$uncovered_in_second_viewpoint_table")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '認証-期限切れ'; then
     echo "  [PASS] 系24: §1の2表目にある未被覆の観点を拒否する（${msg}）"
   else
@@ -1108,7 +1115,7 @@ EOF
     }
     { print }
   ')"
-  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$case_like_auxiliary_table")"; then code=0; else code=$?; fi
+  if msg="$(judge_test_section_roles "API結合テスト設計書.md" "$case_like_auxiliary_table")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '§2のケース表の列構成が統一されていません'; then
     echo "  [PASS] 系25: §2で観点参照列を持つ別構成の表を拒否する（${msg}）"
   else
@@ -1123,7 +1130,7 @@ EOF
     /^## §6 境界値/ { print "| api-失敗 | timeout | error |" }
     { print }
   ')"
-  if msg="$(judge_test_section_roles "APIテスト設計書.md" "$duplicate_viewpoint_keys")"; then code=0; else code=$?; fi
+  if msg="$(judge_test_section_roles "API結合テスト設計書.md" "$duplicate_viewpoint_keys")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '§1の観点キー' && printf '%s' "$msg" | grep -qF '§5の観点キー'; then
     echo "  [PASS] 系26: §1と§5の観点キー重複を拒否する（${msg}）"
   else

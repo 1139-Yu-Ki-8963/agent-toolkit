@@ -128,7 +128,7 @@ self_test() {
       if grep -q 'height: 100vh' "$out" \
         && grep -qE 'overflow:[[:space:]]*hidden' "$out" \
         && grep -qE 'overflow-y:[[:space:]]*auto' "$out" \
-        && grep -q '<main class="pt-main is-fixed">' "$out"; then
+        && grep -qE '<main class="pt-main is-fixed"( [^>]*)?>' "$out"; then
         echo "  [PASS] $label: 固定viewportと独立縦スクロール領域(共通シェルpt-main)を生成"
       else
         echo "  [FAIL] $label: viewport/overflow/scroll layout契約が不完全" >&2

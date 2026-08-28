@@ -464,7 +464,7 @@ function build(repo, root, standalone, sitesPath) {
 function requiredHtml(unit) {
   return [
     path.join(unit, '基本設計/API基本設計書.html'), path.join(unit, '詳細設計/API詳細設計書.html'),
-    path.join(unit, 'テスト設計/APIテスト設計書.html'), path.join(unit, 'テスト設計/API単体テスト設計書.html')
+    path.join(unit, 'テスト設計/API結合テスト設計書.html'), path.join(unit, 'テスト設計/API単体テスト設計書.html')
   ];
 }
 
@@ -564,14 +564,14 @@ function selfTest() {
     for (const relative of [
       '基本設計/API基本設計書.md',
       '詳細設計/API詳細設計書.md',
-      'テスト設計/APIテスト設計書.md',
+      'テスト設計/API結合テスト設計書.md',
       'テスト設計/API単体テスト設計書.md'
     ]) {
       const destination = path.join(unit, relative);
       fs.mkdirSync(path.dirname(destination), { recursive: true });
       fs.copyFileSync(path.join(templateRoot, path.basename(relative)), destination);
     }
-    fs.appendFileSync(path.join(unit, '基本設計/API基本設計書.md'), '\n[詳細設計](../詳細設計/API詳細設計書.md)\n\n<a href="../テスト設計/APIテスト設計書.md">通常テスト</a>\n');
+    fs.appendFileSync(path.join(unit, '基本設計/API基本設計書.md'), '\n[詳細設計](../詳細設計/API詳細設計書.md)\n\n<a href="../テスト設計/API結合テスト設計書.md">通常テスト</a>\n');
     writeFixture(path.join(unit, '補助資料.md'), 'Standalone API 補助資料', '\n[基本設計](基本設計/API基本設計書.md)\n');
 
     const normal = build(repo, root, false, sitesPath);

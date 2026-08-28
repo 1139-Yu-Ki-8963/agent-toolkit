@@ -74,7 +74,7 @@
 #                     詳細設計/画面詳細設計書.html       → detailDocPath
 #                     シーケンス図.html                   → sequencePath
 #                     テスト設計/画面単体テスト設計書.md   → testCasePath / unitTestViewpointPath
-#                     テスト設計/画面テスト設計書.md       → integrationTestViewpointPath / integrationTestCasePath
+#                     テスト設計/画面結合テスト設計書.md       → integrationTestViewpointPath / integrationTestCasePath
 #                     テスト設計/操作シナリオ仕様書.md     → scenarioPath
 #                   新配置がない既存生成物では、旧配置のテスト項目書・詳細設計配下を
 #                   上記フィールドの後方互換fallbackとして使う
@@ -467,7 +467,7 @@ EOF
   : > "$docs_root/screen-user-admin/詳細設計/画面詳細設計書.html"
   : > "$docs_root/screen-user-admin/シーケンス図.html"
   : > "$docs_root/screen-user-admin/テスト設計/画面単体テスト設計書.md"
-  : > "$docs_root/screen-user-admin/テスト設計/画面テスト設計書.md"
+  : > "$docs_root/screen-user-admin/テスト設計/画面結合テスト設計書.md"
   : > "$docs_root/screen-user-admin/テスト設計/操作シナリオ仕様書.md"
   : > "$docs_root/screen-user-admin/テスト項目書/単体テスト仕様書.md"
   : > "$docs_root/screen-user-admin/詳細設計/単体テスト観点表.md"
@@ -525,8 +525,8 @@ EOF
       and .screens[0].sequencePath == "../../画面/screen-user-admin/シーケンス図.html"
       and .screens[0].testCasePath == "../../画面/screen-user-admin/テスト設計/画面単体テスト設計書.md"
       and .screens[0].unitTestViewpointPath == "../../画面/screen-user-admin/テスト設計/画面単体テスト設計書.md"
-      and .screens[0].integrationTestViewpointPath == "../../画面/screen-user-admin/テスト設計/画面テスト設計書.md"
-      and .screens[0].integrationTestCasePath == "../../画面/screen-user-admin/テスト設計/画面テスト設計書.md"
+      and .screens[0].integrationTestViewpointPath == "../../画面/screen-user-admin/テスト設計/画面結合テスト設計書.md"
+      and .screens[0].integrationTestCasePath == "../../画面/screen-user-admin/テスト設計/画面結合テスト設計書.md"
       and .screens[0].scenarioPath == "../../画面/screen-user-admin/テスト設計/操作シナリオ仕様書.md"
       and .screens[0].confirmationPath == "../../画面/screen-user-admin/要確認事項台帳.json"
       and (.screens[1] | has("designDocPath") | not)
@@ -588,8 +588,8 @@ EOF
       && grep -Fq '../../画面/screen-user-admin/シーケンス図.html' "$pipeline_html" \
       && grep -Fq '../../画面/screen-user-admin/テスト設計/画面単体テスト設計書.md' "$pipeline_html" \
       && grep -Fq '../../画面/screen-user-admin/テスト設計/画面単体テスト設計書.md' "$pipeline_html" \
-      && grep -Fq '../../画面/screen-user-admin/テスト設計/画面テスト設計書.md' "$pipeline_html" \
-      && grep -Fq '../../画面/screen-user-admin/テスト設計/画面テスト設計書.md' "$pipeline_html" \
+      && grep -Fq '../../画面/screen-user-admin/テスト設計/画面結合テスト設計書.md' "$pipeline_html" \
+      && grep -Fq '../../画面/screen-user-admin/テスト設計/画面結合テスト設計書.md' "$pipeline_html" \
       && grep -Fq '../../画面/screen-user-admin/テスト設計/操作シナリオ仕様書.md' "$pipeline_html"; then
       echo "  [PASS] 1-93: 抽出→一覧生成のフルパイプラインで8種類リンクが最終HTMLへ反映"
     else
@@ -941,10 +941,10 @@ while IFS= read -r row; do
           "$screen_folder/詳細設計/単体テスト観点表.md" \
           "$link_folder/詳細設計/単体テスト観点表.md" unitTestViewpointPath)"
       fi
-      if [ -f "$screen_folder/テスト設計/画面テスト設計書.md" ]; then
+      if [ -f "$screen_folder/テスト設計/画面結合テスト設計書.md" ]; then
         add="$(document_paths_add_existing "$add" \
-          "$screen_folder/テスト設計/画面テスト設計書.md" \
-          "$link_folder/テスト設計/画面テスト設計書.md" \
+          "$screen_folder/テスト設計/画面結合テスト設計書.md" \
+          "$link_folder/テスト設計/画面結合テスト設計書.md" \
           integrationTestViewpointPath integrationTestCasePath)"
       else
         add="$(document_paths_add_existing "$add" \

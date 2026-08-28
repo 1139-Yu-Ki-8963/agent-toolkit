@@ -160,7 +160,7 @@ require_marker 1-47 python-facts 'PASS: 1-47 抽出factsと独立再計数' '抽
 # プロセス置換のFIFOを $TMPDIR ではなく /tmp 直下（sh-np-*）へ作るため、
 # サンドボックス実行環境では「diff: /dev/fd/N: Operation not permitted」で
 # 失敗する（実測2026-08-28。トリビアルな `diff <(echo a) <(echo a)` でも再現）。
-# $tmp（本スクリプト冒頭で ${TMPDIR:-/tmp} 配下に作成済み・書き込み確認済み）
+# ${tmp}（本スクリプト冒頭で ${TMPDIR:-/tmp} 配下に作成済み・書き込み確認済み）
 # へ両辺をファイルとして書き出してから diff することで、プロセス置換を避ける。
 printf '%s\n' "$expected_ids" | sort -V > "$tmp/expected_ids.sorted"
 sort -V "$passed_ids" > "$tmp/passed_ids.sorted"

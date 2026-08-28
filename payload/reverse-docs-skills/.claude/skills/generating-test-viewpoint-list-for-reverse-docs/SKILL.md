@@ -23,7 +23,7 @@ output_dir 自体が存在しない時、またはいずれの設計種別にも
 
 工程全体は orchestrating-ai-development-setup が案内する。本スキルはポータルの派生一覧のうちテスト観点表一覧（`unit_kind=test_viewpoint`）のみを担い、単独起動できる（起動引数を渡せば動く）。
 
-`<output_dir>` 配下の各設計単位の `テスト設計/<種別>テスト設計書.md` と `<種別>単体テスト設計書.md` を事実源とし、横断集約した manifest JSON を組み立ててテスト観点表.html を生成する。画面の新配置がない既存生成物に限り、`<screenUnitRoot>/screen-*/${screen_detail_dirname}/` の旧観点表2件を後方互換として読む。`screenUnitRoot` は output-layout の物理配置キーから解決し、表示用 `kindLabels.screen` はpathに使わない。`${screen_detail_dirname}` は画面専用の固定フォルダ名（値は`詳細設計`）であり、集約スクリプト（`aggregate-test-viewpoints.sh`）が同じ値をハードコードする画面固有の配置規約に従う（画面はunitPhaseDirNamesの対象外。1-210の対象外）。**本スキルは判定・評価を一切行わない**。各テスト設計書に記載された事実（由来章・観点）の転記に徹する。
+`<output_dir>` 配下の各設計単位の `テスト設計/<種別>結合テスト設計書.md` と `<種別>単体テスト設計書.md` を事実源とし、横断集約した manifest JSON を組み立ててテスト観点表.html を生成する。画面の新配置がない既存生成物に限り、`<screenUnitRoot>/screen-*/${screen_detail_dirname}/` の旧観点表2件を後方互換として読む。`screenUnitRoot` は output-layout の物理配置キーから解決し、表示用 `kindLabels.screen` はpathに使わない。`${screen_detail_dirname}` は画面専用の固定フォルダ名（値は`詳細設計`）であり、集約スクリプト（`aggregate-test-viewpoints.sh`）が同じ値をハードコードする画面固有の配置規約に従う（画面はunitPhaseDirNamesの対象外。1-210の対象外）。**本スキルは判定・評価を一切行わない**。各テスト設計書に記載された事実（由来章・観点）の転記に徹する。
 
 ## 使用タイミング
 

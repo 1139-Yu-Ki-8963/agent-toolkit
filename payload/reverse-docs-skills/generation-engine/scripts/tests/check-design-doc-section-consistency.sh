@@ -802,9 +802,9 @@ EOF
   write_layout_override "$tmp_268"
   bash "$SCRIPT_DIR/../scaffold-design-unit.sh" api test "$tmp_268" "fixture-268" "合成API 268" "$REPO_ROOT/delivery-payload/templates/リバース検証" >/dev/null
   doc_268="$tmp_268/api/api-fixture-268/テスト設計/API単体テスト設計書.md"
-  # 同じphaseで生成されるAPIテスト設計書.mdは本検収の対象外（1-268の対象は
+  # 同じphaseで生成されるAPI結合テスト設計書.mdは本検収の対象外（1-268の対象は
   # 単体テスト設計書のみ）。必須節定義-なしのWARNが混ざるのを避けるため取り除く。
-  rm -f "$tmp_268/api/api-fixture-268/テスト設計/APIテスト設計書.md"
+  rm -f "$tmp_268/api/api-fixture-268/テスト設計/API結合テスト設計書.md"
   cp "$doc_268" "$doc_268.orig"
 
   out_268_ok="$(run_check "$tmp_268")"; rc_268_ok=$?

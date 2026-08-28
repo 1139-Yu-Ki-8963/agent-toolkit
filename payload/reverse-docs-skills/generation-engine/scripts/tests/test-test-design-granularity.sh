@@ -37,8 +37,8 @@ fail_case() { printf 'FAIL: %s\n' "$1" >&2; fail=$((fail + 1)); }
 if jq -e '
   .kinds.api.phases.basic == ["API基本設計書.md"] and
   .kinds.api.phases.detail == ["API詳細設計書.md"] and
-  .kinds.api.phases.test == ["APIテスト設計書.md", "API単体テスト設計書.md"] and
-  .kinds.feature.phases.test == ["機能テスト設計書.md", "機能単体テスト設計書.md"] and
+  .kinds.api.phases.test == ["API結合テスト設計書.md", "API単体テスト設計書.md"] and
+  .kinds.feature.phases.test == ["機能結合テスト設計書.md", "機能単体テスト設計書.md"] and
   ([.kinds[] | .phases.basic[], .phases.detail[]] | all(contains("テスト設計書") | not))
 ' "$LAYOUT" >/dev/null; then
   pass "設計phaseとテストphaseの宣言が分離されている"
@@ -49,7 +49,7 @@ fi
 mkdir -p "$tmp/out"
 if bash "$SCAFFOLD" api test "$tmp/out" bid "入札" "$TEMPLATES" >/dev/null \
   && bash "$SCAFFOLD" api test "$tmp/out" bid "入札" "$TEMPLATES" >/dev/null \
-  && test -f "$tmp/out/docs/design/apis/api-bid/テスト設計/APIテスト設計書.md" \
+  && test -f "$tmp/out/docs/design/apis/api-bid/テスト設計/API結合テスト設計書.md" \
   && test -f "$tmp/out/docs/design/apis/api-bid/テスト設計/API単体テスト設計書.md" \
   && ! find "$tmp/out/docs/design/apis/api-bid/基本設計" "$tmp/out/docs/design/apis/api-bid/詳細設計" -type f -name '*テスト設計書.md' 2>/dev/null | grep -q .; then
   pass "テスト設計書がテスト設計/だけへ生成される"
@@ -58,7 +58,7 @@ else
 fi
 
 unit_doc="$tmp/out/docs/design/apis/api-bid/テスト設計/API単体テスト設計書.md"
-api_doc="$tmp/out/docs/design/apis/api-bid/テスト設計/APIテスト設計書.md"
+api_doc="$tmp/out/docs/design/apis/api-bid/テスト設計/API結合テスト設計書.md"
 detail_fixture="$tmp/out/docs/design/apis/api-bid/詳細設計/API詳細設計書.md"
 basic_fixture="$tmp/out/docs/design/apis/api-bid/基本設計/API基本設計書.md"
 mkdir -p "$(dirname "$detail_fixture")" "$(dirname "$basic_fixture")"
@@ -128,10 +128,10 @@ else
   fail_case "検証範囲の対応表または結合テストの除外がない"
 fi
 
-if grep -q '観点は機能設計書の業務フロー' "$TEMPLATES/機能/機能テスト設計書.md"; then
-  pass "機能テスト設計書の名前と業務フロー由来の観点が対応する"
+if grep -q '観点は機能設計書の業務フロー' "$TEMPLATES/機能/機能結合テスト設計書.md"; then
+  pass "機能結合テスト設計書の名前と業務フロー由来の観点が対応する"
 else
-  fail_case "機能テスト設計書の観点が業務フローに対応しない"
+  fail_case "機能結合テスト設計書の観点が業務フローに対応しない"
 fi
 
 if jq -e '.layout.unitTestDesignDir == "テスト設計"' "$OUTPUT_LAYOUT" >/dev/null; then
@@ -143,7 +143,7 @@ fi
 mkdir -p "$tmp/screen-out"
 if bash "$SCREEN_SCAFFOLD" "$tmp/screen-out" orders "受注一覧" "$TEMPLATES" >/dev/null \
   && bash "$SCREEN_SCAFFOLD" --verify "$tmp/screen-out" orders >/dev/null \
-  && test -f "$tmp/screen-out/docs/design/screens/screen-orders/テスト設計/画面テスト設計書.md" \
+  && test -f "$tmp/screen-out/docs/design/screens/screen-orders/テスト設計/画面結合テスト設計書.md" \
   && test -f "$tmp/screen-out/docs/design/screens/screen-orders/テスト設計/画面単体テスト設計書.md" \
   && test -f "$tmp/screen-out/docs/design/screens/screen-orders/テスト設計/操作シナリオ仕様書.md"; then
   pass "合成画面がAPIと同じテスト設計/の2文書体系で生成される"
@@ -167,14 +167,14 @@ else
 fi
 
 if ! find "$TEMPLATES/画面" -type f \( -name '単体テスト観点表.md' -o -name '結合テスト観点表.md' -o -name '単体テスト仕様書.md' -o -name '結合テスト仕様書.md' \) | grep -q . \
-  && test "$(find "$TEMPLATES" -mindepth 2 -maxdepth 2 -type f -name '*結合テスト*' | wc -l | tr -d ' ')" -eq 1 \
+  && test "$(find "$TEMPLATES" -mindepth 2 -maxdepth 2 -type f -name '*結合テスト仕様書*' | wc -l | tr -d ' ')" -eq 1 \
   && test -f "$TEMPLATES/プロジェクト共通/結合テスト仕様書.md"; then
   pass "旧4文書と単位配下の結合テスト文書がなく、上位の結合テスト仕様書だけがある"
 else
   fail_case "結合テスト文書が上位1冊に限定されていない"
 fi
 
-screen_test="$TEMPLATES/画面/テスト設計/画面テスト設計書.md"
+screen_test="$TEMPLATES/画面/テスト設計/画面結合テスト設計書.md"
 screen_unit_test="$TEMPLATES/画面/テスト設計/画面単体テスト設計書.md"
 if grep -q '### 手動観点' "$screen_test" \
   && grep -q '### 往復検証観点' "$screen_test" \
@@ -190,7 +190,7 @@ else
 fi
 
 scenario="$TEMPLATES/画面/テスト設計/操作シナリオ仕様書.md"
-if grep -q '^screen_test_design: ./画面テスト設計書.md$' "$scenario" \
+if grep -q '^screen_test_design: ./画面結合テスト設計書.md$' "$scenario" \
   && grep -q '対応往復検証観点キー' "$scenario" \
   && grep -q '対応画面テストケースキー' "$scenario" \
   && grep -q '^## シナリオ別仕様$' "$scenario" \
@@ -243,8 +243,8 @@ done
 api_basic_skill="$REPO_ROOT/.claude/skills/generating-api-basic-design-for-reverse-docs/SKILL.md"
 api_detail_skill="$REPO_ROOT/.claude/skills/generating-api-detail-design-for-reverse-docs/SKILL.md"
 if [ "$skill_contract_ok" -eq 1 ] \
-  && grep -q '画面テスト設計書・画面単体テスト設計書・操作シナリオ仕様書' "$REPO_ROOT/.claude/skills/generating-reverse-detailed-design/SKILL.md" \
-  && grep -q '^## Phase 4: APIテスト設計書の執筆$' "$api_basic_skill" \
+  && grep -q '画面結合テスト設計書・画面単体テスト設計書・操作シナリオ仕様書' "$REPO_ROOT/.claude/skills/generating-reverse-detailed-design/SKILL.md" \
+  && grep -q '^## Phase 4: API結合テスト設計書の執筆$' "$api_basic_skill" \
   && ! grep -q 'API単体テスト設計書' "$api_basic_skill" \
   && grep -q '| 出力ファイル | `API詳細設計書.md` | `API単体テスト設計書.md` |' "$api_detail_skill" \
   && grep -q '本スキルが執筆するのは後者だけ' "$api_detail_skill"; then
@@ -255,11 +255,11 @@ fi
 
 if grep -q 'テスト設計/画面単体テスト設計書.md' "$SCREEN_METADATA" \
   && grep -q 'テスト項目書/単体テスト仕様書.md' "$SCREEN_METADATA" \
-  && grep -q 'テスト設計/画面テスト設計書.md' "$VIEWPOINT_AGGREGATOR" \
+  && grep -q 'テスト設計/画面結合テスト設計書.md' "$VIEWPOINT_AGGREGATOR" \
   && grep -q '詳細設計/結合テスト観点表.md' "$VIEWPOINT_AGGREGATOR" \
   && grep -q 'テスト設計/画面単体テスト設計書.md' "$CASE_AGGREGATOR" \
   && grep -q 'テスト項目書/結合テスト仕様書.md' "$CASE_AGGREGATOR" \
-  && grep -q 'テスト設計/画面テスト設計書.md' "$PORTAL_BUILDER" \
+  && grep -q 'テスト設計/画面結合テスト設計書.md' "$PORTAL_BUILDER" \
   && grep -q 'テスト項目書/単体テスト仕様書.md' "$PORTAL_BUILDER"; then
   pass "抽出・集約・ポータルが新配置を参照し、既存生成物の旧配置をfallbackする"
 else
@@ -269,7 +269,7 @@ fi
 if jq -e '
   (.excluded.screen | type == "string" and length > 0)
   and .separateKindContracts.screen.testDocuments == {
-    "externalBehavior": "画面テスト設計書.md",
+    "externalBehavior": "画面結合テスト設計書.md",
     "functionUnit": "画面単体テスト設計書.md",
     "screenOnly": ["操作シナリオ仕様書.md"],
     "directoryKey": "unitTestDesignDir"

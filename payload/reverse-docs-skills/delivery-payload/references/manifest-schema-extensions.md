@@ -69,8 +69,8 @@
 | sequencePath | string | 任意 | 画面一覧HTMLからシーケンス図への相対パス。ファイル実在時だけ付与する | 設計書リポジトリの該当フォルダ |
 | testCasePath | string | 任意 | 画面一覧HTMLから `テスト設計/画面単体テスト設計書.md` への相対パス。新配置がない既存生成物では旧単体テスト仕様書へfallbackする | 設計書リポジトリの該当フォルダ |
 | unitTestViewpointPath | string | 任意 | 画面一覧HTMLから `テスト設計/画面単体テスト設計書.md` への相対パス。新配置がない既存生成物では旧単体テスト観点表へfallbackする | 設計書リポジトリの該当フォルダ |
-| integrationTestViewpointPath | string | 任意 | 互換フィールド名。画面一覧HTMLから単位内の外部振る舞いを扱う `テスト設計/画面テスト設計書.md` への相対パス。新配置がない既存生成物では旧結合テスト観点表へfallbackする | 設計書リポジトリの該当フォルダ |
-| integrationTestCasePath | string | 任意 | 互換フィールド名。画面一覧HTMLから単位内の外部振る舞いを扱う `テスト設計/画面テスト設計書.md` への相対パス。新配置がない既存生成物では旧結合テスト仕様書へfallbackする | 設計書リポジトリの該当フォルダ |
+| integrationTestViewpointPath | string | 任意 | 互換フィールド名。画面一覧HTMLから単位内の外部振る舞いを扱う `テスト設計/画面結合テスト設計書.md` への相対パス。新配置がない既存生成物では旧結合テスト観点表へfallbackする | 設計書リポジトリの該当フォルダ |
+| integrationTestCasePath | string | 任意 | 互換フィールド名。画面一覧HTMLから単位内の外部振る舞いを扱う `テスト設計/画面結合テスト設計書.md` への相対パス。新配置がない既存生成物では旧結合テスト仕様書へfallbackする | 設計書リポジトリの該当フォルダ |
 | scenarioPath | string | 任意 | 画面一覧HTMLから `テスト設計/操作シナリオ仕様書.md` への相対パス。新配置がない既存生成物では旧 `テスト項目書/` 配下へfallbackする | 設計書リポジトリの該当フォルダ |
 | sourceHash | string | 任意 | 画面ユニットの原本ソース連結ハッシュ（sha256 先頭12桁） | 原本コードの走査 |
 | designDocSourceHash | string | 任意 | 設計書生成時に記録した sourceHash。sourceHash と不一致なら一覧に陳腐化バッジを表示 | 設計書生成工程の記録 |
@@ -480,7 +480,7 @@ screenType を除く追加フィールドは任意とする。screenType は画�
 ### aggregate-test-viewpoints.sh
 
 - 配置: generation-engine/scripts/extract/aggregate-test-viewpoints.sh
-- 必要性: 各設計単位の `テスト設計/<種別>テスト設計書.md` と `<種別>単体テスト設計書.md` を横断集約し、由来章・観点列を決定的に抽出して 1 つの JSON（unitKind: test_viewpoint）にまとめるエンジン。画面は新配置を優先し、役割ごとに新文書がない既存生成物だけ旧観点表へfallbackする。Markdown テーブルのヘッダ行/セパレータ行判定・観点列の位置解決・プレースホルダ例示行の除外という多段の状態遷移を伴うため、手書き grep では再現性が保てない
+- 必要性: 各設計単位の `テスト設計/<種別>結合テスト設計書.md` と `<種別>単体テスト設計書.md` を横断集約し、由来章・観点列を決定的に抽出して 1 つの JSON（unitKind: test_viewpoint）にまとめるエンジン。画面は新配置を優先し、役割ごとに新文書がない既存生成物だけ旧観点表へfallbackする。Markdown テーブルのヘッダ行/セパレータ行判定・観点列の位置解決・プレースホルダ例示行の除外という多段の状態遷移を伴うため、手書き grep では再現性が保てない
 - 代替案を採用しなかった理由:
   - Bash ツール直叩き: ファイルごとのテーブル境界判定・列解決・jq 合成を都度組み立てるとトークンを浪費し、抽出条件（ヘッダ判定・プレースホルダ除外）の再現性も保てない
   - 既存 Makefile 拡張 / package.json scripts 追加: 本リポジトリにビルド設定が存在せず、新規導入は本抽出専用の依存を増やすだけになる

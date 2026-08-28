@@ -166,7 +166,7 @@
       "evidenceSource": "manifest",
       "manifestKey": "screenManifest",
       "countPointer": "/screens",
-      "unitTestDocuments": ["画面テスト設計書.md", "画面単体テスト設計書.md"],
+      "unitTestDocuments": ["画面結合テスト設計書.md", "画面単体テスト設計書.md"],
       "screenOnlyTestDocuments": ["操作シナリオ仕様書.md"]
     },
     {
@@ -183,21 +183,21 @@
       "evidenceSource": "manifest",
       "manifestKey": "apiManifest",
       "countPointer": "/units",
-      "unitTestDocuments": ["APIテスト設計書.md", "API単体テスト設計書.md"]
+      "unitTestDocuments": ["API結合テスト設計書.md", "API単体テスト設計書.md"]
     },
     {
       "kind": "batch",
       "evidenceSource": "manifest",
       "manifestKey": "batchManifest",
       "countPointer": "/units",
-      "unitTestDocuments": ["バッチテスト設計書.md", "バッチ単体テスト設計書.md"]
+      "unitTestDocuments": ["バッチ結合テスト設計書.md", "バッチ単体テスト設計書.md"]
     },
     {
       "kind": "table",
       "evidenceSource": "manifest",
       "manifestKey": "tableManifest",
       "countPointer": "/units",
-      "unitTestDocuments": ["テーブルテスト設計書.md", "テーブル単体テスト設計書.md"]
+      "unitTestDocuments": ["テーブル結合テスト設計書.md", "テーブル単体テスト設計書.md"]
     },
     {
       "kind": "er-diagram",
@@ -212,21 +212,21 @@
       "evidenceSource": "manifest",
       "manifestKey": "reportManifest",
       "countPointer": "/units",
-      "unitTestDocuments": ["帳票テスト設計書.md", "帳票単体テスト設計書.md"]
+      "unitTestDocuments": ["帳票結合テスト設計書.md", "帳票単体テスト設計書.md"]
     },
     {
       "kind": "external",
       "evidenceSource": "manifest",
       "manifestKey": "externalManifest",
       "countPointer": "/units",
-      "unitTestDocuments": ["外部連携テスト設計書.md", "外部連携単体テスト設計書.md"]
+      "unitTestDocuments": ["外部連携結合テスト設計書.md", "外部連携単体テスト設計書.md"]
     },
     {
       "kind": "feature",
       "evidenceSource": "manifest",
       "manifestKey": "featureManifest",
       "countPointer": "/units",
-      "unitTestDocuments": ["機能テスト設計書.md", "機能単体テスト設計書.md"]
+      "unitTestDocuments": ["機能結合テスト設計書.md", "機能単体テスト設計書.md"]
     },
     {
       "kind": "message-list",

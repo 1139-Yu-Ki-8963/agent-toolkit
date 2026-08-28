@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-28T04:47:53Z",
+  "generatedAt": "2026-08-28T06:10:10Z",
   "sourceDir": "docs/design/apis",
   "unitKind": "api",
   "strategy": {
@@ -65,8 +65,8 @@
       "unitKey": "audit",
       "designDocPath": "../../../docs/design/apis/api-audit/基本設計/API基本設計書.html",
       "detailDocPath": "../../../docs/design/apis/api-audit/詳細設計/API詳細設計書.html",
-      "integrationTestViewpointPath": "../../../docs/design/apis/api-audit/テスト設計/APIテスト設計書.md",
-      "integrationTestCasePath": "../../../docs/design/apis/api-audit/テスト設計/APIテスト設計書.md",
+      "integrationTestViewpointPath": "../../../docs/design/apis/api-audit/テスト設計/API結合テスト設計書.md",
+      "integrationTestCasePath": "../../../docs/design/apis/api-audit/テスト設計/API結合テスト設計書.md",
       "testCasePath": "../../../docs/design/apis/api-audit/テスト設計/API単体テスト設計書.md",
       "unitTestViewpointPath": "../../../docs/design/apis/api-audit/テスト設計/API単体テスト設計書.md",
       "identifier": "GET /api/audit",

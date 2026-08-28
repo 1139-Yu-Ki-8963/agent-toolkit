@@ -100,7 +100,7 @@ API単体テスト設計書と機能設計書を含むすべての納品物で�
 
 `apiUnitRoot` は output-layout の物理配置キー（既定値 `docs/design/apis`）。表示用 `kindLabels.api` は path に使わない。`unitPhaseDirNames.basic`・`unitPhaseDirNames.detail` は output-layout の `unitPhaseDirNames.basic`・`.detail` の値（既定値 `basic-design`・`detail-design`）であり、scaffold-design-unit.sh が実際に展開する配置フォルダ名と一致させる（1-210）。
 
-API単位のテスト文書は `<unitTestDesignDir>/APIテスト設計書.md`（外部契約）と `API単体テスト設計書.md`（関数・メソッド単位）の2件である。本スキルが執筆するのは後者だけとし、前者はAPI基本設計スキルが基本設計書を根拠に執筆する。単位配下に結合テスト文書は生成しない。
+API単位のテスト文書は `<unitTestDesignDir>/API結合テスト設計書.md`（外部契約）と `API単体テスト設計書.md`（関数・メソッド単位）の2件である。本スキルが執筆するのは後者だけとし、前者はAPI基本設計スキルが基本設計書を根拠に執筆する。単位配下に結合テスト文書は生成しない。
 
 テンプレートの各章は表の列見出しと記入規則だけを持つ。値の欄は執筆時に埋める。
 
@@ -276,7 +276,7 @@ API詳細設計書の前付けは、次の 7 鍵を canonical な完全な集合
 - **Step 1**: `<template_root>/リバース検証/API/API詳細設計書.md` を Read する。読み込んだ内容を `<output_dir>/<apiUnitRoot>/api-<API 識別子>/<unitPhaseDirNames.detail>/API詳細設計書.md` へ書き出し、以後はその複製へ記入する。見出し・表の列見出し・区切り行を再構築しない。`<API 識別子>` の決め方は「出力」節の規約に従う。中間ディレクトリが無ければ作成する。frontmatter は canonical な 7 鍵だけを保持し、`APIKEY` は `unitKey`、`APIID` は `unitId`、`METHOD` は `method`、`FEATUREKEY` は `featureKey`、`SOURCEREF` は `sourceFile` で置換する。`PATH` はマニフェストに独立した `path` があればその値で置換し、無ければ `identifier` の先頭にある HTTP メソッドとそれに続く空白を除いた後半で置換する。`unitId` または `featureKey` が無い場合も対応する鍵を残して値を空欄とし、その旨を要確認事項一覧へ記録する。`unit_kind` は `api` のまま保持する。完了条件: 全対象ユニットの設計書が配置済み
 - **Step 2**: Phase 2 で得た本文材料を各章へ記入する。§12.1・§12.2 は Step 2-1 の拡張マニフェストが持つ `subroutines`・`functions` 配列の値をそのまま表へ写す。読解で補った関数だけ、読解の結果を記入する。12.5 以外は原本に無い値を書かず、推測で埋めない。12.5 は「設計判断の読み取り規約」に従い、`観測（コードコメント）` と `推定（実装構造）` を区別する。選ばなかった選択肢または不採用理由を読めない場合は `不明（実装に記述なし）` とする。表、疑似コード、説明文を含む本文全体に、対象コードへの参照や対象コードのファイル名を記入しない。行番号、`file:line`、ファイル名を省いた括弧書き、文中の行番号も記入しない。疑似コード行末の位置注記も禁止する。完了条件: §1 から §12 と 12.5 がコード位置を含まず記入済み
 - **Step 3**: 空欄のまま残した項目を要確認事項一覧へ列挙する。対象コードのファイルパスと行番号は記録しない。完了条件: 未確定事項が要確認事項一覧へ集約済み
-- **Step 4**: API詳細設計書の§12.2 関数単位の契約・§5 ロジック・§10 エラーから関数・メソッド単位の観点を起こし、`<unitTestDesignDir>/API単体テスト設計書.md` へ記入する。各観点とケースには関数・メソッド名と由来する詳細設計書の章を記録する。HTTPステータスを検証する外部契約の観点はAPIテスト設計書へ残し、本書へ混在させない。完了条件: 関数・メソッド単位の観点が全対象関数を覆う
+- **Step 4**: API詳細設計書の§12.2 関数単位の契約・§5 ロジック・§10 エラーから関数・メソッド単位の観点を起こし、`<unitTestDesignDir>/API単体テスト設計書.md` へ記入する。各観点とケースには関数・メソッド名と由来する詳細設計書の章を記録する。HTTPステータスを検証する外部契約の観点はAPI結合テスト設計書へ残し、本書へ混在させない。完了条件: 関数・メソッド単位の観点が全対象関数を覆う
 
 **完了**: 全対象ユニットのAPI詳細設計書とAPI単体テスト設計書が記入済みで、未確定事項が要確認事項一覧へ集約されている
 
@@ -291,7 +291,7 @@ API詳細設計書の前付けは、次の 7 鍵を canonical な完全な集合
 - **検査1 章の完備**: 生成した各設計書に §1 から §13 が存在し、あわせて章マップも存在する。§ の章は `grep -c '^## §'` が 13 を返すことで確認し、§13 が関連資料であることと、`grep -c '^## 章マップ'` が 1 を返すことを確認する
 - **検査2 詳細設計記述規約**: `node generation-engine/scripts/tests/check-detailed-design-conventions.cjs --self-test` を実行し、テンプレート正本に対象コードへの参照・対象コードのファイル名・行番号がなく、参照先が文書内参照だけに限定されていることを確認する。終了コード0だけを合格とする
 - **検査3 プレースホルダの残存**: `APIKEY`・`APIID`・`METHOD`・`PATH`・`FEATUREKEY`・`SOURCEREF` が本文に残っていないことを確認する
-- **検査4 配置と前付けの検査**: `bash generation-engine/scripts/tests/check-detail-design-frontmatter-keys.sh --check-api-template` と `bash generation-engine/scripts/tests/check-detail-design-frontmatter-keys.sh --check-source-ref-contract` を実行する。続けて `bash generation-engine/scripts/scaffold-design-unit.sh --verify api detail <output_dir> <識別子>` と `bash generation-engine/scripts/scaffold-design-unit.sh --verify api test <output_dir> <識別子>` を実行し、詳細設計書・APIテスト設計書・API単体テスト設計書の必須ファイル・トークン・章・配置を確認する。詳細設計書の frontmatter は `delivery-payload/references/detail-design-frontmatter-keys.json` の鍵集合と欠落・余剰なく完全一致しなければ生成完了として扱わない
+- **検査4 配置と前付けの検査**: `bash generation-engine/scripts/tests/check-detail-design-frontmatter-keys.sh --check-api-template` と `bash generation-engine/scripts/tests/check-detail-design-frontmatter-keys.sh --check-source-ref-contract` を実行する。続けて `bash generation-engine/scripts/scaffold-design-unit.sh --verify api detail <output_dir> <識別子>` と `bash generation-engine/scripts/scaffold-design-unit.sh --verify api test <output_dir> <識別子>` を実行し、詳細設計書・API結合テスト設計書・API単体テスト設計書の必須ファイル・トークン・章・配置を確認する。詳細設計書の frontmatter は `delivery-payload/references/detail-design-frontmatter-keys.json` の鍵集合と欠落・余剰なく完全一致しなければ生成完了として扱わない
 - **検査5 設計判断と本文位置情報の検査**: `node generation-engine/scripts/validate-api-design-decisions.mjs <生成したAPI詳細設計書...>` を実行する。12.5「設計判断とその理由」の存在、記述区分、推定の確からしさ、原本から読めない選択肢の表記を検査する。本文の表・疑似コード・説明文も検査する。対象コードのファイル名、行番号、`file:line`、ファイル名を省いた括弧書き、文中の行番号が0件でなければならない。終了コード0だけを合格とする。データ行を作れない判断は要確認事項一覧へ記録する
 - **検査6 単体テスト粒度の検査**: API単体テスト設計書の§1と§2の全データ行に関数・メソッド名があり、`HTTPステータス` が0件であることを確認する
 - **検査7 単体テスト配置の検査**: API単体テスト設計書が`<unitTestDesignDir>`にだけ存在し、`<unitPhaseDirNames.basic>/`と`<unitPhaseDirNames.detail>/`にテスト設計書が存在しないことを確認する

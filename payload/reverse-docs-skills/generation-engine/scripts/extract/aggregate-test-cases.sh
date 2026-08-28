@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # 抽出エンジン: per-screen テスト設計書(単体/画面/操作シナリオ, Markdown)群から
 # テストケースmanifest(JSON)への横断集約。
-# output_dir 配下の <screenUnitRoot>/screen-*/テスト設計/{画面単体テスト設計書.md,画面テスト設計書.md,操作シナリオ仕様書.md}
+# output_dir 配下の <screenUnitRoot>/screen-*/テスト設計/{画面単体テスト設計書.md,画面結合テスト設計書.md,操作シナリオ仕様書.md}
 # を優先して走査し、旧テスト項目書配下は新配置がない場合だけ後方互換として集約する。
 #
 # Usage: aggregate-test-cases.sh <output_dir> <output.json>
 #
 # 入力契約:
-#   <output_dir> : <screenUnitRoot>/screen-<ID>/テスト設計/画面単体テスト設計書.md・画面テスト設計書.md・
+#   <output_dir> : <screenUnitRoot>/screen-<ID>/テスト設計/画面単体テスト設計書.md・画面結合テスト設計書.md・
 #                 操作シナリオ仕様書.mdを含むディレクトリツリーのルート。新配置がない既存生成物では
 #                 テスト項目書配下の単体・結合・操作シナリオ仕様書を後方互換として読む
 #   <output.json> : 出力先パス
@@ -27,7 +27,7 @@
 #   }
 #
 # パース仕様:
-#   - 新体系の画面単体テスト設計書・画面テスト設計書はいずれも1画面単位のためtestType=unit、
+#   - 新体系の画面単体テスト設計書・画面結合テスト設計書はいずれも1画面単位のためtestType=unit、
 #     操作シナリオ仕様書はtestType=scenarioとして扱う。既存生成物の旧結合テスト仕様書だけは
 #     後方互換のtestType=integrationを維持する
 #   - screenKey はパス中の "screen-" で始まるディレクトリ名をそのまま使う
@@ -345,7 +345,7 @@ EOF
 |---|---|---|---|
 | 新単体ケース | 新単体観点 | amount: 1 | trueを返す |
 EOF
-  cat > "$docs/$screen_unit_root/screen-orders/テスト設計/画面テスト設計書.md" <<'EOF'
+  cat > "$docs/$screen_unit_root/screen-orders/テスト設計/画面結合テスト設計書.md" <<'EOF'
 ## §2 テストケース一覧
 
 | キー | 対応観点キー | 操作手順 | 入力値 | 期待結果（アサーション） |
@@ -390,7 +390,7 @@ EOF
       and (.units[] | select(.caseKey == "新検索シナリオ") | .expected == "検索結果が表示される" and .screenTestCaseKey == "新画面ケース")' "$manifest" >/dev/null 2>&1; then
     echo "self-test PASS: 新配置を優先し、§2テストケースとシナリオ別期待結果を旧仕様書と重複なく集約"
   else
-    echo "self-test FAIL: 新配置優先または画面テスト設計書・操作シナリオの集約が不正" >&2
+    echo "self-test FAIL: 新配置優先または画面結合テスト設計書・操作シナリオの集約が不正" >&2
     return 1
   fi
 
@@ -502,7 +502,7 @@ JSON
   api_manifest="$tmp/api-test-case-manifest.json"
   api_html="$tmp/api-test-case-list.html"
   mkdir -p "$api_docs/$api_unit_root/api-login/テスト設計"
-  cat > "$api_docs/$api_unit_root/api-login/テスト設計/APIテスト設計書.md" <<'EOF'
+  cat > "$api_docs/$api_unit_root/api-login/テスト設計/API結合テスト設計書.md" <<'EOF'
 ## §1 テスト観点
 
 | キー | 観点 | 由来する基本設計書の章 |
@@ -643,7 +643,7 @@ while IFS= read -r -d '' file; do
       has_steps=0
       is_new_design=1
       ;;
-    */テスト設計/画面テスト設計書.md)
+    */テスト設計/画面結合テスト設計書.md)
       test_type="unit"
       document_scope="external"
       want_names="対応観点キー,操作手順,入力値,期待結果（アサーション）"
@@ -659,7 +659,7 @@ while IFS= read -r -d '' file; do
       is_new_design=0
       ;;
     */テスト項目書/結合テスト仕様書.md)
-      [ -f "$(dirname "$(dirname "$file")")/テスト設計/画面テスト設計書.md" ] && continue
+      [ -f "$(dirname "$(dirname "$file")")/テスト設計/画面結合テスト設計書.md" ] && continue
       test_type="integration"
       document_scope=""
       want_names="対応観点キー,操作手順,入力値,期待結果（アサーション）"
@@ -705,7 +705,7 @@ while IFS= read -r -d '' file; do
     integration) excluded_integration=$((excluded_integration + excl_n)) ;;
   esac
 done < <(find "$output_dir/$screen_unit_root" -mindepth 3 -maxdepth 3 -type f \
-  \( -path "*/screen-*/テスト設計/画面単体テスト設計書.md" -o -path "*/screen-*/テスト設計/画面テスト設計書.md" \
+  \( -path "*/screen-*/テスト設計/画面単体テスト設計書.md" -o -path "*/screen-*/テスト設計/画面結合テスト設計書.md" \
      -o -path "*/screen-*/テスト項目書/単体テスト仕様書.md" -o -path "*/screen-*/テスト項目書/結合テスト仕様書.md" \) \
   -print0 2>/dev/null)
 

@@ -90,14 +90,14 @@
 - status: `DONE | ERROR`
 - 拡張: unit_list_html（= artifacts[0]）、embedded_json_ref（HTML内埋め込みマニフェストJSONへの参照）、unit_kind（`test_viewpoint` 固定）
 - テスト観点表一覧は既存文書の派生グルーピング（派生一覧）であり、unit_kinds_present の存在判定対象外。excluded-kinds.json の allKinds にも含めない
-- 入力前提: いずれかの種別の `<kindUnitRoot>/<kind>-*/テスト設計/<種別>テスト設計書.md` または `<種別>単体テスト設計書.md` が1件以上存在すること。画面は新配置がない既存生成物に限り旧観点表へfallbackする（不在時は起動しない）
+- 入力前提: いずれかの種別の `<kindUnitRoot>/<kind>-*/テスト設計/<種別>結合テスト設計書.md` または `<種別>単体テスト設計書.md` が1件以上存在すること。画面は新配置がない既存生成物に限り旧観点表へfallbackする（不在時は起動しない）
 
 ### generating-test-case-list-for-reverse-docs（テストケース一覧・派生一覧）
 
 - status: `DONE | STOPPED | ERROR`
 - 拡張: unit_list_html（= artifacts[0]）、embedded_json_ref（HTML内埋め込みマニフェストJSONへの参照）、unit_kind（`test_case` 固定）
 - テストケース一覧は既存文書の派生グルーピング（派生一覧）であり、unit_kinds_present の存在判定対象外。excluded-kinds.json の allKinds にも含めない
-- 入力前提: いずれかの種別の `<kindUnitRoot>/<kind>-*/テスト設計/<種別>テスト設計書.md` または `<種別>単体テスト設計書.md` が1件以上存在すること。画面が存在する場合は操作シナリオ仕様書も集約元へ加え、新配置がない既存生成物に限り旧テスト仕様書へfallbackする（不在時は起動しない）
+- 入力前提: いずれかの種別の `<kindUnitRoot>/<kind>-*/テスト設計/<種別>結合テスト設計書.md` または `<種別>単体テスト設計書.md` が1件以上存在すること。画面が存在する場合は操作シナリオ仕様書も集約元へ加え、新配置がない既存生成物に限り旧テスト仕様書へfallbackする（不在時は起動しない）
 
 ### generating-integration-test-spec-for-reverse-docs（結合テスト仕様書）
 

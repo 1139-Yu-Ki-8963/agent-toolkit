@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# 抽出エンジン: 画面テスト設計書(Markdown)群からテスト観点manifest(JSON)への横断集約。
-# output_dir 配下の <screenUnitRoot>/screen-*/テスト設計/{画面単体テスト設計書.md,画面テスト設計書.md} を
+# 抽出エンジン: 画面結合テスト設計書(Markdown)群からテスト観点manifest(JSON)への横断集約。
+# output_dir 配下の <screenUnitRoot>/screen-*/テスト設計/{画面単体テスト設計書.md,画面結合テスト設計書.md} を
 # 優先して走査し、旧詳細設計配下の観点表は新配置がない場合だけ後方互換として集約する。
 #
 # Usage: aggregate-test-viewpoints.sh <output_dir> <output.json>
 #
 # 入力契約:
 #   <output_dir> : <screenUnitRoot>/screen-<ID>/テスト設計/画面単体テスト設計書.md および
-#                 画面テスト設計書.md を含むディレクトリツリーのルート。新配置がない既存生成物では
+#                 画面結合テスト設計書.md を含むディレクトリツリーのルート。新配置がない既存生成物では
 #                 詳細設計/単体テスト観点表.md・結合テスト観点表.mdを後方互換として読む
 #   <output.json> : 出力先パス
 #
@@ -20,7 +20,7 @@
 #   }
 #
 # パース仕様:
-#   - 新体系の画面単体テスト設計書・画面テスト設計書はいずれも1画面単位のためtestType=unitとして扱う
+#   - 新体系の画面単体テスト設計書・画面結合テスト設計書はいずれも1画面単位のためtestType=unitとして扱う
 #   - 既存生成物の旧結合テスト観点表だけは後方互換のtestType=integrationを維持する
 #   - screenKey はパス中の "screen-" で始まるディレクトリ名をそのまま使う
 #   - Markdown の見出し行(#〜######)を「カテゴリ」として保持し、以降のテーブル行に適用する
@@ -130,7 +130,7 @@ EOF
 | --- | --- |
 | 新単体観点 | 関数単位で検証できる |
 EOF
-  cat > "$docs/$screen_unit_root/screen-orders/テスト設計/画面テスト設計書.md" <<'EOF'
+  cat > "$docs/$screen_unit_root/screen-orders/テスト設計/画面結合テスト設計書.md" <<'EOF'
 ## §1 テスト観点
 ### 画面
 | 観点 | 期待結果 |
@@ -213,7 +213,7 @@ JSON
   api_manifest="$tmp/api-test-viewpoint-manifest.json"
   api_html="$tmp/api-test-viewpoint-list.html"
   mkdir -p "$api_docs/$api_unit_root/api-login/テスト設計"
-  cat > "$api_docs/$api_unit_root/api-login/テスト設計/APIテスト設計書.md" <<'EOF'
+  cat > "$api_docs/$api_unit_root/api-login/テスト設計/API結合テスト設計書.md" <<'EOF'
 ## §1 テスト観点
 
 観点はAPI基本設計書の外部仕様・業務仕様・エラーと例外の各章から起こす。
@@ -434,7 +434,7 @@ while IFS= read -r -d '' file; do
       test_type="unit"
       document_scope="function"
       ;;
-    */テスト設計/画面テスト設計書.md)
+    */テスト設計/画面結合テスト設計書.md)
       test_type="unit"
       document_scope="external"
       ;;
@@ -444,7 +444,7 @@ while IFS= read -r -d '' file; do
       document_scope=""
       ;;
     */詳細設計/結合テスト観点表.md)
-      [ -f "$(dirname "$(dirname "$file")")/テスト設計/画面テスト設計書.md" ] && continue
+      [ -f "$(dirname "$(dirname "$file")")/テスト設計/画面結合テスト設計書.md" ] && continue
       test_type="integration"
       document_scope=""
       ;;
@@ -458,7 +458,7 @@ while IFS= read -r -d '' file; do
     LC_ALL=C awk -v screenKey="$screen_key" -v testType="$test_type" -v documentScope="$document_scope" "$awk_program" "$file" >> "$tmp_tsv"
   fi
 done < <(find "$output_dir/$screen_unit_root" -mindepth 3 -maxdepth 3 -type f \
-  \( -path "*/screen-*/テスト設計/画面単体テスト設計書.md" -o -path "*/screen-*/テスト設計/画面テスト設計書.md" \
+  \( -path "*/screen-*/テスト設計/画面単体テスト設計書.md" -o -path "*/screen-*/テスト設計/画面結合テスト設計書.md" \
      -o -path "*/screen-*/詳細設計/単体テスト観点表.md" -o -path "*/screen-*/詳細設計/結合テスト観点表.md" \) \
   -print0 2>/dev/null)
 
