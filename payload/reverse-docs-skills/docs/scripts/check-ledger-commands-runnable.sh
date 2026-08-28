@@ -55,6 +55,20 @@ extract_commands() {
   ' "$LEDGER" > "$output"
 }
 
+# 配布先には Node.js と Python の依存が置かれない。置くと版管理へ混入する。
+# 置かずに参照だけを渡すことで、配布先でも測れるようにする。
+# 実測（2026-08-28）で、配布先の 1-203・1-224 がブラウザの依存の不在で
+# 判定不能になっていた。参照を渡すと測れる。
+# 参照先が無い場合は何も渡さず、従来どおり判定不能のまま進む。
+resolve_dep_env() {
+  LEDGER_DEP_ENV=()
+  local node_deps py
+  node_deps="${LEDGER_NODE_PATH:-$HOME/Projects/reverse-docs-skills/node_modules}"
+  py="${LEDGER_GLOSSARY_PYTHON:-$HOME/Projects/reverse-docs-skills/generation-engine/scripts/glossary/.venv/bin/python}"
+  [ -d "$node_deps" ] && LEDGER_DEP_ENV+=("NODE_PATH=$node_deps")
+  [ -x "$py" ] && LEDGER_DEP_ENV+=("GLOSSARY_PYTHON=$py")
+}
+
 run_with_timeout() {
   local command="$1"
 
@@ -80,7 +94,7 @@ run_with_timeout() {
     waitpid($pid, 0);
     alarm 0;
     exit(($? & 127) ? 128 + ($? & 127) : $? >> 8);
-  ' "$TIMEOUT_SECONDS" bash -c "$command"
+  ' "$TIMEOUT_SECONDS" env "${LEDGER_DEP_ENV[@]}" bash -c "$command"
 }
 
 list_commands() {
@@ -103,6 +117,7 @@ list_commands() {
 }
 
 run_commands() {
+  resolve_dep_env
   local file="$1"
   local found=0
   local failed=0
