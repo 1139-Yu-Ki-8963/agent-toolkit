@@ -38,7 +38,22 @@ set -euo pipefail
 #   0 = 配布（またはdry-runの列挙）が完了し、--apply時は検査もすべてPASS
 #   1 = 引数不正、または --apply後の検査に不合格がある
 #   --self-test のみ、期待どおりの挙動でなければ1
-#   2 = mktemp（一時ディレクトリの作成）が失敗し判定不能（--self-testのみ）
+#   2 = mktemp（一時ディレクトリの作成）が失敗、または生成器一式の複製
+#       （cp -R）が実行環境の制約で失敗し判定不能
+#
+# 実装判断（cp -R の失敗を判定不能として区別する理由）:
+#   generation-engine/scripts/ 配下には .venv 等の実行環境依存の成果物
+#   （gitignore対象。ビルド時にpipが作るPython仮想環境等）が混在しうる。
+#   2026-08-28実測: generation-engine/scripts/glossary/.venv 配下の
+#   cacert.pem（pipのvendor証明書）を cp -R が複製しようとすると、
+#   実行環境のサンドボックス制約（*.pemファイルへの読み取り拒否）により
+#   「Operation not permitted」で失敗する。制限を外して同じ環境で実行すると
+#   成功する（成果物・本スクリプト自体の欠陥ではない）。
+#   この失敗を通常の不合格（終了コード1）として扱うと、成果物の欠陥と
+#   読み違える（.claude/rules/always/verification/indeterminate-result/rule.md
+#   が定める判定不能規約に反する）。cp -R の標準エラーに
+#   「Operation not permitted」が含まれる場合だけ終了コード2・[UNKNOWN]で
+#   返し、それ以外の失敗（複製元の欠落等）は従来どおり終了コード1で返す。
 #
 # 設計判断（必要性・代替案・保守責任者・廃棄条件）:
 #   必要性: 納品先には成果物（ポータルのHTML・規約のHTML・一覧）だけが配られ、
@@ -120,6 +135,26 @@ build_plan() {
 }
 
 # 生成器一式を配る。$1: 納品先のルート  $2: apply（1なら実際に書き込む・0ならdry-run）
+# 木を複製する。実行環境の制約（サンドボックスの *.pem 等の読み取り拒否）に
+# よる失敗を、対象の欠陥による通常の失敗と区別するため、cp -R の標準エラーを
+# 見て判定する（.claude/rules/always/verification/indeterminate-result/rule.md
+# の判定不能規約に沿う）。
+# 戻り値: 0=成功 / 1=失敗（対象の欠陥の可能性） / 2=環境の制約による失敗（判定不能）
+_cp_tree_or_report() {
+  local src="$1" dst="$2"
+  local err_output
+  if err_output="$(cp -R "$src" "$dst" 2>&1 >/dev/null)"; then
+    return 0
+  fi
+  if printf '%s' "$err_output" | grep -q 'Operation not permitted'; then
+    echo "ERROR: ${src} の一部を読み取れず複製できません（Operation not permitted）。実行環境の制約による可能性があります。" >&2
+    printf '%s\n' "$err_output" >&2
+    return 2
+  fi
+  printf '%s\n' "$err_output" >&2
+  return 1
+}
+
 run_deploy() {
   local target_root="$1" apply="$2"
   local engine_root="${target_root}/reverse-docs-engine"
@@ -145,14 +180,21 @@ run_deploy() {
 
   # 木ごと複製する（個々のファイルを数え上げない）。再実行時に古い内容が
   # 混ざらないよう、複製先を先に消してから複製する。
+  local _cp_rc
   rm -rf "${engine_root}/generation-engine/scripts"
-  cp -R "$SRC_ENGINE_SCRIPTS" "${engine_root}/generation-engine/scripts"
+  _cp_rc=0
+  _cp_tree_or_report "$SRC_ENGINE_SCRIPTS" "${engine_root}/generation-engine/scripts" || _cp_rc=$?
+  [ "$_cp_rc" -ne 0 ] && return "$_cp_rc"
 
   rm -rf "${engine_root}/delivery-payload/templates"
-  cp -R "$SRC_TEMPLATES" "${engine_root}/delivery-payload/templates"
+  _cp_rc=0
+  _cp_tree_or_report "$SRC_TEMPLATES" "${engine_root}/delivery-payload/templates" || _cp_rc=$?
+  [ "$_cp_rc" -ne 0 ] && return "$_cp_rc"
 
   rm -rf "${engine_root}/delivery-payload/references"
-  cp -R "$SRC_REFERENCES" "${engine_root}/delivery-payload/references"
+  _cp_rc=0
+  _cp_tree_or_report "$SRC_REFERENCES" "${engine_root}/delivery-payload/references" || _cp_rc=$?
+  [ "$_cp_rc" -ne 0 ] && return "$_cp_rc"
 
   readme_content > "${engine_root}/README.md"
 
@@ -233,11 +275,22 @@ self_test() {
     echo "  [PASS] ケース1: --apply未指定では書き込みが1件も発生しない"
   fi
 
+  # 判定不能規約: run_deploy の cp -R が実行環境の制約（サンドボックスの
+  # *.pem等の読み取り拒否）で失敗した場合、run_deploy は終了コード2を返す
+  # （_cp_tree_or_report 参照）。ケース2・ケース3のどちらでこの2を受け取っても、
+  # 対象の欠陥による不合格（rc=1）とは区別し、self-test全体を打ち切って
+  # [UNKNOWN]・終了コード2で終える。ケース1（apply=0）はcpを行わないため対象外。
+
   # ケース2: --apply で配布し、検査1〜5がすべて通ること
   local out2="${tmpdir}/case2"
   mkdir -p "$out2"
-  local case2_verify_output
-  if ! run_deploy "$out2" 1 >/dev/null; then
+  local case2_deploy_rc=0 case2_verify_output
+  run_deploy "$out2" 1 >/dev/null || case2_deploy_rc=$?
+  if [ "$case2_deploy_rc" -eq 2 ]; then
+    echo "[UNKNOWN] --self-test: 生成器一式の複製に失敗したため判定できません（cp -R が『Operation not permitted』で失敗しました。実行環境のサンドボックス制約等が原因である可能性があります）" >&2
+    rm -rf "$tmpdir"
+    exit 2
+  elif [ "$case2_deploy_rc" -ne 0 ]; then
     echo "  [FAIL] ケース2: --apply の実行が異常終了した" >&2
     rc=1
   elif case2_verify_output="$(verify_deploy "$out2" 2>&1)"; then
@@ -252,7 +305,13 @@ self_test() {
   local out3="${tmpdir}/case3"
   mkdir -p "$out3"
   printf '{"specVersion":1,"layout":{"__marker__":"keep"}}\n' > "${out3}/output-layout.json"
-  run_deploy "$out3" 1 >/dev/null
+  local case3_deploy_rc=0
+  run_deploy "$out3" 1 >/dev/null || case3_deploy_rc=$?
+  if [ "$case3_deploy_rc" -eq 2 ]; then
+    echo "[UNKNOWN] --self-test: 生成器一式の複製に失敗したため判定できません（cp -R が『Operation not permitted』で失敗しました。実行環境のサンドボックス制約等が原因である可能性があります）" >&2
+    rm -rf "$tmpdir"
+    exit 2
+  fi
   if grep -q '__marker__' "${out3}/output-layout.json" 2>/dev/null; then
     echo "  [PASS] ケース3: 既存の output-layout.json を上書きしない"
   else
@@ -296,10 +355,15 @@ main() {
   mkdir -p "$target_root"
   target_root="$(cd "$target_root" && pwd)"
 
-  run_deploy "$target_root" "$apply_flag"
-  local deploy_rc=$?
+  local deploy_rc=0
+  run_deploy "$target_root" "$apply_flag" || deploy_rc=$?
 
-  if [ "$apply_flag" -eq 1 ]; then
+  if [ "$deploy_rc" -eq 2 ]; then
+    echo "[UNKNOWN] 生成器一式の複製に失敗したため判定できません（cp -R が『Operation not permitted』で失敗しました。実行環境のサンドボックス制約等が原因である可能性があります）" >&2
+    exit 2
+  fi
+
+  if [ "$apply_flag" -eq 1 ] && [ "$deploy_rc" -eq 0 ]; then
     echo
     echo "配布後の検査:"
     if verify_deploy "$target_root"; then

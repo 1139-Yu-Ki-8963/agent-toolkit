@@ -728,7 +728,16 @@ EOF
     # （--with-skills 無しの規約定義のみの配布では生成器一式は要らない）。
     if [ "$APPLY" -eq 1 ]; then
       plan_add "reverse-docs-engine/（generation-engine一式・deploy-generation-engine.shで配備）"
-      bash "$DEPLOY_GENERATION_ENGINE_SCRIPT" "$out_root" --apply
+      # 判定不能規約（.claude/rules/always/verification/indeterminate-result/rule.md）:
+      # deploy-generation-engine.sh は generation-engine/scripts 配下に混在しうる
+      # .venv 等（gitignore対象）の cp -R が実行環境の制約（サンドボックスの
+      # *.pem等の読み取り拒否）で失敗すると終了コード2を返す（対象の欠陥ではない。
+      # 2026-08-28実測）。この2を run_scaffold の通常の不合格（1）と区別して
+      # 呼び出し元へそのまま伝える。素の呼び出し（未保護）のままだと set -e で
+      # ここで即座に打ち切られ、呼び出し元（self_test 等）が原因を判別できない。
+      local _deploy_engine_rc=0
+      bash "$DEPLOY_GENERATION_ENGINE_SCRIPT" "$out_root" --apply || _deploy_engine_rc=$?
+      [ "$_deploy_engine_rc" -ne 0 ] && return "$_deploy_engine_rc"
     else
       plan_add "${out_root}/reverse-docs-engine/"
     fi
@@ -1047,8 +1056,22 @@ self_test() {
     echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
-  run_scaffold "$out1" >"$run1_log" 2>&1
-  local rc1=$?
+  # 判定不能規約: run_scaffold は --with-skills 経由で deploy-generation-engine.sh
+  # を呼ぶ。実行環境の制約（サンドボックスの *.pem 等の読み取り拒否）で
+  # その複製が失敗すると run_scaffold は終了コード2を返す（対象の欠陥ではない）。
+  # 素の呼び出し（未保護）のままだと set -e でここが即座に打ち切られ、
+  # 以降のケースが1件も実行されないまま self-test 全体が不合格（原因不明）で
+  # 終わる（2026-08-28実測）。ここで rc1 を明示的に捕まえ、2の場合は
+  # 個々のケースを実行せず [UNKNOWN]・終了コード2で終える。
+  local rc1=0
+  run_scaffold "$out1" >"$run1_log" 2>&1 || rc1=$?
+  if [ "$rc1" -eq 2 ]; then
+    echo "[UNKNOWN] --self-test: 生成器一式の複製に失敗したため判定できません（deploy-generation-engine.sh の cp -R が『Operation not permitted』で失敗しました。実行環境のサンドボックス制約等が原因である可能性があります）" >&2
+    sed 's/^/    /' "$run1_log" >&2
+    rm -f "$run1_log"
+    rm -rf "$out1"
+    exit 2
+  fi
   if [ "$rc1" -ne 0 ]; then
     echo "  [FAIL] 1回目の --apply 実行が失敗した (rc=$rc1)" >&2
     sed 's/^/    /' "$run1_log" >&2
