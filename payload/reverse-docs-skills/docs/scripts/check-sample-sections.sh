@@ -60,6 +60,17 @@ while IFS= read -r t; do
   s=""
   [ -n "$sub" ] && [ -d "$S_ROOT/$sub" ] \
     && s="$(find "$S_ROOT/$sub" -name "$base" -type f 2>/dev/null | LC_ALL=C sort | head -1)"
+
+  # 設計単位の下に置かない文書がある。プロジェクト全体の結合テスト仕様書が
+  # これに当たり、出力先の定義（output-layout.json の projectIntegrationTest）は
+  # docs/test-cases/ を指す。設計単位の下だけを探すと見つからない。
+  # 実測（2026-08-28）で、この1件が「見本なし」として不合格になっていた。
+  # 見本は実在しており、探索先が足りないだけだった。
+  if [ -z "$s" ]; then
+    s="$(find "${REPO_ROOT}/generation-engine/samples/docs" -name "$base" -type f 2>/dev/null \
+         | grep -v '/docs/design/' | LC_ALL=C sort | head -1)"
+  fi
+
   if [ -z "$s" ]; then
     missing=$((missing + 1))
     echo "  見本なし: ${t#"$T_ROOT"/}"
