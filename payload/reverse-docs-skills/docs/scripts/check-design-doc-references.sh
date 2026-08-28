@@ -173,7 +173,7 @@ run_check() {
       norm="$(_normalize "$cand")"
       if [ "$is_payload" -eq 1 ]; then
         case "$norm" in
-          .claude/rules/*|.claude/rules|.codex/*|.codex|.cursor/*|.cursor|docs/session-prompts/*|docs/tasks/work-records/*)
+          .claude/rules/*|.claude/rules|.codex/*|.codex|.cursor/*|.cursor|docs/session-prompts/*|docs/session-prompts|docs/tasks/work-records/*|docs/tasks/work-records)
             local ecp
             ecp="$(cat "$excluded_file")"
             echo $((ecp + 1)) > "$excluded_file"
