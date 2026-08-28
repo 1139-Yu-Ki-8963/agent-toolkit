@@ -121,7 +121,7 @@ API詳細設計書は、テンプレートを出力先へ複製してから値�
 11. `§11 非機能`
 12. `§12 実装契約`
 13. `§13 関連資料`
-14. `章マップ（付録B）`
+14. 前付けの `chapter_map`（章の役割キーと §番号の対応。本文の節ではなく機械向けの対応表）
 
 表の列見出しは次の契約をそのまま保つ。列を省略・統合・改名・並べ替えない。該当データが無い場合も列見出しと区切り行を残し、データ行を0件にする。
 
@@ -159,7 +159,7 @@ API詳細設計書は、テンプレートを出力先へ複製してから値�
 | 12.4 依存 | 依存先 / 用途 |
 | 12.5 設計判断とその理由 | 判断キー / 設計判断 / 選択理由 / 記述区分 / 判断材料 / 選ばなかった選択肢 / 不採用理由 / 確からしさ |
 | §13 関連資料 | 資料 / パス / 本書との関係 |
-| 章マップ（付録B） | 章の役割キー / § |
+| 前付け `chapter_map` | 章の役割キー / §（本文には表示しない） |
 
 `<API 識別子>` はマニフェストの `unitId` を使う。`unitId` が空（`null` または空文字）の場合は `unitKey` を使う。両方が空の場合だけ当該ユニットを生成せず、`status=ERROR` で中断して hint に「出力先の識別子が確定しない」と当該ユニットの `identifier` を記録する。
 
@@ -288,7 +288,7 @@ API詳細設計書の前付けは、次の 7 鍵を canonical な完全な集合
 
 次の 8 つを実行する。1 つでも不合格なら Phase 3 へ戻る。上限 3 回で収束しなければ `status=ERROR` とする。
 
-- **検査1 章の完備**: 生成した各設計書に §1 から §13 が存在し、あわせて章マップも存在する。§ の章は `grep -c '^## §'` が 13 を返すことで確認し、§13 が関連資料であることと、`grep -c '^## 章マップ'` が 1 を返すことを確認する
+- **検査1 章の完備**: 生成した各設計書に §1 から §13 が存在し、あわせて前付けに `chapter_map` が存在する。§ の章は `grep -c '^## §'` が 13 を返すことで確認し、§13 が関連資料であることと、`grep -c '^chapter_map:'` が 1 を返し `grep -c '^## 章マップ'` が 0 を返すことを確認する
 - **検査2 詳細設計記述規約**: `node generation-engine/scripts/tests/check-detailed-design-conventions.cjs --self-test` を実行し、テンプレート正本に対象コードへの参照・対象コードのファイル名・行番号がなく、参照先が文書内参照だけに限定されていることを確認する。終了コード0だけを合格とする
 - **検査3 プレースホルダの残存**: `APIKEY`・`APIID`・`METHOD`・`PATH`・`FEATUREKEY`・`SOURCEREF` が本文に残っていないことを確認する
 - **検査4 配置と前付けの検査**: `bash generation-engine/scripts/tests/check-detail-design-frontmatter-keys.sh --check-api-template` と `bash generation-engine/scripts/tests/check-detail-design-frontmatter-keys.sh --check-source-ref-contract` を実行する。続けて `bash generation-engine/scripts/scaffold-design-unit.sh --verify api detail <output_dir> <識別子>` と `bash generation-engine/scripts/scaffold-design-unit.sh --verify api test <output_dir> <識別子>` を実行し、詳細設計書・API結合テスト設計書・API単体テスト設計書の必須ファイル・トークン・章・配置を確認する。詳細設計書の frontmatter は `delivery-payload/references/detail-design-frontmatter-keys.json` の鍵集合と欠落・余剰なく完全一致しなければ生成完了として扱わない

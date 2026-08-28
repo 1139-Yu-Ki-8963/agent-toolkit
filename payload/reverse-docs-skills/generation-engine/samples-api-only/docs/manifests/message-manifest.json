@@ -1,7 +1,7 @@
 {
   "sourceDir": "common",
   "unitKind": "message",
-  "generatedAt": "2026-08-28T06:10:14Z",
+  "generatedAt": "2026-08-28T06:45:13Z",
   "strategy": {
     "extractionMethod": "message-definition-table",
     "approvedByUser": false,

@@ -7,6 +7,34 @@ path: PATH
 feature_key: FEATUREKEY
 source_ref: SOURCEREF
 unit_kind: api
+# chapter_map: 章の役割キーと §番号の対応（生成器と検査が章を特定するために使う機械向けの対応表。本文には表示しない）。
+chapter_map:
+  - role: API概要
+    section: 1
+  - role: APIリクエスト
+    section: 2
+  - role: APIレスポンス
+    section: 3
+  - role: API処理フロー
+    section: 4
+  - role: APIロジック
+    section: 5
+  - role: API疑似コード
+    section: 6
+  - role: APIデータアクセス
+    section: 7
+  - role: APIデータ定義
+    section: 8
+  - role: API業務ルール
+    section: 9
+  - role: APIエラー
+    section: 10
+  - role: API非機能要件
+    section: 11
+  - role: API実装契約
+    section: 12
+  - role: API関連資料
+    section: 13
 ---
 
 # <API名> API詳細設計書
@@ -242,20 +270,3 @@ TODO、過去の経緯、却下済みの案、別の処理を説明するコメ�
 | 資料 | パス | 本書との関係 |
 |---|---|---|
 
-## 章マップ（付録B）
-
-| 章の役割キー | § |
-|---|---|
-| API概要 | §1 |
-| APIリクエスト | §2 |
-| APIレスポンス | §3 |
-| API処理フロー | §4 |
-| APIロジック | §5 |
-| API疑似コード | §6 |
-| APIデータアクセス | §7 |
-| APIデータ定義 | §8 |
-| API業務ルール | §9 |
-| APIエラー | §10 |
-| API非機能要件 | §11 |
-| API実装契約 | §12 |
-| API関連資料 | §13 |

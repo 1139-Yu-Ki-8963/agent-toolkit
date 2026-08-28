@@ -13,9 +13,9 @@
 #   --list-contract-files モード: 実装契約章の「ファイル分割」表 1 列目のパス一覧を
 #     stdout に 1 行 1 パスで出力する（rebuilding Phase 3 の白紙化対象取得用）。
 #
-# 章の特定は章番号の直書きではなく「## 章マップ」表の役割キー列から解決する
-# （役割キー → §番号 の 2 段解決）。章マップ・役割キー列・該当行のいずれかが
-# 欠落している場合は暗黙フォールバックせず明示 exit 1 とする。
+# 章の特定は章番号の直書きではなく前付け（frontmatter）の chapter_map（役割キー →
+# §番号）から解決する。chapter_map・該当行のいずれかが欠落している場合は暗黙
+# フォールバックせず明示 exit 1 とする（改善課題1-276で本文の付録から前付けへ移した）。
 #
 # 引数:
 #   $1 = 画面ディレクトリ（画面詳細設計書.md を含むディレクトリ）
@@ -65,15 +65,14 @@ source_encoding: UTF-8
 source_line_ending: LF
 unit_test_sheet: ./none.md
 integration_test_sheet: ./none.md
+chapter_map:
+  - role: 機能一覧
+    section: 2
+  - role: 実装契約
+    section: 15
+  - role: 要確認事項
+    section: 16
 ---
-
-## 章マップ
-
-| 役割キー | § |
-|---|---|
-| 機能一覧 | §2 |
-| 実装契約 | §15 |
-| 要確認事項 | §16 |
 
 ## §2 機能一覧
 
@@ -138,15 +137,14 @@ source_encoding: UTF-8
 source_line_ending: LF
 unit_test_sheet: ./none.md
 integration_test_sheet: ./none.md
+chapter_map:
+  - role: 機能一覧
+    section: 2
+  - role: 実装契約
+    section: 15
+  - role: 要確認事項
+    section: 16
 ---
-
-## 章マップ
-
-| 役割キー | § |
-|---|---|
-| 機能一覧 | §2 |
-| 実装契約 | §15 |
-| 要確認事項 | §16 |
 
 ## §2 機能一覧
 
@@ -256,15 +254,14 @@ source_encoding: UTF-8
 source_line_ending: LF
 unit_test_sheet: ./none.md
 integration_test_sheet: ./none.md
+chapter_map:
+  - role: 機能一覧
+    section: 2
+  - role: 実装契約
+    section: 15
+  - role: 要確認事項
+    section: 16
 ---
-
-## 章マップ
-
-| 役割キー | § |
-|---|---|
-| 機能一覧 | §2 |
-| 実装契約 | §15 |
-| 要確認事項 | §16 |
 
 ## §2 機能一覧
 
@@ -313,15 +310,14 @@ source_encoding: UTF-8
 source_line_ending: LF
 unit_test_sheet: ./none.md
 integration_test_sheet: ./none.md
+chapter_map:
+  - role: 機能一覧
+    section: 2
+  - role: 実装契約
+    section: 15
+  - role: 要確認事項
+    section: 16
 ---
-
-## 章マップ
-
-| 役割キー | § |
-|---|---|
-| 機能一覧 | §2 |
-| 実装契約 | §15 |
-| 要確認事項 | §16 |
 
 ## §2 機能一覧
 
@@ -397,15 +393,14 @@ unit_test_sheet: ./none.md
 integration_test_sheet: ./none.md
 unit_test_spec: ./unit-test-spec.md
 operation_test_spec: ./optest.md
+chapter_map:
+  - role: 機能一覧
+    section: 2
+  - role: 実装契約
+    section: 15
+  - role: 要確認事項
+    section: 16
 ---
-
-## 章マップ
-
-| 役割キー | § |
-|---|---|
-| 機能一覧 | §2 |
-| 実装契約 | §15 |
-| 要確認事項 | §16 |
 
 ## §2 機能一覧
 
@@ -479,15 +474,14 @@ unit_test_sheet: ./none.md
 integration_test_sheet: ./none.md
 unit_test_spec: ./unit-test-spec.md
 operation_test_spec: ./optest.md
+chapter_map:
+  - role: 機能一覧
+    section: 2
+  - role: 実装契約
+    section: 15
+  - role: 要確認事項
+    section: 16
 ---
-
-## 章マップ
-
-| 役割キー | § |
-|---|---|
-| 機能一覧 | §2 |
-| 実装契約 | §15 |
-| 要確認事項 | §16 |
 
 ## §2 機能一覧
 
@@ -723,15 +717,14 @@ EOF
 ---
 unit_test_sheet: ./none.md
 integration_test_sheet: ./none.md
+chapter_map:
+  - role: 機能一覧
+    section: 2
+  - role: 実装契約
+    section: 15
+  - role: 要確認事項
+    section: 16
 ---
-
-## 章マップ
-
-| 役割キー | § |
-|---|---|
-| 機能一覧 | §2 |
-| 実装契約 | §15 |
-| 要確認事項 | §16 |
 
 ## §2 機能一覧
 
@@ -776,15 +769,15 @@ source_encoding: UTF-8
 source_line_ending: LF
 unit_test_sheet: ./none.md
 integration_test_sheet: ./none.md
+chapter_map:
+  - role: 機能一覧
+    section: 2
+  - role: 実装契約
+    section: 15
+    source: "API定義書"
+  - role: 要確認事項
+    section: 16
 ---
-
-## 章マップ
-
-| 役割キー | § | 正 |
-|---|---|---|
-| 機能一覧 | §2 | - |
-| 実装契約 | §15 | API定義書 |
-| 要確認事項 | §16 | - |
 
 ## §2 機能一覧
 
@@ -829,15 +822,14 @@ source_encoding: UTF-8
 source_line_ending: LF
 unit_test_sheet: ./none.md
 integration_test_sheet: ./none.md
+chapter_map:
+  - role: 機能一覧
+    section: 2
+  - role: 実装契約
+    section: 15
+  - role: 要確認事項
+    section: 16
 ---
-
-## 章マップ
-
-| 役割キー | § |
-|---|---|
-| 機能一覧 | §2 |
-| 実装契約 | §15 |
-| 要確認事項 | §16 |
 
 ## §2 機能一覧
 
@@ -1282,52 +1274,49 @@ function split_pipe_row(line, arr,    n, idx, buf, inbt, i, c) {
 }
 '
 
-# 「## 章マップ」表が存在し、1 列目のヘッダーが「役割キー」であることを検証する。
-# 章マップが無い・表が無い・役割キー列が無い場合は理由を stderr に出し 1 を返す。
+# 前付け（frontmatter）の chapter_map（役割キー → §番号 の対応）を TSV で返す。
+# 形式: role<TAB>section<TAB>source（source は無ければ空）。
+# 改善課題1-276: 対応表は本文の付録（## 章マップ）から前付けへ移した。顧客向けの本文に
+# 生成器の語彙を出さず、章の解決の仕組みだけを残すため。
+chapter_map_rows() {
+  awk '
+    /^---$/ { c++; next }
+    c==1 && /^chapter_map:/ { f=1; next }
+    c==1 && f && /^  - role:/ { if (role != "") print role "\t" sec "\t" src; role=$0; sub(/^  - role:[ \t]*/, "", role); sec=""; src=""; next }
+    c==1 && f && /^    section:/ { sec=$0; sub(/^    section:[ \t]*/, "", sec); sub(/^§/, "", sec); next }
+    c==1 && f && /^    source:/ { src=$0; sub(/^    source:[ \t]*/, "", src); gsub(/^"|"$/, "", src); next }
+    c==1 && f && /^[^ ]/ { f=0 }
+    c>=2 { exit }
+    END { if (role != "") print role "\t" sec "\t" src }
+  ' "$DESIGN_DOC"
+}
+
+# 前付けに chapter_map があり、役割キーの行が 1 件以上あることを検証する。
+# 無い場合は理由を stderr に出し 1 を返す。
 validate_chapter_map() {
-  if ! grep -qE '^## 章マップ' "$DESIGN_DOC"; then
-    echo "エラー: '## 章マップ' セクションが見つかりません: $DESIGN_DOC" >&2
+  if ! awk '/^---$/{c++; next} c==1 && /^chapter_map:/ {found=1} c>=2{exit} END{exit !found}' "$DESIGN_DOC"; then
+    echo "エラー: 前付けに 'chapter_map:' が見つかりません: $DESIGN_DOC" >&2
     return 1
   fi
-  local header_line header_col1
-  header_line="$(extract_heading_body "$DESIGN_DOC" '^## 章マップ' | awk '/^\|/ { print; exit }')"
-  if [ -z "$header_line" ]; then
-    echo "エラー: '## 章マップ' セクションに表がありません: $DESIGN_DOC" >&2
-    return 1
-  fi
-  header_col1="$(printf '%s' "$header_line" | awk -F'|' '{ v=$2; gsub(/^[ \t]+|[ \t]+$/, "", v); print v }')"
-  if [ "$header_col1" != "役割キー" ]; then
-    echo "エラー: 章マップ表に役割キー列がありません（1 列目のヘッダーが '役割キー' ではなく '$header_col1' でした）: $DESIGN_DOC" >&2
+  if [ -z "$(chapter_map_rows)" ]; then
+    echo "エラー: 前付けの chapter_map に役割キーの行がありません: $DESIGN_DOC" >&2
     return 1
   fi
   return 0
 }
 
-# 章マップ表から役割キーに対応する §番号を解決する（見つからなければ空文字）。
-# validate_chapter_map による事前検証を前提とする。
-# 章マップの § 列は `§2` のように § 記号付きで記述されるのが実テンプレートの
-# 正規形だが、`2` のような記号なし表記も許容する。取得した値の先頭の § を
-# 正規化のため除去し、残りが数字のみでなければ明示エラーとする
-# （extract_design_section_body が `## §${num}` を組み立てるため、
-# § を除去せずに渡すと `## §§2` になり全セクション抽出が失敗する）。
+# chapter_map から役割キーに対応する §番号を解決する（見つからなければ空文字）。
+# validate_chapter_map による事前検証を前提とする。section は `2` のような数字を
+# 正規形とし、`§2` のような記号付きも許容する（先頭の § は chapter_map_rows が除く）。
+# 数字のみでなければ明示エラーとする（extract_design_section_body が `## §${num}` を
+# 組み立てるため）。
 resolve_role_section() {
   local role="$1" sec
-  sec="$(extract_heading_body "$DESIGN_DOC" '^## 章マップ' | LC_ALL=C awk -v role="$role" "$PIPE_SPLIT_AWK_FN"'
-    BEGIN { row=0 }
-    /^\|/ {
-      row++
-      if (row == 1) next
-      if (row == 2 && $0 ~ /^\|[ \t:|\-]+$/) next
-      n = split_pipe_row($0, cols)
-      key = cols[2]; gsub(/^[ \t]+|[ \t]+$/, "", key)
-      val = cols[3]; gsub(/^[ \t]+|[ \t]+$/, "", val)
-      if (key == role) { print val; exit }
-    }
-  ')"
+  sec="$(chapter_map_rows | LC_ALL=C awk -F'\t' -v role="$role" '$1 == role { print $2; exit }')"
   [ -z "$sec" ] && return 0
   sec="${sec#§}"
   if ! printf '%s' "$sec" | grep -qE '^[0-9]+$'; then
-    echo "エラー: 章マップの § 列の値が数字として解釈できません（役割キー '$role': '$sec'）: $DESIGN_DOC" >&2
+    echo "エラー: chapter_map の section の値が数字として解釈できません（役割キー '$role': '$sec'）: $DESIGN_DOC" >&2
     return 1
   fi
   printf '%s\n' "$sec"
@@ -2468,36 +2457,24 @@ fi
 
 # --- (s) 章マップが宣言する外部文書の frontmatter パス欄チェック（違反） ---
 echo ""
-echo "[検査 s] 章マップの「正」列に外部文書を宣言している章について frontmatter に対応するパス欄が存在するかのチェック（違反）"
+echo "[検査 s] chapter_map の source に外部文書を宣言している章について frontmatter に対応するパス欄が存在するかのチェック（違反）"
 
-CHAPTER_MAP_HEADER="$(LC_ALL=C awk '/^## 章マップ/{f=1; next} f && /^\|/{print; exit}' "$DESIGN_DOC")"
-EXTERNAL_DOC_DECLS=""
-if printf '%s' "$CHAPTER_MAP_HEADER" | grep -q '正'; then
-  SEI_COL="$(printf '%s' "$CHAPTER_MAP_HEADER" | LC_ALL=C awk -F'|' '{for(i=2;i<NF;i++){h=$i; gsub(/^[ \t]+|[ \t]+$/,"",h); if(h=="正"){print i; exit}}}')"
-  if [ -n "$SEI_COL" ]; then
-    EXTERNAL_DOC_DECLS="$(LC_ALL=C awk -F'|' -v col="$SEI_COL" '
-      /^## 章マップ/ { f=1; next }
-      f && /^## / { exit }
-      f && /^\|/ {
-        if (col > NF) next
-        v = $col
-        gsub(/^[ \t]+|[ \t]+$/, "", v)
-        if (v == "" || v == "正") next
-        if (v ~ /^-+$/) next
-        sub(/（.*$/, "", v)
-        gsub(/[ \t]/, "", v)
-        if (v == "") next
-        if (v ~ /本書/) next
-        if (v ~ /共通設計書/) next
-        print v
-      }
-    ' "$DESIGN_DOC" | LC_ALL=C sort -u)"
-  fi
-fi
+EXTERNAL_DOC_DECLS="$(chapter_map_rows | LC_ALL=C awk -F'\t' '
+  {
+    v = $3
+    if (v == "" || v == "-") next
+    sub(/（.*$/, "", v)
+    gsub(/[ \t]/, "", v)
+    if (v == "") next
+    if (v ~ /本書/) next
+    if (v ~ /共通設計書/) next
+    print v
+  }
+' | LC_ALL=C sort -u)"
 
 UNDECLARED_EXTERNAL_DOCS=""
 if [ -n "$EXTERNAL_DOC_DECLS" ]; then
-  FM_BLOCK_S="$(awk '/^---$/{c++; next} c==1{print} c>=2{exit}' "$DESIGN_DOC" | sed -E 's/#.*$//')"
+  FM_BLOCK_S="$(awk '/^---$/{c++; next} c==1 && !/^ / && !/^chapter_map:/ {print} c>=2{exit}' "$DESIGN_DOC" | sed -E 's/#.*$//')"
   while IFS= read -r _doc; do
     [ -z "$_doc" ] && continue
     if ! printf '%s\n' "$FM_BLOCK_S" | grep -F "$_doc" >/dev/null 2>&1; then
@@ -2508,12 +2485,12 @@ if [ -n "$EXTERNAL_DOC_DECLS" ]; then
 fi
 
 if [ -n "$(printf '%s' "$UNDECLARED_EXTERNAL_DOCS" | tr -d '[:space:]')" ]; then
-  echo "  違反: 章マップが「正」として宣言する外部文書に対応する frontmatter のパス欄がありません:" >&2
+  echo "  違反: chapter_map の source が宣言する外部文書に対応する frontmatter のパス欄がありません:" >&2
   printf '%s\n' "$UNDECLARED_EXTERNAL_DOCS" | grep . | sed 's/^/    - /' >&2
   echo "    宣言先の実在を確認できません。パス欄を追加するか §16 要確認事項一覧へ起票してください" >&2
   VIOLATIONS=$((VIOLATIONS + 1))
 else
-  echo "  章マップの外部文書宣言に対応する frontmatter のパス欄はすべて存在します（宣言 0 件を含む）"
+  echo "  chapter_map の外部文書宣言に対応する frontmatter のパス欄はすべて存在します（宣言 0 件を含む）"
 fi
 
 # --- (t) 画面内状態の節間矛盾チェック（違反） ---

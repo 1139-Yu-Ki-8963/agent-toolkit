@@ -380,6 +380,7 @@ function generateScreenDetailDocument() {
     browser = launched.browser;
     const headings = extractSectionHeadings(launched.html);
     const relatedHeading = '§19 関連資料';
+    // 改善課題1-276: 章マップは本文の付録から前付け（frontmatter）へ移した。本文の末尾は関連資料で終わる
     const chapterMapHeading = '章マップ（付録B）';
 
     assert.equal(
@@ -387,10 +388,10 @@ function generateScreenDetailDocument() {
       '§1 画面概要',
       `最初の本文セクションが画面概要ではない: ${headings[0]}`,
     );
-    assert.deepEqual(
-      headings.slice(-2),
-      [relatedHeading, chapterMapHeading],
-      `管理・索引表が末尾付録ではない: ${headings.slice(-2).join(' / ')}`,
+    assert.equal(
+      headings[headings.length - 1],
+      relatedHeading,
+      `本文の末尾が関連資料ではない: ${headings.slice(-2).join(' / ')}`,
     );
     assert.equal(
       headings.filter((heading) => heading === relatedHeading).length,
@@ -399,8 +400,8 @@ function generateScreenDetailDocument() {
     );
     assert.equal(
       headings.filter((heading) => heading === chapterMapHeading).length,
-      1,
-      `${chapterMapHeading} が重複している`,
+      0,
+      `${chapterMapHeading} が本文に残っている`,
     );
     console.log(`PASS: DOM見出し順序 ${headings[0]} → … → ${headings.slice(-2).join(' → ')}`);
   } finally {

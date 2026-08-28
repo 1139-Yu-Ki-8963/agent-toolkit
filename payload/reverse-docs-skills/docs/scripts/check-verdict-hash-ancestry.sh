@@ -152,6 +152,14 @@ run_check() {
     echo "[UNKNOWN] gitが無いため判定できません" >&2
     return 2
   fi
+  # 配布先（公開リポジトリの一区画として埋め込まれた配布物）では、判定表のハッシュが指す
+  # 履歴そのものが存在しない。走査のルートが git のトップレベルでなければ、判定の材料を
+  # 持たない環境と見なして判定不能にする（不合格とは区別する。2026-08-28 実測: 配布先で
+  # 6件が「コミットとして存在しない」と報告されていた）。
+  if [ "$(git -C "$repo_root" rev-parse --show-toplevel 2>/dev/null)" != "$(cd "$repo_root" && pwd -P)" ]; then
+    echo "[UNKNOWN] 走査のルートが git のトップレベルではないため判定できません（配布物として別のリポジトリへ埋め込まれている環境では、判定表のハッシュが指す履歴を持ちません。参照したルート: ${repo_root}）" >&2
+    return 2
+  fi
   if ! git -C "$repo_root" rev-parse --verify -q main >/dev/null 2>&1; then
     echo "[UNKNOWN] mainブランチを解決できないため判定できません（参照したルート: ${repo_root}）" >&2
     return 2

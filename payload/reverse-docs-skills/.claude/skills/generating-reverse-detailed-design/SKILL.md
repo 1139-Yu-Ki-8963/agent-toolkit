@@ -137,7 +137,7 @@ facts.yml の各セクションを下記マップに従って各章へ転記す�
 
 §3 画面構造の冒頭に画面キャプチャ（`![元コードの画面](./original.png)`）と、コンポーネント名（コード識別子）による入れ子構造の ASCII アートを配置する。画像実体がない場合は `references/writing-rules.md` の読者向け `screen-capture-placeholder` を置き、執筆工程の内部語を本文へ出さない。ASCII アートは facts から抽出したコンポーネントツリー構造を箱図形（┌─ ComponentName ─┐）で視覚化したもの。基本設計書の部品構成（業務用語）とは異なり、実装のコンポーネント階層を反映する。
 
-章の役割キー → §番号の解決は起動引数 chapter_map_path を正本とする。§番号は既定値であり、設計書の章マップ表で解決する。
+章の役割キー → §番号の解決は起動引数 chapter_map_path を正本とする。§番号は既定値であり、設計書の前付け（frontmatter）の chapter_map で解決する。
 
 あわせて facts.yml の `meta` 節を frontmatter へ転記する（`meta.source_repo`→`source_repo`・`meta.source_ref`→`source_ref`・`meta.route`→`scenarios[].path`・`meta.source_encoding`→`source_encoding`・`meta.source_line_ending`→`source_line_ending`）。転記規律は `references/writing-rules.md` の「frontmatter 転記規律」を正本とする。
 

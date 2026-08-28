@@ -21,7 +21,7 @@
 
 ## 章の役割キー → 節キーワード対応表（正本）
 
-章の特定は設計書の章マップ表（役割キー列）で行う。起動引数 `audit_script_path` のスクリプトは章マップ表から役割キー→§番号を解決し、以下の節キーワードで二次解決する。本表が節キーワード対応の正本であり、SKILL.md・ng-classification.md・report-format.md・guide.html はここへのポインタとする。
+章の特定は設計書の前付け（frontmatter）の chapter_map（役割キー）で行う。起動引数 `audit_script_path` のスクリプトは chapter_map から役割キー→§番号を解決し、以下の節キーワードで二次解決する。本表が節キーワード対応の正本であり、SKILL.md・ng-classification.md・report-format.md・guide.html はここへのポインタとする。
 
 | 役割キー | 節キーワード（既定 §） |
 |---|---|

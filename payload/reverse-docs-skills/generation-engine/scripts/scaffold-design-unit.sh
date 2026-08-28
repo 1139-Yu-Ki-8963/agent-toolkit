@@ -335,7 +335,9 @@ detail_frontmatter_expected_keys() {
 # ここに含まれうるが、二重検出は許容する(1件目で止めない設計方針のため)。
 extract_allcaps_tokens() {
   local file="$1"
-  extract_frontmatter_block "$file" | grep -v '^[[:space:]]*#' | grep -oE '[A-Z]{2,}' | LC_ALL=C sort -u
+  # chapter_map の項目行（2 スペース字下げ）は役割キーの地の文（API概要 等）であり、
+  # プレースホルダではないため対象から除く（改善課題1-276）。
+  extract_frontmatter_block "$file" | grep -v '^[[:space:]]*#' | grep -v '^  ' | grep -oE '[A-Z]{2,}' | LC_ALL=C sort -u
 }
 
 if [ "${1:-}" = "--self-test" ]; then

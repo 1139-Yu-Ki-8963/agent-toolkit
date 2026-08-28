@@ -132,6 +132,11 @@ run_check() {
   local missing_file="$work/missing.txt"
   local total_file="$work/total.count"
   local excluded_file="$work/excluded.count"
+  # 配布先（このリポジトリ自身の規約 .claude/rules/always/publish/complete/rule.md を持たない置き場）では、
+  # 配布対象外の資産（このリポジトリ自身の規約・エディタ設定・作業の記録・手順書）への参照は
+  # 実在しないのが正しい。配布先ではこれらを除外として数える（2026-08-28 実測: 28件）。
+  local is_payload=0
+  [ -f "$repo_root/.claude/rules/always/publish/complete/rule.md" ] || is_payload=1
   : > "$missing_file"
   printf '0\n' > "$total_file"
   printf '0\n' > "$excluded_file"
@@ -166,6 +171,16 @@ run_check() {
       fi
       local norm
       norm="$(_normalize "$cand")"
+      if [ "$is_payload" -eq 1 ]; then
+        case "$norm" in
+          .claude/rules/*|.claude/rules|.codex/*|.codex|.cursor/*|.cursor|docs/session-prompts/*|docs/tasks/work-records/*)
+            local ecp
+            ecp="$(cat "$excluded_file")"
+            echo $((ecp + 1)) > "$excluded_file"
+            continue
+            ;;
+        esac
+      fi
       if is_excluded "$norm" "$excl_file"; then
         local ec
         ec="$(cat "$excluded_file")"

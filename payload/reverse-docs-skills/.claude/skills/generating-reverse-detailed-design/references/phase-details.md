@@ -16,7 +16,7 @@ SKILL.md の Phase 2（封印検証と facts 読込）〜Phase 5（完全性ゲ�
 
 facts.yml の各セクションを対応する章へ転記する判定規律（章マップ準拠の転記先決定・facts のキー→設計書章の対応規律・字面転記と要約の境界・実測委譲の書式）は `references/writing-rules.md` を正本とする。SKILL.md 本文の転記マップ表（facts.yml セクション → §番号）と矛盾する記述を本ファイルには残さない。
 
-章の役割キー → §番号の解決は起動引数 chapter_map_path（`delivery-payload/references/chapter-map.md`）を正本とする。§番号は既定値であり、設計書の章マップ表で解決する。
+章の役割キー → §番号の解決は起動引数 chapter_map_path（`delivery-payload/references/chapter-map.md`）を正本とする。§番号は既定値であり、設計書の前付け（frontmatter）の chapter_map で解決する。
 
 ## 詳細: Phase 5 / Step 5-1 — 完全性ゲート
 

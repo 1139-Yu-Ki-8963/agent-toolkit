@@ -172,7 +172,7 @@ bash generation-engine/scripts/scaffold-design-unit.sh feature test <output_dir>
 
 次の 7 つを実行する。テスト設計書2点に関する検査（由来の記録検査・情報源の検査）の不合格は Phase 4 で書き直し、それ以外の検査の不合格は Phase 3 で書き直して Phase 5 を再実行する。上限 3 回で収束しなければ `status=ERROR` とする。
 
-- **検査1 章の完備**: 生成した各設計書に §1 から §11 が存在し、あわせて章マップも存在する。§ の章は `grep -c '^## §'` が 11 を返すことで確認し、§11 が関連資料であることと、`grep -c '^## 章マップ'` が 1 を返すことを確認する
+- **検査1 章の完備**: 生成した各設計書に §1 から §11 が存在し、あわせて前付けに `chapter_map` が存在する。§ の章は `grep -c '^## §'` が 11 を返すことで確認し、§11 が関連資料であることと、`grep -c '^chapter_map:'` が 1 を返し `grep -c '^## 章マップ'` が 0 を返すことを確認する
 - **検査2 全章の充足**: §1 から §11 の各章について、表の本文行が 1 行以上あるか、または当該章に対応する項目が 要確認事項一覧へ回っているかのいずれかを満たす。どちらも満たさない空章があれば不合格とする
 - **検査3 参照実在**: §2.1 に記載した個別設計書のパスが実在する。`design_docs_root` が渡されていない場合は本検査を skip し、その旨を返却の hint に記録する
 - **検査4 配置の検査**: `bash generation-engine/scripts/scaffold-design-unit.sh --verify feature basic <output_dir> <識別子>` と `bash generation-engine/scripts/scaffold-design-unit.sh --verify feature test <output_dir> <識別子>` を実行し、機能設計書・機能結合テスト設計書・機能単体テスト設計書の必須ファイル・トークン・章・配置を確認する。続けて `bash <template_root>/rules/checkers/check-unit-test-design-doc-sections.sh --check-file <機能結合テスト設計書.md>` と `bash <template_root>/rules/checkers/check-unit-test-design-doc-sections.sh --check-file <機能単体テスト設計書.md>` を実行し、両文書の12見出しの名前・順序・件数がテンプレートと一致することを確認する
