@@ -226,6 +226,64 @@ is_placeholder_project_rule_section() {
   esac
 }
 
+# 改善課題1-290: 保護の対象を見出しの文字列一致だけに頼らない。
+# 既存 rule.md の行のうち、新しく組み立てた本文（ツールが用意した規則）に含まれない行を
+# 「現場が書いた行」とみなし、見出しの有無にかかわらず保護する。
+#   - 表の行（| で始まる。見出し行・区切り行・プレースホルダ行を除く）は
+#     「このプロジェクトの規則」節の表の末尾へ移して保護する
+#   - それ以外の行（地の文など）は置き場を決められないため保護できない行として
+#     件数と内容を出力し、上書きの前に停止する（戻り値3）
+# 既存ファイルの行のうち新本文に無い行を、フィルタ（$3: 表の行を返すなら table、
+# それ以外を返すなら other）に応じて返す。
+field_lines_not_in_new() {
+  local new_content="$1" existing_path="$2" mode="$3" tmp_new unanalysed_label not_applicable_label
+  [ -f "$existing_path" ] || return 0
+  if ! tmp_new="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-field.XXXXXX" 2>/dev/null)" || [ -z "$tmp_new" ]; then
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  printf '%s\n' "$new_content" > "$tmp_new"
+  if [ "$mode" = "table" ]; then
+    unanalysed_label="$(project_rule_placeholder_label unanalysed)" || unanalysed_label=""
+    not_applicable_label="$(project_rule_placeholder_label notApplicable)" || not_applicable_label=""
+    LC_ALL=C grep -vxF -f "$tmp_new" "$existing_path" 2>/dev/null \
+      | grep -E '^\|' | grep -vE '^\| 規則 \||^\|---' \
+      | grep -vF "| ${unanalysed_label} |" | grep -vF "| ${not_applicable_label} |" | grep -vF '| （未記入） |' || true
+  else
+    LC_ALL=C grep -vxF -f "$tmp_new" "$existing_path" 2>/dev/null \
+      | grep -vE '^[[:space:]]*$|^#|^[[:space:]]*<!--|-->[[:space:]]*$|^\||^---$|^[a-z_]+:' || true
+  fi
+  rm -f "$tmp_new"
+}
+
+# 「このプロジェクトの規則」節の表の末尾へ行を足して返す。節が無ければ末尾へ足す。
+# $1: rule.md 全文  $2: 足す行（改行区切り）
+append_rows_to_project_rule_section() {
+  local content="$1" rows="$2" rows_file
+  [ -n "$rows" ] || { printf '%s' "$content"; return 0; }
+  # macOS 標準の awk は -v へ複数行の文字列を渡せない（newline in string）。行は一時ファイル経由で渡す。
+  if ! rows_file="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-rows.XXXXXX" 2>/dev/null)" || [ -z "$rows_file" ]; then
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  printf '%s\n' "$rows" > "$rows_file"
+  printf '%s\n' "$content" | awk -v rows_file="$rows_file" '
+    function emit_rows(   r) { while ((getline r < rows_file) > 0) print r; close(rows_file) }
+    { lines[NR] = $0 }
+    /^## このプロジェクトの規則$/ { insec = 1; next }
+    insec && /^## / { insec = 0 }
+    insec && /^\|/ { last_row = NR }
+    END {
+      for (i = 1; i <= NR; i++) {
+        print lines[i]
+        if (i == last_row) { emit_rows(); done = 1 }
+      }
+      if (!done) emit_rows()
+    }
+  '
+  rm -f "$rows_file"
+}
+
 # 上書き単位をファイルからこの節だけへ下げる（3.1）。
 # 既存の rule.md が「## このプロジェクトの規則」節にプレースホルダ以外の内容
 # （現場がリバース解析の観測から書き足した規則）を持つ場合、新しく組み立てた
@@ -235,11 +293,20 @@ is_placeholder_project_rule_section() {
 # （3.1の表のとおり。この関数が触るのは「このプロジェクトの規則」節のみ）。
 # $1: 新しく組み立てた rule.md 全文  $2: 既存の rule.md のパス
 merge_project_rule_section() {
-  local new_content="$1" existing_path="$2" existing_section
+  local new_content="$1" existing_path="$2" existing_section unprotected field_rows
   if [ ! -f "$existing_path" ]; then
     printf '%s' "$new_content"
     return 0
   fi
+  # 改善課題1-290: 見出しの一致に頼らず、新本文に無い現場の行を保護する。
+  unprotected="$(field_lines_not_in_new "$new_content" "$existing_path" other)"
+  if [ -n "$unprotected" ]; then
+    echo "ERROR: 保護できない行が $(printf '%s\n' "$unprotected" | grep -c .) 件あるため、上書きの前に停止しました: $existing_path" >&2
+    printf '%s\n' "$unprotected" | sed 's/^/    /' >&2
+    return 3
+  fi
+  field_rows="$(field_lines_not_in_new "$new_content" "$existing_path" table)"
+  new_content="$(append_rows_to_project_rule_section "$new_content" "$field_rows")"
 
   existing_section="$(awk '
     /^## このプロジェクトの規則$/ { f=1 }
@@ -365,7 +432,7 @@ ${summary}
 
 | 規則 | 内容 | 根拠 | 検査 |
 |---|---|---|---|
-| （未記入） | （未記入） | （未記入） | （未記入） |
+| （未記入） | （未記入） | （未記入） | 判定不能: （未記入。検査の手段を決めるまでの仮置き） |
 <!-- 検査列には、その規則の違反を静的解析で見つける方法を書く。検査できない規則は「不可: <理由>」と書き、その理由を front matter の uncheckableReason へ写す。 -->
 
 ## このプロジェクトの規則
@@ -634,6 +701,13 @@ run_scaffold() {
 
     local child_lines cline
     child_lines="$(printf '%s' "$pline" | jq -c '.children[]')"
+    # 改善課題1-286: 対象側の宣言（additionalChildren）で親の下へ足した子を、
+    # taxonomyの子と同列に扱う。子の数を7親・27子に固定しない。
+    local extra_children
+    extra_children="$(rule_additional_children_get "$scaffold_scope_overrides_json" "$pkey" 2>/dev/null || true)"
+    if [ -n "$extra_children" ]; then
+      child_lines="$(printf '%s\n%s' "$child_lines" "$extra_children")"
+    fi
     while IFS= read -r cline; do
       [ -n "$cline" ] || continue
       local ckey ctitle csummary ctool cscope cpaths cuncheckable cappliesWhen cchecker
@@ -689,7 +763,10 @@ run_scaffold() {
           applies_label="$(printf '%s' "$state_reason" | cut -f2)"
         fi
         rule_content="$(build_tooldefined_rule_md "$ckey" "$ctitle" "$pkey" "$csummary" "$cuncheckable" "$src_template" "$cscope" "$cpaths" "$applies_state" "$applies_label" "$cchecker")"
-        rule_content="$(merge_project_rule_section "$rule_content" "${child_dir}/rule.md")"
+        if ! rule_content="$(merge_project_rule_section "$rule_content" "${child_dir}/rule.md")"; then
+          echo "ERROR: 現場が書いた行を保護できないため、規約定義の配置を上書きの前に停止しました（改善課題1-290）" >&2
+          exit 3
+        fi
       else
         rule_content="$(build_draft_rule_md "$ckey" "$ctitle" "$pkey" "$csummary" "$cscope" "$cpaths")"
       fi
@@ -1079,14 +1156,16 @@ self_test() {
   fi
   rm -f "$run1_log"
 
-  # ケース2: 親7フォルダ・子27フォルダが作られる
-  local parent_count child_count
+  # ケース2: taxonomy が定める親・子の数のフォルダが作られる（子の数は固定しない。改善課題1-286）
+  local parent_count child_count expected_parents expected_children
+  expected_parents="$(jq '.parents | length' "$TAXONOMY_JSON")"
+  expected_children="$(jq '[.parents[].children[]] | length' "$TAXONOMY_JSON")"
   parent_count="$(find "${out1}/docs/rules" -mindepth 1 -maxdepth 1 -type d ! -name tooling 2>/dev/null | grep -c . || true)"
   child_count="$(find "${out1}/docs/rules" -mindepth 2 -maxdepth 2 -type d 2>/dev/null | grep -c . || true)"
-  if [ "$parent_count" -eq 7 ] && [ "$child_count" -eq 27 ]; then
-    echo "  [PASS] ケース2: 親7フォルダ・子27フォルダが作られる"
+  if [ "$parent_count" -eq "$expected_parents" ] && [ "$child_count" -eq "$expected_children" ]; then
+    echo "  [PASS] ケース2: 親${expected_parents}フォルダ・子${expected_children}フォルダが作られる"
   else
-    echo "  [FAIL] ケース2: 親${parent_count}件・子${child_count}件（期待: 親7・子27）" >&2
+    echo "  [FAIL] ケース2: 親${parent_count}件・子${child_count}件（期待: 親${expected_parents}・子${expected_children}）" >&2
     rc=1
   fi
 
@@ -1095,7 +1174,7 @@ self_test() {
   rule_files="$(find "${out1}/docs/rules" -type f -name 'rule.md' | sort)"
   rule_count="$(printf '%s\n' "$rule_files" | grep -c . || true)"
   ok3=1
-  [ "$rule_count" -eq 27 ] || ok3=0
+  [ "$rule_count" -eq "$expected_children" ] || ok3=0
   local rf
   while IFS= read -r rf; do
     [ -n "$rf" ] || continue
@@ -1448,6 +1527,33 @@ EOF
     rc=1
   fi
 
+  # ケース19b（改善課題1-286）: 対象側の宣言で親の下へ子を足せる（子の数を固定しない）。
+  #   足した子の雛形が配置され、既存の検査（validate-rule-definitions.sh）がその子にも働く。
+  local ok1286=1 extra_key1286="query-guidelines"
+  cat > "${out1}/docs/rules/rule-scope-overrides.json" <<'EOF'
+{
+  "specVersion": 1,
+  "overrides": {
+    "naming": { "scope": "scoped", "paths": ["apps/custom-app/src/**"] }
+  },
+  "additionalChildren": {
+    "code-standards": [
+      { "key": "query-guidelines", "title": "問い合わせ文の決まり", "summary": "現場の実測で分けたトピック" }
+    ]
+  }
+}
+EOF
+  capture_scaffold "$out1" "$extra_key1286"
+  local rule1286="${out1}/docs/rules/code-standards/${extra_key1286}/rule.md"
+  if [ "$scaffold_rc" -ne 0 ]; then
+    ok1286=0; echo "  [FAIL] ケース19b: 子を足した宣言で配置が失敗した" >&2; print_scaffold_failure
+  elif [ ! -f "$rule1286" ] || ! grep -q '^status: draft$' "$rule1286" || ! grep -q '^parent: code-standards$' "$rule1286"; then
+    ok1286=0; echo "  [FAIL] ケース19b: 足した子の雛形（${rule1286}）が配置されない、または前付けが不正" >&2
+  elif ! bash "${SCRIPT_DIR}/validate-rule-definitions.sh" "${out1}/docs/rules" >/dev/null 2>&1; then
+    ok1286=0; echo "  [FAIL] ケース19b: 足した子を含む定義が validate-rule-definitions.sh を通らない" >&2
+  fi
+  if [ "$ok1286" -eq 1 ]; then echo "  [PASS] ケース19b: 宣言で足した子が配置され、検査もその子に働く（改善課題1-286）"; else rc=1; fi
+
   # ケース20（判定9・3.3）: rule-scope-overrides.json に宣言の無い子カテゴリは、
   #   taxonomyの既定値（scope・paths）を保つ（上書き対象key以外へ波及しない）。
   local ok20=1
@@ -1669,6 +1775,46 @@ EOF
 
   local merged18
   merged18="$(merge_project_rule_section "$new18" "$existing18_file")"
+
+  # ケース18b・18c（改善課題1-290）: 保護を見出しの文字列一致に頼らない。
+  #   18b: 「このプロジェクトの規則」の見出しを現場が変えていても、現場の表の行が残る
+  #   18c: 保護できない行（地の文）があれば件数を出力して上書き前に停止する（戻り値3）
+  local ok1290=1 new1290 existing1290 merged1290 rc1290 out1290
+  new1290="$(build_tooldefined_rule_md "$ckey18" "$title18" "$pkey18" "$summary18" "$TOOLDEFINED_UNCHECKABLE" "$src18" "$scope18" "$paths18" "未解析" "" "$checker18")"
+  if ! existing1290="$(mktemp "${TMPDIR:-/tmp}/scaffold-rule-definitions-case1290.XXXXXX" 2>/dev/null)" || [ -z "$existing1290" ]; then
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  printf '%s\n' "$new1290" | awk '
+    /^## このプロジェクトの規則$/ {
+      print "## 現場で決めた規則"
+      print ""
+      print "| 規則 | 内容 | 根拠 | 検査 |"
+      print "|---|---|---|---|"
+      print "| ケース1290観測ルール | 見出しを変えた節の中の現場の規則 | 現場のコード | レビュー: 現場が目視で確認する |"
+      skip=1
+      next
+    }
+    skip && /^## / { skip=0 }
+    skip { next }
+    { print }
+  ' > "$existing1290"
+  rc1290=0
+  merged1290="$(merge_project_rule_section "$new1290" "$existing1290")" || rc1290=$?
+  if [ "$rc1290" -ne 0 ] || ! printf '%s\n' "$merged1290" | grep -qF '| ケース1290観測ルール |'; then
+    echo "  [FAIL] ケース18b: 見出しを変えた既存ファイルの現場の行が保護されない（rc=${rc1290}）" >&2
+    ok1290=0
+  fi
+  printf '\n現場が書いた地の文の注意書き。\n' >> "$existing1290"
+  rc1290=0
+  out1290="$(merge_project_rule_section "$new1290" "$existing1290" 2>&1 >/dev/null)" || rc1290=$?
+  if [ "$rc1290" -ne 3 ] || ! printf '%s' "$out1290" | grep -q '保護できない行が 1 件'; then
+    echo "  [FAIL] ケース18c: 保護できない行があるのに停止しない、または件数を出さない（rc=${rc1290}）" >&2
+    ok1290=0
+  fi
+  rm -f "$existing1290"
+  if [ "$ok1290" -eq 1 ]; then echo "  [PASS] ケース18b・18c: 見出しに依らない保護と、上書き前の停止（改善課題1-290）"; else rc=1; fi
+
 
   local other_new18 other_merged18
   other_new18="$(printf '%s\n' "$new18" | awk '

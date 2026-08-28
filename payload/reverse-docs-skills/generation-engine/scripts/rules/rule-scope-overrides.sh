@@ -113,8 +113,44 @@ resolve_rule_scope_overrides() {
 $keys
 EOF
 
+  # 改善課題1-286: 分類の宣言が子の数を固定しないよう、対象側が親の下へトピック単位の
+  # 子を任意個足せる受け口。形式:
+  #   "additionalChildren": { "<親key>": [ { "key": "<子key>", "title": "<表示名>", "summary": "<要約>" } ] }
+  # 足した子は toolDefined:false（現場が記入する雛形）として配置し、既存の検査の対象になる。
+  if ! printf '%s' "$doc" | jq -e '(.additionalChildren // {}) | type == "object"' >/dev/null 2>&1; then
+    echo "ERROR: ${target_file} の additionalChildren はオブジェクトである必要があります" >&2
+    return 1
+  fi
+  local pkeys pkey bad
+  pkeys="$(printf '%s' "$doc" | jq -r '(.additionalChildren // {}) | keys[]' 2>/dev/null || true)"
+  while IFS= read -r pkey; do
+    [ -n "$pkey" ] || continue
+    if ! printf '%s' "$doc" | jq -e --arg p "$pkey" '.additionalChildren[$p] | type == "array"' >/dev/null 2>&1; then
+      echo "ERROR: ${target_file} の additionalChildren.${pkey} は配列である必要があります" >&2
+      return 1
+    fi
+    bad="$(printf '%s' "$doc" | jq -r --arg p "$pkey" '.additionalChildren[$p][] | select((.key | type != "string") or (.key | test("^[a-z0-9]+(-[a-z0-9]+)*$") | not) or (.title | type != "string") or (.title == "")) | .key // "（keyなし）"' 2>/dev/null | head -n1)"
+    if [ -n "$bad" ]; then
+      echo "ERROR: ${target_file} の additionalChildren.${pkey} の子 '${bad}' は key（ケバブケース）と非空の title を持つ必要があります" >&2
+      return 1
+    fi
+  done <<PK
+$pkeys
+PK
+
+
   printf '%s' "$doc"
   return 0
+}
+
+# 対象側が親の下へ足した子（additionalChildren）を、taxonomy の子と同じ形の JSON 行で返す。
+# 宣言が無ければ何も出さない。rule_additional_children_get <resolve済みJSON> <親key>
+rule_additional_children_get() {
+  local json="$1" pkey="$2"
+  printf '%s' "$json" | jq -c --arg p "$pkey" '
+    (.additionalChildren // {})[$p] // [] | .[] |
+    { key: .key, title: .title, summary: (.summary // ""), toolDefined: false, checker: null,
+      scope: (.scope // "always"), paths: (.paths // ["**/*"]), phases: (.phases // []), projectDefined: true }'
 }
 
 # 合成済みJSONからキー（子カテゴリのkey）の上書き値を取り出す。
@@ -254,6 +290,37 @@ EOF
   else
     echo "  [PASS] ケース6: 不正な scope 値は不合格になる"
   fi
+
+  # ケース7（改善課題1-286）: additionalChildren で親の下へ足した子を取得でき、
+  #   toolDefined:false・projectDefined:true・既定の scope/paths が補われる
+  local root7="${tmp}/case7"; mkdir -p "${root7}/docs/rules"
+  cat > "${root7}/docs/rules/rule-scope-overrides.json" <<'EOF'
+{"specVersion":1,"overrides":{},"additionalChildren":{"code-standards":[{"key":"query-guidelines","title":"問い合わせ文の決まり","summary":"実測で分けた話題"}]}}
+EOF
+  local j7 c7
+  if j7="$(resolve_rule_scope_overrides "$root7" 2>/dev/null)" \
+     && c7="$(rule_additional_children_get "$j7" code-standards)" \
+     && [ "$(printf '%s' "$c7" | jq -r '.key')" = "query-guidelines" ] \
+     && [ "$(printf '%s' "$c7" | jq -r '.toolDefined')" = "false" ] \
+     && [ "$(printf '%s' "$c7" | jq -r '.projectDefined')" = "true" ] \
+     && [ "$(printf '%s' "$c7" | jq -r '.scope')" = "always" ] \
+     && [ -z "$(rule_additional_children_get "$j7" naming 2>/dev/null || true)" ]; then
+    echo "  [PASS] ケース7: additionalChildren で足した子を親キーごとに取得できる（改善課題1-286）"
+  else
+    echo "  [FAIL] ケース7: 取得結果が不正: ${c7:-}" >&2; rc=1
+  fi
+
+  # ケース8（改善課題1-286）: additionalChildren の子が key（ケバブケース）または title を欠くと不合格
+  local root8="${tmp}/case8"; mkdir -p "${root8}/docs/rules"
+  cat > "${root8}/docs/rules/rule-scope-overrides.json" <<'EOF'
+{"specVersion":1,"overrides":{},"additionalChildren":{"code-standards":[{"key":"Bad Key","title":""}]}}
+EOF
+  if resolve_rule_scope_overrides "$root8" >/dev/null 2>&1; then
+    echo "  [FAIL] ケース8: 不正な子（key・title）が不合格にならない" >&2; rc=1
+  else
+    echo "  [PASS] ケース8: additionalChildren の不正な子は不合格になる（改善課題1-286）"
+  fi
+
 
   rm -rf "$tmp"
 

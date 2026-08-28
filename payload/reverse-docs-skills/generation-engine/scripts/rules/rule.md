@@ -195,3 +195,12 @@ scope・paths を `rule-taxonomy.json`（触らない対象）の既定値から
 - `delivery-payload/references/規約定義と派生生成の設計.md` — 変換規則・検査規則の設計定義
 - `delivery-payload/references/rule-taxonomy.json` — scaffold-rule-definitions.sh が読む親7・子27の宣言
 - `generation-engine/samples/docs/rules/agent-operations/ai-behavior/`・`generation-engine/samples/docs/rules/code-standards/naming/` — 取り込み済み（`status: approved` / `origin: proposal`）の実例。他の子カテゴリは scaffold-rule-definitions.sh が配る空雛形のまま
+
+**additionalChildren（改善課題1-286）**: 同じ宣言ファイルは `additionalChildren` を持てる。形は
+`{"<親キー>": [{"key": "<ケバブケース>", "title": "<表示名>", "summary": "<要約>"}]}` で、
+親キーごとに子を任意個足す。`rule_additional_children_get <解決済みJSON> <親キー>` が
+1行1件の JSON（`toolDefined:false`・`projectDefined:true`・既定 `scope:"always"`・
+`paths:["**/*"]` を補ったもの）を返し、`scaffold-rule-definitions.sh` が taxonomy の子と
+同列に合流させる。足した子の雛形は `status: draft` で配置され、`validate-rule-definitions.sh`
+の検査が同じように働く。子の数を親7件・子27件に固定しない。
+

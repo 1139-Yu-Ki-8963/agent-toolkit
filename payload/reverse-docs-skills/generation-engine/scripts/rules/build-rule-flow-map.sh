@@ -252,7 +252,7 @@ table.rfm thead th { font-size: 11px; font-weight: 600; color: var(--muted); }
         </div>
       </div>
 
-      <p class="rfm-lead">いま取り組んでいるフェーズから読むべき規約を引く一覧と、27件の規約それぞれの適用範囲・対象ファイル・効くフェーズを引く一覧の2通りを、同じ rule-taxonomy.json から生成する。</p>
+      <p class="rfm-lead">いま取り組んでいるフェーズから読むべき規約を引く一覧と、{{RULE_COUNT}}件の規約それぞれの適用範囲・対象ファイル・効くフェーズを引く一覧の2通りを、同じ rule-taxonomy.json から生成する。</p>
 
       <div class="table-area">
         <section class="rfm-view">

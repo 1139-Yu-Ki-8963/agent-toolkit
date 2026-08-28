@@ -246,10 +246,10 @@ _self_test() {
   local parent_count child_count
   parent_count="$(jq '.parents | length' "${repo}/delivery-payload/references/rule-taxonomy.json")"
   child_count="$(jq '[.parents[].children[]] | length' "${repo}/delivery-payload/references/rule-taxonomy.json")"
-  if [ "$parent_count" -eq 7 ] && [ "$child_count" -eq 27 ]; then
-    _case_pass "規約-親子読取" "rule-taxonomy.json から親7・子27を読み取った"
+  if [ "$parent_count" -gt 0 ] && [ "$child_count" -gt 0 ]; then
+    _case_pass "規約-親子読取" "rule-taxonomy.json から親${parent_count}・子${child_count}を読み取った（子の数は固定しない。改善課題1-286）"
   else
-    _case_fail "規約-親子読取" "親${parent_count}件・子${child_count}件（期待: 親7・子27）"
+    _case_fail "規約-親子読取" "親${parent_count}件・子${child_count}件（親・子とも1件以上が必要）"
   fi
 
   # 分母-件数（動的導出との内部整合性を検査する。verification-loop/設計.md記載の

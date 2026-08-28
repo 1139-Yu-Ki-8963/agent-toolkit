@@ -30,6 +30,8 @@ set -euo pipefail
 #   7. 必須節検査: 定義ファイルで必須節を持つ文書に、Markdown見出しとして
 #      必須節がすべて無ければFAIL。
 #   8. 根拠分離検査: 共通6文書に廃止した根拠の列・抽出元列・file:line 注記が無い。
+#   9. 対象外の再掲検査: 本文で「対象外」と宣言した識別子を、後続の見出し・箇条書きへ再掲していない（改善課題1-271）。
+#  10. 画面除外の根拠検査: 画面が対象外である根拠を、判定の記録（除外種別の宣言ファイル）への参照なしに書き直していない（改善課題1-272）。
 #   いずれか1件でも違反があれば exit 1（fail-closed）。全件PASSでexit 0。
 #   --self-test は合成フィクスチャで陽性exit 0・陰性(検査ごと)exit 1を自己検証する。
 #
@@ -498,7 +500,95 @@ run_all_checks() {
   check_message_scale "$dir" || rc=1
   check_required_sections "$dir" || rc=1
   check_common_doc_evidence_separation "$dir" || rc=1
+  check_common_doc_excluded_reappearance "$dir" || rc=1
+  check_common_doc_screen_exclusion_reference "$dir" || rc=1
   return "$rc"
+}
+
+# 検査9（改善課題1-271）: 本文の「対象外」宣言で名指しした項目が、同じ文書の後続の
+# 見出し・箇条書きに実体として再掲されていないかを見る。宣言の行（「対象外」を含む行）に
+# 逆引用符で囲まれた識別子があれば、それを対象外の語として集め、それ以降の見出し
+# （^#）と箇条書き（^[-*]）に同じ識別子が現れたら再掲として報告する。
+excluded_item_reappearance_hits() {
+  perl -CSD -Mutf8 -ne '
+    push @L, $_;
+    END {
+      my %declared;
+      for my $i (0..$#L) {
+        my $line = $L[$i];
+        if ($line =~ /対象外/) {
+          while ($line =~ /`([^`]+)`/g) { my $t = $1; $declared{$t} = $i + 1 unless exists $declared{$t}; }
+          next;
+        }
+        next unless $line =~ /^(#{1,6}\s|[-*]\s)/;
+        for my $t (sort keys %declared) {
+          next if $declared{$t} >= $i + 1;
+          if (index($line, $t) >= 0) { print(($i + 1) . ": 対象外と宣言した「" . $t . "」（" . $declared{$t} . "行目）が再掲されている: " . ($line =~ s/\n//r) . "\n"); last; }
+        }
+      }
+    }' "$1"
+}
+
+check_common_doc_excluded_reappearance() {
+  local dir="$1" record f path hits failed=0
+  while IFS= read -r record; do
+    f="$(document_path "$record")"
+    document_is_applicable "$dir" "$record" >/dev/null || continue
+    path="$dir/$f"
+    [ -f "$path" ] || continue
+    hits="$(excluded_item_reappearance_hits "$path" 2>/dev/null || true)"
+    if [ -n "$hits" ]; then
+      echo "  対象外と宣言した項目の再掲: $f" >&2
+      echo "$hits" >&2
+      failed=$((failed + 1))
+    fi
+  done <<EOF2
+$(document_records)
+EOF2
+  if [ "$failed" -gt 0 ]; then
+    echo "検査9失敗: $failed 文書に、対象外と宣言した項目が本文の見出し・箇条書きへ再掲されています" >&2
+    return 1
+  fi
+  echo "検査9通過: 共通6文書に、対象外と宣言した項目の再掲がない"
+  return 0
+}
+
+# 検査10（改善課題1-272）: 画面が対象外である根拠（マニフェスト件数・除外種別の宣言等の
+# 実測値）を各文書が書き直していないかを見る。画面と対象外（または対象なし）を同じ行で
+# 述べる行は、判定の記録（除外種別の宣言ファイル）への参照を含まなければならない。
+screen_exclusion_restatement_hits() {
+  local excluded_name="$2"
+  perl -CSD -Mutf8 -ne '
+    BEGIN { $name = shift @ARGV; }
+    next unless /画面/ && /対象外|対象なし/;
+    next if index($_, $name) >= 0;
+    print "$.: " . ($_ =~ s/\n//r) . "\n";
+  ' "$excluded_name" "$1"
+}
+
+check_common_doc_screen_exclusion_reference() {
+  local dir="$1" record f path hits failed=0 excluded_name
+  excluded_name="$(basename "$(output_layout_get "$LAYOUT_JSON" excludedKinds)")"
+  while IFS= read -r record; do
+    f="$(document_path "$record")"
+    document_is_applicable "$dir" "$record" >/dev/null || continue
+    path="$dir/$f"
+    [ -f "$path" ] || continue
+    hits="$(screen_exclusion_restatement_hits "$path" "$excluded_name" 2>/dev/null || true)"
+    if [ -n "$hits" ]; then
+      echo "  画面が対象外である根拠の書き直し（判定の記録 $excluded_name への参照が無い）: $f" >&2
+      echo "$hits" >&2
+      failed=$((failed + 1))
+    fi
+  done <<EOF2
+$(document_records)
+EOF2
+  if [ "$failed" -gt 0 ]; then
+    echo "検査10失敗: $failed 文書が、画面が対象外である根拠を判定の記録への参照なしに書き直しています" >&2
+    return 1
+  fi
+  echo "検査10通過: 画面が対象外である根拠は判定の記録への参照だけで述べられている"
+  return 0
 }
 
 # 合成フィクスチャによる自己テスト（陽性と検査ごとの陰性を含む）。
@@ -909,6 +999,75 @@ MD
     rc=1
   else
     echo "  [PASS] 検査8: 本文の廃止した根拠の列・file:line注記でexit 1"
+  fi
+
+
+  # 検査9（改善課題1-271）: 対象外と宣言した項目を後続の箇条書きへ再掲すれば検出する。
+  fail9_dir="$tmp/fail9"
+  build_docs "$fail9_dir"
+  cat >> "$fail9_dir/$message_doc" <<'MD'
+
+## 対象外の項目
+
+機械が判定に使う識別子 `E_SYS_001`・`E_SYS_002` は利用者向けの文言ではないため対象外とする。
+
+## 参考として
+
+- `E_SYS_001` 内部の判定に使う
+- `E_SYS_002` 内部の判定に使う
+MD
+  if check_common_doc_excluded_reappearance "$fail9_dir" >/dev/null 2>&1; then
+    echo "  [FAIL] 検査9: 対象外と宣言した項目の再掲があるのにexit 0になった" >&2
+    rc=1
+  else
+    echo "  [PASS] 検査9: 対象外と宣言した項目の再掲でexit 1"
+  fi
+  out9="$(check_common_doc_excluded_reappearance "$fail9_dir" 2>&1 >/dev/null || true)"
+  if printf '%s' "$out9" | grep -q 'E_SYS_001'; then
+    echo "  [PASS] 検査9: 走査が再掲した識別子を行番号つきで返す"
+  else
+    echo "  [FAIL] 検査9: 走査が再掲した識別子を返さない" >&2
+    rc=1
+  fi
+  pass9_dir="$tmp/pass9"
+  build_docs "$pass9_dir"
+  cat >> "$pass9_dir/$message_doc" <<'MD'
+
+## 対象外の項目
+
+機械が判定に使う識別子 `E_SYS_001` は利用者向けの文言ではないため対象外とする。
+MD
+  if check_common_doc_excluded_reappearance "$pass9_dir" >/dev/null 2>&1; then
+    echo "  [PASS] 検査9: 宣言のみで再掲の無い文書はexit 0"
+  else
+    echo "  [FAIL] 検査9: 宣言のみの文書を不合格にした" >&2
+    rc=1
+  fi
+
+  # 検査10（改善課題1-272）: 画面が対象外である根拠を参照なしに書き直せば検出する。
+  fail10_dir="$tmp/fail10"
+  build_docs "$fail10_dir"
+  cat >> "$fail10_dir/$design_doc" <<'MD'
+
+画面は対象外である（画面のマニフェスト件数が0件で、設計書フォルダに画面が無いため）。
+MD
+  if check_common_doc_screen_exclusion_reference "$fail10_dir" >/dev/null 2>&1; then
+    echo "  [FAIL] 検査10: 根拠の書き直しがあるのにexit 0になった" >&2
+    rc=1
+  else
+    echo "  [PASS] 検査10: 画面が対象外である根拠の書き直しでexit 1"
+  fi
+  pass10_dir="$tmp/pass10"
+  build_docs "$pass10_dir"
+  cat >> "$pass10_dir/$design_doc" <<'MD'
+
+画面が対象外である根拠は、判定の記録 `excluded-kinds.json` を正とし本書には書き直さない。
+MD
+  if check_common_doc_screen_exclusion_reference "$pass10_dir" >/dev/null 2>&1; then
+    echo "  [PASS] 検査10: 判定の記録への参照だけならexit 0"
+  else
+    echo "  [FAIL] 検査10: 参照だけの文書を不合格にした" >&2
+    rc=1
   fi
 
   # 検査8: 拡張子に依存せず、非ASCIIパスを含むfile:line注記を検出する。
