@@ -2013,6 +2013,36 @@ self-testでこの不具合を検出し、判定の中核を `node -e` へ委譲
 
 **廃棄条件**: 台帳が公開先を起点とする構造化コマンドへ移行し、同期処理が各参照パスの包含を同等以上に常時検証するようになった時。
 
+### docs-script-scan.sh と test-*-scan.sh 19本（事後検出の走査が実行されない件の是正）
+
+**必要性**: `generation-engine/scripts/tests/check-commit-issue-trace.sh` は「フックが発火しないコミットを事後に検出する」ためのスクリプトだが、実測（2026-08-28）で、新設から一度も第1層の機械検証（`run-layer-machine-checks.sh`）から実データの走査が実行されていないことが判明した。集約は `--self-test` を持つ `.sh` を集めるが、`run_target` は集めた対象を常に `--self-test` を付けて実行する。本体は `--self-test` で作例6件の回帰を通すだけの分岐を持ち、引数なしで呼ぶと実際のコミット履歴を走査する本番経路（`run_scan`）が別にあるが、集約からこの経路が呼ばれることは一度も無かった。集約の結果は「実行 6 件 / 終了コード 0」（作例の合格）だけを示し、実データ（違反9件）は集約のどこにも現れていなかった。
+
+同型の欠落を横断的に洗い出したところ、`docs/scripts/` 配下に同じ構造（`--self-test` の作例回帰と、引数なしの実データ走査が別経路にある）を持つスクリプトが18本見つかった（`check-verdict-hash-ancestry.sh`・`check-rule-machine-enforcement-registration.sh`・`check-design-doc-references.sh`・`check-design-doc-line-refs.sh`・`check-done-instruction-verdicts.sh`・`check-improvement-index.sh`・`check-inventory-approval-step.sh`・`check-label-collision-wiring.sh`・`check-ledger-acceptance-coverage.sh`・`check-ledger-file-count.sh`・`check-manifest-count-mismatch.sh`・`check-reference-json-integrity.sh`・`check-release-notes-completion-record.sh`・`check-retired-terms-in-samples.sh`・`check-skill-allowed-tools.sh`・`check-skill-cross-references.sh`・`check-skill-guide-consistency.sh`・`check-template-guidance-skill-steps.sh`）。いずれも既存の `generation-engine/scripts/tests/check-<name>.sh` ラッパーは本体の `--self-test` だけを呼ぶ構造であり、実データの走査は集約から一度も実行されていなかった。
+
+19本（上記18本＋`check-commit-issue-trace.sh`）それぞれについて、実データの走査だけを行う薄い入口 `test-<name>-scan.sh`（`test-commit-issue-trace-scan.sh`・`test-verdict-hash-ancestry-scan.sh`・`test-rule-machine-enforcement-registration-scan.sh`・`test-design-doc-references-scan.sh`・`test-design-doc-line-refs-scan.sh`・`test-done-instruction-verdicts-scan.sh`・`test-improvement-index-scan.sh`・`test-inventory-approval-step-scan.sh`・`test-label-collision-wiring-scan.sh`・`test-ledger-acceptance-coverage-scan.sh`・`test-ledger-file-count-scan.sh`・`test-manifest-count-mismatch-scan.sh`・`test-reference-json-integrity-scan.sh`・`test-release-notes-completion-record-scan.sh`・`test-retired-terms-in-samples-scan.sh`・`test-skill-allowed-tools-scan.sh`・`test-skill-cross-references-scan.sh`・`test-skill-guide-consistency-scan.sh`・`test-template-guidance-skill-steps-scan.sh`）を新設した。既存の `--self-test` ラッパー（`check-<name>.sh`）は変更しない（自己テストの決定性・完了条件5が確かめる `--self-test` の実行 6 件という値を変えないため）。19本は共通の関数 `run_docs_script_scan`（`generation-engine/scripts/tests/lib/docs-script-scan.sh`）を呼ぶだけの薄いファイルで、判定の中身は写して持たない。
+
+`test-*-scan.sh` という命名は、集約の名前ベース収集（`find -name 'test-*.sh'`）に拾わせるための必須条件である。加えて、ファイル内容に自己テストの分岐ラベル（case文の分岐やif文の比較として使われる特定の記法）を1文字も含んではならない。含むと `run_target` が誤って `--self-test` を付けて実行してしまう。この落とし穴は実装時に実際に踏んだ。コメント文中で分岐ラベルをそのまま引用しただけで、19本すべてが誤検出された（`grep` は実行コンテキストを区別せずファイル内容全体を走査するため）。共有ライブラリ（`lib/docs-script-scan.sh`）自身のコメントでも同じ事故が起き、集約対象外のはずのライブラリが対象に混入し、関数定義だけで実処理を持たないため「実行0件・終了コード0」の途中停止の疑い（SUSPECT）として検出される寸前だった。対策として、コメント中はすべて「自己テストの分岐ラベル」という言い換えに統一し、当該記法そのものの literal 文字列を一切書かないようにした。
+
+**代替案を採用しなかった理由**:
+- 既存の `--self-test` ラッパー（`check-<name>.sh`）自身を書き換えて引数なしモードも一緒に実行する案: 自己テストは決定的であるべきで、実データ（コミット履歴・台帳・スキル定義等、時間とともに変わる）を混ぜると自己テストの合否が実行のたびに変わり、作例の回帰検知が壊れる。判定と実データ走査を分けて出す方式にした
+- 集約の収集条件（`list_targets`）自体を変え、`--self-test` 以外の呼び方も対象に含める案: 既に集約に載っている264本の収集結果を変える危険がある。試験的に確認するコストが大きく、19本という限定的な対象には過大な変更になる
+- Bash ツール直叩きで19本を個別に都度確認する: 往復検証・公開のたびに19本を手で実行し目視確認すると、確認の省略・見落としを繰り返す。実際に check-commit-issue-trace.sh 自身がこの状態のまま長期間気付かれなかった
+- 既存 Makefile ターゲット拡張・package.json scripts 追加: このリポジトリはどちらも持たず、新規導入は本スクリプト群専用の依存を増やすだけになる
+
+**保守責任者**: 人手（ユーザー）。`docs/scripts/` 配下に「`--self-test` の作例回帰と、引数なしの実データ走査が別経路にある」新しいスクリプトを追加する場合は、対応する `test-<name>-scan.sh` を同時に新設し、`lib/docs-script-scan.sh` の `run_docs_script_scan` を呼ぶ。新設時はコメント中に自己テストの分岐ラベルの literal を書かないことを確認する（`bash generation-engine/scripts/verification/run-layer-machine-checks.sh --list` の出力に対象が現れ、かつ `bash <新設ファイル>` を引数なしで実行した際に本体の実データ走査結果がそのまま出ることを確認する）。
+
+**廃棄条件**: `check-commit-issue-trace.sh` を含む19本のいずれかが廃止された時は対応する `test-<name>-scan.sh` を同時に削除する。集約（`list_targets`）が `--self-test` を持たない実データ走査経路も標準で収集・実行するようになった時は、19本すべてを廃止できる。
+
+### 既知の違反の除外（check-commit-issue-trace.sh）
+
+配線される前に積み上がった既存違反9件は、`docs/references/commit-issue-trace-known-violations.json` に固定の一覧として記録し、`check-commit-issue-trace.sh` の `run_scan` がこの一覧に完全一致する `(commit hash, file)` の組だけを判定不能ではなく既知の違反として明示的に許容する（不合格には数えない）。コミット-課題対応規約が定めるとおり、既に公開したコミットの違反は記録として残し、履歴を書き換えて是正しない。一覧は実測時点で固定し以後は手で追記しない。新しく生じた違反（一覧に無い組）はそのまま不合格として検出する（実測: 作業場所内で課題キーを書かない指示書コミットを1つ作り、走査が新しい違反として検出することを確認した後、そのコミットを取り消した）。
+
+### 配線を見送った3件
+
+- `check-payload-safety.sh`: 走査対象が `~/github-public/agent-toolkit/payload/reverse-docs-skills`（このリポジトリの外側、公開先リポジトリ）であり、配線すると第1層の機械検証が公開先リポジトリのクローンに依存することになる。実データ走査を第1層で担う適切な入口は既に `docs/scripts/check-payload-layer1.sh`（公開完遂規約の手順6から呼ばれる）であり、これを重複させない
+- `check-task-ledger-sync.sh`: 実データ走査（引数なし）を実行すると、`docs/tasks/作業課題一覧.md`（本作業の対象外・別作業が進行中）の内容に起因する既存の不合格2件が出る。台帳の内容修正は本作業の範囲外であり、`check-commit-issue-trace.sh` と同じ固定一覧方式の除外を導入するには台帳側の安定した識別キーが要るが、当該台帳は現在進行形で編集されており、行の内容に基づく除外は台帳の編集のたびに一致しなくなり壊れやすい。配線は次の機会（台帳側の作業が完了し、除外設計を安定して行える時点）に見送る
+- `report-progress.sh`: 一見同型に見えるが、実際には異なる。`issue-ledger-format/rule.md` が定めるとおり、この検査の正式な合否判定（規約外の値・複数状態行の検出）は `--self-test` 自身が担い、`--self-test` の内部で実リポジトリの台帳（`docs/tasks/指摘改善一覧.md`）の見出し数と集計総数の一致も検証している。引数なしモードは単なる集計の表示（`print_state_summary`）であり、常に終了コード0を返す設計であって、判定を意図した経路ではない。したがって「`--self-test` は作例限定・引数なしが本番の判定経路」という check-commit-issue-trace.sh 型の欠落には当てはまらず、配線の対象外とした
+
 ## 規則
 
 | 規則 | 内容 | 根拠 | 検査 |

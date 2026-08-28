@@ -9,10 +9,26 @@
 #   （グローバル設定側の同種フックは発火する）。フックが呼ばれていないだけであり、
 #   判定ロジック自体（check-commit-issue-trace.sh の judge 関数）は正しく動作する。
 #   本スクリプトは、コミット時点で止める代わりに、直近のコミット履歴を事後に
-#   走査して同じ判定を再現し、違反を発見する。第1層の機械検証
-#   （generation-engine/scripts/verification/run-layer-machine-checks.sh）が
-#   --self-test の有無で動的に対象を集めるため、本スクリプトを
-#   generation-engine/scripts/tests/ 配下へ置くことで自動的に拾われる。
+#   走査して同じ判定を再現し、違反を発見する。
+#
+#   注意（2026-08-28実測）: 第1層の機械検証
+#   （generation-engine/scripts/verification/run-layer-machine-checks.sh）は
+#   `--self-test` を持つ .sh を集めるが、集めた対象は常に `--self-test` を
+#   付けて実行する（run_target が `--self-test)` の literal 一致で判定する）。
+#   本スクリプトを generation-engine/scripts/tests/ 配下へ置くだけでは、
+#   `--self-test`（作例6件の回帰）しか実行されず、実データ（実際のコミット
+#   履歴）の走査は一度も行われない。この事後検出は新設から配線されるまでの
+#   間、集約から実行されないまま存在していた。
+#   実データの走査を集約から実行するには、`--self-test` の literal を含まない
+#   別の入口（test-commit-issue-trace-scan.sh）を用意し、そちらを集約に拾わせる
+#   （run_target は `--self-test)` を含まないスクリプトを引数なしで実行する）。
+#
+# 既知の違反の扱い:
+#   配線される前に積み上がった既存9件は、docs/references/
+#   commit-issue-trace-known-violations.json に固定の一覧として記録し、
+#   判定不能ではなく既知の違反として明示的に許容する（不合格には数えない）。
+#   一覧は実測時点で固定し以後は手で追記しない。新しく生じた違反（一覧に無い
+#   commit+file の組）はそのまま不合格として検出される。
 #
 # 使い方:
 #   check-commit-issue-trace.sh [<リポジトリのパス>] [--max-commits <件数>]
@@ -88,6 +104,26 @@ has_exempt_prefix() {
   esac
 }
 
+# 既知の違反一覧（docs/references/commit-issue-trace-known-violations.json）。
+# 本検査を第1層の機械検証へ配線する前（2026-08-28実測）に積み上がった既存9件を
+# 判定不能とせず既知の違反として明示的に許容するための一覧。
+# コミット-課題対応規約が定めるとおり、既に公開したコミットの違反は記録として残し
+# 履歴を書き換えて是正しない。一覧は実測時点で固定し以後は手で追記しない。
+# この一覧に無い commit+file の組は、そのまま新規の違反として検出する。
+KNOWN_VIOLATIONS_FILE="$(cd "${SCRIPT_DIR}/../../.." && pwd)/docs/references/commit-issue-trace-known-violations.json"
+
+# 引数: hash（フルハッシュ） file（リポジトリルート相対パス）
+# 既知の違反一覧に完全一致する組があれば真を返す。一覧ファイルが無い場合や
+# jq が使えない場合は既知扱いせず（安全側）常に偽を返す。
+is_known_violation() {
+  local hash="$1" file="$2"
+  [ -f "${KNOWN_VIOLATIONS_FILE}" ] || return 1
+  command -v jq >/dev/null 2>&1 || return 1
+  jq -e --arg h "${hash}" --arg f "${file}" \
+    '(.violations // []) | any(.hash == $h and .file == $f)' \
+    "${KNOWN_VIOLATIONS_FILE}" >/dev/null 2>&1
+}
+
 # ============================================================
 # 走査本体
 # ============================================================
@@ -117,7 +153,7 @@ run_scan() {
     return 2
   fi
 
-  local violations="" checked=0 hits=0
+  local violations="" checked=0 hits=0 known=0
 
   while IFS= read -r hash; do
     [ -z "${hash}" ] && continue
@@ -165,13 +201,19 @@ ${keys}
 KEYS
 
       if [ "${found}" -eq 0 ]; then
-        hits=$((hits + 1))
         local short subject req
         short="$(git -C "${toplevel}" rev-parse --short "${hash}" 2>/dev/null)"
         subject="$(printf '%s\n' "${msg}" | head -n1)"
         req="$(printf '%s' "${keys}" | tr '\n' '/' | sed -e 's#/$##')"
-        violations="${violations}${short} ${f} (要求: ${req}) メッセージ先頭: ${subject}
+        if is_known_violation "${hash}" "${f}"; then
+          known=$((known + 1))
+          violations="${violations}[既知] ${short} ${f} (要求: ${req}) メッセージ先頭: ${subject}
 "
+        else
+          hits=$((hits + 1))
+          violations="${violations}${short} ${f} (要求: ${req}) メッセージ先頭: ${subject}
+"
+        fi
       fi
     done <<FILES
 ${files}
@@ -181,12 +223,17 @@ ${hashes}
 HASHES
 
   if [ "${hits}" -eq 0 ]; then
-    echo "検査対象コミット ${checked} 件 / 違反 0 件"
+    printf '%s' "${violations}"
+    if [ "${known}" -gt 0 ]; then
+      echo "検査対象コミット ${checked} 件 / 違反 0 件（既知の違反 ${known} 件を除外。docs/references/commit-issue-trace-known-violations.json 参照）"
+    else
+      echo "検査対象コミット ${checked} 件 / 違反 0 件"
+    fi
     return 0
   fi
 
   printf '%s' "${violations}"
-  echo "検査対象コミット ${checked} 件 / 違反 ${hits} 件"
+  echo "検査対象コミット ${checked} 件 / 違反 ${hits} 件（既知の違反 ${known} 件を除く）"
   return 1
 }
 

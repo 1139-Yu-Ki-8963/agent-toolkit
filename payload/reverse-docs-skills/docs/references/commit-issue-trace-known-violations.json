@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "note": "generation-engine/scripts/tests/check-commit-issue-trace.sh の事後検出が第1層の機械検証から一度も実行されていなかった（2026-08-28実測）。実行されていなかった間に積み上がった既存違反9件を、この一覧で判定不能ではなく既知の違反として明示的に許容する。コミット-課題対応規約（.claude/rules/always/tasks/commit-issue-trace/rule.md）が定めるとおり、既に公開したコミットの違反は記録として残し、履歴を書き換えて是正することはしない。この一覧は2026-08-28の実測時点で固定し、以後は手で追記しない。新しく生じた違反（この一覧に無い commit+file の組）はそのまま不合格として検出される。",
+  "recordedAt": "2026-08-28",
+  "recordedBy": "check-commit-issue-trace.sh を第1層の機械検証へ配線する作業での実測（走査対象200件・違反9件）",
+  "violations": [
+    { "hash": "1044773ada509a22e5e635d04c5510abae92ae06", "file": "docs/tasks/done/検証スクリプト群の自己テストと配布物再現を正す指示書.md" },
+    { "hash": "7a97c0efe6e774c51ff2ef67823329b443edbadf", "file": "docs/tasks/done/検証スクリプト群の自己テストと配布物再現を正す指示書.md" },
+    { "hash": "5f68eb6afa31b11c5b68a484aa6c00102bf3938a", "file": "docs/tasks/done/検証スクリプト群の自己テストと配布物再現を正す指示書.md" },
+    { "hash": "4f8ece44e1e9cbb0966b61b8641c91a838806c69", "file": "docs/tasks/done/文書テンプレートの本文表示を正す指示書.md" },
+    { "hash": "4f8ece44e1e9cbb0966b61b8641c91a838806c69", "file": "docs/tasks/done/配布物だけでポータルを再現できるようにする指示書.md" },
+    { "hash": "1cbf6fb2351b5b22a54074898f9613a67950e69c", "file": "docs/tasks/done/配布物だけでポータルを再現できるようにする指示書.md" },
+    { "hash": "dd082416333d622fab1ca5e61b6f01e2b269b6d4", "file": "docs/tasks/done/ポータル生成本体の目次と参照解決を正す指示書.md" },
+    { "hash": "dd082416333d622fab1ca5e61b6f01e2b269b6d4", "file": "docs/tasks/done/一覧の遷移導線と出力配置の集計を正す指示書.md" },
+    { "hash": "dd082416333d622fab1ca5e61b6f01e2b269b6d4", "file": "docs/tasks/done/文書テンプレートの本文表示を正す指示書.md" }
+  ]
+}

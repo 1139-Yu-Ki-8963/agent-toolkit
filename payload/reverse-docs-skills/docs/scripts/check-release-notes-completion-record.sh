@@ -188,11 +188,32 @@ case "${1:-}" in
     check_samples_record "$INSTRUCTION_DOC"
     ;;
   "")
-    st=0
-    check_replacement_case || st=1
-    check_ledger_wording "$LEDGER" "$LEDGER_HEADING" "$LEDGER_PHRASE" || st=1
-    check_samples_record "$INSTRUCTION_DOC" || st=1
-    exit "$st"
+    # 判定不能（終了コード2）を不合格（1）へ丸めない
+    # （.claude/rules/always/verification/indeterminate-result/rule.md）。
+    # 3つの検査の終了コードのうち、1件でも1（不合格）があれば全体を1とする。
+    # 1が1件も無く2（判定不能）が1件でもあれば全体を2とする。
+    # どちらも無ければ0とする。
+    has_fail=0
+    has_unknown=0
+    check_replacement_case
+    rc=$?
+    [ "$rc" -eq 1 ] && has_fail=1
+    [ "$rc" -eq 2 ] && has_unknown=1
+    check_ledger_wording "$LEDGER" "$LEDGER_HEADING" "$LEDGER_PHRASE"
+    rc=$?
+    [ "$rc" -eq 1 ] && has_fail=1
+    [ "$rc" -eq 2 ] && has_unknown=1
+    check_samples_record "$INSTRUCTION_DOC"
+    rc=$?
+    [ "$rc" -eq 1 ] && has_fail=1
+    [ "$rc" -eq 2 ] && has_unknown=1
+    if [ "$has_fail" -eq 1 ]; then
+      exit 1
+    elif [ "$has_unknown" -eq 1 ]; then
+      exit 2
+    else
+      exit 0
+    fi
     ;;
   *)
     echo "usage: check-release-notes-completion-record.sh [--replacement-case|--ledger-wording|--samples-record|--self-test]" >&2
