@@ -12,10 +12,20 @@
 #   105件の状態行を検出し、見出し数と合わない集計をユーザーへ誤って報告する事故が起きた。
 #   繰り返し実行するたびに同じ誤りを防ぐには、判定ロジックをスクリプトへ固定する必要がある。
 #
-# 集計方式: 各見出し（`### N-N.` の形）について、次の見出しの直前に現れた最後の`**状態**:`行
-#   だけを1件として数える。同じ見出しの中に古い状態行が残っていても二重カウントしない。
+# 集計方式: `### ` で始まる見出し全般（`### N-N.` の番号付きキーだけでなく、内容を要約した
+#   意味語キーの見出しも対象）について、次の見出しの直前に現れた最後の`**状態**:`行だけを1件
+#   として数える。同じ見出しの中に古い状態行が残っていても二重カウントしない。冒頭の指示書
+#   前付け（`## ` 見出し配下）にある状態行は、最初の`### `見出しに出会うまで捨てられるため
+#   数えない。
 #
-# 規約: .claude/rules/always/tasks/issue-ledger-format/rule.md（状態の語彙・1見出し1状態行の原則）
+# 2026-08-28 修正: 走査条件が `### N-N.` の番号付きキーだけに固定されていたため、内容を
+#   要約した意味語キーの見出し（`### ER図-テーブル詳細タブ.` 等）20件が一度も数えられて
+#   いなかった（実測: 見出し156件・番号付き136件・意味語キー20件）。台帳の形式規約
+#   （issue-ledger-format/rule.md）が意味語キーも許すよう改めたことに合わせ、走査条件を
+#   `### ` 全般へ広げた。
+#
+# 規約: .claude/rules/always/tasks/issue-ledger-format/rule.md（状態の語彙・1見出し1状態行の原則・
+#   見出しキーは番号付きでも意味語キーでもよい）
 #
 # 代替案を採用しなかった理由:
 #   - Bash ツール直叩き（都度ワンライナーを書く）: 実行のたびに集計ロジックがぶれ、実際に
@@ -46,7 +56,7 @@ is_allowed_state() {
 extract_issue_states() {
   local ledger="$1"
   awk '
-    /^### [0-9]+-[0-9]+\./ {
+    /^### / {
       if (key) print key "\t" state
       key = $0
       sub(/^### /, "", key)
@@ -62,7 +72,7 @@ extract_issue_states() {
 count_state_lines_per_heading() {
   local ledger="$1"
   awk '
-    /^### [0-9]+-[0-9]+\./ {
+    /^### / {
       if (key) print key "\t" cnt
       key = $0
       sub(/^### /, "", key)
@@ -217,7 +227,7 @@ EOF
   total=$((total + 1))
   if [ -f "$LEDGER" ]; then
     local heading_count summary_total
-    heading_count="$(grep -c '^### [0-9]\+-[0-9]\+\.' "$LEDGER")"
+    heading_count="$(grep -c '^### ' "$LEDGER")"
     summary_total="$(extract_issue_states "$LEDGER" | wc -l | tr -d ' ')"
     if [ "$heading_count" = "$summary_total" ]; then
       echo "  [PASS] 実リポジトリ台帳-見出し数と集計総数の一致（${heading_count}件）"
@@ -229,6 +239,44 @@ EOF
   else
     echo "  [SKIP] 実リポジトリ台帳が見つからないため対象外"
     pass=$((pass + 1))
+  fi
+
+  cat > "$self_test_tmpdir/case3.md" << 'EOF'
+### 1-1. 見出しA
+**状態**: 完了
+
+### 意味語キー-単純見出し
+**状態**: 未着手
+EOF
+  total=$((total + 1))
+  local out3
+  out3="$(print_state_summary "$self_test_tmpdir/case3.md")"
+  if echo "$out3" | grep -q "総数: 2件" && echo "$out3" | grep -q "完了: 1件" && echo "$out3" | grep -q "未着手: 1件"; then
+    echo "  [PASS] 意味語キー見出し-集計に含まれる"
+    pass=$((pass + 1))
+  else
+    echo "  [FAIL] 意味語キー見出し-集計に含まれる"
+    echo "$out3" | sed 's/^/    /'
+    fail=$((fail + 1))
+  fi
+
+  cat > "$self_test_tmpdir/case4.md" << 'EOF'
+### 意味語キー-重複. 見出しの説明
+**状態**: 未着手
+
+再確認した。
+
+**状態**: 完了
+EOF
+  total=$((total + 1))
+  local dupcount2
+  dupcount2="$(count_state_lines_per_heading "$self_test_tmpdir/case4.md" | awk -F'\t' '$2>1' | wc -l | tr -d ' ')"
+  if [ "$dupcount2" = "1" ]; then
+    echo "  [PASS] 意味語キー見出し-複数状態行の検出"
+    pass=$((pass + 1))
+  else
+    echo "  [FAIL] 意味語キー見出し-複数状態行の検出（検出件数=${dupcount2}、期待=1）"
+    fail=$((fail + 1))
   fi
 
   if [ -f "$LEDGER" ]; then
