@@ -661,6 +661,18 @@ a:hover { text-decoration: underline; }
 #doc-content a.ref-link { color: var(--accent); border-bottom: 1px dotted var(--accent); }
 @media print { .doc-tools { display: none; } }
 
+/* 改善課題1-273・1-295: 行数の多い表の並べ替え・絞り込み、テストケース一覧の CSV 書き出し */
+.table-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0 6px; font-size: 12.5px; color: var(--sub); }
+.table-tools input[type="search"] { flex: 1 1 200px; min-width: 140px; padding: 4px 8px; font-size: 12.5px; color: var(--text); background: var(--panel); border: 1px solid var(--line2); border-radius: 0; }
+.table-tools button { padding: 4px 10px; font-size: 12px; color: var(--text); background: var(--panel); border: 1px solid var(--line2); border-radius: 0; cursor: pointer; }
+.table-tools button:hover { border-color: var(--accent); }
+.table-tools .table-filter-count { font-family: var(--mono); font-size: 11.5px; color: var(--stamp); }
+#doc-content table.sortable-table th { cursor: pointer; user-select: none; }
+#doc-content table.sortable-table th[aria-sort="ascending"]::after { content: " \25b4"; color: var(--accent); }
+#doc-content table.sortable-table th[aria-sort="descending"]::after { content: " \25be"; color: var(--accent); }
+#doc-content tr.is-filtered { display: none; }
+@media print { .table-tools { display: none; } }
+
 /* baseline prose（セクション固有クラスの対象外になる見出し・段落・引用・区切り線） */
 #doc-content h3 { font-size: 1.05rem; margin: 20px 0 8px; color: var(--text); }
 #doc-content h4 { font-size: 0.95rem; margin: 16px 0 6px; color: var(--sub); }
@@ -1082,7 +1094,7 @@ table.data-table code {
 </footer>
 </div>
 
-<script type="application/json" id="doc-md">"\n# audit API単体テスト設計書\n\n\n\n## 本書が検証するもの\n\n結合は2段に分けて定義します。1つの設計単位の中で構成要素が結合した状態を内部結合、複数の設計単位をまたぐ連携を外部結合と呼びます。単位ごとの文書は内部結合までを担い、プロジェクト全体の文書が外部結合を担います。\n\n| 段 | 検証する状態 | 対応する設計書 | 文書 |\n|---|---|---|---|\n| 単体 | 1つの関数・メソッドの入出力 | API詳細設計書 | API単体テスト設計書（本書） |\n| 内部結合 | 1つのAPIの中で関数・メソッドが結合した状態（外部の振る舞い） | API基本設計書 | API結合テスト設計書 |\n| 外部結合 | 複数の画面・機能・APIをまたぐ連携 | 複数の設計書 | docs/test-cases/結合テスト仕様書.md |\n\n## テスト対象\n\n| 関数・メソッド名 | 役割 | 由来する詳細設計書の章 |\n|---|---|---|\n\n## テストの粒度と自動化の方針\n\n| 項目 | 方針 |\n|---|---|\n| テストの粒度 | 1つの関数またはメソッドを1単位として、入出力・分岐・副作用・例外を確認する。 |\n| 自動化 | 関数を直接呼び出せる自動テストを優先する。 |\n\n## 本書が扱わない範囲\n\n| 対象外の事項 | 対象外とする理由 | 代わりに確認する資料または試験 |\n|---|---|---|\n| APIの応答コードを含む外部契約 | 関数単位より上のAPI単位であるため | API結合テスト設計書 |\n| 複数の機能・APIの連携 | 単位ごとの文書は結合テストを扱わないため | docs/test-cases/結合テスト仕様書.md |\n\n## §1 テスト観点\n\n§1は正常・異常・境界を含む全観点の一覧です。\n§5と§6は、§1のうち異常と境界の観点を列ごとに詳しく述べる部分集合です。\n§5と§6では新しい観点キーを作らず、§1と同じ観点キーを使います。\n実行する全ケースは§2だけに記載し、§1の全観点へ1件以上のケースを対応させます。\n実行するテストの件数は§2のデータ行数だけで数えます。\n\n観点は詳細設計書の§2 メソッド設計・§3 ロジック設計・§6 エラー処理から起こす。API詳細設計書では、それぞれ API詳細設計書 §12.2（関数単位の契約）、API詳細設計書 §5（ロジック）、API詳細設計書 §10（エラー）を対応する情報源として扱う。\n\n| キー | 関数・メソッド名 | 観点 | 由来する詳細設計書の章 |\n|---|---|---|---|\n\n## §2 テストケース一覧\n\n| キー | 関数・メソッド名 | ケースの名前 | 対応する観点のキー | 区分 |\n|---|---|---|---|---|\n\n## §3 入力条件\n\n| ケースのキー | 引数・事前状態 | 値 | 由来する詳細設計書の章 |\n|---|---|---|---|\n\n## §4 期待結果\n\n| ケースのキー | 戻り値・事後状態 | 副作用 | 確認の方法 |\n|---|---|---|---|\n\n## §5 異常系\n\n| 観点のキー | 関数・メソッド名 | 発生させる条件 | 期待する例外・エラー | 由来する詳細設計書の章 |\n|---|---|---|---|---|\n\n## §6 境界値\n\n| 観点のキー | 関数・メソッド名 | 対象の引数・状態 | 境界の値 | 境界の直前と直後の扱い |\n|---|---|---|---|---|\n\n## §7 網羅基準\n\n| 観点 | 基準 |\n|---|---|\n| 条件の網羅 | 詳細設計書に記録された条件を網羅する。 |\n| 分岐の網羅 | 詳細設計書に記録された真偽の分岐を網羅する。 |\n| エラーの網羅 | 詳細設計書に記録された例外・エラーを網羅する。 |\n\n## §8 前提条件と終了条件\n\n| 区分 | 内容 |\n|---|---|\n| 実行の前提条件 | 関数・メソッドを直接呼び出せること。 |\n| 終了の条件 | 対象関数の観点とケースがすべて対応していること。 |\n\n## §9 関連資料\n\n他文書の所在はこの節へまとめる。確定できなかった事項は推測で埋めず、空欄のままとする。\n\n### 9.1 観測の出どころ\n\nテスト観点と期待結果を読み取った実装箇所を記録する。ファイルと行はこの表だけに書き、本文へ括弧書きで埋め込まない。\n\n| 対応する節・項目 | ファイル | 行 |\n|---|---|---|\n\n| 資料 | パス | 本書との関係 |\n|---|---|---|\n| 対応する設計書・テスト設計書 | `../詳細設計/API詳細設計書.md` | 本書と対応する他文書 |"</script>
+<script type="application/json" id="doc-md">"\n# audit API単体テスト設計書\n\n\n\n## 本書が検証するもの\n\n結合は2段に分けて定義します。1つの設計単位の中で構成要素が結合した状態を内部結合、複数の設計単位をまたぐ連携を外部結合と呼びます。単位ごとの文書は内部結合までを担い、プロジェクト全体の文書が外部結合を担います。\n\n| 段 | 検証する状態 | 対応する設計書 | 文書 |\n|---|---|---|---|\n| 単体 | 1つの関数・メソッドの入出力 | API詳細設計書 | API単体テスト設計書（本書） |\n| 内部結合 | 1つのAPIの中で関数・メソッドが結合した状態（外部の振る舞い） | API基本設計書 | API結合テスト設計書 |\n| 外部結合 | 複数の画面・機能・APIをまたぐ連携 | 複数の設計書 | docs/test-cases/結合テスト仕様書.md |\n\n## テスト対象\n\n| 関数・メソッド名 | 役割 | 由来する詳細設計書の章 |\n|---|---|---|\n\n## テストの粒度と自動化の方針\n\n| 項目 | 方針 |\n|---|---|\n| テストの粒度 | 1つの関数またはメソッドを1単位として、入出力・分岐・副作用・例外を確認する。 |\n| 自動化 | 関数を直接呼び出せる自動テストを優先する。 |\n\n## 本書が扱わない範囲\n\n| 対象外の事項 | 対象外とする理由 | 代わりに確認する資料または試験 |\n|---|---|---|\n| APIの応答コードを含む外部契約 | 関数単位より上のAPI単位であるため | API結合テスト設計書 |\n| 複数の機能・APIの連携 | 単位ごとの文書は結合テストを扱わないため | docs/test-cases/結合テスト仕様書.md |\n\n## §1 テスト観点\n\n§1は正常・異常・境界を含む全観点の一覧です。\n§5と§6は、§1のうち異常と境界の観点を列ごとに詳しく述べる部分集合です。\n§5と§6では新しい観点キーを作らず、§1と同じ観点キーを使います。\n実行する全ケースは§2だけに記載し、§1の全観点へ1件以上のケースを対応させます。\n実行するテストの件数は§2のデータ行数だけで数えます。\n\n観点は詳細設計書の§2 メソッド設計・§3 ロジック設計・§6 エラー処理から起こす。API詳細設計書では、それぞれ API詳細設計書 §12.2（関数単位の契約）、API詳細設計書 §5（ロジック）、API詳細設計書 §10（エラー）を対応する情報源として扱う。\n\n| キー | 関数・メソッド名 | 観点 | 由来する詳細設計書の章 |\n|---|---|---|---|\n\n## §2 テストケース一覧\n\n| キー | 関数・メソッド名 | ケースの名前 | 対応する観点のキー | 区分 |\n|---|---|---|---|---|\n\n## §3 入力条件\n\n| ケースのキー | 引数・事前状態 | 値 | 由来する詳細設計書の章 |\n|---|---|---|---|\n\n## §4 期待結果\n\n| ケースのキー | 戻り値・事後状態 | 副作用 | 確認の方法 |\n|---|---|---|---|\n\n## §5 異常系\n\n| 観点のキー | 関数・メソッド名 | 発生させる条件 | 期待する例外・エラー | 由来する詳細設計書の章 |\n|---|---|---|---|---|\n\n## §6 境界値\n\n| 観点のキー | 関数・メソッド名 | 対象の引数・状態 | 境界の値 | 境界の直前と直後の扱い |\n|---|---|---|---|---|\n\n## §7 網羅基準\n\n| 観点 | 基準 |\n|---|---|\n| 条件の網羅 | 詳細設計書に記録された条件を網羅する。 |\n| 分岐の網羅 | 詳細設計書に記録された真偽の分岐を網羅する。 |\n| エラーの網羅 | 詳細設計書に記録された例外・エラーを網羅する。 |\n\n## §8 前提条件と終了条件\n\n| 区分 | 内容 |\n|---|---|\n| 実行の前提条件 | 関数・メソッドを直接呼び出せること。 |\n| 終了の条件 | 対象関数の観点とケースがすべて対応していること。 |\n\n## §9 関連資料\n\n他文書の所在はこの節へまとめる。確定できなかった事項は推測で埋めず、空欄のままとする。\n\n### 9.1 観測の出どころ\n\nテスト観点と期待結果を読み取った実装箇所を記録する。ファイルと行はこの表だけに書き、本文へ括弧書きで埋め込まない。\n\n| 対応する節・項目 | ファイル | 行 |\n|---|---|---|\n\n関連する資料を次の表に記録します。\n\n| 資料 | パス | 本書との関係 |\n|---|---|---|\n| 対応する設計書・テスト設計書 | `../詳細設計/API詳細設計書.md` | 本書と対応する他文書 |"</script>
 
 <script>
 (function () {
@@ -1200,7 +1212,8 @@ table.data-table code {
     }
 
     // 空行
-    if (!trimmed) { closeList(); closeBlockquote(); continue; }
+    // 改善課題1-300: 空行も表を閉じる。閉じないと、空行だけを挟んで続く次の表の見出し行が前の表の行として吸収される
+    if (!trimmed) { closeList(); closeBlockquote(); closeTable(); continue; }
 
     // 見出し
     var hm = trimmed.match(/^(#{1,6})\s+(.*)$/);
@@ -1602,6 +1615,139 @@ table.data-table code {
         });
       });
     })();
+
+    // --- 改善課題1-273: 行数の多い表に、列見出しクリックでの並べ替えと行の絞り込みを付ける ---
+    // 見出し単位の折りたたみ・絞り込み（1-244）とは独立した仕組み。閾値以下の表は変えない。
+    var TABLE_TOOLS_THRESHOLD = 20;
+    function tableText(cell) { return (cell.textContent || '').trim(); }
+    function compareCells(a, b) {
+      var na = parseFloat(a.replace(/,/g, '')), nb = parseFloat(b.replace(/,/g, ''));
+      if (!isNaN(na) && !isNaN(nb) && /^-?[\d.,]+$/.test(a) && /^-?[\d.,]+$/.test(b)) return na - nb;
+      return a.localeCompare(b, 'ja');
+    }
+    function attachTableTools(table) {
+      var tbody = table.querySelector('tbody');
+      if (!tbody) return null;
+      var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+      if (rows.length <= TABLE_TOOLS_THRESHOLD) return null;
+      var originalOrder = rows.slice();
+      var wrap = table.parentNode;
+      var host = wrap.parentNode && wrap.parentNode.classList.contains('table-scroll-shell') ? wrap.parentNode : wrap;
+      var tools = document.createElement('div');
+      tools.className = 'table-tools';
+      var input = document.createElement('input');
+      input.type = 'search'; input.placeholder = '行を絞り込む'; input.setAttribute('aria-label', '表の行を文字列で絞り込む');
+      var count = document.createElement('span'); count.className = 'table-filter-count';
+      count.textContent = rows.length + '行';
+      tools.appendChild(input); tools.appendChild(count);
+      host.parentNode.insertBefore(tools, host);
+      input.addEventListener('input', function () {
+        var q = input.value.trim().toLowerCase(); var shown = 0;
+        rows.forEach(function (tr) {
+          var hit = !q || (tr.textContent || '').toLowerCase().indexOf(q) >= 0;
+          tr.classList.toggle('is-filtered', !hit); if (hit) shown += 1;
+        });
+        count.textContent = q ? shown + '行が一致（全' + rows.length + '行）' : rows.length + '行';
+      });
+      table.classList.add('sortable-table');
+      var ths = Array.prototype.slice.call(table.querySelectorAll('thead th'));
+      ths.forEach(function (th, ci) {
+        th.setAttribute('aria-sort', 'none');
+        th.addEventListener('click', function () {
+          var current = th.getAttribute('aria-sort');
+          var next = current === 'ascending' ? 'descending' : (current === 'descending' ? 'none' : 'ascending');
+          ths.forEach(function (o) { o.setAttribute('aria-sort', 'none'); });
+          th.setAttribute('aria-sort', next);
+          var ordered;
+          if (next === 'none') ordered = originalOrder.slice();
+          else {
+            ordered = rows.slice().sort(function (a, b) {
+              var r = compareCells(tableText(a.children[ci] || {}), tableText(b.children[ci] || {}));
+              return next === 'ascending' ? r : -r;
+            });
+          }
+          ordered.forEach(function (tr) { tbody.appendChild(tr); });
+        });
+      });
+      return tools;
+    }
+    // --- 改善課題1-295: テストケース一覧を CSV として書き出す ---
+    // 表示用に整形済みの DOM ではなく、埋め込みの原本（Markdown 文字列）から直接パースする。
+    // 並べ替え・絞り込みの状態を反映せず、常に元の順序で全件を書き出す。
+    var CSV_EXTRA_COLUMNS = ['実施日', '実施者', '結果', '実際の結果', '起票番号', '実施時の備考'];
+    var CSV_CASE_HEADS = ['ケース名', '対象（関数名）'];
+    var CSV_CASE_HEADING = 'テストケース一覧';
+    function splitTableRowRaw(line) {
+      var t = line.trim();
+      if (t.charAt(0) === '|') t = t.slice(1);
+      if (t.charAt(t.length - 1) === '|') t = t.slice(0, -1);
+      return t.split('|').map(function (c) { return c.trim(); });
+    }
+    function findCaseTables(md) {
+      var lines = md.split('\n'); var found = []; var heading = '';
+      for (var i = 0; i < lines.length; i += 1) {
+        if (/^#{1,6}\s/.test(lines[i])) { heading = lines[i]; continue; }
+        if (lines[i].charAt(0) !== '|') continue;
+        var cells = splitTableRowRaw(lines[i]);
+        if (CSV_CASE_HEADS.indexOf(cells[0]) < 0 && heading.indexOf(CSV_CASE_HEADING) < 0) { continue; }
+        if (!/^\|[\s:|-]+\|\s*$/.test(lines[i + 1] || '')) continue;
+        var rows = [], j = i + 2;
+        while (j < lines.length && lines[j].charAt(0) === '|') { rows.push(splitTableRowRaw(lines[j])); j += 1; }
+        found.push({ header: cells, rows: rows });
+        i = j;
+      }
+      return found;
+    }
+    function csvCell(v) {
+      var t = String(v == null ? '' : v).replace(/`/g, '');
+      return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+    }
+    function buildCaseCsv(table) {
+      var header = table.header.concat(CSV_EXTRA_COLUMNS);
+      var lines = [header.map(csvCell).join(',')];
+      table.rows.forEach(function (r) {
+        var cells = r.slice(0, table.header.length);
+        while (cells.length < table.header.length) cells.push('');
+        CSV_EXTRA_COLUMNS.forEach(function () { cells.push(''); });
+        lines.push(cells.map(csvCell).join(','));
+      });
+      return '\uFEFF' + lines.join('\r\n') + '\r\n';
+    }
+    var rawMd = (function () { var el = document.getElementById('doc-md'); try { return el ? JSON.parse(el.textContent) : ''; } catch (e) { return ''; } })();
+    var caseTables = rawMd ? findCaseTables(rawMd) : [];
+    window.__docBuildCaseCsv = function (index) { var t = caseTables[index || 0]; return t ? buildCaseCsv(t) : null; };
+    function csvFileName() {
+      var title = (heroTitle.textContent || document.title || '文書').trim().replace(/[\\/:*?"<>|]/g, '_');
+      return title + '_テストケース一覧.csv';
+    }
+    function downloadCsv(text) {
+      var blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a'); a.href = url; a.download = csvFileName();
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }
+    var caseTableIndex = 0;
+    Array.prototype.forEach.call(container.querySelectorAll('table'), function (table) {
+      var tools = attachTableTools(table);
+      var firstHead = table.querySelector('thead th');
+      var sec = table.closest ? table.closest('.sec-block') : null;
+      var secLabel = sec ? (sec.querySelector('.sec-label') || {}).textContent || '' : '';
+      var isCaseTable = firstHead && (CSV_CASE_HEADS.indexOf(tableText(firstHead)) >= 0 || secLabel.indexOf(CSV_CASE_HEADING) >= 0);
+      if (isCaseTable && caseTables.length > caseTableIndex) {
+        var idx = caseTableIndex; caseTableIndex += 1;
+        if (!tools) {
+          tools = document.createElement('div'); tools.className = 'table-tools';
+          var wrap = table.parentNode;
+          var host = wrap.parentNode && wrap.parentNode.classList.contains('table-scroll-shell') ? wrap.parentNode : wrap;
+          host.parentNode.insertBefore(tools, host);
+        }
+        var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'csv-export';
+        btn.textContent = 'CSVを書き出す（記入欄つき）';
+        btn.addEventListener('click', function () { downloadCsv(buildCaseCsv(caseTables[idx])); });
+        tools.appendChild(btn);
+      }
+    });
 
     var firstLink = tocList.querySelector('.toc-link');
     if (firstLink) firstLink.classList.add('active');

@@ -661,6 +661,18 @@ a:hover { text-decoration: underline; }
 #doc-content a.ref-link { color: var(--accent); border-bottom: 1px dotted var(--accent); }
 @media print { .doc-tools { display: none; } }
 
+/* 改善課題1-273・1-295: 行数の多い表の並べ替え・絞り込み、テストケース一覧の CSV 書き出し */
+.table-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 10px 0 6px; font-size: 12.5px; color: var(--sub); }
+.table-tools input[type="search"] { flex: 1 1 200px; min-width: 140px; padding: 4px 8px; font-size: 12.5px; color: var(--text); background: var(--panel); border: 1px solid var(--line2); border-radius: 0; }
+.table-tools button { padding: 4px 10px; font-size: 12px; color: var(--text); background: var(--panel); border: 1px solid var(--line2); border-radius: 0; cursor: pointer; }
+.table-tools button:hover { border-color: var(--accent); }
+.table-tools .table-filter-count { font-family: var(--mono); font-size: 11.5px; color: var(--stamp); }
+#doc-content table.sortable-table th { cursor: pointer; user-select: none; }
+#doc-content table.sortable-table th[aria-sort="ascending"]::after { content: " \25b4"; color: var(--accent); }
+#doc-content table.sortable-table th[aria-sort="descending"]::after { content: " \25be"; color: var(--accent); }
+#doc-content tr.is-filtered { display: none; }
+@media print { .table-tools { display: none; } }
+
 /* baseline prose（セクション固有クラスの対象外になる見出し・段落・引用・区切り線） */
 #doc-content h3 { font-size: 1.05rem; margin: 20px 0 8px; color: var(--text); }
 #doc-content h4 { font-size: 0.95rem; margin: 16px 0 6px; color: var(--sub); }
@@ -1200,7 +1212,8 @@ table.data-table code {
     }
 
     // 空行
-    if (!trimmed) { closeList(); closeBlockquote(); continue; }
+    // 改善課題1-300: 空行も表を閉じる。閉じないと、空行だけを挟んで続く次の表の見出し行が前の表の行として吸収される
+    if (!trimmed) { closeList(); closeBlockquote(); closeTable(); continue; }
 
     // 見出し
     var hm = trimmed.match(/^(#{1,6})\s+(.*)$/);
@@ -1602,6 +1615,139 @@ table.data-table code {
         });
       });
     })();
+
+    // --- 改善課題1-273: 行数の多い表に、列見出しクリックでの並べ替えと行の絞り込みを付ける ---
+    // 見出し単位の折りたたみ・絞り込み（1-244）とは独立した仕組み。閾値以下の表は変えない。
+    var TABLE_TOOLS_THRESHOLD = 20;
+    function tableText(cell) { return (cell.textContent || '').trim(); }
+    function compareCells(a, b) {
+      var na = parseFloat(a.replace(/,/g, '')), nb = parseFloat(b.replace(/,/g, ''));
+      if (!isNaN(na) && !isNaN(nb) && /^-?[\d.,]+$/.test(a) && /^-?[\d.,]+$/.test(b)) return na - nb;
+      return a.localeCompare(b, 'ja');
+    }
+    function attachTableTools(table) {
+      var tbody = table.querySelector('tbody');
+      if (!tbody) return null;
+      var rows = Array.prototype.slice.call(tbody.querySelectorAll('tr'));
+      if (rows.length <= TABLE_TOOLS_THRESHOLD) return null;
+      var originalOrder = rows.slice();
+      var wrap = table.parentNode;
+      var host = wrap.parentNode && wrap.parentNode.classList.contains('table-scroll-shell') ? wrap.parentNode : wrap;
+      var tools = document.createElement('div');
+      tools.className = 'table-tools';
+      var input = document.createElement('input');
+      input.type = 'search'; input.placeholder = '行を絞り込む'; input.setAttribute('aria-label', '表の行を文字列で絞り込む');
+      var count = document.createElement('span'); count.className = 'table-filter-count';
+      count.textContent = rows.length + '行';
+      tools.appendChild(input); tools.appendChild(count);
+      host.parentNode.insertBefore(tools, host);
+      input.addEventListener('input', function () {
+        var q = input.value.trim().toLowerCase(); var shown = 0;
+        rows.forEach(function (tr) {
+          var hit = !q || (tr.textContent || '').toLowerCase().indexOf(q) >= 0;
+          tr.classList.toggle('is-filtered', !hit); if (hit) shown += 1;
+        });
+        count.textContent = q ? shown + '行が一致（全' + rows.length + '行）' : rows.length + '行';
+      });
+      table.classList.add('sortable-table');
+      var ths = Array.prototype.slice.call(table.querySelectorAll('thead th'));
+      ths.forEach(function (th, ci) {
+        th.setAttribute('aria-sort', 'none');
+        th.addEventListener('click', function () {
+          var current = th.getAttribute('aria-sort');
+          var next = current === 'ascending' ? 'descending' : (current === 'descending' ? 'none' : 'ascending');
+          ths.forEach(function (o) { o.setAttribute('aria-sort', 'none'); });
+          th.setAttribute('aria-sort', next);
+          var ordered;
+          if (next === 'none') ordered = originalOrder.slice();
+          else {
+            ordered = rows.slice().sort(function (a, b) {
+              var r = compareCells(tableText(a.children[ci] || {}), tableText(b.children[ci] || {}));
+              return next === 'ascending' ? r : -r;
+            });
+          }
+          ordered.forEach(function (tr) { tbody.appendChild(tr); });
+        });
+      });
+      return tools;
+    }
+    // --- 改善課題1-295: テストケース一覧を CSV として書き出す ---
+    // 表示用に整形済みの DOM ではなく、埋め込みの原本（Markdown 文字列）から直接パースする。
+    // 並べ替え・絞り込みの状態を反映せず、常に元の順序で全件を書き出す。
+    var CSV_EXTRA_COLUMNS = ['実施日', '実施者', '結果', '実際の結果', '起票番号', '実施時の備考'];
+    var CSV_CASE_HEADS = ['ケース名', '対象（関数名）'];
+    var CSV_CASE_HEADING = 'テストケース一覧';
+    function splitTableRowRaw(line) {
+      var t = line.trim();
+      if (t.charAt(0) === '|') t = t.slice(1);
+      if (t.charAt(t.length - 1) === '|') t = t.slice(0, -1);
+      return t.split('|').map(function (c) { return c.trim(); });
+    }
+    function findCaseTables(md) {
+      var lines = md.split('\n'); var found = []; var heading = '';
+      for (var i = 0; i < lines.length; i += 1) {
+        if (/^#{1,6}\s/.test(lines[i])) { heading = lines[i]; continue; }
+        if (lines[i].charAt(0) !== '|') continue;
+        var cells = splitTableRowRaw(lines[i]);
+        if (CSV_CASE_HEADS.indexOf(cells[0]) < 0 && heading.indexOf(CSV_CASE_HEADING) < 0) { continue; }
+        if (!/^\|[\s:|-]+\|\s*$/.test(lines[i + 1] || '')) continue;
+        var rows = [], j = i + 2;
+        while (j < lines.length && lines[j].charAt(0) === '|') { rows.push(splitTableRowRaw(lines[j])); j += 1; }
+        found.push({ header: cells, rows: rows });
+        i = j;
+      }
+      return found;
+    }
+    function csvCell(v) {
+      var t = String(v == null ? '' : v).replace(/`/g, '');
+      return /[",\r\n]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+    }
+    function buildCaseCsv(table) {
+      var header = table.header.concat(CSV_EXTRA_COLUMNS);
+      var lines = [header.map(csvCell).join(',')];
+      table.rows.forEach(function (r) {
+        var cells = r.slice(0, table.header.length);
+        while (cells.length < table.header.length) cells.push('');
+        CSV_EXTRA_COLUMNS.forEach(function () { cells.push(''); });
+        lines.push(cells.map(csvCell).join(','));
+      });
+      return '\uFEFF' + lines.join('\r\n') + '\r\n';
+    }
+    var rawMd = (function () { var el = document.getElementById('doc-md'); try { return el ? JSON.parse(el.textContent) : ''; } catch (e) { return ''; } })();
+    var caseTables = rawMd ? findCaseTables(rawMd) : [];
+    window.__docBuildCaseCsv = function (index) { var t = caseTables[index || 0]; return t ? buildCaseCsv(t) : null; };
+    function csvFileName() {
+      var title = (heroTitle.textContent || document.title || '文書').trim().replace(/[\\/:*?"<>|]/g, '_');
+      return title + '_テストケース一覧.csv';
+    }
+    function downloadCsv(text) {
+      var blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a'); a.href = url; a.download = csvFileName();
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    }
+    var caseTableIndex = 0;
+    Array.prototype.forEach.call(container.querySelectorAll('table'), function (table) {
+      var tools = attachTableTools(table);
+      var firstHead = table.querySelector('thead th');
+      var sec = table.closest ? table.closest('.sec-block') : null;
+      var secLabel = sec ? (sec.querySelector('.sec-label') || {}).textContent || '' : '';
+      var isCaseTable = firstHead && (CSV_CASE_HEADS.indexOf(tableText(firstHead)) >= 0 || secLabel.indexOf(CSV_CASE_HEADING) >= 0);
+      if (isCaseTable && caseTables.length > caseTableIndex) {
+        var idx = caseTableIndex; caseTableIndex += 1;
+        if (!tools) {
+          tools = document.createElement('div'); tools.className = 'table-tools';
+          var wrap = table.parentNode;
+          var host = wrap.parentNode && wrap.parentNode.classList.contains('table-scroll-shell') ? wrap.parentNode : wrap;
+          host.parentNode.insertBefore(tools, host);
+        }
+        var btn = document.createElement('button'); btn.type = 'button'; btn.className = 'csv-export';
+        btn.textContent = 'CSVを書き出す（記入欄つき）';
+        btn.addEventListener('click', function () { downloadCsv(buildCaseCsv(caseTables[idx])); });
+        tools.appendChild(btn);
+      }
+    });
 
     var firstLink = tocList.querySelector('.toc-link');
     if (firstLink) firstLink.classList.add('active');
