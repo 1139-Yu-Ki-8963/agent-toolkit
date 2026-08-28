@@ -308,6 +308,7 @@ judge_test_section_roles() {
               case_table_shape_mismatch = 1
             }
             if (active_table) case_table_seen = 1
+            if (active_table && cols[2] != "番号") add_error("§2のケース表の2列目を「番号」にしてください（改善課題1-297）")
           }
         }
         if (section == 5 || section == 6) {
@@ -614,9 +615,9 @@ API単位で自動化する
 |---|---|
 | `<観点キー>` | `<観点>` |
 ## §2 テストケース一覧
-| キー | 対応する観点のキー | 入力 | 期待結果 |
-|---|---|---|---|
-| `<ケースキー>` | `<観点キー>` | `<入力>` | `<期待結果>` |
+| キー | 番号 | 対応する観点のキー | 入力 | 期待結果 |
+|---|---|---|---|---|
+| `<ケースキー>` | 1 | `<観点キー>` | `<入力>` | `<期待結果>` |
 ## §3 入力条件
 ...
 ## §4 期待結果
@@ -940,11 +941,11 @@ EOF
 | api-失敗 | API失敗 |
 | 金額-境界 | 金額の境界 |
 ## §2 テストケース一覧
-| キー | 対応する観点のキー | 入力 | 期待結果 |
-|---|---|---|---|
-| api失敗-タイムアウト | api-失敗 | timeout | error |
-| 金額境界-直前 | 金額-境界 | 0 | reject |
-| 金額境界-一致 | 金額-境界 | 1 | accept |
+| キー | 番号 | 対応する観点のキー | 入力 | 期待結果 |
+|---|---|---|---|---|
+| api失敗-タイムアウト | 1 | api-失敗 | timeout | error |
+| 金額境界-直前 | 2 | 金額-境界 | 0 | reject |
+| 金額境界-一致 | 3 | 金額-境界 | 1 | accept |
 ## §5 異常系
 | 観点のキー | 発生させる条件 | 期待する例外・エラー |
 |---|---|---|
@@ -1025,7 +1026,7 @@ EOF
 
   # 系20: §2の実ケースが観点を参照しない → 拒否
   local missing_viewpoint_reference
-  missing_viewpoint_reference="$(printf '%s\n' "$role_valid" | sed 's/^| 金額境界-直前 | 金額-境界 |/| 金額境界-直前 |  |/')"
+  missing_viewpoint_reference="$(printf '%s\n' "$role_valid" | sed 's/^| 金額境界-直前 | 2 | 金額-境界 |/| 金額境界-直前 | 2 |  |/')"
   if msg="$(judge_test_section_roles "API結合テスト設計書.md" "$missing_viewpoint_reference")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '対応する観点のキーがありません'; then
     echo "  [PASS] 系20: 観点を参照しない§2の実ケースを拒否する（${msg}）"
@@ -1060,9 +1061,9 @@ EOF
   multiple_case_tables="$(printf '%s\n' "$role_valid" | awk '
     /^## §5 異常系/ {
       print "### 追加ケース"
-      print "| キー | 対応する観点のキー | 入力 | 期待結果 |"
-      print "|---|---|---|---|"
-      print "| api失敗-再試行 | api-失敗 | retry | success |"
+      print "| キー | 番号 | 対応する観点のキー | 入力 | 期待結果 |"
+      print "|---|---|---|---|---|"
+      print "| api失敗-再試行 | 4 | api-失敗 | retry | success |"
     }
     { print }
   ')"
@@ -1076,7 +1077,7 @@ EOF
 
   # 系23: §2の2つ目のケース表が未登録観点を参照する → 拒否
   local orphan_in_second_case_table
-  orphan_in_second_case_table="$(printf '%s\n' "$multiple_case_tables" | sed 's/| api失敗-再試行 | api-失敗 |/| api失敗-再試行 | 未登録-観点 |/')"
+  orphan_in_second_case_table="$(printf '%s\n' "$multiple_case_tables" | sed 's/| api失敗-再試行 | 4 | api-失敗 |/| api失敗-再試行 | 4 | 未登録-観点 |/')"
   if msg="$(judge_test_section_roles "API結合テスト設計書.md" "$orphan_in_second_case_table")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '§2が参照する観点'; then
     echo "  [PASS] 系23: §2の2表目が参照する未登録観点を拒否する（${msg}）"

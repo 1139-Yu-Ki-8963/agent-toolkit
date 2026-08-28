@@ -41,7 +41,7 @@
 #   1 = 1 件以上のコード混入を検出
 set -uo pipefail
 
-CODE_RE='[{}]|=>|->|===|;|if \(|for \(|function |\$[A-Za-z_]'
+CODE_RE='[{}]|=>|->|===|;|if \(|for \(|function |\$[A-Za-z_]|(^|[^A-Za-z_])(IF|END IF|ELSE IF|FOR|WHILE)([^A-Za-z_]|$)'
 
 # 疑似コードの節の中身（見出し行・HTML コメント行を除く）を1行ずつ返す。
 # 出力は "<元のファイル内行番号>:<内容>" 形式。
@@ -65,6 +65,9 @@ scan_file() {
     [ -z "$content" ] && continue
     if printf '%s' "$content" | grep -qE "$CODE_RE"; then
       printf 'FAIL %s:%s コードらしい記法が疑似コードの節に混入: %s\n' "$f" "$lineno" "$content"
+      rc=1
+    elif printf '%s' "$content" | grep -qE '^ +[^ ]'; then
+      printf 'FAIL %s:%s 字下げに半角の空白が使われている（全角の空白 2 つで字下げする）: %s\n' "$f" "$lineno" "$content"
       rc=1
     fi
   done < <(extract_pseudocode_body "$f")
@@ -125,6 +128,18 @@ self_test() {
   printf '## §5 疑似コード\n\n<!-- 分岐と繰り返しの入れ子だけを日本語で書く。if (x) は使わない -->\n\n利用者が管理者なら含める\n\n## §6 データアクセス\n' > "$target"
   run_check "$tmp" >/dev/null 2>&1; got=$?
   assert "コメント内の例示コードは検査対象外" 0 "$got"
+
+  printf '## §5 疑似コード\n\nIF 利用者が管理者 THEN\n  含める\nEND IF\n\n## §6 データアクセス\n' > "$target"
+  run_check "$tmp" >/dev/null 2>&1; got=$?
+  assert "IF・END IF の制御語は不合格（改善課題1-294）" 1 "$got"
+
+  printf '## §5 疑似コード\n\nもし 利用者が管理者ならば\n  含める\n\n## §6 データアクセス\n' > "$target"
+  run_check "$tmp" >/dev/null 2>&1; got=$?
+  assert "半角の空白での字下げは不合格（改善課題1-294）" 1 "$got"
+
+  printf '## §5 疑似コード\n\nもし 利用者が管理者ならば\n　　parse_inputs を実行して含める\n\n## §6 データアクセス\n' > "$target"
+  run_check "$tmp" >/dev/null 2>&1; got=$?
+  assert "全角の空白 2 つの字下げと関数名は合格（改善課題1-294）" 0 "$got"
 
   printf '## §1 概要\n\n本文には疑似コードという語を含まない節\n' > "$target"
   run_check "$tmp" >/dev/null 2>&1; got=$?
