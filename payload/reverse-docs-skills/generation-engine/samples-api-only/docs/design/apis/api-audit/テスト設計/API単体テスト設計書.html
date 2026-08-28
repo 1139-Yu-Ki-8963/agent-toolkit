@@ -637,6 +637,30 @@ a:hover { text-decoration: underline; }
   font-family: var(--mono); font-size: 12px; font-weight: 600; color: var(--stamp);
 }
 
+/* 改善課題1-244: 階層目次・折りたたみ・絞り込み・表からのページ内リンク */
+.toc-sub { list-style: none; margin: 0; padding: 0 0 0 12px; }
+.toc-link.toc-l3 { font-size: 12px; padding-top: 4px; padding-bottom: 4px; }
+.toc-link.toc-l4 { font-size: 11.5px; padding-top: 3px; padding-bottom: 3px; padding-left: 20px; color: var(--sub); }
+.toc-li.is-filtered { display: none; }
+#doc-content h3, #doc-content h4 { scroll-margin-top: 4px; }
+.doc-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0 0 18px; padding: 10px 12px; border: 1.5px solid var(--line2); background: var(--panel2); }
+.doc-tools label { font-size: 12.5px; color: var(--sub); }
+.doc-tools input[type="search"] { flex: 1 1 220px; min-width: 160px; padding: 6px 8px; font-size: 13px; color: var(--text); background: var(--panel); border: 1px solid var(--line2); border-radius: 0; }
+.doc-tools button { padding: 5px 10px; font-size: 12px; color: var(--text); background: var(--panel); border: 1px solid var(--line2); border-radius: 0; cursor: pointer; }
+.doc-tools button:hover { border-color: var(--accent); }
+.doc-tools .doc-filter-count { font-family: var(--mono); font-size: 12px; color: var(--stamp); }
+.fold-details { margin: 10px 0; border: 1px solid var(--line2); background: var(--panel); }
+.fold-details > summary { list-style: none; cursor: pointer; padding: 8px 10px 8px 26px; position: relative; }
+.fold-details > summary::-webkit-details-marker { display: none; }
+.fold-details > summary::before { content: "\25b8"; position: absolute; left: 10px; top: 9px; color: var(--accent); transition: transform .12s; }
+.fold-details[open] > summary::before { transform: rotate(90deg); }
+.fold-details > summary > h3, .fold-details > summary > h4 { display: inline; margin: 0; }
+.fold-details > .fold-body { padding: 0 12px 10px; }
+.fold-details.is-filtered { display: none; }
+.fold-count { font-family: var(--mono); font-size: 11px; color: var(--stamp); margin-left: 8px; }
+#doc-content a.ref-link { color: var(--accent); border-bottom: 1px dotted var(--accent); }
+@media print { .doc-tools { display: none; } }
+
 /* baseline prose（セクション固有クラスの対象外になる見出し・段落・引用・区切り線） */
 #doc-content h3 { font-size: 1.05rem; margin: 20px 0 8px; color: var(--text); }
 #doc-content h4 { font-size: 0.95rem; margin: 16px 0 6px; color: var(--sub); }
@@ -731,7 +755,7 @@ table.data-table code {
   .dp-panel { max-width: none; padding: 20px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .toc-link, .table-scroll-shell::before, .table-scroll-shell::after { transition: none; }
+  .toc-link, .table-scroll-shell::before, .table-scroll-shell::after, .fold-details > summary::before { transition: none; }
 }
 </style>
 </head>
@@ -1058,7 +1082,7 @@ table.data-table code {
 </footer>
 </div>
 
-<script type="application/json" id="doc-md">"\n# audit API単体テスト設計書\n\n\n\n## テスト対象\n\n| 関数・メソッド名 | 役割 | 由来する詳細設計書の章 |\n|---|---|---|\n\n## テストの粒度と自動化の方針\n\n| 項目 | 方針 |\n|---|---|\n| テストの粒度 | 1つの関数またはメソッドを1単位として、入出力・分岐・副作用・例外を確認する。 |\n| 自動化 | 関数を直接呼び出せる自動テストを優先する。 |\n\n## 本書が扱わない範囲\n\n| 対象外の事項 | 対象外とする理由 | 代わりに確認する資料または試験 |\n|---|---|---|\n| APIの応答コードを含む外部契約 | 関数単位より上のAPI単位であるため | APIテスト設計書 |\n| 複数の機能・APIの連携 | 単位ごとの文書は結合テストを扱わないため | docs/test-cases/結合テスト仕様書.md |\n\n## §1 テスト観点\n\n§1は正常・異常・境界を含む全観点の一覧です。\n§5と§6は、§1のうち異常と境界の観点を列ごとに詳しく述べる部分集合です。\n§5と§6では新しい観点キーを作らず、§1と同じ観点キーを使います。\n実行する全ケースは§2だけに記載し、§1の全観点へ1件以上のケースを対応させます。\n実行するテストの件数は§2のデータ行数だけで数えます。\n\n観点は詳細設計書の§2 メソッド設計・§3 ロジック設計・§6 エラー処理から起こす。API詳細設計書では、それぞれ API詳細設計書 §12.2（関数単位の契約）、API詳細設計書 §5（ロジック）、API詳細設計書 §10（エラー）を対応する情報源として扱う。\n\n| キー | 関数・メソッド名 | 観点 | 由来する詳細設計書の章 |\n|---|---|---|---|\n\n## §2 テストケース一覧\n\n| キー | 関数・メソッド名 | ケースの名前 | 対応する観点のキー | 区分 |\n|---|---|---|---|---|\n\n## §3 入力条件\n\n| ケースのキー | 引数・事前状態 | 値 | 由来する詳細設計書の章 |\n|---|---|---|---|\n\n## §4 期待結果\n\n| ケースのキー | 戻り値・事後状態 | 副作用 | 確認の方法 |\n|---|---|---|---|\n\n## §5 異常系\n\n| 観点のキー | 関数・メソッド名 | 発生させる条件 | 期待する例外・エラー | 由来する詳細設計書の章 |\n|---|---|---|---|---|\n\n## §6 境界値\n\n| 観点のキー | 関数・メソッド名 | 対象の引数・状態 | 境界の値 | 境界の直前と直後の扱い |\n|---|---|---|---|---|\n\n## §7 網羅基準\n\n| 観点 | 基準 |\n|---|---|\n| 条件の網羅 | 詳細設計書に記録された条件を網羅する。 |\n| 分岐の網羅 | 詳細設計書に記録された真偽の分岐を網羅する。 |\n| エラーの網羅 | 詳細設計書に記録された例外・エラーを網羅する。 |\n\n## §8 前提条件と終了条件\n\n| 区分 | 内容 |\n|---|---|\n| 実行の前提条件 | 関数・メソッドを直接呼び出せること。 |\n| 終了の条件 | 対象関数の観点とケースがすべて対応していること。 |\n\n## §9 関連資料\n\n他文書の所在はこの節へまとめる。確定できなかった事項は推測で埋めず、空欄のままとする。\n\n### 9.1 観測の出どころ\n\nテスト観点と期待結果を読み取った実装箇所を記録する。ファイルと行はこの表だけに書き、本文へ括弧書きで埋め込まない。\n\n| 対応する節・項目 | ファイル | 行 |\n|---|---|---|\n\n| 資料 | パス | 本書との関係 |\n|---|---|---|\n| 対応する設計書・テスト設計書 | `../詳細設計/API詳細設計書.md` | 本書と対応する他文書 |"</script>
+<script type="application/json" id="doc-md">"\n# audit API単体テスト設計書\n\n\n\n## 本書が検証するもの\n\n結合は2段に分けて定義します。1つの設計単位の中で構成要素が結合した状態を内部結合、複数の設計単位をまたぐ連携を外部結合と呼びます。単位ごとの文書は内部結合までを担い、プロジェクト全体の文書が外部結合を担います。\n\n| 段 | 検証する状態 | 対応する設計書 | 文書 |\n|---|---|---|---|\n| 単体 | 1つの関数・メソッドの入出力 | API詳細設計書 | API単体テスト設計書（本書） |\n| 内部結合 | 1つのAPIの中で関数・メソッドが結合した状態（外部の振る舞い） | API基本設計書 | API結合テスト設計書 |\n| 外部結合 | 複数の画面・機能・APIをまたぐ連携 | 複数の設計書 | docs/test-cases/結合テスト仕様書.md |\n\n## テスト対象\n\n| 関数・メソッド名 | 役割 | 由来する詳細設計書の章 |\n|---|---|---|\n\n## テストの粒度と自動化の方針\n\n| 項目 | 方針 |\n|---|---|\n| テストの粒度 | 1つの関数またはメソッドを1単位として、入出力・分岐・副作用・例外を確認する。 |\n| 自動化 | 関数を直接呼び出せる自動テストを優先する。 |\n\n## 本書が扱わない範囲\n\n| 対象外の事項 | 対象外とする理由 | 代わりに確認する資料または試験 |\n|---|---|---|\n| APIの応答コードを含む外部契約 | 関数単位より上のAPI単位であるため | API結合テスト設計書 |\n| 複数の機能・APIの連携 | 単位ごとの文書は結合テストを扱わないため | docs/test-cases/結合テスト仕様書.md |\n\n## §1 テスト観点\n\n§1は正常・異常・境界を含む全観点の一覧です。\n§5と§6は、§1のうち異常と境界の観点を列ごとに詳しく述べる部分集合です。\n§5と§6では新しい観点キーを作らず、§1と同じ観点キーを使います。\n実行する全ケースは§2だけに記載し、§1の全観点へ1件以上のケースを対応させます。\n実行するテストの件数は§2のデータ行数だけで数えます。\n\n観点は詳細設計書の§2 メソッド設計・§3 ロジック設計・§6 エラー処理から起こす。API詳細設計書では、それぞれ API詳細設計書 §12.2（関数単位の契約）、API詳細設計書 §5（ロジック）、API詳細設計書 §10（エラー）を対応する情報源として扱う。\n\n| キー | 関数・メソッド名 | 観点 | 由来する詳細設計書の章 |\n|---|---|---|---|\n\n## §2 テストケース一覧\n\n| キー | 関数・メソッド名 | ケースの名前 | 対応する観点のキー | 区分 |\n|---|---|---|---|---|\n\n## §3 入力条件\n\n| ケースのキー | 引数・事前状態 | 値 | 由来する詳細設計書の章 |\n|---|---|---|---|\n\n## §4 期待結果\n\n| ケースのキー | 戻り値・事後状態 | 副作用 | 確認の方法 |\n|---|---|---|---|\n\n## §5 異常系\n\n| 観点のキー | 関数・メソッド名 | 発生させる条件 | 期待する例外・エラー | 由来する詳細設計書の章 |\n|---|---|---|---|---|\n\n## §6 境界値\n\n| 観点のキー | 関数・メソッド名 | 対象の引数・状態 | 境界の値 | 境界の直前と直後の扱い |\n|---|---|---|---|---|\n\n## §7 網羅基準\n\n| 観点 | 基準 |\n|---|---|\n| 条件の網羅 | 詳細設計書に記録された条件を網羅する。 |\n| 分岐の網羅 | 詳細設計書に記録された真偽の分岐を網羅する。 |\n| エラーの網羅 | 詳細設計書に記録された例外・エラーを網羅する。 |\n\n## §8 前提条件と終了条件\n\n| 区分 | 内容 |\n|---|---|\n| 実行の前提条件 | 関数・メソッドを直接呼び出せること。 |\n| 終了の条件 | 対象関数の観点とケースがすべて対応していること。 |\n\n## §9 関連資料\n\n他文書の所在はこの節へまとめる。確定できなかった事項は推測で埋めず、空欄のままとする。\n\n### 9.1 観測の出どころ\n\nテスト観点と期待結果を読み取った実装箇所を記録する。ファイルと行はこの表だけに書き、本文へ括弧書きで埋め込まない。\n\n| 対応する節・項目 | ファイル | 行 |\n|---|---|---|\n\n| 資料 | パス | 本書との関係 |\n|---|---|---|\n| 対応する設計書・テスト設計書 | `../詳細設計/API詳細設計書.md` | 本書と対応する他文書 |"</script>
 
 <script>
 (function () {
@@ -1319,6 +1343,7 @@ table.data-table code {
     }
 
     // h2 ごとにセクションブロック化 + 目次エントリを生成
+    var sectionEntries = [];
     var h2s = Array.prototype.slice.call(container.querySelectorAll('h2'));
     h2s.forEach(function (h2, idx) {
       var text = h2.textContent;
@@ -1370,8 +1395,213 @@ table.data-table code {
       label2.textContent = text;
       a.appendChild(label2);
       li.appendChild(a);
+      li.className = 'toc-li toc-li-l2';
       tocList.appendChild(li);
+      sectionEntries.push({section: section, li: li, id: id, text: text});
     });
+
+    // --- 改善課題1-244: h3/h4 へ id を振り、階層目次・折りたたみ・絞り込み・参照先リンクを付ける ---
+    if (sectionEntries.length) (function enhanceDeep() {
+      var headingIndex = [];   // {id, text, level, el}
+      var usedIds = {};
+      function uniqueId(base) {
+        var id = base, n = 2;
+        while (usedIds[id] || document.getElementById(id)) { id = base + '-' + n; n += 1; }
+        usedIds[id] = true;
+        return id;
+      }
+
+      // (1)(2) 見出しへ id を振り、目次を h2 → h3 → h4 の階層で作る
+      sectionEntries.forEach(function (entry) {
+        var subList = null;
+        var currentL3Li = null;
+        var heads = Array.prototype.slice.call(entry.section.querySelectorAll('h3, h4'));
+        heads.forEach(function (h) {
+          var level = h.tagName === 'H3' ? 3 : 4;
+          var text = h.textContent.trim();
+          if (!h.id) h.id = uniqueId('h-' + sectionSlug(text));
+          headingIndex.push({id: h.id, text: text, level: level, el: h});
+          if (!subList) { subList = document.createElement('ul'); subList.className = 'toc-sub'; entry.li.appendChild(subList); }
+          var li = document.createElement('li');
+          li.className = 'toc-li toc-li-l' + level;
+          var a = document.createElement('a');
+          a.className = 'toc-link toc-l' + level;
+          a.href = '#' + h.id;
+          var span = document.createElement('span');
+          span.textContent = text;
+          a.appendChild(span);
+          li.appendChild(a);
+          if (level === 3) { subList.appendChild(li); currentL3Li = li; }
+          else {
+            var parent = currentL3Li || subList;
+            if (currentL3Li) {
+              var l4list = currentL3Li.querySelector('ul.toc-sub');
+              if (!l4list) { l4list = document.createElement('ul'); l4list.className = 'toc-sub'; currentL3Li.appendChild(l4list); }
+              parent = l4list;
+            }
+            parent.appendChild(li);
+          }
+        });
+      });
+
+      // (3) 同階層の見出しが FOLD_THRESHOLD 件以上ある区間は、各見出しとその内容を閉じた details で包む
+      var FOLD_THRESHOLD = 5;
+      function foldSiblings(parentEl, tag) {
+        var kids = Array.prototype.slice.call(parentEl.children);
+        var heads = kids.filter(function (k) { return k.tagName === tag; });
+        if (heads.length < FOLD_THRESHOLD) return 0;
+        var higher = tag === 'H4' ? {H2: 1, H3: 1, H4: 1} : {H2: 1, H3: 1};
+        heads.forEach(function (h) {
+          var details = document.createElement('details');
+          details.className = 'fold-details';
+          var summary = document.createElement('summary');
+          var body = document.createElement('div');
+          body.className = 'fold-body';
+          h.parentNode.insertBefore(details, h);
+          summary.appendChild(h);
+          details.appendChild(summary);
+          details.appendChild(body);
+          var node = details.nextSibling;
+          while (node && !(node.nodeType === 1 && higher[node.tagName])) {
+            var next = node.nextSibling;
+            body.appendChild(node);
+            node = next;
+          }
+        });
+        return heads.length;
+      }
+      var foldCount = 0;
+      sectionEntries.forEach(function (entry) {
+        foldCount += foldSiblings(entry.section, 'H3');
+        // h3 の内側（details の本文 or セクション直下）の h4 群
+        Array.prototype.slice.call(entry.section.querySelectorAll('.fold-body')).forEach(function (body) {
+          foldCount += foldSiblings(body, 'H4');
+        });
+        foldCount += foldSiblings(entry.section, 'H4');
+      });
+      // 折りたたみの数を節見出しへ添える
+      sectionEntries.forEach(function (entry) {
+        var n = entry.section.querySelectorAll(':scope > .fold-details').length;
+        if (n) { var c = document.createElement('span'); c.className = 'fold-count'; c.textContent = n + '件'; entry.section.querySelector('.sec-label').appendChild(c); }
+      });
+
+      function openAncestors(el) {
+        var d = el;
+        while (d && d !== container) {
+          if (d.tagName === 'DETAILS') d.open = true;
+          d = d.parentNode;
+        }
+      }
+      function setAllFolds(open) {
+        Array.prototype.forEach.call(container.querySelectorAll('details.fold-details'), function (d) { d.open = open; });
+      }
+      window.addEventListener('beforeprint', function () { setAllFolds(true); });
+      // ページ内リンクで閉じた折りたたみの中を指したとき、先祖の details を開いてから移動する
+      window.__docOpenFoldsFor = function (id) { var t = document.getElementById(id); if (t) openAncestors(t); };
+
+      // (4) 見出しの文字を対象にした絞り込み
+      var tools = document.createElement('div');
+      tools.className = 'doc-tools';
+      tools.setAttribute('role', 'search');
+      var label = document.createElement('label');
+      label.setAttribute('for', 'doc-filter');
+      label.textContent = '見出しで絞り込む';
+      var input = document.createElement('input');
+      input.type = 'search'; input.id = 'doc-filter'; input.placeholder = '関数名・節の名前の一部';
+      var count = document.createElement('span'); count.className = 'doc-filter-count'; count.setAttribute('aria-live', 'polite');
+      var openAll = document.createElement('button'); openAll.type = 'button'; openAll.textContent = 'すべて開く';
+      var closeAll = document.createElement('button'); closeAll.type = 'button'; closeAll.textContent = 'すべて閉じる';
+      openAll.addEventListener('click', function () { setAllFolds(true); });
+      closeAll.addEventListener('click', function () { setAllFolds(false); });
+      tools.appendChild(label); tools.appendChild(input); tools.appendChild(count);
+      if (foldCount) { tools.appendChild(openAll); tools.appendChild(closeAll); }
+      container.insertBefore(tools, container.firstChild);
+
+      function applyFilter() {
+        var q = input.value.trim().toLowerCase();
+        var matched = 0;
+        var tocLis = Array.prototype.slice.call(tocList.querySelectorAll('.toc-li'));
+        var folds = Array.prototype.slice.call(container.querySelectorAll('details.fold-details'));
+        if (!q) {
+          tocLis.forEach(function (li) { li.classList.remove('is-filtered'); });
+          folds.forEach(function (d) { d.classList.remove('is-filtered'); });
+          count.textContent = '';
+          return;
+        }
+        var hitIds = {};
+        headingIndex.forEach(function (h) { if (h.text.toLowerCase().indexOf(q) >= 0) { hitIds[h.id] = true; matched += 1; } });
+        sectionEntries.forEach(function (e) { if (e.text.toLowerCase().indexOf(q) >= 0) { hitIds[e.id] = true; matched += 1; } });
+        tocLis.forEach(function (li) {
+          var a = li.querySelector(':scope > .toc-link');
+          var id = a ? a.getAttribute('href').substring(1) : '';
+          var selfHit = !!hitIds[id];
+          var childHit = Array.prototype.some.call(li.getElementsByClassName('toc-link'), function (l) { return l !== a && hitIds[l.getAttribute('href').substring(1)]; });
+          li.classList.toggle('is-filtered', !(selfHit || childHit));
+        });
+        folds.forEach(function (d) {
+          var hit = Array.prototype.some.call(d.querySelectorAll('h3, h4'), function (h) { return hitIds[h.id]; });
+          d.classList.toggle('is-filtered', !hit);
+          if (hit) d.open = true;
+        });
+        count.textContent = matched + '件が一致';
+      }
+      input.addEventListener('input', applyFilter);
+      input.addEventListener('search', applyFilter);
+
+      // (5) 「参照先」列の値をページ内リンクへ変換する
+      var byText = {};
+      var byNumber = {};
+      headingIndex.forEach(function (h) {
+        byText[h.text] = h.id;
+        var m = h.text.match(/^(?:§\s*)?(\d+(?:\.\d+)*)\s/);
+        if (m) byNumber[m[1]] = h.id;
+      });
+      sectionEntries.forEach(function (e) {
+        byText[e.text] = e.id;
+        var m = e.text.match(/^§\s*(\d+)/);
+        if (m) byNumber[m[1]] = e.id;
+      });
+      function linkFor(token) {
+        var t = token.trim();
+        if (!t) return null;
+        if (byText[t]) return byText[t];
+        var n = t.match(/^§?\s*(\d+(?:\.\d+)*)(?:\s|$)/);
+        if (n && byNumber[n[1]]) return byNumber[n[1]];
+        var stripped = t.replace(/^§?\s*\d+(?:\.\d+)*\s+/, '');
+        if (stripped !== t && byText[stripped]) return byText[stripped];
+        return null;
+      }
+      Array.prototype.forEach.call(container.querySelectorAll('table'), function (table) {
+        var ths = table.querySelectorAll('thead th');
+        var cols = [];
+        Array.prototype.forEach.call(ths, function (th, i) { if (th.textContent.trim() === '参照先') cols.push(i); });
+        if (!cols.length) return;
+        Array.prototype.forEach.call(table.querySelectorAll('tbody tr'), function (tr) {
+          cols.forEach(function (ci) {
+            var td = tr.children[ci];
+            if (!td || td.querySelector('a')) return;
+            var raw = td.textContent;
+            var parts = raw.split(/(・|、|,|\s*\/\s*)/);
+            var changed = false;
+            var frag = document.createDocumentFragment();
+            parts.forEach(function (part) {
+              var id = linkFor(part);
+              if (id) {
+                var a = document.createElement('a');
+                a.className = 'ref-link';
+                a.href = '#' + id;
+                a.textContent = part.trim();
+                frag.appendChild(a);
+                changed = true;
+              } else {
+                frag.appendChild(document.createTextNode(part));
+              }
+            });
+            if (changed) { td.textContent = ''; td.appendChild(frag); }
+          });
+        });
+      });
+    })();
 
     var firstLink = tocList.querySelector('.toc-link');
     if (firstLink) firstLink.classList.add('active');
@@ -1403,6 +1633,7 @@ table.data-table code {
     var targetId = fragmentToId(fragment);
     var target = targetId ? document.getElementById(targetId) : null;
     if (!target) return false;
+    if (window.__docOpenFoldsFor) window.__docOpenFoldsFor(targetId);
     target.scrollIntoView({behavior: behavior, block:'start'});
     return true;
   }
@@ -1436,6 +1667,17 @@ table.data-table code {
       scrollToFragment(window.location.hash, 'auto');
     });
   }
+
+  if (typeof document.addEventListener === 'function') document.addEventListener('click', function(e){
+    var a = e.target && e.target.closest ? e.target.closest('a.ref-link') : null;
+    if (!a) return;
+    e.preventDefault();
+    var href = a.getAttribute('href');
+    if (scrollToFragment(href, prefersReducedMotion() ? 'auto' : 'smooth')) {
+      if (window.history && window.history.pushState) window.history.pushState(null, '', href);
+      else window.location.hash = fragmentToId(href);
+    }
+  });
 
   window.addEventListener('popstate', function(){
     requestAnimationFrame(function(){

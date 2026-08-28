@@ -390,13 +390,13 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>全対象ユニットの設計書が業務語彙のみで記入済みである</td>
     </tr>
     <tr>
-      <td><strong>Phase 4</strong><br>APIテスト設計書の執筆</td>
-      <td>API基本設計書だけを入力として、1つのAPIの外部契約を検証するAPIテスト設計書を作成する</td>
+      <td><strong>Phase 4</strong><br>API結合テスト設計書の執筆</td>
+      <td>API基本設計書だけを入力として、1つのAPIの外部契約を検証するAPI結合テスト設計書を作成する</td>
       <td>正常・異常・境界の観点と、その由来となる基本設計書の章が記入済みである</td>
     </tr>
     <tr>
       <td><strong>Phase 5</strong><br>機械検査</td>
-      <td>業務語彙、注記残存、frontmatter、章の完備、実装位置、由来、情報源、配置、12節の9検査を実行する。不合格が1件でもあれば Phase 3 へ戻る（上限3回）</td>
+      <td>業務語彙、注記残存、frontmatter、章の完備、実装位置、由来、情報源、配置、13節の9検査を実行する。不合格が1件でもあれば Phase 3 へ戻る（上限3回）</td>
       <td>9検査すべてが合格している</td>
     </tr>
   </table>
@@ -412,7 +412,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
     <li>子スキルへ委任しない。原本読解と執筆（Phase 1〜3）は業務語彙の一貫性を保つため単一のメインエージェントが通しで担う</li>
   </ul>
   <h3>機械検証</h3>
-  <p>Phase 5 で9検査を実行する。業務語彙、注記残存、frontmatter、章の完備、実装位置、由来、情報源、配置、APIテスト設計書の12節を順に確認する。1つでも不合格なら Phase 3 へ戻り、上限3回で収束しなければ <code>status=ERROR</code> とする。</p>
+  <p>Phase 5 で9検査を実行する。業務語彙、注記残存、frontmatter、章の完備、実装位置、由来、情報源、配置、API結合テスト設計書の13節を順に確認する。1つでも不合格なら Phase 3 へ戻り、上限3回で収束しなければ <code>status=ERROR</code> とする。</p>
 </section>
 <section id="s6">
   <h2><span class="sec-num">§6</span>関連スキル・資料</h2>
