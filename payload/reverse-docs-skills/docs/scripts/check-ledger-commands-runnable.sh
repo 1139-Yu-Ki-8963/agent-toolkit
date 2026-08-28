@@ -29,13 +29,17 @@ usage() {
 extract_commands() {
   local output="$1"
 
+  # 状態行に「配布対象外」と断ってあるコマンドは第3列へ1を立てて出す。
+  # 断り自体は無条件の除外根拠にしない。run_commands 側で参照先パスの
+  # 実在を確かめ、実在すれば正本として実行する（下記 repo_only_paths_exist
+  # のコメントを参照）。
   awk -F '\t' '
-    function emit_commands(text, rest, command) {
+    function emit_commands(text, repo_only,    rest, command) {
       rest = text
       while (match(rest, /`[^`]+`/)) {
         command = substr(rest, RSTART + 1, RLENGTH - 2)
         if (command ~ /^(bash|sh|grep|find|node|npm|npx|git|test|awk|diff|cmp|wc|make|jq|perl|mkdir|cp|ruby|python3?|rg|env|cd|command)[[:space:]]/ || command ~ /^(if|for)[[:space:]]/ || command ~ /^[A-Za-z_][A-Za-z0-9_]*=.*[[:space:]]/ || command ~ /^([.]\/|\/)/) {
-          print key "\t" command
+          print key "\t" command "\t" repo_only
         }
         rest = substr(rest, RSTART + RLENGTH)
       }
@@ -50,9 +54,34 @@ extract_commands() {
     }
     /^\*\*状態\*\*:[[:space:]]*完了/ {
       marker = index($0, "コマンド")
-      if (marker > 0 && key != "") emit_commands(substr($0, marker))
+      repo_only = ($0 ~ /配布対象外/) ? 1 : 0
+      if (marker > 0 && key != "") emit_commands(substr($0, marker), repo_only)
     }
   ' "$LEDGER" > "$output"
+}
+
+# 断り書き（配布対象外）だけで無条件に飛ばすと、正本でも確かめられなくなる。
+# 正本には配布対象外の資産（例: このリポジトリの自立検査そのもの）が実在
+# するため、正本でだけは確かめられるべきである。
+# そのため参照先の実在で分岐する。正本では実行され、配布先でだけ飛ぶ。
+# 2026-08-28 の実測で、配布先の154件のうち2件
+#（`同期定義-登録漏れ防止`・`自立検査-走査範囲不足`）がこの形に当たった。
+# `check-ledger-commands-portable.sh` の repo_only 判定は `.claude/rules/`
+# 配下の参照に限定しており、この2件目
+#（`generation-engine/scripts/verification/check-self-contained.sh` 参照）
+# には当たらないため、あちらの口をそのまま使うことはできない。
+repo_only_paths_exist() {
+  local command="$1"
+  local path all_exist=1
+
+  while IFS= read -r path; do
+    [ -n "$path" ] || continue
+    if [ ! -e "$REPO_ROOT/$path" ]; then
+      all_exist=0
+    fi
+  done < <(printf '%s' "$command" | grep -oE '[A-Za-z0-9_./-]+\.(sh|md|json|mjs|cjs|py|html|css|yml)')
+
+  [ "$all_exist" -eq 1 ]
 }
 
 # 配布先には Node.js と Python の依存が置かれない。置くと版管理へ混入する。
@@ -100,13 +129,13 @@ run_with_timeout() {
 list_commands() {
   local file="$1"
   local found=0
-  local key command
+  local key command repo_only
 
-  while IFS=$'\t' read -r key command; do
+  while IFS=$'\t' read -r key command repo_only; do
     if [ -n "$ONLY_KEY" ] && [ "$key" != "$ONLY_KEY" ]; then
       continue
     fi
-    printf '%s\t%s\n' "$key" "$command"
+    printf '%s\t%s\t%s\n' "$key" "$command" "$repo_only"
     found=1
   done < "$file"
 
@@ -122,13 +151,19 @@ run_commands() {
   local found=0
   local failed=0
   local indeterminate=0
-  local key command status
+  local skipped=0
+  local key command repo_only status
 
-  while IFS=$'\t' read -r key command; do
+  while IFS=$'\t' read -r key command repo_only; do
     if [ -n "$ONLY_KEY" ] && [ "$key" != "$ONLY_KEY" ]; then
       continue
     fi
     found=1
+    if [ "$repo_only" = "1" ] && ! repo_only_paths_exist "$command"; then
+      echo "[SKIP] $key: 配布対象外の資産を参照するため対象外: $command"
+      skipped=$((skipped + 1))
+      continue
+    fi
     echo "[RUN] $key: $command"
     (cd "$REPO_ROOT" && run_with_timeout "$command")
     status=$?
@@ -147,6 +182,7 @@ run_commands() {
     echo "[FAIL] 指定したキーに実行対象のコマンドがありません: $ONLY_KEY" >&2
     return 1
   fi
+  echo "対象外 $skipped 件"
   if [ "$indeterminate" -ne 0 ]; then
     return 2
   fi
@@ -199,6 +235,32 @@ self_test() {
     echo "[PASS] 時間超過を判定不能の終了コード2で返す"
   else
     echo "[FAIL] 時間超過の終了コードが2ではない: $status" >&2
+    return 1
+  fi
+
+  # 断り書き（配布対象外）があっても、参照先パスの実在で分岐する。
+  local repo_only_fixture="$WORK_DIR/repo-only.md"
+  printf '%s\n' \
+    '### case-repo-only-missing. 配布対象外・参照先なし' \
+    '**状態**: 完了。配布対象外のため、この確かめは正本でだけ成立する。確かめたコマンドは `test -f docs/scripts/does-not-exist-anywhere.sh` である。' \
+    '### case-repo-only-present. 配布対象外・参照先あり' \
+    '**状態**: 完了。配布対象外のため、この確かめは正本でだけ成立する。確かめたコマンドは `test -f docs/scripts/check-ledger-commands-runnable.sh` である。' \
+    > "$repo_only_fixture"
+
+  output="$(LEDGER_COMMANDS_LEDGER="$repo_only_fixture" bash "$0" --run --only case-repo-only-missing 2>&1)"
+  status=$?
+  if [ "$status" -eq 0 ] && printf '%s\n' "$output" | grep -q '\[SKIP\]'; then
+    echo "[PASS] 参照先が実在しない配布対象外コマンドを対象外として数え、不合格にしない"
+  else
+    echo "[FAIL] 参照先不在時の対象外判定が期待と一致しない: $status" >&2
+    printf '%s\n' "$output" | sed 's/^/    /' >&2
+    return 1
+  fi
+
+  if LEDGER_COMMANDS_LEDGER="$repo_only_fixture" bash "$0" --run --only case-repo-only-present >/dev/null 2>&1; then
+    echo "[PASS] 参照先が実在すれば配布対象外の断り書きがあっても実行して合格と判定する"
+  else
+    echo "[FAIL] 参照先が実在するのに実行されなかった" >&2
     return 1
   fi
 
