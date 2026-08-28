@@ -114,7 +114,7 @@ check_skill_file() {
     jp_value="$(extract_japanese_name "$fm")"
     if [ -z "$jp_value" ]; then
       failures+=("検査1 日本語名: 値が空")
-    elif ! printf '%s' "$jp_value" | grep -qE '[ぁ-んァ-ヶ一-龠]'; then
+    elif ! printf '%s' "$jp_value" | perl -CSD -ne 'exit 0 if /[\x{3041}-\x{3093}\x{30A1}-\x{30F6}\x{4E00}-\x{9FA0}]/; exit 1'; then
       failures+=("検査1 日本語名: 値に日本語が含まれない")
     fi
   fi
@@ -130,7 +130,7 @@ check_skill_file() {
   else
     # 検査2: 句点がちょうど1個で末尾にある
     local period_count
-    period_count="$(printf '%s' "$desc" | grep -o '。' | wc -l | tr -d '[:space:]')"
+    period_count="$(printf '%s' "$desc" | perl -CSD -ne '$n += () = /\x{3002}/g; END { print $n + 0 }')"
     if [ "$period_count" -ne 1 ]; then
       failures+=("検査2 句点: 句点が${period_count}個ある（1個であること）")
     elif [[ "$desc" != *。 ]]; then
@@ -138,7 +138,7 @@ check_skill_file() {
     fi
 
     # 検査3: 句点の直前が動詞の終止形
-    if ! printf '%s' "$desc" | grep -qE '[うくぐすつぬぶむる]。$'; then
+    if ! printf '%s' "$desc" | perl -CSD -ne 'exit 0 if /[\x{3046}\x{304F}\x{3050}\x{3059}\x{3064}\x{306C}\x{3076}\x{3080}\x{308B}]\x{3002}$/; exit 1'; then
       failures+=("検査3 動詞: 説明が動詞で終わっていない")
     fi
 

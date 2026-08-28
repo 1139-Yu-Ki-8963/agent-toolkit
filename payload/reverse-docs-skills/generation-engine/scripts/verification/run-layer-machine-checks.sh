@@ -313,7 +313,7 @@ declared_long_running_timeout() {
     # 問題が無いのに第 1 層の合否が実行環境の混み具合で変わるため、余裕を持つ
     # 上限を与える。所要時間を縮める道は、内訳が 1 秒未満の多数のケースへ薄く
     # 分散しており 1 箇所を直しても届かないと実測で分かっている。
-    generation-engine/scripts/build-portal.sh) echo 200 ;;
+    generation-engine/scripts/build-portal.sh) echo 400 ;;
     generation-engine/scripts/extract/extract-batch-metadata.sh) echo 300 ;;
     generation-engine/scripts/extract/extract-table-metadata.sh) echo 300 ;;
     generation-engine/scripts/unit-list/detect-screens.sh) echo 260 ;;
