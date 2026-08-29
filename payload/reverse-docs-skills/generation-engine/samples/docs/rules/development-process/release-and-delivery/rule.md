@@ -12,6 +12,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: manual
+workUnit: process
 ---
 
 # 版付けと公開の決まり

@@ -12,6 +12,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: manual
+workUnit: file
 ---
 
 # コードの書き方と分割の決まり

@@ -12,6 +12,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: manual
+workUnit: file
 ---
 
 # 記録と監視の決まり

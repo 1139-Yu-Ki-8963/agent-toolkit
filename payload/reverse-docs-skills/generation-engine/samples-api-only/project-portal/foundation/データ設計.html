@@ -100,7 +100,7 @@
     --line2: #243040;
     --text: #1A222E;
     --sub: #4B5A70;
-    --muted: #657285;
+    --muted: #58657A;
     --faint: #627387;
     --accent: #0272AC;
     --accent-hi: #075985;
@@ -131,7 +131,7 @@
   --line2: #243040;
   --text: #1A222E;
   --sub: #4B5A70;
-  --muted: #657285;
+  --muted: #58657A;
   --faint: #627387;
   --accent: #0272AC;
   --accent-hi: #075985;
@@ -740,6 +740,9 @@ table.data-table code {
 
 /* code blocks（手動で span を書いた場合にのみ配色が効く。MD パーサーは自動適用しない） */
 .code-block { width: 100%; border: 1px solid var(--line2); overflow: hidden; background: var(--code); margin-bottom: 14px; }
+.diagram-block { margin: 12px 0; }
+.diagram-block pre.mermaid-src { font-family: var(--mono); font-size: 12px; white-space: pre; overflow: auto; }
+.diagram-block .diagram-rendered svg { max-width: 100%; height: auto; }
 .code-block-head {
   display: flex; align-items: center; gap: 6px;
   padding: 6px 14px; font-size: 11px; font-weight: 600;
@@ -791,7 +794,7 @@ table.data-table code {
   <button type="button" class="pt-theme" id="pt-theme-toggle">
     <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
   </button>
-  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-28</span><span id="pt-meta-commit"><br>コミット </span></div>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-29</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
 <script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":3},{"key":"list","num":"04","label":"一覧・設計図","count":15},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
@@ -1089,12 +1092,12 @@ table.data-table code {
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta">api-only-design · 更新 <span id="pt-footer-date">2026-08-28</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta">api-only-design · 更新 <span id="pt-footer-date">2026-08-29</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span>
 </footer>
 </div>
 
-<script type="application/json" id="doc-md">"\n# データ設計書（リバース版）\n\n\n本書はアーキテクチャ調査書および層化サンプル（`./サンプル記録.md` 参照）から取り出した、データ関連の実装方針を横断的に整理した記録です。あるべきデータ設計を新たに構想するのではなく、既存コードに実際に存在する方針のみを扱う。個々のテーブル・API の詳細設計は、対応する詳細設計書（未整備の場合は「実在しない（理由: 詳細設計工程未着手）」）を正とし、本書ではプロジェクト横断の方針のみを扱う。対象コードの位置は記録しない。\n\n## 本書に書かないもの\n\n| 書かない内容 | 正の置き場 |\n|---|---|\n| 個別テーブルのカラム定義 | 各テーブル定義書（未整備の場合は本書に記載せず「実在しない」で明記） |\n| 個別 API のリクエスト/レスポンス詳細 | 各 API 詳細設計書（未整備の場合は本書に記載せず「実在しない」で明記） |\n| 画面固有のデータ取得ロジック | 各画面詳細設計書 |\n| UI 表示上の状態（loading/empty/error） | `./共通設計書.md`（§1） |\n\n---\n\n## §1 データモデル概要（実測）\n\n> 区分: 仕様\n\n| エンティティ | 概要 |\n|---|---|---|\n| `ユーザー` | `\u003c実測: 概要>` |\n\n---\n\n## §2 API スキーマ（実測）\n\n> 区分: 仕様\n\n| 項目 | 内容 |\n|---|---|---|\n| エンドポイント体系 | `\u003c実測: URLパターン・命名規則>` |\n| リクエスト/レスポンス設計方針 | `\u003c実測: 共通のペイロード形式・エラー形式>` |\n\n---\n\n## §3 状態管理方針（実測）\n\n> 区分: 今の作り（作り直す際: 決めておく）\n\n| 項目 | 内容 |\n|---|---|---|\n| 状態管理ライブラリ | `\u003c実測: Redux/Zustand/Context等 または 実在しない（理由: …）>` |\n| ストア構成方針 | `\u003c実測: ドメイン別分割等>` |\n\n---\n\n## §4 データフロー（実測）\n\n> 区分: 今の作り（作り直す際: 決めておく）\n\n| 項目 | 内容 |\n|---|---|---|\n| 取得・変換・表示の流れ | `\u003c実測: 典型的なデータフローパターン>` |\n\n---\n\n## §5 キャッシュ戦略（実測）\n\n> 区分: 仕様\n\n| 項目 | 内容 |\n|---|---|---|\n| キャッシュ方式 | `\u003c実測: ライブラリ内蔵キャッシュ・独自実装 または 実在しない（理由: …）>` |\n| 無効化戦略 | `\u003c実測: 無効化トリガー・タイミング>` |\n\n---\n\n## §6 状態遷移表（実測）\n\n> 区分: 仕様\n\n| エンティティ | 状態 | 遷移前 | 契機 | 遷移後 |\n|---|---|---|---|---|---|\n| `ユーザー` | `有効` | `\u003c実測: 遷移前の状態>` | `\u003c実測: 遷移の契機（イベント・操作）>` | `\u003c実測: 遷移後の状態>` |\n| 疑似検証エンティティ | 受付中 | 下書き | 疑似検証データの遷移1 | 受付中 |\n| 疑似検証エンティティ | 完了 | 受付中 | 疑似検証データの遷移2 | 完了 |\n\n---\n\n## traced の条件\n\n- 全節の実測値がアーキテクチャ調査書または層化サンプルからの取り出した結果で埋まっていること"</script>
+<script type="application/json" id="doc-md">"\n# データ設計書（リバース版）\n\n**この文書の位置づけ**（別の言語で作り直す場合は、まず「仕様」から読む）\n\n- 仕様: §1 データモデル概要（実測）、§2 API スキーマ（実測）、§5 キャッシュ戦略（実測）、§6 状態遷移表（実測）\n- 現行実装: §3 状態管理方針（実測）、§4 データフロー（実測）\n- 仕様／現行実装（詳細は各節の太字1行を見る）: 該当なし\n\n\n本書はアーキテクチャ調査書および層化サンプル（`./サンプル記録.md` 参照）から取り出した、データ関連の実装方針を横断的に整理した記録です。あるべきデータ設計を新たに構想するのではなく、既存コードに実際に存在する方針のみを扱う。個々のテーブル・API の詳細設計は、対応する詳細設計書（未整備の場合は「実在しない（理由: 詳細設計工程未着手）」）を正とし、本書ではプロジェクト横断の方針のみを扱う。対象コードの位置は記録しない。\n\n## 本書に書かないもの\n\n| 書かない内容 | 正の置き場 |\n|---|---|\n| 個別テーブルのカラム定義 | 各テーブル定義書（未整備の場合は本書に記載せず「実在しない」で明記） |\n| 個別 API のリクエスト/レスポンス詳細 | 各 API 詳細設計書（未整備の場合は本書に記載せず「実在しない」で明記） |\n| 画面固有のデータ取得ロジック | 各画面詳細設計書 |\n| UI 表示上の状態（loading/empty/error） | `./共通設計書.md`（§1） |\n\n---\n\n## §1 データモデル概要（実測）\n\n**この節の位置づけ: 仕様**\n\n| エンティティ | 概要 |\n|---|---|---|\n| `ユーザー` | `\u003c実測: 概要>` |\n\n---\n\n## §2 API スキーマ（実測）\n\n**この節の位置づけ: 仕様**\n\n| 項目 | 内容 |\n|---|---|---|\n| エンドポイント体系 | `\u003c実測: URLパターン・命名規則>` |\n| リクエスト/レスポンス設計方針 | `\u003c実測: 共通のペイロード形式・エラー形式>` |\n\n---\n\n## §3 状態管理方針（実測）\n\n**この節の位置づけ: 現行実装。本節は現在の実装の作りをそのまま記録した節です。作り直す前に、この節に書いた作りをどう扱うかを決める必要がある**\n\n| 項目 | 内容 |\n|---|---|---|\n| 状態管理ライブラリ | `\u003c実測: Redux/Zustand/Context等 または 実在しない（理由: …）>` |\n| ストア構成方針 | `\u003c実測: ドメイン別分割等>` |\n\n---\n\n## §4 データフロー（実測）\n\n**この節の位置づけ: 現行実装。本節は現在の実装の作りをそのまま記録した節です。作り直す前に、この節に書いた作りをどう扱うかを決める必要がある**\n\n| 項目 | 内容 |\n|---|---|---|\n| 取得・変換・表示の流れ | `\u003c実測: 典型的なデータフローパターン>` |\n\n---\n\n## §5 キャッシュ戦略（実測）\n\n**この節の位置づけ: 仕様**\n\n| 項目 | 内容 |\n|---|---|---|\n| キャッシュ方式 | `\u003c実測: ライブラリ内蔵キャッシュ・独自実装 または 実在しない（理由: …）>` |\n| 無効化戦略 | `\u003c実測: 無効化トリガー・タイミング>` |\n\n---\n\n## §6 状態遷移表（実測）\n\n**この節の位置づけ: 仕様**\n\n| エンティティ | 状態 | 遷移前 | 契機 | 遷移後 |\n|---|---|---|---|---|---|\n| `ユーザー` | `有効` | `\u003c実測: 遷移前の状態>` | `\u003c実測: 遷移の契機（イベント・操作）>` | `\u003c実測: 遷移後の状態>` |\n| 疑似検証エンティティ | 受付中 | 下書き | 疑似検証データの遷移1 | 受付中 |\n| 疑似検証エンティティ | 完了 | 受付中 | 疑似検証データの遷移2 | 完了 |\n\n---\n\n## traced の条件\n\n- 全節の実測値がアーキテクチャ調査書または層化サンプルからの取り出した結果で埋まっていること"</script>
 
 <script>
 (function () {
@@ -1115,6 +1118,7 @@ table.data-table code {
   var inBlockquote = false;
   var inFence = false;
   var fenceLines = [];
+  var fenceLang = "";
   // 改善課題1-51: 見出し以外の本文が無く、かつ表の行が無い場合に「未記入」を示す
   var hasBodyContent = false;
   var hasTableRow = false;
@@ -1188,7 +1192,14 @@ table.data-table code {
     if (inTable) { html.push('</tbody></table></div>'); inTable = false; tableColCount = 0; }
   }
   function closeFence() {
-    html.push('<div class="code-block"><pre><code>' + escHtml(fenceLines.join('\n')) + '</code></pre></div>');
+    // 図の記法（```mermaid）の囲みは、図として描く対象に印を付けて出す（改善課題1-285）。
+    // 開始と終了に厳密に一致する囲みだけを対象にし、描画に失敗した場合は文字のまま残す。
+    if (fenceLang === "mermaid") {
+      html.push('<div class="diagram-block" data-diagram="mermaid"><pre class="mermaid-src">' + escHtml(fenceLines.join('\n')) + '</pre></div>');
+    } else {
+      html.push('<div class="code-block"><pre><code>' + escHtml(fenceLines.join('\n')) + '</code></pre></div>');
+    }
+    fenceLang = "";
     hasBodyContent = true;
     inFence = false;
     fenceLines = [];
@@ -1207,6 +1218,7 @@ table.data-table code {
     if (/^```(?:\s*[^`\s]+)?\s*$/.test(trimmed)) {
       closeList(); closeBlockquote(); closeTable();
       inFence = true;
+      fenceLang = (trimmed.replace(/^```\s*/, '').trim() || '').toLowerCase();
       fenceLines = [];
       continue;
     }
@@ -1832,6 +1844,46 @@ table.data-table code {
       }
     });
   });
+})();
+</script>
+<script>
+// 図の記法（mermaid）の囲みを図として描く（改善課題1-285）。描画の道具は外部から読み込み、
+// 読み込めない・描けない場合は囲みの文字をそのまま表示して文書全体を壊さない。
+(function () {
+  function renderDiagrams() {
+    var blocks = document.querySelectorAll('div.diagram-block[data-diagram="mermaid"]');
+    if (!blocks.length) return;
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js';
+    script.onload = function () {
+      try {
+        window.mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
+        Array.prototype.forEach.call(blocks, function (block, index) {
+          var src = block.querySelector('pre.mermaid-src');
+          if (!src) return;
+          var code = src.textContent || '';
+          window.mermaid.render('diagram-' + (index + 1), code).then(function (result) {
+            var holder = document.createElement('div');
+            holder.className = 'diagram-rendered';
+            holder.innerHTML = result.svg;
+            block.insertBefore(holder, src);
+            src.setAttribute('hidden', 'hidden');
+            block.setAttribute('data-diagram-state', 'rendered');
+          }).catch(function () { block.setAttribute('data-diagram-state', 'text'); });
+        });
+      } catch (error) {
+        Array.prototype.forEach.call(blocks, function (block) { block.setAttribute('data-diagram-state', 'text'); });
+      }
+    };
+    script.onerror = function () {
+      Array.prototype.forEach.call(blocks, function (block) { block.setAttribute('data-diagram-state', 'text'); });
+    };
+    document.head.appendChild(script);
+  }
+  if (typeof document.addEventListener === 'function') {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderDiagrams);
+    else renderDiagrams();
+  }
 })();
 </script>
 </body>

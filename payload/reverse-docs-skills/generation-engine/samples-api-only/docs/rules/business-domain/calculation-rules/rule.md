@@ -12,6 +12,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: manual
+workUnit: file
 ---
 
 # 金額と数量の計算の決まり

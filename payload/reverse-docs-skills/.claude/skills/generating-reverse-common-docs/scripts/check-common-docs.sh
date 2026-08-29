@@ -502,6 +502,7 @@ run_all_checks() {
   check_common_doc_evidence_separation "$dir" || rc=1
   check_common_doc_excluded_reappearance "$dir" || rc=1
   check_common_doc_screen_exclusion_reference "$dir" || rc=1
+  check_common_doc_heading_notation "$dir" || rc=1
   return "$rc"
 }
 
@@ -588,6 +589,37 @@ EOF2
     return 1
   fi
   echo "検査10通過: 画面が対象外である根拠は判定の記録への参照だけで述べられている"
+  return 0
+}
+
+# 検査11（改善課題1-298）: 共通の設計文書の見出しの記法を「§＋番号」に揃える。「番号＋句点」
+# （例: `## 9. 応答の外枠`）の見出しは版面の節番号の解決に登録されず、本文の「§」付きの
+# 参照が解決できない。レベル2見出しに `^## [0-9]+\.` の形が1件でもあれば不合格にする。
+numbered_dot_heading_hits() {
+  perl -CSD -Mutf8 -ne 'print "$.: " . ($_ =~ s/\n//r) . "\n" if /^##\s+[0-9]+[.．]\s/' "$1"
+}
+
+check_common_doc_heading_notation() {
+  local dir="$1" record f path hits failed=0
+  while IFS= read -r record; do
+    f="$(document_path "$record")"
+    document_is_applicable "$dir" "$record" >/dev/null || continue
+    path="$dir/$f"
+    [ -f "$path" ] || continue
+    hits="$(numbered_dot_heading_hits "$path" 2>/dev/null || true)"
+    if [ -n "$hits" ]; then
+      echo "  「番号＋句点」の見出し（「§＋番号」の記法へ揃える）: $f" >&2
+      echo "$hits" >&2
+      failed=$((failed + 1))
+    fi
+  done <<EOF2
+$(document_records)
+EOF2
+  if [ "$failed" -gt 0 ]; then
+    echo "検査11失敗: $failed 文書に「番号＋句点」の見出しがあります（見出しは「§＋番号」の記法に揃える）" >&2
+    return 1
+  fi
+  echo "検査11通過: 共通文書の番号付き見出しはすべて「§＋番号」の記法である"
   return 0
 }
 
@@ -1067,6 +1099,33 @@ MD
     echo "  [PASS] 検査10: 判定の記録への参照だけならexit 0"
   else
     echo "  [FAIL] 検査10: 参照だけの文書を不合格にした" >&2
+    rc=1
+  fi
+
+  # 検査11（改善課題1-298）: 「番号＋句点」の見出しを1件でも持てば検出する。
+  fail11_dir="$tmp/fail11"
+  build_docs "$fail11_dir"
+  printf '\n## 9. 応答の外枠\n\n応答の外枠を述べます。\n' >> "$fail11_dir/$message_doc"
+  if check_common_doc_heading_notation "$fail11_dir" >/dev/null 2>&1; then
+    echo "  [FAIL] 検査11: 「番号＋句点」の見出しがあるのにexit 0になった" >&2
+    rc=1
+  else
+    echo "  [PASS] 検査11: 「番号＋句点」の見出しでexit 1"
+  fi
+  out11="$(check_common_doc_heading_notation "$fail11_dir" 2>&1 >/dev/null || true)"
+  if printf '%s' "$out11" | grep -q '9\. 応答の外枠'; then
+    echo "  [PASS] 検査11: 走査が該当の見出しを行番号つきで返す"
+  else
+    echo "  [FAIL] 検査11: 走査が該当の見出しを返さない" >&2
+    rc=1
+  fi
+  pass11_dir="$tmp/pass11"
+  build_docs "$pass11_dir"
+  printf '\n## §9 応答の外枠\n\n応答の外枠を述べます。\n' >> "$pass11_dir/$message_doc"
+  if check_common_doc_heading_notation "$pass11_dir" >/dev/null 2>&1; then
+    echo "  [PASS] 検査11: 「§＋番号」の見出しだけならexit 0"
+  else
+    echo "  [FAIL] 検査11: 「§＋番号」の文書を不合格にした" >&2
     rc=1
   fi
 

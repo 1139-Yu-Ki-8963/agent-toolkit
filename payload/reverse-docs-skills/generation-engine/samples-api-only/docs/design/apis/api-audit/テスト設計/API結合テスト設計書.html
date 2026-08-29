@@ -100,7 +100,7 @@
     --line2: #243040;
     --text: #1A222E;
     --sub: #4B5A70;
-    --muted: #657285;
+    --muted: #58657A;
     --faint: #627387;
     --accent: #0272AC;
     --accent-hi: #075985;
@@ -131,7 +131,7 @@
   --line2: #243040;
   --text: #1A222E;
   --sub: #4B5A70;
-  --muted: #657285;
+  --muted: #58657A;
   --faint: #627387;
   --accent: #0272AC;
   --accent-hi: #075985;
@@ -740,6 +740,9 @@ table.data-table code {
 
 /* code blocks（手動で span を書いた場合にのみ配色が効く。MD パーサーは自動適用しない） */
 .code-block { width: 100%; border: 1px solid var(--line2); overflow: hidden; background: var(--code); margin-bottom: 14px; }
+.diagram-block { margin: 12px 0; }
+.diagram-block pre.mermaid-src { font-family: var(--mono); font-size: 12px; white-space: pre; overflow: auto; }
+.diagram-block .diagram-rendered svg { max-width: 100%; height: auto; }
 .code-block-head {
   display: flex; align-items: center; gap: 6px;
   padding: 6px 14px; font-size: 11px; font-weight: 600;
@@ -791,7 +794,7 @@ table.data-table code {
   <button type="button" class="pt-theme" id="pt-theme-toggle">
     <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
   </button>
-  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-28</span><span id="pt-meta-commit"><br>コミット </span></div>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-29</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
 <script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":3},{"key":"list","num":"04","label":"一覧・設計図","count":15},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
@@ -1089,12 +1092,12 @@ table.data-table code {
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta">api-only-design · 更新 <span id="pt-footer-date">2026-08-28</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta">api-only-design · 更新 <span id="pt-footer-date">2026-08-29</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span>
 </footer>
 </div>
 
-<script type="application/json" id="doc-md">"\n# audit API結合テスト設計書\n\n\n\n## 本書が検証するもの\n\n結合は2段に分けて定義します。1つの設計単位の中で構成要素が結合した状態を内部結合、複数の設計単位をまたぐ連携を外部結合と呼びます。単位ごとの文書は内部結合までを担い、プロジェクト全体の文書が外部結合を担います。\n\n| 段 | 検証する状態 | 対応する設計書 | 文書 |\n|---|---|---|---|\n| 単体 | 1つの関数・メソッドの入出力 | API詳細設計書 | API単体テスト設計書 |\n| 内部結合 | 1つのAPIの中で関数・メソッドが結合した状態（外部の振る舞い） | API基本設計書 | API結合テスト設計書（本書） |\n| 外部結合 | 複数の画面・機能・APIをまたぐ連携 | 複数の設計書 | docs/test-cases/結合テスト仕様書.md |\n\n## テスト対象\n\n| 対象 | 確認する内容 | 根拠となる基本設計書の章 |\n|---|---|---|\n\n基本設計書で確定した範囲だけを記入する。対象外の構成要素は「本書が扱わない範囲」に記録する。\n\n## テストの粒度と自動化の方針\n\n| 項目 | 方針 |\n|---|---|\n| テストの粒度 | 1ケースで確認する振る舞いを記入する。 |\n| 自動化 | 自動化の可否と、手動で確認する場合の理由を記入する。 |\n\n## 本書が扱わない範囲\n\n| 対象外の事項 | 対象外とする理由 | 代わりに確認する資料または試験 |\n|---|---|---|\n\n\n## §1 テスト観点\n\n> 区分: 仕様\n\n§1は正常・異常・境界を含む全観点の一覧です。\n§5と§6は、§1のうち異常と境界の観点を列ごとに詳しく述べる部分集合です。\n§5と§6では新しい観点キーを作らず、§1と同じ観点キーを使います。\n実行する全ケースは§2だけに記載し、§1の全観点へ1件以上のケースを対応させます。\n実行するテストの件数は§2のデータ行数だけで数えます。\n\n観点は API基本設計書の外部仕様・業務仕様・エラーと例外の各章から起こす。\n\n| キー | 観点 | 由来する基本設計書の章 |\n|---|---|---|\n\n\n## §2 テストケース一覧\n\n> 区分: 仕様\n\n| キー | 番号 | ケースの名前 | 対応する観点のキー | 区分 | 由来する基本設計書の章 |\n|---|---|---|---|---|---|\n\n## §3 入力条件\n\n> 区分: 仕様\n\n| ケースのキー | 入力の項目 | 値 | 由来する基本設計書の章 |\n|---|---|---|---|\n\n## §4 期待結果\n\n> 区分: 仕様\n\n| ケースのキー | 期待する結果 | 確認の方法 | 由来する基本設計書の章 |\n|---|---|---|---|\n\n## §5 異常系\n\n> 区分: 仕様\n\n| 観点のキー | 発生させる条件 | 期待する振る舞い | 由来する基本設計書の章 |\n|---|---|---|---|\n\n## §6 境界値\n\n> 区分: 仕様\n\n| 観点のキー | 対象の項目 | 境界の値 | 境界の直前と直後の扱い | 由来する基本設計書の章 |\n|---|---|---|---|---|\n\n## §7 網羅基準\n\n> 区分: 仕様\n\n| 観点 | 基準 |\n|---|---|\n| 条件の網羅 |  |\n| 分岐の網羅 |  |\n| 境界の網羅 |  |\n\n## §8 前提条件と終了条件\n\n> 区分: 仕様\n\n| 区分 | 内容 |\n|---|---|\n| 実行の前提条件 |  |\n| 終了の条件 |  |\n\n## §9 関連資料\n\n> 区分: 仕様\n\n他文書の所在はこの節へまとめる。確定できなかった事項は「本書が扱わない範囲」へ記録し、対象コードの位置は記録しない。\n\n| 資料 | パス | 本書との関係 |\n|---|---|---|\n| 対応する設計書・テスト設計書 | `../詳細設計/API詳細設計書.md` | 本書と対応する他文書 |\n| 根拠となる基本設計書 | `../基本設計/API基本設計書.md` | 本書の観点を確定した設計書 |"</script>
+<script type="application/json" id="doc-md">"\n# audit API結合テスト設計書\n\n**この文書の位置づけ**（別の言語で作り直す場合は、まず「仕様」から読む）\n\n- 仕様: §1 テスト観点、§2 テストケース一覧、§3 入力条件、§4 期待結果、§5 異常系、§6 境界値、§7 網羅基準、§8 前提条件と終了条件、§9 関連資料\n- 現行実装: 該当なし\n- 仕様／現行実装（詳細は各節の太字1行を見る）: 該当なし\n\n\n\n## 本書が検証するもの\n\n結合は2段に分けて定義します。1つの設計単位の中で構成要素が結合した状態を内部結合、複数の設計単位をまたぐ連携を外部結合と呼びます。単位ごとの文書は内部結合までを担い、プロジェクト全体の文書が外部結合を担います。\n\n| 段 | 検証する状態 | 対応する設計書 | 文書 |\n|---|---|---|---|\n| 単体 | 1つの関数・メソッドの入出力 | API詳細設計書 | API単体テスト設計書 |\n| 内部結合 | 1つのAPIの中で関数・メソッドが結合した状態（外部の振る舞い） | API基本設計書 | API結合テスト設計書（本書） |\n| 外部結合 | 複数の画面・機能・APIをまたぐ連携 | 複数の設計書 | docs/test-cases/結合テスト仕様書.md |\n\n## テスト対象\n\n| 対象 | 確認する内容 | 根拠となる基本設計書の章 |\n|---|---|---|\n\n基本設計書で確定した範囲だけを記入する。対象外の構成要素は「本書が扱わない範囲」に記録する。\n\n## テストの粒度と自動化の方針\n\n| 項目 | 方針 |\n|---|---|\n| テストの粒度 | 1ケースで確認する振る舞いを記入する。 |\n| 自動化 | 自動化の可否と、手動で確認する場合の理由を記入する。 |\n\n## 本書が扱わない範囲\n\n| 対象外の事項 | 対象外とする理由 | 代わりに確認する資料または試験 |\n|---|---|---|\n\n\n## §1 テスト観点\n\n**この節の位置づけ: 仕様**\n\n§1は正常・異常・境界を含む全観点の一覧です。\n§5と§6は、§1のうち異常と境界の観点を列ごとに詳しく述べる部分集合です。\n§5と§6では新しい観点キーを作らず、§1と同じ観点キーを使います。\n実行する全ケースは§2だけに記載し、§1の全観点へ1件以上のケースを対応させます。\n実行するテストの件数は§2のデータ行数だけで数えます。\n\n観点は API基本設計書の外部仕様・業務仕様・エラーと例外の各章から起こす。\n\n| キー | 観点 | 由来する基本設計書の章 |\n|---|---|---|\n\n\n## §2 テストケース一覧\n\n**この節の位置づけ: 仕様**\n\n| キー | 番号 | ケースの名前 | 対応する観点のキー | 区分 | 由来する基本設計書の章 |\n|---|---|---|---|---|---|\n\n## §3 入力条件\n\n**この節の位置づけ: 仕様**\n\n| ケースのキー | 入力の項目 | 値 | 由来する基本設計書の章 |\n|---|---|---|---|\n\n## §4 期待結果\n\n**この節の位置づけ: 仕様**\n\n| ケースのキー | 期待する結果 | 確認の方法 | 由来する基本設計書の章 |\n|---|---|---|---|\n\n## §5 異常系\n\n**この節の位置づけ: 仕様**\n\n| 観点のキー | 発生させる条件 | 期待する振る舞い | 由来する基本設計書の章 |\n|---|---|---|---|\n\n## §6 境界値\n\n**この節の位置づけ: 仕様**\n\n| 観点のキー | 対象の項目 | 境界の値 | 境界の直前と直後の扱い | 由来する基本設計書の章 |\n|---|---|---|---|---|\n\n## §7 網羅基準\n\n**この節の位置づけ: 仕様**\n\n| 観点 | 基準 |\n|---|---|\n| 条件の網羅 |  |\n| 分岐の網羅 |  |\n| 境界の網羅 |  |\n\n## §8 前提条件と終了条件\n\n**この節の位置づけ: 仕様**\n\n| 区分 | 内容 |\n|---|---|\n| 実行の前提条件 |  |\n| 終了の条件 |  |\n\n## §9 関連資料\n\n**この節の位置づけ: 仕様**\n\n他文書の所在はこの節へまとめる。確定できなかった事項は「本書が扱わない範囲」へ記録し、対象コードの位置は記録しない。\n\n| 資料 | パス | 本書との関係 |\n|---|---|---|\n| 対応する設計書・テスト設計書 | `../詳細設計/API詳細設計書.md` | 本書と対応する他文書 |\n| 根拠となる基本設計書 | `../基本設計/API基本設計書.md` | 本書の観点を確定した設計書 |"</script>
 
 <script>
 (function () {
@@ -1115,6 +1118,7 @@ table.data-table code {
   var inBlockquote = false;
   var inFence = false;
   var fenceLines = [];
+  var fenceLang = "";
   // 改善課題1-51: 見出し以外の本文が無く、かつ表の行が無い場合に「未記入」を示す
   var hasBodyContent = false;
   var hasTableRow = false;
@@ -1188,7 +1192,14 @@ table.data-table code {
     if (inTable) { html.push('</tbody></table></div>'); inTable = false; tableColCount = 0; }
   }
   function closeFence() {
-    html.push('<div class="code-block"><pre><code>' + escHtml(fenceLines.join('\n')) + '</code></pre></div>');
+    // 図の記法（```mermaid）の囲みは、図として描く対象に印を付けて出す（改善課題1-285）。
+    // 開始と終了に厳密に一致する囲みだけを対象にし、描画に失敗した場合は文字のまま残す。
+    if (fenceLang === "mermaid") {
+      html.push('<div class="diagram-block" data-diagram="mermaid"><pre class="mermaid-src">' + escHtml(fenceLines.join('\n')) + '</pre></div>');
+    } else {
+      html.push('<div class="code-block"><pre><code>' + escHtml(fenceLines.join('\n')) + '</code></pre></div>');
+    }
+    fenceLang = "";
     hasBodyContent = true;
     inFence = false;
     fenceLines = [];
@@ -1207,6 +1218,7 @@ table.data-table code {
     if (/^```(?:\s*[^`\s]+)?\s*$/.test(trimmed)) {
       closeList(); closeBlockquote(); closeTable();
       inFence = true;
+      fenceLang = (trimmed.replace(/^```\s*/, '').trim() || '').toLowerCase();
       fenceLines = [];
       continue;
     }
@@ -1832,6 +1844,46 @@ table.data-table code {
       }
     });
   });
+})();
+</script>
+<script>
+// 図の記法（mermaid）の囲みを図として描く（改善課題1-285）。描画の道具は外部から読み込み、
+// 読み込めない・描けない場合は囲みの文字をそのまま表示して文書全体を壊さない。
+(function () {
+  function renderDiagrams() {
+    var blocks = document.querySelectorAll('div.diagram-block[data-diagram="mermaid"]');
+    if (!blocks.length) return;
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js';
+    script.onload = function () {
+      try {
+        window.mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
+        Array.prototype.forEach.call(blocks, function (block, index) {
+          var src = block.querySelector('pre.mermaid-src');
+          if (!src) return;
+          var code = src.textContent || '';
+          window.mermaid.render('diagram-' + (index + 1), code).then(function (result) {
+            var holder = document.createElement('div');
+            holder.className = 'diagram-rendered';
+            holder.innerHTML = result.svg;
+            block.insertBefore(holder, src);
+            src.setAttribute('hidden', 'hidden');
+            block.setAttribute('data-diagram-state', 'rendered');
+          }).catch(function () { block.setAttribute('data-diagram-state', 'text'); });
+        });
+      } catch (error) {
+        Array.prototype.forEach.call(blocks, function (block) { block.setAttribute('data-diagram-state', 'text'); });
+      }
+    };
+    script.onerror = function () {
+      Array.prototype.forEach.call(blocks, function (block) { block.setAttribute('data-diagram-state', 'text'); });
+    };
+    document.head.appendChild(script);
+  }
+  if (typeof document.addEventListener === 'function') {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderDiagrams);
+    else renderDiagrams();
+  }
 })();
 </script>
 </body>

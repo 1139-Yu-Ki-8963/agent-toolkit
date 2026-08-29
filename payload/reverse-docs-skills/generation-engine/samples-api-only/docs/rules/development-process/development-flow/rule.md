@@ -12,6 +12,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: manual
+workUnit: process
 ---
 
 # 実装から統合までの順序の決まり

@@ -349,11 +349,25 @@ run_build() {
     echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
+  # 改善課題1-289: 検査不合格を件単位で切り分ける。不合格の rule.md（および不合格の
+  # parent.yml を持つ親配下の rule.md）は生成から飛ばして続行し、件数と対象を出力へ列挙する。
+  # 中止するのは、ルートが無い・rule.md が1件も無いなど処理を続けられない場合に限る
+  # （run_validate がその場合に FAILURES を持たず終了コード1で返す）。
+  SKIPPED_RULE_FILES=""
   if ! run_validate "$root" >"$validate_out" 2>&1; then
-    cat "$validate_out" >&2
-    rm -f "$validate_out"
-    echo "ERROR: validate-rule-definitions.sh が不合格のため生成を中止しました" >&2
-    return 1
+    if [ -z "${FAILURES:-}" ]; then
+      cat "$validate_out" >&2
+      rm -f "$validate_out"
+      echo "ERROR: validate-rule-definitions.sh が処理を続けられない状態のため生成を中止しました" >&2
+      return 1
+    fi
+    SKIPPED_RULE_FILES="$(printf '%s' "$FAILURES" | awk -F': \\[' '
+      /\/rule\.md: \[/ { print $1 }
+      /\/parent\.yml: \[/ { p=$1; sub(/\/parent\.yml$/, "", p); print p "/*" }
+    ' | LC_ALL=C sort -u)"
+    echo "検査不合格の規約を飛ばして続行します: $(printf '%s\n' "$SKIPPED_RULE_FILES" | grep -c .) 件" >&2
+    printf '%s\n' "$SKIPPED_RULE_FILES" | sed 's/^/  飛ばした: /' >&2
+    printf '%s' "$FAILURES" | sed 's/^/    /' >&2
   fi
   rm -f "$validate_out"
 
@@ -362,6 +376,23 @@ run_build() {
 
   local rule_files
   rule_files="$(find "$root" -type f -name 'rule.md' | sort)"
+  if [ -n "$SKIPPED_RULE_FILES" ]; then
+    rule_files="$(printf '%s\n' "$rule_files" | awk -v skip="$(printf '%s' "$SKIPPED_RULE_FILES" | tr '\n' '\001')" '
+      BEGIN { n = split(skip, a, "\001") }
+      {
+        keep = 1
+        for (i = 1; i <= n; i++) {
+          if (a[i] == "") continue
+          if (a[i] == $0) { keep = 0; break }
+          if (substr(a[i], length(a[i]) - 1) == "/*" && index($0, substr(a[i], 1, length(a[i]) - 2) "/") == 1) { keep = 0; break }
+        }
+        if (keep) print
+      }')"
+    if [ -z "$rule_files" ]; then
+      echo "生成 0 件: 全件が検査不合格のため、派生を1件も生成せずに終了します" >&2
+      return 1
+    fi
+  fi
 
   # AGENTS.md索引ブロック・checkable規約のhooks登録先を貯めるバッファ
   local agents_block="<!-- RULES-INDEX:START -->
@@ -749,6 +780,7 @@ uncheckableReason: 行動の是非は静的解析では判定できない。
 formatter: none
 status: approved
 origin: proposal
+workUnit: file
 ---
 
 # AIエージェント行動規約
@@ -783,6 +815,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: proposal
+workUnit: file
 ---
 
 # 命名規約
@@ -831,6 +864,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: proposal
+workUnit: file
 ---
 
 # Bashコマンド検査規約（テスト用）
@@ -877,6 +911,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: proposal
+workUnit: file
 ---
 
 # 完了報告検査規約（テスト用）
@@ -923,6 +958,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: proposal
+workUnit: file
 ---
 
 # timing宣言なし検査規約（テスト用）
@@ -966,6 +1002,7 @@ uncheckableReason: 未承認のため検査対象外。
 formatter: none
 status: draft
 origin: proposal
+workUnit: file
 ---
 
 # レビュー観点メモ（未承認）
@@ -1306,6 +1343,34 @@ self_test() {
   fi
 
   rm -rf "$src" "$out1" "$out2"
+
+  # ケース19（改善課題1-289）: 1件が検査不合格でも残りの件が生成され、不合格の件数と対象が出力に現れる。
+  #   全件が不合格なら「生成 0 件」と明示して終了する。
+  local src1289 out1289 log1289 ok1289=1
+  if ! src1289="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-case1289-src.XXXXXX" 2>/dev/null)" || [ -z "$src1289" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  if ! out1289="$(mktemp -d "${TMPDIR:-/tmp}/build-derived-rules-case1289-out.XXXXXX" 2>/dev/null)" || [ -z "$out1289" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  bst_write_fixture "$src1289"
+  sed -i.bak "/^title:/d" "${src1289}/code-standards/naming/rule.md"; rm -f "${src1289}/code-standards/naming/rule.md.bak"
+  APPLY=1
+  log1289="$(run_build "$src1289" "$out1289" 2>&1)" || ok1289=0
+  if [ ! -e "${out1289}/.claude/rules/always/agent-operations/ai-behavior/rule.md" ]; then echo "  [FAIL] ケース19: 不合格1件のせいで残りの件が生成されない" >&2; ok1289=0; fi
+  if [ -e "${out1289}/.claude/rules/always/code-standards/naming/rule.md" ]; then echo "  [FAIL] ケース19: 不合格の件が生成されている" >&2; ok1289=0; fi
+  if ! printf '%s' "$log1289" | grep -q '検査不合格の規約を飛ばして続行します: 1 件'; then echo "  [FAIL] ケース19: 不合格の件数が出力に現れない" >&2; ok1289=0; fi
+  if ! printf '%s' "$log1289" | grep -q '飛ばした: .*code-standards/naming/rule.md'; then echo "  [FAIL] ケース19: 不合格の対象が出力に現れない" >&2; ok1289=0; fi
+  # 全件不合格
+  find "$src1289" -name "rule.md" -exec sed -i.bak "/^title:/d" {} \; ; find "$src1289" -name "*.bak" -delete
+  rm -rf "$out1289"; mkdir -p "$out1289"
+  local rc1289=0
+  log1289="$(run_build "$src1289" "$out1289" 2>&1)" || rc1289=$?
+  if [ "$rc1289" -eq 0 ] || ! printf '%s' "$log1289" | grep -q '生成 0 件'; then echo "  [FAIL] ケース19: 全件不合格のとき生成 0 件と明示して終了しない（rc=${rc1289}）" >&2; ok1289=0; fi
+  rm -rf "$src1289" "$out1289"
+  if [ "$ok1289" -eq 1 ]; then echo "  [PASS] ケース19: 検査不合格を件単位で飛ばして続行し、全件不合格なら生成 0 件と明示する（改善課題1-289）"; else rc=1; fi
 
   # ケース8: --deploy-rule-scripts で4本が配備され、実行可能である
   local deploy_out ok8 deploy_dir

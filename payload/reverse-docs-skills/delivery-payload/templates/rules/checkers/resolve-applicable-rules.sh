@@ -55,6 +55,22 @@ extract_paths() {
   ' "$1" 2>/dev/null | tr ',' '\n' | sed -E 's/^[[:space:]]*"//; s/"[[:space:]]*$//' | sed '/^[[:space:]]*$/d'
 }
 
+# 改善課題1-281: 「その規約が及ぶ範囲」（scope・paths）と「そのファイルを直すときに読む規約」を分ける。
+# front matter の workUnit（file=ファイルの中身 / process=進め方 / artifact=成果物の形）が
+# file 以外の規約は、ファイルを渡された解決では返さない。workUnit を持たない規約は従来どおり返す。
+extract_work_unit() {
+  awk '
+    NR==1 && $0=="---" { infm=1; next }
+    infm && $0=="---" { exit }
+    infm && /^workUnit:[[:space:]]*/ {
+      line=$0
+      sub(/^workUnit:[[:space:]]*/, "", line)
+      gsub(/[[:space:]]+$/, "", line)
+      print line
+      exit
+    }
+  ' "$1" 2>/dev/null
+}
 # --- glob → 拡張正規表現(ERE)への変換 ---
 # この環境の bash は globstar が使えるとは限らない（配布先の bash が古い可能性がある）ため、
 # シェルの glob 展開（**）には頼らず、パターン文字列を ERE へ自前で変換して
@@ -121,6 +137,10 @@ resolve_target() {
   while IFS= read -r rule; do
     [ -z "$rule" ] && continue
     scope="$(extract_scope "$rule")"
+    work_unit="$(extract_work_unit "$rule")"
+    if [ -n "$work_unit" ] && [ "$work_unit" != "file" ]; then
+      continue
+    fi
     matched=0
     if [ "$scope" = "always" ]; then
       matched=1
@@ -276,6 +296,33 @@ EOF
     rc=1
   fi
   rm -rf "$tmp4"
+
+  # 系5（改善課題1-281）: 作業の単位（workUnit）で絞る。言語単位の広い適用範囲（**/*）を持つ
+  # 進め方の規約（process）と成果物の形の規約（artifact）は、ファイルを渡した解決では返らない。
+  # ファイルの中身の規約（file）だけが返る。workUnit を持たない規約は従来どおり返る。
+  local tmp5
+  if ! tmp5="$(mktemp -d "${TMPDIR:-/tmp}/resolve-applicable-rules-self-test5.XXXXXX" 2>/dev/null)" || [ -z "$tmp5" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
+    exit 2
+  fi
+  mkdir -p "$tmp5/docs/rules/p/flow" "$tmp5/docs/rules/p/style" "$tmp5/docs/rules/p/docs" "$tmp5/docs/rules/p/legacy"
+  printf -- '---\nkey: flow\nscope: scoped\npaths: ["**/*"]\nworkUnit: process\n---\n' > "$tmp5/docs/rules/p/flow/rule.md"
+  printf -- '---\nkey: style\nscope: scoped\npaths: ["**/*.ts"]\nworkUnit: file\n---\n' > "$tmp5/docs/rules/p/style/rule.md"
+  printf -- '---\nkey: docs\nscope: always\npaths: ["**/*"]\nworkUnit: artifact\n---\n' > "$tmp5/docs/rules/p/docs/rule.md"
+  printf -- '---\nkey: legacy\nscope: scoped\npaths: ["**/*.ts"]\n---\n' > "$tmp5/docs/rules/p/legacy/rule.md"
+  printf 'key: p\ntitle: 親\n' > "$tmp5/docs/rules/p/parent.yml"
+  local out5
+  out5="$(cd "$tmp5" && resolve_target "src/app.ts")"
+  if printf '%s\n' "$out5" | grep -q 'p/style/rule.md' \
+     && printf '%s\n' "$out5" | grep -q 'p/legacy/rule.md' \
+     && ! printf '%s\n' "$out5" | grep -q 'p/flow/rule.md' \
+     && ! printf '%s\n' "$out5" | grep -q 'p/docs/rule.md'; then
+    echo "  [PASS] 系5: 作業の単位が file の規約だけが返り、進め方・成果物の形の規約は広い適用範囲でも返らない"
+  else
+    echo "  [FAIL] 系5: 期待と異なる出力（${out5}）" >&2
+    rc=1
+  fi
+  rm -rf "$tmp5"
 
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"

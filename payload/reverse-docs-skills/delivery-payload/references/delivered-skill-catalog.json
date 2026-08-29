@@ -8,31 +8,50 @@
       "name": "dev-flow",
       "title": "開発フロー運転",
       "maintains": "要件のすり合わせから実装と動作確認までの5段階の進行、および各段階での規約照合",
-      "files": ["SKILL.md"]
+      "files": [
+        "SKILL.md"
+      ]
     },
     {
       "name": "importing-rule-proposals",
       "title": "規約提案の取り込み",
       "maintains": "docs/rules/ 配下の規約定義（rule.md・parent.yml・design-notes.md）",
-      "files": ["SKILL.md"]
+      "files": [
+        "SKILL.md"
+      ]
     },
     {
       "name": "syncing-derived-artifacts",
       "title": "派生設定の同期",
       "maintains": ".claude/rules/・.cursor/rules/・.codex/config.toml・AGENTS.md・.claude/settings.json・.cursor/hooks.json",
-      "files": ["SKILL.md"]
+      "files": [
+        "SKILL.md"
+      ]
     },
     {
       "name": "resolving-confirmation-items",
       "title": "要確認事項の回答反映",
       "maintains": "設計書の要確認事項の欄と、確認事項質問票の台帳",
-      "files": ["SKILL.md", "scripts/apply-confirmation-answers.mjs"]
+      "files": [
+        "SKILL.md",
+        "scripts/apply-confirmation-answers.mjs"
+      ]
     },
     {
       "name": "maintaining-portal",
       "title": "ポータルの保守",
       "maintains": "ポータルの生成HTML（一覧・対応表・規約のHTML・ポータルトップ）",
-      "files": ["SKILL.md"]
+      "files": [
+        "SKILL.md"
+      ]
+    },
+    {
+      "name": "generating-rule-proposals",
+      "title": "規約提案の書き出し",
+      "maintains": "リポジトリの外へ書き出す規約提案HTML（叩き台）。判定結果は importing-rule-proposals が正本へ取り込む",
+      "files": [
+        "SKILL.md"
+      ]
     }
   ]
 }

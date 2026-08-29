@@ -237,5 +237,9 @@
         ]
       }
     }
+  },
+  "additionalAllowance": {
+    "description": "改善課題1-283: 現場で足した節・表を完全一致の対象から外す受け口。各文書の定義に allowedAdditionalSections（レベル2見出しの文字列の配列）と allowedAdditionalTables（表の見出し行の文字列の配列）を書ける。配布物の定義を書き換えずに足すには、対象プロジェクトの docs/design/design-doc-additions.json へ同じ形（documentTypes.<kind>.<basename>.allowedAdditionalSections / allowedAdditionalTables）で書く。許した節の配下の表はその節ごと許す。宣言に無い節・表は従来どおり不合格になる",
+    "projectFile": "docs/design/design-doc-additions.json"
   }
 }

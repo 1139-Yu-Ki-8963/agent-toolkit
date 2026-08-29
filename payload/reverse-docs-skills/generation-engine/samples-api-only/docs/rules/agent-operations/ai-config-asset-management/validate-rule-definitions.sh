@@ -54,7 +54,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 TAXONOMY_JSON="${REPO_ROOT}/delivery-payload/references/rule-taxonomy.json"
 CHECKERS_DIR="${REPO_ROOT}/delivery-payload/templates/rules/checkers"
 
-EXPECTED_KEYS="key title parent summary scope paths enforcement checkable checker uncheckableReason formatter status origin"
+EXPECTED_KEYS="key title parent summary scope paths enforcement checkable checker uncheckableReason formatter status origin workUnit"
 
 FAILURES=""
 FAIL_COUNT=0
@@ -271,7 +271,7 @@ validate_one_rule() {
     fi
   done
   if [ -n "$missing_keys" ]; then
-    add_failure "$rule_file" "front-matter鍵-欠落" "必須13鍵のうち欠落: ${missing_keys}"
+    add_failure "$rule_file" "front-matter鍵-欠落" "必須14鍵のうち欠落: ${missing_keys}"
   fi
   extra_keys=""
   local ak
@@ -288,7 +288,7 @@ validate_one_rule() {
     fi
   done
   if [ -n "$extra_keys" ]; then
-    add_failure "$rule_file" "front-matter鍵-未定義" "13鍵に無い未定義の鍵: ${extra_keys}"
+    add_failure "$rule_file" "front-matter鍵-未定義" "14鍵に無い未定義の鍵: ${extra_keys}"
   fi
 
   # スカラー値取得
@@ -306,6 +306,7 @@ validate_one_rule() {
   v_formatter="$(fm_get_scalar "$body" formatter)"
   v_status="$(fm_get_scalar "$body" status)"
   v_origin="$(fm_get_scalar "$body" origin)"
+  v_work_unit="$(fm_get_scalar "$body" workUnit)"
 
   # 値域検査（13鍵）
   if ! is_nonempty "$v_key" || ! is_kebab "$v_key"; then
@@ -343,6 +344,11 @@ validate_one_rule() {
   case "$v_origin" in
     template|proposal|manual) ;;
     *) add_failure "$rule_file" "値域-origin" "origin は template/proposal/manual のいずれかである必要がある（値: '${v_origin}'）" ;;
+  esac
+  # 改善課題1-281: 規約が対象とする作業の単位。file=ファイルの中身 / process=進め方 / artifact=成果物の形
+  case "$v_work_unit" in
+    file|process|artifact) ;;
+    *) add_failure "$rule_file" "値域-workUnit" "workUnit は file/process/artifact のいずれかである必要がある（値: '${v_work_unit}'）" ;;
   esac
 
   # 鍵-対応整合（checkable と checker / uncheckableReason の対応）
@@ -618,6 +624,7 @@ uncheckableReason: 行動の是非は静的解析では判定できない。
 formatter: none
 status: approved
 origin: proposal
+workUnit: file
 ---
 
 # AIエージェント行動規約
@@ -658,6 +665,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: proposal
+workUnit: file
 ---
 
 # 命名規約

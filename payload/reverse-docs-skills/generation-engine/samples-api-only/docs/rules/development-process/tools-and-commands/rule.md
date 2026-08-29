@@ -12,6 +12,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: manual
+workUnit: process
 ---
 
 # 使うツールとコマンドの決まり

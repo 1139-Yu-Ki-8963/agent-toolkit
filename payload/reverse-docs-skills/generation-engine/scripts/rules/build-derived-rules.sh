@@ -779,6 +779,7 @@ uncheckableReason: 行動の是非は静的解析では判定できない。
 formatter: none
 status: approved
 origin: proposal
+workUnit: file
 ---
 
 # AIエージェント行動規約
@@ -813,6 +814,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: proposal
+workUnit: file
 ---
 
 # 命名規約
@@ -861,6 +863,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: proposal
+workUnit: file
 ---
 
 # Bashコマンド検査規約（テスト用）
@@ -907,6 +910,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: proposal
+workUnit: file
 ---
 
 # 完了報告検査規約（テスト用）
@@ -953,6 +957,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: proposal
+workUnit: file
 ---
 
 # timing宣言なし検査規約（テスト用）
@@ -996,6 +1001,7 @@ uncheckableReason: 未承認のため検査対象外。
 formatter: none
 status: draft
 origin: proposal
+workUnit: file
 ---
 
 # レビュー観点メモ（未承認）

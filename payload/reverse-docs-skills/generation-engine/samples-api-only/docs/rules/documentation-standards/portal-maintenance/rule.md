@@ -12,6 +12,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: manual
+workUnit: artifact
 ---
 
 # 生成した文書を直接編集しない決まり

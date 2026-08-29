@@ -12,6 +12,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: manual
+workUnit: process
 ---
 
 # 完了報告に実行結果を添える決まり

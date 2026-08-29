@@ -12,6 +12,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: manual
+workUnit: file
 ---
 
 # 状態の移り変わりの決まり

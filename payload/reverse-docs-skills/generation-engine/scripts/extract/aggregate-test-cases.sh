@@ -709,6 +709,29 @@ done < <(find "$output_dir/$screen_unit_root" -mindepth 3 -maxdepth 3 -type f \
      -o -path "*/screen-*/テスト項目書/単体テスト仕様書.md" -o -path "*/screen-*/テスト項目書/結合テスト仕様書.md" \) \
   -print0 2>/dev/null)
 
+# プロジェクト横断の結合テスト仕様書（改善課題1-246）: docs/test-cases/結合テスト仕様書.md の
+# 「テストケース一覧」（先頭列「キー」・「操作手順」列を持つ表）を testType=integration として読む。
+# ownerKey は "project"（画面単位ではない）。連携キーを viewpointKey、前提条件を input として転記する。
+project_integration_spec="$output_dir/docs/test-cases/結合テスト仕様書.md"
+if [ -f "$project_integration_spec" ]; then
+  scanned_integration=$((scanned_integration + 1))
+  if ! tmp_rows="$(mktemp "${TMPDIR:-/tmp}/aggregate-test-cases-rows.XXXXXX" 2>/dev/null)" || [ -z "$tmp_rows" ]; then
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  LC_ALL=C awk -v firstHeader="キー" -v wantNames="連携キー,操作手順,前提条件,期待結果" "$extract_named_table_awk" "$project_integration_spec" > "$tmp_rows" 2>"$tmp_excl"
+  awk -F'\t' '
+    {
+      rownum++
+      printf "project\tintegration\tproject-integration-%d\t%s\t%s\t%s\t%s\t%s\t\tproject\n", rownum, $1, $2, $4, $3, $5
+    }
+  ' "$tmp_rows" >> "$tmp_tsv"
+  rm -f "$tmp_rows"
+  excl_n="$(cat "$tmp_excl" 2>/dev/null || true)"
+  [ -z "$excl_n" ] && excl_n=0
+  excluded_integration=$((excluded_integration + excl_n))
+fi
+
 # 操作シナリオ: シナリオ一覧表 + 各節の期待結果 + YAML契約を screenKey ごとに突合する
 scenario_contract_error=0
 while IFS= read -r -d '' file; do

@@ -100,7 +100,7 @@
     --line2: #243040;
     --text: #1A222E;
     --sub: #4B5A70;
-    --muted: #657285;
+    --muted: #58657A;
     --faint: #627387;
     --accent: #0272AC;
     --accent-hi: #075985;
@@ -131,7 +131,7 @@
   --line2: #243040;
   --text: #1A222E;
   --sub: #4B5A70;
-  --muted: #657285;
+  --muted: #58657A;
   --faint: #627387;
   --accent: #0272AC;
   --accent-hi: #075985;
@@ -638,7 +638,7 @@ table.rfm thead th { font-size: 11px; font-weight: 600; color: var(--muted); }
   <button type="button" class="pt-theme" id="pt-theme-toggle">
     <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
   </button>
-  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-28</span><span id="pt-meta-commit"><br>コミット </span></div>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-29</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
 <script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":3},{"key":"list","num":"04","label":"一覧・設計図","count":15},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
@@ -922,11 +922,11 @@ table.rfm thead th { font-size: 11px; font-weight: 600; color: var(--muted); }
         <div class="pt-crumb"><a href="../index.html">TOP</a> ／ 基盤情報 ／ <span class="pt-crumb-current">規約とフローの対応</span></div>
         <div class="pt-title-row">
           <h1 class="pt-title">規約とフローの対応</h1>
-          <span class="pt-title-sub">更新 2026-08-28T11:31:00Z ／ 規約 0 件</span>
+          <span class="pt-title-sub">更新 2026-08-29T01:54:55Z ／ 規約 0 件</span>
         </div>
       </div>
 
-      <p class="rfm-lead">いま取り組んでいるフェーズから読むべき規約を引く一覧と、27件の規約それぞれの適用範囲・対象ファイル・効くフェーズを引く一覧の2通りを、同じ rule-taxonomy.json から生成する。</p>
+      <p class="rfm-lead">いま取り組んでいるフェーズから読むべき規約を引く一覧と、0件の規約それぞれの適用範囲・対象ファイル・効くフェーズを引く一覧の2通りを、同じ rule-taxonomy.json から生成する。</p>
 
       <div class="table-area">
         <section class="rfm-view">
@@ -1079,7 +1079,7 @@ table.rfm thead th { font-size: 11px; font-weight: 600; color: var(--muted); }
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta"> · 更新 <span id="pt-footer-date">2026-08-28</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta"> · 更新 <span id="pt-footer-date">2026-08-29</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: build-rule-flow-map</span>
 </footer>
 </div>
@@ -1105,11 +1105,18 @@ table.rfm thead th { font-size: 11px; font-weight: 600; color: var(--muted); }
     {
       "key": "document-style-register",
       "title": "顧客向け文書の文体を確かめる",
-      "rules": ["顧客向け文書の地の文を敬体にする"],
+      "rules": [
+        "顧客向け文書の地の文を敬体にする"
+      ],
       "checker": "check-document-style-register.sh",
       "scope": "scoped",
-      "paths": ["docs/**/*.md"],
-      "phases": ["2-基本設計", "3-詳細設計"]
+      "paths": [
+        "docs/**/*.md"
+      ],
+      "phases": [
+        "2-基本設計",
+        "3-詳細設計"
+      ]
     },
     {
       "key": "customer-facing-adequacy",
@@ -1124,8 +1131,15 @@ table.rfm thead th { font-size: 11px; font-weight: 600; color: var(--muted); }
       ],
       "checker": "check-customer-facing-adequacy.sh",
       "scope": "scoped",
-      "paths": ["docs/**/*.md", "docs/**/*.html", "project-portal/**"],
-      "phases": ["2-基本設計", "3-詳細設計"]
+      "paths": [
+        "docs/**/*.md",
+        "docs/**/*.html",
+        "project-portal/**"
+      ],
+      "phases": [
+        "2-基本設計",
+        "3-詳細設計"
+      ]
     },
     {
       "key": "instruction-writing",
@@ -1137,8 +1151,12 @@ table.rfm thead th { font-size: 11px; font-weight: 600; color: var(--muted); }
       ],
       "checker": "check-instruction-writing.sh",
       "scope": "scoped",
-      "paths": ["docs/tasks/*.md"],
-      "phases": ["フロー外"]
+      "paths": [
+        "docs/tasks/*.md"
+      ],
+      "phases": [
+        "フロー外"
+      ]
     },
     {
       "key": "code-line-number-reference",
@@ -1149,8 +1167,16 @@ table.rfm thead th { font-size: 11px; font-weight: 600; color: var(--muted); }
       ],
       "checker": "check-code-line-number-reference.sh",
       "scope": "scoped",
-      "paths": ["docs/**/*.md", "docs/**/*.html", "project-portal/**"],
-      "phases": ["2-基本設計", "3-詳細設計", "フロー外"]
+      "paths": [
+        "docs/**/*.md",
+        "docs/**/*.html",
+        "project-portal/**"
+      ],
+      "phases": [
+        "2-基本設計",
+        "3-詳細設計",
+        "フロー外"
+      ]
     },
     {
       "key": "portal-unmaintainable-content",
@@ -1161,8 +1187,16 @@ table.rfm thead th { font-size: 11px; font-weight: 600; color: var(--muted); }
       ],
       "checker": "check-portal-unmaintainable-content.sh",
       "scope": "scoped",
-      "paths": ["docs/**/*.md", "docs/**/*.html", "project-portal/**"],
-      "phases": ["2-基本設計", "3-詳細設計", "フロー外"]
+      "paths": [
+        "docs/**/*.md",
+        "docs/**/*.html",
+        "project-portal/**"
+      ],
+      "phases": [
+        "2-基本設計",
+        "3-詳細設計",
+        "フロー外"
+      ]
     }
   ],
   "parents": [
@@ -1170,69 +1204,557 @@ table.rfm thead th { font-size: 11px; font-weight: 600; color: var(--muted); }
       "key": "agent-operations",
       "title": "AIエージェント運用",
       "children": [
-        { "key": "ai-behavior", "title": "人とAIの分担の決まり", "summary": "AIエージェントへの作業委任・役割分担・実行方式の取り決め。", "toolDefined": true, "checker": "check-delegation-completion-criteria.sh", "scope": "always", "paths": [], "phases": ["全フェーズ"] },
-        { "key": "destructive-operation-safety", "title": "上書きの前に読む決まり", "summary": "rm -rf・force push・reset --hard 等の破壊的操作を実行する前の確認と検査の取り決め。", "toolDefined": true, "checker": "check-read-before-overwrite.sh", "scope": "always", "paths": [], "phases": ["全フェーズ"] },
-        { "key": "session-management", "title": "完了報告に実行結果を添える決まり", "summary": "作業セッションの開始・終了・記録・引き継ぎに関する取り決め。", "toolDefined": true, "checker": "check-completion-evidence.sh", "scope": "always", "paths": [], "phases": ["全フェーズ"] },
-        { "key": "ai-config-asset-management", "title": "定義と生成物の分け方の決まり", "summary": "スキル・規約・フックなどAI設定資産の作成・変更・配置・レビューの手順。", "toolDefined": true, "checker": "check-ai-config-derivative-manual-edit.sh", "scope": "scoped", "paths": ["docs/rules/**", ".claude/**", ".cursor/**", ".codex/**", "AGENTS.md"], "phases": ["フロー外"] },
-        { "key": "routine-operations", "title": "繰り返す作業の手順書の決まり", "summary": "定期的に繰り返す定型作業の手順と実行タイミングの取り決め。", "toolDefined": true, "checker": "check-routine-procedure-doc.sh", "scope": "scoped", "paths": ["docs/**/*.md"], "phases": ["フロー外"] }
+        {
+          "key": "ai-behavior",
+          "title": "人とAIの分担の決まり",
+          "summary": "AIエージェントへの作業委任・役割分担・実行方式の取り決め。",
+          "toolDefined": true,
+          "checker": "check-delegation-completion-criteria.sh",
+          "scope": "always",
+          "paths": [],
+          "phases": [
+            "全フェーズ"
+          ],
+          "workUnit": "process"
+        },
+        {
+          "key": "destructive-operation-safety",
+          "title": "上書きの前に読む決まり",
+          "summary": "rm -rf・force push・reset --hard 等の破壊的操作を実行する前の確認と検査の取り決め。",
+          "toolDefined": true,
+          "checker": "check-read-before-overwrite.sh",
+          "scope": "always",
+          "paths": [],
+          "phases": [
+            "全フェーズ"
+          ],
+          "workUnit": "process"
+        },
+        {
+          "key": "session-management",
+          "title": "完了報告に実行結果を添える決まり",
+          "summary": "作業セッションの開始・終了・記録・引き継ぎに関する取り決め。",
+          "toolDefined": true,
+          "checker": "check-completion-evidence.sh",
+          "scope": "always",
+          "paths": [],
+          "phases": [
+            "全フェーズ"
+          ],
+          "workUnit": "process"
+        },
+        {
+          "key": "ai-config-asset-management",
+          "title": "定義と生成物の分け方の決まり",
+          "summary": "スキル・規約・フックなどAI設定資産の作成・変更・配置・レビューの手順。",
+          "toolDefined": true,
+          "checker": "check-ai-config-derivative-manual-edit.sh",
+          "scope": "scoped",
+          "paths": [
+            "docs/rules/**",
+            ".claude/**",
+            ".cursor/**",
+            ".codex/**",
+            "AGENTS.md"
+          ],
+          "phases": [
+            "フロー外"
+          ],
+          "workUnit": "process"
+        },
+        {
+          "key": "routine-operations",
+          "title": "繰り返す作業の手順書の決まり",
+          "summary": "定期的に繰り返す定型作業の手順と実行タイミングの取り決め。",
+          "toolDefined": true,
+          "checker": "check-routine-procedure-doc.sh",
+          "scope": "scoped",
+          "paths": [
+            "docs/**/*.md"
+          ],
+          "phases": [
+            "フロー外"
+          ],
+          "workUnit": "process"
+        }
       ]
     },
     {
       "key": "development-process",
       "title": "開発プロセス",
       "children": [
-        { "key": "development-flow", "title": "実装から統合までの順序の決まり", "summary": "設計から実装・レビュー・統合までの開発工程の順序と各段階の完了条件。", "toolDefined": true, "checker": "check-direct-commit-to-integration-branch.sh", "scope": "always", "paths": [], "phases": ["全フェーズ"] },
-        { "key": "tools-and-commands", "title": "使うツールとコマンドの決まり", "summary": "開発で使うツールとコマンドの実行方法・権限・実行前確認の取り決め。", "toolDefined": true, "checker": "check-secret-in-command-args.sh", "scope": "scoped", "paths": ["package.json", "scripts/**", "Makefile", ".github/**"], "phases": ["5-実装と動作確認"] },
-        { "key": "development-environment", "title": "開発環境の組み立て方の決まり", "summary": "ローカル開発環境の構築手順・依存関係・環境変数の管理方法。", "toolDefined": true, "checker": "check-secret-filename-staged.sh", "scope": "scoped", "paths": ["package.json", "*.lock", ".env.example", "docs/**/*.md"], "phases": ["4-実装プラン策定"] },
-        { "key": "git-operations", "title": "コミットと枝の決まり", "summary": "コミット・ブランチ・マージ・プルリクエストの運用ルール。", "toolDefined": true, "checker": "check-generated-artifact-staged.sh", "scope": "always", "paths": [], "phases": ["全フェーズ"] },
-        { "key": "release-and-delivery", "title": "版付けと公開の決まり", "summary": "リリース手順・デプロイ方法・バージョン管理の取り決め。", "toolDefined": true, "checker": "check-release-changelog-entry.sh", "scope": "scoped", "paths": [".github/**", "CHANGELOG.md", "package.json"], "phases": ["フロー外"] }
+        {
+          "key": "development-flow",
+          "title": "実装から統合までの順序の決まり",
+          "summary": "設計から実装・レビュー・統合までの開発工程の順序と各段階の完了条件。",
+          "toolDefined": true,
+          "checker": "check-direct-commit-to-integration-branch.sh",
+          "scope": "always",
+          "paths": [],
+          "phases": [
+            "全フェーズ"
+          ],
+          "workUnit": "process"
+        },
+        {
+          "key": "tools-and-commands",
+          "title": "使うツールとコマンドの決まり",
+          "summary": "開発で使うツールとコマンドの実行方法・権限・実行前確認の取り決め。",
+          "toolDefined": true,
+          "checker": "check-secret-in-command-args.sh",
+          "scope": "scoped",
+          "paths": [
+            "package.json",
+            "scripts/**",
+            "Makefile",
+            ".github/**"
+          ],
+          "phases": [
+            "5-実装と動作確認"
+          ],
+          "workUnit": "process"
+        },
+        {
+          "key": "development-environment",
+          "title": "開発環境の組み立て方の決まり",
+          "summary": "ローカル開発環境の構築手順・依存関係・環境変数の管理方法。",
+          "toolDefined": true,
+          "checker": "check-secret-filename-staged.sh",
+          "scope": "scoped",
+          "paths": [
+            "package.json",
+            "*.lock",
+            ".env.example",
+            "docs/**/*.md"
+          ],
+          "phases": [
+            "4-実装プラン策定"
+          ],
+          "workUnit": "process"
+        },
+        {
+          "key": "git-operations",
+          "title": "コミットと枝の決まり",
+          "summary": "コミット・ブランチ・マージ・プルリクエストの運用ルール。",
+          "toolDefined": true,
+          "checker": "check-generated-artifact-staged.sh",
+          "scope": "always",
+          "paths": [],
+          "phases": [
+            "全フェーズ"
+          ],
+          "workUnit": "process"
+        },
+        {
+          "key": "release-and-delivery",
+          "title": "版付けと公開の決まり",
+          "summary": "リリース手順・デプロイ方法・バージョン管理の取り決め。",
+          "toolDefined": true,
+          "checker": "check-release-changelog-entry.sh",
+          "scope": "scoped",
+          "paths": [
+            ".github/**",
+            "CHANGELOG.md",
+            "package.json"
+          ],
+          "phases": [
+            "フロー外"
+          ],
+          "workUnit": "process"
+        }
       ]
     },
     {
       "key": "code-standards",
       "title": "コード規約",
       "children": [
-        { "key": "coding-style", "title": "コードの書き方と分割の決まり", "summary": "コードの書き方・関数分割・ファイル行数など実装スタイルの取り決め。", "toolDefined": true, "checker": "check-any-type-escape-hatch.sh", "scope": "scoped", "paths": ["src/**"], "phases": ["5-実装と動作確認"] },
-        { "key": "naming", "title": "名前の付け方の決まり", "summary": "変数・関数・ファイル・ディレクトリなど識別子の命名パターン。", "toolDefined": true, "checker": "check-sequential-identifier-naming.sh", "scope": "scoped", "paths": ["docs/**/detailed-design/**", "src/**"], "phases": ["3-詳細設計", "5-実装と動作確認"] },
-        { "key": "directory-structure", "title": "どこに何を置くかの決まり", "summary": "リポジトリのディレクトリ配置とレイヤー構成の取り決め。", "toolDefined": true, "checker": "check-temp-file-tracked.sh", "scope": "scoped", "paths": ["docs/**", "src/**"], "phases": ["4-実装プラン策定"] },
-        { "key": "component-architecture", "title": "部品の分け方と依存の決まり", "summary": "コンポーネントの分割方針・責務分担・依存関係の設計指針。", "toolDefined": true, "checker": "check-direct-circular-import.sh", "scope": "scoped", "paths": ["docs/**/detailed-design/**", "src/**"], "phases": ["3-詳細設計", "5-実装と動作確認"] }
+        {
+          "key": "coding-style",
+          "title": "コードの書き方と分割の決まり",
+          "summary": "コードの書き方・関数分割・ファイル行数など実装スタイルの取り決め。",
+          "toolDefined": true,
+          "checker": "check-any-type-escape-hatch.sh",
+          "scope": "scoped",
+          "paths": [
+            "src/**"
+          ],
+          "phases": [
+            "5-実装と動作確認"
+          ],
+          "workUnit": "file"
+        },
+        {
+          "key": "naming",
+          "title": "名前の付け方の決まり",
+          "summary": "変数・関数・ファイル・ディレクトリなど識別子の命名パターン。",
+          "toolDefined": true,
+          "checker": "check-sequential-identifier-naming.sh",
+          "scope": "scoped",
+          "paths": [
+            "docs/**/detailed-design/**",
+            "src/**"
+          ],
+          "phases": [
+            "3-詳細設計",
+            "5-実装と動作確認"
+          ],
+          "workUnit": "file"
+        },
+        {
+          "key": "directory-structure",
+          "title": "どこに何を置くかの決まり",
+          "summary": "リポジトリのディレクトリ配置とレイヤー構成の取り決め。",
+          "toolDefined": true,
+          "checker": "check-temp-file-tracked.sh",
+          "scope": "scoped",
+          "paths": [
+            "docs/**",
+            "src/**"
+          ],
+          "phases": [
+            "4-実装プラン策定"
+          ],
+          "workUnit": "file"
+        },
+        {
+          "key": "component-architecture",
+          "title": "部品の分け方と依存の決まり",
+          "summary": "コンポーネントの分割方針・責務分担・依存関係の設計指針。",
+          "toolDefined": true,
+          "checker": "check-direct-circular-import.sh",
+          "scope": "scoped",
+          "paths": [
+            "docs/**/detailed-design/**",
+            "src/**"
+          ],
+          "phases": [
+            "3-詳細設計",
+            "5-実装と動作確認"
+          ],
+          "workUnit": "file"
+        }
       ]
     },
     {
       "key": "quality-assurance",
       "title": "品質保証",
       "children": [
-        { "key": "test-policy", "title": "単体テスト設計書の決まり", "summary": "テストの種類・カバレッジ目標・実行タイミングの取り決め。", "toolDefined": true, "checker": "check-unit-test-design-doc-sections.sh", "scope": "scoped", "paths": ["docs/**/detailed-design/**", "src/**"], "phases": ["3-詳細設計", "4-実装プラン策定"] },
-        { "key": "review-checklist", "title": "レビューの観点の決まり", "summary": "レビューをいつ・誰が・何を基準に行い、どの条件で通すかの取り決め。", "toolDefined": true, "checker": "check-review-viewpoints-list.sh", "scope": "always", "paths": [], "phases": ["全フェーズ"] }
+        {
+          "key": "test-policy",
+          "title": "単体テスト設計書の決まり",
+          "summary": "テストの種類・カバレッジ目標・実行タイミングの取り決め。",
+          "toolDefined": true,
+          "checker": "check-unit-test-design-doc-sections.sh",
+          "scope": "scoped",
+          "paths": [
+            "docs/**/detailed-design/**",
+            "src/**"
+          ],
+          "phases": [
+            "3-詳細設計",
+            "4-実装プラン策定"
+          ],
+          "workUnit": "artifact"
+        },
+        {
+          "key": "review-checklist",
+          "title": "レビューの観点の決まり",
+          "summary": "レビューをいつ・誰が・何を基準に行い、どの条件で通すかの取り決め。",
+          "toolDefined": true,
+          "checker": "check-review-viewpoints-list.sh",
+          "scope": "always",
+          "paths": [],
+          "phases": [
+            "全フェーズ"
+          ],
+          "workUnit": "process"
+        }
       ]
     },
     {
       "key": "documentation-standards",
       "title": "文書化規約",
       "children": [
-        { "key": "document-writing", "title": "設計書の書き方の決まり", "summary": "設計書・手順書などドキュメントの記述形式と更新手順の取り決め。", "toolDefined": true, "checker": "check-doc-heading-addendum.sh", "scope": "scoped", "paths": ["docs/**/*.md"], "phases": ["1-要件すり合わせ", "2-基本設計", "3-詳細設計"] },
-        { "key": "portal-maintenance", "title": "生成した文書を直接編集しない決まり", "summary": "ポータルと一覧のHTMLを保守するときの取り決め。", "toolDefined": true, "checker": "check-generated-html-manual-edit.sh", "scope": "scoped", "paths": ["project-portal/**", "docs/**/*.html"], "phases": ["フロー外"] }
+        {
+          "key": "document-writing",
+          "title": "設計書の書き方の決まり",
+          "summary": "設計書・手順書などドキュメントの記述形式と更新手順の取り決め。",
+          "toolDefined": true,
+          "checker": "check-doc-heading-addendum.sh",
+          "scope": "scoped",
+          "paths": [
+            "docs/**/*.md"
+          ],
+          "phases": [
+            "1-要件すり合わせ",
+            "2-基本設計",
+            "3-詳細設計"
+          ],
+          "workUnit": "artifact"
+        },
+        {
+          "key": "portal-maintenance",
+          "title": "生成した文書を直接編集しない決まり",
+          "summary": "ポータルと一覧のHTMLを保守するときの取り決め。",
+          "toolDefined": true,
+          "checker": "check-generated-html-manual-edit.sh",
+          "scope": "scoped",
+          "paths": [
+            "project-portal/**",
+            "docs/**/*.html"
+          ],
+          "phases": [
+            "フロー外"
+          ],
+          "workUnit": "artifact"
+        }
       ]
     },
     {
       "key": "non-functional-requirements",
       "title": "非機能要件",
       "children": [
-        { "key": "security", "title": "認証と入力と秘密の値の決まり", "summary": "認証・認可・入力検証など安全性に関する要件。", "toolDefined": true, "checker": "check-secret-literal-in-code.sh", "scope": "scoped", "paths": ["docs/**/basic-design/**", "src/**"], "phases": ["2-基本設計", "5-実装と動作確認"], "appliesWhen": {"anyOf":[{"manifest":"screen-manifest.json","minCount":1},{"manifest":"api-manifest.json","minCount":1}]} },
-        { "key": "performance", "title": "応答の速さと処理の量の決まり", "summary": "応答時間・処理件数などパフォーマンスに関する要件。", "toolDefined": true, "checker": "check-loop-query-call.sh", "scope": "scoped", "paths": ["docs/**/basic-design/**", "src/**"], "phases": ["2-基本設計", "5-実装と動作確認"], "appliesWhen": {"anyOf":[{"manifest":"table-manifest.json","minCount":1},{"manifest":"api-manifest.json","minCount":1}]} },
-        { "key": "availability", "title": "稼働を続けることと復旧の決まり", "summary": "システムの稼働継続性と障害時の復旧に関する要件。", "toolDefined": true, "checker": "check-outbound-call-missing-timeout.sh", "scope": "scoped", "paths": ["docs/**/basic-design/**"], "phases": ["2-基本設計"], "appliesWhen": {"anyOf":[{"manifest":"batch-manifest.json","minCount":1},{"manifest":"external-manifest.json","minCount":1}]} },
-        { "key": "scalability", "title": "利用が増えたときの決まり", "summary": "利用量の増加に対応するための拡張方針に関する要件。", "toolDefined": true, "checker": "check-full-scan-then-filter.sh", "scope": "scoped", "paths": ["docs/**/basic-design/**"], "phases": ["2-基本設計"], "appliesWhen": {"anyOf":[{"manifest":"screen-manifest.json","minCount":1},{"manifest":"api-manifest.json","minCount":1}]} },
-        { "key": "observability", "title": "記録と監視の決まり", "summary": "ログ出力・監視・アラートに関する要件。", "toolDefined": true, "checker": "check-secret-value-logging.sh", "scope": "scoped", "paths": ["docs/**/basic-design/**", "src/**"], "phases": ["2-基本設計", "5-実装と動作確認"], "appliesWhen": {"anyOf":[{"manifest":"batch-manifest.json","minCount":1},{"manifest":"external-manifest.json","minCount":1}]} }
+        {
+          "key": "security",
+          "title": "認証と入力と秘密の値の決まり",
+          "summary": "認証・認可・入力検証など安全性に関する要件。",
+          "toolDefined": true,
+          "checker": "check-secret-literal-in-code.sh",
+          "scope": "scoped",
+          "paths": [
+            "docs/**/basic-design/**",
+            "src/**"
+          ],
+          "phases": [
+            "2-基本設計",
+            "5-実装と動作確認"
+          ],
+          "appliesWhen": {
+            "anyOf": [
+              {
+                "manifest": "screen-manifest.json",
+                "minCount": 1
+              },
+              {
+                "manifest": "api-manifest.json",
+                "minCount": 1
+              }
+            ]
+          },
+          "workUnit": "file"
+        },
+        {
+          "key": "performance",
+          "title": "応答の速さと処理の量の決まり",
+          "summary": "応答時間・処理件数などパフォーマンスに関する要件。",
+          "toolDefined": true,
+          "checker": "check-loop-query-call.sh",
+          "scope": "scoped",
+          "paths": [
+            "docs/**/basic-design/**",
+            "src/**"
+          ],
+          "phases": [
+            "2-基本設計",
+            "5-実装と動作確認"
+          ],
+          "appliesWhen": {
+            "anyOf": [
+              {
+                "manifest": "table-manifest.json",
+                "minCount": 1
+              },
+              {
+                "manifest": "api-manifest.json",
+                "minCount": 1
+              }
+            ]
+          },
+          "workUnit": "file"
+        },
+        {
+          "key": "availability",
+          "title": "稼働を続けることと復旧の決まり",
+          "summary": "システムの稼働継続性と障害時の復旧に関する要件。",
+          "toolDefined": true,
+          "checker": "check-outbound-call-missing-timeout.sh",
+          "scope": "scoped",
+          "paths": [
+            "docs/**/basic-design/**"
+          ],
+          "phases": [
+            "2-基本設計"
+          ],
+          "appliesWhen": {
+            "anyOf": [
+              {
+                "manifest": "batch-manifest.json",
+                "minCount": 1
+              },
+              {
+                "manifest": "external-manifest.json",
+                "minCount": 1
+              }
+            ]
+          },
+          "workUnit": "file"
+        },
+        {
+          "key": "scalability",
+          "title": "利用が増えたときの決まり",
+          "summary": "利用量の増加に対応するための拡張方針に関する要件。",
+          "toolDefined": true,
+          "checker": "check-full-scan-then-filter.sh",
+          "scope": "scoped",
+          "paths": [
+            "docs/**/basic-design/**"
+          ],
+          "phases": [
+            "2-基本設計"
+          ],
+          "appliesWhen": {
+            "anyOf": [
+              {
+                "manifest": "screen-manifest.json",
+                "minCount": 1
+              },
+              {
+                "manifest": "api-manifest.json",
+                "minCount": 1
+              }
+            ]
+          },
+          "workUnit": "file"
+        },
+        {
+          "key": "observability",
+          "title": "記録と監視の決まり",
+          "summary": "ログ出力・監視・アラートに関する要件。",
+          "toolDefined": true,
+          "checker": "check-secret-value-logging.sh",
+          "scope": "scoped",
+          "paths": [
+            "docs/**/basic-design/**",
+            "src/**"
+          ],
+          "phases": [
+            "2-基本設計",
+            "5-実装と動作確認"
+          ],
+          "appliesWhen": {
+            "anyOf": [
+              {
+                "manifest": "batch-manifest.json",
+                "minCount": 1
+              },
+              {
+                "manifest": "external-manifest.json",
+                "minCount": 1
+              }
+            ]
+          },
+          "workUnit": "file"
+        }
       ]
     },
     {
       "key": "business-domain",
       "title": "業務ドメイン規約",
       "children": [
-        { "key": "glossary", "title": "業務の言葉の決まり", "summary": "業務用語とコード上の識別子の対応関係の定義。", "toolDefined": true, "checker": "check-glossary-missing-forbidden-terms.sh", "scope": "scoped", "paths": ["docs/**/*.md"], "phases": ["1-要件すり合わせ", "2-基本設計"] },
-        { "key": "business-rules", "title": "業務の判定の書き方の決まり", "summary": "業務上守るべき判定ロジックと制約の取り決め。", "toolDefined": true, "checker": "check-business-rule-table-missing-exception.sh", "scope": "scoped", "paths": ["docs/**/*.md"], "phases": ["1-要件すり合わせ", "2-基本設計"], "appliesWhen": {"anyOf":[{"manifest":"feature-manifest.json","minCount":1}]} },
-        { "key": "state-transitions", "title": "状態の移り変わりの決まり", "summary": "業務エンティティが取りうる状態と許可される遷移の取り決め。", "toolDefined": true, "checker": "check-state-literal-comparison.sh", "scope": "scoped", "paths": ["docs/**/basic-design/**", "src/**"], "phases": ["2-基本設計", "5-実装と動作確認"], "appliesWhen": {"anyOf":[{"manifest":"table-manifest.json","minCount":1}]} },
-        { "key": "calculation-rules", "title": "金額と数量の計算の決まり", "summary": "金額・数量などの計算ロジックとその根拠の取り決め。", "toolDefined": true, "checker": "check-currency-float-type.sh", "scope": "scoped", "paths": ["docs/**/basic-design/**", "src/**"], "phases": ["2-基本設計", "5-実装と動作確認"], "appliesWhen": {"anyOf":[{"manifest":"feature-manifest.json","minCount":1},{"manifest":"table-manifest.json","minCount":1}]} }
+        {
+          "key": "glossary",
+          "title": "業務の言葉の決まり",
+          "summary": "業務用語とコード上の識別子の対応関係の定義。",
+          "toolDefined": true,
+          "checker": "check-glossary-missing-forbidden-terms.sh",
+          "scope": "scoped",
+          "paths": [
+            "docs/**/*.md"
+          ],
+          "phases": [
+            "1-要件すり合わせ",
+            "2-基本設計"
+          ],
+          "workUnit": "file"
+        },
+        {
+          "key": "business-rules",
+          "title": "業務の判定の書き方の決まり",
+          "summary": "業務上守るべき判定ロジックと制約の取り決め。",
+          "toolDefined": true,
+          "checker": "check-business-rule-table-missing-exception.sh",
+          "scope": "scoped",
+          "paths": [
+            "docs/**/*.md"
+          ],
+          "phases": [
+            "1-要件すり合わせ",
+            "2-基本設計"
+          ],
+          "appliesWhen": {
+            "anyOf": [
+              {
+                "manifest": "feature-manifest.json",
+                "minCount": 1
+              }
+            ]
+          },
+          "workUnit": "file"
+        },
+        {
+          "key": "state-transitions",
+          "title": "状態の移り変わりの決まり",
+          "summary": "業務エンティティが取りうる状態と許可される遷移の取り決め。",
+          "toolDefined": true,
+          "checker": "check-state-literal-comparison.sh",
+          "scope": "scoped",
+          "paths": [
+            "docs/**/basic-design/**",
+            "src/**"
+          ],
+          "phases": [
+            "2-基本設計",
+            "5-実装と動作確認"
+          ],
+          "appliesWhen": {
+            "anyOf": [
+              {
+                "manifest": "table-manifest.json",
+                "minCount": 1
+              }
+            ]
+          },
+          "workUnit": "file"
+        },
+        {
+          "key": "calculation-rules",
+          "title": "金額と数量の計算の決まり",
+          "summary": "金額・数量などの計算ロジックとその根拠の取り決め。",
+          "toolDefined": true,
+          "checker": "check-currency-float-type.sh",
+          "scope": "scoped",
+          "paths": [
+            "docs/**/basic-design/**",
+            "src/**"
+          ],
+          "phases": [
+            "2-基本設計",
+            "5-実装と動作確認"
+          ],
+          "appliesWhen": {
+            "anyOf": [
+              {
+                "manifest": "feature-manifest.json",
+                "minCount": 1
+              },
+              {
+                "manifest": "table-manifest.json",
+                "minCount": 1
+              }
+            ]
+          },
+          "workUnit": "file"
+        }
       ]
     }
   ]

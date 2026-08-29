@@ -360,6 +360,27 @@ for (let index = 0; index < kindRoots.length; index += 2) {
     }
 
     const conformanceKey = `${kind}/${basename}`;
+    // 改善課題1-283: 現場で足した節・表を許す。宣言のファイル（定義の allowedAdditionalSections /
+    // allowedAdditionalTables）と、対象プロジェクト側の docs/design/design-doc-additions.json
+    // （同じ形。配布物の定義を書き換えずに現場で足すための受け口）の両方を読む。
+    // 許した節の配下にある表は、その節ごと許す。
+    const allowedSections = new Set(documentDefinition.allowedAdditionalSections || []);
+    const allowedTables = new Set(documentDefinition.allowedAdditionalTables || []);
+    const additionsFile = path.join(projectRoot, "docs", "design", "design-doc-additions.json");
+    if (fs.existsSync(additionsFile)) {
+      let additions = null;
+      try { additions = JSON.parse(fs.readFileSync(additionsFile, "utf8")); } catch (error) {
+        process.stdout.write(`FAIL 追加宣言-不正 ${additionsFile}: JSON として読めない（${error.message}）\n`);
+        failed = true;
+      }
+      const entry = additions?.documentTypes?.[kind]?.[basename];
+      for (const s of entry?.allowedAdditionalSections || []) allowedSections.add(s);
+      for (const t of entry?.allowedAdditionalTables || []) allowedTables.add(t);
+    }
+    const isAllowedTable = (row) => {
+      const [h2, , header] = row.split("\t");
+      return allowedSections.has(h2) || allowedTables.has(header);
+    };
     if (definitionFile === defaultDefinitionFile && conformanceTemplates.has(conformanceKey)) {
       const conformanceTemplate = conformanceTemplates.get(conformanceKey);
       if (!fs.existsSync(conformanceTemplate)) {
@@ -375,13 +396,13 @@ for (let index = 0; index < kindRoots.length; index += 2) {
         const templateHeadings = conformanceHeadingsCache.get(conformanceTemplate);
         const templateTables = conformanceTablesCache.get(conformanceTemplate);
 
-        const headingDiff = classifyListDiff(templateHeadings, actualHeadings);
+        const headingDiff = classifyListDiff(templateHeadings, actualHeadings.filter((h) => !allowedSections.has(h)));
         if (!headingDiff.equal) {
           process.stdout.write(`FAIL テンプレート見出し-不一致 ${file}: ${conformanceKey}の全節・順序・件数がテンプレートと一致しない（${describeListDiff(headingDiff)}）\n`);
           failed = true;
         }
 
-        const tableDiff = classifyListDiff(templateTables, tableHeaders(file));
+        const tableDiff = classifyListDiff(templateTables, tableHeaders(file).filter((row) => !isAllowedTable(row)));
         if (!tableDiff.equal) {
           process.stdout.write(`FAIL テンプレート表列-不一致 ${file}: ${conformanceKey}の表の所属節・小節・列見出し・順序・件数がテンプレートと一致しない（${describeListDiff(tableDiff)}）\n`);
           failed = true;
@@ -830,6 +851,23 @@ EOF
   assert_contains "検収268-余分をFAILで報告" 'FAIL テンプレート見出し-不一致' "$out_268_extra"
   assert_contains "検収268-余分の内訳を報告" '余分: §99 追加節' "$out_268_extra"
   assert_not_contains "検収268-余分ケースは欠落を報告しない" '欠落:' "$out_268_extra"
+
+  # 改善課題1-283: 対象側の宣言（docs/design/design-doc-additions.json）で許した節・表は
+  # 余分として数えない。宣言に無い節・表は従来どおり不合格（直上の余分ケースが担う）。
+  local out_283 rc_283
+  mkdir -p "$tmp_268/docs/design"
+  cat > "$tmp_268/docs/design/design-doc-additions.json" <<'JSON'
+{"documentTypes":{"api":{"API単体テスト設計書.md":{"allowedAdditionalSections":["§99 追加節"],"allowedAdditionalTables":["| 追加の観点 | 追加の理由 |"]}}}}
+JSON
+  awk '/^## §6 境界値$/ { print "## §99 追加節"; print ""; print "| 追加の列A | 追加の列B |"; print "|---|---|"; print "| a | b |"; print "" } { print }' "$doc_268.orig" > "$doc_268"
+  printf '\n| 追加の観点 | 追加の理由 |\n|---|---|\n| x | y |\n' >> "$doc_268"
+  out_283="$(run_check "$tmp_268")"; rc_283=$?
+  assert_eq "検収283-宣言した節と表を足しても合格" 0 "$rc_283"
+  assert_eq "検収283-宣言した節と表は余分として報告しない" '' "$out_283"
+  rm -f "$tmp_268/docs/design/design-doc-additions.json"
+  out_283="$(run_check "$tmp_268")"; rc_283=$?
+  assert_eq "検収283-宣言を外すと従来どおり不合格" 1 "$rc_283"
+  assert_contains "検収283-宣言の無い節は余分として報告" '余分: §99 追加節' "$out_283"
 
   # 順序のみ相違: §1節と§2節を丸ごと（見出しと表を一緒に）入れ替える。見出し行
   # だけを入れ替えると表が元の節に取り残され、表列側にも欠落・余分が生じて

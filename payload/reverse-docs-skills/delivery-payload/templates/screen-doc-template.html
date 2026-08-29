@@ -21,6 +21,9 @@ a:hover { text-decoration: underline; }
 .dp-layout { display: block; margin-top: 28px; }
 
 .toc-link {
+.toc-link--h3 { padding-left: 22px; font-size: 12px; }
+.toc-link--h4 { padding-left: 34px; font-size: 11.5px; }
+.doc-body a.ref-link, #doc-content a.ref-link, .sec-block a.ref-link { color: var(--accent); border-bottom: 1px dotted var(--accent); }
   display: block; padding: 6px 10px; margin-left: -1.5px;
   border-left: 3px solid transparent;
   color: var(--sub); font-size: 12.5px; font-weight: 450; line-height: 1.4;
@@ -132,6 +135,9 @@ table.data-table code {
 
 /* code blocks */
 .code-block { width: 100%; border: 1px solid var(--line2); overflow: hidden; background: var(--code); margin-bottom: 14px; }
+.diagram-block { margin: 12px 0; }
+.diagram-block pre.mermaid-src { font-family: var(--mono); font-size: 12px; white-space: pre; overflow: auto; }
+.diagram-block .diagram-rendered svg { max-width: 100%; height: auto; }
 .code-block-head {
   display: flex; align-items: center; gap: 6px;
   padding: 6px 14px; font-size: 11px; font-weight: 600;
@@ -209,6 +215,7 @@ table.data-table code {
   var inBlockquote = false;
   var inFence = false;
   var fenceLines = [];
+  var fenceLang = "";
   // 改善課題1-51: 見出し以外の本文が無く、かつ表の行が無い場合に「未記入」を示す
   var hasBodyContent = false;
   var hasTableRow = false;
@@ -282,7 +289,14 @@ table.data-table code {
     if (inTable) { html.push('</tbody></table></div>'); inTable = false; tableColCount = 0; }
   }
   function closeFence() {
-    html.push('<div class="code-block"><pre><code>' + escHtml(fenceLines.join('\n')) + '</code></pre></div>');
+    // 図の記法（```mermaid）の囲みは、図として描く対象に印を付けて出す（改善課題1-285）。
+    // 開始と終了に厳密に一致する囲みだけを対象にし、描画に失敗した場合は文字のまま残す。
+    if (fenceLang === "mermaid") {
+      html.push('<div class="diagram-block" data-diagram="mermaid"><pre class="mermaid-src">' + escHtml(fenceLines.join('\n')) + '</pre></div>');
+    } else {
+      html.push('<div class="code-block"><pre><code>' + escHtml(fenceLines.join('\n')) + '</code></pre></div>');
+    }
+    fenceLang = "";
     hasBodyContent = true;
     inFence = false;
     fenceLines = [];
@@ -301,6 +315,7 @@ table.data-table code {
     if (/^```(?:\s*[^`\s]+)?\s*$/.test(trimmed)) {
       closeList(); closeBlockquote(); closeTable();
       inFence = true;
+      fenceLang = (trimmed.replace(/^```\s*/, '').trim() || '').toLowerCase();
       fenceLines = [];
       continue;
     }
@@ -450,6 +465,17 @@ table.data-table code {
       return normalized || 'section';
     }
 
+    // 既に使われている id を避けて一意な id を作る（改善課題1-284）
+    function uniqueId(base) {
+      var id = base;
+      var duplicate = 2;
+      while (document.getElementById(id)) {
+        id = base + '-' + duplicate;
+        duplicate += 1;
+      }
+      return id;
+    }
+
     // h2 ごとにセクションブロック化 + 目次エントリを生成
     var h2s = Array.prototype.slice.call(container.querySelectorAll('h2'));
     h2s.forEach(function (h2, idx) {
@@ -548,7 +574,49 @@ table.data-table code {
       a.appendChild(label2);
       li.appendChild(a);
       tocList.appendChild(li);
+      // 節の中の見出しへ id を振り、目次へ階層で載せる（改善課題1-284）
+      Array.prototype.forEach.call(section.querySelectorAll('h3, h4'), function (heading) {
+        var headingText = (heading.textContent || '').trim();
+        if (!headingText) return;
+        heading.id = uniqueId('sec-' + sectionSlug(headingText));
+        var subItem = document.createElement('li');
+        subItem.className = 'toc-item';
+        var subLink = document.createElement('a');
+        subLink.className = 'toc-link toc-link--' + heading.tagName.toLowerCase();
+        subLink.href = '#' + heading.id;
+        var subLabel = document.createElement('span');
+        subLabel.textContent = headingText;
+        subLink.appendChild(subLabel);
+        subItem.appendChild(subLink);
+        tocList.appendChild(subItem);
+      });
     });
+
+    // 表の中で見出しと同じ文字のセルを、その見出しへのリンクにする（改善課題1-284）
+    (function () {
+      var targets = {};
+      function register(text, id) {
+        var key = (text || '').trim();
+        if (key && id && !targets[key]) targets[key] = id;
+      }
+      Array.prototype.forEach.call(container.querySelectorAll('h2, h3, h4'), function (heading) {
+        register(heading.textContent, heading.id || (heading.closest && heading.closest('section') ? heading.closest('section').id : ''));
+      });
+      Array.prototype.forEach.call(container.querySelectorAll('details[id]'), function (details) {
+        var summary = details.querySelector('summary');
+        if (summary) register(summary.textContent, details.id);
+      });
+      Array.prototype.forEach.call(container.querySelectorAll('table td'), function (cell) {
+        if (cell.querySelector('a')) return;
+        var id = targets[(cell.textContent || '').trim()];
+        if (!id) return;
+        var link = document.createElement('a');
+        link.className = 'ref-link';
+        link.href = '#' + id;
+        while (cell.firstChild) link.appendChild(cell.firstChild);
+        cell.appendChild(link);
+      });
+    })();
 
     var firstLink = tocList.querySelector('.toc-link');
     if (firstLink) firstLink.classList.add('active');
@@ -625,6 +693,46 @@ table.data-table code {
       }
     });
   });
+})();
+</script>
+<script>
+// 図の記法（mermaid）の囲みを図として描く（改善課題1-285）。描画の道具は外部から読み込み、
+// 読み込めない・描けない場合は囲みの文字をそのまま表示して文書全体を壊さない。
+(function () {
+  function renderDiagrams() {
+    var blocks = document.querySelectorAll('div.diagram-block[data-diagram="mermaid"]');
+    if (!blocks.length) return;
+    var script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js';
+    script.onload = function () {
+      try {
+        window.mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
+        Array.prototype.forEach.call(blocks, function (block, index) {
+          var src = block.querySelector('pre.mermaid-src');
+          if (!src) return;
+          var code = src.textContent || '';
+          window.mermaid.render('diagram-' + (index + 1), code).then(function (result) {
+            var holder = document.createElement('div');
+            holder.className = 'diagram-rendered';
+            holder.innerHTML = result.svg;
+            block.insertBefore(holder, src);
+            src.setAttribute('hidden', 'hidden');
+            block.setAttribute('data-diagram-state', 'rendered');
+          }).catch(function () { block.setAttribute('data-diagram-state', 'text'); });
+        });
+      } catch (error) {
+        Array.prototype.forEach.call(blocks, function (block) { block.setAttribute('data-diagram-state', 'text'); });
+      }
+    };
+    script.onerror = function () {
+      Array.prototype.forEach.call(blocks, function (block) { block.setAttribute('data-diagram-state', 'text'); });
+    };
+    document.head.appendChild(script);
+  }
+  if (typeof document.addEventListener === 'function') {
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', renderDiagrams);
+    else renderDiagrams();
+  }
 })();
 </script>
 </body>

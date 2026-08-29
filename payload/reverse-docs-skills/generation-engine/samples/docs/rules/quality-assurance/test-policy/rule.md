@@ -12,6 +12,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: manual
+workUnit: artifact
 ---
 
 # 単体テスト設計書の決まり

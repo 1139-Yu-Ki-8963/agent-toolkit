@@ -148,6 +148,7 @@ uncheckableReason: 行動の是非は静的解析では判定できない。
 formatter: none
 status: approved
 origin: proposal
+workUnit: file
 ---
 
 # AIエージェント行動規約

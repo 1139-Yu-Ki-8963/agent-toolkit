@@ -12,6 +12,7 @@ uncheckableReason: null
 formatter: none
 status: approved
 origin: manual
+workUnit: artifact
 ---
 
 # 設計書の書き方の決まり

@@ -149,7 +149,7 @@ rule_additional_children_get() {
   local json="$1" pkey="$2"
   printf '%s' "$json" | jq -c --arg p "$pkey" '
     (.additionalChildren // {})[$p] // [] | .[] |
-    { key: .key, title: .title, summary: (.summary // ""), toolDefined: false, checker: null,
+    { key: .key, title: .title, summary: (.summary // ""), toolDefined: false, workUnit: "file", checker: null,
       scope: (.scope // "always"), paths: (.paths // ["**/*"]), phases: (.phases // []), projectDefined: true }'
 }
 

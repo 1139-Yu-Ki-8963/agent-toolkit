@@ -398,6 +398,7 @@ build_draft_rule_md() {
   # 3.3: 呼び出し元（run_scaffold）が対象側の上書き（rule-scope-overrides.json）を
   # 解決した値を渡す。宣言が無ければtaxonomyの既定値がそのまま渡ってくる。
   local scope="${5:-always}" paths="${6:-[\"**/*\"]}"
+  local work_unit="${7:-file}"
   # enforcement: このスキャフォールドが生成する空雛形は常に none（機械検知しない
   # 取り決め）として配る。設計（delivery-payload/references/規約定義と派生生成の設計.md
   # 3節）は「## 違反時の手順」節を enforcement: advisory のときのみ必須とし、
@@ -418,6 +419,7 @@ uncheckableReason: （未記入）
 formatter: none
 status: draft
 origin: template
+workUnit: ${work_unit}
 ---
 
 # ${title}
@@ -530,6 +532,7 @@ EOF
 build_tooldefined_rule_md() {
   local key="$1" title="$2" parent="$3" summary="$4" uncheckable="$5" src_template="$6" scope="$7" paths="$8"
   local applies_state="${9:-}" applies_label="${10:-}" checker="${11:-}"
+  local work_unit="${12:-file}"
   local body
   # 1行目（テンプレート側の "# <旧見出し>"）を落とし、直後の空行だけを削る
   body="$(tail -n +2 "$src_template" | sed '/./,$!d')"
@@ -580,6 +583,7 @@ uncheckableReason: ${uncheckable_out}
 formatter: none
 status: approved
 origin: manual
+workUnit: ${work_unit}
 ---
 
 # ${title}
@@ -736,6 +740,7 @@ run_scaffold() {
       cuncheckable="$(printf '%s' "$cline" | jq -r '.uncheckableReason // empty')"
       cappliesWhen="$(printf '%s' "$cline" | jq -c '.appliesWhen // empty')"
       cchecker="$(printf '%s' "$cline" | jq -r '.checker // empty')"
+      cwork="$(printf '%s' "$cline" | jq -r '.workUnit // "file"')"
 
       local child_dir="${parent_dir}/${ckey}"
       local rule_content design_content
@@ -762,13 +767,13 @@ run_scaffold() {
           applies_state="$(printf '%s' "$state_reason" | cut -f1)"
           applies_label="$(printf '%s' "$state_reason" | cut -f2)"
         fi
-        rule_content="$(build_tooldefined_rule_md "$ckey" "$ctitle" "$pkey" "$csummary" "$cuncheckable" "$src_template" "$cscope" "$cpaths" "$applies_state" "$applies_label" "$cchecker")"
+        rule_content="$(build_tooldefined_rule_md "$ckey" "$ctitle" "$pkey" "$csummary" "$cuncheckable" "$src_template" "$cscope" "$cpaths" "$applies_state" "$applies_label" "$cchecker" "$cwork")"
         if ! rule_content="$(merge_project_rule_section "$rule_content" "${child_dir}/rule.md")"; then
           echo "ERROR: 現場が書いた行を保護できないため、規約定義の配置を上書きの前に停止しました（改善課題1-290）" >&2
           exit 3
         fi
       else
-        rule_content="$(build_draft_rule_md "$ckey" "$ctitle" "$pkey" "$csummary" "$cscope" "$cpaths")"
+        rule_content="$(build_draft_rule_md "$ckey" "$ctitle" "$pkey" "$csummary" "$cscope" "$cpaths" "$cwork")"
       fi
       design_content="$(build_design_notes "$ctitle" "$ctool")"
 
@@ -1169,7 +1174,7 @@ self_test() {
     rc=1
   fi
 
-  # ケース3: rule.mdが27件でき、front matterが13鍵であること
+  # ケース3: rule.mdが27件でき、front matterが14鍵であること
   local rule_files rule_count ok3
   rule_files="$(find "${out1}/docs/rules" -type f -name 'rule.md' | sort)"
   rule_count="$(printf '%s\n' "$rule_files" | grep -c . || true)"
@@ -1181,12 +1186,12 @@ self_test() {
     local fm_body key_count
     fm_body="$(fm_extract "$rf" || true)"
     key_count="$(fm_all_key_lines "$fm_body" | sort -u | grep -c . || true)"
-    [ "$key_count" -eq 13 ] || ok3=0
+    [ "$key_count" -eq 14 ] || ok3=0
   done <<EOF
 $rule_files
 EOF
   if [ "$ok3" -eq 1 ]; then
-    echo "  [PASS] ケース3: rule.mdが27件でき、front matterが13鍵である"
+    echo "  [PASS] ケース3: rule.mdが27件でき、front matterが14鍵である"
   else
     echo "  [FAIL] ケース3: rule.md件数またはfront matter鍵数が不正（件数=${rule_count}）" >&2
     rc=1
