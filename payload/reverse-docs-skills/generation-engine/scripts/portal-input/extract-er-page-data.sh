@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# extract-er-page-data.sh — テーブル定義書.md §6.3 外部キーから er 用の
+# extract-er-page-data.sh — テーブル定義書.md §5.3 外部キーから er 用の
 # page-data.json（entities[]/relations[]）を機械的に組み立てる
 #
 # 背景(改善課題1-26 段階2。docs/tasks/関連図の内製化の指示書.md 5節 段階2):
 # ER図の生成(build-detail-page.sh --page er)はpage-data.jsonを要求するが、
 # これまでこの入力データを組み立てる決定的な経路が存在せず、
 # generating-er-diagram-for-reverse-docsスキルの対話的な抽出(Claude自身のRead/Write)にのみ
-# 依存していた。テーブル定義書.md §6.3外部キーには元々「出典参照」「関連の種別」の列が無く、
+# 依存していた。テーブル定義書.md §5.3外部キーには元々「出典参照」「関連の種別」の列が無く、
 # 文書だけからは復元できなかったため、段階2では2列をテンプレートへ追加したうえで、
 # 本スクリプトがその列を機械的に読み、page-data.jsonを組み立てる決定的な処理を提供する。
 #
@@ -34,7 +34,7 @@
 #
 # 設計判断の正本: docs/design/generation-engine/portal-input/詳細設計書.md
 # 「## extract-er-page-data.sh」節。
-# 保守責任者: 人手(ユーザー)。テーブル定義書.md §6.3 の列構成を変える場合は本ファイルと
+# 保守責任者: 人手(ユーザー)。テーブル定義書.md §5.3 の列構成を変える場合は本ファイルと
 # self-test を同時に更新する。
 # macOS bash 3.2 互換(mapfile / declare -A 不使用)。
 
@@ -94,7 +94,7 @@ extract_fk_rows() {
     BEGIN { in_section = 0; header_seen = 0 }
     /^#{2,3} / {
       if (in_section == 1) { exit }
-      in_section = ($0 ~ /^### 6\.3 外部キー/) ? 1 : 0
+      in_section = ($0 ~ /^### [0-9]+\.3 外部キー/) ? 1 : 0
       next
     }
     in_section == 0 { next }
@@ -153,8 +153,11 @@ run() {
     fi
     entities_json="$(printf '%s' "$entities_json" | jq --arg key "$table_key" --arg label "$table_name" '. + [{key: $key, label: $label}]')" || return 1
 
-    local rows_tsv
-    rows_tsv="$(extract_fk_rows "$file")"
+    local rows_tsv fk_source
+    # 改善課題1-288: 外部キーの表はテーブル実装記録.md（§2.3）へ移った。実装記録があればそちらを読み、無ければ定義書を読む。
+    fk_source="$(dirname "$file")/テーブル実装記録.md"
+    [ -f "$fk_source" ] || fk_source="$file"
+    rows_tsv="$(extract_fk_rows "$fk_source")"
     if [ -n "$rows_tsv" ]; then
       while IFS=$'\t' read -r column target targetcol ondelete cardinality sourceref; do
         [ -z "$column" ] && continue
@@ -217,7 +220,7 @@ run() {
       pageKind: "er",
       generatedAt: $generatedAt,
       title: "ER図",
-      description: "テーブル定義書.md §6.3 外部キーに記載された参照関係を可視化する。",
+      description: "テーブル定義書.md §5.3 外部キーに記載された参照関係を可視化する。",
       legend: [],
       entities: $entities[0],
       relations: $result[0].relations,

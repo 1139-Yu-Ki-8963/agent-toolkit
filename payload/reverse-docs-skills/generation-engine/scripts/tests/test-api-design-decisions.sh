@@ -32,24 +32,29 @@ grep -qF 'コードコメントを `観測（コードコメント）` に分類
 grep -qF 'TODO、過去の経緯だけを述べるコメント、却下済み案の説明、別処理を説明する近接コメントは観測から除外する' "$skill"
 grep -qF '確からしさは `medium` または `low` に限り、推定に `high` を使わない' "$skill"
 grep -qF '両欄を `不明（実装に記述なし）` とする' "$skill"
-grep -qF '12.5 の推定は設計理由だけを対象とする。仕様値、型、制約、既定値を推定する例外ではない' "$skill"
+grep -qF 'API実装記録 4.5 の推定は設計理由だけを対象とする。仕様値、型、制約、既定値を推定する例外ではない' "$skill"
 grep -qF '要確認事項一覧へ回す' "$skill"
 
 bash "$repo_root/generation-engine/scripts/scaffold-design-unit.sh" \
   api detail "$tmp/output" inventory-cache "在庫確認" \
   "$repo_root/delivery-payload/templates/リバース検証" >/dev/null
 
-doc="$tmp/output/docs/design/apis/api-inventory-cache/$detail_dir_name/API詳細設計書.md"
-node - "$fixture_dir/comment-source.py" "$fixture_dir/api-manifest.ext.json" "$doc" <<'NODE'
+# 改善課題1-288: 詳細設計書（仕様）と実装記録（今の作り）の2文書へ分かれた。置換は両方へ行い、
+# 検証は2文書を結合した1本（${doc}）に対して行う。
+doc_spec="$tmp/output/docs/design/apis/api-inventory-cache/$detail_dir_name/API詳細設計書.md"
+doc_rec="$tmp/output/docs/design/apis/api-inventory-cache/$detail_dir_name/API実装記録.md"
+doc="$tmp/output/combined-api-doc.md"
+node - "$fixture_dir/comment-source.py" "$fixture_dir/api-manifest.ext.json" "$doc_spec" "$doc_rec" <<'NODE'
 const fs = require("fs");
-const [sourcePath, manifestPath, documentPath] = process.argv.slice(2);
+const [sourcePath, manifestPath, specPath, recPath] = process.argv.slice(2);
 const source = fs.readFileSync(sourcePath, "utf8");
 const manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
 const marker = source.match(/^\s*# design-decision: (\{.+\})$/m);
 if (!marker) throw new Error("design-decision comment not found");
 const decision = JSON.parse(marker[1]);
 const unit = manifest.units[0];
-let document = fs.readFileSync(documentPath, "utf8");
+let spec = fs.readFileSync(specPath, "utf8");
+let document = fs.readFileSync(recPath, "utf8");
 const replacements = {
   APIKEY: unit.unitKey,
   APIID: unit.unitId,
@@ -60,8 +65,9 @@ const replacements = {
 };
 for (const [token, value] of Object.entries(replacements)) {
   document = document.replaceAll(token, value);
+  spec = spec.replaceAll(token, value);
 }
-document = document.replace(
+spec = spec.replace(
   "### 1.2 業務上の役割",
   "### 1.2 業務上の役割\n\n外部URLは https://example.com:443/api である。接続先は api.example.com:8443 と api.example.rs:8443 である。",
 );
@@ -72,17 +78,19 @@ document = document.replace(
 );
 const separator = "|---|---|---|---|---|---|---|---|";
 const row = `| ${decision.key} | ${decision.decision} | ${decision.reason} | 観測（コードコメント） | 現在の選択と理由を直接結ぶコメント | ${decision.alternative} | ${decision.rejection} | ${decision.confidence} |`;
-const decisionHeading = "### 12.5 設計判断とその理由";
+const decisionHeading = "### 4.5 設計判断とその理由";
 const headingIndex = document.indexOf(decisionHeading);
 const separatorIndex = document.indexOf(separator, headingIndex);
 if (headingIndex < 0 || separatorIndex < 0) throw new Error("design decision table not found");
 document = `${document.slice(0, separatorIndex)}${separator}\n${row}${document.slice(separatorIndex + separator.length)}`;
-fs.writeFileSync(documentPath, document);
+fs.writeFileSync(specPath, spec);
+fs.writeFileSync(recPath, document);
 NODE
 
 bash "$repo_root/generation-engine/scripts/scaffold-design-unit.sh" \
   --verify api detail "$tmp/output" inventory-cache "在庫確認" \
   "$repo_root/delivery-payload/templates/リバース検証" >/dev/null
+{ cat "$doc_spec"; awk 'NR==1 && /^---/ {fm=1; next} fm && /^---/ {fm=0; next} !fm' "$doc_rec"; } > "$doc"
 node "$repo_root/generation-engine/scripts/validate-api-design-decisions.mjs" "$doc" >/dev/null
 node "$repo_root/generation-engine/scripts/tests/check-detailed-design-conventions.cjs" --self-test >/dev/null
 grep -qF '| パス | /api/members |' "$doc"
@@ -95,7 +103,7 @@ node - "$observation_source" <<'NODE'
 const fs = require("fs");
 const file = process.argv[2];
 let document = fs.readFileSync(file, "utf8");
-const heading = "### 13.1 観測の出どころ";
+const heading = "### 9.1 観測の出どころ";
 const separator = "|---|---|---|";
 const headingIndex = document.indexOf(heading);
 const separatorIndex = document.indexOf(separator, headingIndex);

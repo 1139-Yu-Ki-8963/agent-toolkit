@@ -36,7 +36,7 @@ fail_case() { printf 'FAIL: %s\n' "$1" >&2; fail=$((fail + 1)); }
 
 if jq -e '
   .kinds.api.phases.basic == ["API基本設計書.md"] and
-  .kinds.api.phases.detail == ["API詳細設計書.md"] and
+  .kinds.api.phases.detail == ["API詳細設計書.md", "API実装記録.md"] and
   .kinds.api.phases.test == ["API結合テスト設計書.md", "API単体テスト設計書.md"] and
   .kinds.feature.phases.test == ["機能結合テスト設計書.md", "機能単体テスト設計書.md"] and
   ([.kinds[] | .phases.basic[], .phases.detail[]] | all(contains("テスト設計書") | not))
@@ -115,7 +115,7 @@ else
   fail_case "関数単位とAPI外部契約の観点が混在している"
 fi
 
-if grep -q '§2 メソッド設計・§3 ロジック設計・§6 エラー処理' "$TEMPLATES/API/API単体テスト設計書.md"; then
+if grep -q 'メソッド設計・ロジック設計・エラー処理から起こす' "$TEMPLATES/API/API単体テスト設計書.md"; then
   pass "詳細設計に対応する関数単位の様式がある"
 else
   fail_case "関数単位の様式に詳細設計由来の観点がない"
@@ -246,7 +246,7 @@ if [ "$skill_contract_ok" -eq 1 ] \
   && grep -q '画面結合テスト設計書・画面単体テスト設計書・操作シナリオ仕様書' "$REPO_ROOT/.claude/skills/generating-reverse-detailed-design/SKILL.md" \
   && grep -q '^## Phase 4: API結合テスト設計書の執筆$' "$api_basic_skill" \
   && ! grep -q 'API単体テスト設計書' "$api_basic_skill" \
-  && grep -q '| 出力ファイル | `API詳細設計書.md` | `API単体テスト設計書.md` |' "$api_detail_skill" \
+  && grep -q '| 出力ファイル | `API詳細設計書.md`' "$api_detail_skill" \
   && grep -q '本スキルが執筆するのは後者だけ' "$api_detail_skill"; then
   pass "7種の2設計書に生成責務があり、APIは基本設計と詳細設計で一意に分担する"
 else

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 抽出エンジン(generation-engine/scripts/extract): 原本コードから「実装契約」の節
+# 抽出エンジン(generation-engine/scripts/extract): 原本コードから「実装契約」の節（改善課題1-288以降は API実装記録.md §4）
 # (関数1本ごとの引数と戻り値の契約)を組み立てる。接続窓口(API等)の一覧マニフェストの
 # units[].sourceFile が指す実装ファイル(モジュール)を原本コードから走査し、抽出できた
 # フィールドだけを units[] の各要素へ implementationContract として追加した拡張マニフェスト

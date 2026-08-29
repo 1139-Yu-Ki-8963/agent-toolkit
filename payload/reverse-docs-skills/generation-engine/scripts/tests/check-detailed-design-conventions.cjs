@@ -6,6 +6,7 @@ const path = require("node:path");
 const repoRoot = path.resolve(__dirname, "../../..");
 const conventionsPath = path.join(repoRoot, "delivery-payload/templates/リバース検証/プロジェクト共通/詳細設計記述規約.md");
 const apiTemplatePath = path.join(repoRoot, "delivery-payload/templates/リバース検証/API/API詳細設計書.md");
+const apiRecordTemplatePath = path.join(repoRoot, "delivery-payload/templates/リバース検証/API/API実装記録.md"); // 改善課題1-288: 疑似コードは実装記録側
 
 // 1-246: 旧CLIの根拠台帳・行範囲検査は互換目的でも残さない。
 // 残すと対象コード位置を納品物へ書く経路が再利用されるため、正本テンプレートへの
@@ -24,7 +25,7 @@ function withoutHtmlComments(document) {
 }
 
 function withoutObservationSourceSection(document) {
-  return document.replace(/\n### 13\.1 観測の出どころ\n[\s\S]*?(?=\n### |\n## |$)/, "");
+  return document.replace(/\n### (?:13|9)\.1 観測の出どころ\n[\s\S]*?(?=\n### |\n## |$)/, "");
 }
 
 function normalizeDigits(document) {
@@ -136,7 +137,7 @@ function validateDetailedDesign(document, label) {
       { name: "NULL許容", pattern: /\|[^\n|]*NULL許容[^\n]*\|/ },
       { name: "初期値", pattern: /\|[^\n|]*(初期値|既定値)[^\n]*\|/ },
       { name: "桁と精度", pattern: /\|[^\n|]*桁と精度[^\n]*\|/ },
-      { name: "疑似コード", pattern: /^## §6 疑似コード$/m },
+      { name: "疑似コード", pattern: /^## §(1|6) 疑似コード$/m },
     ],
     label,
   );
@@ -161,7 +162,7 @@ function buildSyntheticDetailedDesign(template) {
 
 function runSelfTest() {
   const conventions = fs.readFileSync(conventionsPath, "utf8");
-  const apiTemplate = fs.readFileSync(apiTemplatePath, "utf8");
+  const apiTemplate = fs.readFileSync(apiTemplatePath, "utf8") + "\n" + fs.readFileSync(apiRecordTemplatePath, "utf8");
   const synthetic = buildSyntheticDetailedDesign(apiTemplate);
   const checks = [
     ["詳細設計記述規約", () => validateConventions(conventions)],

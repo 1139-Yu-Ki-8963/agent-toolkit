@@ -157,8 +157,9 @@ check_impl_contract_adjacency() {
   fi
   impl_num="$(printf '%s' "$impl_line" | cut -d: -f1)"
   next_line="$(printf '%s\n' "$headings" | awk -F: -v n="$impl_num" '$1 > n' | sort -t: -k1,1n | head -1)"
-  if [ -z "$next_line" ] || ! printf '%s' "$next_line" | grep -q '関連資料'; then
-    echo "エラー: §実装契約の直後が§関連資料ではありません: $file" >&2
+  # 改善課題1-288: 実装記録では§実装契約が末尾の節になる（関連資料は詳細設計書側が持つ）。末尾なら隣接の要求を満たすとみなす。
+  if [ -n "$next_line" ] && ! printf '%s' "$next_line" | grep -q '関連資料'; then
+    echo "エラー: §実装契約の直後が§関連資料でも末尾でもありません: $file" >&2
     return 1
   fi
   return 0
@@ -440,6 +441,11 @@ JSON
         -e 's#SOURCEREF#src/api.js#g' \
         "$frontmatter_file"
       rm -f "$frontmatter_file.bak"
+      # 改善課題1-288: 同じ置き場の実装記録も同じ値で埋める（verify は配置宣言の全文書を見る）
+      if [ -f "$(dirname "$frontmatter_file")/API実装記録.md" ]; then
+        sed -i.bak -e 's/APIKEY/api-selftest-key/g' -e 's/APIID/api-selftest-id/g' -e 's/METHOD/GET/g' -e 's#PATH#/selftest#g' -e 's/FEATUREKEY/feature-selftest/g' -e 's#SOURCEREF#src/api.js#g' "$(dirname "$frontmatter_file")/API実装記録.md"
+        rm -f "$(dirname "$frontmatter_file")/API実装記録.md.bak"
+      fi
       frontmatter_original="$tmp/api-detail-frontmatter-original.md"
       cp "$frontmatter_file" "$frontmatter_original"
 
@@ -535,13 +541,16 @@ title: 余剰鍵' "$frontmatter_file"
     api_root_rel="$(output_layout_get "$backfill_output_layout" apiUnitRoot)"
     api_root="$backfill_root/$api_root_rel"
     api_label="$(design_unit_field "$backfill_layout_json" api label)"
-    api_detail_file="$(design_unit_phase_files "$backfill_layout_json" api detail)"
+    api_detail_file="$(design_unit_phase_files "$backfill_layout_json" api detail | head -1)"
     api_basic_files="$(design_unit_phase_files "$backfill_layout_json" api basic)"
     for i in $(seq 1 50); do
       api_id="backfill-api-${i}"
       api_unit_dir="$api_root/api-$api_id"
       mkdir -p "$api_unit_dir/detail-design"
-      cp "$backfill_template_root/$api_label/$api_detail_file" "$api_unit_dir/detail-design/$api_detail_file"
+      while IFS= read -r api_detail_each; do
+        [ -n "$api_detail_each" ] || continue
+        cp "$backfill_template_root/$api_label/$api_detail_each" "$api_unit_dir/detail-design/$api_detail_each"
+      done <<< "$(design_unit_phase_files "$backfill_layout_json" api detail)"
       if [ "$i" -le 12 ]; then
         mkdir -p "$api_unit_dir/basic-design"
         while IFS= read -r api_basic_file; do
@@ -553,10 +562,13 @@ title: 余剰鍵' "$frontmatter_file"
       kind_root_key="$(unit_root_key_for_kind "$kind")"
       kind_root_rel="$(output_layout_get "$backfill_output_layout" "$kind_root_key")"
       kind_label="$(design_unit_field "$backfill_layout_json" "$kind" label)"
-      kind_detail_file="$(design_unit_phase_files "$backfill_layout_json" "$kind" detail)"
+      kind_detail_file="$(design_unit_phase_files "$backfill_layout_json" "$kind" detail | head -1)"
       kind_unit_dir="$backfill_root/$kind_root_rel/${kind}-backfill-${kind}"
       mkdir -p "$kind_unit_dir/detail-design"
-      cp "$backfill_template_root/$kind_label/$kind_detail_file" "$kind_unit_dir/detail-design/$kind_detail_file"
+      while IFS= read -r kind_detail_each; do
+        [ -n "$kind_detail_each" ] || continue
+        cp "$backfill_template_root/$kind_label/$kind_detail_each" "$kind_unit_dir/detail-design/$kind_detail_each"
+      done <<< "$(design_unit_phase_files "$backfill_layout_json" "$kind" detail)"
     done
     existing_before="$(for i in $(seq 1 12); do find "$api_root/api-backfill-api-${i}/basic-design" -type f -exec cksum {} +; done | LC_ALL=C sort)"
     if bash "$self_path" --backfill-basic "$backfill_root" >/dev/null 2>&1; then
@@ -685,7 +697,7 @@ title: 余剰鍵' "$frontmatter_file"
     impl_layout_json="$(design_unit_layout_load)" || impl_ok=0
     for kind in api table batch report external; do
       impl_label="$(design_unit_field "$impl_layout_json" "$kind" label)" || { impl_ok=0; continue; }
-      impl_detail_file="$(design_unit_phase_files "$impl_layout_json" "$kind" detail | head -1)" || { impl_ok=0; continue; }
+      impl_detail_file="$(design_unit_phase_files "$impl_layout_json" "$kind" detail | grep "実装記録" | head -1)"; [ -n "$impl_detail_file" ] || impl_detail_file="$(design_unit_phase_files "$impl_layout_json" "$kind" detail | head -1)" || { impl_ok=0; continue; }
       if ! check_impl_contract_adjacency "$impl_root/$impl_label/$impl_detail_file" >/dev/null 2>&1; then
         echo "FAIL: 実装契約-節の隣接: $kind" >&2
         impl_ok=0
@@ -970,7 +982,8 @@ if [ "$MODE" = "verify" ]; then
       continue
     fi
     if [ "$phase" = "detail" ] && [ -n "$detail_frontmatter_document" ]; then
-      if [ "$file" != "$detail_frontmatter_document" ]; then
+      # 改善課題1-288: 配置宣言は詳細設計書に加えて実装記録を持つ。frontmatter定義の対象は詳細設計書だけである。
+      if [ "$file" != "$detail_frontmatter_document" ] && ! printf '%s' "$file" | grep -q '実装記録\.md$'; then
         echo "エラー: 詳細設計書frontmatter定義の文書名と配置宣言が一致しません: $kind ($file)" >&2
         errors=$((errors + 1))
         continue

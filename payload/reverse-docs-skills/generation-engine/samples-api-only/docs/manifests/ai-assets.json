@@ -1,9 +1,9 @@
 {
-  "generatedAt": "2026-08-29T10:55:25+0900",
-  "dataSource": "verify-api-only-regen2",
+  "generatedAt": "2026-08-29T11:31:32+0900",
+  "dataSource": "verify-api-only-regen5",
   "rules": [
     {
-      "ruleName": "verify-api-only-regen2 プロジェクトコンテキスト（PROJECT-CONTEXT）",
+      "ruleName": "verify-api-only-regen5 プロジェクトコンテキスト（PROJECT-CONTEXT）",
       "layer": "always",
       "declaredEnforcement": "なし",
       "mechanicalEnforcement": false,

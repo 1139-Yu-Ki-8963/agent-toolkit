@@ -45,6 +45,7 @@ KIND_ROOTS="screenUnitRoot:screen apiUnitRoot:api tableUnitRoot:table batchUnitR
 conformance_triples_default() {
   printf '%s\t%s\t%s\n' \
     "api" "API詳細設計書.md" "$API_DETAIL_TEMPLATE" \
+    "api" "API実装記録.md" "$TEMPLATE_ROOT/API/API実装記録.md" \
     "screen" "画面単体テスト設計書.md" "$TEMPLATE_ROOT/画面/テスト設計/画面単体テスト設計書.md" \
     "api" "API単体テスト設計書.md" "$TEMPLATE_ROOT/API/API単体テスト設計書.md" \
     "table" "テーブル単体テスト設計書.md" "$TEMPLATE_ROOT/テーブル/テーブル単体テスト設計書.md" \
@@ -723,7 +724,7 @@ JSON
   old_heading_count="$(grep -R -l -E '^## (§[0-9]+ )?要確認事項一覧$' "$template_root" --include='*.md' | wc -l | tr -d ' ')"
   old_move_count="$(grep -R -l -F '要確認事項一覧へ移す' "$template_root" --include='*.md' | wc -l | tr -d ' ')"
   unit_chapter_count="$(grep -R -l -E '^## §[0-9]+ .*単体テスト設計書$' "$template_root" --include='*.md' | wc -l | tr -d ' ')"
-  decision_heading_count="$(grep -c '^### 12\.5 設計判断とその理由$' "$template_root/API/API詳細設計書.md")"
+  decision_heading_count="$(grep -c '^### 4\.5 設計判断とその理由$' "$template_root/API/API実装記録.md")"
   api_related_rows="$(grep -E -c '^\| (API詳細設計書|API単体テスト設計書) \|' "$template_root/API/API基本設計書.md")"
   stale_skill_route_count="$(grep -E -h '完了条件: §(11|13) が埋まっている|要確認（現場確認事項）|付録 A・B|\^## 関連資料|根拠を記録する資料の「確定できなかった事項」' \
     "$REPO_ROOT/.claude/skills/generating-api-detail-design-for-reverse-docs/SKILL.md" \

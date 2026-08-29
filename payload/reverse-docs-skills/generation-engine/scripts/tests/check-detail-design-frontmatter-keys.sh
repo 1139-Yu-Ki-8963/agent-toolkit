@@ -194,6 +194,7 @@ self_test() {
   canonical="$(find "$output_dir" -type f -name 'API詳細設計書.md' -print -quit)"
   [ -n "$canonical" ] || unknown "mktempで作成した一時領域に自己テスト用API詳細設計書がありません。実行環境の制約が考えられます"
   fill_frontmatter_values "$canonical"
+  [ -f "$(dirname "$canonical")/API実装記録.md" ] && fill_frontmatter_values "$(dirname "$canonical")/API実装記録.md"
   original="$WORK_TMP/api-canonical-original.md"
   if ! cp "$canonical" "$original"; then
     unknown "mktempで作成した一時領域へ正常入力を複製できませんでした。書込み権限または実行環境の制約が考えられます"

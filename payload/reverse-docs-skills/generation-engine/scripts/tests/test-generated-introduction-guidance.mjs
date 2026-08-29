@@ -49,7 +49,8 @@ try {
   const common = path.join(screenRoot, 'docs/design/common');
   const apiUnit = path.join(apiRoot, 'docs/design/apis/api-acceptance-four/detail-design');
   checkDocument(path.join(screenUnit, '詳細設計/画面詳細設計書.md'), 19);
-  checkDocument(path.join(apiUnit, 'API詳細設計書.md'), 13);
+  checkDocument(path.join(apiUnit, 'API詳細設計書.md'), 9);
+  checkDocument(path.join(apiUnit, 'API実装記録.md'), 4);
   checkDocument(path.join(screenUnit, '詳細設計/DESIGN.md'), 7);
   checkDocument(path.join(screenUnit, 'テスト設計/操作シナリオ仕様書.md'), 5);
   checkDocument(path.join(common, 'DESIGN.md'), 6);

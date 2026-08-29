@@ -42,3 +42,8 @@ delivery-payload/templates/リバース検証/プロジェクト共通/データ
 delivery-payload/templates/リバース検証/プロジェクト共通/結合テスト仕様書.md	generating-integration-test-spec-for-reverse-docs	mapped	結合テスト仕様書の生成担当
 delivery-payload/templates/リバース検証/プロジェクト共通/アーキテクチャ調査書.md	surveying-architecture-for-reverse-docs	mapped	実参照から確定した調査書の生成担当
 delivery-payload/templates/リバース検証/プロジェクト共通/詳細設計記述規約.md	-	unknown	生成物ではなく検査入力としてのみ参照され、生成担当を確定できない
+delivery-payload/templates/リバース検証/API/API実装記録.md	generating-api-detail-design-for-reverse-docs	mapped	API実装記録（今の作りの記録）の生成担当
+delivery-payload/templates/リバース検証/テーブル/テーブル実装記録.md	generating-table-definition-for-reverse-docs	mapped	テーブル実装記録の生成担当
+delivery-payload/templates/リバース検証/バッチ/バッチ実装記録.md	generating-batch-detail-design-for-reverse-docs	mapped	バッチ実装記録の生成担当
+delivery-payload/templates/リバース検証/帳票/帳票実装記録.md	generating-report-detail-design-for-reverse-docs	mapped	帳票実装記録の生成担当
+delivery-payload/templates/リバース検証/外部連携/外部連携実装記録.md	generating-external-detail-design-for-reverse-docs	mapped	外部連携実装記録の生成担当

@@ -9,15 +9,51 @@
       "testDocuments": {
         "externalBehavior": "画面結合テスト設計書.md",
         "functionUnit": "画面単体テスト設計書.md",
-        "screenOnly": ["操作シナリオ仕様書.md"],
+        "screenOnly": [
+          "操作シナリオ仕様書.md"
+        ],
         "directoryKey": "unitTestDesignDir"
       },
       "documents": [
-        {"role":"basic","fileName":"画面基本設計書.md","pathFields":["designDocPath"],"outputExtension":".html"},
-        {"role":"detail","fileName":"画面詳細設計書.md","pathFields":["detailDocPath"],"outputExtension":".html"},
-        {"role":"externalBehavior","fileName":"画面結合テスト設計書.md","pathFields":["integrationTestViewpointPath","integrationTestCasePath"]},
-        {"role":"functionUnit","fileName":"画面単体テスト設計書.md","pathFields":["testCasePath","unitTestViewpointPath"]},
-        {"role":"confirmation","fileName":"要確認事項台帳.json","pathFields":["confirmationPath"]}
+        {
+          "role": "basic",
+          "fileName": "画面基本設計書.md",
+          "pathFields": [
+            "designDocPath"
+          ],
+          "outputExtension": ".html"
+        },
+        {
+          "role": "detail",
+          "fileName": "画面詳細設計書.md",
+          "pathFields": [
+            "detailDocPath"
+          ],
+          "outputExtension": ".html"
+        },
+        {
+          "role": "externalBehavior",
+          "fileName": "画面結合テスト設計書.md",
+          "pathFields": [
+            "integrationTestViewpointPath",
+            "integrationTestCasePath"
+          ]
+        },
+        {
+          "role": "functionUnit",
+          "fileName": "画面単体テスト設計書.md",
+          "pathFields": [
+            "testCasePath",
+            "unitTestViewpointPath"
+          ]
+        },
+        {
+          "role": "confirmation",
+          "fileName": "要確認事項台帳.json",
+          "pathFields": [
+            "confirmationPath"
+          ]
+        }
       ]
     }
   },
@@ -25,13 +61,51 @@
     "api": {
       "unitRootKey": "apiUnitRoot",
       "docFileName": "API詳細設計書.md",
-      "testDocuments": {"externalBehavior": "API結合テスト設計書.md", "functionUnit": "API単体テスト設計書.md", "directoryKey": "unitTestDesignDir"},
+      "testDocuments": {
+        "externalBehavior": "API結合テスト設計書.md",
+        "functionUnit": "API単体テスト設計書.md",
+        "directoryKey": "unitTestDesignDir"
+      },
       "documents": [
-        {"role":"basic","fileName":"API基本設計書.md","pathFields":["designDocPath"],"outputExtension":".html"},
-        {"role":"detail","fileName":"API詳細設計書.md","pathFields":["detailDocPath"],"outputExtension":".html"},
-        {"role":"externalBehavior","fileName":"API結合テスト設計書.md","pathFields":["integrationTestViewpointPath","integrationTestCasePath"]},
-        {"role":"functionUnit","fileName":"API単体テスト設計書.md","pathFields":["testCasePath","unitTestViewpointPath"]},
-        {"role":"confirmation","fileName":"要確認事項台帳.json","pathFields":["confirmationPath"]}
+        {
+          "role": "basic",
+          "fileName": "API基本設計書.md",
+          "pathFields": [
+            "designDocPath"
+          ],
+          "outputExtension": ".html"
+        },
+        {
+          "role": "detail",
+          "fileName": "API詳細設計書.md",
+          "pathFields": [
+            "detailDocPath"
+          ],
+          "outputExtension": ".html"
+        },
+        {
+          "role": "externalBehavior",
+          "fileName": "API結合テスト設計書.md",
+          "pathFields": [
+            "integrationTestViewpointPath",
+            "integrationTestCasePath"
+          ]
+        },
+        {
+          "role": "functionUnit",
+          "fileName": "API単体テスト設計書.md",
+          "pathFields": [
+            "testCasePath",
+            "unitTestViewpointPath"
+          ]
+        },
+        {
+          "role": "confirmation",
+          "fileName": "要確認事項台帳.json",
+          "pathFields": [
+            "confirmationPath"
+          ]
+        }
       ],
       "mapping": {
         "unitKey": "api_key",
@@ -40,11 +114,17 @@
       },
       "identifier": {
         "mode": "concat",
-        "fields": ["method", "path"],
+        "fields": [
+          "method",
+          "path"
+        ],
         "separator": " "
       },
       "kindMapping": {
-        "requiredFields": ["method", "path"],
+        "requiredFields": [
+          "method",
+          "path"
+        ],
         "value": "endpoint"
       },
       "unresolvable": {
@@ -59,13 +139,51 @@
     "table": {
       "unitRootKey": "tableUnitRoot",
       "docFileName": "テーブル定義書.md",
-      "testDocuments": {"externalBehavior": "テーブル結合テスト設計書.md", "functionUnit": "テーブル単体テスト設計書.md", "directoryKey": "unitTestDesignDir"},
+      "testDocuments": {
+        "externalBehavior": "テーブル結合テスト設計書.md",
+        "functionUnit": "テーブル単体テスト設計書.md",
+        "directoryKey": "unitTestDesignDir"
+      },
       "documents": [
-        {"role":"basic","fileName":"論理データモデル.md","pathFields":["designDocPath"],"outputExtension":".html"},
-        {"role":"detail","fileName":"テーブル定義書.md","pathFields":["detailDocPath"],"outputExtension":".html"},
-        {"role":"externalBehavior","fileName":"テーブル結合テスト設計書.md","pathFields":["integrationTestViewpointPath","integrationTestCasePath"]},
-        {"role":"functionUnit","fileName":"テーブル単体テスト設計書.md","pathFields":["testCasePath","unitTestViewpointPath"]},
-        {"role":"confirmation","fileName":"要確認事項台帳.json","pathFields":["confirmationPath"]}
+        {
+          "role": "basic",
+          "fileName": "論理データモデル.md",
+          "pathFields": [
+            "designDocPath"
+          ],
+          "outputExtension": ".html"
+        },
+        {
+          "role": "detail",
+          "fileName": "テーブル定義書.md",
+          "pathFields": [
+            "detailDocPath"
+          ],
+          "outputExtension": ".html"
+        },
+        {
+          "role": "externalBehavior",
+          "fileName": "テーブル結合テスト設計書.md",
+          "pathFields": [
+            "integrationTestViewpointPath",
+            "integrationTestCasePath"
+          ]
+        },
+        {
+          "role": "functionUnit",
+          "fileName": "テーブル単体テスト設計書.md",
+          "pathFields": [
+            "testCasePath",
+            "unitTestViewpointPath"
+          ]
+        },
+        {
+          "role": "confirmation",
+          "fileName": "要確認事項台帳.json",
+          "pathFields": [
+            "confirmationPath"
+          ]
+        }
       ],
       "aggregateDocumentExtraction": {
         "documentPath": "docs/design/tables/テーブル一覧.md",
@@ -76,18 +194,31 @@
           "source_ref": "ソース参照",
           "table_subkind": "種別"
         },
-        "staticFields": { "unit_kind": "table" }
+        "staticFields": {
+          "unit_kind": "table"
+        }
       },
       "mapping": {
         "unitKey": "table_key",
         "unitId": "table_id",
         "sourceFile": "source_ref"
       },
-      "identifier": { "mode": "field", "fields": ["table_key"] },
+      "identifier": {
+        "mode": "field",
+        "fields": [
+          "table_key"
+        ]
+      },
       "kindMapping": {
-        "requiredFields": ["table_subkind"],
+        "requiredFields": [
+          "table_subkind"
+        ],
         "valueFrom": "table_subkind",
-        "allowedValues": ["table", "view", "migration"]
+        "allowedValues": [
+          "table",
+          "view",
+          "migration"
+        ]
       },
       "unresolvable": {
         "kind": "unresolved",
@@ -102,13 +233,51 @@
     "batch": {
       "unitRootKey": "batchUnitRoot",
       "docFileName": "バッチ詳細設計書.md",
-      "testDocuments": {"externalBehavior": "バッチ結合テスト設計書.md", "functionUnit": "バッチ単体テスト設計書.md", "directoryKey": "unitTestDesignDir"},
+      "testDocuments": {
+        "externalBehavior": "バッチ結合テスト設計書.md",
+        "functionUnit": "バッチ単体テスト設計書.md",
+        "directoryKey": "unitTestDesignDir"
+      },
       "documents": [
-        {"role":"basic","fileName":"バッチ基本設計書.md","pathFields":["designDocPath"],"outputExtension":".html"},
-        {"role":"detail","fileName":"バッチ詳細設計書.md","pathFields":["detailDocPath"],"outputExtension":".html"},
-        {"role":"externalBehavior","fileName":"バッチ結合テスト設計書.md","pathFields":["integrationTestViewpointPath","integrationTestCasePath"]},
-        {"role":"functionUnit","fileName":"バッチ単体テスト設計書.md","pathFields":["testCasePath","unitTestViewpointPath"]},
-        {"role":"confirmation","fileName":"要確認事項台帳.json","pathFields":["confirmationPath"]}
+        {
+          "role": "basic",
+          "fileName": "バッチ基本設計書.md",
+          "pathFields": [
+            "designDocPath"
+          ],
+          "outputExtension": ".html"
+        },
+        {
+          "role": "detail",
+          "fileName": "バッチ詳細設計書.md",
+          "pathFields": [
+            "detailDocPath"
+          ],
+          "outputExtension": ".html"
+        },
+        {
+          "role": "externalBehavior",
+          "fileName": "バッチ結合テスト設計書.md",
+          "pathFields": [
+            "integrationTestViewpointPath",
+            "integrationTestCasePath"
+          ]
+        },
+        {
+          "role": "functionUnit",
+          "fileName": "バッチ単体テスト設計書.md",
+          "pathFields": [
+            "testCasePath",
+            "unitTestViewpointPath"
+          ]
+        },
+        {
+          "role": "confirmation",
+          "fileName": "要確認事項台帳.json",
+          "pathFields": [
+            "confirmationPath"
+          ]
+        }
       ],
       "aggregateDocumentExtraction": {
         "documentPath": "docs/design/batches/バッチ一覧.md",
@@ -119,18 +288,27 @@
           "source_ref": "ソース参照",
           "batch_trigger_type": "起動種別"
         },
-        "staticFields": { "unit_kind": "batch" }
+        "staticFields": {
+          "unit_kind": "batch"
+        }
       },
       "mapping": {
         "unitKey": "batch_key",
         "unitId": "batch_id",
         "sourceFile": "source_ref"
       },
-      "identifier": { "mode": "unresolvable" },
+      "identifier": {
+        "mode": "unresolvable"
+      },
       "kindMapping": {
-        "requiredFields": ["batch_trigger_type"],
+        "requiredFields": [
+          "batch_trigger_type"
+        ],
         "valueFrom": "batch_trigger_type",
-        "allowedValues": ["scheduled", "triggered"]
+        "allowedValues": [
+          "scheduled",
+          "triggered"
+        ]
       },
       "unresolvable": {
         "kind": "unresolved",
@@ -145,24 +323,69 @@
     "report": {
       "unitRootKey": "reportUnitRoot",
       "docFileName": "帳票詳細設計書.md",
-      "testDocuments": {"externalBehavior": "帳票結合テスト設計書.md", "functionUnit": "帳票単体テスト設計書.md", "directoryKey": "unitTestDesignDir"},
+      "testDocuments": {
+        "externalBehavior": "帳票結合テスト設計書.md",
+        "functionUnit": "帳票単体テスト設計書.md",
+        "directoryKey": "unitTestDesignDir"
+      },
       "documents": [
-        {"role":"basic","fileName":"帳票基本設計書.md","pathFields":["designDocPath"],"outputExtension":".html"},
-        {"role":"detail","fileName":"帳票詳細設計書.md","pathFields":["detailDocPath"],"outputExtension":".html"},
-        {"role":"externalBehavior","fileName":"帳票結合テスト設計書.md","pathFields":["integrationTestViewpointPath","integrationTestCasePath"]},
-        {"role":"functionUnit","fileName":"帳票単体テスト設計書.md","pathFields":["testCasePath","unitTestViewpointPath"]},
-        {"role":"confirmation","fileName":"要確認事項台帳.json","pathFields":["confirmationPath"]}
+        {
+          "role": "basic",
+          "fileName": "帳票基本設計書.md",
+          "pathFields": [
+            "designDocPath"
+          ],
+          "outputExtension": ".html"
+        },
+        {
+          "role": "detail",
+          "fileName": "帳票詳細設計書.md",
+          "pathFields": [
+            "detailDocPath"
+          ],
+          "outputExtension": ".html"
+        },
+        {
+          "role": "externalBehavior",
+          "fileName": "帳票結合テスト設計書.md",
+          "pathFields": [
+            "integrationTestViewpointPath",
+            "integrationTestCasePath"
+          ]
+        },
+        {
+          "role": "functionUnit",
+          "fileName": "帳票単体テスト設計書.md",
+          "pathFields": [
+            "testCasePath",
+            "unitTestViewpointPath"
+          ]
+        },
+        {
+          "role": "confirmation",
+          "fileName": "要確認事項台帳.json",
+          "pathFields": [
+            "confirmationPath"
+          ]
+        }
       ],
       "mapping": {
         "unitKey": "report_key",
         "unitId": "report_id",
         "sourceFile": "source_ref"
       },
-      "identifier": { "mode": "unresolvable" },
+      "identifier": {
+        "mode": "unresolvable"
+      },
       "kindMapping": {
-        "requiredFields": ["report_engine"],
+        "requiredFields": [
+          "report_engine"
+        ],
         "valueFrom": "report_engine",
-        "allowedValues": ["template", "generator"]
+        "allowedValues": [
+          "template",
+          "generator"
+        ]
       },
       "unresolvable": {
         "kind": "unresolved",
@@ -177,13 +400,51 @@
     "external": {
       "unitRootKey": "externalUnitRoot",
       "docFileName": "外部連携詳細設計書.md",
-      "testDocuments": {"externalBehavior": "外部連携結合テスト設計書.md", "functionUnit": "外部連携単体テスト設計書.md", "directoryKey": "unitTestDesignDir"},
+      "testDocuments": {
+        "externalBehavior": "外部連携結合テスト設計書.md",
+        "functionUnit": "外部連携単体テスト設計書.md",
+        "directoryKey": "unitTestDesignDir"
+      },
       "documents": [
-        {"role":"basic","fileName":"外部連携基本設計書.md","pathFields":["designDocPath"],"outputExtension":".html"},
-        {"role":"detail","fileName":"外部連携詳細設計書.md","pathFields":["detailDocPath"],"outputExtension":".html"},
-        {"role":"externalBehavior","fileName":"外部連携結合テスト設計書.md","pathFields":["integrationTestViewpointPath","integrationTestCasePath"]},
-        {"role":"functionUnit","fileName":"外部連携単体テスト設計書.md","pathFields":["testCasePath","unitTestViewpointPath"]},
-        {"role":"confirmation","fileName":"要確認事項台帳.json","pathFields":["confirmationPath"]}
+        {
+          "role": "basic",
+          "fileName": "外部連携基本設計書.md",
+          "pathFields": [
+            "designDocPath"
+          ],
+          "outputExtension": ".html"
+        },
+        {
+          "role": "detail",
+          "fileName": "外部連携詳細設計書.md",
+          "pathFields": [
+            "detailDocPath"
+          ],
+          "outputExtension": ".html"
+        },
+        {
+          "role": "externalBehavior",
+          "fileName": "外部連携結合テスト設計書.md",
+          "pathFields": [
+            "integrationTestViewpointPath",
+            "integrationTestCasePath"
+          ]
+        },
+        {
+          "role": "functionUnit",
+          "fileName": "外部連携単体テスト設計書.md",
+          "pathFields": [
+            "testCasePath",
+            "unitTestViewpointPath"
+          ]
+        },
+        {
+          "role": "confirmation",
+          "fileName": "要確認事項台帳.json",
+          "pathFields": [
+            "confirmationPath"
+          ]
+        }
       ],
       "aggregateDocumentExtraction": {
         "documentPath": "docs/design/externals/外部連携一覧.md",
@@ -194,18 +455,27 @@
           "source_ref": "ソース参照",
           "external_direction": "方向"
         },
-        "staticFields": { "unit_kind": "external" }
+        "staticFields": {
+          "unit_kind": "external"
+        }
       },
       "mapping": {
         "unitKey": "external_key",
         "unitId": "external_id",
         "sourceFile": "source_ref"
       },
-      "identifier": { "mode": "unresolvable" },
+      "identifier": {
+        "mode": "unresolvable"
+      },
       "kindMapping": {
-        "requiredFields": ["external_direction"],
+        "requiredFields": [
+          "external_direction"
+        ],
         "valueFrom": "external_direction",
-        "allowedValues": ["client", "webhook"]
+        "allowedValues": [
+          "client",
+          "webhook"
+        ]
       },
       "unresolvable": {
         "kind": "unresolved",
@@ -228,12 +498,43 @@
         "titleFormat": "<対象名> <役割名>",
         "description": "機能の設計書はdocFileNameで定める1ファイルに全節を収め、分割しない。表題の形式検査で使う役割名は、docFileNameから拡張子を除いた文字列とする。"
       },
-      "testDocuments": {"externalBehavior": "機能結合テスト設計書.md", "functionUnit": "機能単体テスト設計書.md", "directoryKey": "unitTestDesignDir"},
+      "testDocuments": {
+        "externalBehavior": "機能結合テスト設計書.md",
+        "functionUnit": "機能単体テスト設計書.md",
+        "directoryKey": "unitTestDesignDir"
+      },
       "documents": [
-        {"role":"design","fileName":"機能設計書.md","pathFields":["designDocPath"],"outputExtension":".html"},
-        {"role":"externalBehavior","fileName":"機能結合テスト設計書.md","pathFields":["integrationTestViewpointPath","integrationTestCasePath"]},
-        {"role":"functionUnit","fileName":"機能単体テスト設計書.md","pathFields":["testCasePath","unitTestViewpointPath"]},
-        {"role":"confirmation","fileName":"要確認事項台帳.json","pathFields":["confirmationPath"]}
+        {
+          "role": "design",
+          "fileName": "機能設計書.md",
+          "pathFields": [
+            "designDocPath"
+          ],
+          "outputExtension": ".html"
+        },
+        {
+          "role": "externalBehavior",
+          "fileName": "機能結合テスト設計書.md",
+          "pathFields": [
+            "integrationTestViewpointPath",
+            "integrationTestCasePath"
+          ]
+        },
+        {
+          "role": "functionUnit",
+          "fileName": "機能単体テスト設計書.md",
+          "pathFields": [
+            "testCasePath",
+            "unitTestViewpointPath"
+          ]
+        },
+        {
+          "role": "confirmation",
+          "fileName": "要確認事項台帳.json",
+          "pathFields": [
+            "confirmationPath"
+          ]
+        }
       ],
       "mapping": {
         "unitKey": "feature_key",
@@ -241,9 +542,14 @@
         "category": "category",
         "sourceFile": "source_ref"
       },
-      "identifier": { "mode": "unresolvable" },
+      "identifier": {
+        "mode": "unresolvable"
+      },
       "kindMapping": {
-        "requiredFields": ["feature_key", "source_ref"],
+        "requiredFields": [
+          "feature_key",
+          "source_ref"
+        ],
         "value": "feature"
       },
       "unresolvable": {
@@ -262,15 +568,39 @@
     "kinds": {
       "api": {
         "machineFilledSections": [
-          {"section": "§7 データアクセス", "generator": null, "note": "参照/更新テーブル・トランザクション境界。抽出処理は未着手(台帳1-259はAPIの実装契約のみを対象とする)"},
-          {"section": "§8 データ定義", "generator": null, "note": "内部データ構造。抽出処理は未着手"},
-          {"section": "§12 実装契約", "generator": "generation-engine/scripts/extract/build-implementation-contract-section.sh", "note": "関数と役割(12.1)・関数単位の引数と戻り値の契約(12.2)を原本コードから組み立てる。型定義(12.3)・依存(12.4)・設計判断とその理由(12.5)は本抽出処理の対象外(判断を要するため機械で埋まらない)"}
+          {
+            "section": "API実装記録 §2 データアクセス",
+            "generator": null,
+            "note": "参照/更新テーブル・トランザクション境界。抽出処理は未着手(台帳1-259はAPIの実装契約のみを対象とする)"
+          },
+          {
+            "section": "API実装記録 §3 データ定義",
+            "generator": null,
+            "note": "内部データ構造。抽出処理は未着手"
+          },
+          {
+            "section": "API実装記録 §4 実装契約",
+            "generator": "generation-engine/scripts/extract/build-implementation-contract-section.sh",
+            "note": "関数と役割(4.1)・関数単位の引数と戻り値の契約(4.2)を原本コードから組み立てる。型定義(4.3)・依存(4.4)・設計判断とその理由(4.5)は本抽出処理の対象外(判断を要するため機械で埋まらない)"
+          }
         ],
         "manualSections": [
-          {"section": "§4 処理フロー", "reason": "処理の意図(順序・内部/外部呼び出しの理由)を述べる節であり、機械では埋まらない"},
-          {"section": "§5 ロジック", "reason": "分岐・繰り返し・判定表の背後にある業務判断を述べる節であり、機械では埋まらない"},
-          {"section": "§6 疑似コード", "reason": "処理の意図を疑似コードとして述べる節であり、機械では埋まらない(check-pseudocode-code-mixing.sh の対象)"},
-          {"section": "§9 業務ルールとバリデーション", "reason": "入力検査・業務判断・権限の理由を述べる節であり、機械では埋まらない"}
+          {
+            "section": "§4 処理フロー",
+            "reason": "処理の意図(順序・内部/外部呼び出しの理由)を述べる節であり、機械では埋まらない"
+          },
+          {
+            "section": "§5 ロジック",
+            "reason": "分岐・繰り返し・判定表の背後にある業務判断を述べる節であり、機械では埋まらない"
+          },
+          {
+            "section": "API実装記録 §1 疑似コード",
+            "reason": "処理の意図を疑似コードとして述べる節であり、機械では埋まらない(check-pseudocode-code-mixing.sh の対象)"
+          },
+          {
+            "section": "§6 業務ルールとバリデーション",
+            "reason": "入力検査・業務判断・権限の理由を述べる節であり、機械では埋まらない"
+          }
         ]
       }
     }

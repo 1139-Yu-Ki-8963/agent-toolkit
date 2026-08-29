@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T01:54:45Z",
+  "generatedAt": "2026-08-29T02:30:43Z",
   "sourceDir": "docs/design/screens",
   "unitKind": "screen",
   "note": "対象外の記録に基づき画面の抽出を行わない(画面を持たない対象)",

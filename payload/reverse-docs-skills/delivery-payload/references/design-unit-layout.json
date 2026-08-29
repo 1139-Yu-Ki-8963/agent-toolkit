@@ -5,13 +5,17 @@
       "sourcePhase": "detail",
       "targetPhase": "basic",
       "eligibility": "sourcePhase に宣言されたファイルがすべて実在する設計単位を対象とする",
-      "excludedKinds": ["screen"]
+      "excludedKinds": [
+        "screen"
+      ]
     },
     "testFromExistingDetail": {
       "sourcePhase": "detail",
       "targetPhase": "test",
       "eligibility": "sourcePhase に宣言されたファイルがすべて実在する設計単位を対象とする",
-      "excludedKinds": ["screen"]
+      "excludedKinds": [
+        "screen"
+      ]
     }
   },
   "kinds": {
@@ -19,65 +23,121 @@
       "label": "画面",
       "token": "<画面名>",
       "phases": {
-        "basic": ["画面基本設計書.md"],
-        "detail": ["画面詳細設計書.md", "DESIGN.md"],
-        "test": ["画面結合テスト設計書.md", "画面単体テスト設計書.md", "操作シナリオ仕様書.md"]
+        "basic": [
+          "画面基本設計書.md"
+        ],
+        "detail": [
+          "画面詳細設計書.md",
+          "DESIGN.md"
+        ],
+        "test": [
+          "画面結合テスト設計書.md",
+          "画面単体テスト設計書.md",
+          "操作シナリオ仕様書.md"
+        ]
       },
       "testDocumentCount": 2,
-      "screenOnlyTestDocuments": ["操作シナリオ仕様書.md"]
+      "screenOnlyTestDocuments": [
+        "操作シナリオ仕様書.md"
+      ]
     },
     "api": {
       "label": "API",
       "token": "<API名>",
       "phases": {
-        "basic": ["API基本設計書.md"],
-        "detail": ["API詳細設計書.md"],
-        "test": ["API結合テスト設計書.md", "API単体テスト設計書.md"]
+        "basic": [
+          "API基本設計書.md"
+        ],
+        "detail": [
+          "API詳細設計書.md",
+          "API実装記録.md"
+        ],
+        "test": [
+          "API結合テスト設計書.md",
+          "API単体テスト設計書.md"
+        ]
       }
     },
     "table": {
       "label": "テーブル",
       "token": "<TABLENAME>",
       "phases": {
-        "basic": ["論理データモデル.md"],
-        "detail": ["テーブル定義書.md"],
-        "test": ["テーブル結合テスト設計書.md", "テーブル単体テスト設計書.md"]
+        "basic": [
+          "論理データモデル.md"
+        ],
+        "detail": [
+          "テーブル定義書.md",
+          "テーブル実装記録.md"
+        ],
+        "test": [
+          "テーブル結合テスト設計書.md",
+          "テーブル単体テスト設計書.md"
+        ]
       }
     },
     "batch": {
       "label": "バッチ",
       "token": "<BATCHNAME>",
       "phases": {
-        "basic": ["バッチ基本設計書.md"],
-        "detail": ["バッチ詳細設計書.md"],
-        "test": ["バッチ結合テスト設計書.md", "バッチ単体テスト設計書.md"]
+        "basic": [
+          "バッチ基本設計書.md"
+        ],
+        "detail": [
+          "バッチ詳細設計書.md",
+          "バッチ実装記録.md"
+        ],
+        "test": [
+          "バッチ結合テスト設計書.md",
+          "バッチ単体テスト設計書.md"
+        ]
       }
     },
     "report": {
       "label": "帳票",
       "token": "<REPORTNAME>",
       "phases": {
-        "basic": ["帳票基本設計書.md"],
-        "detail": ["帳票詳細設計書.md"],
-        "test": ["帳票結合テスト設計書.md", "帳票単体テスト設計書.md"]
+        "basic": [
+          "帳票基本設計書.md"
+        ],
+        "detail": [
+          "帳票詳細設計書.md",
+          "帳票実装記録.md"
+        ],
+        "test": [
+          "帳票結合テスト設計書.md",
+          "帳票単体テスト設計書.md"
+        ]
       }
     },
     "external": {
       "label": "外部連携",
       "token": "<EXTERNALNAME>",
       "phases": {
-        "basic": ["外部連携基本設計書.md"],
-        "detail": ["外部連携詳細設計書.md"],
-        "test": ["外部連携結合テスト設計書.md", "外部連携単体テスト設計書.md"]
+        "basic": [
+          "外部連携基本設計書.md"
+        ],
+        "detail": [
+          "外部連携詳細設計書.md",
+          "外部連携実装記録.md"
+        ],
+        "test": [
+          "外部連携結合テスト設計書.md",
+          "外部連携単体テスト設計書.md"
+        ]
       }
     },
     "feature": {
       "label": "機能",
       "token": "<機能名>",
       "phases": {
-        "basic": ["機能設計書.md"],
+        "basic": [
+          "機能設計書.md"
+        ],
         "detail": [],
-        "test": ["機能結合テスト設計書.md", "機能単体テスト設計書.md"]
+        "test": [
+          "機能結合テスト設計書.md",
+          "機能単体テスト設計書.md"
+        ]
       },
       "detailEmptyReason": "機能設計書は集約設計書であり、構成要素の個別仕様は各構成要素の設計書を正とするため、機能自身の詳細設計の段階を持たない。実装水準の記述の扱いは delivery-payload/references/実装契約定義.md の「機能の扱い」節を参照する。"
     }

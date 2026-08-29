@@ -210,6 +210,8 @@ bash "$SCAFFOLD" table detail "$docs10" allcaps-ok-case "全大文字確認済�
 target10="$docs10/docs/design/tables/table-allcaps-ok-case/$DETAIL_DIR/テーブル定義書.md"
 sed -i.bak -E 's/^([a-z_]+): [A-Z]{2,}$/\1: dummy-value/' "$target10"
 rm -f "${target10}.bak"
+record10="$(dirname "$target10")/テーブル実装記録.md"
+if [ -f "$record10" ]; then sed -i.bak -E 's/^([a-z_]+): [A-Z]{2,}$/\1: dummy-value/' "$record10"; rm -f "${record10}.bak"; fi
 if ! bash "$SCAFFOLD" --verify table detail "$docs10" allcaps-ok-case >/dev/null 2>&1; then
   echo "FAIL: 置換済み-全大文字トークンなし: すべて置換したのにverifyが失敗しました" >&2
   exit 1

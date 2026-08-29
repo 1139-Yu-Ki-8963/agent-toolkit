@@ -4,7 +4,7 @@ import fs from "node:fs";
 
 const targets = process.argv.slice(2);
 if (targets.length === 0) {
-  console.error("usage: validate-api-design-decisions.mjs <API詳細設計書.md...>");
+  console.error("usage: validate-api-design-decisions.mjs <API実装記録.md...>");
   process.exit(2);
 }
 
@@ -20,7 +20,7 @@ const stripFrontmatterAndComments = (text) =>
     .replace(/<!--[\s\S]*?-->/g, "");
 
 const stripObservationSourceSection = (text) =>
-  text.replace(/\n### 13\.1 観測の出どころ\n[\s\S]*?(?=\n### |\n## |$)/, "");
+  text.replace(/\n### 9\.1 観測の出どころ\n[\s\S]*?(?=\n### |\n## |$)/, "");
 
 const normalizeDigits = (text) =>
   text.replace(/[０-９]/g, (digit) => String(digit.charCodeAt(0) - "０".charCodeAt(0)));
@@ -57,10 +57,10 @@ for (const file of targets) {
     fail(file, "本文に対象コードのファイル名または行番号が混入している");
   }
   const decisionMatch = text.match(
-    /### 12\.5 設計判断とその理由\n([\s\S]*?)(?=\n## §13 関連資料)/,
+    /### 4\.5 設計判断とその理由\n([\s\S]*?)(?=\n## §|\s*$)/,
   );
   if (!decisionMatch) {
-    fail(file, "12.5 設計判断とその理由が存在しない");
+    fail(file, "4.5 設計判断とその理由が存在しない（API実装記録）");
     continue;
   }
 
@@ -74,12 +74,12 @@ for (const file of targets) {
 
   for (const row of rows) {
     if (row.length !== 8) {
-      fail(file, `12.5 の列数が8ではない: ${row.length}`);
+      fail(file, `4.5 の列数が8ではない: ${row.length}`);
       continue;
     }
     const [key, decision, reason, kind, material, alternative, rejection, confidence] = row;
     if ([key, decision, reason, material, alternative, rejection, confidence].some((value) => !value)) {
-      fail(file, `12.5 に空欄がある: ${key || "判断キー不明"}`);
+      fail(file, `4.5 に空欄がある: ${key || "判断キー不明"}`);
     }
     if (!new Set(["観測（コードコメント）", "推定（実装構造）"]).has(kind)) {
       fail(file, `記述区分が不正: ${kind}`);

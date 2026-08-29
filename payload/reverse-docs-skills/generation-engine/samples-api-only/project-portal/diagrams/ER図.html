@@ -1099,23 +1099,10 @@ a:hover { text-decoration: underline; }
       <div class="pt-crumb"><a href="../index.html">TOP</a> ／ 一覧・設計図 ／ <span class="pt-crumb-current">ER図</span></div>
       <div class="pt-title-row">
         <h1 class="pt-title">ER図</h1>
-        <span class="pt-title-sub">テーブル定義書.md §6.3 外部キーに記載された参照関係を可視化する。</span>
+        <span class="pt-title-sub">テーブル定義書.md §5.3 外部キーに記載された参照関係を可視化する。</span>
       </div>
     </div>
 
-    <section class="er-flat-list">
-      <div class="pt-callout pt-callout--warning">
-        <span class="material-symbols-outlined pt-callout__icon" aria-hidden="true">warning</span>
-        外部キーが宣言されていません（0件）。関連（リレーション）は未記載です。
-      </div>
-      <div class="sec-label">エンティティ一覧（1件）</div>
-      <table class="er-flat-table">
-        <thead><tr><th>テーブル</th><th>カラム数</th></tr></thead>
-        <tbody>
-          <tr><td>users</td><td>0</td></tr>
-        </tbody>
-      </table>
-    </section>
     
     <div class="er-tabs" id="er-tabs">
       <button type="button" class="er-tab-btn is-active" id="er-tab-btn-diagram" data-tab="diagram">関連図</button>
@@ -1207,9 +1194,9 @@ a:hover { text-decoration: underline; }
 <script type="application/json" id="page-data">
 {
   "pageKind": "er",
-  "generatedAt": "2026-08-29T01:54:52Z",
+  "generatedAt": "2026-08-29T02:30:52Z",
   "title": "ER図",
-  "description": "テーブル定義書.md §6.3 外部キーに記載された参照関係を可視化する。",
+  "description": "テーブル定義書.md §5.3 外部キーに記載された参照関係を可視化する。",
   "legend": [],
   "entities": [
     {
@@ -1217,7 +1204,14 @@ a:hover { text-decoration: underline; }
       "label": "users"
     }
   ],
-  "relations": [],
+  "relations": [
+    {
+      "from": "users",
+      "to": "users",
+      "cardinality": "一対多",
+      "sourceRef": "疑似検証データ"
+    }
+  ],
   "unresolved": []
 }
 </script>

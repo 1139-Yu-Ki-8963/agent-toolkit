@@ -208,7 +208,7 @@ fill_state_transition_rows() {
   insert_after_marker "$f" '遷移前の状態' "$rows"
 }
 
-# テーブル定義書.md §6.3 外部キー
+# テーブル定義書.md §5.3 外部キー
 # （列: カラム|参照先のテーブル|参照先のカラム|削除時の動作|関連の種別|出典参照）。
 # このパイプラインでは代表テーブル1件しか展開されないため、参照先を自テーブル
 # （${TABLE_KEY}）自身にした自己参照FK行を1件足す（階層構造でよくある parent_id 相当。
@@ -488,22 +488,27 @@ dest_path_for() {
     "API/API結合テスト設計書.md") printf '%s/api-%s/%s/API結合テスト設計書.md' "$API_ROOT" "$API_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "API/API単体テスト設計書.md") printf '%s/api-%s/%s/API単体テスト設計書.md' "$API_ROOT" "$API_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "API/API詳細設計書.md") printf '%s/api-%s/詳細設計/API詳細設計書.md' "$API_ROOT" "$API_KEY" ;;
+    "API/API実装記録.md") printf '%s/api-%s/詳細設計/API実装記録.md' "$API_ROOT" "$API_KEY" ;;
     "テーブル/論理データモデル.md") printf '%s/table-%s/基本設計/論理データモデル.md' "$TABLE_ROOT" "$TABLE_KEY" ;;
     "テーブル/テーブル結合テスト設計書.md") printf '%s/table-%s/%s/テーブル結合テスト設計書.md' "$TABLE_ROOT" "$TABLE_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "テーブル/テーブル単体テスト設計書.md") printf '%s/table-%s/%s/テーブル単体テスト設計書.md' "$TABLE_ROOT" "$TABLE_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "テーブル/テーブル定義書.md") printf '%s/table-%s/詳細設計/テーブル定義書.md' "$TABLE_ROOT" "$TABLE_KEY" ;;
+    "テーブル/テーブル実装記録.md") printf '%s/table-%s/詳細設計/テーブル実装記録.md' "$TABLE_ROOT" "$TABLE_KEY" ;;
     "バッチ/バッチ基本設計書.md") printf '%s/batch-%s/基本設計/バッチ基本設計書.md' "$BATCH_ROOT" "$BATCH_KEY" ;;
     "バッチ/バッチ結合テスト設計書.md") printf '%s/batch-%s/%s/バッチ結合テスト設計書.md' "$BATCH_ROOT" "$BATCH_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "バッチ/バッチ単体テスト設計書.md") printf '%s/batch-%s/%s/バッチ単体テスト設計書.md' "$BATCH_ROOT" "$BATCH_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "バッチ/バッチ詳細設計書.md") printf '%s/batch-%s/詳細設計/バッチ詳細設計書.md' "$BATCH_ROOT" "$BATCH_KEY" ;;
+    "バッチ/バッチ実装記録.md") printf '%s/batch-%s/詳細設計/バッチ実装記録.md' "$BATCH_ROOT" "$BATCH_KEY" ;;
     "帳票/帳票基本設計書.md") printf '%s/report-%s/基本設計/帳票基本設計書.md' "$REPORT_ROOT" "$REPORT_KEY" ;;
     "帳票/帳票結合テスト設計書.md") printf '%s/report-%s/%s/帳票結合テスト設計書.md' "$REPORT_ROOT" "$REPORT_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "帳票/帳票単体テスト設計書.md") printf '%s/report-%s/%s/帳票単体テスト設計書.md' "$REPORT_ROOT" "$REPORT_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "帳票/帳票詳細設計書.md") printf '%s/report-%s/詳細設計/帳票詳細設計書.md' "$REPORT_ROOT" "$REPORT_KEY" ;;
+    "帳票/帳票実装記録.md") printf '%s/report-%s/詳細設計/帳票実装記録.md' "$REPORT_ROOT" "$REPORT_KEY" ;;
     "外部連携/外部連携基本設計書.md") printf '%s/external-%s/基本設計/外部連携基本設計書.md' "$EXTERNAL_ROOT" "$EXTERNAL_KEY" ;;
     "外部連携/外部連携結合テスト設計書.md") printf '%s/external-%s/%s/外部連携結合テスト設計書.md' "$EXTERNAL_ROOT" "$EXTERNAL_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "外部連携/外部連携単体テスト設計書.md") printf '%s/external-%s/%s/外部連携単体テスト設計書.md' "$EXTERNAL_ROOT" "$EXTERNAL_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "外部連携/外部連携詳細設計書.md") printf '%s/external-%s/詳細設計/外部連携詳細設計書.md' "$EXTERNAL_ROOT" "$EXTERNAL_KEY" ;;
+    "外部連携/外部連携実装記録.md") printf '%s/external-%s/詳細設計/外部連携実装記録.md' "$EXTERNAL_ROOT" "$EXTERNAL_KEY" ;;
     "機能/機能設計書.md") printf '%s/feature-%s/機能設計書.md' "$FEATURE_ROOT" "$FEATURE_KEY" ;;
     "機能/機能結合テスト設計書.md") printf '%s/feature-%s/%s/機能結合テスト設計書.md' "$FEATURE_ROOT" "$FEATURE_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
     "機能/機能単体テスト設計書.md") printf '%s/feature-%s/%s/機能単体テスト設計書.md' "$FEATURE_ROOT" "$FEATURE_KEY" "$UNIT_TEST_DESIGN_DIR" ;;
@@ -529,7 +534,7 @@ apply_kind_fill() {
   local relpath="$1" destfile="$2"
   case "$relpath" in
     API/*) fill_api "$destfile" ;;
-    "テーブル/テーブル定義書.md") fill_table "$destfile"; fill_foreign_key_rows "$destfile" ;;
+    "テーブル/テーブル実装記録.md") fill_table "$destfile"; fill_foreign_key_rows "$destfile" ;;
     テーブル/*) fill_table "$destfile" ;;
     バッチ/*) fill_batch "$destfile" ;;
     帳票/*) fill_report "$destfile" ;;
@@ -787,7 +792,7 @@ self_test() {
   # ケース: 関連図材料-外部キー
   total=$((total + 1))
   local fk_file fk_count
-  fk_file="$(find "$out1" -path '*/詳細設計/テーブル定義書.md' | head -n 1)"
+  fk_file="$(find "$out1" -path '*/詳細設計/テーブル実装記録.md' | head -n 1)"
   fk_count="$(grep -cF '疑似検証FK' "$fk_file" 2>/dev/null)"
   if [ -n "$fk_file" ] && [ "$fk_count" = "1" ]; then
     echo "[PASS] 関連図材料-外部キー — §6.3に自己参照FK行1件を確認"

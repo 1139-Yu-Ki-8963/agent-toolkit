@@ -42,7 +42,7 @@ run() {
       my $sep = $split->($lines[$i]); push @out, $emit->($sep); $i++;
       while ($i < @lines && $lines[$i] =~ /^\s*\|/) {
         my $row = $split->($lines[$i]);
-        if (@$row != $n) { print STDERR "ERROR: $file:" . ($i+1) . ": データ行のセル数（" . scalar(@$row) . "）が見出し（$n）と合いません（列を除くと表が成立しないため止めました）\n"; $errors++; push @out, $lines[$i]; $i++; next }
+        if (@$row != $n) { print STDERR "ERROR: $file:" . ($i+1) . ": データ行のセル数（" . scalar(@$row) . "）が見出し（${n}）と合いません（列を除くと表が成立しないため止めました）\n"; $errors++; push @out, $lines[$i]; $i++; next }
         push @out, $emit->($row); $i++;
       }
     }

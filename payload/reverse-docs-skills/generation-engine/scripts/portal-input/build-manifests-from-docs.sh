@@ -367,20 +367,25 @@ build_aggregate_units() {
   printf '%s' "$units_json"
 }
 
-# API詳細設計書 §7.1/§7.2 の先頭列から、CRUD対応表に渡す対象テーブルを導く。
+# API実装記録 §2.1/§7.2 の先頭列から、CRUD対応表に渡す対象テーブルを導く。
 # frontmatter の targetTables に依存せず、設計書本文に確定しているデータアクセスを
 # 正本にする。雛形のプレースホルダ・空行は除外し、初出順で重複を取り除く。
 extract_api_target_tables() {
   local file="$1"
-  node - "$file" <<'NODE'
+  # 改善課題1-288: データアクセスの節は API実装記録.md §2 へ移った。実装記録があればそちらを読み、無ければ従来どおり詳細設計書の §7 を読む。
+  local section_re="7"
+  local record="$(dirname "$file")/API実装記録.md"
+  if [ -f "$record" ]; then file="$record"; section_re="2"; fi
+  node - "$file" "$section_re" <<'NODE'
 const fs = require("fs");
 const lines = fs.readFileSync(process.argv[2], "utf8").split(/\r?\n/);
+const sectionRe = new RegExp("^### " + process.argv[3] + "\\.[12] ");
 let inSection = false;
 let dataRows = false;
 const seen = new Set();
 const tables = [];
 for (const line of lines) {
-  if (/^### 7\.[12] /.test(line)) {
+  if (sectionRe.test(line)) {
     inSection = true;
     dataRows = false;
     continue;
