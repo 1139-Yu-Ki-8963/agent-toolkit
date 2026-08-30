@@ -439,12 +439,26 @@ prepare_utf8_mirror() {
   copied_count=0
   while IFS= read -r selected_path; do
     [ -z "$selected_path" ] && continue
+    # 検査2はproject-portal/（build-portal.shが生成する閲覧用ポータル出力）を
+    # 検出対象に含めない。調査書から派生したHTMLが本文全体をJSON文字列として
+    # 埋め込むため、調査書自身の例示文字列（帳票・外部連携の検出パターン等）と
+    # 自己一致し検査2を誤って不合格にする（実測 2026-08-31）。
+    case "$selected_path" in
+      project-portal|project-portal/*|*/project-portal|*/project-portal/*)
+        continue
+        ;;
+    esac
     source_path="$src/$selected_path"
     target_path="$mirror/$selected_path"
     if [ -d "$source_path" ] && [ ! -L "$source_path" ]; then
       mkdir -p "$target_path" || return 2
       mirror_cp_command="${ARCHITECTURE_SURVEY_MIRROR_TEST_CP_COMMAND:-cp}"
       run_mirror_child "$mirror_cp_command" -R -P "$source_path/." "$target_path/" || return 2
+      # 「.」等、project-portalを内包しうる木を複製した場合はここで取り除く
+      # （上のcase文は選択パス自体がproject-portalそのものを指す場合だけを防ぐため）。
+      if [ -e "$target_path/project-portal" ] || [ -L "$target_path/project-portal" ]; then
+        rm -rf -- "$target_path/project-portal"
+      fi
     elif [ -e "$source_path" ] || [ -L "$source_path" ]; then
       mkdir -p "$(dirname "$target_path")" || return 2
       mirror_cp_command="${ARCHITECTURE_SURVEY_MIRROR_TEST_CP_COMMAND:-cp}"
@@ -1474,6 +1488,37 @@ MD
     echo "  [PASS] 検査2(1-140): 判定と検出手がかり再実行結果が整合する合成調査書は通過"
   else
     echo "  [FAIL] 検査2(1-140): 整合しているのにexit 1になった" >&2
+    rc=1
+  fi
+
+  # --- project-portal除外: 調査書から派生した閲覧用HTMLが本文をJSON文字列として
+  #     埋め込むため、その中に例示文字列（帳票検出パターン等）が含まれていても
+  #     検査2の再実行ではproject-portal/を検出対象外として扱うことを確認する
+  #     （実測 2026-08-31）。 ---
+  portal_repo="$tmp/portal-repo"
+  mkdir -p "$portal_repo/src/app/api" "$portal_repo/project-portal/foundation"
+  : > "$portal_repo/src/app/page.tsx"
+  : > "$portal_repo/src/app/api/route.ts"
+  echo 'new ExcelJS.Workbook()' > "$portal_repo/project-portal/foundation/report.html"
+  portal_kinds='| 種別 | 実在判定 | 検出手がかり | 参照先 |
+|---|---|---|---|
+| 画面 | 実在する | `find src/app -name page.tsx` で検出 | `src/app/page.tsx` |
+| API | 実在する | `find src/app/api -name route.ts` で検出 | `src/app/api/route.ts` |
+| テーブル | 実在しない（マイグレーション・ORMスキーマが見つからないため） | - | - |
+| バッチ | 実在しない（cron/ジョブランナー定義が見つからないため） | - | - |
+| 帳票 | 実在しない（帳票生成ライブラリの使用箇所が見つからないため） | `grep -rlE "new ExcelJS\." .` で検出 | - |
+| 外部連携 | 実在しない（外部APIクライアントの使用箇所が見つからないため） | - | - |'
+  cat > "$tmp/portal.md" <<MD
+## エントリポイント
+\`package.json\` を確認した。
+
+## ユニット種別判定
+$portal_kinds
+MD
+  if check_unit_kinds "$tmp/portal.md" "$portal_repo" >/dev/null 2>&1; then
+    echo "  [PASS] 検査2(project-portal除外): project-portal配下の例示文字列に自己一致せず通過"
+  else
+    echo "  [FAIL] 検査2(project-portal除外): project-portal配下の例示文字列に自己一致してexit 1になった" >&2
     rc=1
   fi
 

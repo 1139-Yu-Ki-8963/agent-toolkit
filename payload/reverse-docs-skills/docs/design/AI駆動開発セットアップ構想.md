@@ -58,7 +58,7 @@
 | 非機能要件と業務要件 | 空の雛形だけを置く |
 | 規約の中身 | 2026-08-14 時点で、全 27 カテゴリを本文入りで納品する。本文は役割と方針の水準に留め、対象リポジトリ固有の規則は「このプロジェクトの規則」の節が受ける。コードからの観測は規約提案として別に出力し、取り込みの判断を経てこの節へ入る |
 | 規約提案の取り込み | 取り込みの判断は現場のエンジニアが行う。取り込み操作のスキルを納品物に含め、対象リポジトリ側へ配る |
-| 納品スキルの構成 | `syncing-derived-artifacts`（状態表示と適用と復旧の 3 モード）、`importing-rule-proposals` の 2 本。全モードで同一セットを納品する（2026-08-11 時点の決定。当初案にあった `enabling-new-units` は、配布経路 `scaffold-rule-definitions.sh` の配布対象名がこの2本で確定済みのため現行スコープに含めない） |
+| 納品スキルの構成 | `syncing-derived-artifacts`（状態表示と適用と復旧の 3 モード）、`importing-rule-proposals` の 2 本。全モードで同一セットを納品する（2026-08-11 時点の決定。当初案にあった `enabling-new-units` は、配布経路 `scaffold-rule-definitions.sh` の配布対象名がこの2本で確定済みのため現行の範囲に含めない） |
 | 納品スキルの位置づけ | 実体は `.claude/skills/` に置き、docs 側には索引と保守手順書を置く。ツール群から見れば派生物であり、再納品で上書きされる。手作業の編集はずれ検知の対象に含める |
 | スキルテストの文書化 | スキルごとに `references/test-cases.md` を持ち、観点の表と機械検証（self-test 等）の対応を文書として管理する |
 | 最初の適用先 | 画面ありと画面なしの両方。モノレポではサブプロジェクト単位で分かれる |
@@ -296,7 +296,7 @@ rules 階層は親 7 と子 27 の 2 階層で構成する。単体で意味の�
 
 規約の扱いの思想を記す。判定原則（コードから業務目的や規範を確定しない）を、記述の注意ではなく配置で保証する。`docs/rules/` の本文は役割と方針の水準に留め、対象リポジトリを観測して確定する具体は書かない（2026-08-14 に全 27 子を本文入りへ移行した）。コードから観測した実装慣行は規約提案という別の成果物へ出す。提案の出力先はリポジトリ外とする。起動時に外部パスの指定を必須とし、既定値を持たない。リポジトリ内のパスは拒否する。リバースの検証記録（verification）と同じ思想で、規範候補は納品物に混ぜない。スキルが観測由来の規範候補を `project-portal/` へ直接書くことも禁止する。ポータルに載るのは、現場が取り込みを判断して定義になった内容だけである。提案の UI は設計課題として工程に含める。最低要件は、対象規約（親と子）との対応、根拠（sourceRef）、取り込み手順の提示である。提案を規約へ昇格させる判断は現場のエンジニアに残す。取り込みスキルは納品物の一部として対象リポジトリへ配る。これにより「納品されるスキル」という成果物種別が新たに生まれる。取り込み後は適用操作により派生へ反映される。
 
-納品する保守スキルの設計を確定した。構成は 2 本である（2026-08-11 時点。当初検討した `enabling-new-units`＝後から現れた画面や種別を対象範囲へ加え内部で適用へ委譲するスキルは、配布経路 `scaffold-rule-definitions.sh` の配布対象がこの2本で確定済みのため現行スコープに含めない）。`syncing-derived-artifacts` は状態表示と適用と復旧を 1 本で担い、モードは既定値なしの必須引数とする。`importing-rule-proposals` は規約提案の取り込みを担う。取り込み元はリポジトリ外の提案ファイルである。実体の置き場は `.claude/skills/` とし、docs 側には索引と保守手順書を置く。skills は Claude Code だけが持つ機構であり、片側実効の層の扱いに一致する。`docs/skills/` に実体を置いて symlink で参照させる案は採らない。Claude Code が symlink 経由で `SKILL.md` を読めるかが未検証で、読めない場合に無言で不発になるためである。Codex の利用者は `AGENTS.md` の保守索引から、Cursor の利用者は front matter を設定した `.mdc` から、同じ保守手順書と同じスクリプトへ到達する。納品スキルはツール群から見れば派生物である。ツール群の更新で再納品され、手作業の編集はずれ検知で検出する。再納品は上書き前にバックアップを取り、復旧で戻せる。
+納品する保守スキルの設計を確定した。構成は 2 本である（2026-08-11 時点。当初検討した `enabling-new-units`＝後から現れた画面や種別を対象範囲へ加え内部で適用へ委譲するスキルは、配布経路 `scaffold-rule-definitions.sh` の配布対象がこの2本で確定済みのため現行の範囲に含めない）。`syncing-derived-artifacts` は状態表示と適用と復旧を 1 本で担い、モードは既定値なしの必須引数とする。`importing-rule-proposals` は規約提案の取り込みを担う。取り込み元はリポジトリ外の提案ファイルである。実体の置き場は `.claude/skills/` とし、docs 側には索引と保守手順書を置く。skills は Claude Code だけが持つ機構であり、片側実効の層の扱いに一致する。`docs/skills/` に実体を置いて symlink で参照させる案は採らない。Claude Code が symlink 経由で `SKILL.md` を読めるかが未検証で、読めない場合に無言で不発になるためである。Codex の利用者は `AGENTS.md` の保守索引から、Cursor の利用者は front matter を設定した `.mdc` から、同じ保守手順書と同じスクリプトへ到達する。納品スキルはツール群から見れば派生物である。ツール群の更新で再納品され、手作業の編集はずれ検知で検出する。再納品は上書き前にバックアップを取り、復旧で戻せる。
 
 `.codex/` は MCP サーバー設定から始める。規約と指示は `AGENTS.md` へ集める。Codex は `AGENTS.md` を各階層で探索して連結するため、これで届く。当初は agents-sync のコードの記述を根拠に「Codex が読むのは `AGENTS.md` だけ」と判断した。しかし Codex 公式ドキュメントは、リポジトリ単位の `.codex/config.toml` の読み込みを明記している。信頼されたプロジェクトではリポジトリ内 hooks も読む。よって hooks の自動反映先として `.codex/` を使える。`.cursor/` は rules（`.mdc` 生成）と `mcp.json` と hooks を対象にする。
 
@@ -325,20 +325,11 @@ rules 階層は親 7 と子 27 の 2 階層で構成する。単体で意味の�
 2. `generating-reverse-detailed-design` は `unit_kind` 引数を持たない。引数は screen_dir、facts_ref、mode 等である
 3. 機能単位の facts を供給する経路がない。詳細設計は facts だけを情報源とし、原本の読み取りを禁じる。しかし facts 抽出は `profile=screen|python` のみ実装である。根拠は `extracting-unit-facts-from-code/SKILL.md`
 
-この 3 点を踏まえ、facts 抽出への機能プロファイル追加を前提とする案は採らない。
-機能は `feature-detection.md` が定めるとおり、コードから直接検出する単位ではなく既存一覧の派生グルーピングである。
-機能に固有のファイル集合は存在せず、構成要素のファイル集合の和にしかならない。
-よって機能プロファイルを足しても新しい事実は 1 件も生まれない。
-必要なのは抽出器ではなく集約である。
+この 3 点を踏まえ、facts 抽出への機能プロファイル追加を前提とする案は採らない。機能は `feature-detection.md` が定めるとおり、コードから直接検出する単位ではなく既存一覧の派生グルーピングである。機能に固有のファイル集合は存在せず、構成要素のファイル集合の和にしかならない。よって機能プロファイルを足しても新しい事実は 1 件も生まれない。必要なのは抽出器ではなく集約である。
 
-したがって成果物を「機能詳細設計書」から、集約設計書としての「機能設計書」へ改める。
-本工程は 3 つの作業を含む。
-機能一覧マニフェストと構成要素の個別設計書から集約する機能設計書テンプレートの新設、章の役割キーの `chapter-map.md` への登録、画面を持たない対象でも機能一覧を生成できるようにする入力条件の緩和である。
-`unit_kind` 列挙への追加と詳細設計スキルへの引数導入は、機能を詳細設計の対象としないため不要になる。
+したがって成果物を「機能詳細設計書」から、集約設計書としての「機能設計書」へ改める。本工程は 3 つの作業を含む。機能一覧マニフェストと構成要素の個別設計書から集約する機能設計書テンプレートの新設。章の役割キーの `chapter-map.md` への登録、画面を持たない対象でも機能一覧を生成できるようにする入力条件の緩和である。`unit_kind` 列挙への追加と詳細設計スキルへの引数導入は、機能を詳細設計の対象としないため不要になる。
 
-集約設計書は往復検証の対象にしない。
-機能には対応する原本ファイルが存在せず、突合の相手がないためである。
-品質は、構成要素の個別設計書が往復検証を通ることと、集約時の参照実在の検査で担保する。
+集約設計書は往復検証の対象にしない。機能には対応する原本ファイルが存在せず、突合の相手がないためである。品質は、構成要素の個別設計書が往復検証を通ることと、集約時の参照実在の検査で担保する。
 
 ### Phase D: 保守
 
@@ -372,7 +363,7 @@ rules 階層は親 7 と子 27 の 2 階層で構成する。単体で意味の�
 - `generation-engine/scripts/unit-list/validate-manifest.sh`
 - `generation-engine/scripts/unit-list/check-manifest-persistence.sh`
 
-横断検査スクリプトの置き場には先例がある。`generation-engine/scripts/audit-consistency.sh` は直下に置かれ、複数スキルの `SKILL.md` から `audit_script_path` として起動される。自己テスト系は `generation-engine/scripts/tests/` に集約され、スキルが実行時に呼ぶ検査は `generation-engine/scripts/` に残る。`generation-engine/scripts/unit-list/check-manifest-persistence.sh` はサブディレクトリに置かれ、7 種別の一覧フォルダを横断検査する。
+横断検査スクリプトの置き場には先例がある。`generation-engine/scripts/audit-consistency.sh` は直下に置かれ。複数スキルの `SKILL.md` から `audit_script_path` として起動される。自己テスト系は `generation-engine/scripts/tests/` に集約され、スキルが実行時に呼ぶ検査は `generation-engine/scripts/` に残る。`generation-engine/scripts/unit-list/check-manifest-persistence.sh` はサブディレクトリに置かれ。7 種別の一覧フォルダを横断検査する。
 
 Phase D は定義層の完了を前提としないが、Phase A と同じファイルを触る。次の 2 本が Phase A の置き換え対象にも含まれる。
 
@@ -432,10 +423,7 @@ Phase D は定義層の完了を前提としないが、Phase A と同じファ�
 - `.cursorrules`（Cursor の旧形式）が非推奨である旨の一次情報は見つからなかった。コミュニティの報告だけである
 - `excluded-kinds.json` の `excludedKinds` に screen が記載された実例は見つからなかった。構造上は可能だが実例の証拠がない
 - 直書き 197 件のうち 4 ファイルについて、本番経路と自己テストの区分が未確認である。対象は次の 4 件である
-  - `check-overview-consistency.sh`
-  - `check-screen-manifest-consistency.sh`
-  - `prepare-screen-rebuild-sample-fixture.sh`
-  - `validate-message-manifest.sh`
+  - `check-overview-consistency.sh`  - `check-screen-manifest-consistency.sh`  - `prepare-screen-rebuild-sample-fixture.sh`  - `validate-message-manifest.sh`
 - agents-sync の `init` が既存の `CLAUDE.md` と `AGENTS.md` を上書きするか退避するかを直接示すコードは得られなかった
 - 「並行して設計すると互いに矛盾する答えが生まれる」は反実仮想であり、一次情報での検証はできない
 
