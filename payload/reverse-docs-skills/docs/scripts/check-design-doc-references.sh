@@ -135,6 +135,8 @@ run_check() {
   # 配布先（このリポジトリ自身の規約 .claude/rules/always/publish/complete/rule.md を持たない置き場）では、
   # 配布対象外の資産（このリポジトリ自身の規約・エディタ設定・作業の記録・手順書）への参照は
   # 実在しないのが正しい。配布先ではこれらを除外として数える（2026-08-28 実測: 28件）。
+  # 公開対象から外す資産（公開完遂規約の一覧）に載るスキル prioritizing-improvement-tasks-from-images
+  # への参照も同様に、配布先では実在しないのが正しい（2026-08-31 実測: 5件）。
   local is_payload=0
   [ -f "$repo_root/.claude/rules/always/publish/complete/rule.md" ] || is_payload=1
   : > "$missing_file"
@@ -173,7 +175,7 @@ run_check() {
       norm="$(_normalize "$cand")"
       if [ "$is_payload" -eq 1 ]; then
         case "$norm" in
-          .claude/rules/*|.claude/rules|.codex/*|.codex|.cursor/*|.cursor|docs/session-prompts/*|docs/session-prompts|docs/tasks/work-records/*|docs/tasks/work-records)
+          .claude/rules/*|.claude/rules|.codex/*|.codex|.cursor/*|.cursor|docs/session-prompts/*|docs/session-prompts|docs/tasks/work-records/*|docs/tasks/work-records|.claude/skills/prioritizing-improvement-tasks-from-images/*|.claude/skills/prioritizing-improvement-tasks-from-images)
             local ecp
             ecp="$(cat "$excluded_file")"
             echo $((ecp + 1)) > "$excluded_file"
@@ -369,6 +371,22 @@ EOF
     echo "  [PASS] ケース10: シェルのメタ文字を含む文字列は対象外として合格する"
   else
     echo "  [FAIL] ケース10: メタ文字を含む文字列が誤って不合格にされた" >&2
+    fail=$((fail + 1))
+  fi
+
+  # ケース11: 配布先（公開完遂規約ファイルを持たない置き場）では、公開対象から
+  # 外す資産のスキル（prioritizing-improvement-tasks-from-images）への参照は
+  # 実在しなくても合格する
+  total=$((total + 1))
+  local proj11="$work/case11"
+  mkdir -p "$proj11/docs/design"
+  cat > "$proj11/docs/design/x.md" <<'EOF'
+参照: `.claude/skills/prioritizing-improvement-tasks-from-images/SKILL.md` を見よ。
+EOF
+  if run_check "$proj11" >/dev/null 2>&1; then
+    echo "  [PASS] ケース11: 配布先では公開対象外スキルへの参照は対象外として合格する"
+  else
+    echo "  [FAIL] ケース11: 配布先での公開対象外スキル除外が機能せず不合格になった" >&2
     fail=$((fail + 1))
   fi
 
