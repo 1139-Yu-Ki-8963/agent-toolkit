@@ -2,11 +2,9 @@
 
 ## 1. 権限境界
 
-リバース解析Skillは、用語の候補を生成する。
-承認済み用語集へ直接登録、更新、削除してはならない。
+リバース解析Skillは、用語の候補を生成する。承認済み用語集へ直接登録、更新、削除してはならない。
 
-解析Skillが観測できるのはコードや既存文書に現れた事実である。
-業務上の正式定義、正規表記、採否はプロジェクトメンバーが判断する。
+解析Skillが観測できるのはコードや既存文書に現れた事実である。業務上の正式定義、正規表記、採否はプロジェクトメンバーが判断する。
 
 ```text
 解析対象 -> 候補抽出 -> 提案YAML -> 保守検査 -> 人の審査 -> 管理Skill -> 承認済み用語YAML -> 派生物
@@ -37,19 +35,15 @@
 
 ### 2.3 根拠
 
-根拠は、参照位置、観測時刻、対象revision、抜粋hash、何を裏付けるかを持つ。
-全文コピーを定義へ保存せず、必要最小限の抜粋またはhashと参照を使う。
+根拠は、参照位置、観測時刻、対象revision、抜粋hash、何を裏付けるかを持つ。全文コピーを定義へ保存せず、必要最小限の抜粋またはhashと参照を使う。
 
 ### 2.4 信頼度
 
-提案全体のscoreだけでなく、term_ja、term_en、definition、scope、categoryなど推定フィールドごとの根拠不足を記録できるようにする。
-信頼度は採用可否を自動決定しない。
+提案全体のscoreだけでなく、term_ja、term_en、definition、scope、categoryなど推定フィールドごとの根拠不足を記録できるようにする。信頼度は採用可否を自動決定しない。
 
 ### 2.5 承認状態
 
-解析Skillが設定できる状態は `detected` だけとする。
-maintainerが構造検査を通した候補だけを `needs_review` にする。
-`approved`、`rejected`、`deferred`、`merged` は審査者または管理Skillだけが設定できる。
+解析Skillが設定できる状態は `detected` だけとする。maintainerが構造検査を通した候補だけを `needs_review` にする。`approved`、`rejected`、`deferred`、`merged` は審査者または管理Skillだけが設定できる。
 
 ## 3. 提案データの変換規則
 
@@ -72,10 +66,7 @@ maintainerが構造検査を通した候補だけを `needs_review` にする。
 1. 解析経路は、対象リポジトリ外として明示された絶対 `proposal_output_ref` へ、正式proposal schemaの提案YAMLと隣接diagnostics JSONだけを出力する。
 2. 用語管理経路は、schema検証済みかつ承認済みの用語YAMLから `managing-semantic-glossary` のportal publishで `一覧/用語辞書/用語辞書.html` を生成する。
 
-既存の `term`、`definition`、`codeRefs`、`category`、`sourceRef` は、提案モデルの `proposed_term` と `proposal.evidence` へ移行する。
-既定のcategory対応は `domain` から `business`、`tech` から `technical` とする。
-それ以外の既存categoryは自動変換せず、対応keyを人が指定するまで `changes_requested` にする。
-互換入口は承認操作を持たず、proposalの `approval.status` を `detected` に固定する。`proposal_output_ref` の省略、相対パス、対象repo内またはsymlink経由のrepo内パスはエラー終了する。ヘッドレス時も自動承認せず、`NEEDS_REVIEW` で停止する。
+既存の `term`、`definition`、`codeRefs`、`category`、`sourceRef` は、提案モデルの `proposed_term` と `proposal.evidence` へ移行する。既定のcategory対応は `domain` から `business`、`tech` から `technical` とする。それ以外の既存categoryは自動変換せず、対応keyを人が指定するまで `changes_requested` にする。互換入口は承認操作を持たず、proposalの `approval.status` を `detected` に固定する。`proposal_output_ref` の省略、相対パス、対象repo内またはsymlink経由のrepo内パスはエラー終了する。ヘッドレス時も自動承認せず、`NEEDS_REVIEW` で停止する。
 
 ## 5. 関連Skill
 
@@ -120,9 +111,7 @@ diagnostics:
   unscanned_scopes: []
 ```
 
-空配列を正常な0件として扱う。
-走査不能と走査結果0件を区別する。
-`proposal_output_ref` が対象repoの外部にあることを、生成前に実パスで検査する。
+空配列を正常な0件として扱う。走査不能と走査結果0件を区別する。`proposal_output_ref` が対象repoの外部にあることを、生成前に実パスで検査する。
 
 ## 7. レビュー手順
 

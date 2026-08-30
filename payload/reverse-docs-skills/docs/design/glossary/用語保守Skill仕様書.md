@@ -108,7 +108,7 @@ change_request_ref: work/glossary-changes/customer_id.yaml
 ### 5.2 類義語検出
 
 文字列類似度だけで統合しない。
-term_ja、term_en、alias、definition、category、scope、relations、code_name、type_name、db_name、api_name、ui_labelの一致度を根拠として提示する。
+term_ja、term_en、alias、definition、category、scope、relations。code_name、type_name、db_name、api_name、ui_labelの一致度を根拠として提示する。
 
 結果は `same_concept`、`related_concept`、`homonym`、`not_similar` の4候補を人が選べる形にする。
 
