@@ -84,6 +84,14 @@
           "outputExtension": ".html"
         },
         {
+          "role": "implementationRecord",
+          "fileName": "API実装記録.md",
+          "pathFields": [
+            "implementationRecordPath"
+          ],
+          "outputExtension": ".html"
+        },
+        {
           "role": "externalBehavior",
           "fileName": "API結合テスト設計書.md",
           "pathFields": [
@@ -158,6 +166,14 @@
           "fileName": "テーブル定義書.md",
           "pathFields": [
             "detailDocPath"
+          ],
+          "outputExtension": ".html"
+        },
+        {
+          "role": "implementationRecord",
+          "fileName": "テーブル実装記録.md",
+          "pathFields": [
+            "implementationRecordPath"
           ],
           "outputExtension": ".html"
         },
@@ -256,6 +272,14 @@
           "outputExtension": ".html"
         },
         {
+          "role": "implementationRecord",
+          "fileName": "バッチ実装記録.md",
+          "pathFields": [
+            "implementationRecordPath"
+          ],
+          "outputExtension": ".html"
+        },
+        {
           "role": "externalBehavior",
           "fileName": "バッチ結合テスト設計書.md",
           "pathFields": [
@@ -346,6 +370,14 @@
           "outputExtension": ".html"
         },
         {
+          "role": "implementationRecord",
+          "fileName": "帳票実装記録.md",
+          "pathFields": [
+            "implementationRecordPath"
+          ],
+          "outputExtension": ".html"
+        },
+        {
           "role": "externalBehavior",
           "fileName": "帳票結合テスト設計書.md",
           "pathFields": [
@@ -419,6 +451,14 @@
           "fileName": "外部連携詳細設計書.md",
           "pathFields": [
             "detailDocPath"
+          ],
+          "outputExtension": ".html"
+        },
+        {
+          "role": "implementationRecord",
+          "fileName": "外部連携実装記録.md",
+          "pathFields": [
+            "implementationRecordPath"
           ],
           "outputExtension": ".html"
         },

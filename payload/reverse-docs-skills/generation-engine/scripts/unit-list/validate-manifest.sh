@@ -666,7 +666,7 @@ run_validate() {
         + [ ("method","ioSummary","designDocStatus","category","format","trigger","direction","protocol","authMethod","execMethod","operationClass","businessClass","responseTimeout") as $f
             | select(has($f) and (.[$f] != null)) | select((.[$f] | type) != "string")
             | $f + "が文字列でない" ]
-        + [ ("designDocPath","detailDocPath","sequencePath","testCasePath",
+        + [ ("designDocPath","detailDocPath","implementationRecordPath","sequencePath","testCasePath",
              "unitTestViewpointPath","integrationTestViewpointPath","integrationTestCasePath","scenarioPath","confirmationPath") as $f
             | select(has($f) and (.[$f] != null))
             | select((.[$f] | is_safe_relative_url) | not)

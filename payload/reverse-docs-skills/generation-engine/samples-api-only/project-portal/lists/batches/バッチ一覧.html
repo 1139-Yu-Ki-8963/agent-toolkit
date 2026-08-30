@@ -717,12 +717,12 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
   }
   .csv-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
   td.unit-doc-links-cell { white-space: normal; overflow: visible; text-overflow: clip; }
-  .unit-doc-links { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+  .unit-doc-links { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
   .unit-doc-slot {
     min-width: 0; min-height: 24px; display: flex; align-items: center; justify-content: center; gap: 2px;
     padding: 2px 3px; border: 1px solid var(--border); background: var(--panel-2); font-size: .72rem;
   }
-  .unit-doc-link { color: var(--accent); text-decoration: none; font-size: .72rem; white-space: nowrap; }
+  .unit-doc-link { color: var(--accent); text-decoration: none; font-size: .72rem; white-space: nowrap; display: inline-block; }
   .unit-doc-link-secondary { padding-left: 2px; border-left: 1px solid var(--border); }
   .unit-doc-link:hover { text-decoration: underline; }
   .unit-doc-missing { color: var(--text-muted); }
@@ -1050,7 +1050,7 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
         <div class="pt-crumb"><a href="../../index.html">TOP</a> ／ 一覧・設計図 ／ <span class="pt-crumb-current">バッチ一覧</span></div>
         <div class="pt-title-row">
           <h1 class="pt-title">バッチ一覧</h1>
-          <span class="pt-title-sub">更新 2026-08-30T15:04:06Z</span>
+          <span class="pt-title-sub">更新 2026-08-30T15:20:15Z</span>
         </div>
         <div class="summary-tiles">
           <div class="tile"><strong>1</strong>検出バッチ数</div>
@@ -1084,7 +1084,7 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
           </thead>
           <tbody>
             <tr data-unit-id="batch-audit_archive" data-unit-key="audit_archive">
-<td></td>
+<td>audit_archive</td>
 <td><code>未確認</code></td>
 </tr>
           </tbody>
@@ -1112,7 +1112,7 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
       </div>
 
       <script type="application/json" id="unit-manifest">
-{"generatedAt":"2026-08-30T15:04:06Z","sourceDir":"docs/design/batches","unitKind":"batch","strategy":{"extractionMethod":"document-frontmatter","approvedByUser":true,"unitIdRegex":null},"detectionSummary":{"unitCount":1,"unresolvedCount":0},"units":[{"sourceFile":"src/jobs/audit_archive.py","unitId":"batch-audit_archive","unitKey":"audit_archive","designDocPath":"../../../docs/design/batches/batch-audit_archive/基本設計/バッチ基本設計書.html","detailDocPath":"../../../docs/design/batches/batch-audit_archive/詳細設計/バッチ詳細設計書.html","integrationTestViewpointPath":"../../../docs/design/batches/batch-audit_archive/テスト設計/バッチ結合テスト設計書.md","integrationTestCasePath":"../../../docs/design/batches/batch-audit_archive/テスト設計/バッチ結合テスト設計書.md","testCasePath":"../../../docs/design/batches/batch-audit_archive/テスト設計/バッチ単体テスト設計書.md","unitTestViewpointPath":"../../../docs/design/batches/batch-audit_archive/テスト設計/バッチ単体テスト設計書.md","identifier":"未確認","kind":"scheduled","confidence":"high","detectionMethod":"document-frontmatter","fileCount":null}]}
+{"generatedAt":"2026-08-30T15:20:15Z","sourceDir":"docs/design/batches","unitKind":"batch","strategy":{"extractionMethod":"document-frontmatter","approvedByUser":true,"unitIdRegex":null},"detectionSummary":{"unitCount":1,"unresolvedCount":0},"units":[{"sourceFile":"src/jobs/audit_archive.py","unitId":"batch-audit_archive","unitKey":"audit_archive","unitNameGuess":"audit_archive","designDocPath":"../../../docs/design/batches/batch-audit_archive/基本設計/バッチ基本設計書.html","detailDocPath":"../../../docs/design/batches/batch-audit_archive/詳細設計/バッチ詳細設計書.html","implementationRecordPath":"../../../docs/design/batches/batch-audit_archive/詳細設計/バッチ実装記録.html","integrationTestViewpointPath":"../../../docs/design/batches/batch-audit_archive/テスト設計/バッチ結合テスト設計書.md","integrationTestCasePath":"../../../docs/design/batches/batch-audit_archive/テスト設計/バッチ結合テスト設計書.md","testCasePath":"../../../docs/design/batches/batch-audit_archive/テスト設計/バッチ単体テスト設計書.md","unitTestViewpointPath":"../../../docs/design/batches/batch-audit_archive/テスト設計/バッチ単体テスト設計書.md","identifier":"未確認","kind":"scheduled","confidence":"high","detectionMethod":"document-frontmatter","fileCount":null}]}
       </script>
       <script type="application/json" id="column-spec">
 {"specVersion":1,"axes":[],"columns":[{"key":"schedule","label":"スケジュール","appliesTo":["batch"],"order":10},{"key":"targetTables","label":"対象テーブル","appliesTo":["batch"],"order":20},{"key":"downstreamJobs","label":"後続ジョブ","appliesTo":["batch"],"order":30},{"key":"execMethod","label":"実行方法","appliesTo":["batch"],"order":40},{"key":"triggerConfirmed","label":"契機確認","appliesTo":["batch"],"order":50,"trueLabel":"確認済み","falseLabel":"未確認"},{"key":"businessClass","label":"業務区分","appliesTo":["table","api","batch","external","report"],"order":100}]}
@@ -1401,6 +1401,7 @@ a.pt-brand-list-item:hover { background: var(--panel3); color: var(--text); text
         ]},
         {label: '詳細', docs: [
           {label: 'バッチ詳細設計書', pathField: 'detailDocPath', kind: 'detail'},
+          {label: 'バッチ実装記録', shortLabel: '記録', pathField: 'implementationRecordPath', kind: 'record'},
           {label: 'シーケンス図', shortLabel: '図', pathField: 'sequencePath', kind: 'sequence'}
         ]},
         {label: '結合', docs: [

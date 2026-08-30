@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-30T15:04:06Z",
+  "generatedAt": "2026-08-30T15:20:15Z",
   "sourceDir": "docs/design/batches",
   "unitKind": "batch",
   "strategy": {
@@ -16,8 +16,10 @@
       "sourceFile": "src/jobs/audit_archive.py",
       "unitId": "batch-audit_archive",
       "unitKey": "audit_archive",
+      "unitNameGuess": "audit_archive",
       "designDocPath": "../../../docs/design/batches/batch-audit_archive/基本設計/バッチ基本設計書.html",
       "detailDocPath": "../../../docs/design/batches/batch-audit_archive/詳細設計/バッチ詳細設計書.html",
+      "implementationRecordPath": "../../../docs/design/batches/batch-audit_archive/詳細設計/バッチ実装記録.html",
       "integrationTestViewpointPath": "../../../docs/design/batches/batch-audit_archive/テスト設計/バッチ結合テスト設計書.md",
       "integrationTestCasePath": "../../../docs/design/batches/batch-audit_archive/テスト設計/バッチ結合テスト設計書.md",
       "testCasePath": "../../../docs/design/batches/batch-audit_archive/テスト設計/バッチ単体テスト設計書.md",

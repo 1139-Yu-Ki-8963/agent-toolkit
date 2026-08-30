@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-30T15:04:08Z",
+  "generatedAt": "2026-08-30T15:20:18Z",
   "sourceDir": "docs/design/tables",
   "unitKind": "table",
   "strategy": {
@@ -16,8 +16,10 @@
       "sourceFile": "001_create_users.sql",
       "unitId": "table-users",
       "unitKey": "users",
+      "unitNameGuess": "users",
       "designDocPath": "../../../docs/design/tables/table-users/基本設計/論理データモデル.html",
       "detailDocPath": "../../../docs/design/tables/table-users/詳細設計/テーブル定義書.html",
+      "implementationRecordPath": "../../../docs/design/tables/table-users/詳細設計/テーブル実装記録.html",
       "integrationTestViewpointPath": "../../../docs/design/tables/table-users/テスト設計/テーブル結合テスト設計書.md",
       "integrationTestCasePath": "../../../docs/design/tables/table-users/テスト設計/テーブル結合テスト設計書.md",
       "testCasePath": "../../../docs/design/tables/table-users/テスト設計/テーブル単体テスト設計書.md",

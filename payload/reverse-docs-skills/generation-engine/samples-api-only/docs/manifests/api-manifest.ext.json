@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-30T15:04:05Z",
+  "generatedAt": "2026-08-30T15:20:15Z",
   "sourceDir": "docs/design/apis",
   "unitKind": "api",
   "strategy": {
@@ -63,8 +63,10 @@
       "sourceFile": "src/api/audit.py",
       "unitId": "api-audit",
       "unitKey": "audit",
+      "unitNameGuess": "audit",
       "designDocPath": "../../../docs/design/apis/api-audit/基本設計/API基本設計書.html",
       "detailDocPath": "../../../docs/design/apis/api-audit/詳細設計/API詳細設計書.html",
+      "implementationRecordPath": "../../../docs/design/apis/api-audit/詳細設計/API実装記録.html",
       "integrationTestViewpointPath": "../../../docs/design/apis/api-audit/テスト設計/API結合テスト設計書.md",
       "integrationTestCasePath": "../../../docs/design/apis/api-audit/テスト設計/API結合テスト設計書.md",
       "testCasePath": "../../../docs/design/apis/api-audit/テスト設計/API単体テスト設計書.md",

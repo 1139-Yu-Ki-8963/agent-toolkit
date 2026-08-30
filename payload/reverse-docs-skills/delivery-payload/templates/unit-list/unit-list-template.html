@@ -170,12 +170,12 @@
   }
   .csv-btn:hover { background: var(--accent-soft); color: var(--accent); border-color: var(--accent-border); }
   td.unit-doc-links-cell { white-space: normal; overflow: visible; text-overflow: clip; }
-  .unit-doc-links { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+  .unit-doc-links { display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
   .unit-doc-slot {
     min-width: 0; min-height: 24px; display: flex; align-items: center; justify-content: center; gap: 2px;
     padding: 2px 3px; border: 1px solid var(--border); background: var(--panel-2); font-size: .72rem;
   }
-  .unit-doc-link { color: var(--accent); text-decoration: none; font-size: .72rem; white-space: nowrap; }
+  .unit-doc-link { color: var(--accent); text-decoration: none; font-size: .72rem; white-space: nowrap; display: inline-block; }
   .unit-doc-link-secondary { padding-left: 2px; border-left: 1px solid var(--border); }
   .unit-doc-link:hover { text-decoration: underline; }
   .unit-doc-missing { color: var(--text-muted); }
@@ -553,6 +553,7 @@
         ]},
         {label: '詳細', docs: [
           {label: '{{DOC_LABEL_DETAIL}}', pathField: 'detailDocPath', kind: 'detail'},
+          {label: '{{DOC_LABEL_RECORD}}', shortLabel: '記録', pathField: 'implementationRecordPath', kind: 'record'},
           {label: 'シーケンス図', shortLabel: '図', pathField: 'sequencePath', kind: 'sequence'}
         ]},
         {label: '結合', docs: [

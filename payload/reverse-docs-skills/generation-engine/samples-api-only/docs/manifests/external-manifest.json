@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-30T15:04:06Z",
+  "generatedAt": "2026-08-30T15:20:16Z",
   "sourceDir": "docs/design/externals",
   "unitKind": "external",
   "strategy": {
@@ -16,8 +16,10 @@
       "sourceFile": "src/integrations/address_verify.py",
       "unitId": "external-address_verify",
       "unitKey": "address_verify",
+      "unitNameGuess": "address_verify",
       "designDocPath": "../../../docs/design/externals/external-address_verify/基本設計/外部連携基本設計書.html",
       "detailDocPath": "../../../docs/design/externals/external-address_verify/詳細設計/外部連携詳細設計書.html",
+      "implementationRecordPath": "../../../docs/design/externals/external-address_verify/詳細設計/外部連携実装記録.html",
       "integrationTestViewpointPath": "../../../docs/design/externals/external-address_verify/テスト設計/外部連携結合テスト設計書.md",
       "integrationTestCasePath": "../../../docs/design/externals/external-address_verify/テスト設計/外部連携結合テスト設計書.md",
       "testCasePath": "../../../docs/design/externals/external-address_verify/テスト設計/外部連携単体テスト設計書.md",

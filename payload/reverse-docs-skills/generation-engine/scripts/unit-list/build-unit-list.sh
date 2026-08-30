@@ -1114,6 +1114,8 @@ doc_label_for_phase() {
 }
 doc_label_basic="$(doc_label_for_phase "$UNIT_KIND" basic "基本設計書")"
 doc_label_detail="$(doc_label_for_phase "$UNIT_KIND" detail "詳細設計書")"
+# 改善課題1-288: 詳細設計の2文書目（<種別>実装記録）。配置の宣言 phases.detail[1] から解決し、無ければ既定の語を使う。
+doc_label_record="$(jq -r --arg k "$UNIT_KIND" '(.kinds[$k].phases.detail[1]) // empty' "$DESIGN_UNIT_LAYOUT_FILE" 2>/dev/null)"; doc_label_record="${doc_label_record%.md}"; [ -n "$doc_label_record" ] || doc_label_record="実装記録"
 
 TEMPLATE="$SCRIPT_DIR/../../../delivery-payload/templates/unit-list/unit-list-template.html"
 TOKENS_CSS_FILE="$SCRIPT_DIR/../../../delivery-payload/templates/tokens.css"
@@ -1370,6 +1372,7 @@ render_args=(
   "{{UNIT_KIND_LABEL}}" "$label_esc"
   "{{DOC_LABEL_BASIC}}" "$(js_escape "$doc_label_basic")"
   "{{DOC_LABEL_DETAIL}}" "$(js_escape "$doc_label_detail")"
+  "{{DOC_LABEL_RECORD}}" "$(js_escape "$doc_label_record")"
   "{{GENERATED_AT}}" "$(html_escape "$generated_at")"
   "{{UNIT_COUNT}}" "$tile_unit_count"
   "{{UNRESOLVED_COUNT}}" "$tile_unresolved_count"

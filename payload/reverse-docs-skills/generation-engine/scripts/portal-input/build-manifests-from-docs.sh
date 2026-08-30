@@ -110,7 +110,7 @@ append_declared_document_paths() {
           if [ -f "$candidate" ]; then actual_file="$candidate"; break; fi
         done
         ;;
-      detail)
+      detail|implementationRecord)
         for candidate in "$unit_dir/$detail_dir/$file_name" "$unit_dir/詳細設計/$file_name"; do
           if [ -f "$candidate" ]; then actual_file="$candidate"; break; fi
         done
@@ -240,6 +240,19 @@ append_aggregate_document_paths() {
 
 # frontmatter(YAML先頭の --- 区切りブロック)から指定キーの値を1行取り出す。
 # 見つからなければ空文字を返す。値の前後の空白は取り除く。
+# 本文の表題「# <対象名> <役割名>」から対象名を返す。役割名はファイル名（拡張子なし）。
+# frontmatter の外にある最初の「# 」行だけを見る。役割名で終わらない表題はそのまま返す。
+derive_unit_name_from_title() {
+  local file="$1" role
+  role="$(basename "$file")"; role="${role%.md}"
+  perl -CSDA -Mutf8 -e '
+    my ($file, $role) = @ARGV; my $t = ""; open my $fh, "<:utf8", $file or exit 0;
+    my $fm = 0; my $n = 0;
+    while (<$fh>) { $n++; if ($n == 1 && /^---\s*$/) { $fm = 1; next } if ($fm) { $fm = 0 if /^---\s*$/; next } if (/^# (.+?)\s*$/) { $t = $1; last } }
+    $t =~ s/\s*\Q$role\E\s*$//; $t =~ s/^\s+|\s+$//g; print $t;
+  ' "$file" "$role"
+}
+
 extract_frontmatter_value() {
   local file="$1" key="$2"
   awk -v key="$key" '
@@ -499,6 +512,17 @@ build_manifest_for_kind() {
           unit_obj="$(printf '%s' "$unit_obj" | jq --arg f "$field" --arg v "$value" '.[$f] = $v')"
         fi
       done
+
+      # 表示名（unitNameGuess）: frontmatter に名前の鍵を持たない種別（API 等）は、本文の表題
+      # 「# <対象名> <役割名>」から対象名を導く。役割名はファイル名（拡張子なし）と一致させる規約
+      # （各生成スキルの「表題の形式と前付けとの関係」）に基づく。表題が無ければ付けない（捏造しない）。
+      if ! printf '%s' "$unit_obj" | jq -e 'has("unitNameGuess")' >/dev/null 2>&1; then
+        local title_name
+        title_name="$(derive_unit_name_from_title "$file")"
+        if [ -n "$title_name" ]; then
+          unit_obj="$(printf '%s' "$unit_obj" | jq --arg v "$title_name" '.unitNameGuess = $v')"
+        fi
+      fi
 
       # 1-69: APIの対象テーブルはfrontmatterの未定義フィールドではなく、API詳細設計書
       # §7 データアクセスに記録された表から決定的に導く。表が空ならフィールドは付けず、

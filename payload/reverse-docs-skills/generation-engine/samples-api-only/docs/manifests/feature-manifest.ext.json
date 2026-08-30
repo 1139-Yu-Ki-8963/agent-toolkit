@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-30T15:04:07Z",
+  "generatedAt": "2026-08-30T15:20:16Z",
   "sourceDir": "docs/design/features",
   "unitKind": "feature",
   "strategy": {
@@ -57,6 +57,7 @@
       "sourceFile": "src/components/FileUploader.tsx",
       "unitId": "feature-fileuploader",
       "unitKey": "fileuploader",
+      "unitNameGuess": "fileuploader",
       "designDocPath": "../../../docs/design/features/feature-fileuploader/機能設計書.html",
       "integrationTestViewpointPath": "../../../docs/design/features/feature-fileuploader/テスト設計/機能結合テスト設計書.md",
       "integrationTestCasePath": "../../../docs/design/features/feature-fileuploader/テスト設計/機能結合テスト設計書.md",

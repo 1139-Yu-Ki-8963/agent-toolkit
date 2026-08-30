@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-30T15:04:07Z",
+  "generatedAt": "2026-08-30T15:20:17Z",
   "sourceDir": "docs/design/reports",
   "unitKind": "report",
   "strategy": {
@@ -16,8 +16,10 @@
       "sourceFile": "src/reports/annual.py",
       "unitId": "report-annual",
       "unitKey": "annual",
+      "unitNameGuess": "annual",
       "designDocPath": "../../../docs/design/reports/report-annual/基本設計/帳票基本設計書.html",
       "detailDocPath": "../../../docs/design/reports/report-annual/詳細設計/帳票詳細設計書.html",
+      "implementationRecordPath": "../../../docs/design/reports/report-annual/詳細設計/帳票実装記録.html",
       "integrationTestViewpointPath": "../../../docs/design/reports/report-annual/テスト設計/帳票結合テスト設計書.md",
       "integrationTestCasePath": "../../../docs/design/reports/report-annual/テスト設計/帳票結合テスト設計書.md",
       "testCasePath": "../../../docs/design/reports/report-annual/テスト設計/帳票単体テスト設計書.md",
