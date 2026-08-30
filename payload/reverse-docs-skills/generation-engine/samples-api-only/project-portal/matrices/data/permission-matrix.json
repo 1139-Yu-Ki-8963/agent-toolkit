@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-29T11:30:57+09:00",
+  "generatedAt": "2026-08-31T00:04:20+09:00",
   "dataSource": "screen-manifest.ext.json + api-manifest.json + feature-manifest.json",
   "roles": [
     "guest",

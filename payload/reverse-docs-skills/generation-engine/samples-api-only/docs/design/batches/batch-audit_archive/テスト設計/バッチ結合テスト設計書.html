@@ -794,7 +794,7 @@ table.data-table code {
   <button type="button" class="pt-theme" id="pt-theme-toggle">
     <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
   </button>
-  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-29</span><span id="pt-meta-commit"><br>コミット </span></div>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-31</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
 <script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":3},{"key":"list","num":"04","label":"一覧・設計図","count":15},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
@@ -1092,7 +1092,7 @@ table.data-table code {
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta">api-only-design · 更新 <span id="pt-footer-date">2026-08-29</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta">api-only-design · 更新 <span id="pt-footer-date">2026-08-31</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span>
 </footer>
 </div>
@@ -1684,7 +1684,7 @@ table.data-table code {
       return tools;
     }
     // --- 改善課題1-295: テストケース一覧を CSV として書き出す ---
-    // 表示用に整形済みの DOM ではなく、埋め込みの原本（Markdown 文字列）から直接パースする。
+    // 表示用に整形済みの DOM ではなく、埋め込みの元の文字列（Markdown）から直接パースする。
     // 並べ替え・絞り込みの状態を反映せず、常に元の順序で全件を書き出す。
     var CSV_EXTRA_COLUMNS = ['実施日', '実施者', '結果', '実際の結果', '起票番号', '実施時の備考'];
     var CSV_CASE_HEADS = ['ケース名', '対象（関数名）'];
