@@ -34,7 +34,7 @@
 # edges[]が空のpage-data.json(edgesStatus="未抽出")を書き出し、WARNをstderrへ出して
 # exit 0で終える(捏造しない)。
 #
-# 設計判断の正本: docs/design/generation-engine/portal-input/詳細設計書.md
+# 設計判断の正本: docs/design/batches/batch-portal-input/detail-design/バッチ詳細設計書.md
 # 「## extract-transition-page-data.sh」節。
 # 保守責任者: 人手(ユーザー)。画面基本設計書.md §6 の列構成を変える場合は本ファイルと
 # self-test を同時に更新する。

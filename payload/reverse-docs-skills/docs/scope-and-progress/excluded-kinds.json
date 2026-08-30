@@ -1,0 +1,45 @@
+{
+  "generatedAt": "2026-08-31T01:08:35+09:00",
+  "surveyDocPath": "docs/design/common/アーキテクチャ調査書.md",
+  "allKinds": [
+    "screen",
+    "api",
+    "table",
+    "batch",
+    "report",
+    "external"
+  ],
+  "presentKinds": [
+    "table",
+    "batch"
+  ],
+  "excludedKinds": [
+    {
+      "kind": "screen",
+      "label": "画面",
+      "reason": "UIコンポーネント（.tsx/.jsx/.vue）が、generation-engine/samples*配下とdelivery-payload/references/gold-standard配下の検証用フィクスチャを除いて見つからないため（アーキテクチャ調査書§6・§7）"
+    },
+    {
+      "kind": "api",
+      "label": "API",
+      "reason": "SDL（GraphQL Schema Definition Language）・IDL（OpenAPI/Protobuf等）のソースファイルが見つからないため（アーキテクチャ調査書§6・§7）"
+    },
+    {
+      "kind": "report",
+      "label": "帳票",
+      "reason": "帳票生成ライブラリ（reportlab/jsPDF/ExcelJS/PDFKit）の実使用構文が見つからないため（アーキテクチャ調査書§6・§7）"
+    },
+    {
+      "kind": "external",
+      "label": "外部連携",
+      "reason": "外部サービスクライアント（stripe/aws-sdk/boto3/axios）の実使用構文が、検出スクリプト自身の例示文字列を除いて見つからないため（アーキテクチャ調査書§6・§7）"
+    }
+  ],
+  "approvalHistory": [
+    {
+      "selected": "この範囲で進む",
+      "at": "2026-08-31T01:08:35+09:00",
+      "mode": "headless"
+    }
+  ]
+}

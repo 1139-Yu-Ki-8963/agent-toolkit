@@ -14,6 +14,9 @@ find_unexpected() {
         rel = substr($0, length(root) + 1)
         if (rel == "tasks/作業課題一覧.md" || rel == "tasks/指摘改善一覧.md") next
         if (index(rel, "tasks/done/") == 1 || index(rel, "guides/") == 1) next
+        # 配布物の体系（output-layout.json・docs/design/common/ の必須文書）が定める生成物・設計文書。
+        # 課題を管理する台帳ではないため対象外とする。
+        if (rel == "納品物一覧.md" || rel == "design/common/機能要件一覧.md") next
         print rel
       }
     ' > "$output_file"; then
@@ -49,12 +52,13 @@ run_self_test() {
     return 2
   fi
   trap "rm -rf '$test_root'" EXIT
-  mkdir -p "$test_root/docs/tasks/done" "$test_root/docs/guides" "$test_root/docs/design"
+  mkdir -p "$test_root/docs/tasks/done" "$test_root/docs/guides" "$test_root/docs/design/common"
   touch "$test_root/docs/tasks/作業課題一覧.md" "$test_root/docs/tasks/指摘改善一覧.md"
   touch "$test_root/docs/tasks/done/完了記録.md" "$test_root/docs/guides/進捗一覧.md"
   touch "$test_root/docs/design/ポータル試行の記録.md"
+  touch "$test_root/docs/納品物一覧.md" "$test_root/docs/design/common/機能要件一覧.md"
   check_tree "$test_root/docs" >/dev/null || return 1
-  echo "[PASS] 許可された4経路と試行の記録を除外する"
+  echo "[PASS] 許可された4経路と試行の記録と配布物の体系が定める生成物を除外する"
 
   touch "$test_root/docs/design/新規台帳.md"
   code=0

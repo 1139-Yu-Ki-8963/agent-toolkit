@@ -593,7 +593,7 @@ build_manifest_for_kind() {
       # sourceFileが代替値(実在しないパス文字列等)で埋まっており実体を確認できていない
       # ため、kindMappingの条件を満たしていてもunresolvedのまま固定する(この固定を外すと
       # validate-manifest.shのsourceFile-実在検査に必ず引っかかる。詳細は
-      # docs/design/generation-engine/portal-input/詳細設計書.md「実装判断(改善課題1-67)」
+      # docs/design/batches/batch-portal-input/detail-design/バッチ詳細設計書.md「実装判断(改善課題1-67)」
       # を参照)。
       local final_kind="$unresolved_kind" final_confidence="$unresolved_confidence" \
         final_detection="$unresolved_detection"

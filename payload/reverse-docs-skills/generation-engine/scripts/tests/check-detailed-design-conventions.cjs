@@ -11,7 +11,7 @@ const apiRecordTemplatePath = path.join(repoRoot, "delivery-payload/templates/�
 // 1-246: 旧CLIの根拠台帳・行範囲検査は互換目的でも残さない。
 // 残すと対象コード位置を納品物へ書く経路が再利用されるため、正本テンプレートへの
 // 位置情報再混入を拒否する自己テストだけに責務を限定する。設計判断の正本は
-// docs/design/generation-engine/verification/詳細設計書.md に記録する。
+// docs/design/batches/batch-verification/detail-design/バッチ詳細設計書.md に記録する。
 
 function section(document, heading, nextHeading) {
   const start = document.indexOf(heading);

@@ -81,9 +81,11 @@ run_validate() {
   report "schema-ユニット必須" "$item_ok"
 
   # 4. sourceKind-許容値
+  # "project" は docs/test-cases/結合テスト仕様書.md（プロジェクト横断の結合テスト）由来の
+  # ケースを表す値。aggregate-test-cases.sh の出力契約（ownerKey="project"）に合わせて許容する。
   local source_kind_ok=0
-  if ! jq -e '[.units[]? | select((.sourceKind == "screen" or .sourceKind == "api" or .sourceKind == "table" or .sourceKind == "batch" or .sourceKind == "report" or .sourceKind == "external" or .sourceKind == "feature") | not)] | length == 0' "$manifest" >/dev/null 2>&1; then
-    echo "    sourceKind must be one of screen/api/table/batch/report/external/feature" >&2
+  if ! jq -e '[.units[]? | select((.sourceKind == "screen" or .sourceKind == "api" or .sourceKind == "table" or .sourceKind == "batch" or .sourceKind == "report" or .sourceKind == "external" or .sourceKind == "feature" or .sourceKind == "project") | not)] | length == 0' "$manifest" >/dev/null 2>&1; then
+    echo "    sourceKind must be one of screen/api/table/batch/report/external/feature/project" >&2
     source_kind_ok=1
   fi
   report "sourceKind-許容値" "$source_kind_ok"
@@ -207,6 +209,16 @@ JSON
     rc=1
   else
     echo "  [PASS] 陰性(sourceKind型): sourceKind=nullでFAIL"
+  fi
+
+  local project_source_kind="$tmp/project-source-kind.json"
+  jq '.units[0].sourceKind = "project"' "$pass_fixture" > "$project_source_kind"
+  if _gt_out_project_source_kind="$(run_validate "$project_source_kind" 2>&1)"; then
+    echo "  [PASS] 陽性(sourceKind=project): 結合テスト仕様書由来のsourceKind=projectでPASS"
+  else
+    echo "  [FAIL] 陽性(sourceKind=project): sourceKind=projectがFAILした" >&2
+    printf '%s\n' "$_gt_out_project_source_kind" | sed 's/^/    /' >&2
+    rc=1
   fi
 
   local bad_source_kind="$tmp/bad-source-kind.json"

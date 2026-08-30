@@ -12,6 +12,7 @@ uncheckableReason: 5規則のうち2規則（コミットハッシュの明記�
 formatter: none
 status: approved
 origin: manual
+workUnit: process
 ---
 
 # リバース検証運用規約（REVERSE-VERIFICATION）

@@ -15,7 +15,7 @@ if [ "${1:-}" = "--self-test" ]; then
   # 既知の欠陥は解消済み（2026-08-24）: 引数なしの裸の mktemp -d は $TMPDIR を無視し、
   # 書き込みを拒む環境（サンドボックス実行環境等）では失敗する（実測 2026-08-24）。
   # 明示テンプレート付きの形へ直した。この形を素直な mktemp へ戻してはならない。
-  # 対策の経緯は docs/design/generation-engine/ルート直下/詳細設計書.md の
+  # 対策の経緯は docs/design/batches/batch-root/detail-design/バッチ詳細設計書.md の
   # 本スクリプトの節を参照する。
   if ! tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/$(basename "${BASH_SOURCE[0]}" .sh).XXXXXX" 2>/dev/null)" || [ -z "$tmpdir" ]; then
     echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため自己テストを判定できません（mktempが一時領域へ書き込めませんでした。実行環境のサンドボックス制約等が原因である可能性があります）" >&2

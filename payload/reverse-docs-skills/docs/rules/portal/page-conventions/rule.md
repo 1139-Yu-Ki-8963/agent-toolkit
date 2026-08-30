@@ -11,6 +11,7 @@ uncheckableReason: 機械検証（test-portal-conventions.sh）自体は存在�
 formatter: none
 status: approved
 origin: manual
+workUnit: artifact
 paths: ["delivery-payload/templates/**/*.html", "generation-engine/samples/**/*.html"]
 # 適用対象。
 ---
@@ -30,6 +31,8 @@ paths: ["delivery-payload/templates/**/*.html", "generation-engine/samples/**/*.
 スキルガイド HTML（`.claude/skills/*/references/guide.html`）も適用対象から外す。スキルの使い方を読む人へ向けた説明書であり、成果物のポータルとは読み手も用途も異なる。共通シェルを使わず独自の意匠を持つため、同じ検査を当てるとスキルを 1 本増やすたびに不合格が増え、件数を合否の判定に使えなくなる。ガイド HTML の体裁はスキルガイド HTML 統一規約が担当する。
 
 `delivery-payload/templates/partials/` 配下も適用対象から外す。ページへ埋め込む断片であり、単体では明暗の色定義も全画面レイアウトも持ちえない。完成したページに求める基準を断片へ当てることになる。
+
+規約の派生 HTML（`docs/rules/*/*/rule.html`）も適用対象から外す。規約の本文を読みやすく表示するための派生物であり、成果物のポータルとは読み手も用途も異なる。共通シェルを使わず独自の意匠を持つため、同じ検査を当てると規約を 1 件増やすたびに不合格が増え、件数を合否の判定に使えなくなる。
 
 次の4資料も適用対象から外す。
 
@@ -1155,7 +1158,7 @@ Material Symbols OutlinedのGoogle Fonts CDNだけは、アイコン表示に必
 
 ### check-self-portal-links.sh
 
-**必要性**: このリポジトリ自身のポータル（`docs/portal/index.html`）は、既存の生成器（`build-portal.sh`）を試した結果、業務種別のカード化・discovery の仕組みに合わず専用のページとして新設した（詳細は `docs/design/generation-engine/ポータル試行の記録.md`）。専用のページは他のスクリプトから決定的に生成されないため、`href` の記述ミス・参照先ファイルの改名や削除によるリンク切れを機械で検知する仕組みが無いと、他の生成物と同じ基準で健全性を保てない。索引が 6 種・リンク先が 90 件超（12 群 × 2・規約 8 件・スキル 52 件・検証記録 2 件・台帳 8 件・既存資料 2 件）と多く、改訂のたびに全件を目視で辿るのは非現実的である。
+**必要性**: このリポジトリ自身のポータル（`docs/portal/index.html`）は、既存の生成器（`build-portal.sh`）を試した結果、業務種別のカード化・discovery の仕組みに合わず専用のページとして新設した（詳細は `docs/design/ポータル試行の記録.md`）。専用のページは他のスクリプトから決定的に生成されないため、`href` の記述ミス・参照先ファイルの改名や削除によるリンク切れを機械で検知する仕組みが無いと、他の生成物と同じ基準で健全性を保てない。索引が 6 種・リンク先が 90 件超（12 群 × 2・規約 8 件・スキル 52 件・検証記録 2 件・台帳 8 件・既存資料 2 件）と多く、改訂のたびに全件を目視で辿るのは非現実的である。
 
 **代替案を採用しなかった理由**:
 - Bash ツール直叩き: ページを直すたびに全 href を手動で辿って実在確認すると、確認漏れが生じる。件数が 90 件超あり、目視での網羅は非現実的

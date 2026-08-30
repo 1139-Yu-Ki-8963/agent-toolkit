@@ -32,7 +32,7 @@
 # 解決できない場合はrelations[]へ加えず、unresolved[]へ理由付きで記録する
 # (validate-page-data.shの孤児参照検査はrelations[]内の未解決参照を許さないため)。
 #
-# 設計判断の正本: docs/design/generation-engine/portal-input/詳細設計書.md
+# 設計判断の正本: docs/design/batches/batch-portal-input/detail-design/バッチ詳細設計書.md
 # 「## extract-er-page-data.sh」節。
 # 保守責任者: 人手(ユーザー)。テーブル定義書.md §5.3 の列構成を変える場合は本ファイルと
 # self-test を同時に更新する。

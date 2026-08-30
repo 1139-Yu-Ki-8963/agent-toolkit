@@ -394,6 +394,7 @@ else
       -not -path '*/docs/guides/スキルの変遷.html' \
       -not -path '*/docs/guides/週次レポート-*.html' \
       -not -path '*/docs/portal/index.html' \
+      -not -path '*/docs/rules/*/rule.html' \
       | sort)
       # 除外はいずれもポータルのページではないものである
       # （.claude/rules/scoped/portal/page-conventions/rule.md「## 適用対象」参照）。

@@ -5341,7 +5341,7 @@ if [ -d "$RULES_ROOT" ]; then
 else
   # ${RULES_ROOT} は波括弧を外すな。set -u下で変数直後に全角括弧「（」が続くと
   # 変数名の続きとして誤読されunbound variableになることを実装時に手動再現で確認した
-  # （詳細: docs/design/generation-engine/ルート直下/詳細設計書.md「build-portal.sh」節の実装判断3）。
+  # （詳細: docs/design/batches/batch-root/detail-design/バッチ詳細設計書.md「build-portal.sh」節の実装判断3）。
   echo "WARN: 規約定義ディレクトリが見つかりません: ${RULES_ROOT}（output_dir に docs ディレクトリ自体が渡されました可能性があります。<output_dir> には docs と project-portal を子に持つ納品物ルートを渡してください。docs/rules 自体を持たないプロジェクトではこの警告は無視してかまいません）" >&2
 fi
 

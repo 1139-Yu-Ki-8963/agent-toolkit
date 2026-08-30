@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # project-semantic-glossary.pyのread_input_once+run_validatorのTOCTOU対策
-# (docs/design/generation-engine/detail-pages/詳細設計書.md参照)を、実際に
+# (docs/design/batches/batch-detail-pages/detail-design/バッチ詳細設計書.md参照)を、実際に
 # 検証中に元ファイルを差し替えるレースを再現して検証する。素直な形(通常のpython3を
 # そのまま呼ぶ)を避け、"python"の代わりに元ファイルを差し替えてから本物のpythonへ
 # execするラッパースクリプトをGLOSSARY_PYTHON経由で注入する(validate-semantic-glossary.sh
