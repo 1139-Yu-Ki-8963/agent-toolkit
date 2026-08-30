@@ -1,0 +1,21 @@
+{
+  "pageKind": "techstack",
+  "generatedAt": "2026-08-31T00:00:00Z",
+  "title": "技術スタック",
+  "description": "調査書と定義ファイルの実測値が一致した項目を転記します。あわせて、調査書が実在しないと判定した項目も根拠とともに記録します。",
+  "tiles": [
+    {"label": "言語・ランタイム", "value": "Bash / Node.js / Python3"},
+    {"label": "パッケージマネージャ", "value": "npm"},
+    {"label": "フレームワーク", "value": "実在しない"},
+    {"label": "ルーティングライブラリ", "value": "実在しない"}
+  ],
+  "columns": {"item": "項目", "value": "内容", "sourceRef": "出所"},
+  "rows": [
+    {"item": "言語・ランタイム", "value": "Bash（シェルスクリプト928件）、Node.js（>=20。.mjs/.cjs 81件）、Python3（62件、shebang #!/usr/bin/env python3）", "sourceRef": "package.json"},
+    {"item": "パッケージマネージャ", "value": "npm（package-lock.json が実在する。Python3側は requirements.txt／pyproject.toml を持たず標準ライブラリのみで完結する）", "sourceRef": "package-lock.json"}
+  ],
+  "absentRows": [
+    {"item": "フレームワーク", "value": "実在しない（理由: Webアプリケーションフレームワーク・UIフレームワークへの依存記述が package.json に無く、Bash/Node.js/Python3の単体スクリプト群として構成されているため）", "sourceRef": "アーキテクチャ調査書.md#§2"},
+    {"item": "ルーティングライブラリ", "value": "実在しない（理由: HTTPサーバー・ルーティング定義の実使用構文（express()・app.use(・createBrowserRouter( 等）が、検出スクリプト自身が持つ例示文字列（generation-engine/scripts/extract/extract-api-metadata.sh 等の自己テスト用フィクスチャ）を除いて見つからないため）", "sourceRef": "generation-engine/scripts/extract/extract-api-metadata.sh"}
+  ]
+}

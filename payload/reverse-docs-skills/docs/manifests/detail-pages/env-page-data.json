@@ -1,0 +1,10 @@
+{
+  "pageKind": "env",
+  "generatedAt": "2026-08-31T00:00:00Z",
+  "title": "環境構築手順",
+  "description": "アーキテクチャ調査書§3の記載事実を転記します。ビルド・起動・環境変数定義のいずれも実在しないと判定されているため、各表は空の状態で表示します。",
+  "prerequisites": [],
+  "environment": [],
+  "steps": [],
+  "allocations": []
+}

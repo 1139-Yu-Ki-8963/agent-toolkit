@@ -1,0 +1,964 @@
+{
+  "generatedAt": "2026-08-31T07:06:22+0900",
+  "dataSource": "self-apply-docs-system",
+  "rules": [
+    {
+      "ruleName": "人とAIの分担の決まり",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "上書きの前に読む決まり",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "完了報告に実行結果を添える決まり",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "実装判断記録規約（IMPLEMENTATION-DECISION-RECORD）",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": true,
+      "tags": [],
+      "summary": "`generation-engine/scripts/` 配下のスクリプトのうち、素直に見えない書き方をしている箇所について、なぜその書き方を採ったかを記録させる規約。"
+    },
+    {
+      "ruleName": "実装から統合までの順序の決まり",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "コミットと枝の決まり",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "外部向け文書の記述制限（AUDIENCE-SPLIT）",
+      "layer": "always",
+      "declaredEnforcement": "block",
+      "mechanicalEnforcement": true,
+      "tags": [
+        "[AUDIENCE-SPLIT-BLOCK]",
+        "[AUDIENCE-SPLIT-SKIP]"
+      ],
+      "summary": "`docs/guides/` の下に置く、このリポジトリを知らない人に向けた文書へ、内部の作業のための記述を混ぜることを禁じる規約。"
+    },
+    {
+      "ruleName": "テンプレートとサンプルの同期（TEMPLATE-SAMPLE-SYNC）",
+      "layer": "always",
+      "declaredEnforcement": "block",
+      "mechanicalEnforcement": true,
+      "tags": [
+        "[TEMPLATE-SAMPLE-SYNC-BLOCK]",
+        "[TEMPLATE-SAMPLE-SYNC-SKIP]"
+      ],
+      "summary": "`delivery-payload/templates/` のテンプレートを変更したら、同じコミットで `generation-engine/samples/` のサンプルを再生成して反映する。"
+    },
+    {
+      "ruleName": "reverse-docs-skills プロジェクトコンテキスト（PROJECT-CONTEXT）",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "公開完遂ガード（PUBLISH-COMPLETE）",
+      "layer": "always",
+      "declaredEnforcement": "block",
+      "mechanicalEnforcement": true,
+      "tags": [
+        "[PUBLISH-COMPLETE-BLOCK]",
+        "[PUBLISH-SYNC-REQUIRED]"
+      ],
+      "summary": "reverse-docs-skills（正本）の作業を「正本 commit → payload 同期 → agent-toolkit の origin/main へ統合 push」まで完遂してから完了報告させるプロジェクト規約。"
+    },
+    {
+      "ruleName": "レビューの観点の決まり",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "委任のときの作業場所規約（DELEGATION-WORKTREE）",
+      "layer": "always",
+      "declaredEnforcement": "block",
+      "mechanicalEnforcement": true,
+      "tags": [
+        "[DELEGATION-WORKTREE-BLOCK]",
+        "[DELEGATION-WORKTREE-EXEMPT]",
+        "[DELEGATION-WORKTREE-SKIP]"
+      ],
+      "summary": "書き換えを伴う作業を委任するとき、委任元が作業場所（git の worktree）を用意し、そのパスを委任のプロンプトへ書くことを求める。"
+    },
+    {
+      "ruleName": "並行課題投入の運用規約（PARALLEL-ISSUE-DISPATCH）",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": [],
+      "summary": "`docs/tasks/指摘改善一覧.md` の課題を複数の `codex exec` へ並行投入するとき、変更対象の重なりを事前に確認し、プロンプトを安全に構築し、3件同時実行の上限を守ることを求める。"
+    },
+    {
+      "ruleName": "サブエージェント報告の裏取り（SUBAGENT-REPORT-VERIFICATION）",
+      "layer": "always",
+      "declaredEnforcement": "block",
+      "mechanicalEnforcement": true,
+      "tags": [
+        "[SUBAGENT-REPORT-VERIFICATION-BLOCK]",
+        "[SUBAGENT-REPORT-VERIFICATION-SKIP]"
+      ],
+      "summary": "サブエージェントが「実行した」と報告した内容のうち、後から実物を確かめられるものは、報告を受けた側が確かめてから次へ進むことを定める。"
+    },
+    {
+      "ruleName": "作業者の自律規約（WORKER-AUTONOMY）",
+      "layer": "always",
+      "declaredEnforcement": "block",
+      "mechanicalEnforcement": true,
+      "tags": [
+        "[MANAGER-HANDOFF-BLOCK]",
+        "[WORKER-AUTONOMY-BLOCK]"
+      ],
+      "summary": "複数のセッションが分担して作業する体制で、作業を受け持つ側がユーザーへ判断を仰いで手を止めることを禁止する。"
+    },
+    {
+      "ruleName": "スキルガイド HTML 統一規約（SKILL-GUIDE-HTML）",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": [],
+      "summary": "`.claude/skills/*/references/guide.html` の構成を統一する規約。"
+    },
+    {
+      "ruleName": "コミット-課題対応規約（COMMIT-ISSUE-TRACE）",
+      "layer": "always",
+      "declaredEnforcement": "block",
+      "mechanicalEnforcement": true,
+      "tags": [],
+      "summary": "`docs/tasks/` 配下の指示書に対応する作業をコミットするとき、コミットメッセージへ対応する課題キーを含めることを定め、機械で強制する規約。"
+    },
+    {
+      "ruleName": "指示書形式規約（INSTRUCTION-FORMAT）",
+      "layer": "always",
+      "declaredEnforcement": "block",
+      "mechanicalEnforcement": true,
+      "tags": [
+        "[FAIL]",
+        "[NEW-LEDGER-FILE-BLOCK]",
+        "[UNKNOWN]"
+      ],
+      "summary": "`docs/tasks/` に置く指示書の形を定める。"
+    },
+    {
+      "ruleName": "指摘台帳の形式規約（ISSUE-LEDGER-FORMAT）",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": [],
+      "summary": "`docs/tasks/指摘改善一覧.md`（画像から書き起こした指摘を集積する台帳）の形を定める。"
+    },
+    {
+      "ruleName": "検査の判定不能規約（INDETERMINATE-RESULT）",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": [],
+      "summary": "検査スクリプトが「実行できなかった」ことと「不合格だった」ことを区別する規約。"
+    },
+    {
+      "ruleName": "リバース検証運用規約（REVERSE-VERIFICATION）",
+      "layer": "always",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": [],
+      "summary": "リバース設計スキル群の検証手順を、実行側リポジトリの散文から本規約へ移し、判定の基準を機械が読める形で定義する。"
+    },
+    {
+      "ruleName": "定義と生成物の分け方の決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "繰り返す作業の手順書の決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "業務の判定の書き方の決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "金額と数量の計算の決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "業務の言葉の決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "状態の移り変わりの決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "コードの書き方と分割の決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "部品の分け方と依存の決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "どこに何を置くかの決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "名前の付け方の決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "開発環境の組み立て方の決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "版付けと公開の決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "使うツールとコマンドの決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "設計書の書き方の決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "生成した文書を直接編集しない決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "稼働を続けることと復旧の決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "記録と監視の決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "応答の速さと処理の量の決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "利用が増えたときの決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "認証と入力と秘密の値の決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    },
+    {
+      "ruleName": "ポータルカテゴリ内グループ化規約（PORTAL-CATEGORY-GROUPING）",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": [],
+      "summary": "ポータルトップのカテゴリ節で、カード群をサブグループに分割して表示する規約。"
+    },
+    {
+      "ruleName": "ポータル HTML 規約（PORTAL-PAGE-CONVENTIONS）",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": [],
+      "summary": "リバース設計ポータルの生成 HTML に適用する合格基準。"
+    },
+    {
+      "ruleName": "単体テスト設計書の決まり",
+      "layer": "scoped",
+      "declaredEnforcement": "なし",
+      "mechanicalEnforcement": false,
+      "tags": []
+    }
+  ],
+  "skills": [
+    {
+      "skillName": "counting-code-lines",
+      "category": "工程",
+      "summary": "対象ディレクトリのコードの行数とファイル数を、画面側と裏側の処理に分けて数え、結果を保存する。",
+      "phaseCount": 6
+    },
+    {
+      "skillName": "extracting-unit-facts-from-code",
+      "category": "工程",
+      "summary": "対象コードが持つ振る舞いの事実を元のコードから取り出し、数え直しと確定まで一貫して行う。",
+      "phaseCount": 6
+    },
+    {
+      "skillName": "generating-agent-config-index-from-repo",
+      "category": "工程",
+      "summary": "対象のプロジェクトを調べて、作業を担うエージェント向けの案内文書の索引を作る。",
+      "phaseCount": 3
+    },
+    {
+      "skillName": "generating-api-basic-design-for-reverse-docs",
+      "category": "工程",
+      "summary": "外部とやり取りする接続窓口を1本ごとに取り上げ、業務の言葉だけで基本設計書を作る。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "generating-api-detail-design-for-reverse-docs",
+      "category": "工程",
+      "summary": "接続窓口ごとに実装コードから詳細設計書を作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-api-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "既存のコードを調べて、接続窓口ごとの一覧のページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-batch-basic-design-for-reverse-docs",
+      "category": "工程",
+      "summary": "定期的に実行する処理（バッチ）を1本ごとに取り上げ、業務の言葉だけで基本設計書を作る。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "generating-batch-detail-design-for-reverse-docs",
+      "category": "工程",
+      "summary": "バッチを1本ごとに取り上げ、元の処理の定義を読み解いて詳細設計書を作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-batch-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "既存のコードを調べて、定期実行やきっかけ起動の処理ごとに一覧のページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-component-inventory-for-reverse-docs",
+      "category": "工程",
+      "summary": "対象プロジェクトの画面部品のファイルを調べて、棚卸しのページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-cross-views-for-reverse-docs",
+      "category": "工程",
+      "summary": "画面・接続窓口・データの一覧をもとに、権限や関係を示す対応表と、エージェント設定のページをまとめて作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-design-system-for-reverse-docs",
+      "category": "工程",
+      "summary": "共通の設計文書から画面の色や余白などの値を取り出し、見た目の決まりをまとめたページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-entity-state-for-reverse-docs",
+      "category": "工程",
+      "summary": "データ設計文書の状態遷移表をもとに、状態の移り変わりを示す図のページを機械的に作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-env-guide-for-reverse-docs",
+      "category": "基盤ページ生成",
+      "summary": "調査書とローカル環境の調査結果をもとに、環境構築の手順ページを機械的に作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-er-diagram-for-reverse-docs",
+      "category": "基盤ページ生成",
+      "summary": "表の一覧と参照関係の定義をもとに、表同士のつながりを表す図を機械的に作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-external-basic-design-for-reverse-docs",
+      "category": "工程",
+      "summary": "外部との連携一件ごとの基本設計書を、業務の言葉だけで書き起こす。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "generating-external-detail-design-for-reverse-docs",
+      "category": "工程",
+      "summary": "外部連携の詳細設計書を、元のコードの電文定義から書き起こす。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-external-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "既にあるコードから外部との連携先を洗い出し、一覧のページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-feature-design-for-reverse-docs",
+      "category": "工程",
+      "summary": "機能一覧の元データと配下の要素をもとに、機能ごとの集約した設計書を書き起こす。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "generating-feature-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "既にある種別ごとの一覧をもとに、画面と接続窓口を業務の機能ごとにまとめた一覧を作る。",
+      "phaseCount": 6
+    },
+    {
+      "skillName": "generating-glossary-for-reverse-docs",
+      "category": "基盤ページ生成",
+      "summary": "既にあるコードと文書から、意味を持つ用語の候補を洗い出す。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-icon-catalog-for-reverse-docs",
+      "category": "工程",
+      "summary": "対象のコードからアイコンの使用箇所を洗い出し、一覧のページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-integration-test-spec-for-reverse-docs",
+      "category": "工程",
+      "summary": "複数の設計単位をまたぐ結合テスト仕様書を生成する。",
+      "phaseCount": 3
+    },
+    {
+      "skillName": "generating-message-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "メッセージ定義書の内容を一覧の元データに変換し、一覧のページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-release-notes-for-reverse-docs",
+      "category": "工程",
+      "summary": "対象のコードの変更履歴をもとに、更新内容をまとめたページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-report-basic-design-for-reverse-docs",
+      "category": "工程",
+      "summary": "帳票一件ごとの基本設計書を、業務の言葉だけで書き起こす。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "generating-report-detail-design-for-reverse-docs",
+      "category": "工程",
+      "summary": "帳票の詳細設計書を、元のコードの編集処理から書き起こす。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-report-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "既存のコードから帳票の単位を見つけ出し、帳票一覧のページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-requirement-definitions-for-reverse-docs",
+      "category": "工程",
+      "summary": "対象のコードは読まず、作成済みの一覧の元データと個別の基本設計書から確かめられる事実だけで、要件定義の5つの文書を作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-reverse-basic-design",
+      "category": "工程",
+      "summary": "確定した事実の記録だけを使い、業務の言葉だけで基本設計書を書く。",
+      "phaseCount": 3
+    },
+    {
+      "skillName": "generating-reverse-common-docs",
+      "category": "工程",
+      "summary": "対象のコードを層ごとに抜き取り調査し、プロジェクト共通の6つの文書の最初の版を書き起こす。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "generating-reverse-detailed-design",
+      "category": "工程",
+      "summary": "確定した事実の記録と共通文書だけを使い、画面の詳細設計書を書く。",
+      "phaseCount": 6
+    },
+    {
+      "skillName": "generating-rule-proposals-for-reverse-docs",
+      "category": "工程",
+      "summary": "対象のコードの実装の慣行を観測し、規約の叩き台のページをリポジトリの外へ書き出す。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "generating-screen-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "既存のコードから画面ごとの単位を見つけ出し、画面一覧のページを作る。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "generating-screen-transition-for-reverse-docs",
+      "category": "基盤ページ生成",
+      "summary": "画面一覧の元データとコード内の経路の定義を突き合わせ、画面遷移図のページを機械的に作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-sequence-diagram-for-reverse-docs",
+      "category": "工程",
+      "summary": "設計文書または確定済みの事実の記録から導ける呼び出し順序をシーケンス図にする。",
+      "phaseCount": 3
+    },
+    {
+      "skillName": "generating-table-definition-for-reverse-docs",
+      "category": "工程",
+      "summary": "テーブル一覧の元データと実装のコードから、テーブルごとの定義書を作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-table-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "既存のコードからテーブルの単位を見つけ出し、テーブル一覧のページを作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-table-logical-model-for-reverse-docs",
+      "category": "工程",
+      "summary": "テーブル一覧の元データと実装のコードから、テーブルが持つ業務上の意味を業務の言葉だけで書く。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "generating-tech-stack-for-reverse-docs",
+      "category": "基盤ページ生成",
+      "summary": "調査書の記載と定義ファイルの実測値を突き合わせ、技術スタックのページを機械的に作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-test-case-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "各設計単位のテスト設計書を横断して集め、テストケース一覧を作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "generating-test-viewpoint-list-for-reverse-docs",
+      "category": "一覧生成",
+      "summary": "各設計単位のテスト設計書を横断して集め、テスト観点表を作る。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "maintaining-semantic-glossary",
+      "category": "工程",
+      "summary": "正式用語集、用語候補又は変更提案を検査して影響を調べ、正式用語集を変えずに検査結果又は承認用の変更要求を作る。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "managing-semantic-glossary",
+      "category": "工程",
+      "summary": "正式用語集、用語候補又は変更要求を入力に、指定に応じて照会・審査・試行を行い、役割別の二件の承認がある変更だけを適用して公開する。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "orchestrating-ai-development-setup",
+      "category": "指揮",
+      "summary": "対象コードと実行範囲を入力に、調査・事実取り出し・設計書作成から再構築・実装照合・基準確立までを指定に応じて統括し、選んだ工程の結果を確定する。",
+      "phaseCount": 7
+    },
+    {
+      "skillName": "prioritizing-improvement-tasks-from-images",
+      "category": "工程",
+      "summary": "改善課題の画像を書き起こして指示書へ集約し、未解決項目を調査して優先順位を確定する。",
+      "phaseCount": 7
+    },
+    {
+      "skillName": "rebuilding-code-from-docs",
+      "category": "工程",
+      "summary": "画面ごとの設計書だけからコードを作り直し、元のコードと突き合わせて欠落を見つける。",
+      "phaseCount": 9
+    },
+    {
+      "skillName": "rebuilding-screen-unit-from-docs",
+      "category": "工程",
+      "summary": "設計書だけから対象ファイルを作り直し、元のファイルと突き合わせて欠落を見つける。",
+      "phaseCount": 7
+    },
+    {
+      "skillName": "running-reverse-screen-batch",
+      "category": "工程",
+      "summary": "対象コード、画面一覧、検証条件、出力先、雛形及び共通資料を入力に、各画面を無人で順に処理して指定工程まで設計書作成・再構築・実装照合を行い、進捗と失敗を記録する。",
+      "phaseCount": 5
+    },
+    {
+      "skillName": "surveying-architecture-for-reverse-docs",
+      "category": "工程",
+      "summary": "既存のリポジトリを調べ、機械による検証を添えてアーキテクチャ調査書を確定する。",
+      "phaseCount": 6
+    },
+    {
+      "skillName": "surveying-local-environment",
+      "category": "工程",
+      "summary": "使用しているパソコンの基本ソフトや道具の状況を調べ、結果を記録する。",
+      "phaseCount": 4
+    },
+    {
+      "skillName": "syncing-reverse-env",
+      "category": "工程",
+      "summary": "元のコードと設計書の 2 つの作業場所をそろえ、比べる基準となる時点を記録する。",
+      "phaseCount": 8
+    },
+    {
+      "skillName": "unlocking-reverse-target-screens",
+      "category": "工程",
+      "summary": "対象画面と依存先を調べてデータ取得を差し替え、画面を起動して検証用のアドレスを記録し、単独実行では比較の基準を確立する。",
+      "phaseCount": 5
+    }
+  ],
+  "subagents": [
+    {
+      "name": "rule-reviewer"
+    }
+  ],
+  "hooks": [
+    {
+      "script": "check-template-sample-sync.sh",
+      "timing": "PreToolUse",
+      "matcher": "Bash",
+      "tags": [
+        "[TEMPLATE-SAMPLE-SYNC-SKIP]"
+      ],
+      "behavior": "block",
+      "summary": "PreToolUse(Bash) hook: reverse-docs-skills のテンプレート・サンプル同期ガード。"
+    },
+    {
+      "script": "check-commit-issue-trace.sh",
+      "timing": "PreToolUse",
+      "matcher": "Bash",
+      "tags": [],
+      "behavior": "block",
+      "summary": "PreToolUse(Bash) hook: reverse-docs-skills のコミット-課題対応ガード。"
+    },
+    {
+      "script": "check-new-ledger-file.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write",
+      "tags": [
+        "[NEW-LEDGER-FILE-BLOCK]"
+      ],
+      "summary": "「記録」は課題を管理する語ではなく、過去にわかったことを残す語である。"
+    },
+    {
+      "script": "check-audience-split.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write",
+      "tags": [],
+      "summary": "check-audience-split.sh — 外部向け文書の記述制限 linter"
+    },
+    {
+      "script": "check-delegation-worktree.sh",
+      "timing": "PreToolUse",
+      "matcher": "Agent",
+      "tags": [
+        "[DELEGATION-WORKTREE-SKIP]"
+      ],
+      "summary": "委任のプロンプトに作業場所（git の worktree）のパスが含まれるかを確かめる PreToolUse hook。"
+    },
+    {
+      "script": "check-delegation-completion-criteria.sh",
+      "timing": "PreToolUse",
+      "matcher": "Agent|Bash",
+      "tags": [
+        "[DELEGATION-EXEMPT]"
+      ],
+      "behavior": "block",
+      "summary": "check-delegation-completion-criteria.sh — 「完了条件を渡す」規則と「外への公開は人がする」規則の linter"
+    },
+    {
+      "script": "check-ai-config-derivative-manual-edit.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write|Edit|MultiEdit",
+      "tags": [],
+      "summary": "check-ai-config-derivative-manual-edit.sh — 定義と生成物の分け方の決まりの linter"
+    },
+    {
+      "script": "check-read-before-overwrite.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write",
+      "tags": [],
+      "behavior": "block",
+      "summary": "check-read-before-overwrite.sh — 「上書きの前に既存を読む」規則の linter"
+    },
+    {
+      "script": "check-routine-procedure-doc.sh",
+      "timing": "PreToolUse",
+      "matcher": "Bash",
+      "tags": [],
+      "summary": "check-routine-procedure-doc.sh — 繰り返す作業の手順書の決まりの linter"
+    },
+    {
+      "script": "check-business-rule-table-missing-exception.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write",
+      "tags": [],
+      "summary": "check-business-rule-table-missing-exception.sh — 業務の判定の書き方の決まりの linter"
+    },
+    {
+      "script": "check-currency-float-type.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write",
+      "tags": [],
+      "summary": "check-currency-float-type.sh — 金額と数量の計算の決まりの linter"
+    },
+    {
+      "script": "check-glossary-missing-forbidden-terms.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write",
+      "tags": [],
+      "summary": "check-glossary-missing-forbidden-terms.sh — 業務の言葉の決まりの linter"
+    },
+    {
+      "script": "check-state-literal-comparison.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write",
+      "tags": [],
+      "summary": "check-state-literal-comparison.sh — 状態の移り変わりの決まりの linter"
+    },
+    {
+      "script": "check-any-type-escape-hatch.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write",
+      "tags": [],
+      "behavior": "block",
+      "summary": "check-any-type-escape-hatch.sh — コードの書き方と分割の決まり linter"
+    },
+    {
+      "script": "check-direct-circular-import.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write",
+      "tags": [],
+      "behavior": "block",
+      "summary": "check-direct-circular-import.sh — 部品の分け方と依存の決まり linter"
+    },
+    {
+      "script": "check-temp-file-tracked.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write",
+      "tags": [],
+      "behavior": "block",
+      "summary": "check-temp-file-tracked.sh — どこに何を置くかの決まり linter"
+    },
+    {
+      "script": "check-sequential-identifier-naming.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write",
+      "tags": [],
+      "behavior": "block",
+      "summary": "check-sequential-identifier-naming.sh — 名前の付け方の決まり linter"
+    },
+    {
+      "script": "check-secret-filename-staged.sh",
+      "timing": "PreToolUse",
+      "matcher": "Bash",
+      "tags": [],
+      "summary": "check-secret-filename-staged.sh — 開発環境の組み立て方の決まりのうち静的解析を含む6規則の linter"
+    },
+    {
+      "script": "check-direct-commit-to-integration-branch.sh",
+      "timing": "PreToolUse",
+      "matcher": "Bash",
+      "tags": [],
+      "summary": "check-direct-commit-to-integration-branch.sh — 実装から統合までの順序の決まりの linter"
+    },
+    {
+      "script": "check-generated-artifact-staged.sh",
+      "timing": "PreToolUse",
+      "matcher": "Bash",
+      "tags": [],
+      "summary": "check-generated-artifact-staged.sh — コミットと枝の決まりのうち静的解析を含む5規則の linter"
+    },
+    {
+      "script": "check-release-changelog-entry.sh",
+      "timing": "PreToolUse",
+      "matcher": "Bash",
+      "tags": [],
+      "behavior": "block",
+      "summary": "check-release-changelog-entry.sh — 版付けと公開の決まりのうち静的解析を含む5規則の linter"
+    },
+    {
+      "script": "check-secret-in-command-args.sh",
+      "timing": "PreToolUse",
+      "matcher": "Bash",
+      "tags": [],
+      "summary": "check-secret-in-command-args.sh — 使うツールとコマンドの決まりのうち静的解析を含む4規則の linter"
+    },
+    {
+      "script": "check-doc-heading-addendum.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write|Edit",
+      "tags": [],
+      "summary": "check-doc-heading-addendum.sh — 設計書の書き方の決まりの linter"
+    },
+    {
+      "script": "check-generated-html-manual-edit.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write|Edit",
+      "tags": [],
+      "behavior": "block",
+      "summary": "check-generated-html-manual-edit.sh — 「HTML を直接編集しない」規則の linter"
+    },
+    {
+      "script": "check-outbound-call-missing-timeout.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write|Edit",
+      "tags": [],
+      "summary": "check-outbound-call-missing-timeout.sh — 稼働を続けることと復旧の決まりの linter"
+    },
+    {
+      "script": "check-secret-value-logging.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write",
+      "tags": [],
+      "summary": "check-secret-value-logging.sh — 記録と監視の決まりの linter"
+    },
+    {
+      "script": "check-loop-query-call.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write|Edit",
+      "tags": [],
+      "summary": "check-loop-query-call.sh — 応答の速さと処理の量の決まりの linter"
+    },
+    {
+      "script": "check-full-scan-then-filter.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write",
+      "tags": [],
+      "summary": "check-full-scan-then-filter.sh — 利用が増えたときの決まりの linter"
+    },
+    {
+      "script": "check-secret-literal-in-code.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write|Edit",
+      "tags": [],
+      "summary": "check-secret-literal-in-code.sh — 認証と入力と秘密の値の決まりの linter"
+    },
+    {
+      "script": "check-review-viewpoints-list.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write",
+      "tags": [],
+      "summary": "check-review-viewpoints-list.sh — レビューの観点の決まりの linter"
+    },
+    {
+      "script": "check-unit-test-design-doc-sections.sh",
+      "timing": "PreToolUse",
+      "matcher": "Write",
+      "tags": [],
+      "summary": "check-unit-test-design-doc-sections.sh — 単体テスト設計書の決まりの linter"
+    },
+    {
+      "script": "check-publish-complete.sh",
+      "timing": "Stop",
+      "matcher": "—",
+      "tags": [],
+      "behavior": "block",
+      "summary": "Stop hook: reverse-docs-skills の公開完遂ガード。"
+    },
+    {
+      "script": "check-worker-autonomy.sh",
+      "timing": "Stop",
+      "matcher": "—",
+      "tags": [],
+      "summary": "最終応答が判断を仰いで終わっているかを検出する Stop hook。"
+    },
+    {
+      "script": "check-manager-handoff.sh",
+      "timing": "Stop",
+      "matcher": "—",
+      "tags": [],
+      "summary": "最終応答が作業の受け渡しを未来形で述べて終わっているかを検出する Stop hook。"
+    },
+    {
+      "script": "check-subagent-report-verification.sh",
+      "timing": "Stop",
+      "matcher": "—",
+      "tags": [
+        "[SUBAGENT-REPORT-VERIFICATION-SKIP]"
+      ],
+      "summary": "サブエージェントの報告のうち、実行記録が 0 件のものを検出する Stop hook。"
+    },
+    {
+      "script": "check-completion-evidence.sh",
+      "timing": "Stop",
+      "matcher": "—",
+      "tags": [],
+      "behavior": "block",
+      "summary": "check-completion-evidence.sh — 「完了報告に実行結果を添える」規則の linter"
+    },
+    {
+      "script": "check-publish-sync-gate.sh",
+      "timing": "PostToolUse",
+      "matcher": "Bash",
+      "tags": [
+        "[PUBLISH-SYNC-REQUIRED]"
+      ],
+      "behavior": "advisory",
+      "summary": "PostToolUse(Bash) hook: git commit 成功後に payload 同期の必要性を検出し advisory 注入する。"
+    }
+  ]
+}

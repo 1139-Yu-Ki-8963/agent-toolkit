@@ -1,0 +1,170 @@
+{
+  "generatedAt": "2026-08-30T15:32:38Z",
+  "sourceDir": "generation-engine/scripts",
+  "unitKind": "batch",
+  "strategy": {
+    "extractionMethod": "manual-listing",
+    "approvedByUser": true,
+    "unitIdRegex": null
+  },
+  "detectionSummary": {
+    "unitCount": 14,
+    "unresolvedCount": 0
+  },
+  "units": [
+    {
+      "unitKey": "root",
+      "kind": "scheduled",
+      "unitNameGuess": "共通土台と生成入口",
+      "identifier": "root",
+      "detectionMethod": "directory-group",
+      "confidence": "HIGH",
+      "fileCount": 45,
+      "sourceFile": "build-portal.sh",
+      "unitId": "batch-root"
+    },
+    {
+      "unitKey": "design-docs",
+      "kind": "scheduled",
+      "unitNameGuess": "設計書の分割・整形",
+      "identifier": "design-docs",
+      "detectionMethod": "directory-group",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "design-docs/split-implementation-record.pl",
+      "unitId": "batch-design-docs"
+    },
+    {
+      "unitKey": "detail-pages",
+      "kind": "scheduled",
+      "unitNameGuess": "詳細ページの生成",
+      "identifier": "detail-pages",
+      "detectionMethod": "directory-group",
+      "confidence": "HIGH",
+      "fileCount": 9,
+      "sourceFile": "detail-pages/build-detail-page.sh",
+      "unitId": "batch-detail-pages"
+    },
+    {
+      "unitKey": "extract",
+      "kind": "scheduled",
+      "unitNameGuess": "メタデータ抽出",
+      "identifier": "extract",
+      "detectionMethod": "directory-group",
+      "confidence": "HIGH",
+      "fileCount": 20,
+      "sourceFile": "extract/aggregate-test-cases.sh",
+      "unitId": "batch-extract"
+    },
+    {
+      "unitKey": "glossary",
+      "kind": "scheduled",
+      "unitNameGuess": "用語集の管理",
+      "identifier": "glossary",
+      "detectionMethod": "directory-group",
+      "confidence": "HIGH",
+      "fileCount": 7,
+      "sourceFile": "glossary/classify-legacy-terms.sh",
+      "unitId": "batch-glossary"
+    },
+    {
+      "unitKey": "lib",
+      "kind": "scheduled",
+      "unitNameGuess": "共通ライブラリ",
+      "identifier": "lib",
+      "detectionMethod": "directory-group",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "lib/safe-write-path.cjs",
+      "unitId": "batch-lib"
+    },
+    {
+      "unitKey": "matrix",
+      "kind": "scheduled",
+      "unitNameGuess": "マトリクスページ生成",
+      "identifier": "matrix",
+      "detectionMethod": "directory-group",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "matrix/build-matrix-pages.sh",
+      "unitId": "batch-matrix"
+    },
+    {
+      "unitKey": "portal-input",
+      "kind": "scheduled",
+      "unitNameGuess": "ポータル入力データの組み立て",
+      "identifier": "portal-input",
+      "detectionMethod": "directory-group",
+      "confidence": "HIGH",
+      "fileCount": 4,
+      "sourceFile": "portal-input/build-manifests-from-docs.sh",
+      "unitId": "batch-portal-input"
+    },
+    {
+      "unitKey": "rule-proposal",
+      "kind": "scheduled",
+      "unitNameGuess": "規約提案の生成",
+      "identifier": "rule-proposal",
+      "detectionMethod": "directory-group",
+      "confidence": "HIGH",
+      "fileCount": 2,
+      "sourceFile": "rule-proposal/build-rule-proposal.sh",
+      "unitId": "batch-rule-proposal"
+    },
+    {
+      "unitKey": "rules",
+      "kind": "scheduled",
+      "unitNameGuess": "規約の配布と派生生成",
+      "identifier": "rules",
+      "detectionMethod": "directory-group",
+      "confidence": "HIGH",
+      "fileCount": 9,
+      "sourceFile": "rules/build-derived-rules.sh",
+      "unitId": "batch-rules"
+    },
+    {
+      "unitKey": "skill-guide",
+      "kind": "scheduled",
+      "unitNameGuess": "スキルガイドの整形",
+      "identifier": "skill-guide",
+      "detectionMethod": "directory-group",
+      "confidence": "HIGH",
+      "fileCount": 2,
+      "sourceFile": "skill-guide/apply-guide-style.sh",
+      "unitId": "batch-skill-guide"
+    },
+    {
+      "unitKey": "tests",
+      "kind": "scheduled",
+      "unitNameGuess": "回帰検査",
+      "identifier": "tests",
+      "detectionMethod": "directory-group",
+      "confidence": "HIGH",
+      "fileCount": 172,
+      "sourceFile": "tests/build-deliverable-list.sh",
+      "unitId": "batch-tests"
+    },
+    {
+      "unitKey": "unit-list",
+      "kind": "scheduled",
+      "unitNameGuess": "一覧ページ生成",
+      "identifier": "unit-list",
+      "detectionMethod": "directory-group",
+      "confidence": "HIGH",
+      "fileCount": 14,
+      "sourceFile": "unit-list/build-unit-list.sh",
+      "unitId": "batch-unit-list"
+    },
+    {
+      "unitKey": "verification",
+      "kind": "scheduled",
+      "unitNameGuess": "往復検証",
+      "identifier": "verification",
+      "detectionMethod": "directory-group",
+      "confidence": "HIGH",
+      "fileCount": 15,
+      "sourceFile": "verification/check-coverage.sh",
+      "unitId": "batch-verification"
+    }
+  ]
+}

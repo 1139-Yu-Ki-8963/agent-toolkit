@@ -1,0 +1,4967 @@
+{
+  "unitKind": "test_viewpoint",
+  "generatedAt": "2026-08-30T21:30:48Z",
+  "units": [
+    {
+      "screenKey": "batch-rules",
+      "testType": "unit",
+      "unitKey": "batch-rules-function-unit-1",
+      "category": "§2 処理の定義",
+      "viewpoint": "必須項目が揃った定義が合格になる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-rules",
+      "testType": "unit",
+      "unitKey": "batch-rules-function-unit-2",
+      "category": "§5 エラー処理",
+      "viewpoint": "必須項目が欠けた定義が不合格になる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-rules",
+      "testType": "unit",
+      "unitKey": "batch-rules-function-unit-3",
+      "category": "§2 処理の定義",
+      "viewpoint": "実書き込みを指定しない場合は一覧表示にとどまる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-rules",
+      "testType": "unit",
+      "unitKey": "batch-rules-function-unit-4",
+      "category": "§3 ロジック",
+      "viewpoint": "現物と定義が一致する場合にずれなしを返す",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-rules",
+      "testType": "unit",
+      "unitKey": "batch-rules-function-unit-5",
+      "category": "§2 処理の定義",
+      "viewpoint": "既存のファイルがある場合は上書きしない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-rules",
+      "testType": "unit",
+      "unitKey": "batch-rules-test-design-unit-1",
+      "category": "§1 外部仕様、§2 業務仕様",
+      "viewpoint": "検査に合格した定義から配布先へ規約一式が書かれる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-rules",
+      "testType": "unit",
+      "unitKey": "batch-rules-test-design-unit-2",
+      "category": "§2 業務仕様、§5 エラーと例外",
+      "viewpoint": "定義が検査に合格しない場合、配布を行わず差し戻す",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-rules",
+      "testType": "unit",
+      "unitKey": "batch-rules-test-design-unit-3",
+      "category": "§1 外部仕様、§2 業務仕様",
+      "viewpoint": "配布済みの規約一式が手作業で書き換えられている場合、ずれとして報告する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-rules",
+      "testType": "unit",
+      "unitKey": "batch-rules-test-design-unit-4",
+      "category": "§2 業務仕様",
+      "viewpoint": "同じ定義を渡すと同じ内容の規約一式が得られる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-portal-input",
+      "testType": "unit",
+      "unitKey": "batch-portal-input-function-unit-1",
+      "category": "§2 処理の定義",
+      "viewpoint": "種別1件分の全ユニットから一覧の元データを組み立てる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-portal-input",
+      "testType": "unit",
+      "unitKey": "batch-portal-input-function-unit-2",
+      "category": "§5 エラー処理",
+      "viewpoint": "宣言が種別に対して欠けている場合にエラーとして扱う",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-portal-input",
+      "testType": "unit",
+      "unitKey": "batch-portal-input-function-unit-3",
+      "category": "§3 ロジック",
+      "viewpoint": "状態遷移表にデータ行が無い場合に空の元データを書く",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-portal-input",
+      "testType": "unit",
+      "unitKey": "batch-portal-input-function-unit-4",
+      "category": "§2 処理の定義",
+      "viewpoint": "参照先テーブルの書き方によらず関連を解決する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-portal-input",
+      "testType": "unit",
+      "unitKey": "batch-portal-input-function-unit-5",
+      "category": "§3 ロジック",
+      "viewpoint": "遷移元・遷移先を解決できない行を未解決の一覧へ記録する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-portal-input",
+      "testType": "unit",
+      "unitKey": "batch-portal-input-test-design-unit-1",
+      "category": "§1 外部仕様、§2 業務仕様",
+      "viewpoint": "設計文書一式を渡すと種別ごとの一覧の元データが出力される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-portal-input",
+      "testType": "unit",
+      "unitKey": "batch-portal-input-test-design-unit-2",
+      "category": "§2 業務仕様、§5 エラーと例外",
+      "viewpoint": "設計文書の項目が一部欠けている場合、空欄のまま出力し確認が必要な事項として書き出す",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-portal-input",
+      "testType": "unit",
+      "unitKey": "batch-portal-input-test-design-unit-3",
+      "category": "§1 外部仕様、§5 エラーと例外",
+      "viewpoint": "設計文書一式がまだ無い場合、空の一覧として出力を続ける",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-portal-input",
+      "testType": "unit",
+      "unitKey": "batch-portal-input-test-design-unit-4",
+      "category": "§2 業務仕様",
+      "viewpoint": "対応する設計文書がある場合、関連図の矢印が組み立てられる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-lib",
+      "testType": "unit",
+      "unitKey": "batch-lib-function-unit-1",
+      "category": "§2 処理の定義",
+      "viewpoint": "標準の近道の指す先を正しく真と判定する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-lib",
+      "testType": "unit",
+      "unitKey": "batch-lib-function-unit-2",
+      "category": "§2 処理の定義",
+      "viewpoint": "標準以外の近道の指す先を正しく偽と判定する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-lib",
+      "testType": "unit",
+      "unitKey": "batch-lib-function-unit-3",
+      "category": "§3 ロジック",
+      "viewpoint": "想定外の近道を検出した階層で例外を送出する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-lib",
+      "testType": "unit",
+      "unitKey": "batch-lib-test-design-unit-1",
+      "category": "§2 業務仕様",
+      "viewpoint": "近道を含まない場所は許容する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-lib",
+      "testType": "unit",
+      "unitKey": "batch-lib-test-design-unit-2",
+      "category": "§2 業務仕様",
+      "viewpoint": "標準の近道を経由する場所は許容する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-lib",
+      "testType": "unit",
+      "unitKey": "batch-lib-test-design-unit-3",
+      "category": "§2 業務仕様",
+      "viewpoint": "標準以外の近道を経由する場所は拒否する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-lib",
+      "testType": "unit",
+      "unitKey": "batch-lib-test-design-unit-4",
+      "category": "§1 外部仕様",
+      "viewpoint": "途中の階層が実在しない場所は確認を打ち切る",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-extract",
+      "testType": "unit",
+      "unitKey": "batch-extract-function-unit-1",
+      "category": "§2 処理の定義",
+      "viewpoint": "列名が多いテーブルでも失敗しない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-extract",
+      "testType": "unit",
+      "unitKey": "batch-extract-function-unit-2",
+      "category": "§2 処理の定義",
+      "viewpoint": "検索文字列が多い場合でも失敗しない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-extract",
+      "testType": "unit",
+      "unitKey": "batch-extract-function-unit-3",
+      "category": "§2 処理の定義",
+      "viewpoint": "実在する資料への参照が正しく追加される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-extract",
+      "testType": "unit",
+      "unitKey": "batch-extract-function-unit-4",
+      "category": "§2 処理の定義",
+      "viewpoint": "資料が実在しない場合は参照を追加しない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-extract",
+      "testType": "unit",
+      "unitKey": "batch-extract-test-design-unit-1",
+      "category": "§2 業務仕様",
+      "viewpoint": "根拠が十分な項目が一覧へ追加される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-extract",
+      "testType": "unit",
+      "unitKey": "batch-extract-test-design-unit-2",
+      "category": "§2 業務仕様",
+      "viewpoint": "根拠が弱い項目は出力されない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-extract",
+      "testType": "unit",
+      "unitKey": "batch-extract-test-design-unit-3",
+      "category": "§2 業務仕様",
+      "viewpoint": "一覧の既存項目が変更されない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-extract",
+      "testType": "unit",
+      "unitKey": "batch-extract-test-design-unit-4",
+      "category": "§1 外部仕様",
+      "viewpoint": "原本が実在しないと処理が中断する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-verification",
+      "testType": "unit",
+      "unitKey": "batch-verification-function-unit-1",
+      "category": "§2 処理の定義",
+      "viewpoint": "対象1件の実行が上限時間を超えた場合に打ち切る",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-verification",
+      "testType": "unit",
+      "unitKey": "batch-verification-function-unit-2",
+      "category": "§3 ロジック",
+      "viewpoint": "規約反映処理へ実書き込みのフラグを常に付ける",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-verification",
+      "testType": "unit",
+      "unitKey": "batch-verification-function-unit-3",
+      "category": "§2 処理の定義",
+      "viewpoint": "疑似入力の日付・版を固定値で埋める",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-verification",
+      "testType": "unit",
+      "unitKey": "batch-verification-function-unit-4",
+      "category": "§2 処理の定義",
+      "viewpoint": "分母の件数を宣言ファイルから動的に読み取る",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-verification",
+      "testType": "unit",
+      "unitKey": "batch-verification-function-unit-5",
+      "category": "§3 ロジック",
+      "viewpoint": "走査範囲を納品対象だけに限定する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-verification",
+      "testType": "unit",
+      "unitKey": "batch-verification-function-unit-6",
+      "category": "§2 処理の定義",
+      "viewpoint": "既定の場所の外への削除を拒否する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-verification",
+      "testType": "unit",
+      "unitKey": "batch-verification-test-design-unit-1",
+      "category": "§1 外部仕様、§2 業務仕様",
+      "viewpoint": "4判定すべてが合格し、記録・比較まで正しく完了する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-verification",
+      "testType": "unit",
+      "unitKey": "batch-verification-test-design-unit-2",
+      "category": "§2 業務仕様、§5 エラーと例外",
+      "viewpoint": "いずれかの判定が不合格の場合、その旨が報告される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-verification",
+      "testType": "unit",
+      "unitKey": "batch-verification-test-design-unit-3",
+      "category": "§2 業務仕様、§5 エラーと例外",
+      "viewpoint": "実行環境の制約で判定できない場合、判定不能として区別される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-verification",
+      "testType": "unit",
+      "unitKey": "batch-verification-test-design-unit-4",
+      "category": "§1 外部仕様、§4 データ仕様",
+      "viewpoint": "検証の結果によらず、使い捨ての作業領域が確実に片付けられる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-design-docs",
+      "testType": "unit",
+      "unitKey": "batch-design-docs-function-unit-1",
+      "category": "§2 処理の定義",
+      "viewpoint": "対応する種別だと正しく判定する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-design-docs",
+      "testType": "unit",
+      "unitKey": "batch-design-docs-function-unit-2",
+      "category": "§2 処理の定義",
+      "viewpoint": "対応しない種別だと正しく判定する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-design-docs",
+      "testType": "unit",
+      "unitKey": "batch-design-docs-function-unit-3",
+      "category": "§2 処理の定義",
+      "viewpoint": "現行実装の節が実装記録側へ正しく移る",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-design-docs",
+      "testType": "unit",
+      "unitKey": "batch-design-docs-function-unit-4",
+      "category": "§3 ロジック",
+      "viewpoint": "節番号の参照が分けた後の番号へ正しく書き換わる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-design-docs",
+      "testType": "unit",
+      "unitKey": "batch-design-docs-test-design-unit-1",
+      "category": "§2 業務仕様",
+      "viewpoint": "現行実装の節を持つ対象で節が分けられる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-design-docs",
+      "testType": "unit",
+      "unitKey": "batch-design-docs-test-design-unit-2",
+      "category": "§2 業務仕様",
+      "viewpoint": "現行実装の節を持たない対象では何もしない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-design-docs",
+      "testType": "unit",
+      "unitKey": "batch-design-docs-test-design-unit-3",
+      "category": "§2 業務仕様",
+      "viewpoint": "対応する種別でない対象では何もしない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-design-docs",
+      "testType": "unit",
+      "unitKey": "batch-design-docs-test-design-unit-4",
+      "category": "§2 業務仕様",
+      "viewpoint": "既に実装記録がある対象では何もしない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-skill-guide",
+      "testType": "unit",
+      "unitKey": "batch-skill-guide-function-unit-1",
+      "category": "§2 処理の定義",
+      "viewpoint": "未統一の1件を統一済みの内容へ書き換える",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-skill-guide",
+      "testType": "unit",
+      "unitKey": "batch-skill-guide-function-unit-2",
+      "category": "§3 ロジック",
+      "viewpoint": "書き換え途中で中断しても元ファイルが壊れない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-skill-guide",
+      "testType": "unit",
+      "unitKey": "batch-skill-guide-function-unit-3",
+      "category": "§2 処理の定義",
+      "viewpoint": "実在しない参照先を1件検出する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-skill-guide",
+      "testType": "unit",
+      "unitKey": "batch-skill-guide-function-unit-4",
+      "category": "§3 ロジック",
+      "viewpoint": "走査・報告の順序が実行環境に依らず一定になる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-skill-guide",
+      "testType": "unit",
+      "unitKey": "batch-skill-guide-test-design-unit-1",
+      "category": "§1 外部仕様、§2 業務仕様",
+      "viewpoint": "未統一の説明書が統一される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-skill-guide",
+      "testType": "unit",
+      "unitKey": "batch-skill-guide-test-design-unit-2",
+      "category": "§2 業務仕様",
+      "viewpoint": "既に統一済みの説明書は変更されない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-skill-guide",
+      "testType": "unit",
+      "unitKey": "batch-skill-guide-test-design-unit-3",
+      "category": "§1 外部仕様、§5 エラーと例外",
+      "viewpoint": "説明書が指す参照先が実在しない場合、不在として報告される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-detail-pages",
+      "testType": "unit",
+      "unitKey": "batch-detail-pages-function-unit-1",
+      "category": "§2 処理の定義",
+      "viewpoint": "検証で1件目が不合格でも全観点の確認を続ける",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-detail-pages",
+      "testType": "unit",
+      "unitKey": "batch-detail-pages-function-unit-2",
+      "category": "§2 処理の定義",
+      "viewpoint": "表示の仕組みを乗っ取る恐れのある文字が無害化される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-detail-pages",
+      "testType": "unit",
+      "unitKey": "batch-detail-pages-function-unit-3",
+      "category": "§2 処理の定義",
+      "viewpoint": "同じ内容から同じ照合値が算出される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-detail-pages",
+      "testType": "unit",
+      "unitKey": "batch-detail-pages-function-unit-4",
+      "category": "§2 処理の定義",
+      "viewpoint": "異なる内容から異なる照合値が算出される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-detail-pages",
+      "testType": "unit",
+      "unitKey": "batch-detail-pages-test-design-unit-1",
+      "category": "§2 業務仕様",
+      "viewpoint": "仕様を満たすデータから表示資料が作られる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-detail-pages",
+      "testType": "unit",
+      "unitKey": "batch-detail-pages-test-design-unit-2",
+      "category": "§2 業務仕様",
+      "viewpoint": "仕様を満たさないデータでは資料が作られない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-detail-pages",
+      "testType": "unit",
+      "unitKey": "batch-detail-pages-test-design-unit-3",
+      "category": "§2 業務仕様",
+      "viewpoint": "承認済みでない用語集からは資料が作られない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-detail-pages",
+      "testType": "unit",
+      "unitKey": "batch-detail-pages-test-design-unit-4",
+      "category": "§2 業務仕様",
+      "viewpoint": "画面遷移図の対応関係が崩れた場合は前回の引き継ぎを使わない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-root",
+      "testType": "unit",
+      "unitKey": "batch-root-function-unit-1",
+      "category": "§2 処理の定義",
+      "viewpoint": "一時領域が別名を経由せず物理的な場所へ解決される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-root",
+      "testType": "unit",
+      "unitKey": "batch-root-function-unit-2",
+      "category": "§2 処理の定義",
+      "viewpoint": "内容が変わっていない生成物は一致と判定される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-root",
+      "testType": "unit",
+      "unitKey": "batch-root-function-unit-3",
+      "category": "§2 処理の定義",
+      "viewpoint": "内容が変わった生成物は不一致と判定される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-root",
+      "testType": "unit",
+      "unitKey": "batch-root-function-unit-4",
+      "category": "§2 処理の定義",
+      "viewpoint": "未登録の対象が対応表へ1件追加される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-root",
+      "testType": "unit",
+      "unitKey": "batch-root-function-unit-5",
+      "category": "§2 処理の定義",
+      "viewpoint": "登録済みの対象は何もせず終わる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-root",
+      "testType": "unit",
+      "unitKey": "batch-root-test-design-unit-1",
+      "category": "§2 業務仕様",
+      "viewpoint": "準備済みの種類は表示資料が作られる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-root",
+      "testType": "unit",
+      "unitKey": "batch-root-test-design-unit-2",
+      "category": "§2 業務仕様",
+      "viewpoint": "準備済みでない種類は飛ばされる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-root",
+      "testType": "unit",
+      "unitKey": "batch-root-test-design-unit-3",
+      "category": "§2 業務仕様",
+      "viewpoint": "定義から書き換えられた生成物が検知される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-root",
+      "testType": "unit",
+      "unitKey": "batch-root-test-design-unit-4",
+      "category": "§2 業務仕様",
+      "viewpoint": "表示場所の入口の鮮度が正しく判定される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-glossary",
+      "testType": "unit",
+      "unitKey": "batch-glossary-function-unit-1",
+      "category": "§2 処理の定義",
+      "viewpoint": "想定の版数のとき何も返さない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-glossary",
+      "testType": "unit",
+      "unitKey": "batch-glossary-function-unit-2",
+      "category": "§2 処理の定義",
+      "viewpoint": "想定と異なる版数のとき診断の結果へ記録する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-glossary",
+      "testType": "unit",
+      "unitKey": "batch-glossary-function-unit-3",
+      "category": "§2 処理の定義",
+      "viewpoint": "2つの場所が同じ実体を指すとき真を返す",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-glossary",
+      "testType": "unit",
+      "unitKey": "batch-glossary-function-unit-4",
+      "category": "§2 処理の定義",
+      "viewpoint": "2つの場所が異なる実体を指すとき偽を返す",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-glossary",
+      "testType": "unit",
+      "unitKey": "batch-glossary-test-design-unit-1",
+      "category": "§2 業務仕様",
+      "viewpoint": "問題の無い用語集の文書を検証すると成功する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-glossary",
+      "testType": "unit",
+      "unitKey": "batch-glossary-test-design-unit-2",
+      "category": "§2 業務仕様",
+      "viewpoint": "問題の無い提案の文書を検証すると成功する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-glossary",
+      "testType": "unit",
+      "unitKey": "batch-glossary-test-design-unit-3",
+      "category": "§2 業務仕様",
+      "viewpoint": "問題の無い変更の文書を検証すると成功する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-glossary",
+      "testType": "unit",
+      "unitKey": "batch-glossary-test-design-unit-4",
+      "category": "§1 外部仕様",
+      "viewpoint": "実行環境の版数が想定と異なると検証を行わない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-glossary",
+      "testType": "unit",
+      "unitKey": "batch-glossary-test-design-unit-5",
+      "category": "§1 外部仕様",
+      "viewpoint": "出力先が入力と同じ実体を指すと書き出しを行わない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-unit-list",
+      "testType": "unit",
+      "unitKey": "batch-unit-list-function-unit-1",
+      "category": "§3 ロジック",
+      "viewpoint": "日本語を含む画面名の親子関係を正しく解決する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-unit-list",
+      "testType": "unit",
+      "unitKey": "batch-unit-list-function-unit-2",
+      "category": "§3 ロジック",
+      "viewpoint": "種別が画面・機能の場合に専用処理へ委譲する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-unit-list",
+      "testType": "unit",
+      "unitKey": "batch-unit-list-function-unit-3",
+      "category": "§2 処理の定義",
+      "viewpoint": "必須項目が欠けた元データを不合格として検出する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-unit-list",
+      "testType": "unit",
+      "unitKey": "batch-unit-list-function-unit-4",
+      "category": "§2 処理の定義",
+      "viewpoint": "生成連鎖の途中で失敗した場合に元の状態へ復元する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-unit-list",
+      "testType": "unit",
+      "unitKey": "batch-unit-list-function-unit-5",
+      "category": "§2 処理の定義",
+      "viewpoint": "一覧に埋め込まれた元データを正しく取り出す",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-unit-list",
+      "testType": "unit",
+      "unitKey": "batch-unit-list-test-design-unit-1",
+      "category": "§1 外部仕様、§2 業務仕様",
+      "viewpoint": "原本コードから画面を検出し、一覧として生成できる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-unit-list",
+      "testType": "unit",
+      "unitKey": "batch-unit-list-test-design-unit-2",
+      "category": "§2 業務仕様、§5 エラーと例外",
+      "viewpoint": "一覧の元データが検証に不合格の場合、一覧が生成されない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-unit-list",
+      "testType": "unit",
+      "unitKey": "batch-unit-list-test-design-unit-3",
+      "category": "§1 外部仕様、§5 エラーと例外",
+      "viewpoint": "画面が1件も検出できない場合も処理を続ける",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-unit-list",
+      "testType": "unit",
+      "unitKey": "batch-unit-list-test-design-unit-4",
+      "category": "§2 業務仕様",
+      "viewpoint": "画面一覧から派生する成果物一式が一括で更新される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-tests",
+      "testType": "unit",
+      "unitKey": "batch-tests-function-unit-1",
+      "category": "§2 処理の定義",
+      "viewpoint": "許可リストに無い可変長の値の渡し方を検出する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-tests",
+      "testType": "unit",
+      "unitKey": "batch-tests-function-unit-2",
+      "category": "§5 エラー処理",
+      "viewpoint": "一時領域の作成に失敗した場合を判定不能として扱う",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-tests",
+      "testType": "unit",
+      "unitKey": "batch-tests-function-unit-3",
+      "category": "§3 ロジック",
+      "viewpoint": "一時的な作業場所を実体の経路へ解決してから使う",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-tests",
+      "testType": "unit",
+      "unitKey": "batch-tests-function-unit-4",
+      "category": "§4 入出力の値",
+      "viewpoint": "キャッシュ済みのブラウザが見つからない場合に空文字を返す",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-tests",
+      "testType": "unit",
+      "unitKey": "batch-tests-function-unit-5",
+      "category": "§2 処理の定義",
+      "viewpoint": "台帳の件数が下限を下回らないことを確認する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-tests",
+      "testType": "unit",
+      "unitKey": "batch-tests-function-unit-6",
+      "category": "§3 ロジック",
+      "viewpoint": "ロケールの明示により誤検出を防ぐ",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-tests",
+      "testType": "unit",
+      "unitKey": "batch-tests-test-design-unit-1",
+      "category": "§1 外部仕様、§2 業務仕様",
+      "viewpoint": "基準を満たす成果物一式を渡すと全件合格になる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-tests",
+      "testType": "unit",
+      "unitKey": "batch-tests-test-design-unit-2",
+      "category": "§2 業務仕様、§5 エラーと例外",
+      "viewpoint": "基準を満たさない成果物があると、その対象だけが不合格として報告される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-tests",
+      "testType": "unit",
+      "unitKey": "batch-tests-test-design-unit-3",
+      "category": "§2 業務仕様、§5 エラーと例外",
+      "viewpoint": "実行環境の制約で実行できない対象は、不合格ではなく判定不能として報告される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-matrix",
+      "testType": "unit",
+      "unitKey": "batch-matrix-function-unit-1",
+      "category": "§2 処理の定義",
+      "viewpoint": "必須項目が揃っていると正しく判定する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-matrix",
+      "testType": "unit",
+      "unitKey": "batch-matrix-function-unit-2",
+      "category": "§2 処理の定義",
+      "viewpoint": "必須項目が欠けていると正しく判定する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-matrix",
+      "testType": "unit",
+      "unitKey": "batch-matrix-function-unit-3",
+      "category": "§2 処理の定義",
+      "viewpoint": "ひな形へ入力データが正しく埋め込まれる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-matrix",
+      "testType": "unit",
+      "unitKey": "batch-matrix-function-unit-4",
+      "category": "§2 処理の定義",
+      "viewpoint": "既存の古い資料が取り除かれる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-matrix",
+      "testType": "unit",
+      "unitKey": "batch-matrix-test-design-unit-1",
+      "category": "§2 業務仕様",
+      "viewpoint": "必須項目を満たす入力から表示資料が作られる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-matrix",
+      "testType": "unit",
+      "unitKey": "batch-matrix-test-design-unit-2",
+      "category": "§2 業務仕様",
+      "viewpoint": "必須項目が不足する入力では資料が作られない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-matrix",
+      "testType": "unit",
+      "unitKey": "batch-matrix-test-design-unit-3",
+      "category": "§2 業務仕様",
+      "viewpoint": "件数0件かつ常時生成対象外では資料が作られない",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-matrix",
+      "testType": "unit",
+      "unitKey": "batch-matrix-test-design-unit-4",
+      "category": "§2 業務仕様",
+      "viewpoint": "件数0件でも常時生成対象では資料が作られる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-matrix",
+      "testType": "unit",
+      "unitKey": "batch-matrix-test-design-unit-5",
+      "category": "§1 外部仕様",
+      "viewpoint": "ひな形が見つからないとき処理を中断する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-rule-proposal",
+      "testType": "unit",
+      "unitKey": "batch-rule-proposal-function-unit-1",
+      "category": "§2 処理の定義",
+      "viewpoint": "入力JSONとテンプレートから規約提案HTMLを組み立て、終了コード0を返す",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-rule-proposal",
+      "testType": "unit",
+      "unitKey": "batch-rule-proposal-function-unit-2",
+      "category": "§5 エラー処理",
+      "viewpoint": "入力JSONが不在の場合に終了コード1を返す",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-rule-proposal",
+      "testType": "unit",
+      "unitKey": "batch-rule-proposal-function-unit-3",
+      "category": "§2 処理の定義",
+      "viewpoint": "静的検査の道具が存在する場合に検査を実行し合否を返す",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-rule-proposal",
+      "testType": "unit",
+      "unitKey": "batch-rule-proposal-function-unit-4",
+      "category": "§3 ロジック",
+      "viewpoint": "静的検査の道具が存在しない場合に警告のみで処理を継続する",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-rule-proposal",
+      "testType": "unit",
+      "unitKey": "batch-rule-proposal-test-design-unit-1",
+      "category": "§1 外部仕様、§2 業務仕様",
+      "viewpoint": "正しい入力を渡すと検査済みの文書が出力される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-rule-proposal",
+      "testType": "unit",
+      "unitKey": "batch-rule-proposal-test-design-unit-2",
+      "category": "§1 外部仕様、§5 エラーと例外",
+      "viewpoint": "入力が壊れている場合にエラーとなり、直せば再実行できる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-rule-proposal",
+      "testType": "unit",
+      "unitKey": "batch-rule-proposal-test-design-unit-3",
+      "category": "§2 業務仕様、§5 エラーと例外",
+      "viewpoint": "生成した文書が検査に合格しない場合、提示されず差し戻される",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "batch-rule-proposal",
+      "testType": "unit",
+      "unitKey": "batch-rule-proposal-test-design-unit-4",
+      "category": "§2 業務仕様",
+      "viewpoint": "同じ入力を渡すと同じ内容の文書が得られる",
+      "sourceKind": "batch"
+    },
+    {
+      "screenKey": "feature-generating-requirement-definitions-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-requirement-definitions-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される bash/Read/Write 手順であり、関数・メソッド単位に分解した詳細設計を持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-requirement-definitions-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-requirement-definitions-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "5文書のうち対象を確定する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-requirement-definitions-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-requirement-definitions-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "一覧マニフェスト・個別基本設計書・件数入力を判定する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-requirement-definitions-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-requirement-definitions-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "テンプレートを配置し§2観測事実と要確認事項一覧を記入する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-batch-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-batch-detail-design-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される orchestration/transform であり、feature 種別は詳細設計フェーズを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-batch-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-batch-detail-design-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "Phase 1〜4が完走し、詳細設計書と実装記録が揃う",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-batch-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-batch-detail-design-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "schedule等のマニフェスト値が本文に反映される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-batch-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-batch-detail-design-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "詳細設計書・実装記録に対象コードのファイルパス・行番号が残らない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-batch-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-batch-detail-design-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "5検査のいずれかが不合格のときPhase 3へ差し戻す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-release-notes-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-release-notes-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される bash/Read/Write 手順であり、関数・メソッド単位に分解した詳細設計を持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-release-notes-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-release-notes-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "対象リポジトリのgit logを取得する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-release-notes-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-release-notes-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "日付単位でグルーピングし、コミットメッセージのプレフィックスから変更種別を判定する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-release-notes-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-release-notes-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "validate-page-data.shで整合を検証する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-api-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-api-detail-design-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される orchestration/transform であり、feature 種別は詳細設計フェーズを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-api-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-api-detail-design-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "Phase 1〜4が完走し、8検査すべてに合格する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-api-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-api-detail-design-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "filesの拡張子がpython/perlどちらにも該当しないとき中断する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-api-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-api-detail-design-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "filesが入口モジュール1本のみでconfidenceが全件lowのとき、中断せずディスパッチ表を解いて実装本体まで読む",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-api-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-api-detail-design-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "詳細設計書・実装記録・単体テスト設計書のいずれにも対象コードの位置が記録されない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-api-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-api-detail-design-for-reverse-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "8検査のいずれかが不合格のときPhase 3へ差し戻す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-api-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-api-list-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される orchestration/transform であり、feature 種別は詳細設計フェーズを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-api-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-api-list-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "Phase 1〜4が完走し、API一覧.htmlと永続マニフェストが揃う",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-api-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-api-list-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "検出0件かつ調査書がAPI不在と判定するとき、NONEで正常終了する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-api-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-api-list-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "検出0件かつ調査書がAPI実在と判定するとき、ERRORで停止する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-api-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-api-list-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "validate-manifest.shがFAILのとき、修正して再実行し3回で収束しなければ抽出手順へ差し戻す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-api-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-api-list-for-reverse-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "kind:endpointだけを数え、middleware/unresolvedを数えない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-report-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-report-list-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される bash/Read/Write 手順であり、関数・メソッド単位に分解した詳細設計を持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-report-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-report-list-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "対象プロジェクト固有の帳票規約を確認する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-report-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-report-list-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "カスタム抽出パスのみで帳票境界を検出する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-report-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-report-list-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "validate-manifest.shで整合を検証する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-message-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-message-list-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される bash/Read/Write 手順であり、関数・メソッド単位に分解した詳細設計を持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-message-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-message-list-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "<output_dir>/<commonRoot>/メッセージ定義書.mdの実在を確認する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-message-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-message-list-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "convert-message-doc-to-manifest.shでテーブルをmanifestへ変換する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-message-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-message-list-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "validate-message-manifest.shで整合を検証する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-orchestrating-ai-development-setup",
+      "testType": "unit",
+      "unitKey": "feature-orchestrating-ai-development-setup-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は状態判定と子スキル起動の意思決定をAIエージェントが直接行うPhase/Step手順であり、独自定義の関数・メソッドを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-orchestrating-ai-development-setup",
+      "testType": "unit",
+      "unitKey": "feature-orchestrating-ai-development-setup-test-design-unit-1",
+      "category": "",
+      "viewpoint": "起動引数が確定するとき、Phase1〜7が完走しPASS・FAIL・動的検証保留のいずれかが確定する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-orchestrating-ai-development-setup",
+      "testType": "unit",
+      "unitKey": "feature-orchestrating-ai-development-setup-test-design-unit-2",
+      "category": "",
+      "viewpoint": "入口モードがsetup-onlyのとき、規約配布のみでセットアップ完了として終端する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-orchestrating-ai-development-setup",
+      "testType": "unit",
+      "unitKey": "feature-orchestrating-ai-development-setup-test-design-unit-3",
+      "category": "",
+      "viewpoint": "対象画面が4件以上のとき、running-reverse-screen-batchへ委譲する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-orchestrating-ai-development-setup",
+      "testType": "unit",
+      "unitKey": "feature-orchestrating-ai-development-setup-test-design-unit-4",
+      "category": "",
+      "viewpoint": "verification_mode=docs-onlyのとき、静的完了で終端し動的検証を起動しない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-orchestrating-ai-development-setup",
+      "testType": "unit",
+      "unitKey": "feature-orchestrating-ai-development-setup-test-design-unit-5",
+      "category": "",
+      "viewpoint": "検出手がかり不足が決定的に報告されたとき、調査著述へ差し戻し上限3回で停止する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-orchestrating-ai-development-setup",
+      "testType": "unit",
+      "unitKey": "feature-orchestrating-ai-development-setup-test-design-unit-6",
+      "category": "",
+      "viewpoint": "必須引数が未指定のとき、不足項目を示してERRORで終端する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-rebuilding-screen-unit-from-docs",
+      "testType": "unit",
+      "unitKey": "feature-rebuilding-screen-unit-from-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は白紙化・カンニング防止の管理・差分の判定解釈をAIエージェントが直接行うPhase/Step手順であり、独自定義の関数・メソッドを持たない（design-unit-layout.json の feature.phases.detail は空）。Phase 4でworker-sonnetが生成するコードは対象プロジェクト側の実装であり、本機能自身の関数ではない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-rebuilding-screen-unit-from-docs",
+      "testType": "unit",
+      "unitKey": "feature-rebuilding-screen-unit-from-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "契約が揃うとき、Phase1〜7が完走し8計測の判定式を満たしstatus=再現一致になる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-rebuilding-screen-unit-from-docs",
+      "testType": "unit",
+      "unitKey": "feature-rebuilding-screen-unit-from-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "必須引数が欠落するとき、status=差し戻しではなくSkill呼び出し失敗として即時報告される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-rebuilding-screen-unit-from-docs",
+      "testType": "unit",
+      "unitKey": "feature-rebuilding-screen-unit-from-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "対象ファイルまたは観点が設計書側に無いとき、status=差し戻しになる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-rebuilding-screen-unit-from-docs",
+      "testType": "unit",
+      "unitKey": "feature-rebuilding-screen-unit-from-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "Phase2の監査で矛盾があるとき、白紙化・実装を経ずPhase7へ直行する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-rebuilding-screen-unit-from-docs",
+      "testType": "unit",
+      "unitKey": "feature-rebuilding-screen-unit-from-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "生成物green・原本redのとき、single-passとiterativeで扱いが分かれる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-rebuilding-screen-unit-from-docs",
+      "testType": "unit",
+      "unitKey": "feature-rebuilding-screen-unit-from-docs-test-design-unit-6",
+      "category": "",
+      "viewpoint": "同一差分集合が2連続で再発するとき、上限回数を待たずPhase7へ進む",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-reverse-common-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-reverse-common-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される bash/Read/Write 手順であり、関数・メソッド単位に分解した詳細設計を持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-reverse-common-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-reverse-common-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "アーキテクチャ調査書の確定を確認する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-reverse-common-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-reverse-common-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "対象コードを層化してサンプリングする",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-reverse-common-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-reverse-common-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "7ファイルのv0を書き起こす",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-list-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能はスタック調査・戦略宣言・カスタム抽出をAIエージェントが直接行うPhase/Step手順であり、独自定義の関数・メソッドを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-list-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "戦略宣言が承認されたとき、Phase1〜4が完走しテーブル一覧.htmlが生成される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-list-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "検出0件かつ調査書がテーブル不在と判定しているとき、該当なしを生成しstatus=NONEになる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-list-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "検出0件だがテーブルが実在すると判定されているとき、検出失敗として停止する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-list-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "通常走査でマッチ0件のとき、エンコーディングを確認してから再走査する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-list-for-reverse-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "整合検証がFAILのとき3回まで修正・再実行する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-list-for-reverse-docs-test-design-unit-6",
+      "category": "",
+      "viewpoint": "3回失敗したとき抽出手順の再検討へ差し戻す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-tech-stack-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-tech-stack-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は調査書の読み取り・定義ファイルの実測・突合をAIエージェントが直接行うPhase/Step手順であり、独自定義の関数・メソッドを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-tech-stack-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-tech-stack-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "調査書が実在し全項目一致のとき、Phase1〜4が完走し技術スタック.htmlが生成される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-tech-stack-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-tech-stack-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "アーキテクチャ調査書.mdが実在しないとき、ハード停止し先行実行を案内する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-tech-stack-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-tech-stack-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "「実在しない」群がabsentRows[]へ根拠付きで記録される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-tech-stack-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-tech-stack-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "「実在する」群で調査書記載値と実測値が食い違うとき、page-dataを生成せず停止する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-tech-stack-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-tech-stack-for-reverse-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "validate-page-data.shが3回失敗、または同一FAILが2回連続するとき、Phase2 Step4へ差し戻す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-tech-stack-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-tech-stack-for-reverse-docs-test-design-unit-6",
+      "category": "",
+      "viewpoint": "portal_output_dir未指定のとき、build-portal.shの実行を省略し完了報告に注記する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-api-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-api-basic-design-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される transform であり、feature 種別は詳細設計フェーズを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-api-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-api-basic-design-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "Phase 1〜5が完走し、基本設計書・結合テスト設計書・単体テスト設計書が揃う",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-api-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-api-basic-design-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "最多集計が同数で対象ユニット数でも決まらない場合にAskUserQuestionで確認する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-api-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-api-basic-design-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "どちらの拡張子にも該当しない場合status=ERRORで中断する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-api-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-api-basic-design-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "観測できる事実・観測から一意に導ける存在理由・判断基準と業務背景に分けて記入する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-api-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-api-basic-design-for-reverse-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "機械検査のいずれかが不合格でPhase 3へ差し戻す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-reverse-detailed-design",
+      "testType": "unit",
+      "unitKey": "feature-generating-reverse-detailed-design-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される bash/Read/Write 手順であり、関数・メソッド単位に分解した詳細設計を持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-reverse-detailed-design",
+      "testType": "unit",
+      "unitKey": "feature-generating-reverse-detailed-design-test-design-unit-1",
+      "category": "",
+      "viewpoint": "起動引数を確認し雛形を展開する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-reverse-detailed-design",
+      "testType": "unit",
+      "unitKey": "feature-generating-reverse-detailed-design-test-design-unit-2",
+      "category": "",
+      "viewpoint": "facts.ymlの封印済み状態を確認し読み込む",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-reverse-detailed-design",
+      "testType": "unit",
+      "unitKey": "feature-generating-reverse-detailed-design-test-design-unit-3",
+      "category": "",
+      "viewpoint": "画面結合/単体テスト設計書を追記する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-integration-test-spec-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-integration-test-spec-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される bash/Read/Write 手順であり、関数・メソッド単位に分解した詳細設計を持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-integration-test-spec-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-integration-test-spec-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "出力先とプロジェクト名を確定し、対象に2つ以上の設計単位があることを確認する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-integration-test-spec-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-integration-test-spec-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "generate-integration-test-spec.shを実行し、連携の観点を作り設計書の事実を記入する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-integration-test-spec-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-integration-test-spec-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "生成結果を検証し、ポータルへ反映する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-batch-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-batch-basic-design-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される orchestration/transform であり、feature 種別は詳細設計フェーズを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-batch-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-batch-basic-design-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "Phase 1〜5が完走し、基本設計書・結合テスト設計書・単体テスト設計書が揃う",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-batch-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-batch-basic-design-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "unitId・unitKeyがともに空のとき当該ユニットを生成しない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-batch-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-batch-basic-design-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "バッチ単体テスト設計書の対象関数が無い場合に「該当なし」を根拠付きで記入する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-batch-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-batch-basic-design-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "生成した基本設計書にフレームワーク用語・内部の成果物名が含まれない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-batch-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-batch-basic-design-for-reverse-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "検査不合格でPhase 3またはPhase 4へ戻り、上限3回で収束しなければstatus=ERROR",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-er-diagram-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-er-diagram-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される orchestration/transform であり、feature 種別は詳細設計フェーズを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-er-diagram-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-er-diagram-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "Phase 1〜4が完走し、ER図.htmlが生成される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-er-diagram-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-er-diagram-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "entities[]が0件のときSTOPPEDで停止する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-er-diagram-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-er-diagram-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "FKが0件でもエンティティがあれば俯瞰ページを生成する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-er-diagram-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-er-diagram-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "manifestに無い参照先をunresolved[]へ分離する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-er-diagram-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-er-diagram-for-reverse-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "同一FAILの2回連続再発でFK走査へ即差し戻す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-agent-config-index-from-repo",
+      "testType": "unit",
+      "unitKey": "feature-generating-agent-config-index-from-repo-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される transform であり、feature 種別は詳細設計フェーズを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-agent-config-index-from-repo",
+      "testType": "unit",
+      "unitKey": "feature-generating-agent-config-index-from-repo-test-design-unit-1",
+      "category": "",
+      "viewpoint": "Phase 1〜3が完走し、AGENTS.md・CLAUDE.md・検証報告が出力される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-agent-config-index-from-repo",
+      "testType": "unit",
+      "unitKey": "feature-generating-agent-config-index-from-repo-test-design-unit-2",
+      "category": "",
+      "viewpoint": "Phase 1で根拠パスが揃わない場合、生成を確定しない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-agent-config-index-from-repo",
+      "testType": "unit",
+      "unitKey": "feature-generating-agent-config-index-from-repo-test-design-unit-3",
+      "category": "",
+      "viewpoint": "rules_rootが未指定のとき、規約索引を不明事項として残す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-agent-config-index-from-repo",
+      "testType": "unit",
+      "unitKey": "feature-generating-agent-config-index-from-repo-test-design-unit-4",
+      "category": "",
+      "viewpoint": "AGENTS.mdにRULES-INDEXマーカーが1組だけ存在する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-agent-config-index-from-repo",
+      "testType": "unit",
+      "unitKey": "feature-generating-agent-config-index-from-repo-test-design-unit-5",
+      "category": "",
+      "viewpoint": "CLAUDE.mdに規約本文・未確認の規約パス・AI行動規範が含まれない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-rule-proposals-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-rule-proposals-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される bash/Read/Write 手順であり、関数・メソッド単位に分解した詳細設計を持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-rule-proposals-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-rule-proposals-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "アーキテクチャ調査書の確定と出力先の外部性を確認する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-rule-proposals-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-rule-proposals-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "親7・子27の構成に沿って提案の章を決定する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-rule-proposals-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-rule-proposals-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "対象リポジトリの実装慣行を観測する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-definition-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-definition-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される、原本コードの読解と記入を担うAI手順であり、独自定義の関数・メソッドを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-definition-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-definition-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "4引数が実在するとき、Phase1〜4が完走しテーブル定義書・テーブル実装記録が生成される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-definition-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-definition-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "unitId・unitKeyが両方空のとき、当該ユニットを生成せずstatus=ERRORで中断する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-definition-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-definition-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "unitKeyにパス区切りや制御文字を含むとき、ハイフンへ置換し置換前後を記録する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-definition-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-definition-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "Phase4の5検査のいずれかが不合格のとき、Phase3へ差し戻して再実行する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-definition-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-definition-for-reverse-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "差し戻しが上限3回に達しても収束しないとき、status=ERRORになる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-definition-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-definition-for-reverse-docs-test-design-unit-6",
+      "category": "",
+      "viewpoint": "記入完了に伴いstatusがdraftからauthoredへ更新される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-sequence-diagram-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-sequence-diagram-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される bash/Read/Write 手順であり、関数・メソッド単位に分解した詳細設計を持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-sequence-diagram-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-sequence-diagram-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "既存page-dataを確認するか、factsからpage-dataへ変換する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-sequence-diagram-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-sequence-diagram-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "変換結果を検証する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-sequence-diagram-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-sequence-diagram-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "階層ナビゲーション（設計単位→基本/詳細設計/シーケンス図→操作/処理）を確定する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-external-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-external-basic-design-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される orchestration/transform であり、feature 種別は詳細設計フェーズを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-external-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-external-basic-design-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "Phase 1〜5が完走し、基本設計書・結合テスト設計書・単体テスト設計書が揃う",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-external-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-external-basic-design-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "unitId・unitKeyがともに空のとき当該ユニットを生成しない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-external-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-external-basic-design-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "外部連携単体テスト設計書の対象関数が無い場合に「該当なし」を根拠付きで記入する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-external-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-external-basic-design-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "生成した基本設計書に実装用語が含まれない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-external-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-external-basic-design-for-reverse-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "検査不合格でPhase 3またはPhase 4へ戻り、上限3回で収束しなければstatus=ERROR",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-surveying-local-environment",
+      "testType": "unit",
+      "unitKey": "feature-surveying-local-environment-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能はuname・command -v等のBashコマンドを直接実行し結果を転記するPhase/Step手順であり、独自定義の関数・メソッドを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-surveying-local-environment",
+      "testType": "unit",
+      "unitKey": "feature-surveying-local-environment-test-design-unit-1",
+      "category": "",
+      "viewpoint": "env-config.jsonが不在のとき、Phase1〜4が完走しenv-config.jsonが生成される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-surveying-local-environment",
+      "testType": "unit",
+      "unitKey": "feature-surveying-local-environment-test-design-unit-2",
+      "category": "",
+      "viewpoint": "env-config.jsonが既に存在するとき、上書きせず終了する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-surveying-local-environment",
+      "testType": "unit",
+      "unitKey": "feature-surveying-local-environment-test-design-unit-3",
+      "category": "",
+      "viewpoint": "/proc/versionにベンダー名が含まれるとき、linux_compat_env=trueになる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-surveying-local-environment",
+      "testType": "unit",
+      "unitKey": "feature-surveying-local-environment-test-design-unit-4",
+      "category": "",
+      "viewpoint": "validate-env-config.shが終了コード1のとき、収集・出力をやり直す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-surveying-local-environment",
+      "testType": "unit",
+      "unitKey": "feature-surveying-local-environment-test-design-unit-5",
+      "category": "",
+      "viewpoint": "5種すべてtrueのとき、Phase4の案内が省略される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-rebuilding-code-from-docs",
+      "testType": "unit",
+      "unitKey": "feature-rebuilding-code-from-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は監査・白紙化・実装規律の遵守判断・NG分類をAIエージェントが直接行うPhase/Step手順であり、独自定義の関数・メソッドを持たない（design-unit-layout.json の feature.phases.detail は空）。Phase 4で書くコードは対象プロジェクト側の実装であり、本機能自身の関数ではない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-rebuilding-code-from-docs",
+      "testType": "unit",
+      "unitKey": "feature-rebuilding-code-from-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "基準タグ確立済みのとき、Phase1〜6が完走しstatus=NEED-COMPAREとcompare_requestが返る",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-rebuilding-code-from-docs",
+      "testType": "unit",
+      "unitKey": "feature-rebuilding-code-from-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "baseline_tag_statusが未確立のとき、status=BLOCKEDで停止する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-rebuilding-code-from-docs",
+      "testType": "unit",
+      "unitKey": "feature-rebuilding-code-from-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "Phase2の監査で不一致があるとき、実装せずPhase8へ直行する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-rebuilding-code-from-docs",
+      "testType": "unit",
+      "unitKey": "feature-rebuilding-code-from-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "DESIGN.mdトークンが実装ファイルに欠落するとき、Phase3（WRITE）へ差し戻す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-rebuilding-code-from-docs",
+      "testType": "unit",
+      "unitKey": "feature-rebuilding-code-from-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "compare_resultを受領しenv_check/dynamicで判定するとき、PASS/FAILが確定する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-rebuilding-code-from-docs",
+      "testType": "unit",
+      "unitKey": "feature-rebuilding-code-from-docs-test-design-unit-6",
+      "category": "",
+      "viewpoint": "check-freeze.shがHEAD・作業ツリーの不一致を検出するとき、結果全体を無効宣言する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-extracting-unit-facts-from-code",
+      "testType": "unit",
+      "unitKey": "feature-extracting-unit-facts-from-code-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される orchestration であり、feature 種別は詳細設計フェーズを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-extracting-unit-facts-from-code",
+      "testType": "unit",
+      "unitKey": "feature-extracting-unit-facts-from-code-test-design-unit-1",
+      "category": "",
+      "viewpoint": "screen/pythonいずれかのプロファイルで抽出・再計数・確定・再現性検証まで完走する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-extracting-unit-facts-from-code",
+      "testType": "unit",
+      "unitKey": "feature-extracting-unit-facts-from-code-test-design-unit-2",
+      "category": "",
+      "viewpoint": "recount-facts.shが不合格のときPhase 2へ差し戻し、上限3回で収束しなければ中断する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-extracting-unit-facts-from-code",
+      "testType": "unit",
+      "unitKey": "feature-extracting-unit-facts-from-code-test-design-unit-3",
+      "category": "",
+      "viewpoint": "同一NG理由が2回連続で再発したとき、上限回数消化前でも即中断する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-extracting-unit-facts-from-code",
+      "testType": "unit",
+      "unitKey": "feature-extracting-unit-facts-from-code-test-design-unit-4",
+      "category": "",
+      "viewpoint": "facts.lockのNORMALIZE_VERSIONが現行と異なるとき、改ざんとは区別して再確定を促す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-extracting-unit-facts-from-code",
+      "testType": "unit",
+      "unitKey": "feature-extracting-unit-facts-from-code-test-design-unit-5",
+      "category": "",
+      "viewpoint": "profileがscreen/python以外のとき、Phase 2以降を実行せずPhase 1で中断する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-extracting-unit-facts-from-code",
+      "testType": "unit",
+      "unitKey": "feature-extracting-unit-facts-from-code-test-design-unit-6",
+      "category": "",
+      "viewpoint": "recount-facts.shが構造的に検知できないパターンをreasonへ逃がすことは禁止され、パターン側を拡張する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-running-reverse-screen-batch",
+      "testType": "unit",
+      "unitKey": "feature-running-reverse-screen-batch-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能はループ雛形の展開・バックグラウンド起動・完了判定の意思決定をAIエージェントが直接行うPhase/Step手順であり、独自定義の関数・メソッドを持たない（design-unit-layout.json の feature.phases.detail は空）。設計判断節が明記するとおり本機能は`scripts/`ディレクトリを置かない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-running-reverse-screen-batch",
+      "testType": "unit",
+      "unitKey": "feature-running-reverse-screen-batch-test-design-unit-1",
+      "category": "",
+      "viewpoint": "引数が有効なとき、Phase1〜5が完走し全画面が検証完了する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-running-reverse-screen-batch",
+      "testType": "unit",
+      "unitKey": "feature-running-reverse-screen-batch-test-design-unit-2",
+      "category": "",
+      "viewpoint": "verification_mode=docs-onlyのとき、前半のみでSTATIC_COMPLETEとなり動的工程を起動しない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-running-reverse-screen-batch",
+      "testType": "unit",
+      "unitKey": "feature-running-reverse-screen-batch-test-design-unit-3",
+      "category": "",
+      "viewpoint": "出力にlimit文言を検知したとき、待機後に再開し失敗カウントに数えない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-running-reverse-screen-batch",
+      "testType": "unit",
+      "unitKey": "feature-running-reverse-screen-batch-test-design-unit-4",
+      "category": "",
+      "viewpoint": "CONFLICT-SKIPPEDを受けたとき、失敗とは別区分でconflict-skipリストへ記録される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-running-reverse-screen-batch",
+      "testType": "unit",
+      "unitKey": "feature-running-reverse-screen-batch-test-design-unit-5",
+      "category": "",
+      "viewpoint": "deadline超過時、新規着手を停止するが実行中の呼び出しは中断しない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-running-reverse-screen-batch",
+      "testType": "unit",
+      "unitKey": "feature-running-reverse-screen-batch-test-design-unit-6",
+      "category": "",
+      "viewpoint": "必須引数が欠落または参照先パスが不在のとき、エラーメッセージを返して即終了する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-reverse-basic-design",
+      "testType": "unit",
+      "unitKey": "feature-generating-reverse-basic-design-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される bash/Read/Write 手順であり、関数・メソッド単位に分解した詳細設計を持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-reverse-basic-design",
+      "testType": "unit",
+      "unitKey": "feature-generating-reverse-basic-design-test-design-unit-1",
+      "category": "",
+      "viewpoint": "雛形を展開しfacts.ymlを読み込む",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-reverse-basic-design",
+      "testType": "unit",
+      "unitKey": "feature-generating-reverse-basic-design-test-design-unit-2",
+      "category": "",
+      "viewpoint": "章ごとにfactsの値を業務語彙へ転記・要約する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-reverse-basic-design",
+      "testType": "unit",
+      "unitKey": "feature-generating-reverse-basic-design-test-design-unit-3",
+      "category": "",
+      "viewpoint": "コード識別子・型構文の混入が無いか検査する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-feature-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-feature-list-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される bash/Read/Write 手順であり、関数・メソッド単位に分解した詳細設計を持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-feature-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-feature-list-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "既存の種別別一覧（画面一覧は必須・API一覧やテーブル一覧は任意）を読み込む",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-feature-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-feature-list-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "業務機能の2階層（大分類＋機能）のうち大分類の候補を導出する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-feature-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-feature-list-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "references/feature-detection.mdの規約に沿って画面を機能へグルーピングし、完全性を確認する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-glossary-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-glossary-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される bash/Read/Write 手順であり、関数・メソッド単位に分解した詳細設計を持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-glossary-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-glossary-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "必須引数と外部パスを検証する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-glossary-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-glossary-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "層化してコード・文書から用語候補を抽出する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-glossary-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-glossary-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "正式schemaへ整形する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-component-inventory-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-component-inventory-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される orchestration/transform であり、feature 種別は詳細設計フェーズを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-component-inventory-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-component-inventory-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "Phase 1〜4が完走し、コンポーネント棚卸し.htmlが生成される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-component-inventory-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-component-inventory-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": ".tsx/.jsx/.vueが0件のときSTOPPEDで停止する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-component-inventory-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-component-inventory-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "validate-page-data.shがFAILのとき、修正して再実行し3回で収束しなければPhase 2へ差し戻す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-component-inventory-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-component-inventory-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "portal_output_dir未指定時は再生成を省略し完了報告に注記する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-component-inventory-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-component-inventory-for-reverse-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "分類がディレクトリパスだけから導出され自動推定を含まない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-batch-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-batch-list-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される orchestration/transform であり、feature 種別は詳細設計フェーズを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-batch-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-batch-list-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "Phase 1〜4が完走し、バッチ一覧.htmlと永続マニフェストが揃う",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-batch-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-batch-list-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "検出0件かつ調査書がバッチ不在と判定するとき、NONEで正常終了する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-batch-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-batch-list-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "検出0件かつ調査書がバッチ実在と判定するとき、ERRORで停止する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-batch-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-batch-list-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "定義エントリに対応する実装が無いとき一覧本体に載せない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-batch-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-batch-list-for-reverse-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "validate-manifest.shがFAILのとき、修正して再実行し3回で収束しなければ差し戻す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-maintaining-semantic-glossary",
+      "testType": "unit",
+      "unitKey": "feature-maintaining-semantic-glossary-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は用語の正規化・品質検査・影響分析・変更要求作成をAIエージェントが直接行うPhase/Step手順であり、独自定義の関数・メソッドを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-maintaining-semantic-glossary",
+      "testType": "unit",
+      "unitKey": "feature-maintaining-semantic-glossary-test-design-unit-1",
+      "category": "",
+      "viewpoint": "operationが許可一覧にあるとき、Phase1〜5が完走し変更要求または差し戻し理由が生成される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-maintaining-semantic-glossary",
+      "testType": "unit",
+      "unitKey": "feature-maintaining-semantic-glossary-test-design-unit-2",
+      "category": "",
+      "viewpoint": "公開済み用語への物理削除operationが拒否されdeprecate/retireを案内する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-maintaining-semantic-glossary",
+      "testType": "unit",
+      "unitKey": "feature-maintaining-semantic-glossary-test-design-unit-3",
+      "category": "",
+      "viewpoint": "registryが省略されたときreview_requiredとして停止し変更要求を渡さない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-maintaining-semantic-glossary",
+      "testType": "unit",
+      "unitKey": "feature-maintaining-semantic-glossary-test-design-unit-4",
+      "category": "",
+      "viewpoint": "法令・契約・教育・運用のチャネルが走査不能のときhuman_check_requiredになる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-maintaining-semantic-glossary",
+      "testType": "unit",
+      "unitKey": "feature-maintaining-semantic-glossary-test-design-unit-5",
+      "category": "",
+      "viewpoint": "root countsとfindingsの再集計件数が一致しないreportを拒否する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-maintaining-semantic-glossary",
+      "testType": "unit",
+      "unitKey": "feature-maintaining-semantic-glossary-test-design-unit-6",
+      "category": "",
+      "viewpoint": "5回検査しても収束しないときreview_requiredのまま停止する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-prioritizing-improvement-tasks-from-images",
+      "testType": "unit",
+      "unitKey": "feature-prioritizing-improvement-tasks-from-images-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は画像の分類・突合・反映・優先度判定をAIエージェントが直接行うPhase/Step手順であり、独自定義の関数・メソッドを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-prioritizing-improvement-tasks-from-images",
+      "testType": "unit",
+      "unitKey": "feature-prioritizing-improvement-tasks-from-images-test-design-unit-1",
+      "category": "",
+      "viewpoint": "改善課題と判定された画像が、Phase1〜7を経て指摘改善一覧.mdへ反映され優先度が確定する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-prioritizing-improvement-tasks-from-images",
+      "testType": "unit",
+      "unitKey": "feature-prioritizing-improvement-tasks-from-images-test-design-unit-2",
+      "category": "",
+      "viewpoint": "資産の欠陥を述べていない、または反映先を特定できない場合、指示書に触れず報告して停止する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-prioritizing-improvement-tasks-from-images",
+      "testType": "unit",
+      "unitKey": "feature-prioritizing-improvement-tasks-from-images-test-design-unit-3",
+      "category": "",
+      "viewpoint": "採番形式が判読できないとき、AskUserQuestionでキーを確認する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-prioritizing-improvement-tasks-from-images",
+      "testType": "unit",
+      "unitKey": "feature-prioritizing-improvement-tasks-from-images-test-design-unit-4",
+      "category": "",
+      "viewpoint": "未対応で残存している項目は重複して追記しない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-prioritizing-improvement-tasks-from-images",
+      "testType": "unit",
+      "unitKey": "feature-prioritizing-improvement-tasks-from-images-test-design-unit-5",
+      "category": "",
+      "viewpoint": "未完了項目が0件のときPhase4〜6を実行せず報告のみで完了する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-prioritizing-improvement-tasks-from-images",
+      "testType": "unit",
+      "unitKey": "feature-prioritizing-improvement-tasks-from-images-test-design-unit-6",
+      "category": "",
+      "viewpoint": "循環依存を検出したとき順序を決めずユーザーに提示する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-report-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-report-detail-design-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される bash/Read/Write 手順であり、関数・メソッド単位に分解した詳細設計を持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-report-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-report-detail-design-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "必須4引数の実在を確認し、対象帳票を確定する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-report-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-report-detail-design-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "マニフェストのsourceFileが指す原本コードをユニットごとに読解する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-report-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-report-detail-design-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "scaffold-design-unit.shでテンプレートを配置し§7実装契約を含め記入する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-screen-transition-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-screen-transition-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される bash/Read/Write 手順であり、関数・メソッド単位に分解した詳細設計を持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-screen-transition-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-screen-transition-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "screen-manifest.json等の確定を確認する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-screen-transition-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-screen-transition-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "ルーティング定義と画面一覧を突合する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-screen-transition-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-screen-transition-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "validate-page-data.shで整合を検証する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-syncing-reverse-env",
+      "testType": "unit",
+      "unitKey": "feature-syncing-reverse-env-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能はworktree操作・ポート計算・環境同一性の判断をAIエージェントが直接行うPhase/Step手順であり、独自定義の関数・メソッドを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-syncing-reverse-env",
+      "testType": "unit",
+      "unitKey": "feature-syncing-reverse-env-test-design-unit-1",
+      "category": "",
+      "viewpoint": "実差分0・env_check全通過・全scenario render-ready到達のとき、PASSが確定し基準タグが更新される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-syncing-reverse-env",
+      "testType": "unit",
+      "unitKey": "feature-syncing-reverse-env-test-design-unit-2",
+      "category": "",
+      "viewpoint": "4条件のいずれかが外れるとき、per-scope方式へ自動degradeする",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-syncing-reverse-env",
+      "testType": "unit",
+      "unitKey": "feature-syncing-reverse-env-test-design-unit-3",
+      "category": "",
+      "viewpoint": "dry-run指定時、git管理内容・基準タグに触れない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-syncing-reverse-env",
+      "testType": "unit",
+      "unitKey": "feature-syncing-reverse-env-test-design-unit-4",
+      "category": "",
+      "viewpoint": "Phase6でFAILのとき、Phase3へ戻り上限max_loopまで再試行する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-syncing-reverse-env",
+      "testType": "unit",
+      "unitKey": "feature-syncing-reverse-env-test-design-unit-5",
+      "category": "",
+      "viewpoint": "両環境が同様にrender-ready未到達のとき、scenarios追加のhintを付けて差し戻す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-syncing-reverse-env",
+      "testType": "unit",
+      "unitKey": "feature-syncing-reverse-env-test-design-unit-6",
+      "category": "",
+      "viewpoint": "明示依頼が確認できないとき、削除を実行せずERRORで差し戻す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-surveying-architecture-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-surveying-architecture-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は決定的走査コマンドの実行と結果の転記をAIエージェントが直接行うPhase/Step手順であり、独自定義の関数・メソッドを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-surveying-architecture-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-surveying-architecture-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "argsが確定するとき、Phase1〜6が完走しstatus=調査確定になる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-surveying-architecture-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-surveying-architecture-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "mode=reviseのとき指摘節のみ改訂されるが機械ゲートは全項目再実行される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-surveying-architecture-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-surveying-architecture-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "check-architecture-survey.shがFAILのとき、Phase4へ差し戻され上限5回で収束する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-surveying-architecture-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-surveying-architecture-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "同一検査項目の同一違反が2回連続で再発するとき、上限を待たず中断する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-surveying-architecture-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-surveying-architecture-for-reverse-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "既定コマンド・言語別規約とも0件のとき、§9へ理由付きで記録される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-managing-semantic-glossary",
+      "testType": "unit",
+      "unitKey": "feature-managing-semantic-glossary-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能はモード確定・機械検証の呼び出し・承認確認・派生物投影の判断をAIエージェントが直接行うPhase/Step手順であり、独自定義の関数・メソッドを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-managing-semantic-glossary",
+      "testType": "unit",
+      "unitKey": "feature-managing-semantic-glossary-test-design-unit-1",
+      "category": "",
+      "viewpoint": "二者承認済みかつdry_run=falseのとき、Phase1〜5が完走し用語辞書.htmlへ投影される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-managing-semantic-glossary",
+      "testType": "unit",
+      "unitKey": "feature-managing-semantic-glossary-test-design-unit-2",
+      "category": "",
+      "viewpoint": "reverse解析の出力がglossary直接更新要求として渡されたとき拒否されproposal扱いになる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-managing-semantic-glossary",
+      "testType": "unit",
+      "unitKey": "feature-managing-semantic-glossary-test-design-unit-3",
+      "category": "",
+      "viewpoint": "validate exit 0だがreview_requiredが残るとき適用を止める",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-managing-semantic-glossary",
+      "testType": "unit",
+      "unitKey": "feature-managing-semantic-glossary-test-design-unit-4",
+      "category": "",
+      "viewpoint": "二者承認のいずれかが欠けるとき適用しない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-managing-semantic-glossary",
+      "testType": "unit",
+      "unitKey": "feature-managing-semantic-glossary-test-design-unit-5",
+      "category": "",
+      "viewpoint": "publish targetがai_indexのとき成果物なしで停止する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-managing-semantic-glossary",
+      "testType": "unit",
+      "unitKey": "feature-managing-semantic-glossary-test-design-unit-6",
+      "category": "",
+      "viewpoint": "5回検証しても収束しないとき適用せず停止する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-external-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-external-list-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される orchestration/transform であり、feature 種別は詳細設計フェーズを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-external-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-external-list-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "Phase 1〜4が完走し、外部連携一覧.htmlと永続マニフェストが揃う",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-external-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-external-list-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "検出0件かつ調査書が外部連携不在と判定するとき、NONEで正常終了する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-external-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-external-list-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "検出0件かつ調査書が外部連携実在と判定するとき、ERRORで停止する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-external-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-external-list-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "validate-manifest.shがFAILのとき、修正して再実行し3回で収束しなければ差し戻す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-screen-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-screen-list-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される bash/Read/Write 手順であり、関数・メソッド単位に分解した詳細設計を持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-screen-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-screen-list-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "対象プロジェクト固有の画面規約を確認する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-screen-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-screen-list-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "抽出基準を明文化し画面境界を検出する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-screen-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-screen-list-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "分類結果を検証しraw定義とraw由来extを確定する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-counting-code-lines",
+      "testType": "unit",
+      "unitKey": "feature-counting-code-lines-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される bash 手順であり、関数・メソッド単位に分解した詳細設計を持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-counting-code-lines",
+      "testType": "unit",
+      "unitKey": "feature-counting-code-lines-test-design-unit-1",
+      "category": "",
+      "viewpoint": "target_dirが実在するとき、Phase1〜6が完走しcode-metrics.jsonが出力される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-counting-code-lines",
+      "testType": "unit",
+      "unitKey": "feature-counting-code-lines-test-design-unit-2",
+      "category": "",
+      "viewpoint": "env_configが存在しないとき、tools.cloc=falseとみなしwc -l方式で進む",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-counting-code-lines",
+      "testType": "unit",
+      "unitKey": "feature-counting-code-lines-test-design-unit-3",
+      "category": "",
+      "viewpoint": "未分類ファイル数の比率が0.5を超えたときunclassified.warningがtrueになる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-counting-code-lines",
+      "testType": "unit",
+      "unitKey": "feature-counting-code-lines-test-design-unit-4",
+      "category": "",
+      "viewpoint": "既定パターンで0件かつテストランナー設定・テストディレクトリも不在のとき、testDetectionFailedがfalseのまま区別される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-counting-code-lines",
+      "testType": "unit",
+      "unitKey": "feature-counting-code-lines-test-design-unit-5",
+      "category": "",
+      "viewpoint": "target_dirが実在しないとき、エラー終了し計測を行わない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-counting-code-lines",
+      "testType": "unit",
+      "unitKey": "feature-counting-code-lines-test-design-unit-6",
+      "category": "",
+      "viewpoint": "既存code-metrics.jsonがあるとき、total・tests.count・measured_atがpreviousへ転記される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-cross-views-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-cross-views-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される orchestration/transform であり、feature 種別は詳細設計フェーズを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-cross-views-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-cross-views-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "Phase 1〜4が完走し、生成可能な全ページが固定パスへ出力される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-cross-views-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-cross-views-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "画面一覧・API一覧が不在のときSTOPPEDで停止する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-cross-views-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-cross-views-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "テーブル一覧・機能一覧不在でも続行する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-cross-views-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-cross-views-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "permission-functionのデータ形状が揃わないとき未生成として理由を記録する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-cross-views-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-cross-views-for-reverse-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "roles→{key,name}等の決定的な変換を行う",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-feature-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-feature-design-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される bash/Read/Write 手順であり、関数・メソッド単位に分解した詳細設計を持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-feature-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-feature-design-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "必須3引数の実在確認、マニフェストのunitKind=feature確認、対象機能を確定する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-feature-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-feature-design-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "構成要素一覧を特定し、複数構成要素が共有するヘルパー・記憶域を集約対象として印を付ける",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-feature-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-feature-design-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "scaffold-design-unit.shでテンプレートを配置し、§1〜§10を記入する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-icon-catalog-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-icon-catalog-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される bash/Read/Write 手順であり、関数・メソッド単位に分解した詳細設計を持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-icon-catalog-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-icon-catalog-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "対象リポジトリにアイコン参照が1件以上あるか確認する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-icon-catalog-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-icon-catalog-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "3パターンを機械的に抽出する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-icon-catalog-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-icon-catalog-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "validate-page-data.shで整合を検証する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-external-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-external-detail-design-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される orchestration/transform であり、feature 種別は詳細設計フェーズを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-external-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-external-detail-design-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "Phase 1〜4が完走し、詳細設計書と実装記録が揃う",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-external-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-external-detail-design-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "原本から読み取った内容がマニフェストと食い違う場合、要確認事項一覧へ記録される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-external-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-external-detail-design-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "詳細設計書・実装記録に対象コードのファイルパス・行番号が残らない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-external-detail-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-external-detail-design-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "Phase 4の機械検査のいずれかが不合格のときPhase 3へ差し戻す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-report-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-report-basic-design-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される bash/Read/Write 手順であり、関数・メソッド単位に分解した詳細設計を持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-report-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-report-basic-design-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "必須4引数の実在を確認し、対象帳票を確定する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-report-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-report-basic-design-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "マニフェストのformat・triggerと原本コードから業務的な意味を抽出する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-report-basic-design-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-report-basic-design-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "scaffold-design-unit.shでテンプレートを配置し記入する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-entity-state-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-entity-state-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される orchestration/transform であり、feature 種別は詳細設計フェーズを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-entity-state-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-entity-state-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "Phase 1〜4が完走し、状態遷移図.htmlが生成される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-entity-state-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-entity-state-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "状態遷移表が未書き起こしのときSTOPPEDで停止する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-entity-state-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-entity-state-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "§6のデータ行が0件のときSTOPPEDで停止する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-entity-state-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-entity-state-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "表に記載のない状態遷移を推測・補完しない",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-entity-state-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-entity-state-for-reverse-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "validate-page-data.shの同一FAILが2回連続再発でnodes組み立てへ即差し戻す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-test-viewpoint-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-test-viewpoint-list-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能はテスト設計書の実在確認と横断集約結果の確認をAIエージェントが直接行うPhase/Step手順であり、独自定義の関数・メソッドを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-test-viewpoint-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-test-viewpoint-list-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "テスト設計書が1件以上存在するとき、Phase1〜4が完走しテスト観点表.htmlが生成される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-test-viewpoint-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-test-viewpoint-list-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "全種別で2テスト設計書が0件のとき、HTMLを生成せずstatus=STOPPEDになる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-test-viewpoint-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-test-viewpoint-list-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "テスト設計書は存在するが確定行が0件のとき、空状態のページを生成しDONEになる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-test-viewpoint-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-test-viewpoint-list-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "画面の新配置にファイルが無い場合、旧観点表（${screen_detail_dirname}/）から読む",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-test-viewpoint-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-test-viewpoint-list-for-reverse-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "整合検証が3回連続でFAILのとき、集約元の見直しへ差し戻す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-env-guide-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-env-guide-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される orchestration/transform であり、feature 種別は詳細設計フェーズを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-env-guide-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-env-guide-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "Phase 1〜4が完走し、環境構築手順.htmlが生成される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-env-guide-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-env-guide-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "アーキテクチャ調査書が不在のときSTOPPEDで停止する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-env-guide-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-env-guide-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "env-config.json不在でも調査書§3だけで手順表・割当表を組み立てる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-env-guide-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-env-guide-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "割当の記載が無いとき空配列のまま進める",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-env-guide-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-env-guide-for-reverse-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "同一FAILが2回連続再発でallocations抽出へ即差し戻す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-logical-model-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-logical-model-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は原本読解・記述の3区分への切り分け・業務語彙のみでの執筆をAIエージェントが直接行うPhase/Step手順であり、独自定義の関数・メソッドを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-logical-model-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-logical-model-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "4引数が実在するとき、Phase1〜5が完走し論理データモデル等が生成される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-logical-model-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-logical-model-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "判断基準と業務背景に当たる記述が本文へ書かれず要確認事項一覧へ移る",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-logical-model-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-logical-model-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "実装用語・内部識別子が検出されたときPhase3へ差し戻される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-logical-model-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-logical-model-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "unitId・unitKeyが両方空のとき生成せずstatus=ERRORになる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-logical-model-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-logical-model-for-reverse-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "Phase5の差し戻しが上限3回に達しても収束しないとき、status=ERRORになる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-table-logical-model-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-table-logical-model-for-reverse-docs-test-design-unit-6",
+      "category": "",
+      "viewpoint": "記入完了に伴いstatusがdraftからauthoredへ更新される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-unlocking-reverse-target-screens",
+      "testType": "unit",
+      "unitKey": "feature-unlocking-reverse-target-screens-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能はAPI依存の特定・権限登録・モック実装・検証ループの判断をAIエージェントが直接行う前提ゲート＋Phase 1〜5の手順であり、独自定義の関数・メソッドを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-unlocking-reverse-target-screens",
+      "testType": "unit",
+      "unitKey": "feature-unlocking-reverse-target-screens-test-design-unit-1",
+      "category": "",
+      "viewpoint": "invocation_mode=standaloneのとき、前提ゲート〜Phase5が完走しstatus=BASELINE-ESTABLISHEDになる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-unlocking-reverse-target-screens",
+      "testType": "unit",
+      "unitKey": "feature-unlocking-reverse-target-screens-test-design-unit-2",
+      "category": "",
+      "viewpoint": "invocation_mode=dynamic-onlyのとき、レジストリ登録とscenarios完全性ゲート通過でstatus=UNLOCKEDになる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-unlocking-reverse-target-screens",
+      "testType": "unit",
+      "unitKey": "feature-unlocking-reverse-target-screens-test-design-unit-3",
+      "category": "",
+      "viewpoint": "manifest必須キーが未確定のとき、status=ERRORで停止する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-unlocking-reverse-target-screens",
+      "testType": "unit",
+      "unitKey": "feature-unlocking-reverse-target-screens-test-design-unit-4",
+      "category": "",
+      "viewpoint": "対象画面がルートを持たないとき、親経由URL＋操作手順で全手順が読み替えられる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-unlocking-reverse-target-screens",
+      "testType": "unit",
+      "unitKey": "feature-unlocking-reverse-target-screens-test-design-unit-5",
+      "category": "",
+      "viewpoint": "作業コピーが他プロセス使用中のとき、CONFLICT-SKIPPEDで即座に終了する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-unlocking-reverse-target-screens",
+      "testType": "unit",
+      "unitKey": "feature-unlocking-reverse-target-screens-test-design-unit-6",
+      "category": "",
+      "viewpoint": "同一差分が2連続で再発し3回目でも解消しないとき、status=BLOCKEDになる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-design-system-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-design-system-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能は Claude Code スキルの Phase/Step 手順として実行される orchestration/transform であり、feature 種別は詳細設計フェーズを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-design-system-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-design-system-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "Phase 1〜4が完走し、デザインシステム.htmlが生成される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-design-system-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-design-system-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "DESIGN.mdが不在のときSTOPPEDで停止する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-design-system-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-design-system-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "frontmatter未検出時にCSS変数へフォールバックし、componentsが空になる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-design-system-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-design-system-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "roundedがspacingカテゴリへ合流する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-design-system-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-design-system-for-reverse-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "validate-page-data.shがFAILのとき修正して再実行し3回で収束しなければ抽出手順へ差し戻す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-test-case-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-test-case-list-for-reverse-docs-function-unit-1",
+      "category": "該当なし",
+      "viewpoint": "本機能はテスト設計書の実在確認と横断集約の判断をAIエージェントが直接行うPhase/Step手順であり、独自定義の関数・メソッドを持たない（design-unit-layout.json の feature.phases.detail は空）",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-test-case-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-test-case-list-for-reverse-docs-test-design-unit-1",
+      "category": "",
+      "viewpoint": "テスト設計書が1件以上存在するとき、Phase1〜4が完走しテストケース一覧.htmlが生成される",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-test-case-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-test-case-list-for-reverse-docs-test-design-unit-2",
+      "category": "",
+      "viewpoint": "全種別で2テスト設計書が0件のとき、ハード停止しstatus=STOPPEDになる",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-test-case-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-test-case-list-for-reverse-docs-test-design-unit-3",
+      "category": "",
+      "viewpoint": "集約結果が0件でもエラーにせず、注記を残して処理を継続する",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-test-case-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-test-case-list-for-reverse-docs-test-design-unit-4",
+      "category": "",
+      "viewpoint": "画面の新配置にファイルが無い場合、旧配置（テスト項目書/）から読む",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "feature-generating-test-case-list-for-reverse-docs",
+      "testType": "unit",
+      "unitKey": "feature-generating-test-case-list-for-reverse-docs-test-design-unit-5",
+      "category": "",
+      "viewpoint": "整合検証が3回連続でFAILのとき、集約元の見直しへ差し戻す",
+      "sourceKind": "feature"
+    },
+    {
+      "screenKey": "table-checker-real-world-cases",
+      "testType": "unit",
+      "unitKey": "table-checker-real-world-cases-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 checker の記入規則を守っていること（対象検査の識別名）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-checker-real-world-cases",
+      "testType": "unit",
+      "unitKey": "table-checker-real-world-cases-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 label の記入規則を守っていること（入力の見出し）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-checker-real-world-cases",
+      "testType": "unit",
+      "unitKey": "table-checker-real-world-cases-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 expect の記入規則を守っていること（期待する合否）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-checker-real-world-cases",
+      "testType": "unit",
+      "unitKey": "table-checker-real-world-cases-function-unit-4",
+      "category": "§1・§4",
+      "viewpoint": "項目 input の記入規則を守っていること（検査へ渡す入力の実体）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-checker-real-world-cases",
+      "testType": "unit",
+      "unitKey": "table-checker-real-world-cases-function-unit-5",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-checker-real-world-cases",
+      "testType": "unit",
+      "unitKey": "table-checker-real-world-cases-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "配布する検査群の名前と対応していること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-checker-real-world-cases",
+      "testType": "unit",
+      "unitKey": "table-checker-real-world-cases-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "検査キーごとに一意であること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-checker-real-world-cases",
+      "testType": "unit",
+      "unitKey": "table-checker-real-world-cases-test-design-unit-3",
+      "category": "§2・§4",
+      "viewpoint": "\"violation\" または \"clean\" のいずれか",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-checker-real-world-cases",
+      "testType": "unit",
+      "unitKey": "table-checker-real-world-cases-test-design-unit-4",
+      "category": "§2・§4",
+      "viewpoint": "検査の走査方式（ファイル内容・コマンド文字列・やり取りの記録）に応じた形式であること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-rule-banned-terms",
+      "testType": "unit",
+      "unitKey": "table-rule-banned-terms-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 terms[].term の記入規則を守っていること（禁止語）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-rule-banned-terms",
+      "testType": "unit",
+      "unitKey": "table-rule-banned-terms-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 terms[].scope[] の記入規則を守っていること（適用範囲）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-rule-banned-terms",
+      "testType": "unit",
+      "unitKey": "table-rule-banned-terms-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 exemptions[] の記入規則を守っていること（除外対象）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-rule-banned-terms",
+      "testType": "unit",
+      "unitKey": "table-rule-banned-terms-function-unit-4",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-rule-banned-terms",
+      "testType": "unit",
+      "unitKey": "table-rule-banned-terms-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "terms[].term が重複しないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-rule-banned-terms",
+      "testType": "unit",
+      "unitKey": "table-rule-banned-terms-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "exemptions[].parent／key が rule-taxonomy の子カテゴリと対応すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-配布文書の言葉",
+      "testType": "unit",
+      "unitKey": "table-配布文書の言葉-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 terms[] の記入規則を守っていること（対象語）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-配布文書の言葉",
+      "testType": "unit",
+      "unitKey": "table-配布文書の言葉-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 glossaryDocument の記入規則を守っていること（用語集を置く文書）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-配布文書の言葉",
+      "testType": "unit",
+      "unitKey": "table-配布文書の言葉-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 referringDocuments[] の記入規則を守っていること（参照する文書）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-配布文書の言葉",
+      "testType": "unit",
+      "unitKey": "table-配布文書の言葉-function-unit-4",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-配布文書の言葉",
+      "testType": "unit",
+      "unitKey": "table-配布文書の言葉-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "terms[] が重複しないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-配布文書の言葉",
+      "testType": "unit",
+      "unitKey": "table-配布文書の言葉-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "glossaryDocument の中に glossaryHeading の節が実在すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-code-consistency",
+      "testType": "unit",
+      "unitKey": "table-design-code-consistency-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 categories.<key>.label の記入規則を守っていること（観点ラベル）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-code-consistency",
+      "testType": "unit",
+      "unitKey": "table-design-code-consistency-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 categories.<key>.mechanizable の記入規則を守っていること（機械化の可否）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-code-consistency",
+      "testType": "unit",
+      "unitKey": "table-design-code-consistency-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 categories.<key>.input の記入規則を守っていること（必要な入力）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-code-consistency",
+      "testType": "unit",
+      "unitKey": "table-design-code-consistency-function-unit-4",
+      "category": "§1・§4",
+      "viewpoint": "項目 categories.<key>.method の記入規則を守っていること（検査手順）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-code-consistency",
+      "testType": "unit",
+      "unitKey": "table-design-code-consistency-function-unit-5",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-code-consistency",
+      "testType": "unit",
+      "unitKey": "table-design-code-consistency-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "categories オブジェクトのキーと一致すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-code-consistency",
+      "testType": "unit",
+      "unitKey": "table-design-code-consistency-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "空でないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-code-consistency",
+      "testType": "unit",
+      "unitKey": "table-design-code-consistency-test-design-unit-3",
+      "category": "§2・§4",
+      "viewpoint": "真偽値であること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-code-consistency",
+      "testType": "unit",
+      "unitKey": "table-design-code-consistency-test-design-unit-4",
+      "category": "§2・§4",
+      "viewpoint": "対象コード・検証用TSV・生成済み設計書のいずれかを含むこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-code-consistency",
+      "testType": "unit",
+      "unitKey": "table-design-code-consistency-test-design-unit-5",
+      "category": "§2・§4",
+      "viewpoint": "空でないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-doc-extraction",
+      "testType": "unit",
+      "unitKey": "table-doc-extraction-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 excluded.screen の記入規則を守っていること（画面が対象外である理由）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-doc-extraction",
+      "testType": "unit",
+      "unitKey": "table-doc-extraction-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 kinds.<kind>.unitRootKey の記入規則を守っていること（走査基点のキー名）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-doc-extraction",
+      "testType": "unit",
+      "unitKey": "table-doc-extraction-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 kinds.<kind>.docFileName の記入規則を守っていること（対象文書名）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-doc-extraction",
+      "testType": "unit",
+      "unitKey": "table-doc-extraction-function-unit-4",
+      "category": "§1・§4",
+      "viewpoint": "項目 kinds.<kind>.mapping の記入規則を守っていること（抽出対応）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-doc-extraction",
+      "testType": "unit",
+      "unitKey": "table-doc-extraction-function-unit-5",
+      "category": "§1・§4",
+      "viewpoint": "項目 kinds.<kind>.identifier の記入規則を守っていること（識別子の取り方）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-doc-extraction",
+      "testType": "unit",
+      "unitKey": "table-doc-extraction-function-unit-6",
+      "category": "§1・§4",
+      "viewpoint": "項目 kinds.<kind>.unresolvable の記入規則を守っていること（解決不能時の代替値）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-doc-extraction",
+      "testType": "unit",
+      "unitKey": "table-doc-extraction-function-unit-7",
+      "category": "§1・§4",
+      "viewpoint": "項目 sectionAutomation.kinds の記入規則を守っていること（節の自動組み立て対象）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-doc-extraction",
+      "testType": "unit",
+      "unitKey": "table-doc-extraction-function-unit-8",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-doc-extraction",
+      "testType": "unit",
+      "unitKey": "table-doc-extraction-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "画面を除く6種別のいずれかであること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-doc-extraction",
+      "testType": "unit",
+      "unitKey": "table-doc-extraction-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "output-layout.json のキーと一致すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-doc-extraction",
+      "testType": "unit",
+      "unitKey": "table-doc-extraction-test-design-unit-3",
+      "category": "§2・§4",
+      "viewpoint": "種別ごとに1つ定まること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-doc-extraction",
+      "testType": "unit",
+      "unitKey": "table-doc-extraction-test-design-unit-4",
+      "category": "§2・§4",
+      "viewpoint": "空でないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-doc-extraction",
+      "testType": "unit",
+      "unitKey": "table-doc-extraction-test-design-unit-5",
+      "category": "§2・§4",
+      "viewpoint": "対象文書のfrontmatter鍵であること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-doc-extraction",
+      "testType": "unit",
+      "unitKey": "table-doc-extraction-test-design-unit-6",
+      "category": "§2・§4",
+      "viewpoint": "kind=unresolved・confidence=lowを含む",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-deliverable-inventory",
+      "testType": "unit",
+      "unitKey": "table-deliverable-inventory-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 kind の記入規則を守っていること（納品物種別の識別名）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-deliverable-inventory",
+      "testType": "unit",
+      "unitKey": "table-deliverable-inventory-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 evidenceSource の記入規則を守っていること（判定根拠の種類）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-deliverable-inventory",
+      "testType": "unit",
+      "unitKey": "table-deliverable-inventory-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 manifestKey の記入規則を守っていること（件数を数えるマニフェストの鍵）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-deliverable-inventory",
+      "testType": "unit",
+      "unitKey": "table-deliverable-inventory-function-unit-4",
+      "category": "§1・§4",
+      "viewpoint": "項目 countPointer の記入規則を守っていること（マニフェスト内の件数の在り処）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-deliverable-inventory",
+      "testType": "unit",
+      "unitKey": "table-deliverable-inventory-function-unit-5",
+      "category": "§1・§4",
+      "viewpoint": "項目 unitTestDocuments の記入規則を守っていること（対応する単位テスト文書の名前一覧）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-deliverable-inventory",
+      "testType": "unit",
+      "unitKey": "table-deliverable-inventory-function-unit-6",
+      "category": "§1・§4",
+      "viewpoint": "項目 screenOnlyTestDocuments の記入規則を守っていること（画面種別のみが持つテスト文書名）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-deliverable-inventory",
+      "testType": "unit",
+      "unitKey": "table-deliverable-inventory-function-unit-7",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-deliverable-inventory",
+      "testType": "unit",
+      "unitKey": "table-deliverable-inventory-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "portal-catalog.json の種別と1対1対応すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-deliverable-inventory",
+      "testType": "unit",
+      "unitKey": "table-deliverable-inventory-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "\"none\"／\"manifest\"のいずれか",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-deliverable-inventory",
+      "testType": "unit",
+      "unitKey": "table-deliverable-inventory-test-design-unit-3",
+      "category": "§2・§4",
+      "viewpoint": "判定根拠がmanifestのときのみ設定される",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-deliverable-inventory",
+      "testType": "unit",
+      "unitKey": "table-deliverable-inventory-test-design-unit-4",
+      "category": "§2・§4",
+      "viewpoint": "判定根拠がmanifestのときのみ設定される",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-unit-axes",
+      "testType": "unit",
+      "unitKey": "table-unit-axes-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 axes[].key の記入規則を守っていること（分類軸識別子）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-unit-axes",
+      "testType": "unit",
+      "unitKey": "table-unit-axes-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 axes[].valuePolicy の記入規則を守っていること（値ポリシー）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-unit-axes",
+      "testType": "unit",
+      "unitKey": "table-unit-axes-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 axes[].values[] の記入規則を守っていること（closed時の列挙値）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-unit-axes",
+      "testType": "unit",
+      "unitKey": "table-unit-axes-function-unit-4",
+      "category": "§1・§4",
+      "viewpoint": "項目 columns[].key の記入規則を守っていること（任意列識別子）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-unit-axes",
+      "testType": "unit",
+      "unitKey": "table-unit-axes-function-unit-5",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-unit-axes",
+      "testType": "unit",
+      "unitKey": "table-unit-axes-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "axes[].key が一意であること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-unit-axes",
+      "testType": "unit",
+      "unitKey": "table-unit-axes-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "columns[].key が一意であること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-unit-axes",
+      "testType": "unit",
+      "unitKey": "table-unit-axes-test-design-unit-3",
+      "category": "§2・§4",
+      "viewpoint": "valuePolicyがclosedの軸でvalues[]が1件以上であること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-catalog",
+      "testType": "unit",
+      "unitKey": "table-portal-catalog-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 categories[].key の記入規則を守っていること（カテゴリ識別子）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-catalog",
+      "testType": "unit",
+      "unitKey": "table-portal-catalog-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 categories[].blueprints[].kind の記入規則を守っていること（カード識別子）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-catalog",
+      "testType": "unit",
+      "unitKey": "table-portal-catalog-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 categories[].blueprints[].discovery.glob の記入規則を守っていること（発見規則）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-catalog",
+      "testType": "unit",
+      "unitKey": "table-portal-catalog-function-unit-4",
+      "category": "§1・§4",
+      "viewpoint": "項目 defaultRoots.<key> の記入規則を守っていること（既定の物理配置キー）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-catalog",
+      "testType": "unit",
+      "unitKey": "table-portal-catalog-function-unit-5",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-catalog",
+      "testType": "unit",
+      "unitKey": "table-portal-catalog-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "categories[].key が一意であること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-catalog",
+      "testType": "unit",
+      "unitKey": "table-portal-catalog-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "categories[].blueprints[].kind が一意であること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-catalog",
+      "testType": "unit",
+      "unitKey": "table-portal-catalog-test-design-unit-3",
+      "category": "§2・§4",
+      "viewpoint": "categories[].blueprints[].discovery.glob が空でないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-unit-layout",
+      "testType": "unit",
+      "unitKey": "table-design-unit-layout-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 kinds.<kind>.label の記入規則を守っていること（種別ラベル）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-unit-layout",
+      "testType": "unit",
+      "unitKey": "table-design-unit-layout-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 kinds.<kind>.token の記入規則を守っていること（識別トークン）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-unit-layout",
+      "testType": "unit",
+      "unitKey": "table-design-unit-layout-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 kinds.<kind>.phases.basic[] の記入規則を守っていること（基本設計のファイル一覧）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-unit-layout",
+      "testType": "unit",
+      "unitKey": "table-design-unit-layout-function-unit-4",
+      "category": "§1・§4",
+      "viewpoint": "項目 kinds.<kind>.phases.detail[] の記入規則を守っていること（詳細設計のファイル一覧）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-unit-layout",
+      "testType": "unit",
+      "unitKey": "table-design-unit-layout-function-unit-5",
+      "category": "§1・§4",
+      "viewpoint": "項目 kinds.<kind>.phases.test[] の記入規則を守っていること（テスト設計のファイル一覧）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-unit-layout",
+      "testType": "unit",
+      "unitKey": "table-design-unit-layout-function-unit-6",
+      "category": "§1・§4",
+      "viewpoint": "項目 kinds.<kind>.testDocumentCount の記入規則を守っていること（テスト文書数）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-unit-layout",
+      "testType": "unit",
+      "unitKey": "table-design-unit-layout-function-unit-7",
+      "category": "§1・§4",
+      "viewpoint": "項目 kinds.<kind>.screenOnlyTestDocuments[] の記入規則を守っていること（画面のみのテスト文書名）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-unit-layout",
+      "testType": "unit",
+      "unitKey": "table-design-unit-layout-function-unit-8",
+      "category": "§1・§4",
+      "viewpoint": "項目 generationRules.<rule>.sourcePhase／targetPhase の記入規則を守っていること（後追い生成の元phaseと対象phase）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-unit-layout",
+      "testType": "unit",
+      "unitKey": "table-design-unit-layout-function-unit-9",
+      "category": "§1・§4",
+      "viewpoint": "項目 generationRules.<rule>.excludedKinds[] の記入規則を守っていること（後追い生成の対象外種別）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-unit-layout",
+      "testType": "unit",
+      "unitKey": "table-design-unit-layout-function-unit-10",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-unit-layout",
+      "testType": "unit",
+      "unitKey": "table-design-unit-layout-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "kinds オブジェクトのキーと一致すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-unit-layout",
+      "testType": "unit",
+      "unitKey": "table-design-unit-layout-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "空でないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-unit-layout",
+      "testType": "unit",
+      "unitKey": "table-design-unit-layout-test-design-unit-3",
+      "category": "§2・§4",
+      "viewpoint": "山括弧で囲まれた形であること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-unit-layout",
+      "testType": "unit",
+      "unitKey": "table-design-unit-layout-test-design-unit-4",
+      "category": "§2・§4",
+      "viewpoint": "各phaseで1件以上であること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-unit-layout",
+      "testType": "unit",
+      "unitKey": "table-design-unit-layout-test-design-unit-5",
+      "category": "§2・§4",
+      "viewpoint": "phases.test の要素数と一致すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-shorthand-reference-document-words",
+      "testType": "unit",
+      "unitKey": "table-shorthand-reference-document-words-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 documentWords[] の記入規則を守っていること（対象語）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-shorthand-reference-document-words",
+      "testType": "unit",
+      "unitKey": "table-shorthand-reference-document-words-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 sourceOfTruth の記入規則を守っていること（定義の所在）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-shorthand-reference-document-words",
+      "testType": "unit",
+      "unitKey": "table-shorthand-reference-document-words-function-unit-3",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-shorthand-reference-document-words",
+      "testType": "unit",
+      "unitKey": "table-shorthand-reference-document-words-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "documentWords[] が重複しないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-shorthand-reference-document-words",
+      "testType": "unit",
+      "unitKey": "table-shorthand-reference-document-words-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "sourceOfTruth.checker が実在するファイルを指すこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-document-style-exclusions",
+      "testType": "unit",
+      "unitKey": "table-document-style-exclusions-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 excludedBasenames[].basename の記入規則を守っていること（対象ファイル名）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-document-style-exclusions",
+      "testType": "unit",
+      "unitKey": "table-document-style-exclusions-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 excludedBasenames[].allowedPathFragments の記入規則を守っていること（配置条件のパス断片一覧）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-document-style-exclusions",
+      "testType": "unit",
+      "unitKey": "table-document-style-exclusions-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 excludedBasenames[].reason の記入規則を守っていること（除外理由）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-document-style-exclusions",
+      "testType": "unit",
+      "unitKey": "table-document-style-exclusions-function-unit-4",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-document-style-exclusions",
+      "testType": "unit",
+      "unitKey": "table-document-style-exclusions-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "同じbasenameでも配置条件が異なれば別項目として扱う",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-document-style-exclusions",
+      "testType": "unit",
+      "unitKey": "table-document-style-exclusions-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "空でないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-document-style-exclusions",
+      "testType": "unit",
+      "unitKey": "table-document-style-exclusions-test-design-unit-3",
+      "category": "§2・§4",
+      "viewpoint": "空でないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-customer-facing-terms",
+      "testType": "unit",
+      "unitKey": "table-customer-facing-terms-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 term の記入規則を守っていること（対象の語または言い回し）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-customer-facing-terms",
+      "testType": "unit",
+      "unitKey": "table-customer-facing-terms-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 replacement の記入規則を守っていること（未使用の置き換え候補）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-customer-facing-terms",
+      "testType": "unit",
+      "unitKey": "table-customer-facing-terms-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 category の記入規則を守っていること（分類ラベル）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-customer-facing-terms",
+      "testType": "unit",
+      "unitKey": "table-customer-facing-terms-function-unit-4",
+      "category": "§1・§4",
+      "viewpoint": "項目 machine の記入規則を守っていること（機械判定の可否）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-customer-facing-terms",
+      "testType": "unit",
+      "unitKey": "table-customer-facing-terms-function-unit-5",
+      "category": "§1・§4",
+      "viewpoint": "項目 matchType の記入規則を守っていること（検出方式）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-customer-facing-terms",
+      "testType": "unit",
+      "unitKey": "table-customer-facing-terms-function-unit-6",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-customer-facing-terms",
+      "testType": "unit",
+      "unitKey": "table-customer-facing-terms-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "同じ語でも検出方式が異なれば別項目として扱う",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-customer-facing-terms",
+      "testType": "unit",
+      "unitKey": "table-customer-facing-terms-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "本文が定める7分類のいずれかであること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-customer-facing-terms",
+      "testType": "unit",
+      "unitKey": "table-customer-facing-terms-test-design-unit-3",
+      "category": "§2・§4",
+      "viewpoint": "true／\"detect-only\"のいずれか",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-customer-facing-terms",
+      "testType": "unit",
+      "unitKey": "table-customer-facing-terms-test-design-unit-4",
+      "category": "§2・§4",
+      "viewpoint": "\"exact\"／\"pattern\"のいずれか",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-delivered-skill-catalog",
+      "testType": "unit",
+      "unitKey": "table-delivered-skill-catalog-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 name の記入規則を守っていること（スキルの識別名）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-delivered-skill-catalog",
+      "testType": "unit",
+      "unitKey": "table-delivered-skill-catalog-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 title の記入規則を守っていること（表題）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-delivered-skill-catalog",
+      "testType": "unit",
+      "unitKey": "table-delivered-skill-catalog-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 maintains の記入規則を守っていること（保守対象の説明）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-delivered-skill-catalog",
+      "testType": "unit",
+      "unitKey": "table-delivered-skill-catalog-function-unit-4",
+      "category": "§1・§4",
+      "viewpoint": "項目 files の記入規則を守っていること（構成ファイルの一覧）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-delivered-skill-catalog",
+      "testType": "unit",
+      "unitKey": "table-delivered-skill-catalog-function-unit-5",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-delivered-skill-catalog",
+      "testType": "unit",
+      "unitKey": "table-delivered-skill-catalog-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "docs/skills/<name>/ ディレクトリと対応すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-delivered-skill-catalog",
+      "testType": "unit",
+      "unitKey": "table-delivered-skill-catalog-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "空でないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-delivered-skill-catalog",
+      "testType": "unit",
+      "unitKey": "table-delivered-skill-catalog-test-design-unit-3",
+      "category": "§2・§4",
+      "viewpoint": "空でないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-delivered-skill-catalog",
+      "testType": "unit",
+      "unitKey": "table-delivered-skill-catalog-test-design-unit-4",
+      "category": "§2・§4",
+      "viewpoint": "SKILL.md を必ず含むこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-doc-required-sections",
+      "testType": "unit",
+      "unitKey": "table-design-doc-required-sections-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 documentTypes.<kind>.<doc>.requiredSections[] の記入規則を守っていること（必須節見出しの並び）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-doc-required-sections",
+      "testType": "unit",
+      "unitKey": "table-design-doc-required-sections-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 additionalAllowance.description の記入規則を守っていること（追加許容の説明）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-doc-required-sections",
+      "testType": "unit",
+      "unitKey": "table-design-doc-required-sections-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 additionalAllowance.projectFile の記入規則を守っていること（対象プロジェクト側の受け口ファイルパス）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-doc-required-sections",
+      "testType": "unit",
+      "unitKey": "table-design-doc-required-sections-function-unit-4",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-doc-required-sections",
+      "testType": "unit",
+      "unitKey": "table-design-doc-required-sections-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "7種別のいずれかであること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-doc-required-sections",
+      "testType": "unit",
+      "unitKey": "table-design-doc-required-sections-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "種別ごとに1つ以上定まること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-doc-required-sections",
+      "testType": "unit",
+      "unitKey": "table-design-doc-required-sections-test-design-unit-3",
+      "category": "§2・§4",
+      "viewpoint": "テンプレートの実見出しと一致すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-doc-required-sections",
+      "testType": "unit",
+      "unitKey": "table-design-doc-required-sections-test-design-unit-4",
+      "category": "§2・§4",
+      "viewpoint": "additionalAllowance が存在する場合のみ",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-doc-required-items",
+      "testType": "unit",
+      "unitKey": "table-design-doc-required-items-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 requiredItems[] の記入規則を守っていること（6項目の名前一覧）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-doc-required-items",
+      "testType": "unit",
+      "unitKey": "table-design-doc-required-items-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 documentTypes.<kind>.<doc>.items.<item>.applicable の記入規則を守っていること（対象可否）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-doc-required-items",
+      "testType": "unit",
+      "unitKey": "table-design-doc-required-items-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 documentTypes.<kind>.<doc>.items.<item>.sections の記入規則を守っていること（対応節の一覧）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-doc-required-items",
+      "testType": "unit",
+      "unitKey": "table-design-doc-required-items-function-unit-4",
+      "category": "§1・§4",
+      "viewpoint": "項目 documentTypes.<kind>.<doc>.items.<item>.requiredColumns の記入規則を守っていること（必須列の一覧）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-doc-required-items",
+      "testType": "unit",
+      "unitKey": "table-design-doc-required-items-function-unit-5",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-doc-required-items",
+      "testType": "unit",
+      "unitKey": "table-design-doc-required-items-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "7種別のいずれかであること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-doc-required-items",
+      "testType": "unit",
+      "unitKey": "table-design-doc-required-items-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "種別ごとに1つ定まること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-doc-required-items",
+      "testType": "unit",
+      "unitKey": "table-design-doc-required-items-test-design-unit-3",
+      "category": "§2・§4",
+      "viewpoint": "requiredItems の一覧に含まれること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-doc-required-items",
+      "testType": "unit",
+      "unitKey": "table-design-doc-required-items-test-design-unit-4",
+      "category": "§2・§4",
+      "viewpoint": "真偽値。falseの場合は理由を伴うこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-doc-required-items",
+      "testType": "unit",
+      "unitKey": "table-design-doc-required-items-test-design-unit-5",
+      "category": "§2・§4",
+      "viewpoint": "対象可否がtrueの場合に空でないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-design-doc-required-items",
+      "testType": "unit",
+      "unitKey": "table-design-doc-required-items-test-design-unit-6",
+      "category": "§2・§4",
+      "viewpoint": "対象可否がtrueの場合に空でないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-catalog-legacy-golden",
+      "testType": "unit",
+      "unitKey": "table-portal-catalog-legacy-golden-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 [].id の記入規則を守っていること（カテゴリ識別子）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-catalog-legacy-golden",
+      "testType": "unit",
+      "unitKey": "table-portal-catalog-legacy-golden-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 [].tools[].title の記入規則を守っていること（カードの表示名）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-catalog-legacy-golden",
+      "testType": "unit",
+      "unitKey": "table-portal-catalog-legacy-golden-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 [].tools[].href の記入規則を守っていること（カードのリンク先）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-catalog-legacy-golden",
+      "testType": "unit",
+      "unitKey": "table-portal-catalog-legacy-golden-function-unit-4",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-catalog-legacy-golden",
+      "testType": "unit",
+      "unitKey": "table-portal-catalog-legacy-golden-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "[].id が一意であること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-catalog-legacy-golden",
+      "testType": "unit",
+      "unitKey": "table-portal-catalog-legacy-golden-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "現行の抽出結果との差分が0件であること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-instruction-writing-terms",
+      "testType": "unit",
+      "unitKey": "table-instruction-writing-terms-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 transliterations[].term の記入規則を守っていること（検出するカタカナ音写語）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-instruction-writing-terms",
+      "testType": "unit",
+      "unitKey": "table-instruction-writing-terms-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 transliterations[].replacement の記入規則を守っていること（言い換え語）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-instruction-writing-terms",
+      "testType": "unit",
+      "unitKey": "table-instruction-writing-terms-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 quotedTemplateHeadings[] の記入規則を守っていること（引用を認める章名）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-instruction-writing-terms",
+      "testType": "unit",
+      "unitKey": "table-instruction-writing-terms-function-unit-4",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-instruction-writing-terms",
+      "testType": "unit",
+      "unitKey": "table-instruction-writing-terms-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "transliterations[].term が空でないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-instruction-writing-terms",
+      "testType": "unit",
+      "unitKey": "table-instruction-writing-terms-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "transliterations[].replacement が空でないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-instruction-writing-terms",
+      "testType": "unit",
+      "unitKey": "table-instruction-writing-terms-test-design-unit-3",
+      "category": "§2・§4",
+      "viewpoint": "quotedTemplateHeadings[] が空でないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-entry-dependencies",
+      "testType": "unit",
+      "unitKey": "table-portal-entry-dependencies-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 portalPaths[] の記入規則を守っていること（ポータルの入口ページ）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-entry-dependencies",
+      "testType": "unit",
+      "unitKey": "table-portal-entry-dependencies-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 artifacts[].id の記入規則を守っていること（成果物識別子）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-entry-dependencies",
+      "testType": "unit",
+      "unitKey": "table-portal-entry-dependencies-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 artifacts[].inputPrefixes[] の記入規則を守っていること（原本コードの接頭辞）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-entry-dependencies",
+      "testType": "unit",
+      "unitKey": "table-portal-entry-dependencies-function-unit-4",
+      "category": "§1・§4",
+      "viewpoint": "項目 artifacts[].rebuildCommand の記入規則を守っていること（再生成コマンド）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-entry-dependencies",
+      "testType": "unit",
+      "unitKey": "table-portal-entry-dependencies-function-unit-5",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-entry-dependencies",
+      "testType": "unit",
+      "unitKey": "table-portal-entry-dependencies-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "artifacts[].id が一意であること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-portal-entry-dependencies",
+      "testType": "unit",
+      "unitKey": "table-portal-entry-dependencies-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "artifacts[].inputPrefixes[] が1件以上であること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-reference-json-integrity",
+      "testType": "unit",
+      "unitKey": "table-reference-json-integrity-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 checks[].id の記入規則を守っていること（検査識別子）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-reference-json-integrity",
+      "testType": "unit",
+      "unitKey": "table-reference-json-integrity-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 checks[].relation の記入規則を守っていること（対応関係の種類）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-reference-json-integrity",
+      "testType": "unit",
+      "unitKey": "table-reference-json-integrity-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 checks[].source の記入規則を守っていること（参照元の指定）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-reference-json-integrity",
+      "testType": "unit",
+      "unitKey": "table-reference-json-integrity-function-unit-4",
+      "category": "§1・§4",
+      "viewpoint": "項目 checks[].target の記入規則を守っていること（参照先の指定）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-reference-json-integrity",
+      "testType": "unit",
+      "unitKey": "table-reference-json-integrity-function-unit-5",
+      "category": "§1・§4",
+      "viewpoint": "項目 expectedCheckCount が checks[] の実件数と一致すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-reference-json-integrity",
+      "testType": "unit",
+      "unitKey": "table-reference-json-integrity-function-unit-6",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-reference-json-integrity",
+      "testType": "unit",
+      "unitKey": "table-reference-json-integrity-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "checks[].id が一意であること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-reference-json-integrity",
+      "testType": "unit",
+      "unitKey": "table-reference-json-integrity-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "expectedCheckCount が checks[] の実件数と一致すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-detail-design-frontmatter-keys",
+      "testType": "unit",
+      "unitKey": "table-detail-design-frontmatter-keys-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 kinds.<kind>.label の記入規則を守っていること（種別ラベル）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-detail-design-frontmatter-keys",
+      "testType": "unit",
+      "unitKey": "table-detail-design-frontmatter-keys-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 kinds.<kind>.document の記入規則を守っていること（対象文書のファイル名）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-detail-design-frontmatter-keys",
+      "testType": "unit",
+      "unitKey": "table-detail-design-frontmatter-keys-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 kinds.<kind>.template の記入規則を守っていること（テンプレートの所在）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-detail-design-frontmatter-keys",
+      "testType": "unit",
+      "unitKey": "table-detail-design-frontmatter-keys-function-unit-4",
+      "category": "§1・§4",
+      "viewpoint": "項目 kinds.<kind>.keys[] の記入規則を守っていること（許可鍵の一覧）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-detail-design-frontmatter-keys",
+      "testType": "unit",
+      "unitKey": "table-detail-design-frontmatter-keys-function-unit-5",
+      "category": "§1・§4",
+      "viewpoint": "項目 kinds.<kind>.forbiddenKeys[] の記入規則を守っていること（禁止鍵の一覧）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-detail-design-frontmatter-keys",
+      "testType": "unit",
+      "unitKey": "table-detail-design-frontmatter-keys-function-unit-6",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-detail-design-frontmatter-keys",
+      "testType": "unit",
+      "unitKey": "table-detail-design-frontmatter-keys-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "画面を除く5種別のいずれかであること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-detail-design-frontmatter-keys",
+      "testType": "unit",
+      "unitKey": "table-detail-design-frontmatter-keys-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "種別ごとに1つ定まること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-detail-design-frontmatter-keys",
+      "testType": "unit",
+      "unitKey": "table-detail-design-frontmatter-keys-test-design-unit-3",
+      "category": "§2・§4",
+      "viewpoint": "実在するパスであること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-detail-design-frontmatter-keys",
+      "testType": "unit",
+      "unitKey": "table-detail-design-frontmatter-keys-test-design-unit-4",
+      "category": "§2・§4",
+      "viewpoint": "重複が無いこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-detail-design-frontmatter-keys",
+      "testType": "unit",
+      "unitKey": "table-detail-design-frontmatter-keys-test-design-unit-5",
+      "category": "§2・§4",
+      "viewpoint": "許可鍵一覧と重複しないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-rule-taxonomy",
+      "testType": "unit",
+      "unitKey": "table-rule-taxonomy-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 parents[].key の記入規則を守っていること（親カテゴリ識別子）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-rule-taxonomy",
+      "testType": "unit",
+      "unitKey": "table-rule-taxonomy-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 parents[].children[].key の記入規則を守っていること（子カテゴリ識別子）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-rule-taxonomy",
+      "testType": "unit",
+      "unitKey": "table-rule-taxonomy-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 children[].checker の記入規則を守っていること（toolDefinedがtrueなら空でない）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-rule-taxonomy",
+      "testType": "unit",
+      "unitKey": "table-rule-taxonomy-function-unit-4",
+      "category": "§1・§4",
+      "viewpoint": "項目 children[].scope の記入規則を守っていること（適用範囲）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-rule-taxonomy",
+      "testType": "unit",
+      "unitKey": "table-rule-taxonomy-function-unit-5",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-rule-taxonomy",
+      "testType": "unit",
+      "unitKey": "table-rule-taxonomy-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "parents[].key が一意であること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-rule-taxonomy",
+      "testType": "unit",
+      "unitKey": "table-rule-taxonomy-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "parents[].children[].key が全親を通じて一意であること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-rule-taxonomy",
+      "testType": "unit",
+      "unitKey": "table-rule-taxonomy-test-design-unit-3",
+      "category": "§2・§4",
+      "viewpoint": "toolDefinedがtrueの子カテゴリでcheckerが実在すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-output-layout",
+      "testType": "unit",
+      "unitKey": "table-output-layout-function-unit-1",
+      "category": "§1・§4",
+      "viewpoint": "項目 directoryNamePolicy.<key> の記入規則を守っていること（ディレクトリ命名方針）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-output-layout",
+      "testType": "unit",
+      "unitKey": "table-output-layout-function-unit-2",
+      "category": "§1・§4",
+      "viewpoint": "項目 unitPhaseDirNames.<phase> の記入規則を守っていること（phase別フォルダ名）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-output-layout",
+      "testType": "unit",
+      "unitKey": "table-output-layout-function-unit-3",
+      "category": "§1・§4",
+      "viewpoint": "項目 kindDirNames.<kind> の記入規則を守っていること（種別ごとのディレクトリ名）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-output-layout",
+      "testType": "unit",
+      "unitKey": "table-output-layout-function-unit-4",
+      "category": "§1・§4",
+      "viewpoint": "項目 displayLabels.<path> の記入規則を守っていること（表示ラベル）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-output-layout",
+      "testType": "unit",
+      "unitKey": "table-output-layout-function-unit-5",
+      "category": "§1・§4",
+      "viewpoint": "項目 layout.<key> の記入規則を守っていること（物理配置パス）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-output-layout",
+      "testType": "unit",
+      "unitKey": "table-output-layout-function-unit-6",
+      "category": "§1・§4",
+      "viewpoint": "項目 kindLabels.<kind> の記入規則を守っていること（種別の日本語ラベル）",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-output-layout",
+      "testType": "unit",
+      "unitKey": "table-output-layout-function-unit-7",
+      "category": "§5",
+      "viewpoint": "JSON構文が誤っている場合に読み込み元が中断すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-output-layout",
+      "testType": "unit",
+      "unitKey": "table-output-layout-test-design-unit-1",
+      "category": "§2・§4",
+      "viewpoint": "directoryNamePolicy.<key> が空でないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-output-layout",
+      "testType": "unit",
+      "unitKey": "table-output-layout-test-design-unit-2",
+      "category": "§2・§4",
+      "viewpoint": "kindDirNames のキーが種別と一致すること",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-output-layout",
+      "testType": "unit",
+      "unitKey": "table-output-layout-test-design-unit-3",
+      "category": "§2・§4",
+      "viewpoint": "layout 内のキーが他のキーと衝突しないこと",
+      "sourceKind": "table"
+    },
+    {
+      "screenKey": "table-output-layout",
+      "testType": "unit",
+      "unitKey": "table-output-layout-test-design-unit-4",
+      "category": "§2・§4",
+      "viewpoint": "kindLabels のキーが種別と一致すること",
+      "sourceKind": "table"
+    }
+  ],
+  "summary": {
+    "totalCount": 608,
+    "byTestType": {
+      "unit": 608
+    },
+    "byScreen": {
+      "batch-design-docs": 8,
+      "batch-detail-pages": 8,
+      "batch-extract": 8,
+      "batch-glossary": 9,
+      "batch-lib": 7,
+      "batch-matrix": 9,
+      "batch-portal-input": 9,
+      "batch-root": 9,
+      "batch-rule-proposal": 8,
+      "batch-rules": 9,
+      "batch-skill-guide": 7,
+      "batch-tests": 9,
+      "batch-unit-list": 9,
+      "batch-verification": 10,
+      "feature-counting-code-lines": 7,
+      "feature-extracting-unit-facts-from-code": 7,
+      "feature-generating-agent-config-index-from-repo": 6,
+      "feature-generating-api-basic-design-for-reverse-docs": 6,
+      "feature-generating-api-detail-design-for-reverse-docs": 6,
+      "feature-generating-api-list-for-reverse-docs": 6,
+      "feature-generating-batch-basic-design-for-reverse-docs": 6,
+      "feature-generating-batch-detail-design-for-reverse-docs": 5,
+      "feature-generating-batch-list-for-reverse-docs": 6,
+      "feature-generating-component-inventory-for-reverse-docs": 6,
+      "feature-generating-cross-views-for-reverse-docs": 6,
+      "feature-generating-design-system-for-reverse-docs": 6,
+      "feature-generating-entity-state-for-reverse-docs": 6,
+      "feature-generating-env-guide-for-reverse-docs": 6,
+      "feature-generating-er-diagram-for-reverse-docs": 6,
+      "feature-generating-external-basic-design-for-reverse-docs": 6,
+      "feature-generating-external-detail-design-for-reverse-docs": 5,
+      "feature-generating-external-list-for-reverse-docs": 5,
+      "feature-generating-feature-design-for-reverse-docs": 4,
+      "feature-generating-feature-list-for-reverse-docs": 4,
+      "feature-generating-glossary-for-reverse-docs": 4,
+      "feature-generating-icon-catalog-for-reverse-docs": 4,
+      "feature-generating-integration-test-spec-for-reverse-docs": 4,
+      "feature-generating-message-list-for-reverse-docs": 4,
+      "feature-generating-release-notes-for-reverse-docs": 4,
+      "feature-generating-report-basic-design-for-reverse-docs": 4,
+      "feature-generating-report-detail-design-for-reverse-docs": 4,
+      "feature-generating-report-list-for-reverse-docs": 4,
+      "feature-generating-requirement-definitions-for-reverse-docs": 4,
+      "feature-generating-reverse-basic-design": 4,
+      "feature-generating-reverse-common-docs": 4,
+      "feature-generating-reverse-detailed-design": 4,
+      "feature-generating-rule-proposals-for-reverse-docs": 4,
+      "feature-generating-screen-list-for-reverse-docs": 4,
+      "feature-generating-screen-transition-for-reverse-docs": 4,
+      "feature-generating-sequence-diagram-for-reverse-docs": 4,
+      "feature-generating-table-definition-for-reverse-docs": 7,
+      "feature-generating-table-list-for-reverse-docs": 7,
+      "feature-generating-table-logical-model-for-reverse-docs": 7,
+      "feature-generating-tech-stack-for-reverse-docs": 7,
+      "feature-generating-test-case-list-for-reverse-docs": 6,
+      "feature-generating-test-viewpoint-list-for-reverse-docs": 6,
+      "feature-maintaining-semantic-glossary": 7,
+      "feature-managing-semantic-glossary": 7,
+      "feature-orchestrating-ai-development-setup": 7,
+      "feature-prioritizing-improvement-tasks-from-images": 7,
+      "feature-rebuilding-code-from-docs": 7,
+      "feature-rebuilding-screen-unit-from-docs": 7,
+      "feature-running-reverse-screen-batch": 7,
+      "feature-surveying-architecture-for-reverse-docs": 6,
+      "feature-surveying-local-environment": 6,
+      "feature-syncing-reverse-env": 7,
+      "feature-unlocking-reverse-target-screens": 7,
+      "table-checker-real-world-cases": 9,
+      "table-customer-facing-terms": 10,
+      "table-deliverable-inventory": 11,
+      "table-delivered-skill-catalog": 9,
+      "table-design-code-consistency": 10,
+      "table-design-doc-required-items": 11,
+      "table-design-doc-required-sections": 8,
+      "table-design-unit-layout": 15,
+      "table-detail-design-frontmatter-keys": 11,
+      "table-doc-extraction": 14,
+      "table-document-style-exclusions": 7,
+      "table-instruction-writing-terms": 7,
+      "table-output-layout": 11,
+      "table-portal-catalog": 8,
+      "table-portal-catalog-legacy-golden": 6,
+      "table-portal-entry-dependencies": 7,
+      "table-reference-json-integrity": 8,
+      "table-rule-banned-terms": 6,
+      "table-rule-taxonomy": 8,
+      "table-shorthand-reference-document-words": 5,
+      "table-unit-axes": 8,
+      "table-配布文書の言葉": 6
+    }
+  }
+}

@@ -1,0 +1,287 @@
+{
+  "generatedAt": "2026-08-30T15:32:38Z",
+  "sourceDir": "delivery-payload/references",
+  "unitKind": "table",
+  "strategy": {
+    "extractionMethod": "manual-listing",
+    "approvedByUser": true,
+    "unitIdRegex": null
+  },
+  "detectionSummary": {
+    "unitCount": 22,
+    "unresolvedCount": 0,
+    "diagnostics": {
+      "extensionExtraction": {
+        "addedUnitCount": 0,
+        "total": 22,
+        "weakEvidence": {
+          "count": 22,
+          "total": 22,
+          "ratio": 1,
+          "warning": true
+        },
+        "rules": [
+          {
+            "name": "foreignKeys",
+            "searchedFor": "CREATE TABLE と FOREIGN KEY 制約",
+            "matchedUnitCount": 0
+          },
+          {
+            "name": "columnCount",
+            "searchedFor": "最終状態の列定義",
+            "matchedUnitCount": 0
+          },
+          {
+            "name": "mainColumns",
+            "searchedFor": "主キーまたは主要列の定義",
+            "matchedUnitCount": 0
+          }
+        ]
+      }
+    }
+  },
+  "units": [
+    {
+      "unitId": "table-checker-real-world-cases",
+      "unitKey": "checker-real-world-cases",
+      "kind": "table",
+      "identifier": "checker-real-world-cases",
+      "unitNameGuess": "検査器の実例入力集",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "checker-real-world-cases.json"
+    },
+    {
+      "unitId": "table-customer-facing-terms",
+      "unitKey": "customer-facing-terms",
+      "kind": "table",
+      "identifier": "customer-facing-terms",
+      "unitNameGuess": "顧客提示適合の語彙定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "customer-facing-terms.json"
+    },
+    {
+      "unitId": "table-deliverable-inventory",
+      "unitKey": "deliverable-inventory",
+      "kind": "table",
+      "identifier": "deliverable-inventory",
+      "unitNameGuess": "納品物一覧の状態定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "deliverable-inventory.json"
+    },
+    {
+      "unitId": "table-delivered-skill-catalog",
+      "unitKey": "delivered-skill-catalog",
+      "kind": "table",
+      "identifier": "delivered-skill-catalog",
+      "unitNameGuess": "配布スキルの一覧定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "delivered-skill-catalog.json"
+    },
+    {
+      "unitId": "table-design-code-consistency",
+      "unitKey": "design-code-consistency",
+      "kind": "table",
+      "identifier": "design-code-consistency",
+      "unitNameGuess": "設計書とコードの整合定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "design-code-consistency.json"
+    },
+    {
+      "unitId": "table-design-doc-required-items",
+      "unitKey": "design-doc-required-items",
+      "kind": "table",
+      "identifier": "design-doc-required-items",
+      "unitNameGuess": "詳細設計書の必須項目定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "design-doc-required-items.json"
+    },
+    {
+      "unitId": "table-design-doc-required-sections",
+      "unitKey": "design-doc-required-sections",
+      "kind": "table",
+      "identifier": "design-doc-required-sections",
+      "unitNameGuess": "設計文書の必須節定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "design-doc-required-sections.json"
+    },
+    {
+      "unitId": "table-design-unit-layout",
+      "unitKey": "design-unit-layout",
+      "kind": "table",
+      "identifier": "design-unit-layout",
+      "unitNameGuess": "設計単位の配置定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "design-unit-layout.json"
+    },
+    {
+      "unitId": "table-detail-design-frontmatter-keys",
+      "unitKey": "detail-design-frontmatter-keys",
+      "kind": "table",
+      "identifier": "detail-design-frontmatter-keys",
+      "unitNameGuess": "詳細設計書の前付け鍵定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "detail-design-frontmatter-keys.json"
+    },
+    {
+      "unitId": "table-doc-extraction",
+      "unitKey": "doc-extraction",
+      "kind": "table",
+      "identifier": "doc-extraction",
+      "unitNameGuess": "設計文書からの抽出定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "doc-extraction.json"
+    },
+    {
+      "unitId": "table-document-style-exclusions",
+      "unitKey": "document-style-exclusions",
+      "kind": "table",
+      "identifier": "document-style-exclusions",
+      "unitNameGuess": "文体検査の除外定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "document-style-exclusions.json"
+    },
+    {
+      "unitId": "table-instruction-writing-terms",
+      "unitKey": "instruction-writing-terms",
+      "kind": "table",
+      "identifier": "instruction-writing-terms",
+      "unitNameGuess": "指示書の表記統一定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "instruction-writing-terms.json"
+    },
+    {
+      "unitId": "table-output-layout",
+      "unitKey": "output-layout",
+      "kind": "table",
+      "identifier": "output-layout",
+      "unitNameGuess": "出力配置の定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "output-layout.json"
+    },
+    {
+      "unitId": "table-portal-catalog",
+      "unitKey": "portal-catalog",
+      "kind": "table",
+      "identifier": "portal-catalog",
+      "unitNameGuess": "ポータルカタログ定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "portal-catalog.json"
+    },
+    {
+      "unitId": "table-portal-catalog-legacy-golden",
+      "unitKey": "portal-catalog-legacy-golden",
+      "kind": "table",
+      "identifier": "portal-catalog-legacy-golden",
+      "unitNameGuess": "ポータルカタログの旧版基準",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "portal-catalog-legacy-golden.json"
+    },
+    {
+      "unitId": "table-portal-entry-dependencies",
+      "unitKey": "portal-entry-dependencies",
+      "kind": "table",
+      "identifier": "portal-entry-dependencies",
+      "unitNameGuess": "ポータル入口の依存定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "portal-entry-dependencies.json"
+    },
+    {
+      "unitId": "table-reference-json-integrity",
+      "unitKey": "reference-json-integrity",
+      "kind": "table",
+      "identifier": "reference-json-integrity",
+      "unitNameGuess": "参照定義間の整合定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "reference-json-integrity.json"
+    },
+    {
+      "unitId": "table-rule-banned-terms",
+      "unitKey": "rule-banned-terms",
+      "kind": "table",
+      "identifier": "rule-banned-terms",
+      "unitNameGuess": "規約の禁止語彙定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "rule-banned-terms.json"
+    },
+    {
+      "unitId": "table-rule-taxonomy",
+      "unitKey": "rule-taxonomy",
+      "kind": "table",
+      "identifier": "rule-taxonomy",
+      "unitNameGuess": "規約分類の定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "rule-taxonomy.json"
+    },
+    {
+      "unitId": "table-shorthand-reference-document-words",
+      "unitKey": "shorthand-reference-document-words",
+      "kind": "table",
+      "identifier": "shorthand-reference-document-words",
+      "unitNameGuess": "文書参照の短縮語定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "shorthand-reference-document-words.json"
+    },
+    {
+      "unitId": "table-unit-axes",
+      "unitKey": "unit-axes",
+      "kind": "table",
+      "identifier": "unit-axes",
+      "unitNameGuess": "分類軸と列の定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "unit-axes.json"
+    },
+    {
+      "unitId": "table-配布文書の言葉",
+      "unitKey": "配布文書の言葉",
+      "kind": "table",
+      "identifier": "配布文書の言葉",
+      "unitNameGuess": "配布文書の用語定義",
+      "detectionMethod": "reference-json",
+      "confidence": "HIGH",
+      "fileCount": 1,
+      "sourceFile": "配布文書の言葉.json"
+    }
+  ]
+}
