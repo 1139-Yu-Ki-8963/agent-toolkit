@@ -524,6 +524,17 @@ build_manifest_for_kind() {
         fi
       fi
 
+      # 区分（pathGroup）: パスの先頭の意味のある区切り（/api/orders/... → orders）から導く。
+      # 似た役割のAPIを一覧で並べ替え・絞り込みで整理するための軸で、frontmatter に区分の鍵は要らない。
+      if [ "$kind" = "api" ] && ! printf '%s' "$unit_obj" | jq -e 'has("pathGroup")' >/dev/null 2>&1; then
+        local api_path seg
+        api_path="$(extract_frontmatter_value "$file" "path")"
+        seg="$(printf '%s' "$api_path" | perl -ne 'my @s = grep { length } split m{/}; @s = grep { $_ ne "api" && $_ !~ /^v\d+$/ } @s; print $s[0] // ""')"
+        if [ -n "$seg" ]; then
+          unit_obj="$(printf '%s' "$unit_obj" | jq --arg v "$seg" '.pathGroup = $v')"
+        fi
+      fi
+
       # 1-69: APIの対象テーブルはfrontmatterの未定義フィールドではなく、API詳細設計書
       # §7 データアクセスに記録された表から決定的に導く。表が空ならフィールドは付けず、
       # 「未確認」と「調査済みで0件」を混同しない。

@@ -322,7 +322,7 @@ JSON
   if _gt_out6="$(printf '%s' "$api" | jq -e '
       ([.columns[].key] | index("method")) and
       (([.columns[].key] | index("permissions")) == null) and
-      ((.axes | length) == 0)' 2>&1)"; then
+      (([.axes[].key] | sort) == ["featureKey","pathGroup"])' 2>&1)"; then
     echo "  [PASS] ケース7: appliesTo による絞り込み"
   else
     echo "  [FAIL] ケース7: appliesTo の絞り込みが不正" >&2

@@ -118,7 +118,8 @@
       "mapping": {
         "unitKey": "api_key",
         "unitId": "api_id",
-        "sourceFile": "source_ref"
+        "sourceFile": "source_ref",
+        "featureKey": "feature_key"
       },
       "identifier": {
         "mode": "concat",

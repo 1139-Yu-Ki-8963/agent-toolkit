@@ -16,6 +16,7 @@
 #   --repo <path>     往復検証の対象リポジトリ(原本コード)のパス。省略時は本スクリプト
 #                      自身が属するリポジトリ(reverse-docs-skills)のルートを使う
 #   --input <path>    疑似入力の配置先を明示したい場合に prepare-verification-input.sh へ渡す
+#   --scale <spec>    疑似入力の単位を複製して増やす（例: --scale api=50,table=20,feature=12）
 #   --keep            終了時にスクラッチ作業領域(verification-env.sh管理)を残す(失敗調査用)。
 #                      --output で指定した生成物自体は常に残る
 #   --self-test       実際の生成は行わず、引数検査・段定義・依存スクリプト実在・
@@ -309,7 +310,11 @@ stage_prepare_input() {
   # 輪郭の指定(--profile api-only)があるときは、疑似入力の配置が対象外の記録も
   # 一緒に書く。対象側の記録を探す経路(下)より先に判定する。
   if [ -n "${PROFILE}" ]; then
+    if [ -n "${SCALE_SPEC}" ]; then
+      run_cmd bash "${script}" --repo "${REPO_SELF}" --output "${OUTPUT_DIR}" --profile "${PROFILE}" --scale "${SCALE_SPEC}"
+    else
     run_cmd bash "${script}" --repo "${REPO_SELF}" --output "${OUTPUT_DIR}" --profile "${PROFILE}"
+    fi
     if [ "${LAST_RC}" -eq 0 ]; then
       record_result prepare-input OK "輪郭 ${PROFILE} の疑似入力と対象外の記録を配置した"
     else
@@ -1559,8 +1564,7 @@ EOS
 }
 
 main() {
-  local output="" repo="" input="" keep=0 self_test_mode=0 profile=""
-
+  local output="" repo="" input="" keep=0 self_test_mode=0 profile="" scale="" 
   while [ $# -gt 0 ]; do
     case "$1" in
       --output) output="${2:-}"; shift 2 ;;
@@ -1573,6 +1577,7 @@ main() {
           *) echo "ERROR: --profile に指定できるのは api-only だけです: ${profile}" >&2; exit 2 ;;
         esac
         shift 2 ;;
+      --scale) scale="${2:-}"; shift 2 ;;
       --keep) keep=1; shift ;;
       --self-test) self_test_mode=1; shift ;;
       -h|--help) usage; exit 0 ;;
@@ -1616,6 +1621,7 @@ main() {
   [ -z "${REPO}" ] && REPO="${REPO_SELF}"
   INPUT_LOCATION="${input}"
   PROFILE="${profile}"
+  SCALE_SPEC="${scale}"
   KEEP="${keep}"
 
   MANIFESTS_DIR="${OUTPUT_DIR}/docs/manifests"

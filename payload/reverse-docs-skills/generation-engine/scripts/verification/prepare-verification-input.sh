@@ -62,7 +62,7 @@ DUMMY_COMMIT="0000000000000000000000000000000000000000"
 usage() {
   cat <<'EOF'
 Usage:
-  prepare-verification-input.sh --output <出力先ディレクトリ> [--repo <リポジトリのパス>] [--common-design-only] [--profile api-only]
+  prepare-verification-input.sh --output <出力先ディレクトリ> [--repo <リポジトリのパス>] [--common-design-only] [--profile api-only] [--scale api=50,table=20,...]
   prepare-verification-input.sh --self-test
 
   --profile api-only  画面を持たず API だけを持つ対象の輪郭で配置する。画面の雛形と
@@ -921,6 +921,7 @@ self_test() {
 OUTPUT_DIR=""
 REPO_ROOT="$REPO_ROOT_DEFAULT"
 SELF_TEST=0
+SCALE_SPEC=""
 COMMON_DESIGN_ONLY=0
 PROFILE=""
 
@@ -949,6 +950,10 @@ while [ $# -gt 0 ]; do
     --common-design-only)
       COMMON_DESIGN_ONLY=1
       shift
+      ;;
+    --scale)
+      SCALE_SPEC="${2:?--scale には api=50,table=20 の形の宣言が必要です}"
+      shift 2
       ;;
     -h|--help)
       usage
@@ -979,5 +984,81 @@ if [ -z "$OUTPUT_DIR" ]; then
   exit 1
 fi
 
-run_prepare "$OUTPUT_DIR"
-exit $?
+# 大規模の想定で単位を複製する（改善要望: 件数が多くてもUIが壊れないかを確かめる）。
+# --scale api=50,table=20,... の宣言に従い、配置済みの単位フォルダを決定的に複製する。
+# 複製は元の単位のキーへ連番を足した新しいキーで行い、ファイル内のキー・識別子・表題を
+# 同じ規則で書き換える。APIはメソッド・パスの区分・所属する機能も周期的に変え、
+# 一覧の並べ替え・絞り込み・機能/区分の軸が実データ規模で機能するかを見られるようにする。
+scale_kind_units() {
+  local kind="$1" root_rel="$2" base_key="$3" count="$4" feature_total="$5"
+  [ -n "$count" ] && [ "$count" -ge 2 ] || return 0
+  local base_dir="$OUTPUT_DIR/$root_rel/${kind}-${base_key}"
+  [ -d "$base_dir" ] || { echo "WARN: 複製元の単位がありません: $base_dir" >&2; return 0; }
+  local i new_key new_dir f
+  local groups="orders users items billing admin audit"
+  local methods="GET POST PUT DELETE"
+  for i in $(seq 2 "$count"); do
+    new_key="${base_key}${i}"
+    new_dir="$OUTPUT_DIR/$root_rel/${kind}-${new_key}"
+    rm -rf "$new_dir"; cp -R "$base_dir" "$new_dir"
+    while IFS= read -r -d '' f; do
+      perl -CSD -Mutf8 -pi -e "s/\\Q${base_key}\\E(?!\\d)/${new_key}/g" "$f"
+    done < <(find "$new_dir" -type f -print0)
+    # 疑似の対象コードも複製し、source_ref を複製ごとに一意へ振り直す。同じ source_ref を
+    # 共有すると、識別子を持たない種別でマニフェストの重複判定（identifier+sourceFile）に
+    # 落ちる。複製先は組み立てが参照する verification-source/project 配下。
+    local base_src_rel src_ext src_base new_src_rel
+    base_src_rel="$(grep -m1 '^source_ref: ' "$base_dir"/*/*.md 2>/dev/null | head -1 | sed 's/^.*source_ref: //')"
+    if [ -n "$base_src_rel" ] && [ -f "$OUTPUT_DIR/verification-source/project/$base_src_rel" ]; then
+      src_ext="${base_src_rel##*.}"; src_base="${base_src_rel%.*}"
+      new_src_rel="${src_base}${i}.${src_ext}"
+      cp "$OUTPUT_DIR/verification-source/project/$base_src_rel" "$OUTPUT_DIR/verification-source/project/$new_src_rel"
+      # 種別ごとの抽出用の複製先（verification-source/<kind>）にも同じ複製を置く。
+      # 一覧の生成は --source-file-root にこちらを渡すため、project 側だけでは実在検査に落ちる。
+      if [ -f "$OUTPUT_DIR/verification-source/$kind/$base_src_rel" ]; then
+        cp "$OUTPUT_DIR/verification-source/$kind/$base_src_rel" "$OUTPUT_DIR/verification-source/$kind/$new_src_rel"
+      fi
+      while IFS= read -r -d '' f; do
+        perl -CSD -Mutf8 -pi -e "s{^source_ref: .*\$}{source_ref: ${new_src_rel}}" "$f"
+      done < <(find "$new_dir" -type f -name '*.md' -print0)
+    fi
+    if [ "$kind" = "api" ]; then
+      local m g fidx fkey
+      m="$(printf '%s\n' $methods | awk -v n="$(( (i - 1) % 4 + 1 ))" 'NR==n')"
+      g="$(printf '%s\n' $groups | awk -v n="$(( (i - 1) % 6 + 1 ))" 'NR==n')"
+      fidx=$(( (i - 1) % feature_total + 1 ))
+      fkey="$FEATURE_KEY"; [ "$fidx" -ge 2 ] && fkey="${FEATURE_KEY}${fidx}"
+      while IFS= read -r -d '' f; do
+        perl -CSD -Mutf8 -pi -e "s/^method: GET\$/method: ${m}/; s{^path: /api/\\Q${new_key}\\E\$}{path: /api/${g}/${new_key}}; s/^feature_key: \\Q${FEATURE_KEY}\\E\$/feature_key: ${fkey}/" "$f"
+      done < <(find "$new_dir" -type f -name '*.md' -print0)
+    fi
+  done
+  echo "複製: ${kind} を ${count} 件へ増やしました（元: ${base_key}）"
+}
+
+scale_units() {
+  local spec="$1" entry kind count
+  local feature_total=1
+  for entry in $(printf '%s' "$spec" | tr ',' ' '); do
+    kind="${entry%%=*}"; count="${entry##*=}"
+    [ "$kind" = "feature" ] && feature_total="$count"
+  done
+  # 機能を先に増やし、APIの所属先として使えるようにする
+  [ "$feature_total" -ge 2 ] && scale_kind_units feature "$FEATURE_ROOT" "$FEATURE_KEY" "$feature_total" 1
+  for entry in $(printf '%s' "$spec" | tr ',' ' '); do
+    kind="${entry%%=*}"; count="${entry##*=}"
+    case "$kind" in
+      api) scale_kind_units api "$API_ROOT" "$API_KEY" "$count" "$feature_total" ;;
+      table) scale_kind_units table "$TABLE_ROOT" "$TABLE_KEY" "$count" 1 ;;
+      batch) scale_kind_units batch "$BATCH_ROOT" "$BATCH_KEY" "$count" 1 ;;
+      report) scale_kind_units report "$REPORT_ROOT" "$REPORT_KEY" "$count" 1 ;;
+      external) scale_kind_units external "$EXTERNAL_ROOT" "$EXTERNAL_KEY" "$count" 1 ;;
+      feature) : ;;
+      *) echo "ERROR: --scale に指定できない種別です: $kind" >&2; return 1 ;;
+    esac
+  done
+}
+
+run_prepare "$OUTPUT_DIR" || exit $?
+if [ -n "$SCALE_SPEC" ]; then scale_units "$SCALE_SPEC" || exit 1; fi
+exit 0
