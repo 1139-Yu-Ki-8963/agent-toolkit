@@ -108,6 +108,23 @@ should_skip_with_reason() {
   return 1
 }
 
+# 外への公開の緊急口: コマンド文字列内の EXTERNAL_PUBLISH_SKIP_REASON=<理由> を検出する。
+# 標準出力: 理由（無ければ空）。公開完遂規約（push までを完了条件と定める）と本規則が
+# 矛盾する場面で、ユーザーの判断を理由付きで通すための口。常用禁止。
+# 環境変数そのものは hook のプロセスへ届かないため、コマンド文字列から取り出す
+# （check-template-sample-sync.sh の緊急口と同じ方式）。
+external_publish_skip_reason() {
+  local cmd="$1" reason=""
+  case "$cmd" in
+    *EXTERNAL_PUBLISH_SKIP_REASON=*) ;;
+    *) printf '%s' ""; return 0 ;;
+  esac
+  reason=$(printf '%s' "$cmd" | sed -n 's/.*EXTERNAL_PUBLISH_SKIP_REASON="\([^"]*\)".*/\1/p')
+  [ -z "$reason" ] && reason=$(printf '%s' "$cmd" | sed -n "s/.*EXTERNAL_PUBLISH_SKIP_REASON='\([^']*\)'.*/\1/p")
+  [ -z "$reason" ] && reason=$(printf '%s' "$cmd" | sed -n 's/.*EXTERNAL_PUBLISH_SKIP_REASON=\([^ ]*\).*/\1/p')
+  printf '%s' "$reason"
+}
+
 run_hook() {
   local input
   input="$(cat)"
@@ -124,6 +141,14 @@ run_hook() {
     if msg="$(judge_external_publish "$cmd")"; then code=0; else code=$?; fi
 
     [ "$code" -eq 0 ] && exit 0
+
+    # 緊急口: 理由が書かれている場合だけ、理由を記録して通す（理由なしは通さない）
+    local pub_skip
+    pub_skip="$(external_publish_skip_reason "$cmd")"
+    if [ -n "$pub_skip" ]; then
+      printf '[EXTERNAL-PUBLISH-SKIP] 理由: %s\n' "$pub_skip" >&2
+      exit 0
+    fi
 
     ctx="[EXTERNAL-PUBLISH-BLOCK] ${msg}。人が実行するまで、この操作は AI からは行いません。"
     jq -n --arg ctx "$ctx" '{"systemMessage":$ctx,"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":$ctx}}'
@@ -267,6 +292,26 @@ self_test() {
     echo "  [PASS] 系11: 逃げ道の環境変数を設定していても外への公開は人がする は拒否のまま（${msg}）"
   else
     echo "  [FAIL] 系11: 逃げ道の環境変数で公開の判定まで通ってしまった（exit=${code}, ${msg}）" >&2
+    rc=1
+  fi
+
+  # 系12: コマンド文字列に理由付きの緊急口があれば external_publish_skip_reason が理由を返す
+  local pr12
+  pr12="$(external_publish_skip_reason 'EXTERNAL_PUBLISH_SKIP_REASON="規約整合の理由" git push origin main')"
+  if [ "$pr12" = "規約整合の理由" ]; then
+    echo "  [PASS] 系12: 理由付きの緊急口から理由を取り出せる（${pr12}）"
+  else
+    echo "  [FAIL] 系12: 理由を取り出せない（got=${pr12}）" >&2
+    rc=1
+  fi
+
+  # 系13: 緊急口が無ければ空を返す（拒否のまま）
+  local pr13
+  pr13="$(external_publish_skip_reason 'git push origin main')"
+  if [ -z "$pr13" ]; then
+    echo "  [PASS] 系13: 緊急口なしは空を返し拒否のまま"
+  else
+    echo "  [FAIL] 系13: 緊急口が無いのに理由が返った（got=${pr13}）" >&2
     rc=1
   fi
 
