@@ -2363,62 +2363,6 @@
       "sourceKind": "feature"
     },
     {
-      "screenKey": "feature-prioritizing-improvement-tasks-from-images",
-      "testType": "unit",
-      "unitKey": "feature-prioritizing-improvement-tasks-from-images-function-unit-1",
-      "category": "該当なし",
-      "viewpoint": "本機能は画像の分類・突合・反映・優先度判定をAIエージェントが直接行うPhase/Step手順であり、独自定義の関数・メソッドを持たない（design-unit-layout.json の feature.phases.detail は空）",
-      "sourceKind": "feature"
-    },
-    {
-      "screenKey": "feature-prioritizing-improvement-tasks-from-images",
-      "testType": "unit",
-      "unitKey": "feature-prioritizing-improvement-tasks-from-images-test-design-unit-1",
-      "category": "",
-      "viewpoint": "改善課題と判定された画像が、Phase1〜7を経て指摘改善一覧.mdへ反映され優先度が確定する",
-      "sourceKind": "feature"
-    },
-    {
-      "screenKey": "feature-prioritizing-improvement-tasks-from-images",
-      "testType": "unit",
-      "unitKey": "feature-prioritizing-improvement-tasks-from-images-test-design-unit-2",
-      "category": "",
-      "viewpoint": "資産の欠陥を述べていない、または反映先を特定できない場合、指示書に触れず報告して停止する",
-      "sourceKind": "feature"
-    },
-    {
-      "screenKey": "feature-prioritizing-improvement-tasks-from-images",
-      "testType": "unit",
-      "unitKey": "feature-prioritizing-improvement-tasks-from-images-test-design-unit-3",
-      "category": "",
-      "viewpoint": "採番形式が判読できないとき、AskUserQuestionでキーを確認する",
-      "sourceKind": "feature"
-    },
-    {
-      "screenKey": "feature-prioritizing-improvement-tasks-from-images",
-      "testType": "unit",
-      "unitKey": "feature-prioritizing-improvement-tasks-from-images-test-design-unit-4",
-      "category": "",
-      "viewpoint": "未対応で残存している項目は重複して追記しない",
-      "sourceKind": "feature"
-    },
-    {
-      "screenKey": "feature-prioritizing-improvement-tasks-from-images",
-      "testType": "unit",
-      "unitKey": "feature-prioritizing-improvement-tasks-from-images-test-design-unit-5",
-      "category": "",
-      "viewpoint": "未完了項目が0件のときPhase4〜6を実行せず報告のみで完了する",
-      "sourceKind": "feature"
-    },
-    {
-      "screenKey": "feature-prioritizing-improvement-tasks-from-images",
-      "testType": "unit",
-      "unitKey": "feature-prioritizing-improvement-tasks-from-images-test-design-unit-6",
-      "category": "",
-      "viewpoint": "循環依存を検出したとき順序を決めずユーザーに提示する",
-      "sourceKind": "feature"
-    },
-    {
       "screenKey": "feature-generating-report-detail-design-for-reverse-docs",
       "testType": "unit",
       "unitKey": "feature-generating-report-detail-design-for-reverse-docs-function-unit-1",
@@ -4868,9 +4812,9 @@
     }
   ],
   "summary": {
-    "totalCount": 608,
+    "totalCount": 601,
     "byTestType": {
-      "unit": 608
+      "unit": 601
     },
     "byScreen": {
       "batch-design-docs": 8,
@@ -4932,7 +4876,6 @@
       "feature-maintaining-semantic-glossary": 7,
       "feature-managing-semantic-glossary": 7,
       "feature-orchestrating-ai-development-setup": 7,
-      "feature-prioritizing-improvement-tasks-from-images": 7,
       "feature-rebuilding-code-from-docs": 7,
       "feature-rebuilding-screen-unit-from-docs": 7,
       "feature-running-reverse-screen-batch": 7,

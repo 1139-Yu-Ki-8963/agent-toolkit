@@ -8,7 +8,7 @@
     "unitIdRegex": null
   },
   "detectionSummary": {
-    "unitCount": 53,
+    "unitCount": 52,
     "unresolvedCount": 0,
     "diagnostics": {
       "emptyRelation": {
@@ -812,23 +812,6 @@
       "fileCount": 8,
       "detectionMethod": "skill-directory",
       "operationClass": "その他"
-    },
-    {
-      "unitId": "feat-prioritizing-improvement-tasks-from-images",
-      "unitKey": "prioritizing-improvement-tasks-from-images",
-      "kind": "feature",
-      "identifier": "prioritizing-improvement-tasks-from-images",
-      "unitNameGuess": "改善課題の登録と優先順位付け",
-      "summary": "改善課題の画像を書き起こして指示書へ集約し、未解決項目を調査して優先順位を確定する。",
-      "category": "統括・管理",
-      "relatedScreens": [],
-      "relatedApis": [],
-      "relatedTables": [],
-      "sourceFile": "prioritizing-improvement-tasks-from-images/SKILL.md",
-      "confidence": "HIGH",
-      "fileCount": 4,
-      "detectionMethod": "skill-directory",
-      "operationClass": "登録"
     },
     {
       "unitId": "feat-rebuilding-code-from-docs",
