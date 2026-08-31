@@ -29,6 +29,9 @@ scan() {
       /\[FAIL\]/ && mark && NR - mark <= 3 && NR > mark { print mark; mark = 0 }
     ' "$f")
   done < <(find "$base/generation-engine/scripts" "$base/delivery-payload/templates/rules/checkers" "$base/docs/scripts" -type f -name '*.sh' 2>/dev/null | LC_ALL=C sort)
+  if [ "$violations" -eq 0 ]; then
+    echo "[PASS] 出力捨て: 違反なし"
+  fi
   echo "出力捨て違反 $violations 件"
   [ "$violations" -eq 0 ]
 }

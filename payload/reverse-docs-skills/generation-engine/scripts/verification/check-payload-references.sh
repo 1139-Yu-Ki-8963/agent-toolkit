@@ -134,6 +134,9 @@ scan() {
       fi
     done < <(extract_candidates "$f")
   done < <(collect_files "$base" | LC_ALL=C sort -u)
+  if [ "$violations" -eq 0 ]; then
+    echo "[PASS] 参照先の実在: 走査 $total 件で違反なし"
+  fi
   echo "走査 $total 件 / 違反 $violations 件"
   [ "$violations" -eq 0 ]
 }
@@ -166,6 +169,9 @@ scan_seihon() {
       true
     } ; grep '正本' "$f" 2>/dev/null | grep -oE "$BACKTICK_RE" 2>/dev/null | sed -E 's/^`//; s/`$//')
   done < <(collect_files "$base" | LC_ALL=C sort -u)
+  if [ "$violations" -eq 0 ]; then
+    echo "[PASS] 正本参照の実在: $total 件で違反なし"
+  fi
   echo "正本参照 $total 件 / 違反 $violations 件"
   [ "$violations" -eq 0 ]
 }
