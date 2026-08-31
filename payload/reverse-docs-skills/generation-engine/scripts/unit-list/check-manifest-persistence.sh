@@ -108,8 +108,14 @@ run_check() {
         (.detectionSummary.diagnostics.extensionExtraction // empty)
         | "\(.addedUnitCount // "-")\t\(.weakEvidence.ratio // "-")\t\(.weakEvidence.warning // false)"
       ' "$ext_manifest_path" 2>/dev/null)"
+      local ext_docs_only
+      ext_docs_only="$(jq -r '.detectionSummary.diagnostics.extensionExtraction.docsOnly // false' "$ext_manifest_path" 2>/dev/null)"
       if [ "$base_unit_count" = "0" ]; then
         printf '  [PASS] %s: %s (対象0件のため追加項目検査を省略)\n' "$folder_name" "$ext_manifest_name"
+      elif [ "$ext_docs_only" = "true" ]; then
+        # 設計文書だけの組み立て（build-manifests-from-docs.sh）が書いた拡張版。
+        # 原本コードの抽出を伴わないため、追加項目0件は想定内として通す（1-61）。
+        printf '  [PASS] %s: %s (docs だけの組み立てのため追加項目なしを許容)\n' "$folder_name" "$ext_manifest_name"
       elif [ -n "$ext_diag" ] && { [ "$(printf '%s' "$ext_diag" | cut -f1)" = "0" ] || [ "$(printf '%s' "$ext_diag" | cut -f3)" = "true" ]; }; then
         printf '  [FAIL] %s: %s は追加項目が0件、または全件が弱い根拠 (addedUnitCount=%s weakEvidence.ratio=%s)\n' \
           "$folder_name" "$ext_manifest_name" "$(printf '%s' "$ext_diag" | cut -f1)" "$(printf '%s' "$ext_diag" | cut -f2)" >&2

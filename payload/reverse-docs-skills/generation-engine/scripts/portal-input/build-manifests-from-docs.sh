@@ -40,6 +40,7 @@ fi
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 DOC_EXTRACTION_DEFAULT="$SCRIPT_DIR/../../../delivery-payload/references/doc-extraction.json"
 VALIDATE_MANIFEST_SH="$SCRIPT_DIR/../unit-list/validate-manifest.sh"
+FINALIZE_EXT_SH="$SCRIPT_DIR/../extract/finalize-extension-manifest.sh"
 # shellcheck source=../output-layout.sh
 . "$SCRIPT_DIR/../output-layout.sh"
 # shellcheck source=../extract/document-paths.sh
@@ -722,6 +723,25 @@ build_manifest_for_kind() {
 
   mkdir -p "$dest_dir"
   printf '%s\n' "$manifest" > "$dest_dir/${kind}-manifest.json"
+
+  # 拡張版（<kind>-manifest.ext.json）も同時に書き出す（1-61）。設計文書だけの
+  # 組み立てでは原本コードの抽出を行えないため、拡張の中身は本体の複製とし、
+  # 充足の診断（addedUnitCount・weakEvidence）を finalize が記録する。全件が
+  # 根拠弱（終了コード2）は docs だけの経路では想定内のため、警告として通す。
+  cp "$dest_dir/${kind}-manifest.json" "$dest_dir/${kind}-manifest.ext.json"
+  local fin_rc=0
+  bash "$FINALIZE_EXT_SH" "$dest_dir/${kind}-manifest.json" "$dest_dir/${kind}-manifest.ext.json" >&2 || fin_rc=$?
+  # docs 由来である印を残す。永続化の検査（1-88 項目4）は、コード抽出の経路では
+  # 追加0件を不合格にするが、docs だけの組み立てでは想定内として通すための区別。
+  jq '.detectionSummary.diagnostics.extensionExtraction.docsOnly = true' \
+    "$dest_dir/${kind}-manifest.ext.json" > "$dest_dir/${kind}-manifest.ext.json.tmp" \
+    && mv "$dest_dir/${kind}-manifest.ext.json.tmp" "$dest_dir/${kind}-manifest.ext.json"
+  if [ "$fin_rc" -eq 2 ]; then
+    echo "WARN: ${kind} の拡張マニフェストは追加項目0件（設計文書だけの組み立てのため想定内）" >&2
+  elif [ "$fin_rc" -ne 0 ]; then
+    echo "ERROR: ${kind} の拡張マニフェストの記録に失敗した (rc=${fin_rc})" >&2
+    return "$fin_rc"
+  fi
 
   bash "$VALIDATE_MANIFEST_SH" "$dest_dir/${kind}-manifest.json" --unit-kind "$kind" --source-file-root "$source_file_root" >&2
   return $?
