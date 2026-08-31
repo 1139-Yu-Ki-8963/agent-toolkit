@@ -20,7 +20,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash, AskUserQuestion
 
 ### Step 1-2: スキーマと現データの読み込み
 
-`docs/13_業務管理ポータル設計/02_データモデル設計.md` と `portal/data.js` を Read する。各エンティティ（projects / issues / docs / people / meetings / decisions / access）のフィールド・状態値・参照形式を確認する。
+`docs/13_業務管理ポータル設計/02_データモデル設計.md` と `portal/data.js` を Read する。各エンティティ（projects / issues / docs / people / meetings / decisions / access）のフィールド・状態値・参照形式を確認する。更新対象の data.js は実案件では `clients/<案件名>/portal/data.js`（複製）であり、リポジトリ直下の `portal/data.js` はモックデータ固定のデモのため対象にしない。
 
 **完了**: スキーマ定義と現在のデータを把握していること
 
@@ -95,6 +95,7 @@ bash .claude/skills/consult-portal-update/scripts/verify-portal-data.sh portal/d
 - 出典の無いエントリの追加・更新
 - スキーマ外フィールドの追加・状態値の発明
 - 素材に無い情報の捏造（進捗率・日付・人名を推測で埋めない）
+- リポジトリ直下 `portal/data.js` への実案件データの書き込み（公開 payload に同期されるため。実案件は `clients/<案件名>/portal/` の複製で運用する）
 
 ## 関連
 
