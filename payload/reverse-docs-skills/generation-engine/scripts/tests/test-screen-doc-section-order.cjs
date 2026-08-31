@@ -11,7 +11,11 @@ const { findCachedBrowser } = require('./lib/find-cached-browser.cjs');
 const { BrowserUnavailableError, markUnavailable, reportIfUnavailable } = require('./lib/browser-unavailable.cjs');
 
 const MAX_DUMP_BYTES = 20 * 1024 * 1024;
-const DUMP_DOM_TIMEOUT_MS = 180000;
+// 実測6秒に対し45秒で十分。集約の既定上限(120秒)より短くすることで、ハング時は
+// テスト自身がChromeのプロセスグループをSIGKILLで終端し、外側のkillでChromeだけが
+// 取り残される事故を防ぐ(detached起動のため外側のグループkillはChromeへ届かない)。
+// 45秒×2回(下記の再試行)+生成時間でも120秒の内側に収まる。
+const DUMP_DOM_TIMEOUT_MS = 45000;
 
 function isExecutable(filePath) {
   try {
@@ -236,7 +240,7 @@ function launchDumpDom(browserPath, args) {
       graceTimer = setTimeout(succeed, 250);
     };
     timeout = setTimeout(() => {
-      fail(new Error(`Chrome/Chromiumが180秒以内に完全な--dump-dom出力を返しませんでした\n${stderr}`));
+      fail(new Error(`Chrome/Chromiumが${DUMP_DOM_TIMEOUT_MS / 1000}秒以内に完全な--dump-dom出力を返しませんでした\n${stderr}`));
     }, DUMP_DOM_TIMEOUT_MS);
 
     browser.stdout.setEncoding('utf8');
@@ -325,7 +329,10 @@ function run(command, args) {
   const result = spawnSync(command, args, {
     cwd: repositoryRoot,
     encoding: 'utf8',
-    timeout: 300000,
+    // 実測6秒に対し60秒あれば十分。集約の既定上限(120秒)より短くすることで、
+    // ハング時はテスト自身がChromeをSIGKILLで確実に終端し、集約側のグループkillで
+    // Chromeだけが取り残される事故(取り残しが次回実行を連鎖的にハングさせる)を防ぐ。
+    timeout: 60000,
     killSignal: 'SIGKILL',
     maxBuffer: MAX_DUMP_BYTES,
   });
@@ -364,19 +371,32 @@ function generateScreenDetailDocument() {
     if (browserPath === '') {
       throw markUnavailable(new Error('ChromeまたはChromiumの実行ファイルを検出できない'));
     }
-    const launched = await launchDumpDom(browserPath, [
-      '--headless=new',
-      '--no-sandbox',
-      '--disable-gpu',
-      '--disable-dev-shm-usage',
-      '--disable-background-networking',
-      '--no-first-run',
-      '--no-default-browser-check',
-      '--allow-file-access-from-files',
-      `--user-data-dir=${browserProfilePath}`,
-      '--dump-dom',
-      pathToFileURL(outputPath).href,
-    ]);
+    // 取り残された別プロセスの影響等でまれに--dump-domがハングする(実測: 残留Chrome
+    // が居ると次回起動がハングし、清掃すると6秒で完走)。時間内に完了しなかった場合は
+    // 新しいプロファイルで1回だけ再試行する。ブラウザ不在(BrowserUnavailableError)は
+    // 再試行しても変わらないため再試行しない。
+    let launched;
+    for (let attempt = 1; ; attempt += 1) {
+      try {
+        launched = await launchDumpDom(browserPath, [
+          '--headless=new',
+          '--no-sandbox',
+          '--disable-gpu',
+          '--disable-dev-shm-usage',
+          '--disable-background-networking',
+          '--no-first-run',
+          '--no-default-browser-check',
+          '--allow-file-access-from-files',
+          `--user-data-dir=${browserProfilePath}-${attempt}`,
+          '--dump-dom',
+          pathToFileURL(outputPath).href,
+        ]);
+        break;
+      } catch (error) {
+        if (attempt >= 2 || error instanceof BrowserUnavailableError) throw error;
+        console.log('INFO: --dump-domが時間内に完了しなかったため新しいプロファイルで再試行');
+      }
+    }
     browser = launched.browser;
     const headings = extractSectionHeadings(launched.html);
     const relatedHeading = '§19 関連資料';
