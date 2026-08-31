@@ -34,7 +34,12 @@ repo_root="$(cd "$script_dir/../../.." && pwd)"
 projector="$script_dir/project-semantic-glossary.py"
 fixture="$repo_root/generation-engine/scripts/glossary/fixtures/valid-glossary.yaml"
 registry="$repo_root/generation-engine/scripts/glossary/fixtures/canonical-registry"
-real_python="$repo_root/generation-engine/scripts/glossary/.venv/bin/python"
+# 配布先には .venv が無い。呼び出し元が渡す GLOSSARY_PYTHON(check-payload-layer1.sh が
+# 正本の実行系を渡す)を最優先で使い、無ければ正本の .venv、最後に python3 へ落とす。
+real_python="${GLOSSARY_PYTHON:-}"
+if [ -z "$real_python" ] || [ ! -x "$real_python" ]; then
+  real_python="$repo_root/generation-engine/scripts/glossary/.venv/bin/python"
+fi
 [ -x "$real_python" ] || real_python="python3"
 
 if ! "$real_python" -c 'import yaml' >/dev/null 2>&1; then
