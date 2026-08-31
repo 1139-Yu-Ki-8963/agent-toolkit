@@ -176,7 +176,7 @@ Skill(orchestrating-ai-development-setup)
 
 ## ポータル生成の前後処理受け口
 
-配布物の生成器（`generation-engine/scripts/build-portal.sh`）だけではポータルを再現できない場合がある。取り込み可否を調べた結果は次の表のとおりで、取り込まないと判断した工程は実行側が独自スクリプトで補う必要がある。そのために、ポータル生成の前後に任意の処理を差し込む受け口を用意している。
+配布物の生成器（`generation-engine/scripts/build-portal.sh`）と同梱スクリプトだけで、ポータル一式を再現できる。実行側の独自スクリプトは要らない。取り込み可否を調べた結果は次の表のとおりで、全工程を取り込み済みまたは不要と判断した。あわせて、ポータル生成の前後に任意の処理を差し込む受け口を用意している。実行側固有の表示調整など、配布物の範囲外の追加処理に使える。
 
 ### 使い方
 
@@ -214,7 +214,7 @@ bash generation-engine/scripts/build-portal.sh <target_repo_path> <output_dir> <
 |---|---|---|
 | 規約定義から人間向けページと索引のカードを生成する処理 | 取り込み済み | `portal-catalog.mjs` と `build-portal.sh` に既に実装済み |
 | 対応表の描画不具合を生成後に当て直す後処理 | 不要 | 回避の対象だった不具合をテンプレートへ恒久修正したため、生成後の当て直し自体が不要になった |
-| 種別ごとの一覧の入力データを設計文書から組み立てる処理 | 一部取り込み | 設計文書テンプレートの frontmatter は6種別（API/テーブル/バッチ/帳票/外部連携/機能）ともキー名がこのリポジトリのテンプレートで固定されており、`delivery-payload/references/doc-extraction.json` の宣言で設定化できた。`unitKey`・`unitId`・`sourceFile`、および API の `identifier` は frontmatter から導ける。一方、`kind`・`confidence`・`detectionMethod`・`fileCount`、および API 以外の `identifier` は原本コードの静的解析に由来し、設計文書テンプレートが意図的にコード識別子を排除しているため文書からは復元できず、宣言の代替値（`unresolved`・`low` 等）で埋める。`build-portal.sh` の `--build-manifests-from-docs`（上記）でこの抽出を実行する |
+| 種別ごとの一覧の入力データを設計文書から組み立てる処理 | 取り込み済み | 設計文書テンプレートの frontmatter は6種別（API/テーブル/バッチ/帳票/外部連携/機能）ともキー名が固定されており、`delivery-payload/references/doc-extraction.json` の宣言で設定化した。`unitKey`・`unitId`・`sourceFile`、および API の `identifier` は frontmatter から導く。`kind`・`confidence`・`detectionMethod`・`fileCount`、および API 以外の `identifier` は原本コードの静的解析に由来し、文書からは導けない。そのため宣言の既定値（`unresolved`・`low` 等）で埋め、値を捏造しない。既定値で埋めた項目は要手動確認としてポータルに表示される。この方式で全項目が決定的に決まり、実行側のスクリプトを要しない。`build-portal.sh` の `--build-manifests-from-docs`（上記）でこの抽出を実行する |
 | 状態遷移図の入力データを設計文書から組み立てる処理 | 取り込み済み | `データ設計.md` §6「状態遷移表」の根拠パス列から `sourceRef` を抽出できる。欄を新設する必要はなかった |
 | ER図の入力データを設計文書から組み立てる処理 | 取り込み済み | `テーブル定義書.md` §6.3「外部キー」に出典参照・関連の種別（cardinality）の列を足し、そこから抽出できるようにした |
 | 画面遷移図の入力データを設計文書から組み立てる処理 | 取り込み済み | 画面遷移図の入力だけが確信度（値そのものではなく値の確からしさを表す判断のメタ情報）を要求するが、`画面基本設計書.md` §6「画面遷移の業務文脈」が既に持つ遷移元・遷移先・契機の3列だけから矢印を組み立てられた。確信度の欄は設計文書へ新設せず、値は空のまま（捏造しない）とし、表示に使われないことを実描画で確認した |

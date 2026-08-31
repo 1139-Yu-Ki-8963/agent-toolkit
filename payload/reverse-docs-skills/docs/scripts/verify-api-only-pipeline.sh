@@ -11,6 +11,9 @@
 # 使い方:
 #   bash docs/scripts/verify-api-only-pipeline.sh <検収のキー>
 #
+# <検収のキー> が coverage- で始まる場合は、生成の後に網羅の判定
+# (check-coverage.sh) まで実行し、その終了コードを返す。
+#
 # 終了コード: 生成連鎖の終了コードをそのまま返す(10段すべて成功なら0)。
 set -uo pipefail
 KEY="${1:-probe}"
@@ -21,3 +24,12 @@ rm -rf "$OUT"
 cd "$REPO_ROOT" || exit 2
 bash generation-engine/scripts/verification/run-layer-full-pipeline.sh \
   --output "$OUT" --profile api-only --keep
+rc=$?
+case "$KEY" in
+  coverage-*)
+    [ "$rc" -eq 0 ] || exit "$rc"
+    bash generation-engine/scripts/verification/check-coverage.sh --output "$OUT"
+    exit $?
+    ;;
+esac
+exit "$rc"
