@@ -132,10 +132,11 @@ self_test() {
     'Skill("prioritizing-present-references")' \
     'Skill("unlocking-present-references")' \
     > "$base/.claude/skills/generating-present-for-reverse-docs/reference.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _cap="$(scan "$base" 2>&1)"; then
     echo "[PASS] 実在するスキル参照を合格にする"; pass=$((pass + 1))
   else
     echo "[FAIL] 実在するスキル参照を合格にできない" >&2; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
   local prefix prefix_failure=0
@@ -171,10 +172,11 @@ self_test() {
   fi
 
   printf '%s\n' '旧 generating-excluded-for-reverse-docs の記録' > "$base/.claude/skills/generating-present-for-reverse-docs/reference.md"
-  if scan "$base" >/dev/null 2>&1; then
+  if _cap="$(scan "$base" 2>&1)"; then
     echo "[PASS] 理由付き除外を合格にする"; pass=$((pass + 1))
   else
     echo "[FAIL] 理由付き除外を合格にできない" >&2; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
   printf '%s\n' 'Skill("generating-excluded-for-reverse-docs")' > "$base/.claude/skills/managing-present-references/reference.md"

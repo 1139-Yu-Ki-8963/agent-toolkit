@@ -93,10 +93,11 @@ self_test() {
   printf 'template\tskill\tstatus\treason\n%s\t%s\tmapped\t%s\n' \
     'delivery-payload/templates/リバース検証/画面/例.md' 'generating-example-for-reverse-docs' '生成担当' \
     > "$base/$MAPPING_REL"
-  if scan "$base" >/dev/null 2>&1; then
+  if _cap="$(scan "$base" 2>&1)"; then
     echo "[PASS] 対応手順がある記入規則を合格にする"; pass=$((pass + 1))
   else
     echo "[FAIL] 対応手順がある記入規則を合格にできない" >&2; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
   : > "$base/.claude/skills/generating-example-for-reverse-docs/SKILL.md"
@@ -119,10 +120,11 @@ self_test() {
 
   printf 'template\tskill\tstatus\treason\n%s\t-\tunknown\t%s\n' \
     'delivery-payload/templates/リバース検証/画面/例.md' '生成担当を確定できない' > "$base/$MAPPING_REL"
-  if scan "$base" >/dev/null 2>&1; then
+  if _cap="$(scan "$base" 2>&1)"; then
     echo "[PASS] 理由付きの判定不能を明示状態として扱う"; pass=$((pass + 1))
   else
     echo "[FAIL] 理由付きの判定不能を扱えない" >&2; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
   printf 'template\tskill\tstatus\treason\n%s\t-\tunknown\t\n' \

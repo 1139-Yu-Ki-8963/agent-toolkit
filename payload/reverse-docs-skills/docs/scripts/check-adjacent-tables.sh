@@ -44,9 +44,9 @@ self_test() {
   mkdir -p "$tmp/bad" "$tmp/good"
   printf '| a | b |\n|---|---|\n| 1 | 2 |\n\n| c | d |\n|---|---|\n' > "$tmp/bad/x.md"
   printf '| a | b |\n|---|---|\n| 1 | 2 |\n\n説明の段落。\n\n| c | d |\n|---|---|\n' > "$tmp/good/y.md"
-  if run_check "$tmp/bad" >/dev/null 2>&1; then echo "  [FAIL] 陽性: 空行だけで続く表を検出しない"; fail=$((fail+1)); else echo "  [PASS] 陽性: 空行だけで続く表を検出する"; pass=$((pass+1)); fi
+  if _cap="$(run_check "$tmp/bad" 2>&1)"; then { echo "  [FAIL] 陽性: 空行だけで続く表を検出しない"; printf '%s\n' "$_cap" | sed 's/^/      /' >&2; }; fail=$((fail+1)); else echo "  [PASS] 陽性: 空行だけで続く表を検出する"; pass=$((pass+1)); fi
   if out="$(run_check "$tmp/bad" 2>&1)" || true; printf '%s' "$out" | grep -q 'x.md: 5'; then echo "  [PASS] 走査: 行番号つきで該当行を返す"; pass=$((pass+1)); else echo "  [FAIL] 走査: 該当行を返さない"; fail=$((fail+1)); fi
-  if run_check "$tmp/good" >/dev/null 2>&1; then echo "  [PASS] 陰性: 段落で区切った表は通る"; pass=$((pass+1)); else echo "  [FAIL] 陰性: 段落で区切った表を誤検出する"; fail=$((fail+1)); fi
+  if _cap="$(run_check "$tmp/good" 2>&1)"; then echo "  [PASS] 陰性: 段落で区切った表は通る"; pass=$((pass+1)); else { echo "  [FAIL] 陰性: 段落で区切った表を誤検出する"; printf '%s\n' "$_cap" | sed 's/^/      /' >&2; }; fail=$((fail+1)); fi
   echo "self-test: ${pass} PASS, ${fail} FAIL"
   [ "$fail" -eq 0 ]
 }

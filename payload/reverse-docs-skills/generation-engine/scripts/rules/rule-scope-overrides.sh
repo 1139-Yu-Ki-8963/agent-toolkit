@@ -315,8 +315,9 @@ EOF
   cat > "${root8}/docs/rules/rule-scope-overrides.json" <<'EOF'
 {"specVersion":1,"overrides":{},"additionalChildren":{"code-standards":[{"key":"Bad Key","title":""}]}}
 EOF
-  if resolve_rule_scope_overrides "$root8" >/dev/null 2>&1; then
+  if _cap="$(resolve_rule_scope_overrides "$root8" 2>&1)"; then
     echo "  [FAIL] ケース8: 不正な子（key・title）が不合格にならない" >&2; rc=1
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   else
     echo "  [PASS] ケース8: additionalChildren の不正な子は不合格になる（改善課題1-286）"
   fi

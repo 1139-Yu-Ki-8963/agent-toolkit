@@ -568,8 +568,9 @@ console.log(session.id);'
   fi
 
   # 系22: 環境変数が空文字 → should_skip_with_reasonが戻り値1を返す
-  if FULL_SCAN_THEN_FILTER_SKIP_REASON="" should_skip_with_reason >/dev/null 2>&1; then
+  if _cap="$(FULL_SCAN_THEN_FILTER_SKIP_REASON="" should_skip_with_reason 2>&1)"; then
     echo "  [FAIL] 系22: 空文字なのにskipされた" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     rc=1
   else
     echo "  [PASS] 系22: 環境変数が空文字ならskipされない"

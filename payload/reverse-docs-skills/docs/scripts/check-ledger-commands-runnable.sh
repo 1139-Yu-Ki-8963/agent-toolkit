@@ -257,10 +257,11 @@ self_test() {
     return 1
   fi
 
-  if LEDGER_COMMANDS_LEDGER="$repo_only_fixture" bash "$0" --run --only case-repo-only-present >/dev/null 2>&1; then
+  if _cap="$(LEDGER_COMMANDS_LEDGER="$repo_only_fixture" bash "$0" --run --only case-repo-only-present 2>&1)"; then
     echo "[PASS] 参照先が実在すれば配布対象外の断り書きがあっても実行して合格と判定する"
   else
     echo "[FAIL] 参照先が実在するのに実行されなかった" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     return 1
   fi
 

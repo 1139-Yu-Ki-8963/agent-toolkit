@@ -126,16 +126,18 @@ self_test() {
     return 1
   fi
   printf '%s\n' '9 種別の詳細設計' > "$fixture/delivery-payload/references/実装契約定義.md"
-  if PAYLOAD_DOC_COUNT_ROOT="$fixture" PAYLOAD_DOC_COUNT_DEFINITIONS="$fixture/docs/references/payload-doc-count-checks.json" bash "${BASH_SOURCE[0]}" >/dev/null 2>&1; then
+  if _cap="$(PAYLOAD_DOC_COUNT_ROOT="$fixture" PAYLOAD_DOC_COUNT_DEFINITIONS="$fixture/docs/references/payload-doc-count-checks.json" bash "${BASH_SOURCE[0]}" 2>&1)"; then
     echo "[FAIL] 不一致を検出できません" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     return 1
   fi
   echo "[PASS] 不一致を検出"
 
   printf '%s\n' '親カテゴリを 1 個、子カテゴリを 2 個' '子カテゴリは次の 2 件である。' '' '- `a`' '- `b`' '- `余分`' '' 'これらは本文入りである。' > "$fixture/delivery-payload/references/規約定義と派生生成の設計.md"
   printf '%s\n' '2 種別の詳細設計' > "$fixture/delivery-payload/references/実装契約定義.md"
-  if PAYLOAD_DOC_COUNT_ROOT="$fixture" PAYLOAD_DOC_COUNT_DEFINITIONS="$fixture/docs/references/payload-doc-count-checks.json" bash "${BASH_SOURCE[0]}" >/dev/null 2>&1; then
+  if _cap="$(PAYLOAD_DOC_COUNT_ROOT="$fixture" PAYLOAD_DOC_COUNT_DEFINITIONS="$fixture/docs/references/payload-doc-count-checks.json" bash "${BASH_SOURCE[0]}" 2>&1)"; then
     echo "[FAIL] 一覧の余分な項目を検出できません" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     return 1
   fi
   echo "[PASS] 一覧の余分な項目を検出"
@@ -143,8 +145,9 @@ self_test() {
   printf '%s\n' '親カテゴリを 1 個、子カテゴリを 2 個' '子カテゴリは次の 2 件である。' '' '- `a`' '- `b`' '' 'これらは本文入りである。' > "$fixture/delivery-payload/references/規約定義と派生生成の設計.md"
   sed 's/## 段階的移行方針/## 存在しない終了位置/' "$fixture/delivery-payload/references/manifest-schema-extensions.md" > "$fixture/delivery-payload/references/manifest-schema-extensions.tmp"
   mv "$fixture/delivery-payload/references/manifest-schema-extensions.tmp" "$fixture/delivery-payload/references/manifest-schema-extensions.md"
-  if PAYLOAD_DOC_COUNT_ROOT="$fixture" PAYLOAD_DOC_COUNT_DEFINITIONS="$fixture/docs/references/payload-doc-count-checks.json" bash "${BASH_SOURCE[0]}" >/dev/null 2>&1; then
+  if _cap="$(PAYLOAD_DOC_COUNT_ROOT="$fixture" PAYLOAD_DOC_COUNT_DEFINITIONS="$fixture/docs/references/payload-doc-count-checks.json" bash "${BASH_SOURCE[0]}" 2>&1)"; then
     echo "[FAIL] 終了位置の欠落を判定不能にできません" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     return 1
   else
     local marker_rc=$?
@@ -155,8 +158,9 @@ self_test() {
   fi
   echo "[PASS] 終了位置の欠落を判定不能として区別"
 
-  if PAYLOAD_DOC_COUNT_ROOT="$fixture" PAYLOAD_DOC_COUNT_DEFINITIONS="$fixture/docs/references/missing.json" bash "${BASH_SOURCE[0]}" >/dev/null 2>&1; then
+  if _cap="$(PAYLOAD_DOC_COUNT_ROOT="$fixture" PAYLOAD_DOC_COUNT_DEFINITIONS="$fixture/docs/references/missing.json" bash "${BASH_SOURCE[0]}" 2>&1)"; then
     echo "[FAIL] 定義の欠落を判定不能にできません" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     return 1
   else
     local missing_rc=$?
@@ -168,8 +172,9 @@ self_test() {
   echo "[PASS] 定義の欠落を判定不能として区別"
 
   printf '%s\n' '一時ディレクトリではない' > "$fixture/not-a-directory"
-  if TMPDIR="$fixture/not-a-directory" bash "${BASH_SOURCE[0]}" --self-test >/dev/null 2>&1; then
+  if _cap="$(TMPDIR="$fixture/not-a-directory" bash "${BASH_SOURCE[0]}" --self-test 2>&1)"; then
     echo "[FAIL] mktemp失敗を判定不能にできません" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     return 1
   else
     local mktemp_rc=$?

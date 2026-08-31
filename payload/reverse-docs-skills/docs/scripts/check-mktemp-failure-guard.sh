@@ -154,42 +154,48 @@ self_test() {
   printf '#!/usr/bin/env bash\nT="$(mktemp)" || exit 2\n' > "$tmp/good2/probe.sh"
   printf '#!/usr/bin/env bash\necho "一時ファイルを使わない"\n' > "$tmp/none/probe.sh"
 
-  if judge --strict "$tmp/bad" >/dev/null 2>&1; then
+  if _cap="$(judge --strict "$tmp/bad" 2>&1)"; then
     echo "  [FAIL] 陽性: 失敗チェックなしを検出できない"; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   else
     echo "  [PASS] 陽性: 失敗チェックなしを検出する"; pass=$((pass + 1))
   fi
 
-  if judge --strict "$tmp/good1" >/dev/null 2>&1; then
+  if _cap="$(judge --strict "$tmp/good1" 2>&1)"; then
     echo "  [PASS] 陰性: if ! の形は検出しない"; pass=$((pass + 1))
   else
     echo "  [FAIL] 陰性: if ! の形を誤検出する"; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
-  if judge --strict "$tmp/good2" >/dev/null 2>&1; then
+  if _cap="$(judge --strict "$tmp/good2" 2>&1)"; then
     echo "  [PASS] 陰性: || の形は検出しない"; pass=$((pass + 1))
   else
     echo "  [FAIL] 陰性: || の形を誤検出する"; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
-  if judge --strict "$tmp/none" >/dev/null 2>&1; then
+  if _cap="$(judge --strict "$tmp/none" 2>&1)"; then
     echo "  [PASS] 陰性: mktemp を使わない形は対象外"; pass=$((pass + 1))
   else
     echo "  [FAIL] 陰性: mktemp を使わない形を誤検出する"; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
   # 既定は止めること。
-  if judge "$tmp/bad" >/dev/null 2>&1; then
+  if _cap="$(judge "$tmp/bad" 2>&1)"; then
     echo "  [FAIL] 既定: 該当があるのに止まらない"; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   else
     echo "  [PASS] 既定: 該当があれば止める"; pass=$((pass + 1))
   fi
 
   # --lenient は止めないこと。
-  if judge --lenient "$tmp/bad" >/dev/null 2>&1; then
+  if _cap="$(judge --lenient "$tmp/bad" 2>&1)"; then
     echo "  [PASS] 緩和: --lenient は該当があっても止めない"; pass=$((pass + 1))
   else
     echo "  [FAIL] 緩和: --lenient なのに止まってしまう"; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
   # 走査が実際に動いたことを確かめる。

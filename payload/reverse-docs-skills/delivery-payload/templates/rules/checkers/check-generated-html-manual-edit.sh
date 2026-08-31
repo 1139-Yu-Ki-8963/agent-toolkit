@@ -166,8 +166,9 @@ self_test() {
   fi
 
   # 系6: 環境変数が空文字 → should_skip_with_reasonが戻り値1を返す
-  if GENERATED_HTML_MANUAL_EDIT_SKIP_REASON="" should_skip_with_reason >/dev/null 2>&1; then
+  if _cap="$(GENERATED_HTML_MANUAL_EDIT_SKIP_REASON="" should_skip_with_reason 2>&1)"; then
     echo "  [FAIL] 系6: 空文字なのにskipされた" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     rc=1
   else
     echo "  [PASS] 系6: 環境変数が空文字ならskipされない"

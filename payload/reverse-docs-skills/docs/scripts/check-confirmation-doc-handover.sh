@@ -225,10 +225,11 @@ run_self_test() {
 
   # ケース1: 実物の3ファイルで4検査すべて合格する
   total=$((total + 1))
-  if run_check "$DEFAULT_CATALOG" "$DEFAULT_INVENTORY" "$DEFAULT_LAYOUT" >/dev/null 2>&1; then
+  if _cap="$(run_check "$DEFAULT_CATALOG" "$DEFAULT_INVENTORY" "$DEFAULT_LAYOUT" 2>&1)"; then
     echo "  [PASS] ケース1: 実物の定義3ファイルで4検査すべて合格する"
   else
     echo "  [FAIL] ケース1: 実物の定義3ファイルで不合格の検査がある" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     fail=$((fail + 1))
   fi
 

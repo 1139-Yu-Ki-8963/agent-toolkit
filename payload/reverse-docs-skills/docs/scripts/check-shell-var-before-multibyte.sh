@@ -80,22 +80,25 @@ self_test() {
   printf '#!/usr/bin/env bash\nV=7\necho "（exit ${V}）"\n' > "$tmp/good/probe.sh"
   printf '#!/usr/bin/env bash\nV=7\necho "(exit $V)"\n' > "$tmp/ascii/probe.sh"
 
-  if judge "$tmp/bad" >/dev/null 2>&1; then
+  if _cap="$(judge "$tmp/bad" 2>&1)"; then
     echo "  [FAIL] 陽性: 裸の変数展開を検出できない"; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   else
     echo "  [PASS] 陽性: 裸の変数展開を検出する"; pass=$((pass + 1))
   fi
 
-  if judge "$tmp/good" >/dev/null 2>&1; then
+  if _cap="$(judge "$tmp/good" 2>&1)"; then
     echo "  [PASS] 陰性: 波括弧で囲んだ形は検出しない"; pass=$((pass + 1))
   else
     echo "  [FAIL] 陰性: 波括弧で囲んだ形を誤検出する"; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
-  if judge "$tmp/ascii" >/dev/null 2>&1; then
+  if _cap="$(judge "$tmp/ascii" 2>&1)"; then
     echo "  [PASS] 陰性: 直後が半角なら検出しない"; pass=$((pass + 1))
   else
     echo "  [FAIL] 陰性: 直後が半角の形を誤検出する"; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
   # 走査が実際に行われたことを確かめる。走査そのものが失敗して
@@ -108,10 +111,11 @@ self_test() {
     echo "  [FAIL] 走査: 該当行を返さない（走査そのものが動いていない疑い）"; fail=$((fail + 1))
   fi
 
-  if judge >/dev/null 2>&1; then
+  if _cap="$(judge 2>&1)"; then
     echo "  [PASS] 現行: 走査対象に該当なし"; pass=$((pass + 1))
   else
     echo "  [FAIL] 現行: 走査対象に該当あり"; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
   rm -rf "$tmp"

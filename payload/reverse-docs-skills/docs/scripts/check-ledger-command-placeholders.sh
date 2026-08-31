@@ -83,28 +83,32 @@ self_test() {
   printf '### 1-1. 試し\n\n**状態**: 完了。確かめたコマンドは `grep -r -e "<th>要確認事項</th>" docs` である。\n' > "$tmp/greppat.md"
   printf '### 1-1. 試し\n\n**状態**: 完了。確かめたコマンドは `bash x.sh <対象>` である。\n' > "$tmp/bad2.md"
 
-  if judge "$tmp/bad.md" >/dev/null 2>&1; then
+  if _cap="$(judge "$tmp/bad.md" 2>&1)"; then
     echo "  [FAIL] 陽性: 日本語の雛形を検出できない"; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   else
     echo "  [PASS] 陽性: 日本語の雛形を検出する"; pass=$((pass + 1))
   fi
 
-  if judge "$tmp/bad2.md" >/dev/null 2>&1; then
+  if _cap="$(judge "$tmp/bad2.md" 2>&1)"; then
     echo "  [FAIL] 陽性: 引数の雛形を検出できない"; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   else
     echo "  [PASS] 陽性: 引数の雛形を検出する"; pass=$((pass + 1))
   fi
 
-  if judge "$tmp/good.md" >/dev/null 2>&1; then
+  if _cap="$(judge "$tmp/good.md" 2>&1)"; then
     echo "  [PASS] 陰性: 実在するパスは検出しない"; pass=$((pass + 1))
   else
     echo "  [FAIL] 陰性: 実在するパスを誤検出する"; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
-  if judge "$tmp/greppat.md" >/dev/null 2>&1; then
+  if _cap="$(judge "$tmp/greppat.md" 2>&1)"; then
     echo "  [PASS] 陰性: grep のパターンの山括弧は検出しない"; pass=$((pass + 1))
   else
     echo "  [FAIL] 陰性: grep のパターンの山括弧を誤検出する"; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
   # 走査が実際に動いたことを確かめる。
@@ -116,10 +120,11 @@ self_test() {
     echo "  [FAIL] 走査: 該当を返さない（走査そのものが動いていない疑い）"; fail=$((fail + 1))
   fi
 
-  if judge >/dev/null 2>&1; then
+  if _cap="$(judge 2>&1)"; then
     echo "  [PASS] 現行: 台帳に雛形は無い"; pass=$((pass + 1))
   else
     echo "  [FAIL] 現行: 台帳に雛形が残っている"; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
   rm -rf "$tmp"

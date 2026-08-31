@@ -71,24 +71,27 @@ run_self_test() {
   fi
 
   printf '| 1. 例 | `test -z ""` | 完了 | abc | 説明 |\n' > "$tmp/ok.md"
-  if run_check "$tmp/ok.md" >/dev/null 2>&1; then
+  if _cap="$(run_check "$tmp/ok.md" 2>&1)"; then
     echo "  [PASS] 正しい行は素通りする"; pass=$((pass + 1))
   else
     echo "  [FAIL] 正しい行は素通りする" >&2; fail=$((fail + 1)); rc=1
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
   printf '| 1. 例 | `output=$(cmd 2>&1 | 未着手 | :)` | 完了 | abc | 説明 |\n' > "$tmp/ng.md"
-  if run_check "$tmp/ng.md" >/dev/null 2>&1; then
+  if _cap="$(run_check "$tmp/ng.md" 2>&1)"; then
     echo "  [FAIL] 壊れた行を検出する" >&2; fail=$((fail + 1)); rc=1
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   else
     echo "  [PASS] 壊れた行を検出する"; pass=$((pass + 1))
   fi
 
   printf '| 1. 例 | `test -z ""` | 未着手 | abc | `別のコマンド` |\n' > "$tmp/two.md"
-  if run_check "$tmp/two.md" >/dev/null 2>&1; then
+  if _cap="$(run_check "$tmp/two.md" 2>&1)"; then
     echo "  [PASS] 2つの区間をまたぐ形を誤検出しない"; pass=$((pass + 1))
   else
     echo "  [FAIL] 2つの区間をまたぐ形を誤検出しない" >&2; fail=$((fail + 1)); rc=1
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
   rm -rf "$tmp"

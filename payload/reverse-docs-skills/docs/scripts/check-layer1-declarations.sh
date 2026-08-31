@@ -59,10 +59,11 @@ check_success_min() {
 
 run_self_test() {
   local rc=0 pass=0 fail=0
-  if check_declared_zero >/dev/null 2>&1; then
+  if _cap="$(check_declared_zero 2>&1)"; then
     echo "  [PASS] 宣言済み長時間の判定が動く"; pass=$((pass + 1))
   else
     echo "  [FAIL] 宣言済み長時間の判定が動く" >&2; fail=$((fail + 1)); rc=1
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
   # 集約を走らせずに、成功本数の読み取りだけを試す

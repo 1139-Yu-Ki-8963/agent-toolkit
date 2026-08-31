@@ -57,11 +57,15 @@ self_test() {
   printf '## §1 概要\n\n本文\n' > "$tmp/missing/a.md"
   printf '## §1 概要\n\n**この節の位置づけ: 現行実装。Perl固有の作りである。移行時に捨てる。作り直す際は引き継がない**\n' > "$tmp/lang/a.md"
   printf '## §1 概要\n\n**この節の位置づけ: 実装**\n' > "$tmp/word/a.md"
-  if run_check "$tmp/good" >/dev/null 2>&1; then echo "  [PASS] 陰性: 定めた語の位置づけは通る"; pass=$((pass+1)); else echo "  [FAIL] 陰性: 定めた語の位置づけを誤検出する"; fail=$((fail+1)); fi
-  if ! run_check "$tmp/missing" >/dev/null 2>&1; then echo "  [PASS] 陽性: 位置づけの無い節を検出する"; pass=$((pass+1)); else echo "  [FAIL] 陽性: 位置づけの無い節を見逃す"; fail=$((fail+1)); fi
+  if _cap="$(run_check "$tmp/good" 2>&1)"; then echo "  [PASS] 陰性: 定めた語の位置づけは通る"; pass=$((pass+1)); else { echo "  [FAIL] 陰性: 定めた語の位置づけを誤検出する"; printf '%s
+' "$_cap" | sed 's/^/      /' >&2; }; fail=$((fail+1)); fi
+  if ! _cap="$(run_check "$tmp/missing" 2>&1)"; then echo "  [PASS] 陽性: 位置づけの無い節を検出する"; pass=$((pass+1)); else { echo "  [FAIL] 陽性: 位置づけの無い節を見逃す"; printf '%s
+' "$_cap" | sed 's/^/      /' >&2; }; fail=$((fail+1)); fi
   out="$(run_check "$tmp/missing" 2>&1)"; if printf '%s' "$out" | grep -q 'a.md:1:'; then echo "  [PASS] 走査: 行番号つきで該当行を返す"; pass=$((pass+1)); else echo "  [FAIL] 走査: 該当行を返さない"; fail=$((fail+1)); fi
-  if ! run_check "$tmp/lang" >/dev/null 2>&1; then echo "  [PASS] 陽性: 言語名・移行の前提を含む位置づけを検出する"; pass=$((pass+1)); else echo "  [FAIL] 陽性: 言語名を見逃す"; fail=$((fail+1)); fi
-  if ! run_check "$tmp/word" >/dev/null 2>&1; then echo "  [PASS] 陽性: 定めていない語を検出する"; pass=$((pass+1)); else echo "  [FAIL] 陽性: 定めていない語を見逃す"; fail=$((fail+1)); fi
+  if ! _cap="$(run_check "$tmp/lang" 2>&1)"; then echo "  [PASS] 陽性: 言語名・移行の前提を含む位置づけを検出する"; pass=$((pass+1)); else { echo "  [FAIL] 陽性: 言語名を見逃す"; printf '%s
+' "$_cap" | sed 's/^/      /' >&2; }; fail=$((fail+1)); fi
+  if ! _cap="$(run_check "$tmp/word" 2>&1)"; then echo "  [PASS] 陽性: 定めていない語を検出する"; pass=$((pass+1)); else { echo "  [FAIL] 陽性: 定めていない語を見逃す"; printf '%s
+' "$_cap" | sed 's/^/      /' >&2; }; fail=$((fail+1)); fi
   echo "self-test: ${pass} PASS, ${fail} FAIL"
   [ "$fail" -eq 0 ]
 }

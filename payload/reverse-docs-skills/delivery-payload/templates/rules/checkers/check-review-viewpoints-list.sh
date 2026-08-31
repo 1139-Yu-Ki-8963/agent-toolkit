@@ -348,8 +348,9 @@ self_test() {
   fi
 
   # 系10: 環境変数が空文字 → should_skip_with_reasonが戻り値1を返す
-  if REVIEW_VIEWPOINTS_LIST_SKIP_REASON="" should_skip_with_reason >/dev/null 2>&1; then
+  if _cap="$(REVIEW_VIEWPOINTS_LIST_SKIP_REASON="" should_skip_with_reason 2>&1)"; then
     echo "  [FAIL] 系10: 空文字なのにskipされた" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     rc=1
   else
     echo "  [PASS] 系10: 環境変数が空文字ならskipされない"

@@ -72,9 +72,9 @@ self_test() {
   else
     echo "  [FAIL] 陰性: 誤検出"; rc=1
   fi
-  if run_check "$tmp/none" >/dev/null 2>&1; then :; fi
-  run_check "$tmp/none" >/dev/null 2>&1; local r3=$?
-  if [ "$r3" -eq 2 ]; then echo "  [PASS] 対象なし: 判定不能を終了コード2で返す"; else echo "  [FAIL] 対象なし: rc=${r3}"; rc=1; fi
+  local r3=0
+  _cap="$(run_check "$tmp/none" 2>&1)" || r3=$?
+  if [ "$r3" -eq 2 ]; then echo "  [PASS] 対象なし: 判定不能を終了コード2で返す"; else { echo "  [FAIL] 対象なし: rc=${r3}"; printf '%s\n' "$_cap" | sed 's/^/      /' >&2; }; rc=1; fi
   rm -rf "$tmp"
   if [ "$rc" -eq 0 ]; then echo "self-test PASS"; else echo "self-test FAIL"; fi
   return "$rc"

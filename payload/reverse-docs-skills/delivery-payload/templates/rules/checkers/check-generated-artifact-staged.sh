@@ -572,8 +572,9 @@ self_test() {
   fi
 
   # 系15: 環境変数が空文字 → should_skip_with_reasonが戻り値1を返す
-  if GENERATED_ARTIFACT_STAGED_SKIP_REASON="" should_skip_with_reason >/dev/null 2>&1; then
+  if _cap="$(GENERATED_ARTIFACT_STAGED_SKIP_REASON="" should_skip_with_reason 2>&1)"; then
     echo "  [FAIL] 系15: 空文字なのにskipされた" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     rc=1
   else
     echo "  [PASS] 系15: 環境変数が空文字ならskipされない"

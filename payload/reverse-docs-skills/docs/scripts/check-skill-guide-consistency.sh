@@ -109,10 +109,11 @@ self_test() {
   printf '%s\n' '---' 'name: example-skill' '日本語名: 例を実行する' '---' '' '## Phase 1: 確認' '## Phase 2: 実行' > "$base/.claude/skills/example-skill/SKILL.md"
   printf '%s\n' '<h1 data-phase-count="2">例を実行する<br><span class="skill-name">example-skill</span></h1>' > "$base/.claude/skills/example-skill/references/guide.html"
 
-  if scan "$base" >/dev/null 2>&1; then
+  if _cap="$(scan "$base" 2>&1)"; then
     echo "[PASS] 3項目が一致する組を合格にする"; pass=$((pass + 1))
   else
     echo "[FAIL] 3項目が一致する組を合格にできない" >&2; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
   sed -i.bak 's/name: example-skill/name: another-skill/' "$base/.claude/skills/example-skill/SKILL.md"

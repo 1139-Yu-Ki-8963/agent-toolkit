@@ -239,10 +239,11 @@ run_self_test() {
   cat > "$proj1/docs/design/x.md" <<'EOF'
 参照: `docs/foo/bar.md` を見よ。
 EOF
-  if run_check "$proj1" >/dev/null 2>&1; then
+  if _cap="$(run_check "$proj1" 2>&1)"; then
     echo "  [PASS] ケース1: 実在する参照だけの文書は合格する"
   else
     echo "  [FAIL] ケース1: 実在する参照だけの文書が不合格になった" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     fail=$((fail + 1))
   fi
 
@@ -270,10 +271,11 @@ EOF
   cat > "$proj3/docs/design/x.md" <<'EOF'
 参照: `../no-such-sibling.sh` を見よ。
 EOF
-  if run_check "$proj3" >/dev/null 2>&1; then
+  if _cap="$(run_check "$proj3" 2>&1)"; then
     echo "  [PASS] ケース3: 先頭が../の参照は対象外として合格する"
   else
     echo "  [FAIL] ケース3: 先頭が../の参照が誤って不合格にされた" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     fail=$((fail + 1))
   fi
 
@@ -284,10 +286,11 @@ EOF
   cat > "$proj4/docs/design/x.md" <<'EOF'
 参照: `no-such-file.md` を見よ。
 EOF
-  if run_check "$proj4" >/dev/null 2>&1; then
+  if _cap="$(run_check "$proj4" 2>&1)"; then
     echo "  [PASS] ケース4: スラッシュを含まない参照は対象外として合格する"
   else
     echo "  [FAIL] ケース4: スラッシュを含まない参照が誤って不合格にされた" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     fail=$((fail + 1))
   fi
 
@@ -299,10 +302,11 @@ EOF
   cat > "$proj5/docs/design/generation-engine/foo/x.md" <<'EOF'
 参照: `docs/design/generation-engine/foo/sibling.md` を見よ。
 EOF
-  if run_check "$proj5" >/dev/null 2>&1; then
+  if _cap="$(run_check "$proj5" 2>&1)"; then
     echo "  [PASS] ケース5: 文書ディレクトリからの相対で見つかれば合格する"
   else
     echo "  [FAIL] ケース5: 文書ディレクトリからの相対解決が機能しなかった" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     fail=$((fail + 1))
   fi
 
@@ -316,10 +320,11 @@ EOF
   cat > "$proj6/docs/references/design-doc-reference-exclusions.json" <<'EOF'
 {"excludedReferences": [{"reference": "docs/example-excluded-path.md", "reason": "自己テスト用のダミー除外"}]}
 EOF
-  if run_check "$proj6" >/dev/null 2>&1; then
+  if _cap="$(run_check "$proj6" 2>&1)"; then
     echo "  [PASS] ケース6: 除外一覧に載る参照は実在しなくても合格する"
   else
     echo "  [FAIL] ケース6: 除外一覧が機能せず不合格になった" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     fail=$((fail + 1))
   fi
 
@@ -330,10 +335,11 @@ EOF
   cat > "$proj7/docs/design/x.md" <<'EOF'
 参照: `extract/no-such-script.sh` を見よ。
 EOF
-  if run_check "$proj7" >/dev/null 2>&1; then
+  if _cap="$(run_check "$proj7" 2>&1)"; then
     echo "  [PASS] ケース7: ルート直下許可リストに無い先頭要素の参照は対象外として合格する"
   else
     echo "  [FAIL] ケース7: 群の省略記法が誤って不合格にされた" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     fail=$((fail + 1))
   fi
 
@@ -344,10 +350,11 @@ EOF
   cat > "$proj8/docs/design/x.md" <<'EOF'
 提案: `no-such-dir/` という置き場を新設する案がある。
 EOF
-  if run_check "$proj8" >/dev/null 2>&1; then
+  if _cap="$(run_check "$proj8" 2>&1)"; then
     echo "  [PASS] ケース8: 単一階層のディレクトリ名だけの言及は対象外として合格する"
   else
     echo "  [FAIL] ケース8: 単一階層のディレクトリ名の言及が誤って不合格にされた" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     fail=$((fail + 1))
   fi
 
@@ -372,10 +379,11 @@ EOF
   cat > "$proj10/docs/design/x.md" <<'EOF'
 式: `${TMPDIR:-/tmp}/no-such` を使う。
 EOF
-  if run_check "$proj10" >/dev/null 2>&1; then
+  if _cap="$(run_check "$proj10" 2>&1)"; then
     echo "  [PASS] ケース10: シェルのメタ文字を含む文字列は対象外として合格する"
   else
     echo "  [FAIL] ケース10: メタ文字を含む文字列が誤って不合格にされた" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     fail=$((fail + 1))
   fi
 
@@ -386,10 +394,11 @@ EOF
   local proj11="$work/case11"
   mkdir -p "$proj11/docs/design"
   printf '参照: `%s` を見よ。\n' ".claude/skills/${PRIVATE_SKILL_NAME}/SKILL.md" > "$proj11/docs/design/x.md"
-  if run_check "$proj11" >/dev/null 2>&1; then
+  if _cap="$(run_check "$proj11" 2>&1)"; then
     echo "  [PASS] ケース11: 配布先では公開対象外スキルへの参照は対象外として合格する"
   else
     echo "  [FAIL] ケース11: 配布先での公開対象外スキル除外が機能せず不合格になった" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     fail=$((fail + 1))
   fi
 

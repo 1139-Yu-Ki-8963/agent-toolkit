@@ -1554,8 +1554,9 @@ EOF
     ok1286=0; echo "  [FAIL] ケース19b: 子を足した宣言で配置が失敗した" >&2; print_scaffold_failure
   elif [ ! -f "$rule1286" ] || ! grep -q '^status: draft$' "$rule1286" || ! grep -q '^parent: code-standards$' "$rule1286"; then
     ok1286=0; echo "  [FAIL] ケース19b: 足した子の雛形（${rule1286}）が配置されない、または前付けが不正" >&2
-  elif ! bash "${SCRIPT_DIR}/validate-rule-definitions.sh" "${out1}/docs/rules" >/dev/null 2>&1; then
+  elif ! _cap="$(bash "${SCRIPT_DIR}/validate-rule-definitions.sh" "${out1}/docs/rules" 2>&1)"; then
     ok1286=0; echo "  [FAIL] ケース19b: 足した子を含む定義が validate-rule-definitions.sh を通らない" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
   if [ "$ok1286" -eq 1 ]; then echo "  [PASS] ケース19b: 宣言で足した子が配置され、検査もその子に働く（改善課題1-286）"; else rc=1; fi
 

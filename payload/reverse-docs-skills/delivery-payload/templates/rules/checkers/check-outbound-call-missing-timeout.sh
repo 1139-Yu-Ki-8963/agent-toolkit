@@ -388,8 +388,9 @@ self_test() {
   fi
 
   # 系13: 環境変数が空文字 → should_skip_with_reasonが戻り値1を返す
-  if OUTBOUND_CALL_MISSING_TIMEOUT_SKIP_REASON="" should_skip_with_reason >/dev/null 2>&1; then
+  if _cap="$(OUTBOUND_CALL_MISSING_TIMEOUT_SKIP_REASON="" should_skip_with_reason 2>&1)"; then
     echo "  [FAIL] 系13: 空文字なのにskipされた" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     rc=1
   else
     echo "  [PASS] 系13: 環境変数が空文字ならskipされない"

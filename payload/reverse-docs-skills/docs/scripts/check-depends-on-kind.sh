@@ -285,10 +285,11 @@ run_self_test() {
 
   # ケース1: 実物の定義ファイルで13件すべてに期待どおりの宣言がある
   total=$((total + 1))
-  if run_coverage "$DEFAULT_INVENTORY" >/dev/null 2>&1; then
+  if _cap="$(run_coverage "$DEFAULT_INVENTORY" 2>&1)"; then
     echo "  [PASS] ケース1: 実物の定義ファイルで13件すべてに期待どおりの宣言がある"
   else
     echo "  [FAIL] ケース1: 実物の定義ファイルで宣言が欠けている、または期待と異なる" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     fail=$((fail + 1))
   fi
 
@@ -346,10 +347,11 @@ run_self_test() {
   # ケース5: 全13件が揃った正常な入力では合格する（重複や誤字での過検出が無いことの確認）
   total=$((total + 1))
   cp "$DEFAULT_INVENTORY" "$tmp"
-  if run_coverage "$tmp" >/dev/null 2>&1; then
+  if _cap="$(run_coverage "$tmp" 2>&1)"; then
     echo "  [PASS] ケース5: 全13件が揃った入力を複製しても合格する"
   else
     echo "  [FAIL] ケース5: 複製した正常な入力で不合格になった" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     fail=$((fail + 1))
   fi
 

@@ -204,10 +204,11 @@ run_self_test() {
 
   # ケース1: 実物の定義文書に鍵の形式が明記されている
   total=$((total + 1))
-  if run_check "$CONTRACT_DOC" >/dev/null 2>&1; then
+  if _cap="$(run_check "$CONTRACT_DOC" 2>&1)"; then
     echo "  [PASS] ケース1: 実物の定義文書に excludedDeliverables の形式が明記されている"
   else
     echo "  [FAIL] ケース1: 実物の定義文書に明記されていない" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     fail=$((fail + 1))
   fi
 

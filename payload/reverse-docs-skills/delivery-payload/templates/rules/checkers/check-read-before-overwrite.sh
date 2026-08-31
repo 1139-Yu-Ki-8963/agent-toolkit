@@ -183,8 +183,9 @@ EOF
   fi
 
   # 系6: 環境変数が空文字 → should_skip_with_reasonが戻り値1を返す
-  if READ_BEFORE_OVERWRITE_SKIP_REASON="" should_skip_with_reason >/dev/null 2>&1; then
+  if _cap="$(READ_BEFORE_OVERWRITE_SKIP_REASON="" should_skip_with_reason 2>&1)"; then
     echo "  [FAIL] 系6: 空文字なのにskipされた" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     rc=1
   else
     echo "  [PASS] 系6: 環境変数が空文字ならskipされない"

@@ -118,14 +118,16 @@ self_test() {
     return 1
   fi
   printf '%s\n' '配下のスキル数は 9 本である' > "$fixture/docs/guides/スキル一覧.html"
-  if HUMAN_GUIDE_COUNT_ROOT="$fixture" HUMAN_GUIDE_COUNT_DEFINITIONS="$fixture/docs/references/human-guide-count-checks.json" bash "${BASH_SOURCE[0]}" >/dev/null 2>&1; then
+  if _cap="$(HUMAN_GUIDE_COUNT_ROOT="$fixture" HUMAN_GUIDE_COUNT_DEFINITIONS="$fixture/docs/references/human-guide-count-checks.json" bash "${BASH_SOURCE[0]}" 2>&1)"; then
     echo "[FAIL] 不一致を検出できません" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     return 1
   fi
   echo "[PASS] 不一致を検出"
 
-  if HUMAN_GUIDE_COUNT_ROOT="$fixture" HUMAN_GUIDE_COUNT_DEFINITIONS="$fixture/docs/references/missing.json" bash "${BASH_SOURCE[0]}" >/dev/null 2>&1; then
+  if _cap="$(HUMAN_GUIDE_COUNT_ROOT="$fixture" HUMAN_GUIDE_COUNT_DEFINITIONS="$fixture/docs/references/missing.json" bash "${BASH_SOURCE[0]}" 2>&1)"; then
     echo "[FAIL] 定義の欠落を判定不能にできません" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     return 1
   else
     local missing_rc=$?
@@ -137,8 +139,9 @@ self_test() {
   echo "[PASS] 定義の欠落を判定不能として区別"
 
   printf '%s\n' '{"metrics":{"x":{"kind":"fixed_string_count","path":"docs/guides/成果物一覧.html"}},"assertions":[{"metric":"x","path":"docs/guides/成果物一覧.html","template":"{{value}}"}]}' > "$fixture/docs/references/invalid.json"
-  if HUMAN_GUIDE_COUNT_ROOT="$fixture" HUMAN_GUIDE_COUNT_DEFINITIONS="$fixture/docs/references/invalid.json" bash "${BASH_SOURCE[0]}" >/dev/null 2>&1; then
+  if _cap="$(HUMAN_GUIDE_COUNT_ROOT="$fixture" HUMAN_GUIDE_COUNT_DEFINITIONS="$fixture/docs/references/invalid.json" bash "${BASH_SOURCE[0]}" 2>&1)"; then
     echo "[FAIL] 不正な定義を判定不能にできません" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     return 1
   else
     local invalid_rc=$?

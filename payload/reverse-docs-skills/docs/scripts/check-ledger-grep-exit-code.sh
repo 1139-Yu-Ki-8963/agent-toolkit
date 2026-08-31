@@ -43,9 +43,10 @@ judge() {
 
   while IFS=$'\t' read -r key cmd; do
     [ -n "$cmd" ] || continue
-    ( eval "$cmd" ) > /dev/null 2>&1
+    _cap="$(( eval "$cmd" ) 2>&1)"
     if [ "$?" -eq 1 ]; then
       [ "$hits" -eq 0 ] && echo "[FAIL] grep の終了コードの向きを取り違えた疑いがあります。"
+      printf '%s\n' "$_cap" | sed 's/^/      /' >&2
       printf '  %s: %s\n' "$key" "$(printf '%s' "$cmd" | cut -c1-80)"
       hits=$((hits + 1))
     fi
@@ -96,10 +97,11 @@ self_test() {
   fi
 
   # 現行の台帳が合格すること
-  if judge >/dev/null 2>&1; then
+  if _cap="$(judge 2>&1)"; then
     echo "  [PASS] 現行: 向きを取り違えた検収は無い"; pass=$((pass + 1))
   else
     echo "  [FAIL] 現行: 向きを取り違えた検収がある"; fail=$((fail + 1))
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
   rm -rf "$tmp"

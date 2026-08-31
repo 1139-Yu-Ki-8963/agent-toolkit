@@ -50,10 +50,11 @@ check_wired() {
 run_self_test() {
   local rc=0 pass=0 fail=0
 
-  if check_wired >/dev/null 2>&1; then
+  if _cap="$(check_wired 2>&1)"; then
     echo "  [PASS] 一覧に含まれる判定が動く"; pass=$((pass + 1))
   else
     echo "  [FAIL] 一覧に含まれる判定が動く" >&2; fail=$((fail + 1)); rc=1
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
   # --list の出力を経由せずに、grep 判定そのものの正しさを確認する

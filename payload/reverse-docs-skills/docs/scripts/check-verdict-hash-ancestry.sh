@@ -258,10 +258,11 @@ EOF
 EOF
 
   # ケース1: mainのコミットで祖先であるハッシュだけを走査 → 合格
-  if run_check "$repo" "$repo/docs/tasks/ok.md" >/dev/null 2>&1; then
+  if _cap="$(run_check "$repo" "$repo/docs/tasks/ok.md" 2>&1)"; then
     echo "  [PASS] main の祖先であるハッシュは合格する"; pass=$((pass + 1))
   else
     echo "  [FAIL] main の祖先であるハッシュは合格する" >&2; fail=$((fail + 1)); rc=1
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
   fi
 
   # ケース2: 存在するがmainの祖先でないハッシュ → 不合格・理由に「祖先でない」

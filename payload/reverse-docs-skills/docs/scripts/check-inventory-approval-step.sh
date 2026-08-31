@@ -339,9 +339,10 @@ run_self_test() {
   }
   assert_fail() {
     local label="$1"; shift
-    if "$@" >/dev/null 2>&1; then
+    if _cap="$("$@" 2>&1)"; then
       fail=$((fail + 1))
       echo "  [FAIL] self-test: ${label}（FAILを期待したがPASSしました）"
+      printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     else
       pass=$((pass + 1))
     fi

@@ -134,6 +134,7 @@ self_test() {
   local expected_check_count=23
   if [ "$(jq '.checks | length' "$DEFAULT_CONTRACT" 2>/dev/null)" != "$expected_check_count" ]; then
     echo "[FAIL] 自己テスト0: 対応が ${expected_check_count} 件ではありません" >&2
+    printf '%s\n' "$_cap" | sed 's/^/    /' >&2
     return 1
   fi
   if ! temporary_dir="$(mktemp -d "${TMPDIR:-/tmp}/check-reference-json-integrity-self-test.XXXXXX" 2>/dev/null)" || [ -z "$temporary_dir" ]; then
@@ -155,6 +156,7 @@ self_test() {
   fi
   if [ "$actual_rc" -ne 0 ]; then
     echo "[FAIL] 自己テスト1: 実物の定義が合格しません" >&2
+    printf '%s\n' "$_cap" | sed 's/^/    /' >&2
     return 1
   fi
   echo "[PASS] 自己テスト1: 実物の定義は不在0件"
@@ -162,18 +164,20 @@ self_test() {
   jq 'del(.items[0])' "$temporary_dir/references/deliverable-inventory.json" >"$temporary_dir/inventory.json"
   mv "$temporary_dir/inventory.json" "$temporary_dir/references/deliverable-inventory.json"
   local broken_rc=0
-  run_integrity_check "$DEFAULT_CONTRACT" "$temporary_dir/references" >/dev/null 2>&1 || broken_rc=$?
+  _cap="$(run_integrity_check "$DEFAULT_CONTRACT" "$temporary_dir/references" 2>&1)" || broken_rc=$?
   if [ "$broken_rc" -ne 1 ]; then
     echo "[FAIL] 自己テスト2: 参照先を1件欠いた入力の終了コードが1ではありません: $broken_rc" >&2
+    printf '%s\n' "$_cap" | sed 's/^/    /' >&2
     return 1
   fi
   echo "[PASS] 自己テスト2: 参照先を1件欠くと終了コード1"
 
   printf '{' >"$temporary_dir/invalid-contract.json"
   local unknown_rc=0
-  run_integrity_check "$temporary_dir/invalid-contract.json" "$temporary_dir/references" >/dev/null 2>&1 || unknown_rc=$?
+  _cap="$(run_integrity_check "$temporary_dir/invalid-contract.json" "$temporary_dir/references" 2>&1)" || unknown_rc=$?
   if [ "$unknown_rc" -ne 2 ]; then
     echo "[FAIL] 自己テスト3: 不正な対応定義の終了コードが2ではありません: $unknown_rc" >&2
+    printf '%s\n' "$_cap" | sed 's/^/    /' >&2
     return 1
   fi
   echo "[PASS] 自己テスト3: 判定不能は終了コード2"
@@ -182,9 +186,10 @@ self_test() {
   jq '.generationRules = {}' "$temporary_dir/references/design-unit-layout.json" >"$temporary_dir/layout-empty.json"
   mv "$temporary_dir/layout-empty.json" "$temporary_dir/references/design-unit-layout.json"
   local empty_rc=0
-  run_integrity_check "$DEFAULT_CONTRACT" "$temporary_dir/references" >/dev/null 2>&1 || empty_rc=$?
+  _cap="$(run_integrity_check "$DEFAULT_CONTRACT" "$temporary_dir/references" 2>&1)" || empty_rc=$?
   if [ "$empty_rc" -ne 1 ]; then
     echo "[FAIL] 自己テスト4: 参照元が空集合の入力の終了コードが1ではありません: $empty_rc" >&2
+    printf '%s\n' "$_cap" | sed 's/^/    /' >&2
     return 1
   fi
   echo "[PASS] 自己テスト4: 参照元が空集合なら終了コード1"
@@ -195,9 +200,10 @@ self_test() {
   jq '.categories[0].blueprints += [.categories[0].blueprints[0]]' "$temporary_dir/references/portal-catalog.json" >"$temporary_dir/catalog-duplicate.json"
   mv "$temporary_dir/catalog-duplicate.json" "$temporary_dir/references/portal-catalog.json"
   local source_duplicate_rc=0
-  run_integrity_check "$DEFAULT_CONTRACT" "$temporary_dir/references" >/dev/null 2>&1 || source_duplicate_rc=$?
+  _cap="$(run_integrity_check "$DEFAULT_CONTRACT" "$temporary_dir/references" 2>&1)" || source_duplicate_rc=$?
   if [ "$source_duplicate_rc" -ne 1 ]; then
     echo "[FAIL] 自己テスト5: 参照元だけに重複がある入力の終了コードが1ではありません: $source_duplicate_rc" >&2
+    printf '%s\n' "$_cap" | sed 's/^/    /' >&2
     return 1
   fi
   echo "[PASS] 自己テスト5: 参照元だけの重複は終了コード1"
@@ -206,27 +212,30 @@ self_test() {
   jq '.items += [.items[0]]' "$temporary_dir/references/deliverable-inventory.json" >"$temporary_dir/inventory-duplicate.json"
   mv "$temporary_dir/inventory-duplicate.json" "$temporary_dir/references/deliverable-inventory.json"
   local target_duplicate_rc=0
-  run_integrity_check "$DEFAULT_CONTRACT" "$temporary_dir/references" >/dev/null 2>&1 || target_duplicate_rc=$?
+  _cap="$(run_integrity_check "$DEFAULT_CONTRACT" "$temporary_dir/references" 2>&1)" || target_duplicate_rc=$?
   if [ "$target_duplicate_rc" -ne 1 ]; then
     echo "[FAIL] 自己テスト6: 参照先だけに重複がある入力の終了コードが1ではありません: $target_duplicate_rc" >&2
+    printf '%s\n' "$_cap" | sed 's/^/    /' >&2
     return 1
   fi
   echo "[PASS] 自己テスト6: 参照先だけの重複は終了コード1"
 
   jq '.checks[0].minimumSourceCount = "one"' "$DEFAULT_CONTRACT" >"$temporary_dir/invalid-type-contract.json"
   local invalid_type_rc=0
-  run_integrity_check "$temporary_dir/invalid-type-contract.json" "$temporary_dir/references" >/dev/null 2>&1 || invalid_type_rc=$?
+  _cap="$(run_integrity_check "$temporary_dir/invalid-type-contract.json" "$temporary_dir/references" 2>&1)" || invalid_type_rc=$?
   if [ "$invalid_type_rc" -ne 2 ]; then
     echo "[FAIL] 自己テスト7: 型が不正な対応定義の終了コードが2ではありません: $invalid_type_rc" >&2
+    printf '%s\n' "$_cap" | sed 's/^/    /' >&2
     return 1
   fi
   echo "[PASS] 自己テスト7: 対応定義の型不正は終了コード2"
 
   jq '.checks[1].id = .checks[0].id' "$DEFAULT_CONTRACT" >"$temporary_dir/duplicate-id-contract.json"
   local duplicate_id_rc=0
-  run_integrity_check "$temporary_dir/duplicate-id-contract.json" "$temporary_dir/references" >/dev/null 2>&1 || duplicate_id_rc=$?
+  _cap="$(run_integrity_check "$temporary_dir/duplicate-id-contract.json" "$temporary_dir/references" 2>&1)" || duplicate_id_rc=$?
   if [ "$duplicate_id_rc" -ne 2 ]; then
     echo "[FAIL] 自己テスト8: 対応IDが重複した定義の終了コードが2ではありません: $duplicate_id_rc" >&2
+    printf '%s\n' "$_cap" | sed 's/^/    /' >&2
     return 1
   fi
   echo "[PASS] 自己テスト8: 対応IDの重複は終了コード2"
