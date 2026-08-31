@@ -138,6 +138,38 @@ scan() {
   [ "$violations" -eq 0 ]
 }
 
+# 「正本」と述べている行の参照だけを取り出し、指す先の実在を確かめる（1-56 検収2）。
+# 正本の宣言が実在しない文書を指すと、読み手はどの文書を正とすべきか確定できない。
+scan_seihon() {
+  local base="$1"
+  local total=0 violations=0 f d p anchor resolved
+  while IFS= read -r f; do
+    [ -z "$f" ] && continue
+    d="$(dirname "$f")"
+    while IFS= read -r p; do
+      [ -z "$p" ] && continue
+      is_excluded "$p" && continue
+      total=$((total + 1))
+      anchor="${p%%#*}"
+      anchor="${anchor%%\?*}"
+      [ -z "$anchor" ] && continue
+      resolved="$(cd "$d" 2>/dev/null && realpath "$anchor" 2>/dev/null)" || resolved=""
+      if [ -z "$resolved" ] || [ ! -e "$resolved" ]; then
+        resolved="$(cd "$base" 2>/dev/null && realpath "$anchor" 2>/dev/null)" || resolved=""
+      fi
+      if [ -z "$resolved" ] || [ ! -e "$resolved" ]; then
+        echo "[FAIL] 正本参照: $f -> $p"
+        violations=$((violations + 1))
+      fi
+    done < <(grep '正本' "$f" 2>/dev/null | {
+      grep -oE "$MD_RE" 2>/dev/null | sed -E 's/^\]\(//; s/\)$//'
+      true
+    } ; grep '正本' "$f" 2>/dev/null | grep -oE "$BACKTICK_RE" 2>/dev/null | sed -E 's/^`//; s/`$//')
+  done < <(collect_files "$base" | LC_ALL=C sort -u)
+  echo "正本参照 $total 件 / 違反 $violations 件"
+  [ "$violations" -eq 0 ]
+}
+
 self_test() {
   local tmp pass=0 fail=0
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/payload-references.XXXXXX" 2>/dev/null)" || tmp=""
@@ -238,6 +270,29 @@ self_test() {
   fi
   rm -rf "$base"
 
+  # ケース9: 「正本」と述べる行の実在しない参照を違反と判定する
+  mkdir -p "$base/delivery-payload"
+  printf '%s\n' '同期対象の正本は [定義](absent-manifest.md) である' > "$base/delivery-payload/note.md"
+  if _gt_out9="$(scan_seihon "$base" 2>&1)"; then
+    echo "[FAIL] 正本と述べる行の実在しない参照を違反と判定する"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out9" | sed 's/^/    /' >&2
+  else
+    echo "[PASS] 正本と述べる行の実在しない参照を違反と判定する"; pass=$((pass + 1))
+  fi
+  rm -rf "$base"
+
+  # ケース10: 「正本」と述べる行の参照が実在すれば違反にしない
+  mkdir -p "$base/delivery-payload"
+  : > "$base/delivery-payload/manifest.md"
+  printf '%s\n' '同期対象の正本は [定義](manifest.md) である' > "$base/delivery-payload/note.md"
+  if _gt_out10="$(scan_seihon "$base" 2>&1)"; then
+    echo "[PASS] 正本と述べる行の参照が実在すれば違反にしない"; pass=$((pass + 1))
+  else
+    echo "[FAIL] 正本と述べる行の参照が実在すれば違反にしない"; fail=$((fail + 1))
+    printf '%s\n' "$_gt_out10" | sed 's/^/    /' >&2
+  fi
+  rm -rf "$base"
+
   rm -rf "$tmp"
   echo "実行 $((pass + fail)) 件 / 合格 $pass 件 / 不合格 $fail 件"
   [ "$fail" -eq 0 ]
@@ -249,8 +304,10 @@ case "${1:-}" in
     exit $?
     ;;
   "")
-    scan "$REPO_ROOT"
-    exit $?
+    rc_all=0
+    scan "$REPO_ROOT" || rc_all=1
+    scan_seihon "$REPO_ROOT" || rc_all=1
+    exit "$rc_all"
     ;;
   *)
     echo "使い方: $(basename "$0") [--self-test]" >&2
