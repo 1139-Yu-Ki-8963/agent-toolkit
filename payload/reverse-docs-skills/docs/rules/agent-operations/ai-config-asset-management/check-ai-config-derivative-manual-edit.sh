@@ -104,6 +104,14 @@ judge_definition_in_docs() {
     return 0
   fi
 
+  # 生成ヘッダ（先頭行の「生成物:」コメント）を持たない既存ファイルは、この
+  # リポジトリ自身が直接置いた正本（自前の常時規約とその hook）であり、docs 側の
+  # 定義を要求しない（「派生は生成物として扱う」枝と同じ判別）。
+  if [ -f "$file_path" ] && ! head -1 "$file_path" | grep -q '生成物:'; then
+    echo "対象外[定義は docs に置く]: 生成ヘッダを持たない自前のファイルのため対象外（${file_path}）"
+    return 0
+  fi
+
   echo "拒否[定義は docs に置く]: docs/rules 配下に対応する定義がありません。定義を docs 側へ置いてから派生を生成してください"
   return 2
 }
@@ -174,6 +182,14 @@ judge() {
   if [[ "$file_path" =~ (^|/)\.claude/rules/ ]] \
     || [[ "$file_path" =~ (^|/)\.cursor/rules/ ]] \
     || [[ "$file_path" =~ (^|/)\.codex/ ]]; then
+    # 派生物かどうかは置き場だけでは決まらない。生成器（build-derived-rules.sh）が
+    # 書く派生物は先頭に「生成物:」のヘッダコメントを持つ。ヘッダを持たない既存
+    # ファイルは、このリポジトリ自身が直接置いた正本（公開完遂規約などの自前の
+    # 常時規約）であり、直接編集を止めない。
+    if [ -f "$file_path" ] && ! head -1 "$file_path" | grep -q '生成物:'; then
+      echo "許可[派生は生成物として扱う]: 生成ヘッダを持たない自前の規約のため対象外（${file_path}）"
+      return 0
+    fi
     echo "拒否[派生は生成物として扱う]: ${file_path} は .claude/rules・.cursor/rules・.codex 配下の派生物であり、直接編集は禁止されています"
     return 2
   fi

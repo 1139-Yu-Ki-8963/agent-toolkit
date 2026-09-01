@@ -180,9 +180,8 @@ run_loop() {
   local coverage_line
   coverage_line="$(printf '%s\n' "$cov_out" | tail -1)"
 
-  # check-self-contained.sh はこのリポジトリ自身を測る道具であり、公開対象から外している
-  # （.claude/rules/always/publish/complete/rule.md の「公開対象から外す資産」）。
-  # 配布先には存在しないため、在るときだけ実行し、無いときは対象なしとして扱う。
+  # check-self-contained.sh は 2026-09-01 に実装して配布対象へ加えた（改善課題1-52）。
+  # 旧い配布物には存在しない場合があるため、在るときだけ実行し、無いときは対象なしとして扱う。
   local sc_script="${repo}/generation-engine/scripts/verification/check-self-contained.sh"
   if [ -f "$sc_script" ]; then
     sc_out="$(bash "$sc_script" --repo "$repo" 2>&1)"
