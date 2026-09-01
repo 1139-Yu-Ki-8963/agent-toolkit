@@ -15,6 +15,7 @@ if (typeof WebSocket !== 'function' && !process.env.__WS_RETRY) {
 //   1-295: テストケース一覧（1列目が「ケース名」または「対象（関数名）」）を、BOM 付き UTF-8・CRLF・
 //          記入用6列を足した CSV として、埋め込みの原本から元の順序で全件書き出せる
 //   1-300: 空行だけを挟んで続く2つの表が、別々の2つの表として描画される
+//   1-304: 同一文書内アンカーへのリンクに target が付かず、別文書へのリンクに target="_blank" が付く
 // ブラウザを起動できない場合は判定不能（終了コード2）とし、不合格と区別する。
 
 const fs = require('node:fs');
@@ -37,6 +38,7 @@ function buildMarkdown() {
   L.push('', '## §3 テストケース一覧', '', '| ケース名 | 番号 | 対象 | 期待結果 |', '|---|---|---|---|');
   for (let i = 1; i <= CASE_ROWS; i += 1) L.push(`| ケース${i} | ${i} | fn_${i} | 値に「,」と"引用"を含む${i} |`);
   L.push('', '## §4 連続する表', '', '| 対応する節 | ファイル |', '|---|---|', '| §1 | a.md |', '', '| 資料 | パス |', '|---|---|', '| 設計書 | b.md |', '');
+  L.push('', '## §5 リンク', '', '[節への移動](#sec-anchor) と [別文書](./基本設計書.html) を参照。', '');
   return L.join('\n');
 }
 
@@ -85,6 +87,9 @@ function measureScript() {
     out.csvButton = !!(caseTools && caseTools.querySelector('button.csv-export'));
     out.csv = window.__docBuildCaseCsv ? window.__docBuildCaseCsv(0) : null;
     out.csvOthers = window.__docBuildCaseCsv ? window.__docBuildCaseCsv(1) : 'x';
+    out.links = Array.prototype.slice.call(document.querySelectorAll('#doc-content a[href]')).map(function (a) {
+      return { href: a.getAttribute('href'), target: a.getAttribute('target'), rel: a.getAttribute('rel') };
+    });
     return JSON.stringify(out);
   })()`;
 }
@@ -119,6 +124,15 @@ function measureScript() {
     if (!/"値に「,」と""引用""を含む1"/.test(lines[1])) failures.push('1-295: カンマ・引用符を含む値の二重化が正しくない');
     if (r.csvOthers !== null) failures.push('1-295: ケース表以外が書き出しの対象になっている');
   }
+  // 1-304
+  const anchorLink = (r.links || []).find((a) => a.href && a.href.charAt(0) === '#');
+  const docLink = (r.links || []).find((a) => a.href && a.href.indexOf('基本設計書.html') !== -1);
+  if (!anchorLink || !docLink) failures.push(`1-304: 検査対象のリンクが描画されない（${JSON.stringify(r.links || [])}）`);
+  else {
+    if (anchorLink.target) failures.push(`1-304 検収1: 同一文書内アンカーへのリンクに target が付いている（${anchorLink.target}）`);
+    if (docLink.target !== '_blank') failures.push(`1-304 検収2: 別文書へのリンクに target="_blank" が付かない（${docLink.target}）`);
+  }
+  reports.push(`リンク: アンカー target=${anchorLink && anchorLink.target}／別文書 target=${docLink && docLink.target}`);
   reports.forEach((l) => console.log(`INFO: ${l}`));
   if (failures.length) { failures.forEach((l) => console.error(`FAIL: ${l}`)); process.exitCode = 1; return; }
   console.log('PASS: 共通の版面で、閾値を超える表の並べ替え・絞り込み（1-273）、テストケース一覧の CSV 書き出し（1-295）、空行で続く表の分離（1-300）が実描画で機能する');

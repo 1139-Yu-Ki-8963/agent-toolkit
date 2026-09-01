@@ -1154,7 +1154,11 @@ table.data-table code {
     });
     s = s.replace(/\[([^\]]+)\]\(([^()\s]+)\)/g, function(_, label, url) {
       var sanitizedUrl = safeUrl(url);
-      return sanitizedUrl ? '<a href="' + sanitizedUrl + '">' + label + '</a>' : label;
+      if (!sanitizedUrl) return label;
+      // 同一文書内アンカー（# 始まり）は現在のタブで移動し、別文書へのリンクは
+      // 新しいタブで開く（改善課題1-304）。rel は新規タブからの参照を断つ定石。
+      var targetAttr = sanitizedUrl.charAt(0) === '#' ? '' : ' target="_blank" rel="noopener"';
+      return '<a href="' + sanitizedUrl + '"' + targetAttr + '>' + label + '</a>';
     });
     s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     s = s.replace(/\*([^*]+)\*/g, '<em>$1</em>');
