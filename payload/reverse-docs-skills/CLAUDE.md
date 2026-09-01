@@ -1,6 +1,6 @@
 # reverse-docs-skills AI作業案内
 
-このリポジトリは、既存コードから設計書・一覧・検証記録をリバース生成し、設計書からの再生成と原本突合までを行うスキル群の定義です。スキルの実体は `.claude/skills/`、納品先へ配るテンプレート・参照文書は `delivery-payload/`、納品物を作る生成器・見本は `generation-engine/`、全体ガイドは `docs/guides/reverse-docs-overview.html`、納品物ガイドは `docs/guides/納品物ガイド.html` にあります。
+このリポジトリは、対象プロジェクトへ「AI駆動開発の基盤一式」を納品するツール群の定義です。区分はセットアップ・リバース・保守（納品物の維持）・現場運用（納品先の開発サイクル）の4つです。リバースでは既存コードから設計書を書き起こし、設計書だけからの再生成と原本突合で品質を確かめます。スキルの実体は `.claude/skills/`、納品先へ配るテンプレート・参照文書は `delivery-payload/`、納品物を作る生成器・見本は `generation-engine/`、全体ガイドは `docs/guides/reverse-docs-overview.html`、納品物ガイドは `docs/guides/納品物ガイド.html` にあります。
 
 ## 索引
 
