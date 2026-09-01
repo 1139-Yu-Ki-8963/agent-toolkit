@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>テスト観点表の生成 機能結合テスト設計書</title>
+<title>用語の承認運用 機能単体テスト設計書</title>
 <style>
 /* 設計ポータルのデザイントークン。
    本ファイルの全文が、ビルド時に各テンプレートのトークン注入マーカーへ差し込まれる。
@@ -785,7 +785,7 @@ table.data-table code {
   <div class="pt-brand">
     <div class="pt-brand-stamp">DESIGN PORTAL</div>
     <div class="pt-brand-switch" id="pt-brand-switch">
-      <div class="pt-brand-name">reverse-docs-skills</div>
+      <div class="pt-brand-name">.</div>
     </div>
     <div class="pt-brand-sub">設計台帳 · 全57資料</div>
   </div>
@@ -794,7 +794,7 @@ table.data-table code {
   <button type="button" class="pt-theme" id="pt-theme-toggle">
     <span id="pt-theme-label">テーマ: ダーク</span><span class="pt-theme-next" id="pt-theme-next">→ LIGHT</span>
   </button>
-  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-08-31</span><span id="pt-meta-commit"><br>コミット </span></div>
+  <div class="pt-sidebar-meta">更新 <span id="pt-sidebar-date">2026-09-01</span><span id="pt-meta-commit"><br>コミット </span></div>
 </aside>
 <div class="pt-sidebar-scrim" id="pt-sidebar-scrim" hidden></div>
 <script type="application/json" id="pt-nav-data">[{"key":"project","num":"01","label":"基盤情報","count":5},{"key":"standards","num":"02","label":"規約","count":27},{"key":"design","num":"03","label":"設計書","count":5},{"key":"list","num":"04","label":"一覧・設計図","count":11},{"key":"cross","num":"05","label":"マトリクス・対応表","count":5},{"key":"ai","num":"06","label":"AI設定資産","count":1},{"key":"design-tools","num":"07","label":"デザイン","count":3}]</script>
@@ -1075,9 +1075,9 @@ table.data-table code {
 </script>
     <main class="pt-main" id="main-scroll">
       <div class="pt-head">
-        <div class="pt-crumb"><a href="../../../../../project-portal/index.html">TOP</a> ／ 設計書 ／ <span class="pt-crumb-current">テスト観点表の生成 機能結合テスト設計書</span></div>
+        <div class="pt-crumb"><a href="../../../../../project-portal/index.html">TOP</a> ／ 設計書 ／ <span class="pt-crumb-current">用語の承認運用 機能単体テスト設計書</span></div>
         <div class="pt-title-row">
-          <h1 class="pt-title" id="dp-hero-title">テスト観点表の生成 機能結合テスト設計書</h1>
+          <h1 class="pt-title" id="dp-hero-title">用語の承認運用 機能単体テスト設計書</h1>
         </div>
       </div>
       <div class="dp-layout">
@@ -1092,12 +1092,12 @@ table.data-table code {
   </div>
   <footer class="pt-footer">
   <span class="pt-footer-stamp">REVERSE-DOCS REGISTER</span>
-  <span class="pt-footer-meta">reverse-docs-skills · 更新 <span id="pt-footer-date">2026-08-31</span><span id="pt-footer-commit"> · コミット </span></span>
+  <span class="pt-footer-meta">. · 更新 <span id="pt-footer-date">2026-09-01</span><span id="pt-footer-commit"> · コミット </span></span>
   <span class="pt-footer-gen">生成: generation-engine/scripts/build-portal.sh</span>
 </footer>
 </div>
 
-<script type="application/json" id="doc-md">"\n# テスト観点表の生成 機能結合テスト設計書\n\n**この文書の位置づけ**（別の言語で作り直す場合は、まず「仕様」から読む）\n\n- 仕様: §1 テスト観点、§2 テストケース一覧、§3 入力条件、§4 期待結果、§5 異常系、§6 境界値、§7 網羅基準、§8 前提条件と終了条件、§9 関連資料\n- 現行実装: 該当なし\n- 仕様／現行実装（詳細は各節の太字1行を見る）: 該当なし\n\n## 本書が検証するもの\n\n結合は2段に分けて定義します。1つの設計単位の中で構成要素が結合した状態を内部結合、複数の設計単位をまたぐ連携を外部結合と呼びます。単位ごとの文書は内部結合までを担い、プロジェクト全体の文書が外部結合を担います。\n\n| 段 | 検証する状態 | 対応する設計書 | 文書 |\n|---|---|---|---|\n| 単体 | 1つの関数・メソッドの入出力 | 機能設計書 | 機能単体テスト設計書 |\n| 内部結合 | 1つの機能の中で関数・メソッドが結合した状態（外部の振る舞い） | 機能設計書 | 機能結合テスト設計書（本書） |\n| 外部結合 | 複数の画面・機能・APIをまたぐ連携 | 複数の設計書 | docs/test-cases/結合テスト仕様書.md |\n\n## テスト対象\n\n| 対象 | 確認する内容 | 根拠となる機能設計書の章 |\n|---|---|---|\n| Phase 1〜4の一連の流れ | 実在確認→横断集約→整合検証→HTML生成が意図した順序で完走すること | §3 業務フロー |\n| 全種別不在時のSTOPPED | テスト設計書が全種別で0件のときHTMLを生成せず停止すること | §3 業務フロー、§8 エラーと業務メッセージ |\n| 確定行0件時の空状態生成 | テスト設計書は存在するが確定行が0件のとき、空状態のページを生成しDONEを返すこと | §3 業務フロー、§4 業務ルール |\n\n## テストの粒度と自動化の方針\n\n| 項目 | 方針 |\n|---|---|\n| テストの粒度 | 1ケースで確認する振る舞いを記入する。 |\n| 自動化 | `validate-test-viewpoint-manifest.sh`による自動検証が可能。手動確認は不要。 |\n\n## 本書が扱わない範囲\n\n| 対象外の事項 | 対象外とする理由 | 代わりに確認する資料または試験 |\n|---|---|---|\n| aggregate-test-viewpoints.sh・build-unit-list.sh自体の関数単位の検証 | 本機能が呼ぶ共通スクリプトの内部実装であり、機能設計書の業務フローには現れない | `docs/design/batches/batch-extract/テスト設計/バッチ単体テスト設計書.md` |\n| 具体的なテストケースの横断集約 | 本機能の範囲外（§2.3 範囲外） | `docs/design/features/feature-generating-test-case-list-for-reverse-docs/テスト設計/機能結合テスト設計書.md` |\n\n## §1 テスト観点\n\n**この節の位置づけ: 仕様**\n\n観点は機能設計書の業務フロー・業務ルール・エラーと業務メッセージの各章から起こす。\n\n| キー | 観点 | 由来する機能設計書の章 |\n|---|---|---|\n| 正常一覧生成 | テスト設計書が1件以上存在するとき、Phase1〜4が完走しテスト観点表.htmlが生成される | §3.1 正常系フロー |\n| 全種別不在停止 | 全種別で2テスト設計書が0件のとき、HTMLを生成せずstatus=STOPPEDになる | §3.2 分岐と例外フロー、§8.1 業務エラー一覧 |\n| 確定行0件の空状態生成 | テスト設計書は存在するが確定行が0件のとき、空状態のページを生成しDONEになる | §3.2 分岐と例外フロー |\n| 新旧配置fallback | 画面の新配置にファイルが無い場合、旧観点表（${screen_detail_dirname}/）から読む | §4.1 業務判断ポイント |\n| 検証未収束差し戻し | 整合検証が3回連続でFAILのとき、集約元の見直しへ差し戻す | §3.2 分岐と例外フロー、§8.1 業務エラー一覧 |\n\n## §2 テストケース一覧\n\n**この節の位置づけ: 仕様**\n\n| キー | 番号 | ケースの名前 | 対応する観点のキー | 区分 |\n|---|---|---|---|---|\n| 正常一覧生成 | 1 | テスト設計書1件以上存在時に一連の生成が完走する | 正常一覧生成 | 正常系 |\n| 全種別不在停止 | 2 | 全種別0件のときHTMLを生成せず停止する | 全種別不在停止 | 異常系 |\n| 確定行0件の空状態生成 | 3 | 確定行0件でも空状態ページが生成されDONEになる | 確定行0件の空状態生成 | 境界値 |\n| 新旧配置fallback | 4 | 画面の旧観点表からも読み取れる | 新旧配置fallback | 正常系 |\n| 検証未収束差し戻し | 5 | 3回連続FAILで集約元の見直しへ差し戻す | 検証未収束差し戻し | 異常系 |\n\n## §3 入力条件\n\n**この節の位置づけ: 仕様**\n\n| ケースのキー | 入力の項目 | 値 |\n|---|---|---|\n| 正常一覧生成 | output_dir | テスト設計書が1件以上存在するパス |\n| 全種別不在停止 | output_dir配下の全設計単位 | テスト設計/配下に対象文書が0件 |\n| 確定行0件の空状態生成 | aggregate-test-viewpointsの実行結果 | summary.totalCount=0（設計書自体は実在） |\n| 新旧配置fallback | 画面の設計単位 | 新配置は空、旧${screen_detail_dirname}/に対応文書が実在 |\n| 検証未収束差し戻し | manifest.jsonの内容 | 3回とも不整合のまま |\n\n## §4 期待結果\n\n**この節の位置づけ: 仕様**\n\n| ケースのキー | 期待する結果 | 確認の方法 |\n|---|---|---|\n| 正常一覧生成 | テスト観点表.htmlが生成される | build-unit-list.shの終了コードが0であることを確認する |\n| 全種別不在停止 | status=STOPPEDで返却される | 返却のstatusとartifacts（空）を確認する |\n| 確定行0件の空状態生成 | 空状態を示すテスト観点表.htmlが生成されstatus=DONEになる | 返却のstatusと生成HTMLの内容を確認する |\n| 新旧配置fallback | 旧配置の内容がmanifestへ反映される | 生成されたmanifestに当該画面の行が含まれることを確認する |\n| 検証未収束差し戻し | Phase2（集約元の見直し）へ差し戻される | 実行記録に差し戻しの記載があることを確認する |\n\n## §5 異常系\n\n**この節の位置づけ: 仕様**\n\n| 観点のキー | 発生させる条件 | 期待する振る舞い | 由来する機能設計書の章 |\n|---|---|---|---|\n| 全種別不在停止 | output_dir配下のテスト設計/を全種別で空にする | HTMLを生成せずstatus=STOPPEDで返却する | §8.1 業務エラー一覧 |\n| 検証未収束差し戻し | manifest.jsonの整合を3回連続で崩す | 集約元の見直し（Phase2）へ差し戻す | §8.1 業務エラー一覧 |\n\n## §6 境界値\n\n**この節の位置づけ: 仕様**\n\n| 観点のキー | 対象の項目 | 境界の値 | 境界の直前と直後の扱い |\n|---|---|---|---|\n| 確定行0件の空状態生成 | 集約結果の件数 | 0件 | 設計書が実在すれば0件でも生成、設計書自体が全種別で不在なら生成しない |\n\n## §7 網羅基準\n\n**この節の位置づけ: 仕様**\n\n| 観点 | 基準 |\n|---|---|\n| 条件の網羅 | テスト設計書の実在・不在の両方を1件以上のケースで確認する |\n| 分岐の網羅 | 新配置・旧配置の両方を1件以上のケースで確認する |\n| 境界の網羅 | 「設計書不在」と「設計書実在だが確定行0件」の境界を確認する |\n\n## §8 前提条件と終了条件\n\n**この節の位置づけ: 仕様**\n\n| 区分 | 内容 |\n|---|---|\n| 実行の前提条件 | output_dirが実在し、1単位以上でテスト設計書が確定していること |\n| 終了の条件 | テスト観点表.htmlが出力先に存在し、validate-test-viewpoint-manifest.shの終了コードが0であること |\n\n## §9 関連資料\n\n**この節の位置づけ: 仕様**\n\n他文書の所在はこの節へまとめる。確定できなかった事項は推測で埋めず、空欄のままとする。\n\n| 資料 | パス | 本書との関係 |\n|---|---|---|\n| 対応する設計書 | `docs/design/features/feature-generating-test-viewpoint-list-for-reverse-docs/basic-design/機能設計書.md` | 本書の観点の由来元 |\n| スキル定義 | `.claude/skills/generating-test-viewpoint-list-for-reverse-docs/SKILL.md` | 本機能の実行手順 |"</script>
+<script type="application/json" id="doc-md">"\n# 用語の承認運用 機能単体テスト設計書\n\n**この文書の位置づけ**（別の言語で作り直す場合は、まず「仕様」から読む）\n\n- 仕様: §1 テスト観点、§2 テストケース一覧、§3 入力条件、§4 期待結果、§5 異常系、§6 境界値、§7 網羅基準、§8 前提条件と終了条件\n- 現行実装: 該当なし\n- 仕様／現行実装（詳細は各節の太字1行を見る）: 該当なし\n\n| 節 | 内容 | 読み手へのお願い |\n|---|---|---|\n| §1 テスト観点 | §1 テスト観点に関する設計内容 | 記載内容を確認し、認識相違や不足があれば指摘してください。 |\n| §2 テストケース一覧 | §2 テストケース一覧に関する設計内容 | 記載内容を確認し、認識相違や不足があれば指摘してください。 |\n| §3 入力条件 | §3 入力条件に関する設計内容 | 記載内容を確認し、認識相違や不足があれば指摘してください。 |\n| §4 期待結果 | §4 期待結果に関する設計内容 | 記載内容を確認し、認識相違や不足があれば指摘してください。 |\n| §5 異常系 | §5 異常系に関する設計内容 | 記載内容を確認し、認識相違や不足があれば指摘してください。 |\n| §6 境界値 | §6 境界値に関する設計内容 | 記載内容を確認し、認識相違や不足があれば指摘してください。 |\n| §7 網羅基準 | §7 網羅基準に関する設計内容 | 記載内容を確認し、認識相違や不足があれば指摘してください。 |\n| §8 前提条件と終了条件 | §8 前提条件と終了条件に関する設計内容 | 記載内容を確認し、認識相違や不足があれば指摘してください。 |\n\n本書は関数・メソッド単位の内部処理を検証します。観点と具体的なケースを分けず、1文書で管理します。対応する設計書は `機能設計書.md` です。\n\n## 本書が検証するもの\n\n結合は2段に分けて定義します。1つの設計単位の中で構成要素が結合した状態を内部結合、複数の設計単位をまたぐ連携を外部結合と呼びます。単位ごとの文書は内部結合までを担い、プロジェクト全体の文書が外部結合を担います。\n\n| 段 | 検証する状態 | 対応する設計書 | 文書 |\n|---|---|---|---|\n| 単体 | 1つの関数・メソッドの入出力 | 機能設計書 | 機能単体テスト設計書（本書） |\n| 内部結合 | 1つの機能の中で関数・メソッドが結合した状態（外部の振る舞い） | 機能設計書 | 機能結合テスト設計書 |\n| 外部結合 | 複数の画面・機能・APIをまたぐ連携 | 複数の設計書 | docs/test-cases/結合テスト仕様書.md |\n\n## テスト対象\n\n対象は関数・メソッド単位の内部処理とする。\n\n## テストの粒度と自動化の方針\n\n反復可能なケースは自動化し、実装後のテスト参照をケースに記録する。単位配下へ結合テスト文書を生成しない。\n\n## 本書が扱わない範囲\n\n複数の画面・機能・APIにまたがる結合テストはプロジェクト全体の `docs/test-cases/結合テスト仕様書.md` が担う。\n\n## §1 テスト観点\n\n**この節の位置づけ: 仕様**\n\n| キー | 観点 | 由来する基本設計書の章 | 由来する詳細設計書の章 |\n|---|---|---|---|\n| 対象関数該当なし | 本機能を構成する3スキル（generating-glossary-for-reverse-docs・maintaining-semantic-glossary・managing-semantic-glossary）は、いずれもAIエージェントがRead/Grep/Bashで抽出・正規化・品質検査・影響分析・承認確認・投影の判断を直接行うPhase/Step手順であり、独自定義の関数・メソッドを持たない（design-unit-layout.json の feature.phases.detail は空） | §3 業務フロー | 該当なし |\n\n### 根拠\n\n`.claude/skills/managing-semantic-glossary/SKILL.md` は「本Skillは独立したCRUD runnerや用語管理CLIではない」と明記している。同SKILL.mdは「AIがRead/Grep/Bashで定義YAML・根拠・reportを確認する」とも記す。加えて「Write/Editで変更要求または承認済みYAML差分を扱う手順である」とも記す。`generating-glossary-for-reverse-docs`・`maintaining-semantic-glossary`も同様にPhase/Step手順として記述される。独自定義の関数・メソッドを持たない。個別スクリプトは、それぞれ関数単位の検証を持ちます。対象は `write-glossary-proposal-output.py`・`verify-glossary-proposal-receipt.py` です。加えて `validate-verified-glossary-proposal-bundle.py` もあります。加えて `validate-semantic-glossary.sh`・`project-semantic-glossary.py` もあります。検証はそれぞれの詳細設計書の単体テスト設計書が担う。`validate-semantic-glossary.sh`・`project-semantic-glossary.py`の詳細設計書の置き場は2つです。1つは `docs/design/batches/batch-glossary/` です。もう1つは `docs/design/batches/batch-detail-pages/` です。候補生成の3本のPythonスクリプトについては、対応する `docs/design/batches/` 配下のバッチ設計単位が未整備であり、要確認事項として扱う。\n\n## §2 テストケース一覧\n\n**この節の位置づけ: 仕様**\n\n| キー | 番号 | 対応観点キー | 入力・操作 | 期待結果 |\n|---|---|---|---|---|\n| 対象関数該当なし | 1 | 対象関数該当なし | — | 該当なし（§1参照）。実行可能な検証はvalidate-semantic-glossary.sh・project-semantic-glossary.py側の単体テスト設計書に記載する |\n\n## §3 入力条件\n\n**この節の位置づけ: 仕様**\n\n| キー | データ | 用途 |\n|---|---|---|\n| 対象関数該当なし | — | 該当なし（§1参照） |\n\n## §4 期待結果\n\n**この節の位置づけ: 仕様**\n\n期待結果は観測可能な値・状態・表示で記載する。本機能は対象関数を持たないため、期待結果の記載対象は無い（§1参照）。\n\n## §5 異常系\n\n**この節の位置づけ: 仕様**\n\n| 観点のキー | 条件 | 期待結果 |\n|---|---|---|\n| 対象関数該当なし | — | 該当なし（§1参照） |\n\n## §6 境界値\n\n**この節の位置づけ: 仕様**\n\n| 観点のキー | 境界 | 期待結果 |\n|---|---|---|\n| 対象関数該当なし | — | 該当なし（§1参照） |\n\n## §7 網羅基準\n\n**この節の位置づけ: 仕様**\n\n設計書に定義された分岐・状態・制約をすべて観点へ対応付ける。本機能は対象関数を持たないため、網羅基準の適用対象は無い（§1参照）。\n\n## §8 前提条件と終了条件\n\n**この節の位置づけ: 仕様**\n\n| 区分 | 条件 |\n|---|---|\n| 前提条件 | 本書は対象関数を持たないため、前提条件の記載対象は無い |\n| 終了条件 | 該当なし |"</script>
 
 <script>
 (function () {
