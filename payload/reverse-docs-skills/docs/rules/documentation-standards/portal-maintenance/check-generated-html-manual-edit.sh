@@ -61,6 +61,27 @@ judge() {
     return 0
   fi
 
+  # 対象は HTML だけ。マーカー文字列を定義として含むスクリプト等（この検出器自身を
+  # 含む）を誤って止めない（check-secret-*.sh を検査対象外とする先例と同じ理由）。
+  case "$file_path" in
+    *.html) ;;
+    *)
+      echo "対象外[HTML を直接編集しない]: HTML ではないため対象外（${file_path}）"
+      return 0
+      ;;
+  esac
+
+  # 生成元のテンプレートは対象外。規約の対象は生成物（project-portal 配下と一覧ページ）
+  # であり、delivery-payload/templates/ 配下は生成の元になる正本である。テンプレートは
+  # 生成物マーカーの雛形（置換位置）を正当に含むため、マーカーの有無だけで判定すると
+  # 正本の編集まで止めてしまう。
+  case "$file_path" in
+    *delivery-payload/templates/*)
+      echo "対象外[HTML を直接編集しない]: 生成元のテンプレートのため対象外（${file_path}）"
+      return 0
+      ;;
+  esac
+
   if grep -qE "$MARKER_RE" "$file_path" 2>/dev/null; then
     echo "拒否[HTML を直接編集しない]: ${file_path} は生成物マーカーを含む生成済み HTML です"
     return 2
@@ -171,6 +192,30 @@ self_test() {
     rc=1
   else
     echo "  [PASS] 系6: 環境変数が空文字ならskipされない"
+  fi
+
+  # 系7: マーカー文字列を含む .sh（検出器自身のようなスクリプト） → 対象外
+  local script7="$tmp/checker.sh"
+  printf '%s\n' 'MARKER_RE="id=\"page-data\""' > "$script7"
+  if msg="$(judge "$script7")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 0 ]; then
+    echo "  [PASS] 系7: マーカー文字列を含む .sh は対象外（${msg}）"
+  else
+    echo "  [FAIL] 系7: HTML でないのに拒否された（exit=${code}）" >&2
+    rc=1
+  fi
+
+  # 系8: delivery-payload/templates/ 配下のマーカー入り HTML（生成元の雛形） → 対象外
+  local tpl_dir="$tmp/delivery-payload/templates/unit-list"
+  mkdir -p "$tpl_dir"
+  local tpl8="$tpl_dir/unit-list-template.html"
+  printf '<html><body><script id="unit-manifest">x</script></body></html>\n' > "$tpl8"
+  if msg="$(judge "$tpl8")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 0 ]; then
+    echo "  [PASS] 系8: テンプレート配下の雛形は対象外（${msg}）"
+  else
+    echo "  [FAIL] 系8: 生成元のテンプレートなのに拒否された（exit=${code}）" >&2
+    rc=1
   fi
 
   if [ "$rc" -eq 0 ]; then
