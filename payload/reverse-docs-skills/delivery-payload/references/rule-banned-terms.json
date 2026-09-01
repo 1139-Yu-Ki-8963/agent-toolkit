@@ -25,7 +25,14 @@
     {"term": "採録", "replacement": "書き起こす", "scope": ["skills"]},
     {"term": "原本読解型", "replacement": "原本だけを読み取る種類", "scope": ["skills"]},
     {"term": "gold標準", "replacement": "模範例", "scope": ["skills"]},
-    {"term": "back-edge", "replacement": "戻り方向の依存", "scope": ["skills"]}
+    {"term": "back-edge", "replacement": "戻り方向の依存", "scope": ["skills"]},
+    {"term": "派生生成", "replacement": "定義からの自動生成", "scope": ["skills"]},
+    {"term": "派生", "replacement": "生成物", "scope": ["skills"]},
+    {"term": "突合", "replacement": "照らし合わせ", "scope": ["skills"]},
+    {"term": "ずれ検知", "replacement": "食い違いの検出", "scope": ["skills"]},
+    {"term": "指揮役", "replacement": "統括スキル", "scope": ["skills"]},
+    {"term": "第1層集約", "replacement": "機械検証の一括実行", "scope": ["skills"]},
+    {"term": "facts", "replacement": "事実の記録", "scope": ["skills"]}
   ],
   "exemptions": [
     {"scope": "rule-definitions", "parent": "documentation-standards", "key": "document-writing", "reason": "この規約自身が『本文には成果物を作った作業の単位を指す語を書かない』という規則を定義しており、規則の本文がその語（下書きファイル等）を例示している。禁止語の例示は規則の説明として正当であり、規則を定義する文書だけを対象に除外する（generation-engine/scripts/rules/scaffold-rule-definitions.sh の scan_banned_terms が読む）。"}
