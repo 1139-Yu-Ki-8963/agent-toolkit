@@ -1057,8 +1057,8 @@ const complete = (main.markdown.match(/\[[^\]]+\]\([^\)]+\)/g) || []).length ===
   && common.markdown.includes('[./共通設計書.md](../project-portal/foundation/%E5%85%B1%E9%80%9A%E8%A8%AD%E8%A8%88%E6%9B%B8.html)')
   && common.markdown.includes('[./補足資料.md](%E8%A3%9C%E8%B6%B3%E8%B3%87%E6%96%99.html)')
   && common.markdown.includes('`./不存在共通.md`')
-  && common.html.includes('<a href="../project-portal/foundation/%E5%85%B1%E9%80%9A%E8%A8%AD%E8%A8%88%E6%9B%B8.html">./共通設計書.md</a>')
-  && common.html.includes('<a href="%E8%A3%9C%E8%B6%B3%E8%B3%87%E6%96%99.html">./補足資料.md</a>')
+  && common.html.includes('<a href="../project-portal/foundation/%E5%85%B1%E9%80%9A%E8%A8%AD%E8%A8%88%E6%9B%B8.html" target="_blank" rel="noopener">./共通設計書.md</a>')
+  && common.html.includes('<a href="%E8%A3%9C%E8%B6%B3%E8%B3%87%E6%96%99.html" target="_blank" rel="noopener">./補足資料.md</a>')
   && common.html.includes('<code>./不存在共通.md</code>');
 if (!complete) process.exit(1);
 NODE
@@ -4374,7 +4374,33 @@ TEST48BASE
 # 受注一覧 画面詳細設計書
 TEST48DETAIL
   append_required_screen_sections "$test48_screen/詳細設計/画面詳細設計書.md"
-  : > "$test48_screen/テスト設計/画面結合テスト設計書.md"
+  cat > "$test48_screen/テスト設計/画面結合テスト設計書.md" <<'TEST48IT'
+# 受注一覧 画面結合テスト設計書
+
+## 本書が検証するもの
+
+## テスト対象
+
+## テストの粒度と自動化の方針
+
+## 本書が扱わない範囲
+
+## §1 テスト観点
+
+## §2 テストケース一覧
+
+## §3 入力条件
+
+## §4 期待結果
+
+## §5 異常系
+
+## §6 境界値
+
+## §7 網羅基準
+
+## §8 前提条件と終了条件
+TEST48IT
   : > "$test48_screen/テスト項目書/単体テスト仕様書.md"
   # 改善課題1-243: 本ケースはパターンa/bの2つの独立したガードを経て末尾で
   # 1行のPASSを出す構造を持つ。片方のガードのみ不合格でもFAILとPASSの
