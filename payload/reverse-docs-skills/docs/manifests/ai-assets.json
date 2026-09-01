@@ -622,12 +622,6 @@
       "phaseCount": 7
     },
     {
-      "skillName": "prioritizing-improvement-tasks-from-images",
-      "category": "工程",
-      "summary": "改善課題の画像を書き起こして指示書へ集約し、未解決項目を調査して優先順位を確定する。",
-      "phaseCount": 7
-    },
-    {
       "skillName": "rebuilding-code-from-docs",
       "category": "工程",
       "summary": "画面ごとの設計書だけからコードを作り直し、元のコードと突き合わせて欠落を見つける。",
