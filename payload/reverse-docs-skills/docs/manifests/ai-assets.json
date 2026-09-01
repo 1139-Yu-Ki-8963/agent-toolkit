@@ -1,6 +1,6 @@
 {
-  "generatedAt": "2026-08-31T07:06:22+0900",
-  "dataSource": "self-apply-docs-system",
+  "generatedAt": "2026-09-01T20:19:56+0900",
+  "dataSource": "feature-model-remodel",
   "rules": [
     {
       "ruleName": "人とAIの分担の決まり",
@@ -619,6 +619,12 @@
       "skillName": "orchestrating-ai-development-setup",
       "category": "指揮",
       "summary": "対象コードと実行範囲を入力に、調査・事実取り出し・設計書作成から再構築・実装照合・基準確立までを指定に応じて統括し、選んだ工程の結果を確定する。",
+      "phaseCount": 7
+    },
+    {
+      "skillName": "prioritizing-improvement-tasks-from-images",
+      "category": "工程",
+      "summary": "改善課題の画像を書き起こして指示書へ集約し、未解決項目を調査して優先順位を確定する。",
       "phaseCount": 7
     },
     {

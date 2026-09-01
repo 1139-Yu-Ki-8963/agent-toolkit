@@ -17,6 +17,12 @@
     {"reference": "generation-engine/samples/一覧/用語辞書/用語辞書.html", "reason": "文書作成時点のサンプル配置を指す記述。後続のポータル英字リネームで project-portal/lists/semantic-glossary/ 配下へ移動したが、本文は当時の状態を記録している"},
     {"reference": "generation-engine/samples/project-portal/図/状態遷移図.html", "reason": "ディレクトリ名の英字化（図→diagrams）より前の実験時点の記述。check-portal-dir-ascii.shの設計判断がdocs/配下をリネーム対象外と明記しており、本文はその対象外の歴史記述である"},
     {"reference": "generation-engine/samples/project-portal/図/画面遷移図.html", "reason": "同上。英字化より前の実験時点の記述である"},
-    {"reference": "generation-engine/samples/project-portal/lists/screens/fixtures", "reason": "検証時に一時的に使ったfixtureを指す記述であり、恒久的な成果物として残っていない"}
+    {"reference": "generation-engine/samples/project-portal/lists/screens/fixtures", "reason": "検証時に一時的に使ったfixtureを指す記述であり、恒久的な成果物として残っていない"},
+    {"reference": "docs/design/features/feature-generating-reverse-common-docs/basic-design/機能設計書.md", "reason": "4カテゴリ・17機能への統合（feature-model-remodel）で feature-common-docs へ吸収する前の旧設計書を指す記録。書き換えると吸収元の記録そのものが成立しなくなる"},
+    {"reference": "docs/design/features/feature-generating-requirement-definitions-for-reverse-docs/basic-design/機能設計書.md", "reason": "同上。feature-common-docs へ吸収する前の旧設計書を指す記録である"},
+    {"reference": "docs/scope-and-progress/開発フロー完了記録.md", "reason": "納品先（対象アプリ）が /dev-flow 実行時に作成する作業記録の配置を説明する記述であり、このリポジトリ自身のパスではない"},
+    {"reference": "docs/design/features/feature-generating-test-case-list-for-reverse-docs/basic-design/機能設計書.md", "reason": "4カテゴリ・17機能への統合（feature-model-remodel）で feature-test-aggregation へ吸収する前の旧設計書を指す記録。書き換えると吸収元の記録そのものが成立しなくなる"},
+    {"reference": "docs/design/features/feature-generating-test-viewpoint-list-for-reverse-docs/basic-design/機能設計書.md", "reason": "同上。feature-test-aggregation へ吸収する前の旧設計書を指す記録である"},
+    {"reference": "docs/design/features/feature-generating-integration-test-spec-for-reverse-docs/basic-design/機能設計書.md", "reason": "同上。feature-test-aggregation へ吸収する前の旧設計書を指す記録である"}
   ]
 }
