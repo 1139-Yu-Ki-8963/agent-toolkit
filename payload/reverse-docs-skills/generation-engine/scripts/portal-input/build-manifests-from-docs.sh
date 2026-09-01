@@ -182,6 +182,32 @@ count_canonical_unit_dirs() {
   printf '%s %s\n' "$canonical" "$total"
 }
 
+# 機能設計書 §2.1 構成要素一覧から、種別が api の行の構成要素キーを relatedApis として抽出する。
+# 文書だけの経路には従来この紐付けが無く、feature-manifest の relatedApis が常に空のため、
+# crud・traceability・permission の feature 行が0件になっていた（検証側の実測）。
+# 表が無い・api 行が無い・プレースホルダだけの場合は空配列を返し、従来の出力を変えない。
+extract_feature_related_apis() {
+  local doc_file="$1"
+  LC_ALL=en_US.UTF-8 awk '
+    function trim(s) { gsub(/^[ \t]+|[ \t]+$/, "", s); return s }
+    function unbt(s) { gsub(/^`+|`+$/, "", s); return s }
+    /^### / { in_sec = (index($0, "構成要素一覧") > 0) ? 1 : 0; next }
+    /^## / { in_sec = 0 }
+    in_sec != 1 { next }
+    /^[ \t]*\|/ {
+      line = $0
+      gsub(/^[ \t]*\|/, "", line)
+      gsub(/\|[ \t\r]*$/, "", line)
+      n = split(line, cols, "|")
+      if (n < 3) next
+      key = unbt(trim(cols[1]))
+      kindv = trim(cols[2])
+      if (key == "構成要素キー" || key ~ /^[-: ]*$/ || key ~ /^<.*>$/) next
+      if (kindv ~ /api|API|接続窓口/) print key
+    }
+  ' "$doc_file" | jq -R -s 'split("\n") | map(select(length > 0)) | unique'
+}
+
 # frontmatter抽出元は、種別root直下の正規単位ディレクトリにある所定roleの文書だけに限る。
 # 再帰findにするとarchive等の退避領域にある同名文書まで別単位として抽出してしまう。
 individual_document_files() {
@@ -533,6 +559,16 @@ build_manifest_for_kind() {
         seg="$(printf '%s' "$api_path" | perl -ne 'my @s = grep { length } split m{/}; @s = grep { $_ ne "api" && $_ !~ /^v\d+$/ } @s; print $s[0] // ""')"
         if [ -n "$seg" ]; then
           unit_obj="$(printf '%s' "$unit_obj" | jq --arg v "$seg" '.pathGroup = $v')"
+        fi
+      fi
+
+      # 機能→APIの紐付けは機能設計書 §2.1 構成要素一覧（種別=api の行）から決定的に導く。
+      # 表が空・api行なしならフィールドは付けず、従来の出力を変えない。
+      if [ "$kind" = "feature" ]; then
+        local related_apis_json
+        related_apis_json="$(extract_feature_related_apis "$file")"
+        if [ -n "$related_apis_json" ] && [ "$related_apis_json" != "[]" ]; then
+          unit_obj="$(printf '%s' "$unit_obj" | jq --arg v "$related_apis_json" '.relatedApis = ($v | fromjson)')"
         fi
       fi
 
@@ -894,6 +930,16 @@ unit_kind: feature
 ---
 
 # 会員管理 機能設計書
+
+## §2 機能の範囲
+
+### 2.1 構成要素一覧
+
+| 構成要素キー | 種別 | 識別子 | 個別設計書 |
+|---|---|---|---|
+| `get-users` | api | GET /api/users | - |
+| `users-screen` | 画面 | /users | - |
+| `<構成要素キー>` | api | <識別子> | - |
 EOF
 
   # 改善課題1-249: 全6種別に、宣言された資料を実在させる。見本は変更せず一時領域だけを使う。
@@ -978,6 +1024,8 @@ EOF
   [ "$(jq -r '.units[0].sourceFile' "$out/table-manifest.json" 2>/dev/null)" = "src/models/users.py" ] || ok1=0
   [ "$(jq -r '.units[0].unitKey' "$out/feature-manifest.json" 2>/dev/null)" = "user-management" ] || ok1=0
   [ "$(jq -r '.units[0].category' "$out/feature-manifest.json" 2>/dev/null)" = "会員管理" ] || ok1=0
+  # 機能→API紐付け: §2.1 構成要素一覧の api 行だけが relatedApis に載る（画面行・プレースホルダ行は除外）
+  [ "$(jq -c '.units[0].relatedApis' "$out/feature-manifest.json" 2>/dev/null)" = '["get-users"]' ] || ok1=0
   if [ "$ok1" -eq 1 ]; then
     echo "  [PASS] 検査1: frontmatterとAPI詳細設計書から導ける項目が正しく入る" >&2
     pass=$((pass + 1))

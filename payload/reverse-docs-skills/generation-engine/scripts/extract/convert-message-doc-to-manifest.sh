@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
 # 抽出エンジン: メッセージ定義書(Markdown)からメッセージmanifest(JSON)への変換。
-# 「キー | 文言(実測) | 種別 | 抽出元 | 使用画面」の5列パイプテーブルをパースし、
-# unitKind=message のユニットマニフェストを出力する。
+# 「キー | 文言(実測) | 種別 | 抽出元 | 使用画面」の5列、または抽出元を持たない
+# 「キー | 文言(実測) | 種別 | 使用画面」の4列パイプテーブルをパースし、
+# unitKind=message のユニットマニフェストを出力する。配布テンプレート
+# （プロジェクト共通/メッセージ定義書.md）は4列形式であり、4列では sourceFile を
+# 空配列にする。
 #
 # Usage: convert-message-doc-to-manifest.sh <メッセージ定義書.md> <output.json>
 #
@@ -22,7 +25,7 @@
 #   }
 #
 # パース仕様:
-#   - パイプ(|)区切りの行のうち、5列に分割できる行だけを対象とする
+#   - パイプ(|)区切りの行のうち、4列または5列に分割できる行だけを対象とする
 #   - ヘッダ行(1列目が "キー")・セパレータ行(全列がハイフン/コロン/空白のみ)・
 #     プレースホルダ行(1列目が "<...>" 形式)はスキップする
 #   - 各列のバッククォート(`)は除去し、前後空白をトリムする
@@ -85,6 +88,22 @@ MD
     echo "FAIL: 出力-絶対パス不在（sourceDirに絶対パスが残っている）"; fail=$((fail + 1))
   fi
 
+  cat > "$tmp/メッセージ定義書4列.md" <<'MD'
+# メッセージ定義書
+
+| キー | 文言（実測） | 種別 | 使用画面 |
+|---|---|---|---|
+| `E100` | 入力に誤りがあります | error | home |
+| `I100` | 送信しました | info | home |
+MD
+  if bash "${BASH_SOURCE[0]}" "$tmp/メッセージ定義書4列.md" "$tmp/out4.json" >/dev/null 2>&1 \
+    && [ "$(jq '.units | length' "$tmp/out4.json" 2>/dev/null)" = "2" ] \
+    && [ "$(jq '.units[0].sourceFile | length' "$tmp/out4.json" 2>/dev/null)" = "0" ]; then
+    echo "PASS: 正常系（抽出元なしの4列テーブルからunits 2件・sourceFile空で抽出）"; pass=$((pass + 1))
+  else
+    echo "FAIL: 4列テーブルの受理に失敗"; fail=$((fail + 1))
+  fi
+
   echo "self-test: $pass PASS, $fail FAIL"
   if [ "$fail" -eq 0 ]; then exit 0; else exit 1; fi
 fi
@@ -123,15 +142,15 @@ tsv="$(LC_ALL=C awk '
     gsub(/^[ \t]*\|/, "", line)
     gsub(/\|[ \t\r]*$/, "", line)
     n = split(line, cols, "|")
-    if (n != 5) next
+    if (n != 4 && n != 5) next
 
-    for (i = 1; i <= 5; i++) {
+    for (i = 1; i <= n; i++) {
       cols[i] = unbacktick(trim(cols[i]))
     }
 
     # セパレータ行判定(ハイフン・コロン・空白のみで構成)
     is_sep = 1
-    for (i = 1; i <= 5; i++) {
+    for (i = 1; i <= n; i++) {
       if (cols[i] !~ /^[-: ]*$/) { is_sep = 0 }
     }
     if (is_sep) next
@@ -142,7 +161,11 @@ tsv="$(LC_ALL=C awk '
     # プレースホルダ行判定(<...> 形式)
     if (cols[1] ~ /^<.*>$/) next
 
-    printf "%s\t%s\t%s\t%s\t%s\n", cols[1], cols[2], cols[3], cols[4], cols[5]
+    # 4列（抽出元なし）は抽出元を空欄にして5列の形へ揃える
+    if (n == 4)
+      printf "%s\t%s\t%s\t\t%s\n", cols[1], cols[2], cols[3], cols[4]
+    else
+      printf "%s\t%s\t%s\t%s\t%s\n", cols[1], cols[2], cols[3], cols[4], cols[5]
   }
 ' "$input_file")"
 

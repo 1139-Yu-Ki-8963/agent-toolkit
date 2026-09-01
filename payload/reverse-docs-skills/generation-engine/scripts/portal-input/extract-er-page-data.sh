@@ -131,11 +131,13 @@ run() {
 
   local table_files=""
   if [ -d "$root_dir" ]; then
-    table_files="$(find "$root_dir" -type f -name "テーブル定義書.md" | sort)"
+    # 外部キーの表は詳細設計のテーブル実装記録.md §2.3 にもある（様式の分割後の配置）。
+    # テーブル定義書.md だけを探すと配布テンプレート経路では外部キー行が一度も見つからない。
+    table_files="$(find "$root_dir" -type f \( -name "テーブル定義書.md" -o -name "テーブル実装記録.md" \) | sort)"
   fi
 
   if [ -z "$table_files" ]; then
-    echo "WARN: テーブル定義書.md が見つかりません: $root_dir" >&2
+    echo "WARN: テーブル定義書.md・テーブル実装記録.md が見つかりません: $root_dir" >&2
   fi
 
   # entities_json: [{key,label}] を発見順(sort済みファイル順)で組み立てる
@@ -381,6 +383,55 @@ EOF
     pass=$((pass + 1))
   else
     echo "  [FAIL] 検査5: テーブル定義書.md不在時の挙動が不正" >&2
+    fail=$((fail + 1))
+  fi
+
+  # 検査6: テーブル実装記録.md（§2.3 外部キー・出典参照列なしの5列）からも関連を抽出できること
+  local t6_root t6_dest ok6=1
+  t6_root="$(mktemp -d "${TMPDIR:-/tmp}/er-page-data-t6.XXXXXX")"
+  mkdir -p "$t6_root/docs/design/tables/table-users/詳細設計" "$t6_root/docs/design/tables/table-orders/詳細設計" "$t6_root/out"
+  cat > "$t6_root/docs/design/tables/table-users/詳細設計/テーブル実装記録.md" <<'EOF'
+---
+table_key: users
+table_id: table-users
+table_name: ユーザー
+source_ref: src/models/users.py
+unit_kind: table
+status: draft
+---
+# ユーザー テーブル実装記録
+## §2 データ定義
+### 2.3 外部キー
+| カラム | 参照先のテーブル | 参照先のカラム | 削除時の動作 | 関連の種別 |
+|---|---|---|---|---|
+EOF
+  cat > "$t6_root/docs/design/tables/table-orders/詳細設計/テーブル実装記録.md" <<'EOF'
+---
+table_key: orders
+table_id: table-orders
+table_name: 注文
+source_ref: src/models/orders.py
+unit_kind: table
+status: draft
+---
+# 注文 テーブル実装記録
+## §2 データ定義
+### 2.3 外部キー
+| カラム | 参照先のテーブル | 参照先のカラム | 削除時の動作 | 関連の種別 |
+|---|---|---|---|---|
+| `user_id` | `users` | `id` | `CASCADE` | `一対多` |
+EOF
+  t6_dest="$t6_root/out/page-data.json"
+  bash "$self_path" "$t6_root" "$t6_dest" >/dev/null 2>&1 || ok6=0
+  [ "$(jq -r '.relations | length' "$t6_dest" 2>/dev/null)" = "1" ] || ok6=0
+  [ "$(jq -r '.relations[0].from' "$t6_dest" 2>/dev/null)" = "orders" ] || ok6=0
+  [ "$(jq -r '.relations[0].sourceRef // ""' "$t6_dest" 2>/dev/null)" = "" ] || ok6=0
+  rm -rf "$t6_root"
+  if [ "$ok6" -eq 1 ]; then
+    echo "  [PASS] 検査6: テーブル実装記録.md（出典参照なし5列）から関連を抽出できる" >&2
+    pass=$((pass + 1))
+  else
+    echo "  [FAIL] 検査6: テーブル実装記録.mdからの抽出に失敗" >&2
     fail=$((fail + 1))
   fi
 
