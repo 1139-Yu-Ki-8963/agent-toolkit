@@ -4,25 +4,89 @@
   "recordedAt": "2026-08-26",
   "recordedBy": "check-design-doc-references.sh 新設時の実測（docs/design/ 配下を再帰走査し、実在するファイルへの移設で解消できるものは移設し、残った29件を分類した）",
   "excludedReferences": [
-    {"reference": "docs/rules/business-domain/glossary", "reason": "納品先（対象アプリ）で承認済み用語定義を置く配置の説明であり、このリポジトリ自身のパスではない"},
-    {"reference": "docs/design/common", "reason": "納品先の共通文書の配置（output-layout.jsonのcommonRoot既定値）を説明する記述であり、このリポジトリ自身のパスではない"},
-    {"reference": "docs/common", "reason": "納品先の共通文書の配置を説明する記述であり、このリポジトリ自身のパスではない"},
-    {"reference": "docs/skills", "reason": "検討したが採用しなかった納品先の配置案であり、実装されていない"},
-    {"reference": ".claude/skills/orchestrating-reverse-docs-flow", "reason": "改称完了の記録の中で意図的に旧名のまま残した記述。書き換えると改称の記録そのものが成立しなくなる"},
-    {"reference": "docs/ledgers", "reason": "過去に存在した置き場を当時の名称のまま記録した歴史的記述。現在は docs/tasks/work-records/ 等へ移設済みで docs/ledgers 自体は廃止済みである"},
-    {"reference": "docs/ledgers/検証で見つかった改修課題.md", "reason": "2026-08-21の履歴書き換えにより実在・移設先を確認する手段が失われている"},
-    {"reference": "docs/ledgers/改善課題-写真書き起こし-2026-08-05.md", "reason": "同上。履歴書き換えにより確認する手段が失われている"},
-    {"reference": "docs/design/common/データ設計.md", "reason": "generation-engine/samples 配下の相対パスを省略記法で示した記述であり、このリポジトリ直下のパスではない"},
-    {"reference": "docs/design/tables", "reason": "同上。generation-engine/samples 配下の相対パスを省略記法で示した記述である"},
-    {"reference": "generation-engine/samples/一覧/用語辞書/用語辞書.html", "reason": "文書作成時点のサンプル配置を指す記述。後続のポータル英字リネームで project-portal/lists/semantic-glossary/ 配下へ移動したが、本文は当時の状態を記録している"},
-    {"reference": "generation-engine/samples/project-portal/図/状態遷移図.html", "reason": "ディレクトリ名の英字化（図→diagrams）より前の実験時点の記述。check-portal-dir-ascii.shの設計判断がdocs/配下をリネーム対象外と明記しており、本文はその対象外の歴史記述である"},
-    {"reference": "generation-engine/samples/project-portal/図/画面遷移図.html", "reason": "同上。英字化より前の実験時点の記述である"},
-    {"reference": "generation-engine/samples/project-portal/lists/screens/fixtures", "reason": "検証時に一時的に使ったfixtureを指す記述であり、恒久的な成果物として残っていない"},
-    {"reference": "docs/design/features/feature-generating-reverse-common-docs/basic-design/機能設計書.md", "reason": "4カテゴリ・17機能への統合（feature-model-remodel）で feature-common-docs へ吸収する前の旧設計書を指す記録。書き換えると吸収元の記録そのものが成立しなくなる"},
-    {"reference": "docs/design/features/feature-generating-requirement-definitions-for-reverse-docs/basic-design/機能設計書.md", "reason": "同上。feature-common-docs へ吸収する前の旧設計書を指す記録である"},
-    {"reference": "docs/scope-and-progress/開発フロー完了記録.md", "reason": "納品先（対象アプリ）が /dev-flow 実行時に作成する作業記録の配置を説明する記述であり、このリポジトリ自身のパスではない"},
-    {"reference": "docs/design/features/feature-generating-test-case-list-for-reverse-docs/basic-design/機能設計書.md", "reason": "4カテゴリ・17機能への統合（feature-model-remodel）で feature-test-aggregation へ吸収する前の旧設計書を指す記録。書き換えると吸収元の記録そのものが成立しなくなる"},
-    {"reference": "docs/design/features/feature-generating-test-viewpoint-list-for-reverse-docs/basic-design/機能設計書.md", "reason": "同上。feature-test-aggregation へ吸収する前の旧設計書を指す記録である"},
-    {"reference": "docs/design/features/feature-generating-integration-test-spec-for-reverse-docs/basic-design/機能設計書.md", "reason": "同上。feature-test-aggregation へ吸収する前の旧設計書を指す記録である"}
+    {
+      "reference": "docs/rules/business-domain/glossary",
+      "reason": "納品先（対象アプリ）で承認済み用語定義を置く配置の説明であり、このリポジトリ自身のパスではない"
+    },
+    {
+      "reference": "docs/design/common",
+      "reason": "納品先の共通文書の配置（output-layout.jsonのcommonRoot既定値）を説明する記述であり、このリポジトリ自身のパスではない"
+    },
+    {
+      "reference": "docs/common",
+      "reason": "納品先の共通文書の配置を説明する記述であり、このリポジトリ自身のパスではない"
+    },
+    {
+      "reference": "docs/skills",
+      "reason": "検討したが採用しなかった納品先の配置案であり、実装されていない"
+    },
+    {
+      "reference": ".claude/skills/orchestrating-reverse-docs-flow",
+      "reason": "改称完了の記録の中で意図的に旧名のまま残した記述。書き換えると改称の記録そのものが成立しなくなる"
+    },
+    {
+      "reference": "docs/ledgers",
+      "reason": "過去に存在した置き場を当時の名称のまま記録した歴史的記述。現在は docs/tasks/work-records/ 等へ移設済みで docs/ledgers 自体は廃止済みである"
+    },
+    {
+      "reference": "docs/ledgers/検証で見つかった改修課題.md",
+      "reason": "2026-08-21の履歴書き換えにより実在・移設先を確認する手段が失われている"
+    },
+    {
+      "reference": "docs/ledgers/改善課題-写真書き起こし-2026-08-05.md",
+      "reason": "同上。履歴書き換えにより確認する手段が失われている"
+    },
+    {
+      "reference": "docs/design/common/データ設計.md",
+      "reason": "generation-engine/samples 配下の相対パスを省略記法で示した記述であり、このリポジトリ直下のパスではない"
+    },
+    {
+      "reference": "docs/design/tables",
+      "reason": "同上。generation-engine/samples 配下の相対パスを省略記法で示した記述である"
+    },
+    {
+      "reference": "generation-engine/samples/一覧/用語辞書/用語辞書.html",
+      "reason": "文書作成時点のサンプル配置を指す記述。後続のポータル英字リネームで project-portal/lists/semantic-glossary/ 配下へ移動したが、本文は当時の状態を記録している"
+    },
+    {
+      "reference": "generation-engine/samples/project-portal/図/状態遷移図.html",
+      "reason": "ディレクトリ名の英字化（図→diagrams）より前の実験時点の記述。check-portal-dir-ascii.shの設計判断がdocs/配下をリネーム対象外と明記しており、本文はその対象外の歴史記述である"
+    },
+    {
+      "reference": "generation-engine/samples/project-portal/図/画面遷移図.html",
+      "reason": "同上。英字化より前の実験時点の記述である"
+    },
+    {
+      "reference": "generation-engine/samples/project-portal/lists/screens/fixtures",
+      "reason": "検証時に一時的に使ったfixtureを指す記述であり、恒久的な成果物として残っていない"
+    },
+    {
+      "reference": "docs/design/features/feature-generating-reverse-common-docs/basic-design/機能設計書.md",
+      "reason": "4カテゴリ・17機能への統合（feature-model-remodel）で feature-common-docs へ吸収する前の旧設計書を指す記録。書き換えると吸収元の記録そのものが成立しなくなる"
+    },
+    {
+      "reference": "docs/design/features/feature-generating-requirement-definitions-for-reverse-docs/basic-design/機能設計書.md",
+      "reason": "同上。feature-common-docs へ吸収する前の旧設計書を指す記録である"
+    },
+    {
+      "reference": "docs/scope-and-progress/開発フロー完了記録.md",
+      "reason": "納品先（対象アプリ）が /dev-flow 実行時に作成する作業記録の配置を説明する記述であり、このリポジトリ自身のパスではない"
+    },
+    {
+      "reference": "docs/design/features/feature-generating-test-case-list-for-reverse-docs/basic-design/機能設計書.md",
+      "reason": "4カテゴリ・17機能への統合（feature-model-remodel）で feature-test-aggregation へ吸収する前の旧設計書を指す記録。書き換えると吸収元の記録そのものが成立しなくなる"
+    },
+    {
+      "reference": "docs/design/features/feature-generating-test-viewpoint-list-for-reverse-docs/basic-design/機能設計書.md",
+      "reason": "同上。feature-test-aggregation へ吸収する前の旧設計書を指す記録である"
+    },
+    {
+      "reference": "docs/design/features/feature-generating-integration-test-spec-for-reverse-docs/basic-design/機能設計書.md",
+      "reason": "同上。feature-test-aggregation へ吸収する前の旧設計書を指す記録である"
+    },
+    {
+      "reference": ".claude/agents/rule-reviewer.md",
+      "reason": "配布対象外の資産への参照。payload の同期対象は .claude/skills と規約2件のみでエージェント定義は配られない。正本には実在し、配布先での不在は参照切れではない"
+    }
   ]
 }
