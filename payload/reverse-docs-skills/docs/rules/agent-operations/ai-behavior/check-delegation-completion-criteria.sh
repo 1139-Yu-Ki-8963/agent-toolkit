@@ -45,12 +45,26 @@
 # 逃げ道:
 #   DELEGATION_COMPLETION_CRITERIA_SKIP_REASON に理由を書けば「完了条件を渡す」の
 #   判定は通る。理由が空の場合は通らない。
-#   外への公開は人がする の判定には逃げ道を付けない。人が行うのが正であり、
-#   理由を書いて通す形にすると境界が形骸化するため。
+#   外への公開は人がする の判定は、コマンド文字列の先頭に
+#   DELEGATION_COMPLETION_CRITERIA_SKIP_REASON="<理由>" の割り当てが含まれる場合
+#   だけ通る（修正2026-08-31）。理由が空、または先頭以外の位置にある場合は通らない。
+#   このリポジトリの他の block hook がいずれも理由必須の緊急口を持つ慣行に
+#   合わせた。以前は「境界が形骸化する」ことを理由に緊急口を一切設けない
+#   判断だったが、誤検知時に AI 側で作業を止める以外の手段が無いという別の
+#   問題を生んでいたため、理由必須という制約を保ったまま緊急口を追加する
+#   判断へ改めた。
+#
+#   環境変数（シェルの `export` や代入によって hook プロセス自身の環境に
+#   設定した DELEGATION_COMPLETION_CRITERIA_SKIP_REASON）は使えない。
+#   PreToolUse hook はコマンドの実行前に動くサブプロセスであり、これから
+#   実行されるコマンドの環境変数を hook プロセス自身は継承しない。この
+#   ためコマンド文字列そのものの先頭を走査する方式を取る。
 #
 # 既知の限界:
 #   異なる種類の操作を1つの照合の文字列へ並べた例は既存に無く、納品先で2種類とも
 #   発火することは実機で確かめていない。
+#   外への公開は人がする の緊急口は、コマンド文字列の「先頭」だけを見る単純な
+#   走査であり、先頭以外の位置に割り当てを置いた場合は検出できない。
 #
 # 使い方:
 #   フック本体として: PreToolUse(Agent|Bash) の入力 JSON を stdin から受け取る
@@ -108,21 +122,23 @@ should_skip_with_reason() {
   return 1
 }
 
-# 外への公開の緊急口: コマンド文字列内の EXTERNAL_PUBLISH_SKIP_REASON=<理由> を検出する。
-# 標準出力: 理由（無ければ空）。公開完遂規約（push までを完了条件と定める）と本規則が
-# 矛盾する場面で、ユーザーの判断を理由付きで通すための口。常用禁止。
-# 環境変数そのものは hook のプロセスへ届かないため、コマンド文字列から取り出す
-# （check-template-sample-sync.sh の緊急口と同じ方式）。
-external_publish_skip_reason() {
+# 「外への公開は人がする」専用の緊急口。理由を hook 自身の環境変数ではなく
+# コマンド文字列の先頭から読む（修正2026-08-31。上の「逃げ道」節を参照）。
+# 理由が空、または割り当てが先頭に無ければ skip しない
+should_skip_external_publish_with_reason() {
+  # $1: command
+  # 標準出力: skip の記録。戻り値: 0=skip する・1=skip しない
   local cmd="$1" reason=""
-  case "$cmd" in
-    *EXTERNAL_PUBLISH_SKIP_REASON=*) ;;
-    *) printf '%s' ""; return 0 ;;
-  esac
-  reason=$(printf '%s' "$cmd" | sed -n 's/.*EXTERNAL_PUBLISH_SKIP_REASON="\([^"]*\)".*/\1/p')
-  [ -z "$reason" ] && reason=$(printf '%s' "$cmd" | sed -n "s/.*EXTERNAL_PUBLISH_SKIP_REASON='\([^']*\)'.*/\1/p")
-  [ -z "$reason" ] && reason=$(printf '%s' "$cmd" | sed -n 's/.*EXTERNAL_PUBLISH_SKIP_REASON=\([^ ]*\).*/\1/p')
-  printf '%s' "$reason"
+  if [[ "$cmd" =~ ^DELEGATION_COMPLETION_CRITERIA_SKIP_REASON=\"([^\"]+)\" ]]; then
+    reason="${BASH_REMATCH[1]}"
+  elif [[ "$cmd" =~ ^DELEGATION_COMPLETION_CRITERIA_SKIP_REASON=\'([^\']+)\' ]]; then
+    reason="${BASH_REMATCH[1]}"
+  fi
+  if [ -n "$reason" ]; then
+    echo "[DELEGATION-COMPLETION-CRITERIA-SKIP] 理由: ${reason}"
+    return 0
+  fi
+  return 1
 }
 
 run_hook() {
@@ -138,17 +154,15 @@ run_hook() {
     cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
     [ -z "$cmd" ] && exit 0
 
+    local pub_skip_msg
+    if pub_skip_msg="$(should_skip_external_publish_with_reason "$cmd")"; then
+      printf '%s\n' "$pub_skip_msg" >&2
+      exit 0
+    fi
+
     if msg="$(judge_external_publish "$cmd")"; then code=0; else code=$?; fi
 
     [ "$code" -eq 0 ] && exit 0
-
-    # 緊急口: 理由が書かれている場合だけ、理由を記録して通す（理由なしは通さない）
-    local pub_skip
-    pub_skip="$(external_publish_skip_reason "$cmd")"
-    if [ -n "$pub_skip" ]; then
-      printf '[EXTERNAL-PUBLISH-SKIP] 理由: %s\n' "$pub_skip" >&2
-      exit 0
-    fi
 
     ctx="[EXTERNAL-PUBLISH-BLOCK] ${msg}。人が実行するまで、この操作は AI からは行いません。"
     jq -n --arg ctx "$ctx" '{"systemMessage":$ctx,"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":$ctx}}'
@@ -295,23 +309,33 @@ self_test() {
     rc=1
   fi
 
-  # 系12: コマンド文字列に理由付きの緊急口があれば external_publish_skip_reason が理由を返す
-  local pr12
-  pr12="$(external_publish_skip_reason 'EXTERNAL_PUBLISH_SKIP_REASON="規約整合の理由" git push origin main')"
-  if [ "$pr12" = "規約整合の理由" ]; then
-    echo "  [PASS] 系12: 理由付きの緊急口から理由を取り出せる（${pr12}）"
+  # 系12: コマンド文字列の先頭に理由付きの割り当てがあれば skip する
+  local pub_skip_out pub_skip_code
+  if pub_skip_out="$(should_skip_external_publish_with_reason 'DELEGATION_COMPLETION_CRITERIA_SKIP_REASON="正当な理由" git push origin main')"; then pub_skip_code=0; else pub_skip_code=$?; fi
+  if [ "$pub_skip_code" -eq 0 ] && printf '%s' "$pub_skip_out" | grep -qF 'DELEGATION-COMPLETION-CRITERIA-SKIP' && printf '%s' "$pub_skip_out" | grep -qF '正当な理由'; then
+    echo "  [PASS] 系12: コマンド文字列先頭の理由付き割り当てで should_skip_external_publish_with_reason は skip する（${pub_skip_out}）"
   else
-    echo "  [FAIL] 系12: 理由を取り出せない（got=${pr12}）" >&2
+    echo "  [FAIL] 系12: 理由があるのに skip しない、またはタグ・理由が含まれない（exit=${pub_skip_code}, ${pub_skip_out}）" >&2
     rc=1
   fi
 
-  # 系13: 緊急口が無ければ空を返す（拒否のまま）
-  local pr13
-  pr13="$(external_publish_skip_reason 'git push origin main')"
-  if [ -z "$pr13" ]; then
-    echo "  [PASS] 系13: 緊急口なしは空を返し拒否のまま"
+  # 系13: 割り当てが無ければ should_skip_external_publish_with_reason は skip しない
+  local pub_skip_code2
+  if should_skip_external_publish_with_reason "git push origin main" >/dev/null 2>&1; then pub_skip_code2=0; else pub_skip_code2=$?; fi
+  if [ "$pub_skip_code2" -eq 1 ]; then
+    echo "  [PASS] 系13: 割り当てが無ければ should_skip_external_publish_with_reason は skip しない"
   else
-    echo "  [FAIL] 系13: 緊急口が無いのに理由が返った（got=${pr13}）" >&2
+    echo "  [FAIL] 系13: 割り当てが無いのに skip した（exit=${pub_skip_code2}）" >&2
+    rc=1
+  fi
+
+  # 系14: 理由が空文字であれば should_skip_external_publish_with_reason は skip しない
+  local pub_skip_code3
+  if should_skip_external_publish_with_reason 'DELEGATION_COMPLETION_CRITERIA_SKIP_REASON="" git push origin main' >/dev/null 2>&1; then pub_skip_code3=0; else pub_skip_code3=$?; fi
+  if [ "$pub_skip_code3" -eq 1 ]; then
+    echo "  [PASS] 系14: 理由が空文字なら should_skip_external_publish_with_reason は skip しない"
+  else
+    echo "  [FAIL] 系14: 理由が空文字なのに skip した（exit=${pub_skip_code3}）" >&2
     rc=1
   fi
 

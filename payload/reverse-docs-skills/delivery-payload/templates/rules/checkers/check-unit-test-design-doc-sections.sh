@@ -10,15 +10,19 @@
 # 判定:
 #   （記載項目を省かない）
 #   書き込み先のファイル名に「単体テスト設計書」が含まれる場合、本文が
-#   テンプレートが定める13節の見出しを抽出し、名前・順序・件数が完全に一致するか
+#   テンプレートが定める節の見出しを抽出し、名前・順序・件数が完全に一致するか
 #   を走査する。1つでも欠ける、順序が違う、余分な節がある場合は違反とする。
+#   期待する節は種別で異なる（実装判断を参照）。基本形は12節、
+#   基本形へ「§9 関連資料」を加えた13節を API単体テスト設計書.md にだけ許可する。
 #
 #   （単体テスト設計書は基本設計フェーズで作る）
 #   cwd 配下の docs/rules/**/rule.md の「## このプロジェクトの規則」表から、
 #   本規則の宣言（基本設計フォルダの置き場を示す文章。/ を含む語を1つ持つ）を
-#   探す。宣言があれば、その語を名前に含むディレクトリを cwd 配下から走査し、
-#   直下に「単体テスト設計書」を名前に含むファイルを持たないディレクトリが
-#   あれば違反とする。
+#   探す。宣言があれば、今回書き込むファイル（file_path）が属するディレクトリ
+#   だけを見る。書き込み先が宣言のパターンに一致しなければ対象外、一致していて
+#   直下に「単体テスト設計書」を名前に含むファイルが無ければ違反とする（修正
+#   2026-08-31: 以前は宣言パターンに一致する cwd 配下の全ディレクトリを横断
+#   走査し、今回の書き込みと無関係なディレクトリの欠落でも block していた）。
 #
 #   （規約が求めるテストを観点へ取り込む）
 #   書き込み先のファイル名に「単体テスト設計書」が含まれる場合、cwd 配下の
@@ -76,7 +80,31 @@
 #   ファイル検査: check-unit-test-design-doc-sections.sh --check-file <単体テスト設計書.md>
 set -uo pipefail
 
-REQUIRED_SECTION_HEADINGS='本書が検証するもの
+# 実装判断: テンプレート実体（delivery-payload/templates/リバース検証/配下の
+# 各単体テスト設計書.md）は種別により節数が異なる。改善課題1-223で
+# 「§9 要確認事項一覧」を全テンプレートから廃止した際、API単体テスト設計書.md
+# だけは「§9 関連資料」という別内容の節を保った（設計書様式.mdの実装契約が
+# 定める正当な節のため）。残る6種別（画面・テーブル・バッチ・帳票・外部連携・
+# 機能）は§8止まりの12節で確定した。本チェッカーはこの2形を区別せず単一の
+# REQUIRED_SECTION_HEADINGS（§9 要確認事項一覧を含む13節）を使い続けており、
+# 実測（2026-08-31）でどのテンプレートとも一致しない状態だった。基本形12節と
+# API形13節の2定数へ分け、ファイル名で振り分ける（実測2026-08-31: 過去に
+# §9を要確認事項一覧のまま残したため一致しなくなった実績があり、種別ごとの
+# 実体をハードコードせずコメントへ根拠を残す）。
+REQUIRED_SECTION_HEADINGS_COMMON='本書が検証するもの
+テスト対象
+テストの粒度と自動化の方針
+本書が扱わない範囲
+§1 テスト観点
+§2 テストケース一覧
+§3 入力条件
+§4 期待結果
+§5 異常系
+§6 境界値
+§7 網羅基準
+§8 前提条件と終了条件'
+
+REQUIRED_SECTION_HEADINGS_API='本書が検証するもの
 テスト対象
 テストの粒度と自動化の方針
 本書が扱わない範囲
@@ -88,7 +116,21 @@ REQUIRED_SECTION_HEADINGS='本書が検証するもの
 §6 境界値
 §7 網羅基準
 §8 前提条件と終了条件
-§9 要確認事項一覧'
+§9 関連資料'
+
+# ファイル名から期待する節の集合を選ぶ。API単体テスト設計書.md だけが
+# 「§9 関連資料」を持つ13節、それ以外の単体テスト設計書は12節（詳細は上記の実装判断）。
+expected_headings_for_base() {
+  local base="$1"
+  case "$base" in
+    *API単体テスト設計書.md)
+      printf '%s' "$REQUIRED_SECTION_HEADINGS_API"
+      ;;
+    *)
+      printf '%s' "$REQUIRED_SECTION_HEADINGS_COMMON"
+      ;;
+  esac
+}
 
 # Markdownのフェンス内にある見出し例を本文の節と誤認しないよう、フェンス外の
 # H2見出しだけを順番どおりに返す。
@@ -189,17 +231,19 @@ judge_required_sections() {
     return 0
   fi
 
-  local actual_headings expected_inline actual_inline
+  local actual_headings expected_headings expected_count expected_inline actual_inline
+  expected_headings="$(expected_headings_for_base "$base")"
+  expected_count="$(printf '%s\n' "$expected_headings" | wc -l | tr -d ' ')"
   actual_headings="$(printf '%s\n' "$content" | extract_h2_headings)"
-  if [ "$actual_headings" != "$REQUIRED_SECTION_HEADINGS" ]; then
-    expected_inline="$(printf '%s\n' "$REQUIRED_SECTION_HEADINGS" | awk 'BEGIN { ORS="" } NR > 1 { printf " → " } { printf "%s", $0 } END { print "" }')"
+  if [ "$actual_headings" != "$expected_headings" ]; then
+    expected_inline="$(printf '%s\n' "$expected_headings" | awk 'BEGIN { ORS="" } NR > 1 { printf " → " } { printf "%s", $0 } END { print "" }')"
     actual_inline="$(printf '%s\n' "$actual_headings" | awk 'BEGIN { ORS="" } NR > 1 { printf " → " } { printf "%s", $0 } END { print "" }')"
     [ -n "$actual_inline" ] || actual_inline="（見出しなし）"
-    echo "拒否[記載項目を省かない]: 13節の名前・順序・件数がテンプレートと一致しません（期待: ${expected_inline}／実際: ${actual_inline}）"
+    echo "拒否[記載項目を省かない]: ${expected_count}節の名前・順序・件数がテンプレートと一致しません（期待: ${expected_inline}／実際: ${actual_inline}）"
     return 2
   fi
 
-  echo "許可[記載項目を省かない]: 13節の名前・順序・件数がテンプレートと一致します"
+  echo "許可[記載項目を省かない]: ${expected_count}節の名前・順序・件数がテンプレートと一致します"
   return 0
 }
 
@@ -432,9 +476,23 @@ run_file_check() {
 }
 
 # 「単体テスト設計書は基本設計フェーズで作る」規則の判定
+#
+# 実装判断（2026-08-31）: 修正前は宣言された基本設計フォルダを cwd 配下から
+# find で全件洗い出し、1件でも単体テスト設計書を欠くフォルダがあれば
+# 今回の書き込み対象と無関係でも exit 2 で block していた。実測で、
+# docs/design/features/** への書き込みが docs/design/batches/batch-rules/
+# basic-design/ という無関係なフォルダの欠落を理由に block される事故が
+# 起きた（Write hook は本来「今回書き込むファイル」だけを見るべきで、
+# リポジトリ全体を横断走査してはならない）。今回書き込むファイル
+# （file_path）が属するフォルダだけを検査対象にする。基本設計フォルダの
+# 宣言パターンに一致しないパスへの書き込みは対象外（対象外を返す）とし、
+# 一致するパスへの書き込みでも、そのフォルダだけを見る（他のフォルダは
+# 見ない）。書き込み対象自身が単体テスト設計書である場合（フォルダへの
+# 最初の書き込みでディスク上にまだ実体が無い場合を含む）は、ファイル名で
+# 判定し、find の結果を待たない。
 judge_unit_test_doc_exists() {
-  # $1: cwd
-  local cwd="$1"
+  # $1: file_path, $2: cwd
+  local file_path="$1" cwd="$2"
 
   local override
   override="$(lookup_project_override_content "$cwd" "単体テスト設計書は基本設計フェーズで作る")"
@@ -450,28 +508,40 @@ judge_unit_test_doc_exists() {
     return 0
   fi
 
-  local dirs
-  dirs="$(find "$cwd" -type d -not -path '*/.git/*' -path "*${needle}*" 2>/dev/null)"
-  if [ -z "$dirs" ]; then
-    echo "通知[単体テスト設計書は基本設計フェーズで作る]: 宣言された基本設計フォルダが見当たらないため判定していません"
+  local file_dir
+  file_dir="$(dirname "$file_path")"
+  case "$file_dir" in
+    *"$needle"*) ;;
+    *)
+      echo "対象外[単体テスト設計書は基本設計フェーズで作る]: 書き込み先が基本設計フォルダ（${needle}）の外です（${file_dir}）"
+      return 0
+      ;;
+  esac
+
+  local abs_dir
+  case "$file_dir" in
+    /*) abs_dir="$file_dir" ;;
+    *) abs_dir="${cwd:+$cwd/}$file_dir" ;;
+  esac
+
+  local base
+  base="$(basename "$file_path")"
+  if printf '%s' "$base" | grep -qF '単体テスト設計書'; then
+    echo "許可[単体テスト設計書は基本設計フェーズで作る]: 書き込み対象自身が単体テスト設計書です（${file_dir}）"
     return 0
   fi
 
-  local dir rel missing_dirs=""
-  while IFS= read -r dir; do
-    [ -z "$dir" ] && continue
-    if ! find "$dir" -maxdepth 1 -type f -name '*単体テスト設計書*' 2>/dev/null | grep -q .; then
-      rel="${dir#"$cwd"/}"
-      missing_dirs="${missing_dirs}${missing_dirs:+、}${rel}"
-    fi
-  done <<< "$dirs"
+  if [ ! -d "$abs_dir" ]; then
+    echo "通知[単体テスト設計書は基本設計フェーズで作る]: 書き込み先の基本設計フォルダがまだ存在しないため判定していません（${file_dir}）"
+    return 0
+  fi
 
-  if [ -n "$missing_dirs" ]; then
-    echo "拒否[単体テスト設計書は基本設計フェーズで作る]: 基本設計フォルダ（${missing_dirs}）に単体テスト設計書がありません"
+  if ! find "$abs_dir" -maxdepth 1 -type f -name '*単体テスト設計書*' 2>/dev/null | grep -q .; then
+    echo "拒否[単体テスト設計書は基本設計フェーズで作る]: 基本設計フォルダ（${file_dir}）に単体テスト設計書がありません"
     return 2
   fi
 
-  echo "許可[単体テスト設計書は基本設計フェーズで作る]: 基本設計フォルダのすべてに単体テスト設計書があります"
+  echo "許可[単体テスト設計書は基本設計フェーズで作る]: 基本設計フォルダ（${file_dir}）に単体テスト設計書があります"
   return 0
 }
 
@@ -538,7 +608,7 @@ judge() {
   echo "$msg"
   [ "$code" -eq 2 ] && rc=2
 
-  if msg="$(judge_unit_test_doc_exists "$cwd")"; then code=0; else code=$?; fi
+  if msg="$(judge_unit_test_doc_exists "$file_path" "$cwd")"; then code=0; else code=$?; fi
   echo "$msg"
   [ "$code" -eq 2 ] && rc=2
 
@@ -634,7 +704,7 @@ API単位で自動化する
 ...
 ## §8 前提条件と終了条件
 ...
-## §9 要確認事項一覧
+## §9 関連資料
 ...'
 
   # 系1: 対象外拡張子(ファイル名不一致) → 許可
@@ -677,9 +747,11 @@ API単位で自動化する
   fi
 
   # 系4: 1つだけ欠けている（§6 境界値が無い）→ 拒否
+  # API単体テスト設計書.md（13節）を使う。それ以外の基本名（12節）だと
+  # §9関連資料の有無だけで既に不一致になり、§6欠落の検証にならないため。
   local partial
   partial="$(printf '%s\n' "$full" | grep -v '^## §6 境界値$')"
-  if msg="$(judge "docs/design/screens/画面A/単体テスト設計書.md" "$partial")"; then code=0; else code=$?; fi
+  if msg="$(judge "docs/design/apis/api-missing-boundary/基本設計/API単体テスト設計書.md" "$partial")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ]; then
     echo "  [PASS] 系4: 1つ欠けていても拒否される（${msg}）"
   else
@@ -744,13 +816,36 @@ ${full}"
     rc=1
   fi
 
+  # 系4f: API以外の12節フィクスチャ（§9を持たない）が正順で揃っていれば許可
+  # 修正1（2026-08-31）: REQUIRED_SECTION_HEADINGS_COMMON（12節）の分岐を検証する。
+  local common
+  common="$(printf '%s\n' "$full" | grep -v '^## §9 関連資料$' | sed '$d')"
+  if msg="$(judge "docs/design/screens/screen-a/テスト設計/画面単体テスト設計書.md" "$common")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 0 ]; then
+    echo "  [PASS] 系4f: API以外の単体テスト設計書は12節（§9なし）で許可される（${msg}）"
+  else
+    echo "  [FAIL] 系4f: 12節が揃っているのに拒否された（exit=${code}, ${msg}）" >&2
+    rc=1
+  fi
+
+  # 系4g: API以外の12節フィクスチャで§6が欠けていれば拒否
+  local common_partial
+  common_partial="$(printf '%s\n' "$common" | grep -v '^## §6 境界値$')"
+  if msg="$(judge "docs/design/screens/screen-a/テスト設計/画面単体テスト設計書.md" "$common_partial")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 2 ]; then
+    echo "  [PASS] 系4g: API以外の単体テスト設計書も1つ欠ければ拒否される（${msg}）"
+  else
+    echo "  [FAIL] 系4g: 12節フィクスチャで欠落があるのに許可された（exit=${code}）" >&2
+    rc=1
+  fi
+
   # 系5: 単体テスト設計書は基本設計フェーズで作る - 宣言が無い → 通知
   local tmp5
   if ! tmp5="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp5" ]; then
     echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
     exit 2
   fi
-  if msg="$(judge_unit_test_doc_exists "$tmp5")"; then code=0; else code=$?; fi
+  if msg="$(judge_unit_test_doc_exists "$tmp5/dummy.md" "$tmp5")"; then code=0; else code=$?; fi
   rm -rf "$tmp5"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '通知[単体テスト設計書は基本設計フェーズで作る]'; then
     echo "  [PASS] 系5: 基本設計フォルダの宣言が無ければ通知にとどまる（${msg}）"
@@ -775,7 +870,7 @@ ${full}"
 |---|---|---|
 | 単体テスト設計書は基本設計フェーズで作る | 基本設計フォルダに置く | 静的解析 |
 EOF
-  if msg="$(judge_unit_test_doc_exists "$tmp6")"; then code=0; else code=$?; fi
+  if msg="$(judge_unit_test_doc_exists "$tmp6/dummy.md" "$tmp6")"; then code=0; else code=$?; fi
   rm -rf "$tmp6"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '通知[単体テスト設計書は基本設計フェーズで作る]'; then
     echo "  [PASS] 系6: 基本設計フォルダを読み取れなければ通知にとどまる（${msg}）"
@@ -802,12 +897,73 @@ EOF
 EOF
   mkdir -p "$tmp7/docs/design/画面A/基本設計"
   printf '# 画面A基本設計書\n' > "$tmp7/docs/design/画面A/基本設計/画面A基本設計書.md"
-  if msg="$(judge_unit_test_doc_exists "$tmp7")"; then code=0; else code=$?; fi
+  if msg="$(judge_unit_test_doc_exists "$tmp7/docs/design/画面A/基本設計/画面A詳細設計書.md" "$tmp7")"; then code=0; else code=$?; fi
   rm -rf "$tmp7"
   if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '拒否[単体テスト設計書は基本設計フェーズで作る]'; then
     echo "  [PASS] 系7: 基本設計フォルダに単体テスト設計書が無ければ拒否される（${msg}）"
   else
     echo "  [FAIL] 系7: 単体テスト設計書が無いのに許可、または規則名が含まれない（exit=${code}, ${msg}）" >&2
+    rc=1
+  fi
+
+  # 系7b: 修正3の回帰。無関係な基本設計フォルダに単体テスト設計書が無くても、
+  # 今回書き込むファイルが別の（単体テスト設計書が揃っている）基本設計フォルダの
+  # 配下であれば許可される（cwd 全体を横断走査して block しない）
+  local tmp7b
+  if ! tmp7b="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp7b" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
+    exit 2
+  fi
+  mkdir -p "$tmp7b/docs/rules/example"
+  cat > "$tmp7b/docs/rules/example/rule.md" <<'EOF'
+# 例
+
+## このプロジェクトの規則
+
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 単体テスト設計書は基本設計フェーズで作る | 各設計単位の /基本設計 フォルダに置く | 静的解析 |
+EOF
+  mkdir -p "$tmp7b/docs/design/features/feature-a/基本設計"
+  printf '# featureA基本設計書
+' > "$tmp7b/docs/design/features/feature-a/基本設計/featureA基本設計書.md"
+  mkdir -p "$tmp7b/docs/design/batches/batch-a/基本設計"
+  printf '# batchA基本設計書
+' > "$tmp7b/docs/design/batches/batch-a/基本設計/batchA基本設計書.md"
+  printf '# batchA単体テスト設計書
+' > "$tmp7b/docs/design/batches/batch-a/基本設計/batchA単体テスト設計書.md"
+  if msg="$(judge_unit_test_doc_exists "$tmp7b/docs/design/batches/batch-a/基本設計/batchA詳細設計書.md" "$tmp7b")"; then code=0; else code=$?; fi
+  rm -rf "$tmp7b"
+  if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '許可[単体テスト設計書は基本設計フェーズで作る]'; then
+    echo "  [PASS] 系7b: 無関係な基本設計フォルダの欠落で block されない（${msg}）"
+  else
+    echo "  [FAIL] 系7b: 無関係なフォルダの欠落で block された（exit=${code}, ${msg}）" >&2
+    rc=1
+  fi
+
+  # 系7c: 今回書き込むファイルが基本設計フォルダの宣言パターンに一致しなければ対象外
+  local tmp7c
+  if ! tmp7c="$(mktemp -d "${TMPDIR:-/tmp}/check-unit-test-design-doc-sections-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp7c" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
+    exit 2
+  fi
+  mkdir -p "$tmp7c/docs/rules/example"
+  cat > "$tmp7c/docs/rules/example/rule.md" <<'EOF'
+# 例
+
+## このプロジェクトの規則
+
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 単体テスト設計書は基本設計フェーズで作る | 各設計単位の /基本設計 フォルダに置く | 静的解析 |
+EOF
+  mkdir -p "$tmp7c/docs/design/features/feature-a/基本設計"
+  if msg="$(judge_unit_test_doc_exists "$tmp7c/docs/design/features/feature-a/詳細設計/featureA詳細設計書.md" "$tmp7c")"; then code=0; else code=$?; fi
+  rm -rf "$tmp7c"
+  if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '対象外[単体テスト設計書は基本設計フェーズで作る]'; then
+    echo "  [PASS] 系7c: 基本設計フォルダの外への書き込みは対象外になる（${msg}）"
+  else
+    echo "  [FAIL] 系7c: 基本設計フォルダの外なのに判定された（exit=${code}, ${msg}）" >&2
     rc=1
   fi
 
@@ -830,7 +986,7 @@ EOF
   mkdir -p "$tmp8/docs/design/画面A/基本設計"
   printf '# 画面A基本設計書\n' > "$tmp8/docs/design/画面A/基本設計/画面A基本設計書.md"
   printf '# 画面A単体テスト設計書\n' > "$tmp8/docs/design/画面A/基本設計/画面A単体テスト設計書.md"
-  if msg="$(judge_unit_test_doc_exists "$tmp8")"; then code=0; else code=$?; fi
+  if msg="$(judge_unit_test_doc_exists "$tmp8/docs/design/画面A/基本設計/画面A詳細設計書.md" "$tmp8")"; then code=0; else code=$?; fi
   rm -rf "$tmp8"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '許可[単体テスト設計書は基本設計フェーズで作る]'; then
     echo "  [PASS] 系8: 基本設計フォルダのすべてに単体テスト設計書があれば許可される（${msg}）"

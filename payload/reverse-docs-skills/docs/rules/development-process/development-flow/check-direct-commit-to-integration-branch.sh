@@ -26,6 +26,19 @@
 #   では、コミット済みの直接コミットしか検出できず、規則が求める「作業用の枝で行う」
 #   という予防（block）の趣旨に合わない。
 #
+#   枝の判定に使う作業ディレクトリは、コマンド文字列に -C オプションの指定が
+#   あればそのパス（cwd を基準に解決）、無ければ hook 入力の cwd を使う
+#   （修正2026-08-31）。以前は hook 入力の cwd だけで判定しており、worktree を
+#   -C オプションで明示したコマンドをセッションの cwd の枝で誤判定していた
+#   （worktree 側は作業用の枝でも、セッションの cwd がたまたま統合先の枝を
+#   指していると、無関係な worktree でのコミットまで block していた）。
+#
+#   コマンド文字列内の対象語（git・commit・push 等）の検出は、シングル/ダブル
+#   引用符で囲まれた区間を取り除いてから行う（修正2026-08-31）。以前は
+#   引用符の内側にある文字列（例: 別コマンドの引数として渡された文言）まで
+#   一致対象にしており、実際に git commit を実行していないコマンドを
+#   誤って block していた。
+#
 #   「統合の前に検査を通す」は検査列の前半（静的解析: 検査の登録の走査）だけを
 #   実装する。このスクリプトは PreToolUse(Bash) のフックであり、検査列の後半
 #   （テスト: 検査を実際に実行し通過を確かめる）は実装しない。フックの中で
@@ -35,10 +48,11 @@
 #
 # 除外条件（誤検知回避）:
 #   - tool_name が Bash 以外 → 対象外
-#   - コマンドに git commit を含まない → 対象外（規則1）
-#   - コマンドに git と commit・push のいずれも含まない → 対象外（規則2）
-#   - cwd が空・ディレクトリでない → fail-open（判定不能を block しない）
-#   - cwd が git リポジトリでない、または現在の枝を取得できない → fail-open（規則1）
+#   - コマンドから引用符の内側を除いた文字列に git commit を含まない → 対象外（規則1）
+#   - コマンドから引用符の内側を除いた文字列に git と commit・push のいずれも
+#     含まない → 対象外（規則2）
+#   - 作業ディレクトリ（-C 指定または cwd）が空・ディレクトリでない → fail-open（判定不能を block しない）
+#   - 作業ディレクトリが git リポジトリでない、または現在の枝を取得できない → fail-open（規則1）
 #   - 現在の枝が main / master / develop / trunk 以外 → 許可（規則1）
 #
 # 既知の限界:
@@ -47,6 +61,11 @@
 #   - git alias 経由のコミット（例: git ci）は検知できない
 #   - 「統合の前に検査を通す」は検査の登録（静的解析）だけを見る。登録された
 #     検査が実際に通過するかどうか（テストの実行結果）は確かめない
+#   - 引用符の除去は単純な非入れ子除去であり、エスケープされた引用符（バック
+#     スラッシュ付き）までは考慮しない
+#   - -C オプションの値抽出はコマンド中で最初に現れる -C だけを見る。複数の
+#     -C 指定を持つ複雑なコマンド（サブシェル内の別 git 呼び出し等）は
+#     最初の値だけで判定する
 #
 # 止めるか知らせるか:
 #   実装は作業用の枝で行う: 止める（統合先の枝への直接コミットはそのまま push されると、履歴に取り消せない形で残るため）
@@ -60,12 +79,59 @@
 #   単体実行: check-direct-commit-to-integration-branch.sh --self-test
 set -uo pipefail
 
+# 判定前にシングル/ダブル引用符で囲まれた区間を取り除く。別コマンドの引数
+# 文字列に対象語がそのまま含まれていても、判定対象から除ける（修正
+# 2026-08-31）。単純な非入れ子除去であり、エスケープされた引用符（バック
+# スラッシュ付き）までは考慮しない（既知の限界）。
+strip_quoted_regions() {
+  printf '%s' "$1" | sed -E 's/"[^"]*"//g; s/'"'"'[^'"'"']*'"'"'//g'
+}
+
+# -C <path>（引用符の有無を問わない）をコマンド文字列から取り除く。
+# 「git commit」の直接一致判定（git の直後に commit が続くという厳密な
+# 正規表現）が、git -C <path> commit のように間に -C オプションが挟まる
+# 形を素通りしてしまうのを防ぐための前処理（修正2026-08-31）。引用符を
+# 含む値を正しく取り除くため、strip_quoted_regions より先に適用する。
+strip_dash_c_option() {
+  printf '%s' "$1" | sed -E 's/-C[[:space:]]+"[^"]*"//; s/-C[[:space:]]+'"'"'[^'"'"']*'"'"'//; s/-C[[:space:]]+[^[:space:]]+//'
+}
+
+# コマンド文字列から git の -C オプションで指定されたパスを読み取り、
+# 絶対パスならそのまま、相対パスなら cwd を基準に解決した値を返す。
+# 指定が無ければ cwd をそのまま返す（修正2026-08-31: 以前はセッションの
+# cwd 固定で判定しており、-C オプションで別の worktree を明示した実行
+# でもセッションの cwd の枝で誤判定していた）。
+resolve_target_dir() {
+  # $1: command, $2: cwd（フォールバック）
+  local cmd="$1" cwd="$2" c_path=""
+
+  if [[ "$cmd" =~ -C[[:space:]]+\"([^\"]+)\" ]]; then
+    c_path="${BASH_REMATCH[1]}"
+  elif [[ "$cmd" =~ -C[[:space:]]+\'([^\']+)\' ]]; then
+    c_path="${BASH_REMATCH[1]}"
+  elif [[ "$cmd" =~ -C[[:space:]]+([^[:space:]]+) ]]; then
+    c_path="${BASH_REMATCH[1]}"
+  fi
+
+  if [ -n "$c_path" ]; then
+    case "$c_path" in
+      /*) printf '%s' "$c_path" ;;
+      *) printf '%s' "${cwd:+$cwd/}$c_path" ;;
+    esac
+    return 0
+  fi
+
+  printf '%s' "$cwd"
+}
+
 # 「統合の前に検査を通す」規則の判定
 judge_pre_merge_checks() {
   # $1: cwd, $2: cmd
   local cwd="$1" cmd="$2"
+  local cmd_stripped
+  cmd_stripped="$(strip_quoted_regions "$cmd")"
 
-  if ! printf '%s' "$cmd" | grep -qF 'git' || ! printf '%s' "$cmd" | grep -qE '(commit|push)'; then
+  if ! printf '%s' "$cmd_stripped" | grep -qF 'git' || ! printf '%s' "$cmd_stripped" | grep -qE '(commit|push)'; then
     echo "対象外[統合の前に検査を通す]: 統合に関わるコマンドではありません"
     return 0
   fi
@@ -122,18 +188,26 @@ judge() {
   echo "$pre_msg"
 
   # 規則: 実装は作業用の枝で行う
-  if ! printf '%s' "$cmd" | grep -qE '(^|[^a-zA-Z])git[[:space:]]+commit([^a-zA-Z]|$)'; then
+  # -C <path> を先に取り除いてから引用符の中を取り除く（strip_dash_c_option の
+  # コメントを参照）。これにより git -C <path> commit のような形も
+  # 「git commit」として検出できる
+  local cmd_stripped
+  cmd_stripped="$(strip_quoted_regions "$(strip_dash_c_option "$cmd")")"
+  if ! printf '%s' "$cmd_stripped" | grep -qE '(^|[^a-zA-Z])git[[:space:]]+commit([^a-zA-Z]|$)'; then
     echo "対象外[実装は作業用の枝で行う]: git commit を含まないコマンドです"
     return 0
   fi
 
-  if [ -z "$cwd" ] || [ ! -d "$cwd" ]; then
+  local target_dir
+  target_dir="$(resolve_target_dir "$cmd" "$cwd")"
+
+  if [ -z "$target_dir" ] || [ ! -d "$target_dir" ]; then
     echo "対象外[実装は作業用の枝で行う]: 作業ディレクトリを参照できないため判定不能（fail-open）"
     return 0
   fi
 
   local branch
-  branch=$(git -C "$cwd" rev-parse --abbrev-ref HEAD 2>/dev/null)
+  branch=$(git -C "$target_dir" rev-parse --abbrev-ref HEAD 2>/dev/null)
   if [ -z "$branch" ] || [ "$branch" = "HEAD" ]; then
     echo "対象外[実装は作業用の枝で行う]: 現在の枝を判定できないため判定不能（fail-open）"
     return 0
@@ -277,6 +351,27 @@ self_test() {
     echo "  [PASS] 系3: 作業用の枝でのコミットは許可される（${msg}）"
   else
     echo "  [FAIL] 系3: 作業用の枝なのに拒否された（exit=${code}）" >&2
+    rc=1
+  fi
+
+  # 系3b: 修正2026-08-31の回帰。hook 入力の cwd は main 枝の repo_main のままでも、
+  # コマンドが -C で作業用の枝の repo_feat を明示していれば許可される
+  # （セッションの cwd の枝ではなく、コマンドが実際に対象とする枝で判定する）
+  if msg="$(judge "$repo_main" "git -C \"$repo_feat\" commit -m 'z'")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 0 ]; then
+    echo "  [PASS] 系3b: -C で作業用の枝を明示すればセッションのcwdの枝によらず許可される（${msg}）"
+  else
+    echo "  [FAIL] 系3b: -C で作業用の枝を明示したのに拒否された（exit=${code}, ${msg}）" >&2
+    rc=1
+  fi
+
+  # 系3c: 修正2026-08-31の回帰。引用符の中にだけ「git commit」の語がある
+  # コマンド（実際には git commit を実行しない）は対象外になる
+  if msg="$(judge "$repo_main" 'echo "reminder: run git commit later"')"; then code=0; else code=$?; fi
+  if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '対象外[実装は作業用の枝で行う]'; then
+    echo "  [PASS] 系3c: 引用符の中だけの「git commit」では拒否されない（${msg}）"
+  else
+    echo "  [FAIL] 系3c: 引用符の中の語だけで拒否された、または対象外にならなかった（exit=${code}, ${msg}）" >&2
     rc=1
   fi
 

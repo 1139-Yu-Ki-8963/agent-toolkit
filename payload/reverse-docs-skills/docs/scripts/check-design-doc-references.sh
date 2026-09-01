@@ -142,6 +142,8 @@ run_check() {
   # 実在しないのが正しい。配布先ではこれらを除外として数える（2026-08-28 実測: 28件）。
   # 公開対象から外す資産（公開完遂規約の一覧）に載るスキル（PRIVATE_SKILL_NAME）
   # への参照も同様に、配布先では実在しないのが正しい（2026-08-31 実測: 5件）。
+  # .claude/agents/ 配下への参照も同様に対象外とする。セットアップが対象リポジトリで
+  # 生成する AI ツール設定であり、配布物には同梱されない（実測 2026-09-01: 2件）。
   local is_payload=0
   [ -f "$repo_root/.claude/rules/always/publish/complete/rule.md" ] || is_payload=1
   : > "$missing_file"
@@ -180,7 +182,7 @@ run_check() {
       norm="$(_normalize "$cand")"
       if [ "$is_payload" -eq 1 ]; then
         case "$norm" in
-          .claude/rules/*|.claude/rules|.codex/*|.codex|.cursor/*|.cursor|docs/session-prompts/*|docs/session-prompts|docs/tasks/work-records/*|docs/tasks/work-records|".claude/skills/${PRIVATE_SKILL_NAME}"/*|".claude/skills/${PRIVATE_SKILL_NAME}")
+          .claude/rules/*|.claude/rules|.claude/agents/*|.claude/agents|.codex/*|.codex|.cursor/*|.cursor|docs/session-prompts/*|docs/session-prompts|docs/tasks/work-records/*|docs/tasks/work-records|".claude/skills/${PRIVATE_SKILL_NAME}"/*|".claude/skills/${PRIVATE_SKILL_NAME}")
             local ecp
             ecp="$(cat "$excluded_file")"
             echo $((ecp + 1)) > "$excluded_file"
@@ -398,6 +400,22 @@ EOF
     echo "  [PASS] ケース11: 配布先では公開対象外スキルへの参照は対象外として合格する"
   else
     echo "  [FAIL] ケース11: 配布先での公開対象外スキル除外が機能せず不合格になった" >&2
+    printf '%s\n' "$_cap" | sed 's/^/      /' >&2
+    fail=$((fail + 1))
+  fi
+
+  # ケース12: 配布先では .claude/agents/ 配下への参照は実在しなくても合格する
+  # （セットアップが対象リポジトリで生成するAIツール設定であり配布物には同梱されない）
+  total=$((total + 1))
+  local proj12="$work/case12"
+  mkdir -p "$proj12/docs/design"
+  cat > "$proj12/docs/design/x.md" <<'EOF'
+参照: `.claude/agents/rule-reviewer.md` の実在を確認する。
+EOF
+  if _cap="$(run_check "$proj12" 2>&1)"; then
+    echo "  [PASS] ケース12: 配布先では .claude/agents/ 配下への参照は対象外として合格する"
+  else
+    echo "  [FAIL] ケース12: 配布先での .claude/agents/ 除外が機能せず不合格になった" >&2
     printf '%s\n' "$_cap" | sed 's/^/      /' >&2
     fail=$((fail + 1))
   fi
