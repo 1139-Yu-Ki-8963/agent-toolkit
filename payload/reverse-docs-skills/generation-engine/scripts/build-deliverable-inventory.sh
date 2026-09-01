@@ -284,6 +284,19 @@ resolve_state() {
   fi
   item_count="$item_count_output"
 
+  # 拡張マニフェストが並置されている場合、追加項目0件(かつ docs 由来でない)を
+  # 警告として知らせる(改善課題1-88 項目3の補完。実在の検査3本のうち本スクリプト
+  # にも診断の読み取りを持たせる)。状態判定は変えず、標準エラーへの通知に留める。
+  local ext_path ext_added ext_docs_only
+  ext_path="${manifest_path%.json}.ext.json"
+  if [ -f "$ext_path" ]; then
+    ext_added="$(jq -r '.detectionSummary.diagnostics.extensionExtraction.addedUnitCount // empty' "$ext_path" 2>/dev/null)"
+    ext_docs_only="$(jq -r '.detectionSummary.diagnostics.extensionExtraction.docsOnly // false' "$ext_path" 2>/dev/null)"
+    if [ "$ext_added" = "0" ] && [ "$ext_docs_only" != "true" ] && [ "$item_count" != "0" ]; then
+      echo "WARN: ${kind} の拡張マニフェストは追加項目0件(全件が根拠弱の可能性。diagnostics.extensionExtraction を確認)" >&2
+    fi
+  fi
+
   if [ "$item_count" = "0" ]; then
     missing_without_declaration_state="$(jq -r --arg k "$kind" '.absencePolicies[$k].missingWithoutDeclarationState // empty' "$inventory_def")"
     if [ -n "$missing_without_declaration_state" ]; then

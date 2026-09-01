@@ -424,8 +424,26 @@ main() {
 
   command -v jq >/dev/null 2>&1 || { echo "ERROR: jq が必要です" >&2; exit 1; }
 
-  coverage_check "$repo" "$output_dir"
-  exit $?
+  local cov_rc=0
+  coverage_check "$repo" "$output_dir" || cov_rc=$?
+
+  # 拡張マニフェストの中身の警告(改善課題1-88 項目3の補完)。実在だけでなく、
+  # 追加項目0件(かつ docs 由来でない)を標準エラーへ知らせる。合否は変えない。
+  local ext_file ext_added ext_docs_only ext_base ext_base_count
+  while IFS= read -r ext_file; do
+    [ -n "$ext_file" ] || continue
+    # 土台が0件の種別(対象外等)は警告の対象外(check-manifest-persistence.sh と同じ判断)
+    ext_base="${ext_file%.ext.json}.json"
+    ext_base_count="$(jq -r '(.screens // .units // []) | length' "$ext_base" 2>/dev/null)"
+    [ "$ext_base_count" = "0" ] && continue
+    ext_added="$(jq -r '.detectionSummary.diagnostics.extensionExtraction.addedUnitCount // empty' "$ext_file" 2>/dev/null)"
+    ext_docs_only="$(jq -r '.detectionSummary.diagnostics.extensionExtraction.docsOnly // false' "$ext_file" 2>/dev/null)"
+    if [ "$ext_added" = "0" ] && [ "$ext_docs_only" != "true" ]; then
+      echo "WARN: 追加項目0件の拡張マニフェスト: ${ext_file#"$output_dir"/}(全件が根拠弱の可能性)" >&2
+    fi
+  done < <(find "$output_dir" -name '*-manifest.ext.json' -type f 2>/dev/null | LC_ALL=C sort)
+
+  exit "$cov_rc"
 }
 
 if [ "${BASH_SOURCE[0]:-$0}" = "$0" ]; then
