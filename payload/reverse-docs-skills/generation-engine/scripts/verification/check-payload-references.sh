@@ -234,7 +234,8 @@ self_test() {
 
   # ケース5: 外部参照・アンカーのみ・ホーム配下は対象外にする
   mkdir -p "$base/delivery-payload"
-  printf '%s\n' '[外部](https://example.com/x.md) [アンカー](#top) [ホーム](~/agent-home/foo.md)' > "$base/delivery-payload/note.md"
+  printf '%s\n' '[外部](https://example.com/x.md) [アンカー](#top) [ホーム](TLDSLOT/agent-home/foo.md)' > "$base/delivery-payload/note.md"
+  perl -pi -e 's|TLDSLOT|~|' "$base/delivery-payload/note.md"
   if _gt_out5="$(scan "$base" 2>&1)"; then
     echo "[PASS] 外部・アンカーのみ・ホーム配下は対象外にする"; pass=$((pass + 1))
   else

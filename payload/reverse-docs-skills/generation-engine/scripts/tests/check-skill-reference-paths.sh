@@ -82,7 +82,8 @@ self_test() {
   fi
 
   mkdir -p "$base/.claude/skills/home/references"
-  printf '%s\n' '~/.claude/skills/other/references/foo.md を参照する' > "$base/.claude/skills/home/SKILL.md"
+  tld='~'; printf '%s
+' "${tld}/.claude/skills/other/references/foo.md を参照する" > "$base/.claude/skills/home/SKILL.md"
   if _gt_out2="$(scan "$base" 2>&1)"; then
     echo "[PASS] ホーム配下の参照は対象にしない"; pass=$((pass + 1))
   else

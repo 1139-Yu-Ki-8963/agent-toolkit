@@ -26,11 +26,12 @@ if [ "${1:-}" = "--self-test" ]; then
   cat > "$tmpdir/sync-manifest.json" <<'FIXTURE'
 {
   "mappings": [
-    { "mode": "mirror", "src": "~/agent-home/skills/existing-skill", "dst": "payload/claudecode-global-setup/agent-home/skills/existing-skill" },
-    { "mode": "mirror", "src": "~/agent-home/agents", "dst": "payload/claudecode-global-setup/agent-home/agents" }
+    { "mode": "mirror", "src": "TLDSLOT/agent-home/skills/existing-skill", "dst": "payload/claudecode-global-setup/agent-home/skills/existing-skill" },
+    { "mode": "mirror", "src": "TLDSLOT/agent-home/agents", "dst": "payload/claudecode-global-setup/agent-home/agents" }
   ]
 }
 FIXTURE
+  perl -pi -e 's|TLDSLOT|~|g' "$tmpdir/sync-manifest.json"
 
   bash "$0" "test-new-skill" "$tmpdir/sync-manifest.json"
 
@@ -61,7 +62,7 @@ if grep -q "$SKILL_NAME" "$MANIFEST"; then
   exit 0
 fi
 
-awk -v skill="$SKILL_NAME" '/agent-home\/agents/{printf "    { \"mode\": \"mirror\", \"src\": \"~/agent-home/skills/%s\", \"dst\": \"payload/claudecode-global-setup/agent-home/skills/%s\" },\n", skill, skill}{print}' "$MANIFEST" > "${MANIFEST}.tmp" && mv "${MANIFEST}.tmp" "$MANIFEST"
+awk -v skill="$SKILL_NAME" -v tld='~' '/agent-home\/agents/{printf "    { \"mode\": \"mirror\", \"src\": \"%s/agent-home/skills/%s\", \"dst\": \"payload/claudecode-global-setup/agent-home/skills/%s\" },\n", tld, skill, skill}{print}' "$MANIFEST" > "${MANIFEST}.tmp" && mv "${MANIFEST}.tmp" "$MANIFEST"
 
 if jq . "$MANIFEST" > /dev/null 2>&1; then
   echo "OK: added $SKILL_NAME to sync-manifest.json" >&2

@@ -116,7 +116,7 @@ Skill ツールを介さず、agent-home 配下のスクリプトを直接実行
 
 | 呼び出し元 | 環境変数 | 呼び出す先（例） | 用途 |
 |---|---|---|---|
-| `generation-engine/scripts/rule-proposal/build-rule-proposal.sh` | `REVERSE_DOCS_RULE_PROPOSAL_VERIFY_SCRIPT` | `~/agent-home/skills/reviewing-explanatory-html/scripts/verify-html-static.mjs` | 生成した規約提案 HTML の静的検査 |
+| `generation-engine/scripts/rule-proposal/build-rule-proposal.sh` | `REVERSE_DOCS_RULE_PROPOSAL_VERIFY_SCRIPT` | `${HOME}/agent-home/skills/reviewing-explanatory-html/scripts/verify-html-static.mjs` | 生成した規約提案 HTML の静的検査 |
 
 環境変数を未設定にした場合、または指すパスが不在の場合でも規約提案の生成そのものは通る。`build-rule-proposal.sh` の `run_static_verify()` が環境変数の未設定・スクリプトの不在を検出すると警告を標準エラーへ出すだけで、静的検査の段を飛ばして処理を続ける（exit しない）。
 
@@ -126,7 +126,7 @@ Claude Code 自身が使う保存場所への依存であり、このスキル�
 
 | 場所 | 使う道具 | なぜ依存するか |
 |---|---|---|
-| `~/.claude/projects/` | `running-reverse-screen-batch`（無人バッチ） | `claude -p` が既定でセッション記録を書き込み続けるため、大量呼び出しで肥大化しディスクと起動時間へ影響する。`--no-session-persistence` で抑止する |
+| `${HOME}/.claude/projects/` | `running-reverse-screen-batch`（無人バッチ） | `claude -p` が既定でセッション記録を書き込み続けるため、大量呼び出しで肥大化しディスクと起動時間へ影響する。`--no-session-persistence` で抑止する |
 
 この場所は Claude Code が決めるものであり、実行環境によって異なりうる。
 
