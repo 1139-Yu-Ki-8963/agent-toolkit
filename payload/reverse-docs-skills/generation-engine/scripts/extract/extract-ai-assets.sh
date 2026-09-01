@@ -695,6 +695,14 @@ fi
 REPO_ROOT="${1:?Usage: extract-ai-assets.sh <repo-root> <output.json>}"
 OUTPUT_JSON="${2:?Usage: extract-ai-assets.sh <repo-root> <output.json>}"
 
+# 除外リストの既定: 環境変数が未設定なら、走査対象リポジトリ内の同期対象外の置き場を読む。
+# 既定が空のままだと、環境変数を知らないセッションの再生成で非公開の名前が一覧へ再混入する
+# （2026-09-01 に実測。work-records は payload へ同期されないため、この既定は配布先では単に不在で無効）。
+if [ -z "$AI_ASSETS_FORBIDDEN_NAMES_FILE" ] \
+  && [ -f "$REPO_ROOT/docs/tasks/work-records/ai-assets-forbidden-names.json" ]; then
+  AI_ASSETS_FORBIDDEN_NAMES_FILE="$REPO_ROOT/docs/tasks/work-records/ai-assets-forbidden-names.json"
+fi
+
 if ! command -v jq >/dev/null 2>&1; then
   echo "ERROR: jq is required but not found in PATH" >&2
   exit 1
