@@ -46,6 +46,30 @@ LEDGER="${REPO_ROOT}/docs/tasks/指摘改善一覧.md"
 ALLOWED_STATES="未着手 対応中 完了 対象外 未確認"
 self_test_tmpdir=""
 
+# 公開先リポジトリのローカルパスは受け口 .claude/rules/always/publish/publish-values.txt から読む。
+# 定義: ~/agent-home/rules/always/publish/toolkit-payload-cycle/rule.md
+# 受け口が無い場合、本体はハードコードした既定値を持たない。print_publish_status() が
+# 判定不能として扱う（定義: .claude/rules/always/verification/indeterminate-result/rule.md）。
+PUBLISH_VALUES_FILE="${REPO_ROOT}/.claude/rules/always/publish/publish-values.txt"
+
+_publish_value() {
+  local key="$1"
+  [ -f "$PUBLISH_VALUES_FILE" ] || return 1
+  grep -E "^${key}=" "$PUBLISH_VALUES_FILE" 2>/dev/null | tail -n1 | cut -d= -f2-
+}
+
+_pv_toolkit_dir="$(_publish_value TOOLKIT_DIR)"
+if [ -n "$_pv_toolkit_dir" ]; then
+  case "$_pv_toolkit_dir" in
+    "~"/*) _pv_toolkit_dir="${HOME}${_pv_toolkit_dir#\~}" ;;
+    "~") _pv_toolkit_dir="$HOME" ;;
+  esac
+  DEFAULT_TOOLKIT_DIR="$_pv_toolkit_dir"
+else
+  DEFAULT_TOOLKIT_DIR=""
+fi
+unset _pv_toolkit_dir
+
 is_allowed_state() {
   case " $ALLOWED_STATES " in
     *" $1 "*) return 0 ;;
@@ -126,9 +150,13 @@ print_recent_merges() {
 }
 
 print_publish_status() {
-  local toolkit="$HOME/github-public/agent-toolkit"
+  local toolkit="$DEFAULT_TOOLKIT_DIR"
+  if [ -z "$toolkit" ]; then
+    echo "  [UNKNOWN] 判定不能（受け口なし: ${PUBLISH_VALUES_FILE} が無い、またはTOOLKIT_DIRが未設定のため公開先を特定できない）"
+    return 0
+  fi
   if [ ! -d "$toolkit" ]; then
-    echo "  agent-toolkit が見つかりません: $toolkit"
+    echo "  公開先リポジトリが見つかりません: $toolkit"
     return 0
   fi
   ( cd "$toolkit" && git fetch origin main >/dev/null 2>&1

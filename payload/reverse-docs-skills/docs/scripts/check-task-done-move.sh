@@ -34,7 +34,7 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # 実装判断: 配布物の境界を先に探す。git の祖先探索だけに頼ると、公開先
-#   （agent-toolkit/payload/reverse-docs-skills/）へ埋め込まれたとき、外側の
+#   （<配布リポジトリ>/<配布先ペイロード>/）へ埋め込まれたとき、外側の
 #   リポジトリのルートを掴んでしまう。実測（2026-08-27）で配布先の第1層集約が
 #   外側の docs/scripts/judge-task-done.sh を探して失敗した。
 #   generation-engine/DESIGN.md を配布物の目印とし、それが見つかった時点で探索を止める。
@@ -59,6 +59,12 @@ SELF_PATH="$SCRIPT_DIR/check-task-done-move.sh"
 JUDGE_SCRIPT_REL="docs/scripts/judge-task-done.sh"
 JUDGE="$REPO_ROOT/$JUDGE_SCRIPT_REL"
 SHARED_CONTENT_LINE="check-task-done-move selftest shared content"
+# 合成リポジトリの payload 配置先。judge-task-done.sh はハードコード既定値を
+# 持たず、受け口 publish-values.txt の TOOLKIT_DIR/PAYLOAD_SUBPATH から配布先を
+# 解決する。合成リポジトリ側の publish-values.txt（_setup_base_repo が書く）と
+# 配布先ミラー（_setup_toolkit_mirror が作る）の双方で同じ値を使うことで、
+# 自己テストが実在の配布リポジトリの配置に依存しないようにする。
+TEST_PAYLOAD_SUBPATH="payload-selftest"
 
 command -v git >/dev/null 2>&1 || { echo "ERROR: git が無い" >&2; exit 1; }
 
@@ -156,8 +162,8 @@ run_check_for_repo() {
 # ---------- 自己テスト用のヘルパー ----------
 
 _setup_base_repo() {
-  local repo="$1"
-  mkdir -p "$repo/docs/scripts" "$repo/docs/tasks"
+  local repo="$1" toolkit_dir="${2:-}"
+  mkdir -p "$repo/docs/scripts" "$repo/docs/tasks" "$repo/.claude/rules/always/publish"
   git -C "$repo" init -q
   git -C "$repo" config user.email "selftest@example.com"
   git -C "$repo" config user.name "Self Test"
@@ -165,6 +171,19 @@ _setup_base_repo() {
   cp "$JUDGE" "$repo/docs/scripts/judge-task-done.sh"
   printf '%s\n' "$SHARED_CONTENT_LINE" > "$repo/README.md"
   : > "$repo/docs/tasks/.gitkeep"
+  # judge-task-done.sh（コピー先）は .claude/rules/always/publish/publish-values.txt の
+  # TOOLKIT_DIR・PAYLOAD_SUBPATH から読む（受け口が無ければハードコードの既定値へは
+  # 落ちず判定不能を返す。judge-task-done.sh 自身の実装判断コメント参照）。合成リポジトリは
+  # 実在の公開先リポジトリを参照しないため、_setup_toolkit_mirror が作る配置
+  # （"$toolkit/$TEST_PAYLOAD_SUBPATH"）と一致する値をここで宣言し、両者がずれて
+  # 判定不能・未反映になる事故を防ぐ。toolkit_dir が空の呼び出しでは TOOLKIT_DIR を
+  # 書かない（受け口なしの判定不能を意図的に再現するケース向け）。
+  {
+    if [ -n "$toolkit_dir" ]; then
+      printf 'TOOLKIT_DIR=%s\n' "$toolkit_dir"
+    fi
+    printf 'PAYLOAD_SUBPATH=%s\n' "$TEST_PAYLOAD_SUBPATH"
+  } > "$repo/.claude/rules/always/publish/publish-values.txt"
   git -C "$repo" add -A
   git -C "$repo" commit -q -m base
   local cur
@@ -176,12 +195,12 @@ _setup_base_repo() {
 
 _setup_toolkit_mirror() {
   local toolkit="$1"
-  mkdir -p "$toolkit/payload/reverse-docs-skills"
+  mkdir -p "$toolkit/$TEST_PAYLOAD_SUBPATH"
   git -C "$toolkit" init -q
   git -C "$toolkit" config user.email "selftest@example.com"
   git -C "$toolkit" config user.name "Self Test"
   git -C "$toolkit" config commit.gpgsign false
-  printf '%s\n' "$SHARED_CONTENT_LINE" > "$toolkit/payload/reverse-docs-skills/README.md"
+  printf '%s\n' "$SHARED_CONTENT_LINE" > "$toolkit/$TEST_PAYLOAD_SUBPATH/README.md"
   git -C "$toolkit" add -A
   git -C "$toolkit" commit -q -m base
   local cur
@@ -233,7 +252,8 @@ run_self_test() {
     echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     return 2
   fi
-  local no_toolkit="$base_tmp/no-toolkit"
+  # _setup_base_repo を toolkit_dir 引数なしで呼ぶと publish-values.txt に TOOLKIT_DIR
+  # を書かず、判定不能（受け口なし）を意図的に再現する。ケース1・3・4・5はこの形を使う。
 
   local -a NAMES=()
   local -a RESULTS=()
@@ -242,23 +262,23 @@ run_self_test() {
   # ケース1: staged に done/ への追加が無い → 通る
   local repo1="$base_tmp/repo1"
   _setup_base_repo "$repo1"
-  TASK_DONE_TOOLKIT_DIR="$no_toolkit" run_check_for_repo "$repo1" >/dev/null 2>&1
+  run_check_for_repo "$repo1" >/dev/null 2>&1
   rc=$?
   NAMES+=("staged空-通る")
   if [ "$rc" -eq 0 ]; then RESULTS+=("PASS"); else RESULTS+=("FAIL"); fi
 
   # ケース2: 3条件を満たす1件が done/ へ入る → 通る
   local repo2="$base_tmp/repo2"
-  _setup_base_repo "$repo2"
+  local toolkit2="$base_tmp/toolkit2"
+  _setup_base_repo "$repo2" "$toolkit2"
   local c1
   c1="$(git -C "$repo2" rev-parse HEAD)"
   _write_doc "$repo2/docs/tasks/plan-a.md" "完了" "$c1"
   git -C "$repo2" add docs/tasks/plan-a.md
   git -C "$repo2" commit -q -m "add plan"
   _stage_done_move "$repo2" "plan-a.md"
-  local toolkit2="$base_tmp/toolkit2"
   _setup_toolkit_mirror "$toolkit2"
-  TASK_DONE_TOOLKIT_DIR="$toolkit2" run_check_for_repo "$repo2" >/dev/null 2>&1
+  run_check_for_repo "$repo2" >/dev/null 2>&1
   rc=$?
   NAMES+=("3条件充足-通る")
   if [ "$rc" -eq 0 ]; then RESULTS+=("PASS"); else RESULTS+=("FAIL"); fi
@@ -274,7 +294,7 @@ run_self_test() {
   git -C "$repo3" add docs/tasks/plan-c.md
   git -C "$repo3" commit -q -m "add plan"
   _stage_done_move "$repo3" "plan-c.md"
-  TASK_DONE_TOOLKIT_DIR="$no_toolkit" run_check_for_repo "$repo3" >/dev/null 2>&1
+  run_check_for_repo "$repo3" >/dev/null 2>&1
   rc=$?
   NAMES+=("記録なし-止まる")
   if [ "$rc" -ne 0 ]; then RESULTS+=("PASS"); else RESULTS+=("FAIL"); fi
@@ -286,7 +306,7 @@ run_self_test() {
   git -C "$repo4" add docs/tasks/plan-d.md
   git -C "$repo4" commit -q -m "add plan"
   _stage_done_move "$repo4" "plan-d.md"
-  TASK_DONE_TOOLKIT_DIR="$no_toolkit" run_check_for_repo "$repo4" >/dev/null 2>&1
+  run_check_for_repo "$repo4" >/dev/null 2>&1
   rc=$?
   NAMES+=("コミット欄空-止まる")
   if [ "$rc" -ne 0 ]; then RESULTS+=("PASS"); else RESULTS+=("FAIL"); fi
@@ -300,7 +320,7 @@ run_self_test() {
   git -C "$repo5" add docs/tasks/plan-e.md
   git -C "$repo5" commit -q -m "add plan"
   _stage_done_move "$repo5" "plan-e.md"
-  TASK_DONE_TOOLKIT_DIR="$no_toolkit" run_check_for_repo "$repo5" >/dev/null 2>&1
+  run_check_for_repo "$repo5" >/dev/null 2>&1
   rc=$?
   NAMES+=("公開未反映-止まる")
   if [ "$rc" -ne 0 ]; then RESULTS+=("PASS"); else RESULTS+=("FAIL"); fi

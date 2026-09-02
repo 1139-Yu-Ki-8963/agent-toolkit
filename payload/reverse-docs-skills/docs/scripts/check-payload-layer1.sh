@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 配布先（agent-toolkit/payload/reverse-docs-skills）で第1層の集約を実行し、
+# 配布先（<配布リポジトリ>/<配布先ペイロード>）で第1層の集約を実行し、
 # 失敗が0本であることを確かめる。公開のたびに実行する。
 #
 # なぜ要るか: 正本で242本すべて成功しても、配布先では落ちることがある。
@@ -44,6 +44,40 @@
 #   PAYLOAD_LAYER1_KEEP_LOG=1 bash docs/scripts/check-payload-layer1.sh   # ログを残す
 #   bash docs/scripts/check-payload-layer1.sh --self-test
 set -uo pipefail
+
+# 配布先の値（公開先リポジトリのパス・payload の相対パス）は受け口
+# .claude/rules/always/publish/publish-values.txt から読む。
+# 定義: ~/agent-home/rules/always/publish/toolkit-payload-cycle/rule.md
+# 受け口が無い場合、本体はハードコードした既定値を持たない。run_check() が
+# 判定不能として扱う（定義: .claude/rules/always/verification/indeterminate-result/rule.md）。
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+REPO_ROOT=""
+if [ -n "$SCRIPT_DIR" ]; then
+  REPO_ROOT="$(cd "$SCRIPT_DIR/../.." >/dev/null 2>&1 && pwd)"
+fi
+PUBLISH_VALUES_FILE="${REPO_ROOT:+$REPO_ROOT/.claude/rules/always/publish/publish-values.txt}"
+
+_publish_value() {
+  local key="$1"
+  [ -n "${PUBLISH_VALUES_FILE:-}" ] && [ -f "$PUBLISH_VALUES_FILE" ] || return 1
+  grep -E "^${key}=" "$PUBLISH_VALUES_FILE" 2>/dev/null | tail -n1 | cut -d= -f2-
+}
+
+_pv_toolkit_dir="$(_publish_value TOOLKIT_DIR)"
+if [ -n "$_pv_toolkit_dir" ]; then
+  case "$_pv_toolkit_dir" in
+    "~"/*) _pv_toolkit_dir="${HOME}${_pv_toolkit_dir#\~}" ;;
+    "~") _pv_toolkit_dir="$HOME" ;;
+  esac
+fi
+_pv_payload_subpath="$(_publish_value PAYLOAD_SUBPATH)"
+
+if [ -n "$_pv_toolkit_dir" ] && [ -n "$_pv_payload_subpath" ]; then
+  DEFAULT_PAYLOAD_DIR="${_pv_toolkit_dir}/${_pv_payload_subpath}"
+else
+  DEFAULT_PAYLOAD_DIR=""
+fi
+unset _pv_toolkit_dir _pv_payload_subpath
 
 CAP=10
 
@@ -100,7 +134,12 @@ emit_report() {
 
 run_check() {
   local payload_dir agg log
-  payload_dir="${PAYLOAD_DIR:-$HOME/github-public/agent-toolkit/payload/reverse-docs-skills}"
+  payload_dir="${PAYLOAD_DIR:-$DEFAULT_PAYLOAD_DIR}"
+
+  if [ -z "$payload_dir" ]; then
+    echo "[UNKNOWN] 判定不能（受け口なし: ${PUBLISH_VALUES_FILE:-<repo root 未解決>} が無い、またはTOOLKIT_DIR/PAYLOAD_SUBPATHが未設定のため配布先を特定できない）"
+    return 2
+  fi
 
   if [ ! -d "$payload_dir" ]; then
     echo "[UNKNOWN] 配布先が見つからないため判定できません（$payload_dir が存在しない。同期が未実行の可能性があります）"

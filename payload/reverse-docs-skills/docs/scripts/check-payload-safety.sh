@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# check-payload-safety.sh — 公開リポジトリの payload/reverse-docs-skills に、配ってはならないもの
+# check-payload-safety.sh — 公開先リポジトリの配布先パス配下に、配ってはならないもの
 #   （実行環境の固有パス・GitHubのアカウント名・除外すべき名前のフォルダ・
 #   除外すべき名前の本文への言及）が含まれていないかを検査する。
 #
@@ -7,7 +7,7 @@
 #   bash docs/scripts/check-payload-safety.sh
 #   bash docs/scripts/check-payload-safety.sh --self-test
 #
-# 必要性: 公開リポジトリの payload/reverse-docs-skills に、配る必要の無いもの
+# 必要性: 公開先リポジトリの配布先パス配下に、配る必要の無いもの
 #   （作業の記録・セッションのプロンプト・実行環境の固有パス・GitHubのアカウント名）が
 #   実際に混入した実測がある。除外名の追加漏れや同期エンジンの挙動変化により、
 #   同種の混入は今後も起こりうる。同期の前後どちらでも繰り返し確認できる、
@@ -52,14 +52,54 @@
 #
 # 保守責任者: 人手（ユーザー）。検出パターンや除外すべき名前の既定値を変更する場合は、
 #   本スクリプトと ~/agent-home/state/payload-forbidden-content.json と
-#   .claude/rules/always/publish/complete/rule.md の設計判断節を同時に更新する。
+#   ~/agent-home/rules/always/publish/toolkit-payload-cycle/rule.md の設計判断節を
+#   同時に更新する。配布先パス（TARGET の既定値）は
+#   .claude/rules/always/publish/publish-values.txt（TOOLKIT_DIR・PAYLOAD_SUBPATH）から読む。
+#   受け口が無ければ判定不能として扱う（ハードコードの既定値は持たない）。
 #
 # 廃棄条件: 公開先リポジトリへの同期運用自体を廃止した時、または混入検査を
-#   同期エンジン（sync-payload.mjs の --check-artifacts）が標準で兼ねるようになった時。
+#   同期エンジン（同期定義側の --check-artifacts 相当）が標準で兼ねるようになった時。
 
 set -uo pipefail
 
-DEFAULT_TARGET="$HOME/github-public/agent-toolkit/payload/reverse-docs-skills"
+# 本スクリプトの配置（<repo>/docs/scripts/check-payload-safety.sh）から
+# リポジトリルートを導出する。publish-values.txt の解決、および除外名の
+# 「非公開のスキル」判定の基準ディレクトリ解決の両方に使う。
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
+REPO_ROOT=""
+if [ -n "$SCRIPT_DIR" ]; then
+  REPO_ROOT="$(cd "$SCRIPT_DIR/../.." >/dev/null 2>&1 && pwd)"
+fi
+
+# 配布先の値（公開先リポジトリのパス・payload の相対パス）は受け口
+# .claude/rules/always/publish/publish-values.txt から読む。
+# 定義: ~/agent-home/rules/always/publish/toolkit-payload-cycle/rule.md
+# 受け口が無い場合、本体はハードコードした既定値を持たない。run_check() が
+# 判定不能として扱う（定義: .claude/rules/always/verification/indeterminate-result/rule.md）。
+PUBLISH_VALUES_FILE="${REPO_ROOT:+$REPO_ROOT/.claude/rules/always/publish/publish-values.txt}"
+
+_publish_value() {
+  local key="$1"
+  [ -n "${PUBLISH_VALUES_FILE:-}" ] && [ -f "$PUBLISH_VALUES_FILE" ] || return 1
+  grep -E "^${key}=" "$PUBLISH_VALUES_FILE" 2>/dev/null | tail -n1 | cut -d= -f2-
+}
+
+_pv_toolkit_dir="$(_publish_value TOOLKIT_DIR)"
+if [ -n "$_pv_toolkit_dir" ]; then
+  case "$_pv_toolkit_dir" in
+    "~"/*) _pv_toolkit_dir="${HOME}${_pv_toolkit_dir#\~}" ;;
+    "~") _pv_toolkit_dir="$HOME" ;;
+  esac
+fi
+_pv_payload_subpath="$(_publish_value PAYLOAD_SUBPATH)"
+
+if [ -n "$_pv_toolkit_dir" ] && [ -n "$_pv_payload_subpath" ]; then
+  DEFAULT_TARGET="${_pv_toolkit_dir}/${_pv_payload_subpath}"
+else
+  DEFAULT_TARGET=""
+fi
+unset _pv_toolkit_dir _pv_payload_subpath
+
 TARGET="${PAYLOAD_SAFETY_TARGET:-$DEFAULT_TARGET}"
 DEFAULT_NAMES_FILE="$HOME/agent-home/state/payload-forbidden-content.json"
 NAMES_FILE="${PAYLOAD_SAFETY_FORBIDDEN_NAMES_FILE:-$DEFAULT_NAMES_FILE}"
@@ -83,13 +123,7 @@ SELF_BASENAME="$(basename "${BASH_SOURCE[0]}")"
 # 除外名のうち「非公開のスキル」を判定するための基準ディレクトリ。
 # 除外名と同じ名前のフォルダが .claude/skills/ 配下に実在するかどうかで、
 # スキル（本文の言及も禁止）とフォルダ・ファイル（実在のみ禁止）を区別する。
-# 本スクリプトの配置（<repo>/docs/scripts/check-payload-safety.sh）から
-# リポジトリルートを導出する。
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" >/dev/null 2>&1 && pwd)"
-REPO_ROOT=""
-if [ -n "$SCRIPT_DIR" ]; then
-  REPO_ROOT="$(cd "$SCRIPT_DIR/../.." >/dev/null 2>&1 && pwd)"
-fi
+# SCRIPT_DIR・REPO_ROOT は publish-values.txt の解決と共用する（冒頭で導出済み）。
 DEFAULT_SKILLS_DIR="${REPO_ROOT:+$REPO_ROOT/.claude/skills}"
 SKILLS_DIR="${PAYLOAD_SAFETY_SKILLS_DIR:-$DEFAULT_SKILLS_DIR}"
 

@@ -26,8 +26,8 @@
 #      実在するコミットを持たない指示書は対象なしとして満たす。ただし「完了」が1件以上あるのに
 #      実在するコミットが1件も無い場合は満たさない
 #   4. 公開が済んでいる: リポジトリ全体で1回だけ判定する。payload が現在の main と一致し、
-#      agent-toolkit の payload を運ぶ枝（現在の HEAD）に未 push のコミットが0件であれば
-#      「反映済み」。agent-toolkit の他の作業用の枝の未 push は判定に含めない
+#      公開先リポジトリの payload を運ぶ枝（現在の HEAD）に未 push のコミットが0件であれば
+#      「反映済み」。公開先リポジトリの他の作業用の枝の未 push は判定に含めない
 #      （同期が指示書の単位ではなく main の状態をまるごと写す形で行われるため、指示書ごとに追わない。
 #      追跡先（@{u}）が解決できない場合は「判定不能」とし「反映済み」とは言わない）
 #
@@ -78,8 +78,8 @@
 # 代替案を採用しなかった理由:
 #   - Bash ツール直叩き: 指示書それぞれで状態表の走査・確かめる手段の実行・コミットの実在確認・
 #     main祖先判定・payload突合を対話セッションのたびに手で組み立てると、判定基準が実行のたびにぶれる
-#   - generation-engine/scripts/ へ置く: `docs/` 配下は agent-toolkit の
-#     `scripts/sync-manifest.json` で mirror として同期対象に登録されている。
+#   - generation-engine/scripts/ へ置く: `docs/` 配下は公開先リポジトリの
+#     同期定義で mirror として同期対象に登録されている。
 #     つまり本スクリプトも配布される。配布されること自体は矛盾しない。指示書の形を定める
 #     規約（`.claude/rules/always/tasks/instruction-format/rule.md`）も配布対象であり、
 #     指示書の運用そのものが配布される資産に含まれるためである。それでも
@@ -88,7 +88,8 @@
 #     `generation-engine/scripts/` は納品物を生成する道具の置き場であり、指示書の運用を
 #     判定する道具とは役割が異なる
 #   - 既存 Makefile ターゲット拡張・package.json scripts 追加: このリポジトリはどちらも持たない
-#   - `.claude/rules/always/publish/complete/check-publish-sync-gate.sh` の直接改修: あちらは
+#   - agent-home 側のグローバル hook `check-publish-sync-gate.sh`
+#     （~/agent-home/rules/always/publish/toolkit-payload-cycle/）の直接改修: あちらは
 #     git commit 直後の advisory hook であり、判定条件も呼び出し契機も異なる（本スクリプトは
 #     指示書単位の条件判定が主目的で、公開判定はその一部として同じ比較ロジックを流用するに
 #     とどまる）。同スクリプトの diff 比較ロジック（同期対象6件・除外10件）はそのまま踏襲した
@@ -98,10 +99,12 @@
 #     生存確認したうえで上限超過時に負のPIDへシグナルを送る）で自前実装する
 #
 # 保守責任者: 人手（ユーザー）。同期対象・除外名を変える場合は
-#   `.claude/rules/always/publish/complete/rule.md` と `check-publish-sync-gate.sh` と
-#   本ファイルの sync_targets・diff exclude を同時に更新する。同期対象そのものの正本は
-#   agent-toolkit の `scripts/sync-manifest.json` である。`publish/complete/rule.md` の
-#   一覧はこの正本から意図的に絞った diff 比較対象であり、古くなりうる。
+#   `.claude/rules/always/publish/publish-values.txt`（DIFF_TARGET）と
+#   agent-home 側のグローバル規約
+#   （~/agent-home/rules/always/publish/toolkit-payload-cycle/rule.md）と
+#   `check-publish-sync-gate.sh` を同時に更新する。同期対象そのものの正本は
+#   公開先リポジトリの同期定義である。`publish-values.txt` の
+#   DIFF_TARGET 一覧はこの正本から意図的に絞った diff 比較対象であり、古くなりうる。
 #   「確かめる手段」欄の実行タイムアウト既定値（300秒）を変える場合は本ファイルの
 #   TIMEOUT_SEC の既定値とこのコメントを同時に更新する。
 #
@@ -132,9 +135,9 @@ set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # 実装判断: 配布物の境界を先に探す。git の祖先探索だけに頼ると、公開先
-#   （agent-toolkit/payload/reverse-docs-skills/）へ埋め込まれたとき、外側の
+#   リポジトリの配布先パス配下へ埋め込まれたとき、外側の
 #   リポジトリのルートを掴んでしまう。実測（2026-08-27）で配布先の第1層集約が
-#   /Users/.../agent-toolkit/docs/tasks を探して失敗した。generation-engine/DESIGN.md
+#   配布先リポジトリのdocs/tasksを探して失敗した。generation-engine/DESIGN.md
 #   を配布物の目印とし、それが見つかった時点で探索を止める。
 #   先例: generation-engine/scripts/unit-list/validate-manifest.sh の同じ停止条件。
 REPO_ROOT=""
@@ -157,9 +160,48 @@ fi
 TASKS_DIR="${JUDGE_TASK_DONE_TEST_TASKS_DIR:-$REPO_ROOT/docs/tasks}"
 DONE_DIR="$TASKS_DIR/done"
 MAIN_REF="main"
-TOOLKIT_DIR="${TASK_DONE_TOOLKIT_DIR:-$HOME/github-public/agent-toolkit}"
-# 除外名は .claude/rules/always/publish/complete/rule.md「公開対象から
-# 外す資産」節が定める非公開の定義ファイル（.names）を正本として読む。
+
+# 配布先の値（配布リポジトリのパス・payload の相対パス・diff 比較対象）は
+# 受け口 .claude/rules/always/publish/publish-values.txt から読む。
+# 定義: ~/agent-home/rules/always/publish/toolkit-payload-cycle/rule.md
+# 受け口が無い場合、本体はハードコードした既定値を持たない。judge_publish() が
+# 「判定不能（受け口なし）」を [UNKNOWN] ラベル・終了コード2で出力して当該判定を終える
+# （定義: .claude/rules/always/verification/indeterminate-result/rule.md）。
+PUBLISH_VALUES_FILE="$REPO_ROOT/.claude/rules/always/publish/publish-values.txt"
+
+_publish_value() {
+  # 指定キーの最後の値（1行）を publish-values.txt から取り出す。無ければ空。
+  local key="$1"
+  [ -f "$PUBLISH_VALUES_FILE" ] || return 1
+  grep -E "^${key}=" "$PUBLISH_VALUES_FILE" 2>/dev/null | tail -n1 | cut -d= -f2-
+}
+
+_publish_values_list() {
+  # 指定キーの全行の値を publish-values.txt から取り出す（複数行対応）。
+  local key="$1"
+  [ -f "$PUBLISH_VALUES_FILE" ] || return 1
+  grep -E "^${key}=" "$PUBLISH_VALUES_FILE" 2>/dev/null | cut -d= -f2-
+}
+
+_pv_toolkit_dir="$(_publish_value TOOLKIT_DIR)"
+if [ -n "$_pv_toolkit_dir" ]; then
+  case "$_pv_toolkit_dir" in
+    "~"/*) _pv_toolkit_dir="${HOME}${_pv_toolkit_dir#\~}" ;;
+    "~") _pv_toolkit_dir="$HOME" ;;
+  esac
+  TOOLKIT_DIR="$_pv_toolkit_dir"
+else
+  TOOLKIT_DIR=""
+fi
+unset _pv_toolkit_dir
+
+_pv_payload_subpath="$(_publish_value PAYLOAD_SUBPATH)"
+PAYLOAD_SUBPATH="${_pv_payload_subpath:-}"
+unset _pv_payload_subpath
+
+# 除外名は agent-home 側のグローバル規約
+# （~/agent-home/rules/always/publish/toolkit-payload-cycle/rule.md「公開対象から
+# 外す資産の管理」節）が定める非公開の定義ファイル（.names）を正本として読む。
 # 名前をこのスクリプトへ直接書き込まない。
 DEFAULT_PUBLISH_FORBIDDEN_NAMES_FILE="$HOME/agent-home/state/payload-forbidden-content.json"
 PUBLISH_FORBIDDEN_NAMES_FILE="${PAYLOAD_FORBIDDEN_NAMES_FILE:-$DEFAULT_PUBLISH_FORBIDDEN_NAMES_FILE}"
@@ -327,17 +369,21 @@ PUBLISH_OK=0
 PUBLISH_MSG="判定不能"
 
 judge_publish() {
+  if [ -z "$TOOLKIT_DIR" ] || [ -z "$PAYLOAD_SUBPATH" ]; then
+    PUBLISH_MSG="[UNKNOWN] 判定不能（受け口なし: ${PUBLISH_VALUES_FILE} が無い、またはTOOLKIT_DIR/PAYLOAD_SUBPATHが未設定のため公開先を特定できない）"
+    return
+  fi
   if ! command -v jq >/dev/null 2>&1; then
     PUBLISH_MSG="判定不能（jqが無い）"
     return
   fi
   if [ ! -d "$TOOLKIT_DIR" ]; then
     # 全角文字との境界を明示し、LC_ALLの変更で変数名として誤読されるのを防ぐ。
-    PUBLISH_MSG="未反映（agent-toolkitが見当たらない: ${TOOLKIT_DIR}）"
+    PUBLISH_MSG="未反映（公開先リポジトリが見当たらない: ${TOOLKIT_DIR}）"
     return
   fi
   if ! git -C "$TOOLKIT_DIR" rev-parse --verify --quiet origin/main >/dev/null 2>&1; then
-    PUBLISH_MSG="判定不能（agent-toolkitにorigin/mainが無い）"
+    PUBLISH_MSG="判定不能（公開先リポジトリにorigin/mainが無い）"
     return
   fi
   if ! git -C "$REPO_ROOT" rev-parse --verify --quiet "$MAIN_REF" >/dev/null 2>&1; then
@@ -345,14 +391,14 @@ judge_publish() {
     return
   fi
 
-  # payload を運ぶのは今 checkout している枝であり、agent-toolkit の他の作業用の枝の
+  # payload を運ぶのは今 checkout している枝であり、公開先リポジトリの他の作業用の枝の
   # 未pushはこのリポジトリの成果の公開可否とは無関係である。公開の判定が答えるべき問いは
-  # 「reverse-docs-skills の成果が公開されたか」であり、agent-toolkit の別の作業が途中で
+  # 「reverse-docs-skills の成果が公開されたか」であり、公開先リポジトリの別の作業が途中で
   # あることはこの問いへの答えを変えない。そのため運ぶ枝（現在の HEAD）だけの未push件数を見る。
   local cur_branch
   cur_branch="$(git -C "$TOOLKIT_DIR" rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
   if [ -z "$cur_branch" ] || [ "$cur_branch" = "HEAD" ]; then
-    PUBLISH_MSG="判定不能（agent-toolkitが枝を指していない）"
+    PUBLISH_MSG="判定不能（公開先リポジトリが枝を指していない）"
     return
   fi
   # 追跡先（@{u}）が解決できない場合は、押し出せているかどうか分からない状態であり
@@ -360,25 +406,34 @@ judge_publish() {
   local unpushed_count
   unpushed_count="$(git -C "$TOOLKIT_DIR" rev-list --count '@{u}..HEAD' 2>/dev/null || true)"
   if [ -z "$unpushed_count" ]; then
-    PUBLISH_MSG="判定不能（agent-toolkitの${cur_branch}の追跡先が解決できない）"
+    PUBLISH_MSG="判定不能（公開先リポジトリの${cur_branch}の追跡先が解決できない）"
     return
   fi
   if [ "$unpushed_count" -ne 0 ]; then
-    PUBLISH_MSG="未反映（agent-toolkitの${cur_branch}に未pushのコミットが${unpushed_count}件ある）"
+    PUBLISH_MSG="未反映（公開先リポジトリの${cur_branch}に未pushのコミットが${unpushed_count}件ある）"
     return
   fi
 
-  # 同期対象は check-publish-sync-gate.sh の diff 比較対象と揃える（RUNBOOK.md は
+  # 同期対象は publish-values.txt の DIFF_TARGET 一覧を最優先で使う。
+  # check-publish-sync-gate.sh の diff 比較対象と揃える設計（RUNBOOK.md は
   # 同期対象だが diff 比較対象ではない。rule.md の既存判断のとおり）。
+  # 受け口が無い場合は既定値へフォールバックする（後方互換）。
   local sync_targets rel
-  sync_targets=(
-    .claude/skills
-    .claude/rules/scoped/portal/page-conventions/rule.md
-    .claude/rules/always/verification/reverse-verification/rule.md
-    delivery-payload
-    generation-engine
-    README.md
-  )
+  sync_targets=()
+  while IFS= read -r rel; do
+    [ -n "$rel" ] || continue
+    sync_targets+=("$rel")
+  done < <(_publish_values_list DIFF_TARGET)
+  if [ "${#sync_targets[@]}" -eq 0 ]; then
+    sync_targets=(
+      .claude/skills
+      .claude/rules/scoped/portal/page-conventions/rule.md
+      .claude/rules/always/verification/reverse-verification/rule.md
+      delivery-payload
+      generation-engine
+      README.md
+    )
+  fi
   local existing_paths=()
   for rel in "${sync_targets[@]}"; do
     if git -C "$REPO_ROOT" cat-file -e "$MAIN_REF:$rel" 2>/dev/null; then
@@ -396,10 +451,11 @@ judge_publish() {
   tmp_pub="$(mktemp -d "${TMPDIR:-/tmp}/judge-task-done-pub.XXXXXX")"
 
   git -C "$REPO_ROOT" archive "$MAIN_REF" -- "${existing_paths[@]}" 2>/dev/null | tar -x -C "$tmp_src" 2>/dev/null
-  git -C "$TOOLKIT_DIR" archive origin/main payload/reverse-docs-skills 2>/dev/null | tar -x -C "$tmp_pub" 2>/dev/null
+  git -C "$TOOLKIT_DIR" archive origin/main "$PAYLOAD_SUBPATH" 2>/dev/null | tar -x -C "$tmp_pub" 2>/dev/null
 
-  # 除外名は .claude/rules/always/publish/complete/rule.md
-  # 「公開対象から外す資産」節が定める非公開の定義ファイルから読む
+  # 除外名は agent-home 側のグローバル規約
+  # （~/agent-home/rules/always/publish/toolkit-payload-cycle/rule.md
+  # 「公開対象から外す資産の管理」節）が定める非公開の定義ファイルから読む
   # （名前をこのスクリプトへ直接書き込まない）。ファイルが読めない場合は
   # 除外なしで判定を続けず、判定不能として止める（除外漏れによる
   # 誤った「未反映」判定を避けるため）。
@@ -429,7 +485,7 @@ judge_publish() {
   for rel in "${existing_paths[@]}"; do
     if ! diff -r -q \
         "${exclude_args[@]}" \
-        "$tmp_src/$rel" "$tmp_pub/payload/reverse-docs-skills/$rel" >/dev/null 2>&1; then
+        "$tmp_src/$rel" "$tmp_pub/$PAYLOAD_SUBPATH/$rel" >/dev/null 2>&1; then
       mismatch="${mismatch}${rel} "
     fi
   done
@@ -1545,7 +1601,7 @@ run_self_test() {
   mk_doc "$(printf '| 判定 | 確かめる手段 | 状態 | コミット | 確かめた内容 |\n|---|---|---|---|---|\n| 1. 何か | touch %s | 未着手 | — | — |' "$marker_b")" > "$only_b"
 
   # judge_publish は公開状態の repo 横断チェックであり --only の対象絞り込みとは無関係だが、
-  # run_normal_mode は毎回これを呼ぶ。実物の agent-toolkit を突合する重い処理のため、
+  # run_normal_mode は毎回これを呼ぶ。実物の公開先リポジトリを突合する重い処理のため、
   # ここでは判定だけをスタブに差し替えて run_normal_mode 本体（対象選定・実行ループ）を
   # 実際に通す（テストのたびに公開判定の重い処理を繰り返さないため）。
   local judge_publish_orig
@@ -1836,7 +1892,7 @@ run_self_test() {
     unset LC_ALL
   fi
   TOOLKIT_DIR="$saved_toolkit_dir"
-  if [ "$PUBLISH_MSG" = "未反映（agent-toolkitが見当たらない: ${tmpdir}/missing-toolkit）" ]; then
+  if [ "$PUBLISH_MSG" = "未反映（公開先リポジトリが見当たらない: ${tmpdir}/missing-toolkit）" ]; then
     echo "[PASS] 公開判定の変数境界を維持する"
     pass=$((pass + 1))
   else

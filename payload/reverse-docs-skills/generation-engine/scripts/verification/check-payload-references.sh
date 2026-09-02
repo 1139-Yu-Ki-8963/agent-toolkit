@@ -4,7 +4,7 @@
 #
 # 何を見るか:
 #   delivery-payload/ と generation-engine/ 配下、README.md、配布対象の検証規約・
-#   公開完遂規約の *.md を対象にする（*.html は対象外。理由は下の「対象外にすること」
+#   公開手順を定める規約の *.md を対象にする（*.html は対象外。理由は下の「対象外にすること」
 #   を参照）。ただし次の3か所は走査対象から
 #   除く。
 #     - delivery-payload/templates/rules/ 配下: 「検証の結果を信用できるように

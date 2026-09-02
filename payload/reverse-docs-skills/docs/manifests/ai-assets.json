@@ -75,7 +75,7 @@
       "tags": []
     },
     {
-      "ruleName": "公開完遂ガード（PUBLISH-COMPLETE）",
+      "ruleName": "公開手順ガード（PUBLISH-COMPLETE）",
       "layer": "always",
       "declaredEnforcement": "block",
       "mechanicalEnforcement": true,
@@ -83,7 +83,7 @@
         "[PUBLISH-COMPLETE-BLOCK]",
         "[PUBLISH-SYNC-REQUIRED]"
       ],
-      "summary": "reverse-docs-skills（正本）の作業を「正本 commit → payload 同期 → agent-toolkit の origin/main へ統合 push」まで完遂してから完了報告させるプロジェクト規約。"
+      "summary": "reverse-docs-skills（正本）の作業を「正本 commit → payload 同期 → 公開先リポジトリの origin/main へ統合 push」まで完遂してから完了報告させるプロジェクト規約。"
     },
     {
       "ruleName": "レビューの観点の決まり",
@@ -911,7 +911,7 @@
       "matcher": "—",
       "tags": [],
       "behavior": "block",
-      "summary": "Stop hook: reverse-docs-skills の公開完遂ガード。"
+      "summary": "Stop hook: reverse-docs-skills の公開手順ガード。"
     },
     {
       "script": "check-worker-autonomy.sh",
