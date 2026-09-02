@@ -1878,11 +1878,23 @@ run_self_test() {
   fi
 
   # 22. UTF-8ロケールでも全角文字直前のTOOLKIT_DIRを正しく展開する。
-  local saved_toolkit_dir="$TOOLKIT_DIR" saved_lc_all="${LC_ALL-}" lc_all_was_set=0
+  # 実装判断: PAYLOAD_SUBPATHはPUBLISH_VALUES_FILE（.claude/rules/always/publish/
+  #   publish-values.txt）の実在に依存する外部状態であり、正本には実在するが配布先
+  #   （payload）には存在しない設計上の受け口である。TOOLKIT_DIRだけを差し替え
+  #   PAYLOAD_SUBPATHを環境任せにすると、配布先で自己テストを実行したときに
+  #   judge_publish()がTOOLKIT_DIR未到達のまま「判定不能（受け口なし）」を返し、
+  #   本ケースが期待する「未反映（公開先リポジトリが見当たらない）」と食い違って
+  #   不合格になる（実測2026-08-29）。本ケースが検証したいのはTOOLKIT_DIRの全角境界
+  #   展開だけであり、PAYLOAD_SUBPATHの実在有無に左右されてはならないため、TOOLKIT_DIR
+  #   と同様にPAYLOAD_SUBPATHもテスト内で明示的に退避・上書き・復元し、実行時の
+  #   カレントディレクトリや配布先／正本のどちらであっても同じ結果になるようにする。
+  local saved_toolkit_dir="$TOOLKIT_DIR" saved_payload_subpath="$PAYLOAD_SUBPATH"
+  local saved_lc_all="${LC_ALL-}" lc_all_was_set=0
   if [ "${LC_ALL+x}" = "x" ]; then
     lc_all_was_set=1
   fi
   TOOLKIT_DIR="$tmpdir/missing-toolkit"
+  PAYLOAD_SUBPATH="payload/reverse-docs-skills"
   LC_ALL=zh_CN.UTF-8
   PUBLISH_MSG=""
   judge_publish
@@ -1892,6 +1904,7 @@ run_self_test() {
     unset LC_ALL
   fi
   TOOLKIT_DIR="$saved_toolkit_dir"
+  PAYLOAD_SUBPATH="$saved_payload_subpath"
   if [ "$PUBLISH_MSG" = "未反映（公開先リポジトリが見当たらない: ${tmpdir}/missing-toolkit）" ]; then
     echo "[PASS] 公開判定の変数境界を維持する"
     pass=$((pass + 1))
