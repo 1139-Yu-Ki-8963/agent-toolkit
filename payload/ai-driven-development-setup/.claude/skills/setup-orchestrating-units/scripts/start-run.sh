@@ -1,21 +1,28 @@
 #!/usr/bin/env bash
 set -u
 
-# start-run.sh — 実行フォルダを作り、run.json に4つの設定値と対象のコミットを書く
+# start-run.sh — 実行フォルダを作り、run.json に6つの設定値と対象のコミットを書く
 #
 # 目的:
-#   統括の手順0（実行の開始）が呼ぶ。対象リポジトリのHEADを実行開始時点に固定し、
+#   統括の手順0（前提の確認）が呼ぶ。対象リポジトリのHEADを実行開始時点に固定し、
 #   実行の識別子（YYYY-MM-DD-<対象のHEAD短縮7桁>）を作り、
 #   <output-root>/<project-name>/<識別子>/ に run.json と
 #   confirmations/・logs/・facts/・reports/ を作る。
 #
 # 使い方:
-#   start-run.sh <対象リポジトリのルート> --project-name <先方の名前> --output-root <出力の置き場の親>
+#   start-run.sh <対象リポジトリのルート> --project-name <先方の名前> --output-root <出力の置き場の親> \
+#     [--units <単位をカンマ区切り>] [--scope <出力の範囲>]
 #   start-run.sh --self-test
 #
+# --units の既定: setup,reverse
+# --scope の既定: 全部（他に「基本設計まで」「一覧まで」を受け付ける。値の妥当性は
+#   本スクリプトでは検査しない。使い道はplan-setup.shの--untilへの対応づけであり、
+#   その対応はdocs/skills/setup-orchestrating-units/SKILL.mdの手順1が持つ）
+#
 # run.json のキー:
-#   対象リポジトリ・先方の名前・出力の置き場・実行の識別子（この4つが設定値）・
-#   対象のコミット（対象リポジトリのHEADのフルハッシュ。設定値ではなく実行開始時に確定する値）
+#   対象リポジトリ・先方の名前・出力の置き場・実行の識別子・実行する単位・出力の範囲
+#   （この6つが設定値）・対象のコミット（対象リポジトリのHEADのフルハッシュ。
+#   設定値ではなく実行開始時に確定する値）
 #
 # 出力:
 #   標準出力に実行フォルダの絶対パスを1行で出す。
@@ -33,7 +40,7 @@ set -u
 # macOS bash 3.2 互換（連想配列・mapfileは不使用）。
 
 usage() {
-  echo "usage: $(basename "$0") <対象リポジトリのルート> --project-name <先方の名前> --output-root <出力の置き場の親> | --self-test" >&2
+  echo "usage: $(basename "$0") <対象リポジトリのルート> --project-name <先方の名前> --output-root <出力の置き場の親> [--units <単位をカンマ区切り>] [--scope <出力の範囲>] | --self-test" >&2
 }
 
 # 簡易なJSON文字列エスケープ（バックスラッシュとダブルクォートのみ）
@@ -42,7 +49,7 @@ json_escape() {
 }
 
 run_start() {
-  local target="$1" project_name="$2" output_root="$3"
+  local target="$1" project_name="$2" output_root="$3" units="$4" scope="$5"
   if [ ! -d "$target" ]; then
     echo "ERROR: 対象リポジトリのルートが存在しない: $target" >&2
     return 1
@@ -69,6 +76,8 @@ run_start() {
   "先方の名前": "$(json_escape "$project_name")",
   "出力の置き場": "$(json_escape "$output_root")",
   "実行の識別子": "$(json_escape "$identifier")",
+  "実行する単位": "$(json_escape "$units")",
+  "出力の範囲": "$(json_escape "$scope")",
   "対象のコミット": "$(json_escape "$commit")"
 }
 JSON
@@ -99,7 +108,7 @@ self_test() {
   local out_root="${root}/out"
   mkdir -p "$out_root"
 
-  # ケース1: 実行フォルダを作りrun.jsonに5つの値を書く
+  # ケース1: 実行フォルダを作りrun.jsonに7つの値（既定の実行する単位・出力の範囲を含む）を書く
   local out1 rc1=0
   out1="$("$0" "$target" --project-name acme --output-root "$out_root" 2>&1)" || rc1=$?
   local expected_dir="${out_root}/acme/${today}-${short}"
@@ -112,8 +121,10 @@ self_test() {
     && grep -q "出力の置き場" "${expected_dir}/run.json" \
     && grep -q "実行の識別子" "${expected_dir}/run.json" \
     && grep -q "対象のコミット" "${expected_dir}/run.json" \
-    && grep -q "$commit" "${expected_dir}/run.json"; then
-    pass=$((pass+1)); echo "  [PASS] ケース1: 実行フォルダを作りrun.jsonに5つの値を書く"
+    && grep -q "$commit" "${expected_dir}/run.json" \
+    && grep -q '"実行する単位": "setup,reverse"' "${expected_dir}/run.json" \
+    && grep -q '"出力の範囲": "全部"' "${expected_dir}/run.json"; then
+    pass=$((pass+1)); echo "  [PASS] ケース1: 実行フォルダを作りrun.jsonに既定の実行する単位・出力の範囲を書く"
   else
     fail=$((fail+1)); echo "  [FAIL] ケース1: 実行フォルダの作成が不正 (exit ${rc1})" >&2
     printf '%s\n' "$out1" | sed 's/^/    /' >&2
@@ -141,6 +152,22 @@ self_test() {
     printf '%s\n' "$out3" | sed 's/^/    /' >&2
   fi
 
+  # ケース4: --units と --scope を明示指定するとrun.jsonへそのまま書く
+  local target2="${root}/target2"
+  mkdir -p "$target2"
+  ( cd "$target2" && git init -q \
+    && git -c "user.name=${test_author_name}" -c "user.email=${test_author_email}" commit -q --allow-empty -m init ) >/dev/null 2>&1
+  local out4 rc4=0
+  out4="$("$0" "$target2" --project-name acme2 --output-root "$out_root" --units reverse --scope "一覧まで" 2>&1)" || rc4=$?
+  if [ "$rc4" -eq 0 ] \
+    && grep -q '"実行する単位": "reverse"' "${out4}/run.json" \
+    && grep -q '"出力の範囲": "一覧まで"' "${out4}/run.json"; then
+    pass=$((pass+1)); echo "  [PASS] ケース4: --units・--scope を明示指定するとrun.jsonへそのまま書く"
+  else
+    fail=$((fail+1)); echo "  [FAIL] ケース4: --units・--scope の明示指定が反映されない (exit ${rc4})" >&2
+    printf '%s\n' "$out4" | sed 's/^/    /' >&2
+  fi
+
   rm -rf "$root"
 
   if [ "$fail" -eq 0 ]; then
@@ -157,12 +184,14 @@ main() {
     exit $?
   fi
 
-  local target="" project_name="" output_root=""
+  local target="" project_name="" output_root="" units="setup,reverse" scope="全部"
   local args=()
   while [ $# -gt 0 ]; do
     case "$1" in
       --project-name) project_name="${2:-}"; shift 2 ;;
       --output-root) output_root="${2:-}"; shift 2 ;;
+      --units) units="${2:-}"; shift 2 ;;
+      --scope) scope="${2:-}"; shift 2 ;;
       *) args+=("$1"); shift ;;
     esac
   done
@@ -172,7 +201,7 @@ main() {
   fi
   target="${args[0]}"
 
-  run_start "$target" "$project_name" "$output_root"
+  run_start "$target" "$project_name" "$output_root" "$units" "$scope"
   exit $?
 }
 

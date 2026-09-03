@@ -9,7 +9,7 @@ set -euo pipefail
 #   docs/skills/setup-orchestrating-units/references/plan-setup.md を参照する。
 #
 # 使い方:
-#   plan-setup.sh <リポジトリのルート> [--units a,b,c] [--target <対象リポジトリのルート>] [--format table|steps|both]
+#   plan-setup.sh <リポジトリのルート> [--units a,b,c] [--target <対象リポジトリのルート>] [--format table|steps|both] [--until <機能名>]
 #   plan-setup.sh --self-test
 #
 # 機能の定義の置き場:
@@ -28,11 +28,16 @@ set -euo pipefail
 #           と、外部入力（対象の出力のどれとも重ならない入力）の表
 #   both  = 既定。steps の後に table
 #
+# --until <機能名>:
+#   計画の中にその機能名のSTEPがあれば、そのSTEPまでで計画を打ち切る（以降の
+#   STEPを出力しない）。無ければ終了コード2。table形式にも打ち切り後のSTEP集合
+#   だけを反映する。
+#
 # 終了コード:
 #   0 = 計画を返した
 #   1 = 循環がある
-#   2 = 対象となる機能が1件も無い、docs/skills が存在しない、または
-#       一時領域の作成に失敗（--self-test のみ）
+#   2 = 対象となる機能が1件も無い、docs/skills が存在しない、--until に挙げた
+#       機能名が計画のSTEPに無い、または一時領域の作成に失敗（--self-test のみ）
 #
 # 保守責任者: 人手（ユーザー）。辺の判定方法・出力形式を変える場合は
 #   本スクリプトと docs/skills/setup-orchestrating-units/SKILL.md と
@@ -435,8 +440,31 @@ INLIST2
   fi
 }
 
+# --untilで指定した機能名までにORDERを切り詰める（見つからなければ1を返す）
+truncate_until() {
+  local until_name="$1"
+  [ -n "$until_name" ] || return 0
+  local n=${#ORDER[@]} i idx=-1
+  for ((i = 0; i < n; i++)); do
+    if [ "${NAMES[${ORDER[$i]}]}" = "$until_name" ]; then
+      idx=$i
+      break
+    fi
+  done
+  if [ "$idx" -eq -1 ]; then
+    echo "[UNKNOWN] --untilに挙げた機能が計画のSTEPに無い: ${until_name}" >&2
+    return 1
+  fi
+  local new_order=() j
+  for ((j = 0; j <= idx; j++)); do
+    new_order+=("${ORDER[$j]}")
+  done
+  ORDER=("${new_order[@]}")
+  return 0
+}
+
 run_plan() {
-  local skills_root="$1" units="$2" target="$3" format="$4"
+  local skills_root="$1" units="$2" target="$3" format="$4" until_name="${5:-}"
   load_skills "$skills_root" "$units"
   local n=${#NAMES[@]}
   if [ "$n" -eq 0 ]; then
@@ -447,6 +475,9 @@ run_plan() {
   if ! topo_sort; then
     echo "[FAIL] 循環: $(find_cycle_message)" >&2
     return 1
+  fi
+  if ! truncate_until "$until_name"; then
+    return 2
   fi
   case "$format" in
     steps) print_steps ;;
@@ -634,6 +665,34 @@ self_test() {
   fi
   rm -rf "$root7"
 
+
+  # ケース8: --untilで指定した機能までで打ち切る
+  bst_write_skill "$skills_root" "setup-until-a" "setup" "setup" \
+    "[docs/skills/setup-until-a/x]" "[docs/mid2/*/out.md]" "[]"
+  bst_write_skill "$skills_root" "setup-until-b" "setup" "setup" \
+    "[docs/mid2/*/out.md]" "[docs/skills/setup-until-b/y]" "[]"
+  bst_write_skill "$skills_root" "setup-until-c" "setup" "setup" \
+    "[docs/skills/setup-until-c/x]" "[docs/skills/setup-until-c/y]" "[setup-until-b]"
+  local out8 rc8=0
+  out8="$("$0" "$repo" --units setup --format steps --until setup-until-b 2>&1)" || rc8=$?
+  if [ "$rc8" -eq 0 ] && printf '%s' "$out8" | grep -q 'setup-until-b' \
+    && ! printf '%s' "$out8" | grep -q 'setup-until-c'; then
+    pass=$((pass + 1)); echo "  [PASS] ケース8: --untilで指定した機能までで打ち切る"
+  else
+    fail=$((fail + 1)); echo "  [FAIL] ケース8: --untilの打ち切りが不正 (exit ${rc8})" >&2
+    printf '%s\n' "$out8" | sed 's/^/    /' >&2
+  fi
+
+  # ケース9: --untilに挙げた機能が計画に無ければ終了コード2
+  local out9 rc9=0
+  out9="$("$0" "$repo" --units setup --format steps --until setup-not-exist 2>&1)" || rc9=$?
+  if [ "$rc9" -eq 2 ]; then
+    pass=$((pass + 1)); echo "  [PASS] ケース9: --untilの対象不在で終了コード2"
+  else
+    fail=$((fail + 1)); echo "  [FAIL] ケース9: --untilの対象不在を検知しない (exit ${rc9})" >&2
+    printf '%s\n' "$out9" | sed 's/^/    /' >&2
+  fi
+  rm -rf "${skills_root:?}"/*
   rm -rf "$root"
 
   if [ "$fail" -eq 0 ]; then
@@ -654,18 +713,19 @@ main() {
     exit $?
   fi
 
-  local root="" units="" target="" format="both"
+  local root="" units="" target="" format="both" until_name=""
   local args=()
   while [ $# -gt 0 ]; do
     case "$1" in
       --units) units="${2:-}"; shift 2 ;;
       --target) target="${2:-}"; shift 2 ;;
       --format) format="${2:-both}"; shift 2 ;;
+      --until) until_name="${2:-}"; shift 2 ;;
       *) args+=("$1"); shift ;;
     esac
   done
   if [ "${#args[@]}" -ne 1 ]; then
-    echo "usage: $(basename "$0") <リポジトリのルート> [--units a,b,c] [--target <対象>] [--format table|steps|both] | --self-test" >&2
+    echo "usage: $(basename "$0") <リポジトリのルート> [--units a,b,c] [--target <対象>] [--format table|steps|both] [--until <機能名>] | --self-test" >&2
     exit 2
   fi
   root="${args[0]}"
@@ -678,7 +738,7 @@ main() {
     exit 2
   fi
 
-  run_plan "$skills_root" "$units" "$target" "$format"
+  run_plan "$skills_root" "$units" "$target" "$format" "$until_name"
   exit $?
 }
 
