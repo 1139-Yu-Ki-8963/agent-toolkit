@@ -1,0 +1,42 @@
+{
+  "要件定義書": {
+    "sections": ["§1 適用の範囲", "§2 業務要件", "§3 機能要件", "§4 非機能要件", "§5 制約条件", "§6 受入条件"],
+    "requiredHeadings": ["対象範囲", "優先度", "受入条件"],
+    "placementLine": false
+  },
+  "業務仕様書": {
+    "sections": ["§1 業務フロー", "§2 状態遷移", "§3 業務ルール", "§4 例外条件", "§5 取消と再実行と二重送信"],
+    "requiredHeadings": [],
+    "placementLine": true
+  },
+  "方式設計書": {
+    "sections": ["§1 性能方式", "§2 可用性方式", "§3 セキュリティ方式", "§4 監査ログ方式", "§5 運用方式", "§6 バックアップ方式", "§7 災害対策方式"],
+    "requiredHeadings": [],
+    "placementLine": true
+  },
+  "データ設計書": {
+    "sections": ["§1 エンティティ", "§2 データフロー", "§3 更新責任", "§4 保存期間とマスキング", "§5 トランザクション境界", "§6 排他"],
+    "requiredHeadings": [],
+    "placementLine": true
+  },
+  "エラー設計書": {
+    "sections": ["§1 エラー分類", "§2 エラーコード体系", "§3 利用者への通知", "§4 ログ出力", "§5 リトライ可否", "§6 復旧手順"],
+    "requiredHeadings": [],
+    "placementLine": true
+  },
+  "共通外部仕様書": {
+    "sections": ["§1 画面の共通状態", "§2 共通操作", "§3 共通レイアウト", "§4 メッセージ一覧"],
+    "requiredHeadings": [],
+    "placementLine": true
+  },
+  "基盤設計書": {
+    "sections": ["§1 フレームワーク構成", "§2 ビルド", "§3 デプロイ", "§4 ディレクトリ構成", "§5 環境の値の管理", "§6 認証とセッション", "§7 共通関数の契約"],
+    "requiredHeadings": [],
+    "placementLine": true
+  },
+  "common": {
+    "requiredTailSections": ["要確認事項一覧", "関連資料"],
+    "forbiddenChapterPrefixes": ["追記", "補足", "その他"],
+    "forbiddenPhrases": ["…", "以下略"]
+  }
+}

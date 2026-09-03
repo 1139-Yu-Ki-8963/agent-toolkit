@@ -97,6 +97,13 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 | business-content-reviewer | 承認済み（mirror 一括） | 判定系 | 顧客資料照合 |
 | report-reviewer | 承認済み（mirror 一括） | 判定系 | 調査報告検証 |
 
+## 支援ツール（ai-driven-development-setup）
+
+| 資産 | 承認状況 | 承認根拠 | manifest 追加コミット | 備考 |
+|---|---|---|---|---|
+| .claude/skills（派生した機能 7 つ） | 承認済み | 公開可否レビュー（12 カテゴリの機密検査）を 2026-09-03 に実施し INFO。禁止語・固有パス・author を確認 | 本公開変更 | 定義（docs/）は配らない。delivery-payload は未作成のため対象外 |
+| README.md | 承認済み | 公開可否レビュー（12 カテゴリの機密検査）を 2026-09-03 に実施し INFO。禁止語・固有パス・author を確認 | 本公開変更 | 定義（docs/）は配らない。delivery-payload は未作成のため対象外 |
+
 ## Codex ポータブル設定
 
 | 資産 | 承認状況 | 承認根拠 | 備考 |
