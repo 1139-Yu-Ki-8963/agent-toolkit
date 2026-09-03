@@ -9,6 +9,10 @@ set -euo pipefail
 #   front matter の直後（閉じる "---" の次の行）に生成物である旨の1行コメントを
 #   挿入する。他のファイルは内容を変えない。
 #
+#   名前が "-shared" で終わるフォルダ（SKILL.md を持たない、単位内で共有する
+#   部品）も同じ規則（tests/・samples/ を除く全ファイルを複製）で派生する。
+#   SKILL.md が無いため生成物マーカーは挿入しない。
+#
 # 使い方:
 #   build-derived-skills.sh <docs/skills のルート> <出力先リポジトリルート> [--apply]
 #   build-derived-skills.sh --self-test
@@ -47,7 +51,7 @@ plan_add() {
 # front matterの直後（閉じる"---"の次の行）に生成物マーカーを挿入して書き出す。
 insert_marker_and_write() {
   local src="$1" dest="$2" name="$3"
-  awk -v marker="<!-- 生成物: docs/skills/${name}/SKILL.md から自動生成。直接編集しないこと -->" '
+  awk -v marker="<!-- 生成物: 定義は支援ツールの正本リポジトリの docs/skills/${name}/ にある（この配布物には含まれない）。直接編集しないこと -->" '
     BEGIN { c = 0; inserted = 0 }
     /^---$/ {
       c++
@@ -116,8 +120,11 @@ run_build() {
   skill_dirs="$(find "$root" -mindepth 1 -maxdepth 1 -type d | sort)"
   while IFS= read -r d; do
     [ -n "$d" ] || continue
-    [ -f "${d}/SKILL.md" ] || continue
     name="$(basename "$d")"
+    case "$name" in
+      *-shared) ;;
+      *) [ -f "${d}/SKILL.md" ] || continue ;;
+    esac
     defined_names="${defined_names}${name}
 "
     copy_skill_files "$d" "${out_root}/.claude/skills/${name}" "$name"
@@ -194,6 +201,23 @@ SCRIPTEOF2
   echo "サンプルの中身" > "${dir}/samples/sample.txt"
 }
 
+# -shared フォルダ（SKILL.md を持たない共有部品）のフィクスチャを作る。
+bst_write_shared() {
+  # $1: root  $2: name（"-shared" で終わる名前を渡す）
+  local root="$1" name="$2"
+  local dir="${root}/${name}"
+  mkdir -p "${dir}/tests" "${dir}/scripts"
+  cat > "${dir}/scripts/shared-dummy.sh" <<'SCRIPTEOF3'
+#!/usr/bin/env bash
+echo shared-dummy
+SCRIPTEOF3
+  cat > "${dir}/tests/test-shared-dummy.sh" <<'TESTEOF2'
+#!/usr/bin/env bash
+exit 0
+TESTEOF2
+  chmod +x "${dir}/tests/test-shared-dummy.sh"
+}
+
 self_test() {
   local pass=0 fail=0
 
@@ -227,7 +251,7 @@ self_test() {
   local dest="${out}/.claude/skills/setup-alpha"
   if [ "$rc2" -eq 0 ] \
     && [ -f "${dest}/SKILL.md" ] \
-    && grep -q '^<!-- 生成物: docs/skills/setup-alpha/SKILL.md から自動生成' "${dest}/SKILL.md" \
+    && grep -q '^<!-- 生成物: 定義は支援ツールの正本リポジトリの docs/skills/setup-alpha/ にある' "${dest}/SKILL.md" \
     && [ -f "${dest}/scripts/dummy.sh" ] \
     && [ ! -d "${dest}/tests" ] \
     && [ ! -d "${dest}/samples" ]; then
@@ -280,6 +304,20 @@ self_test() {
     printf '%s\n' "$out5" | sed 's/^/    /' >&2
   fi
   rm -rf "$root_bad" "$out_bad"
+
+  # ケース6（-shared フォルダが派生され、tests/ を除外して複製する）
+  bst_write_shared "$root" "setup-example-shared"
+  local out6 rc6=0
+  out6="$("$0" "$root" "$out" --apply 2>&1)" || rc6=$?
+  local shared_dest="${out}/.claude/skills/setup-example-shared"
+  if [ "$rc6" -eq 0 ] &&
+     [ -f "${shared_dest}/scripts/shared-dummy.sh" ] &&
+     [ ! -d "${shared_dest}/tests" ]; then
+    pass=$((pass+1)); echo "  [PASS] ケース6: -shared フォルダを派生し tests/ を除外する（exit 0）"
+  else
+    fail=$((fail+1)); echo "  [FAIL] ケース6: -shared フォルダの派生が不正 (exit ${rc6})" >&2
+    printf '%s\n' "$out6" | sed 's/^/    /' >&2
+  fi
 
   rm -rf "$root" "$out"
 

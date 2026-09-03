@@ -140,6 +140,23 @@ TESTEOF
   chmod +x "${dir}/tests/test-dummy.sh"
 }
 
+# -shared フォルダ（SKILL.md を持たない共有部品）のフィクスチャを作る。
+bst_write_shared() {
+  # $1: root  $2: name（"-shared" で終わる名前を渡す）
+  local root="$1" name="$2"
+  local dir="${root}/${name}"
+  mkdir -p "${dir}/tests" "${dir}/scripts"
+  cat > "${dir}/scripts/shared-dummy.sh" <<'SCRIPTEOF'
+#!/usr/bin/env bash
+echo shared-dummy
+SCRIPTEOF
+  cat > "${dir}/tests/test-shared-dummy.sh" <<'TESTEOF'
+#!/usr/bin/env bash
+exit 0
+TESTEOF
+  chmod +x "${dir}/tests/test-shared-dummy.sh"
+}
+
 self_test() {
   local pass=0 fail=0
   local skills_root out rel_skill
@@ -220,6 +237,20 @@ self_test() {
   else
     fail=$((fail+1)); echo "  [FAIL] ケース5: 復元後の判定が不正 (exit ${rc5})" >&2
     printf '%s\n' "$out5" | sed 's/^/    /' >&2
+  fi
+
+  # ケース6（-shared フォルダが派生され、ずれ検査がCLEANになる）
+  bst_write_shared "$skills_root" "setup-example-shared"
+  "$BUILD_SCRIPT" "$skills_root" "$out" --apply >/dev/null 2>&1
+  local out6 rc6=0
+  out6="$("$0" "$skills_root" "$out" 2>&1)" || rc6=$?
+  if [ "$rc6" -eq 0 ] &&
+     printf '%s' "$out6" | grep -q '^CLEAN:' &&
+     [ -f "${out}/.claude/skills/setup-example-shared/scripts/shared-dummy.sh" ]; then
+    pass=$((pass+1)); echo "  [PASS] ケース6: -shared フォルダが派生されCLEANになる（exit 0）"
+  else
+    fail=$((fail+1)); echo "  [FAIL] ケース6: -shared フォルダの派生・ずれ検査が不正 (exit ${rc6})" >&2
+    printf '%s\n' "$out6" | sed 's/^/    /' >&2
   fi
 
   rm -rf "$skills_root" "$out"

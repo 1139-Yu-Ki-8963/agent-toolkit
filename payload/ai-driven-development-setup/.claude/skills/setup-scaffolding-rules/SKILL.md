@@ -13,7 +13,7 @@ outputs: [docs/rules/*/parent.yml, docs/rules/*/*/rule.md, docs/rules/*/*/*.sh]
 requires: []
 acceptance: tests/
 ---
-<!-- 生成物: docs/skills/setup-scaffolding-rules/SKILL.md から自動生成。直接編集しないこと -->
+<!-- 生成物: 定義は支援ツールの正本リポジトリの docs/skills/setup-scaffolding-rules/ にある（この配布物には含まれない）。直接編集しないこと -->
 
 ## いつ使うか
 

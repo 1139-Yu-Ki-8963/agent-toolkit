@@ -21,6 +21,7 @@ set -u
 # 検査キー（内容を要約した意味語。連番禁止）:
 #   節-構成          見出しが「## 0. 対象と時点」〜「## 10. 読みの記録」の11個、この順
 #   対象-欠落        節0の6行の値が埋まっている
+#   文字コード-形式  節0の文字コードの値がUTF-8/EUC-JP/Shift_JIS/ISO-2022-JPのいずれか
 #   調査-欠落        節1の15項目の値・場所が埋まっている（--target指定時は場所の実在も見る）
 #   領域-欠落        節2に1行以上あり、--target指定時はフォルダが実在する
 #   除外-理由        節3の各行に種類と理由がある（行が無くてもよい）
@@ -214,6 +215,25 @@ check_map() {
     fi
   done
   [ "$ok0" -eq 1 ] && passck
+
+  # 文字コード-形式 (節0)
+  local charset_row=""
+  while IFS= read -r r; do
+    [ -z "$r" ] && continue
+    if [ "$(col "$r" 1)" = "文字コード" ]; then charset_row="$r"; break; fi
+  done <<< "$rows0"
+  if [ -n "$charset_row" ]; then
+    local charset_val
+    charset_val="$(col "$charset_row" 2)"
+    case "$charset_val" in
+      UTF-8|EUC-JP|Shift_JIS|ISO-2022-JP)
+        passck
+        ;;
+      *)
+        fail "文字コード-形式" "「文字コード」の値が規定の4種（UTF-8/EUC-JP/Shift_JIS/ISO-2022-JP）のいずれでもありません（実際: ${charset_val}）"
+        ;;
+    esac
+  fi
 
   # 調査-欠落 (節1)
   local sec1
@@ -1176,6 +1196,19 @@ MAPEOF2
   awk '{print} /"種別": "screen",/{print "  \"除外の一致\": [{ \"対象\": \"内容\", \"捕捉\": \"abc\" }],"}' "$map_ok" > "$map_bad_exclude"
   assert_exit "不合格-除外の一致の形式" 1 bash "$0" "$map_bad_exclude" --target "$target"
   assert_contains "不合格-除外の一致の形式: 検出条件-形式が出る" "検出条件-形式"
+
+  # 合格-文字コード種別
+  local map_sjis="${tmp}/map-sjis.md"
+  build_map "$map_sjis" "1"
+  sed -i.bak 's/| 文字コード | UTF-8 |/| 文字コード | Shift_JIS |/' "$map_sjis"
+  assert_exit "合格-文字コード種別" 0 bash "$0" "$map_sjis" --target "$target"
+
+  # 不合格-文字コード種別
+  local map_bad_charset="${tmp}/map-bad-charset.md"
+  build_map "$map_bad_charset" "1"
+  sed -i.bak 's/| 文字コード | UTF-8 |/| 文字コード | 謎の文字コード |/' "$map_bad_charset"
+  assert_exit "不合格-文字コード種別" 1 bash "$0" "$map_bad_charset" --target "$target"
+  assert_contains "不合格-文字コード種別: 文字コード-形式が出る" "文字コード-形式"
 
   # 使い方-ファイル不在
   assert_exit "使い方-ファイル不在" 2 bash "$0" "${tmp}/no-such-file.md"

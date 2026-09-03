@@ -13,7 +13,7 @@ outputs: [.claude/rules/**/rule.md, .cursor/rules/*.mdc, AGENTS.md, .claude/sett
 requires: []
 acceptance: tests/
 ---
-<!-- 生成物: docs/skills/setup-deriving-rules/SKILL.md から自動生成。直接編集しないこと -->
+<!-- 生成物: 定義は支援ツールの正本リポジトリの docs/skills/setup-deriving-rules/ にある（この配布物には含まれない）。直接編集しないこと -->
 
 ## いつ使うか
 

@@ -12,6 +12,11 @@ set -euo pipefail
 #   plan-setup.sh <リポジトリのルート> [--units a,b,c] [--target <対象リポジトリのルート>] [--format table|steps|both]
 #   plan-setup.sh --self-test
 #
+# 機能の定義の置き場:
+#   既定は <リポジトリのルート>/docs/skills を読む。存在しない場合は
+#   <リポジトリのルート>/.claude/skills を読む（納品先では docs/skills が無く
+#   派生済みの .claude/skills だけがあるため）。どちらも無ければ終了コード2。
+#
 # 辺（実行順の根拠）:
 #   (a) requires: X が requires に Y を挙げれば、Y → X（Yが先）
 #   (b) 入出力: 機能 Y の outputs のいずれかと機能 X の inputs のいずれかが
@@ -608,6 +613,27 @@ self_test() {
   fi
   rm -rf "${skills_root:?}"/*
 
+  # ケース7: docs/skills が無く .claude/skills だけがある場合にfallbackで計画が返る
+  local root7 repo7 claude_skills_root
+  if ! root7="$(mktemp -d "${TMPDIR:-/tmp}/plan-setup-self-test-fallback.XXXXXX" 2>/dev/null)" || [ -z "$root7" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  repo7="${root7}/repo"
+  claude_skills_root="${repo7}/.claude/skills"
+  mkdir -p "$claude_skills_root"
+  bst_write_skill "$claude_skills_root" "setup-fallback" "setup" "setup" \
+    "[docs/skills/setup-fallback/x]" "[docs/skills/setup-fallback/y]" "[]"
+  local out7 rc7=0
+  out7="$("$0" "$repo7" --units setup --format steps 2>&1)" || rc7=$?
+  if [ "$rc7" -eq 0 ] && printf '%s' "$out7" | grep -q 'setup-fallback'; then
+    pass=$((pass + 1)); echo "  [PASS] ケース7: docs/skills が無く .claude/skills だけがある一時領域で計画が返る"
+  else
+    fail=$((fail + 1)); echo "  [FAIL] ケース7: .claude/skills へのfallbackが機能しない (exit ${rc7})" >&2
+    printf '%s\n' "$out7" | sed 's/^/    /' >&2
+  fi
+  rm -rf "$root7"
+
   rm -rf "$root"
 
   if [ "$fail" -eq 0 ]; then
@@ -645,7 +671,10 @@ main() {
   root="${args[0]}"
   local skills_root="${root%/}/docs/skills"
   if [ ! -d "$skills_root" ]; then
-    echo "ERROR: docs/skills が存在しない: $skills_root" >&2
+    skills_root="${root%/}/.claude/skills"
+  fi
+  if [ ! -d "$skills_root" ]; then
+    echo "ERROR: docs/skills も .claude/skills も存在しない: ${root%/}" >&2
     exit 2
   fi
 

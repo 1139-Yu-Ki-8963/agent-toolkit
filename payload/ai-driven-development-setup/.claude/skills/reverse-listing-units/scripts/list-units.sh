@@ -18,6 +18,9 @@ set -u
 # --out の既定は <対象>/docs/design/lists。
 # --tolerance の既定は 0.2。
 #
+# 道標の節0「文字コード」がUTF-8でない場合、走査対象ファイルはiconvでUTF-8に
+# 変換してから照合する。変換に失敗したファイルは警告として記録し照合から外す。
+#
 # 検査キー（内容を要約した意味語。連番禁止）:
 #   検出条件-形式    ```json 検出条件``` の囲みがJSONとして読めない、または
 #                    種別が不正、または分割が「一致」なのに単位:trueの一致が無い
@@ -25,6 +28,7 @@ set -u
 #   例-不在          例に挙げた相対パスが、出力した単位の場所にすべて現れない
 #   候補数-差        |実測−候補数| / max(候補数,1) が --tolerance を超える
 #   識別子-捕捉不能  識別子の正規表現が単位の行に一致しなかった（警告。不合格にはしない）
+#   文字コード-変換失敗  走査対象ファイルの文字コード変換に失敗した（警告。不合格にはしない）
 #
 # 判定:
 #   種別ごとに、上記のうち 検出条件-形式・走査-不在・例-不在 のいずれかがあれば
@@ -111,6 +115,49 @@ trim() {
   printf '%s' "$v"
 }
 
+# --- 道標の節0にある「文字コード」の値を読む。無ければUTF-8とみなす。
+# 注意: このマシンのawk（bwk awk）は非ASCII文字列同士の==比較が常にtrueを
+# 返す既知の不具合があるため、行の特定はgrep -E（バイト一致・空白の揺れを許容）で行う。
+read_charset() {
+  local map="$1" row cs
+  row="$(grep -E '^\|[[:space:]]*文字コード[[:space:]]*\|' "$map" | head -n1)"
+  if [ -z "$row" ]; then
+    printf 'UTF-8'
+    return 0
+  fi
+  cs="$(printf '%s' "$row" | awk -F'|' '{print $3}')"
+  cs="$(trim "$cs")"
+  if [ -z "$cs" ]; then
+    cs="UTF-8"
+  fi
+  printf '%s' "$cs"
+}
+
+# --- 文字コードがUTF-8でない場合、ファイルをUTF-8化した一時ファイルのパスを
+# 返す（キャッシュ済みなら再利用する）。変換に失敗すれば空文字を返し終了コード
+# 1を返す（呼び出し側で「文字コード-変換失敗」を記録し、そのファイルを照合か
+# ら外す） ---
+utf8_path_for() {
+  local f="$1" charset="$2" cache_dir="$3"
+  if [ "$charset" = "UTF-8" ]; then
+    printf '%s' "$f"
+    return 0
+  fi
+  local key cached
+  key="$(printf '%s' "$f" | shasum -a 256 | awk '{print $1}')"
+  cached="${cache_dir}/${key}"
+  if [ -f "$cached" ]; then
+    printf '%s' "$cached"
+    return 0
+  fi
+  if iconv -f "$charset" -t UTF-8 "$f" > "$cached" 2>/dev/null; then
+    printf '%s' "$cached"
+    return 0
+  fi
+  rm -f "$cached" 2>/dev/null
+  return 1
+}
+
 # --- 候補数の表（candidate_rows.txt: "日本語種別名<TAB>概数"）から、指定した
 # 日本語種別名の概数を合計して返す。無ければ空文字を返す。
 # 注意: このマシンのawk（bwk awk）は非ASCII文字列同士の==比較が常にtrueを
@@ -149,7 +196,7 @@ capture_group1() {
 # --- 除外の一致（表の削除を辿る等）を対象ファイル群に当て、捕捉した識別子の
 #     一覧を返す（改行区切り、重複あり得る）。捕捉の既定は1 ---
 excluded_identifiers_for_block() {
-  local blockfile="$1" fileslist="$2"
+  local blockfile="$1" fileslist="$2" charset="$3" cache_dir="$4"
   local count
   count="$(jq '(.["除外の一致"] // []) | length' "$blockfile")"
   [ "${count:-0}" -gt 0 ] 2>/dev/null || return 0
@@ -166,7 +213,10 @@ excluded_identifiers_for_block() {
       if [ "$target_field" = "ファイル名" ]; then
         printf '%s\n' "$(basename "$f")" | grep -oE "$regex" | sed -E "s/^${regex}\$/\\${capture}/"
       else
-        grep -oE "$regex" "$f" 2>/dev/null | sed -E "s/^${regex}\$/\\${capture}/"
+        local cf
+        if cf="$(utf8_path_for "$f" "$charset" "$cache_dir")" && [ -n "$cf" ]; then
+          grep -oE "$regex" "$cf" 2>/dev/null | sed -E "s/^${regex}\$/\\${capture}/"
+        fi
       fi
     done < "$fileslist"
   done
@@ -231,6 +281,11 @@ run_main() {
   trap 'rm -rf "$work"' EXIT
 
   mkdir -p "$work/blocks"
+
+  local charset
+  charset="$(read_charset "$map")"
+  local charset_cache="$work/charset-cache"
+  mkdir -p "$charset_cache"
 
   # --- 検出条件の囲みを取り出す ---
   awk -v dir="$work/blocks" '
@@ -367,14 +422,18 @@ GLOBS
 
       local tmp_files="${files_txt}.match${i}"
       : > "$tmp_files"
-      local f bn
+      local f bn cf
       while IFS= read -r f; do
         [ -n "$f" ] || continue
         if [ "$target_type" = "ファイル名" ]; then
           bn="$(basename "$f")"
           if printf '%s' "$bn" | grep -qE "$regex"; then echo "$f" >> "$tmp_files"; fi
         else
-          if grep -qE "$regex" "$f" 2>/dev/null; then echo "$f" >> "$tmp_files"; fi
+          if cf="$(utf8_path_for "$f" "$charset" "$charset_cache")" && [ -n "$cf" ]; then
+            if grep -qE "$regex" "$cf" 2>/dev/null; then echo "$f" >> "$tmp_files"; fi
+          else
+            echo "文字コード-変換失敗" >> "$work/reasons-${species}.warn"
+          fi
         fi
       done < "$files_txt"
       mv "$tmp_files" "$files_txt"
@@ -406,14 +465,19 @@ GLOBS
     axis_json="$(jq -c '.["分類軸"] // []' "$blockfile")"
 
     # 単位を作る
-    local f rel lineno content id name cap
+    local f rel lineno content id name cap cf
     while IFS= read -r f; do
       [ -n "$f" ] || continue
       rel="${f#$target/}"
 
       if [ "$split" = "ファイル" ]; then
+        if cf="$(utf8_path_for "$f" "$charset" "$charset_cache")" && [ -n "$cf" ]; then
+          content="$(cat "$cf" 2>/dev/null)"
+        else
+          echo "文字コード-変換失敗" >> "$work/reasons-${species}.warn"
+          continue
+        fi
         lineno=1
-        content="$(cat "$f" 2>/dev/null)"
 
         if [ "$id_source" = "一致の捕捉" ]; then
           cap="$(capture_group1 "$content" "$id_regex")"
@@ -438,6 +502,7 @@ GLOBS
       else
         # 分割が「一致」
         if [ "$unit_target_type" = "内容" ]; then
+          if cf="$(utf8_path_for "$f" "$charset" "$charset_cache")" && [ -n "$cf" ]; then
           while IFS= read -r matchline; do
             [ -n "$matchline" ] || continue
             lineno="${matchline%%:*}"
@@ -462,7 +527,10 @@ GLOBS
 
             emit_unit "$species" "$id" "$name" "$rel" "${rel}:${lineno}" \
               "$unit_def" "$belongs_json" "$axis_json" "$supplement" "$work/units-${species}.jsonl"
-          done < <(grep -nE "$unit_regex" "$f" 2>/dev/null)
+          done < <(grep -nE "$unit_regex" "$cf" 2>/dev/null)
+          else
+            echo "文字コード-変換失敗" >> "$work/reasons-${species}.warn"
+          fi
         else
           # 対象がファイル名の一致を単位に使う稀なケース：1ファイル1単位（行1）扱い
           lineno=1
@@ -482,7 +550,7 @@ GLOBS
 
     # 除外の一致の適用（表の削除を辿る等。捕捉した識別子と同じ単位を結果から除く）
     local excluded_ids
-    excluded_ids="$(excluded_identifiers_for_block "$blockfile" "$prematch_files" | sort -u)"
+    excluded_ids="$(excluded_identifiers_for_block "$blockfile" "$prematch_files" "$charset" "$charset_cache" | sort -u)"
     if [ -n "$excluded_ids" ]; then
       local eid
       while IFS= read -r eid; do
@@ -873,6 +941,82 @@ EOF2
   check "補完-合算しない: 終了コード0" "$([ "$rc9" -eq 0 ] && echo 0 || echo 1)"
   check "補完-合算しない: screen一覧は3件" "$([ "$screen_n9" -eq 3 ] && echo 0 || echo 1)"
   check "補完-合算しない: 実測は2件" "$([ "$screen_actual9" -eq 2 ] && echo 0 || echo 1)"
+
+  # --- 文字コード-EUC-JP ---
+  local d10="$base/case10"
+  make_fixture "$d10"
+  mkdir -p "$d10/src/legacy-jp"
+  printf 'export default function OrderJP() {\n  // 受注一覧\n  return null;\n}\n' \
+    | iconv -f UTF-8 -t EUC-JP > "$d10/src/legacy-jp/OrderJP.tsx"
+  cat >> "$d10/docs/design/common/道標.md" <<'EOF2'
+
+```json 検出条件
+{
+  "種別": "feature",
+  "単位の定義": "日本語コメントを含むファイルを1つと数える",
+  "走査": { "含む": ["src/legacy-jp"], "除く": [], "拡張子": [".tsx"] },
+  "一致": [
+    { "対象": "内容", "正規表現": "受注一覧", "単位": true }
+  ],
+  "分割": "ファイル",
+  "識別子": { "元": "ファイルパス" },
+  "名前": { "元": "識別子" },
+  "属するファイル": [],
+  "分類軸": [],
+  "例": ["src/legacy-jp/OrderJP.tsx"]
+}
+```
+EOF2
+  {
+    echo '| 文字コード | EUC-JP |'
+    cat "$d10/docs/design/common/道標.md"
+  } > "${d10}/docs/design/common/道標.md.new"
+  mv "${d10}/docs/design/common/道標.md.new" "$d10/docs/design/common/道標.md"
+  bash "$SCRIPT_DIR/list-units.sh" "$d10" --out "$d10/docs/design/lists" > "$base/case10.out" 2>"$base/case10.err"
+  local rc10=$?
+  local feature_n10
+  feature_n10="$(jq 'length' "$d10/docs/design/lists/feature.json" 2>/dev/null || echo -1)"
+  check "文字コード-EUC-JP: 終了コード0" "$([ "$rc10" -eq 0 ] && echo 0 || echo 1)"
+  check "文字コード-EUC-JP: featureが1件（EUC-JPを変換して日本語一致）" "$([ "$feature_n10" -eq 1 ] && echo 0 || echo 1)"
+
+  # --- 文字コード行-空白揺れ（パイプ直後に空白が無い記法も読める） ---
+  local d11="$base/case11"
+  make_fixture "$d11"
+  mkdir -p "$d11/src/legacy-jp"
+  printf 'export default function OrderJP() {\n  // 受注一覧\n  return null;\n}\n' \
+    | iconv -f UTF-8 -t EUC-JP > "$d11/src/legacy-jp/OrderJP.tsx"
+  cat >> "$d11/docs/design/common/道標.md" <<'EOF2'
+
+```json 検出条件
+{
+  "種別": "feature",
+  "単位の定義": "日本語コメントを含むファイルを1つと数える",
+  "走査": { "含む": ["src/legacy-jp"], "除く": [], "拡張子": [".tsx"] },
+  "一致": [
+    { "対象": "内容", "正規表現": "受注一覧", "単位": true }
+  ],
+  "分割": "ファイル",
+  "識別子": { "元": "ファイルパス" },
+  "名前": { "元": "識別子" },
+  "属するファイル": [],
+  "分類軸": [],
+  "例": ["src/legacy-jp/OrderJP.tsx"]
+}
+```
+EOF2
+  {
+    echo '|文字コード|EUC-JP|'
+    cat "$d11/docs/design/common/道標.md"
+  } > "${d11}/docs/design/common/道標.md.new"
+  mv "${d11}/docs/design/common/道標.md.new" "$d11/docs/design/common/道標.md"
+  bash "$SCRIPT_DIR/list-units.sh" "$d11" --out "$d11/docs/design/lists" > "$base/case11.out" 2>"$base/case11.err"
+  local rc11=$?
+  local feature_n11
+  feature_n11="$(jq 'length' "$d11/docs/design/lists/feature.json" 2>/dev/null || echo -1)"
+  check "文字コード行-空白揺れ: 終了コード0" "$([ "$rc11" -eq 0 ] && echo 0 || echo 1)"
+  check "文字コード行-空白揺れ: featureが1件（パイプ直後空白無しでも変換される）" "$([ "$feature_n11" -eq 1 ] && echo 0 || echo 1)"
+
+
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then

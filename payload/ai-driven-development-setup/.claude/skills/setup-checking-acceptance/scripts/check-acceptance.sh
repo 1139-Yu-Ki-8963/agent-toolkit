@@ -169,6 +169,15 @@ SKILL_TESTS_PASSED=()
 SKILL_TESTS_TIMEOUT=()
 SKILL_STATUS=()
 
+# 共有部品（名前が"-shared"で終わるフォルダ。SKILL.mdを持たない）。
+# 単位ごとに0か1件で、機能ではないため front matter を持たない。
+SHARED_NAMES=()
+SHARED_UNITS=()
+SHARED_TESTS_TOTAL=()
+SHARED_TESTS_PASSED=()
+SHARED_TESTS_TIMEOUT=()
+SHARED_STATUS=()
+
 reset_skill_arrays() {
   SKILL_NAMES=()
   SKILL_UNITS=()
@@ -180,6 +189,12 @@ reset_skill_arrays() {
   SKILL_TESTS_PASSED=()
   SKILL_TESTS_TIMEOUT=()
   SKILL_STATUS=()
+  SHARED_NAMES=()
+  SHARED_UNITS=()
+  SHARED_TESTS_TOTAL=()
+  SHARED_TESTS_PASSED=()
+  SHARED_TESTS_TIMEOUT=()
+  SHARED_STATUS=()
 }
 
 run_skill_tests() {
@@ -274,6 +289,49 @@ $skill_dirs
 SKILL_DIR_LIST
 }
 
+# 名前が"-shared"で終わるフォルダ（共有部品）を集める。SKILL.mdを持たず、
+# 単位は名前の"-shared"を除いた接頭辞から決める。tests/の実行はgather_skills
+# と同じ規則（run_skill_tests・skill_status_of を再利用）。
+gather_shared() {
+  local skills_root="$1" unit_filter="$2"
+  local shared_dirs
+  shared_dirs="$(find "$skills_root" -mindepth 1 -maxdepth 1 -type d -name '*-shared' 2>/dev/null | sort)"
+  [ -n "$shared_dirs" ] || return 0
+  local one_dir shared_name shared_unit test_total test_passed test_timeout shared_status
+  while IFS= read -r one_dir; do
+    [ -n "$one_dir" ] || continue
+    shared_name="$(basename "$one_dir")"
+    shared_unit="${shared_name%-shared}"
+    if [ -n "$unit_filter" ] && [ "$shared_unit" != "$unit_filter" ]; then
+      test_total="-"; test_passed="-"; test_timeout="-"; shared_status="対象外"
+    else
+      read -r test_total test_passed test_timeout <<< "$(run_skill_tests "$one_dir")"
+      shared_status="$(skill_status_of "$test_total" "$test_passed" "$test_timeout")"
+    fi
+    SHARED_NAMES+=("$shared_name")
+    SHARED_UNITS+=("$shared_unit")
+    SHARED_TESTS_TOTAL+=("$test_total")
+    SHARED_TESTS_PASSED+=("$test_passed")
+    SHARED_TESTS_TIMEOUT+=("$test_timeout")
+    SHARED_STATUS+=("$shared_status")
+  done <<SHARED_DIR_LIST
+$shared_dirs
+SHARED_DIR_LIST
+}
+
+# 単位target_unitに対応する共有部品（<target_unit>-shared）の結果を返す。
+# 見つからなければ空文字を返す。
+shared_status_of_unit() {
+  local target_unit="$1" index_position
+  for ((index_position = 0; index_position < ${#SHARED_NAMES[@]}; index_position++)); do
+    if [ "${SHARED_UNITS[$index_position]}" = "$target_unit" ]; then
+      printf '%s' "${SHARED_STATUS[$index_position]}"
+      return
+    fi
+  done
+  printf ''
+}
+
 # ---------------------------------------------------------------------------
 # 単位の集計
 # ---------------------------------------------------------------------------
@@ -304,6 +362,11 @@ unit_status_of() {
       [ "$member_status" = "未確認" ] && has_unknown_member=1
     fi
   done
+  # 単位の合格 = 配下の全機能の合格 かつ 共有部品（<単位>-shared）の全testsの合格
+  local shared_status
+  shared_status="$(shared_status_of_unit "$target_unit")"
+  [ "$shared_status" = "不合格" ] && has_failed_member=1
+  [ "$shared_status" = "未確認" ] && has_unknown_member=1
   if [ "$has_failed_member" -eq 1 ]; then
     printf '不合格'
   elif [ "$has_unknown_member" -eq 1 ]; then
@@ -469,6 +532,11 @@ missing_orphan_tests() {
 "
       continue
     fi
+    # 共有部品（名前が"-shared"で終わるフォルダ）のtestsは、機能に属さないが
+    # 孤立ではない（その単位の合格条件に含める。gather_shared/unit_status_of参照）。
+    case "$(basename "$dir_parent")" in
+      *-shared) continue ;;
+    esac
     if [ ! -f "${dir_parent}/SKILL.md" ]; then
       collected_lines="${collected_lines}${one_file} （対応するSKILL.mdが無い）
 "
@@ -587,6 +655,7 @@ ${validate_output}
   fi
 
   gather_skills "$skills_root" "$unit_filter"
+  gather_shared "$skills_root" "$unit_filter"
 
   report_text="${report_text}## 機能
 
@@ -600,6 +669,16 @@ ${validate_output}
     if [ "${SKILL_STATUS[$row_index]}" = "不合格" ]; then
       overall_has_problem=1
     elif [ "${SKILL_STATUS[$row_index]}" = "未確認" ]; then
+      overall_has_unknown=1
+    fi
+  done
+  # 共有部品（<単位>-shared）の行を機能と同じ形で足す。category は持たないため"-"。
+  for ((row_index = 0; row_index < ${#SHARED_NAMES[@]}; row_index++)); do
+    report_text="${report_text}| ${SHARED_NAMES[$row_index]} | ${SHARED_UNITS[$row_index]} | - | ${SHARED_TESTS_TOTAL[$row_index]} | ${SHARED_STATUS[$row_index]} |
+"
+    if [ "${SHARED_STATUS[$row_index]}" = "不合格" ]; then
+      overall_has_problem=1
+    elif [ "${SHARED_STATUS[$row_index]}" = "未確認" ]; then
       overall_has_unknown=1
     fi
   done
@@ -996,6 +1075,48 @@ INNER_ORCH_EOF
     printf '%s\n' "$output_11" | sed 's/^/    /' >&2
   fi
   rm -rf "${temp_root:?}/docs/skills/${portal_skill_name}"
+
+  copy_real_validate_script "$temp_root"
+  st_write_skill "$temp_root" "setup-alpha" "setup" "setup"
+  mkdir -p "${temp_root}/docs/skills/setup-shared/tests"
+  cat > "${temp_root}/docs/skills/setup-shared/tests/test-dummy.sh" <<'INNER_SHARED_OK_EOF'
+#!/usr/bin/env bash
+exit 0
+INNER_SHARED_OK_EOF
+  chmod +x "${temp_root}/docs/skills/setup-shared/tests/test-dummy.sh"
+  st_reset_pillars "$temp_root"
+  local output_12 exit_code_12=0
+  output_12="$("$0" "$temp_root" 2>&1)" || exit_code_12=$?
+  if [ "$exit_code_12" -eq 0 ] &&
+     printf '%s' "$output_12" | grep -q '孤立tests | 0' &&
+     printf '%s' "$output_12" | grep -q '| setup-shared | setup | - | 1 | 合格 |'; then
+    pass_count=$((pass_count+1)); echo "  [PASS] ケース12: -sharedのtestsは孤立に数えない"
+  else
+    fail_count=$((fail_count+1)); echo "  [FAIL] ケース12: -sharedのtestsが孤立に数えられている (exit ${exit_code_12})" >&2
+    printf '%s\n' "$output_12" | sed 's/^/    /' >&2
+  fi
+  rm -rf "${temp_root:?}/docs/skills/setup-alpha" "${temp_root:?}/docs/skills/setup-shared"
+
+  copy_real_validate_script "$temp_root"
+  st_write_skill "$temp_root" "setup-alpha" "setup" "setup"
+  mkdir -p "${temp_root}/docs/skills/setup-shared/tests"
+  cat > "${temp_root}/docs/skills/setup-shared/tests/test-dummy.sh" <<'INNER_SHARED_NG_EOF'
+#!/usr/bin/env bash
+exit 1
+INNER_SHARED_NG_EOF
+  chmod +x "${temp_root}/docs/skills/setup-shared/tests/test-dummy.sh"
+  st_reset_pillars "$temp_root"
+  local output_13 exit_code_13=0
+  output_13="$("$0" "$temp_root" 2>&1)" || exit_code_13=$?
+  if [ "$exit_code_13" -eq 1 ] &&
+     printf '%s' "$output_13" | grep -q '| setup-shared | setup | - | 1 | 不合格 |' &&
+     printf '%s' "$output_13" | grep -q '| setup | 2 | 不合格 |'; then
+    pass_count=$((pass_count+1)); echo "  [PASS] ケース13: -sharedのtestsが落ちると単位が不合格になる"
+  else
+    fail_count=$((fail_count+1)); echo "  [FAIL] ケース13: -sharedのtests失敗が単位に反映されない (exit ${exit_code_13})" >&2
+    printf '%s\n' "$output_13" | sed 's/^/    /' >&2
+  fi
+  rm -rf "${temp_root:?}/docs/skills/setup-alpha" "${temp_root:?}/docs/skills/setup-shared"
 
   rm -rf "$temp_root"
 

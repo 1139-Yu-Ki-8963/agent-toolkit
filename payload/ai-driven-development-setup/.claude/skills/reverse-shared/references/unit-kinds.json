@@ -1,0 +1,9 @@
+[
+  { "key": "screen", "名前": "画面", "フォルダ": "screens" },
+  { "key": "api", "名前": "接続窓口", "フォルダ": "apis" },
+  { "key": "table", "名前": "表", "フォルダ": "tables" },
+  { "key": "batch", "名前": "バッチ", "フォルダ": "batches" },
+  { "key": "report", "名前": "帳票", "フォルダ": "reports" },
+  { "key": "external", "名前": "外部連携", "フォルダ": "externals" },
+  { "key": "feature", "名前": "機能", "フォルダ": "features" }
+]
