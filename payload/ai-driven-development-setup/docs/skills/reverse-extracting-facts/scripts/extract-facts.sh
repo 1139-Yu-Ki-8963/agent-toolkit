@@ -11,11 +11,12 @@ set -u
 #   値を空のまま「未」へ載せ、AIが後で埋める対象として残す。
 #
 # 使い方:
-#   extract-facts.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別>
+#   extract-facts.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別> [--design-root <設計書の置き場>]
 #     [--map <道標のパス>] [--lists <一覧の元データの場所>]
 #     [--out <facts の親>] [--verify]
 #   extract-facts.sh --self-test
 #
+# --design-root の既定は <対象リポジトリのルート>。--map・--lists の既定はこの値の配下。
 # --map の既定は <対象>/docs/design/common/道標.md。
 # --lists の既定は <対象>/docs/design/lists。
 # --out の既定は <実行フォルダ>/facts。
@@ -70,7 +71,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SHARED_SCRIPTS="$(cd "${SCRIPT_DIR}/../../reverse-shared/scripts" && pwd)"
 
 usage_error() {
-  echo "使い方: extract-facts.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別> [--map <道標のパス>] [--lists <一覧の元データの場所>] [--out <facts の親>] [--verify]" >&2
+  echo "使い方: extract-facts.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別> [--design-root <設計書の置き場>] [--map <道標のパス>] [--lists <一覧の元データの場所>] [--out <facts の親>] [--verify]" >&2
   echo "        extract-facts.sh --self-test" >&2
   exit 2
 }
@@ -627,7 +628,7 @@ run_main() {
   target="${target%/}"
   [ -d "$target" ] || usage_error
 
-  local run_dir="" kind="" map="" lists="" out="" verify=0
+  local run_dir="" kind="" map="" lists="" out="" verify=0 design_root=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --run) run_dir="$2"; shift 2 ;;
@@ -635,6 +636,7 @@ run_main() {
       --map) map="$2"; shift 2 ;;
       --lists) lists="$2"; shift 2 ;;
       --out) out="$2"; shift 2 ;;
+      --design-root) design_root="$2"; shift 2 ;;
       --verify) verify=1; shift ;;
       *) usage_error ;;
     esac
@@ -644,8 +646,10 @@ run_main() {
   [ -n "$kind" ] || usage_error
   is_valid_kind "$kind" || usage_error
 
-  [ -n "$map" ] || map="${target}/docs/design/common/道標.md"
-  [ -n "$lists" ] || lists="${target}/docs/design/lists"
+  [ -n "$design_root" ] || design_root="$target"
+
+  [ -n "$map" ] || map="${design_root%/}/docs/design/common/道標.md"
+  [ -n "$lists" ] || lists="${design_root%/}/docs/design/lists"
   [ -n "$out" ] || out="${run_dir%/}/facts"
 
   if [ ! -f "$map" ]; then

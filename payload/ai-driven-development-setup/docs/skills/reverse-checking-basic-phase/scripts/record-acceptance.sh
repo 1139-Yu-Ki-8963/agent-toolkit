@@ -11,11 +11,15 @@ set -u
 # 使い方:
 #   record-acceptance.sh <対象リポジトリのルート> --run <実行フォルダ> \
 #     --kind <種別> --unit <識別子> --verdict <合格|不合格|保留> \
-#     --viewpoints "<観点=合|否;...>" [--reason "<理由>"]
+#     --viewpoints "<観点=合|否;...>" [--reason "<理由>"] [--design-root <設計書のルート>]
 #   record-acceptance.sh <対象リポジトリのルート> --run <実行フォルダ> \
 #     --common <文書名> --verdict <合格|不合格|保留> \
-#     --viewpoints "<観点=合|否;...>" [--reason "<理由>"]
+#     --viewpoints "<観点=合|否;...>" [--reason "<理由>"] [--design-root <設計書のルート>]
 #   record-acceptance.sh --self-test
+#
+# --design-root の既定は対象リポジトリのルート。合格の記録・基本設計書・
+# 単体テスト設計書・共通設計文書は設計書のルート配下で読み書きする。
+# コミットの値は対象コード（--design-root ではなく対象）のHEADを使う。
 #
 # 出力:
 #   <対象>/ai-work/records/basic-design-acceptance/<種別>-<単位のフォルダ名>.json
@@ -43,8 +47,8 @@ UNIT_DIR_NAME_SH="${SCRIPT_DIR}/../../reverse-shared/scripts/unit-dir-name.sh"
 UNITS_STATUS_SH="${SCRIPT_DIR}/../../reverse-shared/scripts/units-status.sh"
 
 usage_error() {
-  echo "使い方: record-acceptance.sh <対象> --run <実行フォルダ> --kind <種別> --unit <識別子> --verdict <合格|不合格|保留> --viewpoints \"<観点=合|否;...>\" [--reason \"...\"]" >&2
-  echo "        record-acceptance.sh <対象> --run <実行フォルダ> --common <文書名> --verdict <合格|不合格|保留> --viewpoints \"...\" [--reason \"...\"]" >&2
+  echo "使い方: record-acceptance.sh <対象> --run <実行フォルダ> --kind <種別> --unit <識別子> --verdict <合格|不合格|保留> --viewpoints \"<観点=合|否;...>\" [--reason \"...\"] [--design-root <設計書のルート>]" >&2
+  echo "        record-acceptance.sh <対象> --run <実行フォルダ> --common <文書名> --verdict <合格|不合格|保留> --viewpoints \"...\" [--reason \"...\"] [--design-root <設計書のルート>]" >&2
   echo "        record-acceptance.sh --self-test" >&2
   exit 2
 }
@@ -98,7 +102,7 @@ execution_id_of() {
 }
 
 record_unit() {
-  local target="$1" run_dir="$2" kind="$3" unit="$4" verdict="$5" viewpoints="$6" reason="$7"
+  local target="$1" run_dir="$2" kind="$3" unit="$4" verdict="$5" viewpoints="$6" reason="$7" design_root="$8"
   local folder
   folder="$(species_folder "$kind")"
   if [ -z "$folder" ]; then
@@ -112,7 +116,7 @@ record_unit() {
 
   local dirname unit_path docs_json
   dirname="$(bash "$UNIT_DIR_NAME_SH" "$unit")"
-  unit_path="${target}/docs/design/${folder}/${dirname}"
+  unit_path="${design_root}/docs/design/${folder}/${dirname}"
 
   if [ "$kind" = "feature" ]; then
     docs_json="$(doc_sha_json "${unit_path}/集約設計書.md" "集約設計書.md")"
@@ -127,7 +131,7 @@ record_unit() {
   commit="$(git -C "$target" rev-parse --short HEAD 2>/dev/null)"
   vp_json="$(parse_viewpoints_json "$viewpoints")"
   exec_id="$(execution_id_of "$run_dir")"
-  out_dir="${target}/ai-work/records/basic-design-acceptance"
+  out_dir="${design_root}/ai-work/records/basic-design-acceptance"
   mkdir -p "$out_dir" 2>/dev/null
   out_file="${out_dir}/${kind}-${dirname}.json"
 
@@ -146,14 +150,14 @@ record_unit() {
 }
 
 record_common() {
-  local target="$1" run_dir="$2" doc_name="$3" verdict="$4" viewpoints="$5" reason="$6"
-  local doc_path="${target}/docs/design/common/${doc_name}.md"
+  local target="$1" run_dir="$2" doc_name="$3" verdict="$4" viewpoints="$5" reason="$6" design_root="$7"
+  local doc_path="${design_root}/docs/design/common/${doc_name}.md"
   local docs_json commit vp_json exec_id out_dir out_file
   docs_json="$(doc_sha_json "$doc_path" "${doc_name}.md")"
   commit="$(git -C "$target" rev-parse --short HEAD 2>/dev/null)"
   vp_json="$(parse_viewpoints_json "$viewpoints")"
   exec_id="$(execution_id_of "$run_dir")"
-  out_dir="${target}/ai-work/records/basic-design-acceptance"
+  out_dir="${design_root}/ai-work/records/basic-design-acceptance"
   mkdir -p "$out_dir" 2>/dev/null
   out_file="${out_dir}/common-${doc_name}.json"
 
@@ -171,7 +175,7 @@ run_main() {
   target="${target%/}"
   [ -d "$target" ] || usage_error
 
-  local run_dir="" kind="" unit="" common="" verdict="" viewpoints="" reason=""
+  local run_dir="" kind="" unit="" common="" verdict="" viewpoints="" reason="" design_root="$target"
   while [ $# -gt 0 ]; do
     case "$1" in
       --run) run_dir="$2"; shift 2 ;;
@@ -181,6 +185,7 @@ run_main() {
       --verdict) verdict="$2"; shift 2 ;;
       --viewpoints) viewpoints="$2"; shift 2 ;;
       --reason) reason="$2"; shift 2 ;;
+      --design-root) design_root="$2"; shift 2 ;;
       *) usage_error ;;
     esac
   done
@@ -197,10 +202,10 @@ run_main() {
 
   local rc
   if [ -n "$common" ]; then
-    record_common "$target" "$run_dir" "$common" "$verdict" "$viewpoints" "$reason"
+    record_common "$target" "$run_dir" "$common" "$verdict" "$viewpoints" "$reason" "$design_root"
     rc=$?
   elif [ -n "$kind" ] && [ -n "$unit" ]; then
-    record_unit "$target" "$run_dir" "$kind" "$unit" "$verdict" "$viewpoints" "$reason"
+    record_unit "$target" "$run_dir" "$kind" "$unit" "$verdict" "$viewpoints" "$reason" "$design_root"
     rc=$?
   else
     usage_error
@@ -282,6 +287,25 @@ self_test() {
   reason2="$(jq -r '.["理由"]' "$common_record" 2>/dev/null)"
   check "共通設計文書の記録: 判定が不合格" "$([ "$verdict2" = "不合格" ] && echo 0 || echo 1)"
   check "共通設計文書の記録: 理由が反映される" "$([ "$reason2" = "性能方式が未確定" ] && echo 0 || echo 1)"
+
+  # --- 設計書ルート分離-対象に書かない ---
+  local dc="$base/target-code-only" design2="$base/design2"
+  mkdir -p "$dc" "$design2/docs/design/screens/src_pages_OrderList.tsx"
+  echo "# 基本設計書" > "$design2/docs/design/screens/src_pages_OrderList.tsx/基本設計書.md"
+  echo "# 単体テスト設計書" > "$design2/docs/design/screens/src_pages_OrderList.tsx/単体テスト設計書.md"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$dc" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --reason "" --design-root "$design2" \
+    > "$base/r3.out" 2>"$base/r3.err"
+  check "設計書ルート分離-合格" "$([ $? -eq 0 ] && echo 0 || echo 1)"
+  total=$((total + 1))
+  if [ ! -e "$dc/ai-work" ] && [ ! -e "$dc/docs" ]; then
+    echo "PASS: 設計書ルート分離-対象に書かない"
+  else
+    echo "FAIL: 設計書ルート分離-対象に書かない（対象側に書かれています）"
+    fail=$((fail + 1))
+  fi
+  local record_file2="$design2/ai-work/records/basic-design-acceptance/screen-src_pages_OrderList.tsx.json"
+  check "設計書ルート分離-記録が設計書のルートにある" "$([ -f "$record_file2" ] && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then

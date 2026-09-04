@@ -36,24 +36,25 @@ acceptance: tests/
 
 ## 手順
 
-1. 次を実行し、終了コードが0であることを確かめる。0でなければ止まり、工程2-7へ差し戻す
+1. `bash ../reverse-shared/scripts/design-root.sh <実行フォルダ>` で設計書の置き場を読む
+2. 次を実行し、終了コードが0であることを確かめる。0でなければ止まり、工程2-7へ差し戻す
    ```bash
-   bash ../reverse-writing-common-detail-design/scripts/check-common-detail-design.sh <対象リポジトリのルート>
+   bash ../reverse-writing-common-detail-design/scripts/check-common-detail-design.sh <対象リポジトリのルート> --design-root <設計書の置き場>
    ```
-2. 種別ごとに、`bash ../reverse-shared/scripts/list-units-of.sh <対象リポジトリのルート> <種別>` で一覧を得る
-3. 単位ごとに次を実行する。終了コードが0でなく、合格の記録の判定が「保留」であればこの単位を飛ばす。保留でなければ止まり、工程2-5・2-6（事実の不足なら工程2-4も）へ差し戻す
+3. 種別ごとに、`bash ../reverse-shared/scripts/list-units-of.sh <対象リポジトリのルート> <種別>` で一覧を得る
+4. 単位ごとに次を実行する。終了コードが0でなく、合格の記録の判定が「保留」であればこの単位を飛ばす。保留でなければ止まり、工程2-5・2-6（事実の不足なら工程2-4も）へ差し戻す
    ```bash
-   bash ../reverse-checking-basic-phase/scripts/check-acceptance-record.sh <対象リポジトリのルート> --kind <種別> --unit <識別子>
+   bash ../reverse-checking-basic-phase/scripts/check-acceptance-record.sh <対象リポジトリのルート> --kind <種別> --unit <識別子> --design-root <設計書の置き場>
    ```
-4. 種別に対応する `templates/<種別key>/` 配下の様式（後述「種別ごとの様式」表）を、`docs/design/<フォルダ>/<単位のフォルダ名>/` へ複製する
-5. 事実（`facts/<種別>/<単位のフォルダ名>.json`）・基本設計書・共通処理の詳細設計書・一覧の属するファイルを読み、様式を埋める。事実の値をそのまま本文に転記し、コードの名前だけの記述にしない。設計の理由は `理由（観測）:`（実測に基づく）／`理由（推定）:`（実測から読み取れない）の形で書く
-6. 本文に実装の位置（file:line）を書かない。事実に無い項目が要る場合は「事実-不足」として工程2-4の当該単位へ差し戻す
-7. 検査する
+5. 種別に対応する `templates/<種別key>/` 配下の様式（後述「種別ごとの様式」表）を、`docs/design/<フォルダ>/<単位のフォルダ名>/` へ複製する
+6. 事実（`facts/<種別>/<単位のフォルダ名>.json`）・基本設計書・共通処理の詳細設計書・一覧の属するファイルを読み、様式を埋める。事実の値をそのまま本文に転記し、コードの名前だけの記述にしない。設計の理由は `理由（観測）:`（実測に基づく）／`理由（推定）:`（実測から読み取れない）の形で書く
+7. 本文に実装の位置（file:line）を書かない。事実に無い項目が要る場合は「事実-不足」として工程2-4の当該単位へ差し戻す
+8. 検査する
    ```bash
-   bash scripts/check-detail-design.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別>
+   bash scripts/check-detail-design.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別> --design-root <設計書の置き場>
    ```
-8. 不合格の項目を手順5からやり直す（工程内-やり直し）。やり直しの回数に上限は設けない。同じ不合格が2回続いたら、同じ方法を繰り返さずに方法を変える
-9. 合格した単位ごとに `../reverse-shared/scripts/units-status.sh <実行フォルダ> set <種別> <識別子> 詳細設計 済` を実行する
+9. 不合格の項目を手順6からやり直す（工程内-やり直し）。やり直しの回数に上限は設けない。同じ不合格が2回続いたら、同じ方法を繰り返さずに方法を変える
+10. 合格した単位ごとに `../reverse-shared/scripts/units-status.sh <実行フォルダ> set <種別> <識別子> 詳細設計 済` を実行する
 
 ## 種別ごとの様式
 

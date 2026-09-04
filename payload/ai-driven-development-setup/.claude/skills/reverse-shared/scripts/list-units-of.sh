@@ -10,10 +10,10 @@ set -u
 #   本スクリプトを介してタブ区切りの1行1件で読む。
 #
 # 使い方:
-#   list-units-of.sh <対象リポジトリのルート> <種別> [--lists <一覧の元データの場所>]
+#   list-units-of.sh <対象リポジトリのルート> <種別> [--design-root <設計書の置き場>] [--lists <一覧の元データの場所>]
 #   list-units-of.sh --self-test
 #
-# --lists の既定は <対象リポジトリのルート>/docs/design/lists。
+# --design-root の既定は <対象リポジトリのルート>。--lists の既定は <設計書の置き場>/docs/design/lists。
 #
 # 出力（タブ区切り。1行1単位）:
 #   識別子 <TAB> 名前 <TAB> 場所 <TAB> 属するファイル（; 区切り）
@@ -31,7 +31,7 @@ set -u
 # macOS bash 3.2 互換。
 
 usage_error() {
-  echo "使い方: list-units-of.sh <対象リポジトリのルート> <種別> [--lists <一覧の元データの場所>]" >&2
+  echo "使い方: list-units-of.sh <対象リポジトリのルート> <種別> [--design-root <設計書の置き場>] [--lists <一覧の元データの場所>]" >&2
   echo "        list-units-of.sh --self-test" >&2
   exit 2
 }
@@ -137,14 +137,18 @@ fi
 
 target="$1"; shift
 kind="$1"; shift
-lists="${target%/}/docs/design/lists"
+design_root="$target"
+lists=""
 
 while [ $# -gt 0 ]; do
   case "$1" in
     --lists) lists="$2"; shift 2 ;;
+    --design-root) design_root="$2"; shift 2 ;;
     *) usage_error ;;
   esac
 done
+
+[ -n "$lists" ] || lists="${design_root%/}/docs/design/lists"
 
 list_units_of "$target" "$kind" "$lists"
 exit $?

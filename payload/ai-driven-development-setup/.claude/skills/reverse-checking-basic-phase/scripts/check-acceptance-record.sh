@@ -10,9 +10,12 @@ set -u
 #   決まっている。
 #
 # 使い方:
-#   check-acceptance-record.sh <対象リポジトリのルート> --kind <種別> --unit <識別子>
-#   check-acceptance-record.sh <対象リポジトリのルート> --common
+#   check-acceptance-record.sh <対象リポジトリのルート> --kind <種別> --unit <識別子> [--design-root <設計書のルート>]
+#   check-acceptance-record.sh <対象リポジトリのルート> --common [--design-root <設計書のルート>]
 #   check-acceptance-record.sh --self-test
+#
+# --design-root の既定は対象リポジトリのルート。合格の記録・基本設計書・
+# 単体テスト設計書・共通設計文書は設計書のルート配下で読む。
 #
 # --common は共通設計文書6つ（業務仕様書・方式設計書・データ設計書・
 # エラー設計書・共通外部仕様書・基盤設計書）すべての合格を確かめる
@@ -44,8 +47,8 @@ UNIT_DIR_NAME_SH="${SCRIPT_DIR}/../../reverse-shared/scripts/unit-dir-name.sh"
 COMMON_DOCS="業務仕様書 方式設計書 データ設計書 エラー設計書 共通外部仕様書 基盤設計書"
 
 usage_error() {
-  echo "使い方: check-acceptance-record.sh <対象> --kind <種別> --unit <識別子>" >&2
-  echo "        check-acceptance-record.sh <対象> --common" >&2
+  echo "使い方: check-acceptance-record.sh <対象> --kind <種別> --unit <識別子> [--design-root <設計書のルート>]" >&2
+  echo "        check-acceptance-record.sh <対象> --common [--design-root <設計書のルート>]" >&2
   echo "        check-acceptance-record.sh --self-test" >&2
   exit 2
 }
@@ -98,10 +101,10 @@ NAMES
 }
 
 check_record_common_all() {
-  local target="$1" doc name record ok=0
+  local design_root="$1" doc name record ok=0
   for name in $COMMON_DOCS; do
-    record="${target}/ai-work/records/basic-design-acceptance/common-${name}.json"
-    if ! check_record_record "$record" "${target}/docs/design/common"; then
+    record="${design_root}/ai-work/records/basic-design-acceptance/common-${name}.json"
+    if ! check_record_record "$record" "${design_root}/docs/design/common"; then
       ok=1
     fi
   done
@@ -109,7 +112,7 @@ check_record_common_all() {
 }
 
 check_record_unit() {
-  local target="$1" kind="$2" unit="$3" folder dirname record
+  local design_root="$1" kind="$2" unit="$3" folder dirname record
   folder="$(species_folder "$kind")"
   if [ -z "$folder" ]; then
     echo "[FAIL] 使い方-種別: ${kind} は種別ではありません" >&2
@@ -120,8 +123,8 @@ check_record_unit() {
     return 2
   fi
   dirname="$(bash "$UNIT_DIR_NAME_SH" "$unit")"
-  record="${target}/ai-work/records/basic-design-acceptance/${kind}-${dirname}.json"
-  check_record_record "$record" "${target}/docs/design/${folder}/${dirname}"
+  record="${design_root}/ai-work/records/basic-design-acceptance/${kind}-${dirname}.json"
+  check_record_record "$record" "${design_root}/docs/design/${folder}/${dirname}"
 }
 
 run_main() {
@@ -129,22 +132,23 @@ run_main() {
   target="${target%/}"
   [ -d "$target" ] || usage_error
 
-  local kind="" unit="" common_mode=0
+  local kind="" unit="" common_mode=0 design_root="$target"
   while [ $# -gt 0 ]; do
     case "$1" in
       --kind) kind="$2"; shift 2 ;;
       --unit) unit="$2"; shift 2 ;;
       --common) common_mode=1; shift ;;
+      --design-root) design_root="$2"; shift 2 ;;
       *) usage_error ;;
     esac
   done
 
   local rc
   if [ "$common_mode" -eq 1 ]; then
-    check_record_common_all "$target"
+    check_record_common_all "$design_root"
     rc=$?
   elif [ -n "$kind" ] && [ -n "$unit" ]; then
-    check_record_unit "$target" "$kind" "$unit"
+    check_record_unit "$design_root" "$kind" "$unit"
     rc=$?
   else
     usage_error
@@ -219,6 +223,17 @@ self_test() {
   bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d" --common > "$base/v5.out" 2>"$base/v5.err"
   local rc5=$?
   check "共通設計文書のうち1つ変更で終了コード1" "$([ "$rc5" -eq 1 ] && echo 0 || echo 1)"
+
+  # --- 設計書ルート分離-対象に書かない ---
+  local dc2="$base/target-code-only" design3="$base/design3"
+  mkdir -p "$dc2" "$design3/docs/design/screens/src_pages_OrderList.tsx" "$design3/ai-work/records/basic-design-acceptance"
+  echo "# 基本設計書" > "$design3/docs/design/screens/src_pages_OrderList.tsx/基本設計書.md"
+  echo "# 単体テスト設計書" > "$design3/docs/design/screens/src_pages_OrderList.tsx/単体テスト設計書.md"
+  bash "$record_sh" "$dc2" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --reason "" --design-root "$design3" > /dev/null 2>&1
+  bash "$SCRIPT_DIR/check-acceptance-record.sh" "$dc2" --kind screen --unit "src/pages/OrderList.tsx" --design-root "$design3" \
+    > "$base/v6.out" 2>"$base/v6.err"
+  check "設計書ルート分離-合格" "$([ $? -eq 0 ] && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then

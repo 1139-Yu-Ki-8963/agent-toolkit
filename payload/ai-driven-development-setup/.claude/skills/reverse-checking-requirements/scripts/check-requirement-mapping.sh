@@ -11,10 +11,12 @@ set -u
 #   突合の確認だけを行い、要件定義書は変更しない。
 #
 # 使い方:
-#   check-requirement-mapping.sh <対象リポジトリのルート> [--lists <一覧フォルダの相対パス>] [--requirements <要件定義書の相対パス>]
+#   check-requirement-mapping.sh <対象リポジトリのルート> [--design-root <設計書のルート>] [--lists <一覧フォルダの相対パス>] [--requirements <要件定義書の相対パス>]
 #   check-requirement-mapping.sh --self-test
 #
-# --lists の既定は docs/design/lists。--requirements の既定は
+# --design-root の既定は対象リポジトリのルート。要件定義書・一覧・対応表は
+# すべて設計書のルート配下で読み書きする（対象リポジトリのルートは実在確認
+# にのみ使う）。--lists の既定は docs/design/lists。--requirements の既定は
 # docs/design/requirements/要件定義書.md。対応表は <lists>/機能と単位の対応表.md
 # に固定する（工程2-2の出力先であり、変更する理由が無いため引数を持たない）。
 # 対応表の「種別」列は一覧のjsonの「種別」フィールドと同じ表記
@@ -100,15 +102,15 @@ has_jq() {
 }
 
 usage_error() {
-  echo "使い方: check-requirement-mapping.sh <対象リポジトリのルート> [--lists <一覧フォルダの相対パス>] [--requirements <要件定義書の相対パス>]" >&2
+  echo "使い方: check-requirement-mapping.sh <対象リポジトリのルート> [--design-root <設計書のルート>] [--lists <一覧フォルダの相対パス>] [--requirements <要件定義書の相対パス>]" >&2
   echo "        check-requirement-mapping.sh --self-test" >&2
   exit 2
 }
 
 check_mapping() {
-  local target="$1" lists_rel="$2" req_rel="$3"
-  local lists_dir="${target%/}/${lists_rel}"
-  local req_file="${target%/}/${req_rel}"
+  local target="$1" lists_rel="$2" req_rel="$3" design_root="$4"
+  local lists_dir="${design_root%/}/${lists_rel}"
+  local req_file="${design_root%/}/${req_rel}"
   local mapping_file="${lists_dir%/}/機能と単位の対応表.md"
 
   if [ ! -d "$target" ]; then
@@ -329,6 +331,21 @@ MAPEOF5
   build_target "$root_no_map"
   assert_exit "判定不能-対応表不在" 2 bash "$0" "$root_no_map"
 
+  # 設計書ルート分離-対象に書かない
+  local root_code_only="${tmp}/target-code-only"
+  mkdir -p "${root_code_only}"
+  local design_only="${tmp}/design-only"
+  build_target "$design_only"
+  build_mapping_full "${design_only}/docs/design/lists/機能と単位の対応表.md"
+  assert_exit "設計書ルート分離-合格" 0 bash "$0" "$root_code_only" --design-root "$design_only"
+  self_total=$((self_total + 1))
+  if [ ! -e "${root_code_only}/docs" ]; then
+    echo "PASS: 設計書ルート分離-対象に書かない"
+  else
+    echo "FAIL: 設計書ルート分離-対象に書かない（対象側にdocsが作られています）"
+    self_fail=$((self_fail + 1))
+  fi
+
   # 使い方-引数不足
   assert_exit "使い方-引数不足" 2 bash "$0"
 
@@ -354,11 +371,16 @@ fi
 
 TARGET="$1"
 shift
+DESIGN_ROOT="$TARGET"
 LISTS_REL="docs/design/lists"
 REQ_REL="docs/design/requirements/要件定義書.md"
 
 while [ $# -gt 0 ]; do
   case "$1" in
+    --design-root)
+      DESIGN_ROOT="${2:-}"
+      shift 2
+      ;;
     --lists)
       LISTS_REL="${2:-}"
       shift 2
@@ -374,7 +396,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-check_mapping "$TARGET" "$LISTS_REL" "$REQ_REL"
+check_mapping "$TARGET" "$LISTS_REL" "$REQ_REL" "$DESIGN_ROOT"
 rc=$?
 if [ "$rc" -eq 2 ]; then
   exit 2

@@ -10,8 +10,11 @@ set -u
 #   読めばよく、様式不備を毎回読む必要が無くなる。
 #
 # 使い方:
-#   check-basic-phase.sh <対象リポジトリのルート> --run <実行フォルダ>
+#   check-basic-phase.sh <対象リポジトリのルート> --run <実行フォルダ> [--design-root <設計書のルート>]
 #   check-basic-phase.sh --self-test
+#
+# --design-root の既定は対象リポジトリのルート。一覧・共通設計文書は設計書の
+# ルート配下で読み書きする。
 #
 # 種別ごとの単位検査は基本設計書を書く機能のcheck-basic-design.shを呼ぶ。
 # 共通設計文書6つの検査は道標を描く機能のcheck-design-docs.shを呼ぶ。
@@ -45,7 +48,7 @@ UNIT_KINDS_JSON="${SCRIPT_DIR}/../../reverse-shared/references/unit-kinds.json"
 COMMON_DOCS="業務仕様書 方式設計書 データ設計書 エラー設計書 共通外部仕様書 基盤設計書"
 
 usage_error() {
-  echo "使い方: check-basic-phase.sh <対象リポジトリのルート> --run <実行フォルダ>" >&2
+  echo "使い方: check-basic-phase.sh <対象リポジトリのルート> --run <実行フォルダ> [--design-root <設計書のルート>]" >&2
   echo "        check-basic-phase.sh --self-test" >&2
   exit 2
 }
@@ -59,10 +62,11 @@ run_main() {
   target="${target%/}"
   [ -d "$target" ] || usage_error
 
-  local run_dir=""
+  local run_dir="" design_root="$target"
   while [ $# -gt 0 ]; do
     case "$1" in
       --run) run_dir="$2"; shift 2 ;;
+      --design-root) design_root="$2"; shift 2 ;;
       *) usage_error ;;
     esac
   done
@@ -81,11 +85,11 @@ run_main() {
   kinds="$(jq -r '.[].key' "$UNIT_KINDS_JSON")"
   while IFS= read -r kind; do
     [ -n "$kind" ] || continue
-    list_file="${target}/docs/design/lists/${kind}.json"
+    list_file="${design_root}/docs/design/lists/${kind}.json"
     if [ ! -f "$list_file" ]; then
       entry="$(jq -n --arg k "$kind" '{($k): {"対象": false}}')"
     else
-      bash "$BASIC_DESIGN_SH" "$target" --run "$run_dir" --kind "$kind" > /dev/null 2>>"${run_dir%/}/logs/basic-phase-check-${kind}.log"
+      bash "$BASIC_DESIGN_SH" "$target" --run "$run_dir" --kind "$kind" --design-root "$design_root" > /dev/null 2>>"${run_dir%/}/logs/basic-phase-check-${kind}.log"
       rc=$?
       if [ "$rc" -eq 0 ]; then
         entry="$(jq -n --arg k "$kind" '{($k): {"対象": true, "合格": true}}')"
@@ -102,7 +106,7 @@ KINDS
 
   local doc doc_path common_entries=""
   for doc in $COMMON_DOCS; do
-    doc_path="${target}/docs/design/common/${doc}.md"
+    doc_path="${design_root}/docs/design/common/${doc}.md"
     if [ ! -f "$doc_path" ]; then
       echo "[FAIL] 文書-不在: ${doc_path} が実在しません" >&2
       overall_fail=1
@@ -184,6 +188,20 @@ self_test() {
   local verdict1
   verdict1="$(jq -r '.["判定"]' "$run1/logs/basic-phase-check.json" 2>/dev/null)"
   check "合格-共通設計文書のみ: 判定が合格" "$([ "$verdict1" = "合格" ] && echo 0 || echo 1)"
+
+  # --- 設計書ルート分離-対象に書かない ---
+  local d1c="$base/target1-code-only" design1="$base/design1" run1d="$base/run1d"
+  mkdir -p "$d1c" "$design1/docs/design/lists" "$run1d"
+  write_common_docs "$design1"
+  bash "$SCRIPT_DIR/check-basic-phase.sh" "$d1c" --run "$run1d" --design-root "$design1" > "$base/c1d.out" 2>"$base/c1d.err"
+  check "設計書ルート分離-合格" "$([ $? -eq 0 ] && echo 0 || echo 1)"
+  total=$((total + 1))
+  if [ ! -e "$d1c/docs" ]; then
+    echo "PASS: 設計書ルート分離-対象に書かない"
+  else
+    echo "FAIL: 設計書ルート分離-対象に書かない（対象側にdocsが作られています）"
+    fail=$((fail + 1))
+  fi
 
   # --- 不合格-共通設計文書が1つ不在 ---
   local d2="$base/target2" run2="$base/run2"

@@ -12,8 +12,11 @@ set -u
 #   登録）を検査する。文面の当否は問わない。
 #
 # 使い方:
-#   check-basic-design.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別>
+#   check-basic-design.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別> [--design-root <設計書のルート>]
 #   check-basic-design.sh --self-test
+#
+# --design-root の既定は対象リポジトリのルート。一覧・基本設計書・単体テスト
+# 設計書は設計書のルート配下で読み書きする。
 #
 # 種別ごとの単位一覧はreverse-shared/scripts/list-units-of.shで読み、単位の
 # フォルダ名はreverse-shared/scripts/unit-dir-name.shで作る（唯一の定義を
@@ -74,7 +77,7 @@ HEADING_SCRIPT="${SHARED_DIR}/check-doc-heading-addendum.sh"
 UNITTEST_SCRIPT="${SHARED_DIR}/check-unit-test-design-doc-sections.sh"
 
 usage_error() {
-  echo "使い方: check-basic-design.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別>" >&2
+  echo "使い方: check-basic-design.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別> [--design-root <設計書のルート>]" >&2
   echo "        check-basic-design.sh --self-test" >&2
   exit 2
 }
@@ -328,11 +331,11 @@ KEYS
 }
 
 check_kind() {
-  local target="$1" run_dir="$2" kind="$3" heading_script="$4" unittest_script="$5"
+  local target="$1" run_dir="$2" kind="$3" heading_script="$4" unittest_script="$5" design_root="$6"
   local folder units_tsv rc
   folder="$(species_folder "$kind")"
 
-  units_tsv="$(bash "$LIST_UNITS_OF_SH" "$target" "$kind" 2>/dev/null)"
+  units_tsv="$(bash "$LIST_UNITS_OF_SH" "$target" "$kind" --lists "${design_root%/}/docs/design/lists" 2>/dev/null)"
   rc=$?
   if [ "$rc" -ne 0 ]; then
     echo "[FAIL] 一覧-不在: ${kind} の一覧を読めません（終了コード${rc}）" >&2
@@ -344,7 +347,7 @@ check_kind() {
   while IFS=$'\t' read -r id name place belongs; do
     [ -n "$id" ] || continue
     dirname="$(bash "$UNIT_DIR_NAME_SH" "$id")"
-    unit_path="${target}/docs/design/${folder}/${dirname}"
+    unit_path="${design_root}/docs/design/${folder}/${dirname}"
 
     check_regular_unit "$target" "$run_dir" "$unit_path" "$kind" "$dirname" "$heading_script" "$unittest_script" || fail=1
   done <<UNITS
@@ -359,11 +362,12 @@ run_main() {
   target="${target%/}"
   [ -d "$target" ] || usage_error
 
-  local run_dir="" kind=""
+  local run_dir="" kind="" design_root="$target"
   while [ $# -gt 0 ]; do
     case "$1" in
       --run) run_dir="$2"; shift 2 ;;
       --kind) kind="$2"; shift 2 ;;
+      --design-root) design_root="$2"; shift 2 ;;
       *) usage_error ;;
     esac
   done
@@ -386,7 +390,7 @@ run_main() {
     exit 2
   fi
 
-  check_kind "$target" "$run_dir" "$kind" "$HEADING_SCRIPT" "$UNITTEST_SCRIPT"
+  check_kind "$target" "$run_dir" "$kind" "$HEADING_SCRIPT" "$UNITTEST_SCRIPT" "$design_root"
   local rc=$?
   if [ "$rc" -eq 2 ]; then
     exit 2
@@ -598,6 +602,21 @@ CONFEOF
     write_valid_docs "$d1/docs/design/screens/src_pages_OrderList.tsx"
     bash "$SCRIPT_DIR/check-basic-design.sh" "$d1" --run "$run1" --kind screen > "$base/case1.out" 2>"$base/case1.err"
     check "合格-見本: 終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
+
+    # --- 設計書ルート分離-対象に書かない ---
+    local d1c="$base/case1-code-only" design1="$base/case1-design"
+    mkdir -p "$d1c"
+    make_fixture "$design1"
+    write_valid_docs "$design1/docs/design/screens/src_pages_OrderList.tsx"
+    bash "$SCRIPT_DIR/check-basic-design.sh" "$d1c" --run "$run1" --kind screen --design-root "$design1" > "$base/case1d.out" 2>"$base/case1d.err"
+    check "設計書ルート分離-合格" "$([ $? -eq 0 ] && echo 0 || echo 1)"
+    total=$((total + 1))
+    if [ ! -e "$d1c/docs" ]; then
+      echo "PASS: 設計書ルート分離-対象に書かない"
+    else
+      echo "FAIL: 設計書ルート分離-対象に書かない（対象側にdocsが作られています）"
+      fail=$((fail + 1))
+    fi
 
     # --- 不合格-文書不在 ---
     local d2="$base/case2" run2="$base/run2"

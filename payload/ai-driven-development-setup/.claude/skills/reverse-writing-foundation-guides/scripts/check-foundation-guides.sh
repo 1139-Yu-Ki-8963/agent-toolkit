@@ -10,12 +10,15 @@ set -u
 #   文面の良し悪しは検査しない。
 #
 # 使い方:
-#   check-foundation-guides.sh <対象リポジトリのルート> [--map <道標の相対パス>]
+#   check-foundation-guides.sh <対象リポジトリのルート> [--design-root <設計書のルート>] [--map <道標の相対パス>]
 #   check-foundation-guides.sh --self-test
 #
-# --map の既定は docs/design/common/道標.md。技術スタック・環境構築手順書の
-# パスは docs/design/common/技術スタック.md・docs/design/common/環境構築手順書.md
-# に固定する（工程2-3の出力先であり、変更する理由が無いため引数を持たない）。
+# --design-root の既定は対象リポジトリのルート。道標・技術スタック・環境構築
+# 手順書は設計書のルート配下で読み書きする。依存の定義ファイル（--mapで示した
+# 場所）は対象コードから読む。--map の既定は docs/design/common/道標.md。
+# 技術スタック・環境構築手順書のパスは docs/design/common/技術スタック.md・
+# docs/design/common/環境構築手順書.md に固定する（工程2-3の出力先であり、
+# 変更する理由が無いため引数を持たない）。
 #
 # 検査キー（内容を要約した意味語。連番禁止）:
 #   依存-不在      技術スタックの行の「名前」が、道標の節1「依存の定義」の
@@ -115,16 +118,16 @@ path_list_missing_or_files() {
 }
 
 usage_error() {
-  echo "使い方: check-foundation-guides.sh <対象リポジトリのルート> [--map <道標の相対パス>]" >&2
+  echo "使い方: check-foundation-guides.sh <対象リポジトリのルート> [--design-root <設計書のルート>] [--map <道標の相対パス>]" >&2
   echo "        check-foundation-guides.sh --self-test" >&2
   exit 2
 }
 
 check_foundation_guides() {
-  local target="$1" map_rel="$2"
-  local map_file="${target%/}/${map_rel}"
-  local tech_file="${target%/}/docs/design/common/技術スタック.md"
-  local env_file="${target%/}/docs/design/common/環境構築手順書.md"
+  local target="$1" map_rel="$2" design_root="$3"
+  local map_file="${design_root%/}/${map_rel}"
+  local tech_file="${design_root%/}/docs/design/common/技術スタック.md"
+  local env_file="${design_root%/}/docs/design/common/環境構築手順書.md"
 
   if [ ! -d "$target" ]; then
     echo "対象リポジトリが見つかりません: ${target}" >&2
@@ -442,6 +445,22 @@ ENVEOF
   rm -f "${root_no_map}/docs/design/common/道標.md"
   assert_exit "判定不能-道標不在" 2 bash "$0" "$root_no_map"
 
+  # 設計書ルート分離-対象に書かない（依存の定義は対象のpackage.jsonを読む）
+  local root_code_only="${tmp}/target-code-only"
+  mkdir -p "${root_code_only}"
+  echo '{"dependencies": {"react": "18.0.0", "typescript": "5.0.0"}}' > "${root_code_only}/package.json"
+  local design_only="${tmp}/design-only"
+  build_target "$design_only"
+  rm -f "${design_only}/package.json"
+  assert_exit "設計書ルート分離-合格" 0 bash "$0" "$root_code_only" --design-root "$design_only"
+  self_total=$((self_total + 1))
+  if [ ! -e "${root_code_only}/docs" ]; then
+    echo "PASS: 設計書ルート分離-対象に書かない"
+  else
+    echo "FAIL: 設計書ルート分離-対象に書かない（対象側にdocsが作られています）"
+    self_fail=$((self_fail + 1))
+  fi
+
   # 使い方-引数不足
   assert_exit "使い方-引数不足" 2 bash "$0"
 
@@ -467,10 +486,15 @@ fi
 
 TARGET="$1"
 shift
+DESIGN_ROOT="$TARGET"
 MAP_REL="docs/design/common/道標.md"
 
 while [ $# -gt 0 ]; do
   case "$1" in
+    --design-root)
+      DESIGN_ROOT="${2:-}"
+      shift 2
+      ;;
     --map)
       MAP_REL="${2:-}"
       shift 2
@@ -482,7 +506,7 @@ while [ $# -gt 0 ]; do
   esac
 done
 
-check_foundation_guides "$TARGET" "$MAP_REL"
+check_foundation_guides "$TARGET" "$MAP_REL" "$DESIGN_ROOT"
 rc=$?
 if [ "$rc" -eq 2 ]; then
   exit 2

@@ -31,28 +31,30 @@ acceptance: tests/
 ## 手順
 
 1. `bash ../reverse-shared/scripts/check-entry.sh <実行フォルダ> <対象リポジトリのルート>` で範囲の承認を確かめる
-2. 全種別の全単位と共通設計文書6つを機械検査し、`<実行フォルダ>/logs/basic-phase-check.json` に結果を書く
+2. `bash ../reverse-shared/scripts/design-root.sh <実行フォルダ>` で設計書の置き場を読む
+3. 全種別の全単位と共通設計文書6つを機械検査し、`<実行フォルダ>/logs/basic-phase-check.json` に結果を書く
    ```bash
-   bash scripts/check-basic-phase.sh <対象> --run <実行フォルダ>
+   bash scripts/check-basic-phase.sh <対象> --run <実行フォルダ> --design-root <設計書の置き場>
    ```
-3. 機械検査を通った単位・文書ごとに、文書のレビュー担当（AI）が `references/basic-phase-viewpoints.md` の6観点で読む
-4. 単位ごとに次を実行して記録する
+4. 機械検査を通った単位・文書ごとに、文書のレビュー担当（AI）が `references/basic-phase-viewpoints.md` の6観点で読む
+5. 単位ごとに次を実行して記録する
    ```bash
-   bash scripts/record-acceptance.sh <対象> --run <実行フォルダ> --kind <種別> --unit <識別子> --verdict <合格|不合格|保留> --viewpoints "<観点=合|否;...>" [--reason "<理由>"]
+   bash scripts/record-acceptance.sh <対象> --run <実行フォルダ> --kind <種別> --unit <識別子> --verdict <合格|不合格|保留> --viewpoints "<観点=合|否;...>" [--reason "<理由>"] --design-root <設計書の置き場>
    ```
-5. 共通設計文書ごとに次を実行して記録する
+6. 共通設計文書ごとに次を実行して記録する
    ```bash
-   bash scripts/record-acceptance.sh <対象> --run <実行フォルダ> --common <文書名> --verdict <合格|不合格|保留> --viewpoints "<観点=合|否;...>" [--reason "<理由>"]
+   bash scripts/record-acceptance.sh <対象> --run <実行フォルダ> --common <文書名> --verdict <合格|不合格|保留> --viewpoints "<観点=合|否;...>" [--reason "<理由>"] --design-root <設計書の置き場>
    ```
-6. 不合格は差し戻し表のとおり戻す。単位の不合格は基本設計を書く機能の当該単位へ、共通設計文書に起因する不合格は道標を描く機能の手順4へ戻り、以後の検査と承認を経る
-7. 保留は既定を置けない不明点を持つ単位・文書だけにする。理由を確認事項に登録する
-8. 保留を除く全単位と共通設計文書6つに合格の記録があることを確かめて終える
+7. 不合格は差し戻し表のとおり戻す。単位の不合格は基本設計を書く機能の当該単位へ、共通設計文書に起因する不合格は道標を描く機能の手順4へ戻り、以後の検査と承認を経る
+8. 保留は既定を置けない不明点を持つ単位・文書だけにする。理由を確認事項に登録する
+9. 保留を除く全単位と共通設計文書6つに合格の記録があることを確かめて終える
 
 ## 完了条件
 
 - 保留を除く全単位と共通設計文書6つに合格の記録がある
 - 既定を置けない不明点を持つ単位が保留として記録されている
-- `bash scripts/check-acceptance-record.sh <対象> --kind <種別> --unit <識別子>` および `--common` が対象の記録に対して 0 を返す
+- `bash scripts/check-acceptance-record.sh <対象> --kind <種別> --unit <識別子> --design-root <置き場>` が0を返す
+- `bash scripts/check-acceptance-record.sh <対象> --common --design-root <設計書の置き場>` も同様に 0 を返す
 - `tests/` の全件が通る
 
 ## 設計判断

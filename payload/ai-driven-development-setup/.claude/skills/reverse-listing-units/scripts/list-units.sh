@@ -11,9 +11,10 @@ set -u
 #   持つ検出条件がすべてを決める。
 #
 # 使い方:
-#   list-units.sh <対象リポジトリのルート> [--map <道標のパス>] [--out <出力先フォルダ>] [--tolerance <0〜1の小数>]
+#   list-units.sh <対象リポジトリのルート> [--design-root <設計書の置き場>] [--map <道標のパス>] [--out <出力先フォルダ>] [--tolerance <0〜1の小数>]
 #   list-units.sh --self-test
 #
+# --design-root の既定は <対象リポジトリのルート>。--map・--out の既定はこの値の配下。
 # --map の既定は <対象>/docs/design/common/道標.md。
 # --out の既定は <対象>/docs/design/lists。
 # --tolerance の既定は 0.2。
@@ -48,7 +49,7 @@ set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 usage_error() {
-  echo "使い方: list-units.sh <対象リポジトリのルート> [--map <道標のパス>] [--out <出力先フォルダ>] [--tolerance <0〜1の小数>]" >&2
+  echo "使い方: list-units.sh <対象リポジトリのルート> [--design-root <設計書の置き場>] [--map <道標のパス>] [--out <出力先フォルダ>] [--tolerance <0〜1の小数>]" >&2
   echo "        list-units.sh --self-test" >&2
   exit 2
 }
@@ -252,8 +253,17 @@ run_main() {
   target="${target%/}"
   [ -d "$target" ] || usage_error
 
-  local map="${target}/docs/design/common/道標.md"
-  local out="${target}/docs/design/lists"
+  local design_root="$target"
+  local scan_args=("$@") scan_i=0
+  while [ $scan_i -lt ${#scan_args[@]} ]; do
+    if [ "${scan_args[$scan_i]}" = "--design-root" ]; then
+      design_root="${scan_args[$((scan_i+1))]}"
+    fi
+    scan_i=$((scan_i+1))
+  done
+
+  local map="${design_root%/}/docs/design/common/道標.md"
+  local out="${design_root%/}/docs/design/lists"
   local tolerance="0.2"
 
   while [ $# -gt 0 ]; do
@@ -261,6 +271,7 @@ run_main() {
       --map) map="$2"; shift 2 ;;
       --out) out="$2"; shift 2 ;;
       --tolerance) tolerance="$2"; shift 2 ;;
+      --design-root) shift 2 ;;
       *) usage_error ;;
     esac
   done

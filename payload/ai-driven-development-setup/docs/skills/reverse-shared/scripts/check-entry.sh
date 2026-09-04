@@ -30,15 +30,16 @@ set -u
 # macOS bash 3.2 互換。
 
 usage_error() {
-  echo "使い方: check-entry.sh <実行フォルダ> <対象リポジトリのルート>" >&2
+  echo "使い方: check-entry.sh <実行フォルダ> <対象リポジトリのルート> [--design-root <設計書の置き場>]" >&2
   echo "        check-entry.sh --self-test" >&2
   exit 2
 }
 
 check_entry() {
-  local run_dir="$1" target="$2"
+  local run_dir="$1" target="$2" design_root="$3"
+  [ -n "$design_root" ] || design_root="$target"
   local approval="${run_dir%/}/confirmations/対象範囲の承認.md"
-  local map="${target%/}/docs/design/common/道標.md"
+  local map="${design_root%/}/docs/design/common/道標.md"
 
   if [ ! -f "$approval" ]; then
     echo "[FAIL] 承認-不在: ${approval} が存在しません" >&2
@@ -160,5 +161,14 @@ if [ $# -lt 2 ]; then
   usage_error
 fi
 
-check_entry "$1" "$2"
+run_dir_arg="$1"; target_arg="$2"; shift 2
+design_root_arg=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --design-root) design_root_arg="$2"; shift 2 ;;
+    *) usage_error ;;
+  esac
+done
+
+check_entry "$run_dir_arg" "$target_arg" "$design_root_arg"
 exit $?

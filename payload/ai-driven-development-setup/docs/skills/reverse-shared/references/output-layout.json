@@ -1,4 +1,8 @@
 {
+  "用語": [
+    { "用語": "納品物", "意味": "先方リポジトリへ置く物。設計書・規約・各 AI ツールの設定・開発フロー・運用の skill・任意のポータル" },
+    { "用語": "成果物", "意味": "支援ツールが出力するが納品しない物。先方リポジトリに含めない出力の置き場に置く確認事項一覧・完了報告・事実・再生成・照合・記録" }
+  ],
   "先方リポジトリ": [
     { "置き場": "docs/rules/<親>/<子>/", "何を置くか": "規約の定義と検査", "性質": "AI が読む定義（納品物）" },
     { "置き場": "docs/design/requirements/", "何を置くか": "要件定義書（規約の 6 内容を節に持つ 1 文書）", "性質": "AI が読む定義（納品物）" },
@@ -25,11 +29,15 @@
     { "段": "共通の基本設計・単位の基本設計・単体テスト設計書", "出力先": "先方 docs/design/common/・docs/design/<種別>/<単位>/" },
     { "段": "基本設計の完了判定", "出力先": "先方 ai-work/records/basic-design-acceptance/<種別>-<単位>.json。共通設計文書は common-<文書名>.json" },
     { "段": "共通処理と単位の詳細設計", "出力先": "先方 docs/design/common/・docs/design/<種別>/<単位>/" },
-    { "段": "テスト文書", "出力先": "テスト観点表・テストケース一覧は先方 docs/design/lists/、結合テスト仕様書は先方 docs/design/common/。操作シナリオ仕様書は繰り返し再検証（verify 単位）を選んだ場合だけ先方 docs/design/screens/<単位>/ に md と YAML の対で置く" },
+    { "段": "テスト文書", "出力先": "いまのリバースでは作らない。開発チームが作る場合の置き場。テスト観点表・テストケース一覧は先方 docs/design/lists/、結合テスト仕様書は先方 docs/design/common/。操作シナリオ仕様書は繰り返し再検証（verify 単位）を選んだ場合だけ先方 docs/design/screens/<単位>/ に md と YAML の対で置く" },
     { "段": "確認事項一覧", "出力先": "置き場 confirmations/確認事項一覧.md" },
     { "段": "事実の抽出・再生成・照合", "出力先": "置き場 facts/・rebuilt/・compare/" },
     { "段": "完了報告", "出力先": "置き場 reports/。納品物一覧は先方 docs/design/lists/納品物一覧.md にも置く" },
     { "段": "規約の配置と派生", "出力先": "先方 docs/rules/・.claude/・.cursor/・.codex/・AGENTS.md" },
     { "段": "運用の skill の配置", "出力先": "先方 docs/skills/（派生で .claude/skills/）" }
+  ],
+  "設計書の置き場": [
+    { "使い方": "先方リポジトリへ展開する", "値": "先方リポジトリのルート（--deploy-toで指定）", "docs/design配下の展開先": "先方リポジトリのdocs/design/・ai-work/records/" },
+    { "使い方": "作業場所だけに置く（既定）", "値": "<実行フォルダ>/design（--deploy-to未指定時に自動作成）", "docs/design配下の展開先": "<実行フォルダ>/design/docs/design/・<実行フォルダ>/design/ai-work/records/" }
   ]
 }

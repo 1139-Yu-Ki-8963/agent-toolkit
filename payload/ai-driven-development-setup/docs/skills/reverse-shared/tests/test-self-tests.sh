@@ -56,6 +56,7 @@ cmp_ignoring_notice() {
 }
 
 run_case "read-run.sh --self-test" bash "${SHARED_DIR}/scripts/read-run.sh" --self-test
+run_case "design-root.sh --self-test" bash "${SHARED_DIR}/scripts/design-root.sh" --self-test
 run_case "check-entry.sh --self-test" bash "${SHARED_DIR}/scripts/check-entry.sh" --self-test
 run_case "unit-dir-name.sh --self-test" bash "${SHARED_DIR}/scripts/unit-dir-name.sh" --self-test
 run_case "units-status.sh --self-test" bash "${SHARED_DIR}/scripts/units-status.sh" --self-test

@@ -26,11 +26,11 @@ acceptance: tests/
 ## 前提
 
 - 対象リポジトリがコミット済みであること。読むコミットを固定し、稼働中の変更は対象外にする
-- 実行フォルダ（統括の実行の開始スクリプトが作る）を受け取る。対象リポジトリのルートは `bash ../reverse-shared/scripts/read-run.sh <実行フォルダ> 対象リポジトリ` で読む。出力の置き場（先方リポジトリに含めない出力の置き場のルート）は `bash ../reverse-shared/scripts/read-run.sh <実行フォルダ> 出力の置き場` で読む
-- 出力の置き場は次のとおりである
-  - 道標: 対象の `docs/design/common/道標.md`
-  - 要件定義書: `docs/design/requirements/要件定義書.md`
-  - 共通設計文書 6 つ: `docs/design/common/`
+- 実行フォルダ（統括の実行の開始スクリプトが作る）を受け取る。対象リポジトリのルートは `bash ../reverse-shared/scripts/read-run.sh <実行フォルダ> 対象リポジトリ` で読む。設計書の置き場（道標・要件定義書・共通設計文書を書く先）は `bash ../reverse-shared/scripts/design-root.sh <実行フォルダ>` で読む。この置き場は、先方リポジトリへ展開する使い方と作業場所だけに置く使い方の両方に対応する。確認事項・承認等の置き場（先方リポジトリに含めない出力の置き場のルート）は `bash ../reverse-shared/scripts/read-run.sh <実行フォルダ> 出力の置き場` で読む
+- 出力先は次のとおりである
+  - 道標: 設計書の置き場の `docs/design/common/道標.md`
+  - 要件定義書: 設計書の置き場の `docs/design/requirements/要件定義書.md`
+  - 共通設計文書 6 つ: 設計書の置き場の `docs/design/common/`
   - 承認用の要約・承認の記録・確認事項の記録: 出力の置き場の `confirmations/`
 - コードの調査と分析は AI が読んで行う。既製の検索パターンを対象に当てない。スクリプトを使うのは手順 5 の検査だけである
 - 確認事項は道標に持たない。各手順で見つけた確認事項は、出力の置き場の `confirmations/確認事項の記録.md` に 1 行 1 事項（キー・単位・種類・事項・既定・反映先・回答・状態の 8 列）で追記する

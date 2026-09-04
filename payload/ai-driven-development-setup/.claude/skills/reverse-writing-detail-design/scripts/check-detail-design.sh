@@ -9,8 +9,11 @@ set -u
 #   file:lineが無い）を種別ごとに単位ごとへ回して機械で確かめる。
 #
 # 使い方:
-#   check-detail-design.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別>
+#   check-detail-design.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別> [--design-root <設計書のルート>]
 #   check-detail-design.sh --self-test
+#
+# --design-root の既定は対象リポジトリのルート。一覧・詳細設計書・合格の記録は
+# 設計書のルート配下で読み書きする。
 #
 # 種別: screen / api / table / batch / report / external（featureは対象外。
 #   機能設計書には対応する詳細設計テンプレートが存在しないため）
@@ -88,7 +91,7 @@ skipck() {
 }
 
 usage_error() {
-  echo "使い方: check-detail-design.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別>" >&2
+  echo "使い方: check-detail-design.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別> [--design-root <設計書のルート>]" >&2
   echo "        check-detail-design.sh --self-test" >&2
   exit 2
 }
@@ -238,7 +241,7 @@ ILIST
 }
 
 run_units() {
-  local target="$1" run_dir="$2" kind="$3"
+  local target="$1" run_dir="$2" kind="$3" design_root="$4"
   local species_folder
   species_folder="$(jq -r --arg k "$kind" '.[] | select(.key==$k) | .["フォルダ"]' "$UNIT_KINDS_JSON")"
   if [ -z "$species_folder" ]; then
@@ -249,7 +252,7 @@ run_units() {
   doc_name="$(doc_name_of "$kind")"
 
   local units_out rc=0
-  units_out="$(bash "$LIST_UNITS_OF" "$target" "$kind" 2>"${TMPDIR:-/tmp}/check-detail-design-list.$$")" || rc=$?
+  units_out="$(bash "$LIST_UNITS_OF" "$target" "$kind" --lists "${design_root%/}/docs/design/lists" 2>"${TMPDIR:-/tmp}/check-detail-design-list.$$")" || rc=$?
   if [ "$rc" -eq 2 ]; then
     echo "[FAIL] 一覧-不在: ${kind}の一覧がありません" >&2
     cat "${TMPDIR:-/tmp}/check-detail-design-list.$$" >&2
@@ -262,12 +265,12 @@ run_units() {
   while IFS=$'\t' read -r identifier name location files_csv; do
     [ -n "$identifier" ] || continue
     folder="$(bash "$UNIT_DIR_NAME" "$identifier")"
-    local doc="${target%/}/docs/design/${species_folder}/${folder}/${doc_name}"
-    local record="${target%/}/ai-work/records/basic-design-acceptance/${kind}-${folder}.json"
+    local doc="${design_root%/}/docs/design/${species_folder}/${folder}/${doc_name}"
+    local record="${design_root%/}/ai-work/records/basic-design-acceptance/${kind}-${folder}.json"
     local facts_json="${run_dir%/}/facts/${kind}/${folder}.json"
 
     local vrc=0
-    bash "$ACCEPTANCE_RECORD_CHECK" "$target" --kind "$kind" --unit "$identifier" > /dev/null 2>&1 || vrc=$?
+    bash "$ACCEPTANCE_RECORD_CHECK" "$target" --kind "$kind" --unit "$identifier" --design-root "$design_root" > /dev/null 2>&1 || vrc=$?
     if [ "$vrc" -ne 0 ]; then
       local hantei=""
       if [ -f "$record" ] && has_jq; then
@@ -470,6 +473,21 @@ DOCEOF
   echo 0 > "$record_rc_file"
   assert_exit "合格" 0 bash "$under_test" "$target" --run "$run_dir" --kind table
 
+  # --- 設計書ルート分離-対象に書かない ---
+  local target_code_only="${tmp}/target-code-only"
+  local design_root2="${tmp}/design-root2"
+  mkdir -p "$target_code_only"
+  mkdir -p "$design_root2/docs/design/tables/${folder}" "$design_root2/ai-work/records/basic-design-acceptance"
+  cp "${doc_dir}/テーブル定義書.md" "$design_root2/docs/design/tables/${folder}/"
+  assert_exit "設計書ルート分離-合格" 0 bash "$under_test" "$target_code_only" --run "$run_dir" --kind table --design-root "$design_root2"
+  total=$((total + 1))
+  if [ ! -e "$target_code_only/docs" ]; then
+    echo "PASS: 設計書ルート分離-対象に書かない"
+  else
+    echo "FAIL: 設計書ルート分離-対象に書かない（対象側にdocsが作られています）"
+    fail=$((fail + 1))
+  fi
+
   # 不合格-合格記録なし
   echo 1 > "$record_rc_file"
   assert_exit "不合格-合格記録なし" 1 bash "$under_test" "$target" --run "$run_dir" --kind table
@@ -564,10 +582,12 @@ fi
 TARGET=""
 RUN_DIR=""
 KIND=""
+DESIGN_ROOT=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --run) RUN_DIR="${2:-}"; shift 2 ;;
     --kind) KIND="${2:-}"; shift 2 ;;
+    --design-root) DESIGN_ROOT="${2:-}"; shift 2 ;;
     *)
       if [ -z "$TARGET" ]; then
         TARGET="$1"; shift
@@ -581,12 +601,13 @@ done
 if [ -z "$TARGET" ] || [ -z "$RUN_DIR" ] || [ -z "$KIND" ]; then
   usage_error
 fi
+[ -n "$DESIGN_ROOT" ] || DESIGN_ROOT="$TARGET"
 if ! is_valid_kind "$KIND"; then
   echo "[FAIL] 種別-不正: ${KIND} は対象外です" >&2
   exit 2
 fi
 
-run_units "$TARGET" "$RUN_DIR" "$KIND"
+run_units "$TARGET" "$RUN_DIR" "$KIND" "$DESIGN_ROOT"
 rrc=$?
 if [ "$rrc" -eq 2 ]; then
   exit 2

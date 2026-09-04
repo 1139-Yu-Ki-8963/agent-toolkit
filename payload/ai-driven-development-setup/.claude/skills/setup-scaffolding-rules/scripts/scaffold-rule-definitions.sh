@@ -924,6 +924,12 @@ EOF
 # （文体の検査における常体除外と同じ設計。除外の対象はrule-banned-terms.json
 # の定義側が正であり、除外した件数を必ず報告する）。除外は指定した子カテゴリ
 # の rule.md・rule.html への一致に限り、それ以外の文書は従来どおり対象とする。
+#
+# 複合語の例外（allowedCompounds）: 「納品」の禁止は「納品物」のような正式な
+# 複合語まで妨げない。一致した行の内容から allowedCompounds に列挙した複合語を
+# すべて取り除いてもなお禁止語そのものが残る場合だけ、その行を違反として残す。
+# 判定はterm_file側の定義（allowedCompounds配列）を正とし、本スクリプトには
+# 個別の複合語を直書きしない。
 scan_banned_terms() {
   local target_dir="$1"
   local term_file="${2:-$BANNED_TERMS_JSON}"
@@ -965,18 +971,61 @@ scan_banned_terms() {
       '(.exemptions // [])[] | select(.scope == $scope) | "\(.parent)/\(.key)/"' \
       "$term_file" >"$exempt_file" 2>/dev/null || true
 
-    if [ -s "$exempt_file" ]; then
-      local filtered_matches line is_exempt pat
+    # 複合語の例外（allowedCompounds）: 語ごとに「term<TAB>compound1,compound2」の
+    # 形で持つ（compounds は無ければ空文字）。matches の行内容から複合語をすべて
+    # 取り除いてもなお、その行に現れた禁止語のいずれかが残るなら違反のまま残す。
+    local terms_info_file
+    if ! terms_info_file="$(mktemp "${TMPDIR:-/tmp}/rule-banned-terms-info.XXXXXX" 2>/dev/null)" || [ -z "$terms_info_file" ]; then
+      echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+      exit 2
+    fi
+    jq -r --arg scope "rule-definitions" \
+      '.terms[] | select(.scope | index($scope)) | "\(.term)\t\((.allowedCompounds // []) | join(","))"' \
+      "$term_file" >"$terms_info_file" 2>/dev/null || true
+
+    if [ -s "$exempt_file" ] || [ -s "$terms_info_file" ]; then
+      local filtered_matches line is_exempt pat content term compounds compound stripped all_covered any_term_found
       filtered_matches=""
       while IFS= read -r line; do
         [ -n "$line" ] || continue
         is_exempt=0
-        while IFS= read -r pat; do
-          [ -n "$pat" ] || continue
-          case "$line" in
-            *"/${pat}"*) is_exempt=1; break ;;
-          esac
-        done <"$exempt_file"
+        if [ -s "$exempt_file" ]; then
+          while IFS= read -r pat; do
+            [ -n "$pat" ] || continue
+            case "$line" in
+              *"/${pat}"*) is_exempt=1; break ;;
+            esac
+          done <"$exempt_file"
+        fi
+        if [ "$is_exempt" -eq 0 ] && [ -s "$terms_info_file" ]; then
+          content="${line#*:*:}"
+          all_covered=1
+          any_term_found=0
+          while IFS=$'\t' read -r term compounds; do
+            [ -n "$term" ] || continue
+            case "$content" in
+              *"$term"*)
+                any_term_found=1
+                stripped="$content"
+                if [ -n "$compounds" ]; then
+                  local IFS_SAVED="$IFS"
+                  IFS=','
+                  for compound in $compounds; do
+                    stripped="${stripped//$compound/}"
+                  done
+                  IFS="$IFS_SAVED"
+                fi
+                case "$stripped" in
+                  *"$term"*) all_covered=0 ;;
+                esac
+                ;;
+            esac
+            [ "$all_covered" -eq 1 ] || break
+          done <"$terms_info_file"
+          if [ "$any_term_found" -eq 1 ] && [ "$all_covered" -eq 1 ]; then
+            is_exempt=1
+          fi
+        fi
         if [ "$is_exempt" -eq 1 ]; then
           excluded_count=$((excluded_count + 1))
         else
@@ -987,7 +1036,7 @@ $matches
 EOF
       matches="${filtered_matches%$'\n'}"
     fi
-    rm -f "$exempt_file"
+    rm -f "$exempt_file" "$terms_info_file"
   fi
 
   if [ -z "$matches" ]; then
@@ -1694,6 +1743,37 @@ EOF
   else
     echo "  [FAIL] ケース11: toolDefinedの生成物に禁止語が検出された" >&2
     printf '%s\n' "$scan_out11" | sed 's/^/    /' >&2
+    rc=1
+  fi
+
+  # ケース22（複合語の例外・allowedCompounds）: 「納品物」のような許可済み複合語は
+  #   禁止語検査で除外され、複合語でない裸の禁止語（納品する）は引き続き検出されること
+  local ok22=1 test_dir22 scan_out22a scan_out22b hit22a hit22b
+  test_dir22="$(mktemp -d "${TMPDIR:-/tmp}/rule-banned-terms-compound-test.XXXXXX" 2>/dev/null || true)"
+  if [ -z "$test_dir22" ] || [ ! -d "$test_dir22" ]; then
+    ok22=0
+    echo "  [FAIL] ケース22: テスト用ディレクトリの作成に失敗した" >&2
+  else
+    mkdir -p "${test_dir22}/allowed" "${test_dir22}/banned"
+    printf '%s\n' '納品物一覧を置く' >"${test_dir22}/allowed/rule.md"
+    printf '%s\n' '納品する' >"${test_dir22}/banned/rule.md"
+    scan_out22a="$(scan_banned_terms "${test_dir22}/allowed")"
+    scan_out22b="$(scan_banned_terms "${test_dir22}/banned")"
+    hit22a="$(printf '%s\n' "$scan_out22a" | head -n1 | sed -n 's/^禁止語検査: \([0-9][0-9]*\)件（除外 \([0-9][0-9]*\)件）$/\1 \2/p')"
+    hit22b="$(printf '%s\n' "$scan_out22b" | head -n1 | sed -n 's/^禁止語検査: \([0-9][0-9]*\)件.*$/\1/p')"
+    if [ "$hit22a" != "0 1" ]; then
+      ok22=0
+      echo "  [FAIL] ケース22: 複合語『納品物』を含む行が0件（除外1件）にならない（実際=${hit22a}）" >&2
+    fi
+    if [ "$hit22b" != "1" ]; then
+      ok22=0
+      echo "  [FAIL] ケース22: 複合語でない裸の禁止語『納品する』が検出されない（実際=${hit22b}）" >&2
+    fi
+    rm -rf "$test_dir22"
+  fi
+  if [ "$ok22" -eq 1 ]; then
+    echo "  [PASS] ケース22: 複合語の例外（allowedCompounds）が納品物を許容し裸の禁止語は検出する"
+  else
     rc=1
   fi
 

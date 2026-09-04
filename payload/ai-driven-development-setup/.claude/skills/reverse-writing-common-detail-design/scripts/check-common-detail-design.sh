@@ -11,8 +11,11 @@ set -u
 #   ある・未記入が無い）を機械で確かめる。
 #
 # 使い方:
-#   check-common-detail-design.sh <対象リポジトリのルート> [--map <道標のパス>]
+#   check-common-detail-design.sh <対象リポジトリのルート> [--design-root <設計書のルート>] [--map <道標のパス>]
 #   check-common-detail-design.sh --self-test
+#
+# --design-root の既定は対象リポジトリのルート。道標・共通処理の詳細設計書・
+# 合格の記録は設計書のルート配下で読み書きする。
 #
 # 入口:
 #   工程2-6（基本設計の完了判定）の共通設計文書の合格の記録が無ければ検査
@@ -61,7 +64,7 @@ passck() {
 }
 
 usage_error() {
-  echo "使い方: check-common-detail-design.sh <対象リポジトリのルート> [--map <道標のパス>]" >&2
+  echo "使い方: check-common-detail-design.sh <対象リポジトリのルート> [--design-root <設計書のルート>] [--map <道標のパス>]" >&2
   echo "        check-common-detail-design.sh --self-test" >&2
   exit 2
 }
@@ -82,8 +85,8 @@ trim() {
 }
 
 check_doc() {
-  local target="$1" map="$2"
-  local doc="${target%/}/docs/design/common/共通処理の詳細設計書.md"
+  local design_root="$1" map="$2"
+  local doc="${design_root%/}/docs/design/common/共通処理の詳細設計書.md"
 
   if [ ! -f "$map" ]; then
     echo "[FAIL] 道標-不在: ${map} が存在しません" >&2
@@ -387,6 +390,21 @@ BADEOF
   cp "${target}/docs/design/common/共通処理の詳細設計書.md" "${target2}/docs/design/common/"
   assert_exit "判定不能-道標不在" 2 bash "$under_test" "$target2"
 
+  # --- 設計書ルート分離-対象に書かない ---
+  local dc3="${tmp}/target-code-only" design4="${tmp}/design4"
+  mkdir -p "$dc3" "$design4/docs/design/common"
+  cp "${target}/docs/design/common/道標.md" "$design4/docs/design/common/"
+  cp "${target}/docs/design/common/共通処理の詳細設計書.md" "$design4/docs/design/common/"
+  write_record_stub 0
+  assert_exit "設計書ルート分離-合格" 0 bash "$under_test" "$dc3" --design-root "$design4"
+  total=$((total + 1))
+  if [ ! -e "$dc3/docs" ]; then
+    echo "PASS: 設計書ルート分離-対象に書かない"
+  else
+    echo "FAIL: 設計書ルート分離-対象に書かない（対象側にdocsが作られています）"
+    fail=$((fail + 1))
+  fi
+
   # 判定不能-使い方の誤り
   assert_exit "判定不能-使い方の誤り" 2 bash "$under_test"
 
@@ -416,22 +434,25 @@ if [ $# -lt 1 ]; then
 fi
 
 TARGET="$1"; shift
-MAP="${TARGET%/}/docs/design/common/道標.md"
+DESIGN_ROOT="$TARGET"
+MAP=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --map) MAP="${2:-}"; shift 2 ;;
+    --design-root) DESIGN_ROOT="${2:-}"; shift 2 ;;
     *) usage_error ;;
   esac
 done
+[ -n "$MAP" ] || MAP="${DESIGN_ROOT%/}/docs/design/common/道標.md"
 
-bash "$ACCEPTANCE_RECORD_CHECK" "$TARGET" --common
+bash "$ACCEPTANCE_RECORD_CHECK" "$TARGET" --common --design-root "$DESIGN_ROOT"
 vrc=$?
 if [ "$vrc" -ne 0 ]; then
   echo "[FAIL] 合格記録-不在: 共通設計文書の合格の記録がありません（check-acceptance-record.sh 終了コード ${vrc}）" >&2
   exit 1
 fi
 
-check_doc "$TARGET" "$MAP"
+check_doc "$DESIGN_ROOT" "$MAP"
 crc=$?
 if [ "$crc" -eq 2 ]; then
   exit 2
