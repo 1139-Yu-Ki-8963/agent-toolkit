@@ -70,6 +70,11 @@
 # 逃げ道:
 #   DOC_HEADING_ADDENDUM_SKIP_REASON に理由を書けば通る。理由が空の場合は通らない
 #
+# DOC_HEADING_ADDENDUM_REQUIRE_TEST_SIBLING:
+#   既定は1（単体テスト設計書の同居を要求する）。呼び出し元（check-basic-design.sh）が
+#   テスト設計書の出力が「出力する」でないときに0を渡すと、単体テスト設計書の実在確認を
+#   行わない。様式の見出し検査はこの値に関わらず行う。
+#
 # 使い方:
 #   フック本体として: PreToolUse(Write|Edit) の入力 JSON を stdin から受け取る
 #   単体実行: check-doc-heading-addendum.sh --self-test
@@ -145,7 +150,7 @@ judge() {
     if [ -n "$missing" ]; then
       reasons="必須見出しが欠けています（${missing}）"
     fi
-    if ! sibling_exists "$file_path"; then
+    if [ "${DOC_HEADING_ADDENDUM_REQUIRE_TEST_SIBLING:-1}" != "0" ] && ! sibling_exists "$file_path"; then
       reasons="${reasons}${reasons:+／}単体テスト設計書が同じフォルダに見当たりません"
     fi
     if [ -n "$reasons" ]; then
@@ -429,6 +434,19 @@ self_test() {
     echo "  [FAIL] 系15: 空文字なのに skip した（exit=${skip_code2}）" >&2
     rc=1
   fi
+
+  # 系16: DOC_HEADING_ADDENDUM_REQUIRE_TEST_SIBLING=0 なら、様式の見出しが揃った
+  #       基本設計書は同じフォルダに単体テスト設計書が無くても許可される
+  local basic_tmpdir16
+  basic_tmpdir16="$(mktemp -d -p "${TMPDIR:-/tmp}")"
+  if msg="$(DOC_HEADING_ADDENDUM_REQUIRE_TEST_SIBLING=0 judge "${basic_tmpdir16}/注文機能基本設計書.md" "$t11")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 0 ]; then
+    echo "  [PASS] 系16: REQUIRE_TEST_SIBLING=0なら単体テスト設計書が無くても許可される（${msg}）"
+  else
+    echo "  [FAIL] 系16: REQUIRE_TEST_SIBLING=0なのに拒否された（exit=${code}, ${msg}）" >&2
+    rc=1
+  fi
+  rm -rf "$basic_tmpdir16"
 
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"

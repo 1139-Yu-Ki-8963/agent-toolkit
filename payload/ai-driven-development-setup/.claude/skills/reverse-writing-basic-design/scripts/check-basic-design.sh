@@ -197,9 +197,10 @@ HLIST
 # --- 対象の設計書の書き方の検査をhook入力のJSONで呼ぶ（--check-fileを
 #     持たないため、stdinへのJSONで呼ぶ形に合わせる） ---
 run_heading_addendum_check() {
-  local script="$1" file="$2"
+  local script="$1" file="$2" tests_output="$3" require_sibling=1
+  [ "$tests_output" = "出力する" ] || require_sibling=0
   jq -Rs --arg fp "$file" '{"tool_name":"Write","tool_input":{"file_path":$fp,"content":.}}' \
-    < "$file" | bash "$script" > /dev/null 2>/dev/null
+    < "$file" | DOC_HEADING_ADDENDUM_REQUIRE_TEST_SIBLING="$require_sibling" bash "$script" > /dev/null 2>/dev/null
 }
 
 run_unit_test_doc_check() {
@@ -307,7 +308,7 @@ check_regular_unit() {
   # エラーと例外）と一致しない。screen種別ではこの共有チェッカーを呼ばず、様式の
   # 妥当性は本スクリプト自身のcheck_headings_order/check_placement_linesに委ねる
   if [ "$kind" != "screen" ]; then
-    if ! run_heading_addendum_check "$heading_script" "$doc"; then
+    if ! run_heading_addendum_check "$heading_script" "$doc" "$tests_output"; then
       echo "[FAIL] 規約-見出し: ${doc} が設計書の書き方の検査に不合格です" >&2
       ok=0
     fi
@@ -643,6 +644,66 @@ RUNOFFJSON
     bash "$SCRIPT_DIR/check-basic-design.sh" "$d1n" --run "$run1n" --kind screen > "$base/case1n.out" 2>"$base/case1n.err"
     check "テスト設計書の出力-出力しない: 単体テスト設計書が無くても合格" "$([ $? -eq 0 ] && echo 0 || echo 1)"
 
+    # --- テスト設計書の出力-出力しない（api種別・共有見出しチェッカー経由）: 単体テスト設計書が無くても合格 ---
+    local d1napi="$base/case1-tests-off-api" run1napi="$base/run1-tests-off-api"
+    mkdir -p "$d1napi/docs/design/lists" "$run1napi/code-readings/api" \
+             "$d1napi/docs/design/apis/api_orders"
+    cat > "$d1napi/docs/design/lists/api.json" <<'APIFIXEOF'
+[
+  {"種別":"api","識別子":"api/orders","名前":"orders","場所":"api/orders","根拠":"api/orders","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+APIFIXEOF
+    cat > "$run1napi/code-readings/api/api_orders.json" <<'APIFACTEOF'
+{"種別":"api","識別子":"api/orders","名前":"orders","場所":"api/orders",
+ "属するファイル":[],
+ "読み取り結果":{},
+ "未":[],"取り出した実行":"self-test"}
+APIFACTEOF
+    cat > "$d1napi/docs/design/apis/api_orders/API基本設計書.md" <<'APIDOCEOF'
+# orders API基本設計書
+
+## §1 外部仕様
+**この節の位置づけ: 現行実装**
+
+注文の一覧を返す。
+
+## §2 業務仕様
+**この節の位置づけ: 現行実装**
+
+受注済みの注文だけを返す。
+
+## §3 方式設計
+**この節の位置づけ: 現行実装**
+
+共通設計文書に従う。
+
+## §4 データ仕様
+**この節の位置づけ: 現行実装**
+
+注文の論理データモデルを参照する。
+
+## §5 エラーと例外
+**この節の位置づけ: 現行実装**
+
+認証エラーは401を返す。
+
+## §6 関連資料
+**この節の位置づけ: 現行実装**
+
+- なし
+APIDOCEOF
+    cat > "$run1napi/run.json" <<'RUNOFFAPIJSON'
+{
+  "テスト設計書の出力": "出力しない"
+}
+RUNOFFAPIJSON
+    bash "$SCRIPT_DIR/check-basic-design.sh" "$d1napi" --run "$run1napi" --kind api > "$base/case1napi.out" 2>"$base/case1napi.err"
+    local rc1napi=$?
+    check "テスト設計書の出力-出力しない（api種別）: 単体テスト設計書が無くても合格" "$([ "$rc1napi" -eq 0 ] && echo 0 || echo 1)"
+    if [ "$rc1napi" -ne 0 ]; then
+      printf '%s\n' "$(cat "$base/case1napi.err")" | sed 's/^/    /' >&2
+    fi
+
     # --- テスト設計書の出力-出力する: 単体テスト設計書が無ければ文書-不在 ---
     local d1y="$base/case1-tests-on" run1y="$base/run1-tests-on"
     make_fixture "$d1y"
@@ -889,6 +950,7 @@ FEATTESTDOCEOF
   else
     skip_case "合格-見本"
     skip_case "テスト設計書の出力-出力しない: 単体テスト設計書が無くても合格"
+    skip_case "テスト設計書の出力-出力しない（api種別）: 単体テスト設計書が無くても合格"
     skip_case "テスト設計書の出力-出力する: 終了コード1"
     skip_case "テスト設計書の出力-出力する: 理由に文書-不在"
     skip_case "不合格-文書不在"
