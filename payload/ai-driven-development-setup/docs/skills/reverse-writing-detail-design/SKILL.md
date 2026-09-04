@@ -28,7 +28,7 @@ acceptance: tests/
 - 対象リポジトリの `ai-work/records/basic-design-acceptance/<種別>-<単位のフォルダ名>.json` に、当該単位の合格の記録があること
 - 合格の記録の確認は次のコマンドで行う
   ```bash
-  bash ../reverse-checking-basic-phase/scripts/check-acceptance-record.sh <対象リポジトリのルート> --kind <種別> --unit <識別子>
+  bash ../reverse-shared/scripts/check-acceptance-record.sh <対象リポジトリのルート> --kind <種別> --unit <識別子>
   ```
 - 実行フォルダの `facts/<種別>/<単位のフォルダ名>.json` に、当該単位の事実があること（工程2-4の出力）
 - 単位の一覧は `../reverse-shared/scripts/list-units-of.sh <対象リポジトリのルート> <種別>` で読む
@@ -44,7 +44,7 @@ acceptance: tests/
 3. 種別ごとに、`bash ../reverse-shared/scripts/list-units-of.sh <対象リポジトリのルート> <種別>` で一覧を得る
 4. 単位ごとに次を実行する。終了コードが0でなく、合格の記録の判定が「保留」であればこの単位を飛ばす。保留でなければ止まり、工程2-5・2-6（事実の不足なら工程2-4も）へ差し戻す
    ```bash
-   bash ../reverse-checking-basic-phase/scripts/check-acceptance-record.sh <対象リポジトリのルート> --kind <種別> --unit <識別子> --design-root <設計書の置き場>
+   bash ../reverse-shared/scripts/check-acceptance-record.sh <対象リポジトリのルート> --kind <種別> --unit <識別子> --design-root <設計書の置き場>
    ```
 5. 種別に対応する `templates/<種別key>/` 配下の様式（後述「種別ごとの様式」表）を、`docs/design/<フォルダ>/<単位のフォルダ名>/` へ複製する
 6. 事実（`facts/<種別>/<単位のフォルダ名>.json`）・基本設計書・共通処理の詳細設計書・一覧の属するファイルを読み、様式を埋める。事実の値をそのまま本文に転記し、コードの名前だけの記述にしない。設計の理由は `理由（観測）:`（実測に基づく）／`理由（推定）:`（実測から読み取れない）の形で書く
@@ -117,7 +117,7 @@ acceptance: tests/
 
 **必要性**: 詳細設計書はコードと1対1でなければならず、事実の網羅・対応するファイルの一致・基本設計書との整合という3つの照合は、単位数が対象ごとに違う中で人手で数えると見落とす。
 
-合格の記録の確認（入口）は自前で再実装しない。`reverse-checking-basic-phase` の `check-acceptance-record.sh` に委ねる。単位の一覧と識別子からフォルダ名を得る処理も `reverse-shared` の共有部品に委ねる。こうすることで、判定方法の変更が本スクリプト以外にも及ばないようにする。
+合格の記録の確認（入口）は自前で再実装しない。`reverse-shared` の `check-acceptance-record.sh` に委ねる。単位の一覧と識別子からフォルダ名を得る処理も `reverse-shared` の共有部品に委ねる。こうすることで、判定方法の変更が本スクリプト以外にも及ばないようにする。
 
 **代替案を採用しなかった理由**:
 - 事実の網羅を自己レビューだけで確かめる: 単位数・項目数が対象ごとに違うため、見落としが工程2-9（テスト設計）以降まで気付かれない

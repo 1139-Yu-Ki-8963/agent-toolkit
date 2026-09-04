@@ -10,7 +10,7 @@ category: setup
 kind: none
 inputs: [docs/design/common/道標.md, ai-work/records/basic-design-acceptance/common-*.json]
 outputs: [docs/design/common/共通処理の詳細設計書.md]
-requires: [reverse-checking-basic-phase]
+requires: [reverse-writing-basic-design]
 acceptance: tests/
 ---
 <!-- 生成物: 定義は支援ツールの正本リポジトリの docs/skills/reverse-writing-common-detail-design/ にある（この配布物には含まれない）。直接編集しないこと -->
@@ -26,14 +26,14 @@ acceptance: tests/
 ## 前提
 
 - 対象リポジトリの `docs/design/common/道標.md` の節7「共通方式の場所」に、方式ごとの実装の場所（複数のパスは `;` 区切り）があること
-- 対象リポジトリの `ai-work/records/basic-design-acceptance/common-*.json` に、共通設計文書の合格の記録があること。確認は `../reverse-checking-basic-phase/scripts/check-acceptance-record.sh <対象リポジトリのルート> --common` で行う
+- 対象リポジトリの `ai-work/records/basic-design-acceptance/common-*.json` に、共通設計文書の合格の記録があること。確認は `../reverse-shared/scripts/check-acceptance-record.sh <対象リポジトリのルート> --common` で行う
 - 実行フォルダ（統括の実行の開始スクリプトが作る）は使わない。共通処理の詳細設計書は対象リポジトリの `docs/design/common/` に直接書く
 
 ## 手順
 
 1. 次を実行し、終了コードが0であることを確かめる。0でなければ止まり、工程2-6（基本設計の完了判定）へ差し戻す
    ```bash
-   bash ../reverse-checking-basic-phase/scripts/check-acceptance-record.sh <対象リポジトリのルート> --common
+   bash ../reverse-shared/scripts/check-acceptance-record.sh <対象リポジトリのルート> --common
    ```
 2. `templates/共通処理の詳細設計書.md` を `docs/design/common/共通処理の詳細設計書.md` へ複製する
 3. 道標の節7の方式のうち、実装の場所が「なし」でないものだけを残す（「なし」の方式の節は削除する）
@@ -59,7 +59,7 @@ acceptance: tests/
 
 **必要性**: 共通処理の詳細設計書は道標の節7に対応する節をすべて持たなければならない。方式の数と場所は対象ごとに違うため、機械で道標を読み、節の欠落・位置づけの欠落・小節の欠落・未記入・file:lineを一括で確かめる必要がある。
 
-判定方法の入口（合格の記録の有無）は自前で再実装しない。`reverse-checking-basic-phase` の `check-acceptance-record.sh` に委ねることで、合格の記録の形が変わっても本スクリプトを直さずに済む。
+判定方法の入口（合格の記録の有無）は自前で再実装しない。`reverse-shared` の `check-acceptance-record.sh` に委ねることで、合格の記録の形が変わっても本スクリプトを直さずに済む。
 
 **代替案を採用しなかった理由**:
 - 手順書の注意書きだけにする: 方式の数が対象ごとに違うため、節の書き漏れが後工程（単位の詳細設計）で初めて見つかる

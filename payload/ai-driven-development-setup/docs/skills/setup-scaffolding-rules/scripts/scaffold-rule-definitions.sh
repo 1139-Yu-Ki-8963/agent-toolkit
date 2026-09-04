@@ -21,11 +21,18 @@ set -euo pipefail
 #   （既存なら上書きしない保護つきで）同時に配る。
 #
 # 使い方:
-#   scaffold-rule-definitions.sh <出力先リポジトリルート> [--apply]
+#   scaffold-rule-definitions.sh <出力先リポジトリルート> [--apply] [--only <key,key,...>]
 #   scaffold-rule-definitions.sh --self-test
 #
 # 既定はdry-run。生成予定のパスを標準出力へ列挙するのみで書き込みをしない。
 # --apply を付けたときだけ出力先リポジトリルートへ実際に書き込む。
+#
+# --only <key,key,...>: 配置する子カテゴリをカンマ区切りのキーで絞り込む。
+#   未指定なら従来どおり32子カテゴリすべてを配置する。指定した場合、選ばな
+#   かった子を1件も持たない親はparent.ymlも作らない。横断の検査
+#   （ai-config-asset-management の検証・生成スクリプトの配備）と
+#   project-context の生成は、一覧に ai-config-asset-management が
+#   含まれるときだけ行う。
 #
 # 既存ファイルの扱い:
 #   parent.yml・design-notes.md・SKILL.md は、既に存在する場合は上書きしない
@@ -90,6 +97,23 @@ RULE_NEW=0
 RULE_EXIST=0
 OTHER_NEW=0
 OTHER_EXIST=0
+
+# --only <key,key,...> で配置する子カテゴリを絞り込むときの選択集合。
+# 空文字（既定）は「全子カテゴリを選択」を意味する。カンマ区切りの値を
+# スペース区切りへ変換して保持する（_only_keys_selected の走査のため）。
+ONLY_KEYS=""
+
+# 子カテゴリキーがONLY_KEYSの選択対象かどうかを判定する。
+# ONLY_KEYSが空（--only未指定）なら常に真（全件選択）を返す。
+_only_keys_selected() {
+  local key="$1"
+  [ -z "$ONLY_KEYS" ] && return 0
+  local k
+  for k in $ONLY_KEYS; do
+    [ "$k" = "$key" ] && return 0
+  done
+  return 1
+}
 
 plan_add() {
   PLAN_LINES="${PLAN_LINES}${1}
@@ -768,7 +792,6 @@ run_scaffold() {
     local parent_dir="${out_root}/docs/rules/${pkey}"
     local parent_yml_content
     parent_yml_content="$(build_parent_yml "$pkey" "$ptitle")"
-    write_if_new "${parent_dir}/parent.yml" "$parent_yml_content" "other"
 
     local child_lines cline
     child_lines="$(printf '%s' "$pline" | jq -c '.children[]')"
@@ -779,6 +802,9 @@ run_scaffold() {
     if [ -n "$extra_children" ]; then
       child_lines="$(printf '%s\n%s' "$child_lines" "$extra_children")"
     fi
+    # --only による絞り込みで、この親の子を1件も選ばなかった場合は
+    # parent.yml も作らない（選ばなかった規約の空フォルダだけの親を残さない）。
+    local parent_had_selected=0
     while IFS= read -r cline; do
       [ -n "$cline" ] || continue
       local ckey ctitle csummary ctool cscope cpaths cuncheckable cappliesWhen cchecker
@@ -786,6 +812,10 @@ run_scaffold() {
       if [ -n "$restrict_ckey" ] && [ "$ckey" != "$restrict_ckey" ]; then
         continue
       fi
+      if ! _only_keys_selected "$ckey"; then
+        continue
+      fi
+      parent_had_selected=1
       ctitle="$(printf '%s' "$cline" | jq -r '.title')"
       csummary="$(printf '%s' "$cline" | jq -r '.summary')"
       ctool="$(printf '%s' "$cline" | jq -r '.toolDefined')"
@@ -872,29 +902,42 @@ run_scaffold() {
     done <<EOF
 $child_lines
 EOF
+
+    # --only の選択に1件も一致しなかった親は parent.yml を作らない。
+    # --only 未指定（ONLY_KEYS空）なら常に書く（従来どおり）。
+    if [ -z "$ONLY_KEYS" ] || [ "$parent_had_selected" -eq 1 ]; then
+      write_if_new "${parent_dir}/parent.yml" "$parent_yml_content" "other"
+    fi
   done <<EOF
 $parent_lines
 EOF
 
-  # 実装フローのゲートが必須とする flow-values.yml は規約ではないため、
-  # 従来どおり .claude/rules/ へ直接書く（既存なら上書きしない）。
-  # project-context/rule.md は docs/rules/agent-operations/project-context/rule.md を
-  # 定義として書き、.claude/rules/ 側は build-derived-rules.sh が派生させる
-  # （既存なら上書きしない）。
-  write_if_new "${out_root}/.claude/rules/always/project-context/flow-values.yml" "$(build_flow_values_yml)" "other"
-  write_if_new "${out_root}/docs/rules/agent-operations/project-context/rule.md" "$(build_project_context_rule_content "$out_root")" "other"
+  # 実装フローのゲートが必須とする flow-values.yml・project-context/rule.md・
+  # 横断の検査（ai-config-asset-management の各検証・生成スクリプト）の配備は、
+  # --only の選択に ai-config-asset-management が含まれるとき（または
+  # --only 未指定で全件選択のとき）だけ行う。--only で他カテゴリだけを
+  # 選んだ場合はここを丸ごと飛ばす。
+  if _only_keys_selected "ai-config-asset-management"; then
+    # 実装フローのゲートが必須とする flow-values.yml は規約ではないため、
+    # 従来どおり .claude/rules/ へ直接書く（既存なら上書きしない）。
+    # project-context/rule.md は docs/rules/agent-operations/project-context/rule.md を
+    # 定義として書き、.claude/rules/ 側は build-derived-rules.sh が派生させる
+    # （既存なら上書きしない）。
+    write_if_new "${out_root}/.claude/rules/always/project-context/flow-values.yml" "$(build_flow_values_yml)" "other"
+    write_if_new "${out_root}/docs/rules/agent-operations/project-context/rule.md" "$(build_project_context_rule_content "$out_root")" "other"
 
-  if [ "$APPLY" -eq 1 ]; then
-    plan_add "docs/rules/agent-operations/ai-config-asset-management/build-derived-rules.sh（--deploy-rule-scriptsで配備）"
-    plan_add "docs/rules/agent-operations/ai-config-asset-management/validate-rule-definitions.sh（--deploy-rule-scriptsで配備）"
-    plan_add "docs/rules/agent-operations/ai-config-asset-management/check-rule-drift.sh（--deploy-rule-scriptsで配備）"
-    plan_add "docs/rules/agent-operations/ai-config-asset-management/resolve-applicable-rules.sh（--deploy-rule-scriptsで配備）"
-    bash "$BUILD_DERIVED_SCRIPT" --deploy-rule-scripts "$out_root"
-  else
-    plan_add "${out_root}/docs/rules/agent-operations/ai-config-asset-management/build-derived-rules.sh"
-    plan_add "${out_root}/docs/rules/agent-operations/ai-config-asset-management/validate-rule-definitions.sh"
-    plan_add "${out_root}/docs/rules/agent-operations/ai-config-asset-management/check-rule-drift.sh"
-    plan_add "${out_root}/docs/rules/agent-operations/ai-config-asset-management/resolve-applicable-rules.sh"
+    if [ "$APPLY" -eq 1 ]; then
+      plan_add "docs/rules/agent-operations/ai-config-asset-management/build-derived-rules.sh（--deploy-rule-scriptsで配備）"
+      plan_add "docs/rules/agent-operations/ai-config-asset-management/validate-rule-definitions.sh（--deploy-rule-scriptsで配備）"
+      plan_add "docs/rules/agent-operations/ai-config-asset-management/check-rule-drift.sh（--deploy-rule-scriptsで配備）"
+      plan_add "docs/rules/agent-operations/ai-config-asset-management/resolve-applicable-rules.sh（--deploy-rule-scriptsで配備）"
+      bash "$BUILD_DERIVED_SCRIPT" --deploy-rule-scripts "$out_root"
+    else
+      plan_add "${out_root}/docs/rules/agent-operations/ai-config-asset-management/build-derived-rules.sh"
+      plan_add "${out_root}/docs/rules/agent-operations/ai-config-asset-management/validate-rule-definitions.sh"
+      plan_add "${out_root}/docs/rules/agent-operations/ai-config-asset-management/check-rule-drift.sh"
+      plan_add "${out_root}/docs/rules/agent-operations/ai-config-asset-management/resolve-applicable-rules.sh"
+    fi
   fi
 
   if [ "$APPLY" -eq 1 ]; then
@@ -1964,6 +2007,41 @@ EOF
     rc=1
   fi
 
+  # ケース23（--only による絞り込み）: 別々の親に属する2件のキー
+  #   （code-standards/naming・quality-assurance/test-policy）だけを選ぶと、
+  #   その2件だけが配置され、選ばなかった子・選ばなかった子しか持たない親の
+  #   parent.yml・project-context/flow-values.yml（ai-config-asset-management
+  #   が一覧に無いため）は作られないことを確認する。
+  local ok23=1 out23
+  if ! out23="$(mktemp -d "${TMPDIR:-/tmp}/scaffold-rule-definitions-self-test-out23.XXXXXX" 2>/dev/null)" || [ -z "$out23" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  APPLY=1
+  ONLY_KEYS="naming test-policy"
+  capture_scaffold "$out23"
+  ONLY_KEYS=""
+  if [ "$scaffold_rc" -ne 0 ]; then
+    ok23=0
+    echo "  [FAIL] ケース23: --only指定の実行自体が失敗した" >&2
+    print_scaffold_failure
+  else
+    [ -f "${out23}/docs/rules/code-standards/naming/rule.md" ] || { ok23=0; echo "  [FAIL] ケース23: 選んだキー(naming)のrule.mdが作られない" >&2; }
+    [ -f "${out23}/docs/rules/quality-assurance/test-policy/rule.md" ] || { ok23=0; echo "  [FAIL] ケース23: 選んだキー(test-policy)のrule.mdが作られない" >&2; }
+    [ -f "${out23}/docs/rules/code-standards/parent.yml" ] || { ok23=0; echo "  [FAIL] ケース23: 選んだ子を持つ親(code-standards)のparent.ymlが作られない" >&2; }
+    [ -f "${out23}/docs/rules/quality-assurance/parent.yml" ] || { ok23=0; echo "  [FAIL] ケース23: 選んだ子を持つ親(quality-assurance)のparent.ymlが作られない" >&2; }
+    [ -f "${out23}/docs/rules/code-standards/coding-style/rule.md" ] && { ok23=0; echo "  [FAIL] ケース23: 選ばなかった子(coding-style)のrule.mdが作られた" >&2; }
+    [ -e "${out23}/docs/rules/agent-operations" ] && { ok23=0; echo "  [FAIL] ケース23: 選んだ子を1件も持たない親(agent-operations)のフォルダが作られた" >&2; }
+    [ -f "${out23}/.claude/rules/always/project-context/flow-values.yml" ] && { ok23=0; echo "  [FAIL] ケース23: --onlyにai-config-asset-managementが無いのにflow-values.ymlが作られた" >&2; }
+    [ -f "${out23}/docs/rules/agent-operations/project-context/rule.md" ] && { ok23=0; echo "  [FAIL] ケース23: --onlyにai-config-asset-managementが無いのにproject-context/rule.mdが作られた" >&2; }
+  fi
+  rm -rf "$out23"
+  if [ "$ok23" -eq 1 ]; then
+    echo "  [PASS] ケース23: --only指定で選んだ子だけが配置され、選ばなかった親・project-contextは作られない"
+  else
+    rc=1
+  fi
+
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
   else
@@ -1982,23 +2060,36 @@ main() {
     exit $?
   fi
 
-  local out_root="" apply_flag=0
+  local out_root="" apply_flag=0 only_arg=""
   local args=()
-  for a in "$@"; do
+  local argv=("$@")
+  local i=0
+  while [ "$i" -lt "${#argv[@]}" ]; do
+    local a="${argv[$i]}"
     case "$a" in
       --apply) apply_flag=1 ;;
+      --only)
+        i=$((i + 1))
+        only_arg="${argv[$i]:-}"
+        ;;
+      --only=*) only_arg="${a#--only=}" ;;
       *) args+=("$a") ;;
     esac
+    i=$((i + 1))
   done
 
   if [ "${#args[@]}" -ne 1 ]; then
-    echo "使い方: $(basename "$0") <出力先リポジトリルート> [--apply]" >&2
+    echo "使い方: $(basename "$0") <出力先リポジトリルート> [--apply] [--only <key,key,...>]" >&2
     echo "        $(basename "$0") --self-test" >&2
     exit 1
   fi
 
   out_root="${args[0]}"
   APPLY="$apply_flag"
+  # --only <key,key,...> はカンマ区切りをスペース区切りへ変換して
+  # ONLY_KEYS（run_scaffold内のグローバル選択集合）へ渡す。未指定なら
+  # 空文字のままとし、run_scaffoldは全32子カテゴリを従来どおり処理する。
+  ONLY_KEYS="$(printf '%s' "$only_arg" | tr ',' ' ')"
 
   run_scaffold "$out_root"
   exit $?

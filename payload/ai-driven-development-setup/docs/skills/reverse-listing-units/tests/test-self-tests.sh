@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -u
 
-# test-self-tests.sh — list-units.sh --self-test を実行し、合否を報告する。
+# test-self-tests.sh — list-units.sh・check-requirement-mapping.sh の --self-test を実行し、合否を報告する。
 # set -e は使わない。失敗しても最後まで実行し、失敗本数を数えるためである。
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -26,6 +26,7 @@ run_one() {
 }
 
 run_one "list-units.sh" "${SCRIPTS_DIR}/list-units.sh"
+run_one "check-requirement-mapping.sh" "${SCRIPTS_DIR}/check-requirement-mapping.sh"
 
 echo "実行 ${TOTAL} 件 / 失敗 ${FAIL} 件"
 if [ "$FAIL" -gt 0 ]; then

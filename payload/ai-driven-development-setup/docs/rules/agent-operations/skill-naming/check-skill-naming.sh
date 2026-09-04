@@ -188,6 +188,8 @@ judge_one() {
   v_invocation="$(fm_scalar "$body" invocation)"
   v_ja="$(fm_scalar "$body" 日本語名)"
   v_unit="$(fm_scalar "$body" unit)"
+  local v_type
+  v_type="$(fm_scalar "$body" type)"
 
   if [ "$v_name" != "$name" ] || [ "$v_invocation" != "$name" ]; then
     echo "[FAIL] ${name}: 名前は3か所で一致し日本語名を持つ: name='${v_name}' invocation='${v_invocation}' がフォルダ名と不一致"
@@ -199,6 +201,10 @@ judge_one() {
   fi
   if [ -n "$v_unit" ] && [ "$v_unit" != "$first_tok" ]; then
     echo "[FAIL] ${name}: 単位・作業・対象の3語で組む: 宣言のunit '${v_unit}' が先頭の語 '${first_tok}' と不一致"
+    fail=1
+  fi
+  if [ "$v_type" = "check" ]; then
+    echo "[FAIL] ${name}: 検査だけの機能を作らない: 宣言のtypeがcheck"
     fail=1
   fi
 
@@ -493,6 +499,28 @@ run_self_test() {
     pass=$((pass + 1))
   else
     echo "  [FAIL] ケース12: 日本語名欠落を検出できなかった" >&2
+    fail=$((fail + 1))
+  fi
+
+  # ケース12b: 宣言のtypeがcheck
+  mkdir -p "${tmp}/skills-typecheck/setup-syncing-rules"
+  {
+    echo "---"
+    echo "name: setup-syncing-rules"
+    echo "日本語名: テスト"
+    echo "description: \"テスト用。\""
+    echo "invocation: setup-syncing-rules"
+    echo "type: check"
+    echo "unit: setup"
+    echo "---"
+    echo ""
+  } > "${tmp}/skills-typecheck/setup-syncing-rules/SKILL.md"
+  _out="$(bash "${BASH_SOURCE[0]}" "${tmp}/skills-typecheck" 2>&1 || true)"
+  if printf '%s' "$_out" | grep -q '検査だけの機能を作らない'; then
+    echo "  [PASS] ケース12b: 宣言のtypeがcheckの違反を検出"
+    pass=$((pass + 1))
+  else
+    echo "  [FAIL] ケース12b: type:checkの違反を検出できなかった" >&2
     fail=$((fail + 1))
   fi
 

@@ -6,15 +6,14 @@
 
 ## 単位と機能の一覧
 
-機能は単位（setup・reverse など）ごとに `docs/skills/<単位>-<作業>-<対象>/` へ定義します。現時点で定義済みの機能は次の 15 件です。
+機能は単位（setup・reverse など）ごとに `docs/skills/<単位>-<作業>-<対象>/` へ定義します。現時点で定義済みの機能は次の 12 件です。
 
 ### setup 単位
 
 | 機能名 | 日本語名 | 何をするか | 誰が使うか |
 |---|---|---|---|
-| setup-orchestrating-units | セットアップの統括 | 機能の宣言（入力・出力・requires）を読んで実行順を組み立て、選んだ単位の機能を順に実行して対象リポジトリへ基盤一式を作る | 支援ツールの開発者 |
+| setup-orchestrating-units | セットアップの統括 | 機能の宣言（入力・出力・requires）を読んで実行順を組み立て、選んだ単位の機能を順に実行して対象リポジトリへ基盤一式を作り、完了時に全機能のtestsを回して合格を集計する | 支援ツールの開発者 |
 | setup-deriving-skills | 機能の派生 | `docs/skills` の機能の定義を検査し、`.claude/skills` へ派生させる | 支援ツールの開発者 |
-| setup-checking-acceptance | 合格の集計 | 機能の tests を実行し、機能・単位・要件の 3 階層で合格を集計し、欠落を 0 件で要求する | 支援ツールの開発者 |
 | setup-deriving-rules | 規約の派生 | `docs/rules` の規約の定義から `.claude/rules`・`.cursor/rules`・`AGENTS.md` の索引・hooks の登録を生成する | 納品先 |
 | setup-scaffolding-rules | 規約の配置 | 対象リポジトリの `docs/rules` へ、規約の定義と検査スクリプトを配置する | 納品先 |
 
@@ -23,19 +22,17 @@
 | 機能名 | 日本語名 | 何をするか | 誰が使うか |
 |---|---|---|---|
 | reverse-drawing-map | 道標を描く | 対象コードを領域ごとに読み、検出条件を含む道標・承認用の要約・要件定義書・共通設計文書を書き、機械検査と自己レビューで出し直して範囲の承認を得る（第一フェーズ） | 支援ツールの開発者 |
-| reverse-listing-units | 一覧を作る | 道標の検出条件を実行して対象リポジトリを走査し、種別ごとの単位の一覧と元データを作り、候補数と実測の差を報告する（第二フェーズの最初） | 支援ツールの開発者 |
-| reverse-checking-requirements | 要件定義書を裏付ける | 機能と単位の対応表を書き、要件定義書の機能要件と一覧の全単位が対応表に載ることを機械検査する（工程2-2） | 支援ツールの開発者 |
+| reverse-listing-units | 一覧を作る | 道標の検出条件を実行して対象リポジトリを走査し、種別ごとの単位の一覧と元データを作り、候補数と実測の差を報告する。完了時に機能と単位の対応表を書き、要件定義書の機能要件と一覧の全単位が対応表に載ることを機械検査する（第二フェーズの最初、工程2-2を含む） | 支援ツールの開発者 |
 | reverse-writing-foundation-guides | 基盤文書を書く | 技術スタック・環境構築手順書を書き、依存の定義との対応と秘密の値の不在を機械検査する（工程2-3） | 支援ツールの開発者 |
 | reverse-extracting-facts | 単位の事実を取り出す | 道標の取り出しの規則を実行して単位ごとに事実ファイルを作り、機械で埋まらない項目をAIが読んで埋める（工程2-4） | 支援ツールの開発者 |
 | reverse-writing-basic-design | 基本設計書を書く | 事実・共通設計文書・要件定義書を読み、単位ごとの基本設計書・単体テスト設計書・機能の集約設計書を書き、様式と事実の転記を機械検査する（工程2-5） | 支援ツールの開発者 |
-| reverse-checking-basic-phase | 基本設計の完了を判定する | 基本設計書と共通設計文書を観点表でレビューし、単位・共通設計文書ごとに合否を記録する（工程2-6） | 支援ツールの開発者 |
 | reverse-writing-common-detail-design | 共通処理の詳細設計書を書く | 道標の共通方式の場所を読み、共通処理の詳細設計書を方式ごとに書き、節の構成と位置づけを機械検査する（工程2-7） | 支援ツールの開発者 |
 | reverse-writing-detail-design | 詳細設計書を書く | 事実・基本設計書・共通処理の詳細設計書を読み、コードと1対1の詳細設計書（表はテーブル定義書）を単位ごとに書き、事実の網羅と整合を機械検査する（工程2-8） | 支援ツールの開発者 |
 | reverse-orchestrating-flow | リバースの統括 | reverse単位の機能の宣言を読んで実行順を組み立て、実行フォルダを作ってから各機能を順に実行し、出力の範囲で打ち切る | 支援ツールの開発者 |
 
 ## setup の機能の位置づけ
 
-規約の配置（setup-scaffolding-rules）と規約の派生（setup-deriving-rules）は納品先で使います。機能の派生（setup-deriving-skills）・合格の集計（setup-checking-acceptance）は、支援ツール自身の道具です。統括（setup-orchestrating-units）も同様に、支援ツール自身の道具です。納品先では `docs/skills`（運用の単位の機能定義）ができてから、これらの機能を使います。
+規約の配置（setup-scaffolding-rules）と規約の派生（setup-deriving-rules）は納品先で使います。機能の派生（setup-deriving-skills）は、支援ツール自身の道具です。統括（setup-orchestrating-units）は完了時の処理として合格を集計し、同様に支援ツール自身の道具です。納品先では `docs/skills`（運用の単位の機能定義）ができてから、これらの機能を使います。
 
 setup と reverse の両方を動かすときは統括（setup-orchestrating-units）だけを呼びます。reverse だけを単独で動かすときは、統括を経由せず「リバースの統括」（reverse-orchestrating-flow）を直接呼びます。実行フォルダを作る `start-run.sh` と実行順を組み立てる計算は両方の統括で共有し、実体は `docs/skills/reverse-shared/scripts/` に置きます。
 
@@ -45,14 +42,13 @@ setup と reverse の両方を動かすときは統括（setup-orchestrating-uni
 
 1. 実行の開始として、リバースの統括（reverse-orchestrating-flow）の `start-run.sh` で実行フォルダを作ります。reverseを単独で動かすときはこの機能を直接呼びます
 2. 道標を描きます（第一フェーズ。承認まで）。ここでは `reverse-drawing-map` を実行します
-3. 一覧を作ります（第二フェーズの最初）。ここでは `reverse-listing-units` を実行します
-4. 要件定義書を裏付けます。ここでは `reverse-checking-requirements` を実行します
-5. 基盤文書を書きます。ここでは `reverse-writing-foundation-guides` を実行します
-6. 単位の事実を取り出します。ここでは `reverse-extracting-facts` を実行します
-7. 単位の基本設計書を書きます。ここでは `reverse-writing-basic-design` を実行します
-8. 基本設計の完了を判定します。ここでは `reverse-checking-basic-phase` を実行します
-9. 共通処理の詳細設計書を書きます。ここでは `reverse-writing-common-detail-design` を実行します
-10. 単位の詳細設計書を書きます。ここでは `reverse-writing-detail-design` を実行します
+3. 一覧を作り、完了時に要件定義書を裏付けます（第二フェーズの最初）。ここでは `reverse-listing-units` を実行します
+4. 基盤文書を書きます。ここでは `reverse-writing-foundation-guides` を実行します
+5. 単位の事実を取り出します。ここでは `reverse-extracting-facts` を実行します
+6. 単位の基本設計書を書きます。ここでは `reverse-writing-basic-design` を実行します
+7. 基本設計書を書く機能の完了時の処理として、単位ごとの合格を記録します。道標を描く機能の完了時の処理として、共通設計文書の合格を記録します
+8. 共通処理の詳細設計書を書きます。ここでは `reverse-writing-common-detail-design` を実行します
+9. 単位の詳細設計書を書きます。ここでは `reverse-writing-detail-design` を実行します
 
 前提として、対象リポジトリのコミットは実行の開始時点に固定し、出力の置き場は実行フォルダの下に決めます。全工程を通じて、人の判断が必要になる場面は範囲の承認・確認事項の提示・完了の受け入れの 3 回だけです。
 
@@ -77,7 +73,7 @@ setup と reverse の両方を動かすときは統括（setup-orchestrating-uni
 | 出力の範囲 | 打ち切り位置 |
 |---|---|
 | 一覧まで | `reverse-listing-units`（単位の一覧を作るところまで） |
-| 基本設計まで | `reverse-checking-basic-phase`（基本設計の完了を判定するところまで） |
+| 基本設計まで | `reverse-writing-basic-design`（単位の基本設計書を書き、完了時に合格を記録するところまで） |
 | 全部 | 打ち切らず、詳細設計・テスト設計以降まで全て実行します |
 
 ## 制約

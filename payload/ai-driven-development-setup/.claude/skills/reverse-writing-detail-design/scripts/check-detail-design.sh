@@ -22,7 +22,7 @@ set -u
 #   ../../reverse-shared/scripts/list-units-of.sh   一覧の取得
 #   ../../reverse-shared/scripts/unit-dir-name.sh    識別子からフォルダ名を得る
 #   ../../reverse-shared/references/unit-kinds.json  種別キーとフォルダの対応
-#   ../../reverse-checking-basic-phase/scripts/check-acceptance-record.sh  合格の記録の確認
+#   ../../reverse-shared/scripts/check-acceptance-record.sh  合格の記録の確認
 #
 # 検査キー（内容を要約した意味語。連番禁止）:
 #   検査基盤-不在      上記の依存スクリプト・定義が見つからない（判定不能）
@@ -70,7 +70,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 LIST_UNITS_OF="${SCRIPT_DIR}/../../reverse-shared/scripts/list-units-of.sh"
 UNIT_DIR_NAME="${SCRIPT_DIR}/../../reverse-shared/scripts/unit-dir-name.sh"
 UNIT_KINDS_JSON="${SCRIPT_DIR}/../../reverse-shared/references/unit-kinds.json"
-ACCEPTANCE_RECORD_CHECK="${SCRIPT_DIR}/../../reverse-checking-basic-phase/scripts/check-acceptance-record.sh"
+ACCEPTANCE_RECORD_CHECK="${SCRIPT_DIR}/../../reverse-shared/scripts/check-acceptance-record.sh"
 
 FAIL_COUNT=0
 PASS_COUNT=0
@@ -302,7 +302,7 @@ run_self_test() {
   local total=0 fail=0
 
   # 自分自身と依存(reverse-sharedのlist-units-of.sh・unit-dir-name.sh、
-  # reverse-checking-basic-phaseのcheck-acceptance-record.sh。いずれも別担当が
+  # reverse-sharedのcheck-acceptance-record.sh。いずれも別担当が
   # 並行して構築する)を隔離したfixtureへ複製し、実リポジトリの構築状況に
   # 左右されずに検査ロジックを確かめる。unit-dir-name.shのスタブは規約
   # （agent-operations/skill-naming）に定めるのと同じ置換規則で実装する。
@@ -313,7 +313,7 @@ run_self_test() {
   local copy_dir="${fixture_root}/reverse-writing-detail-design/scripts"
   local shared_dir="${fixture_root}/reverse-shared/scripts"
   local shared_ref_dir="${fixture_root}/reverse-shared/references"
-  local record_dir="${fixture_root}/reverse-checking-basic-phase/scripts"
+  local record_dir="${fixture_root}/reverse-shared/scripts"
   mkdir -p "$copy_dir" "$shared_dir" "$shared_ref_dir" "$record_dir"
   cp "${self_dir}/${own_name}" "${copy_dir}/${own_name}"
   chmod +x "${copy_dir}/${own_name}"

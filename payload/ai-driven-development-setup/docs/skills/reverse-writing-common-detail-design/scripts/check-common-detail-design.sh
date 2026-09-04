@@ -19,9 +19,9 @@ set -u
 #
 # 入口:
 #   工程2-6（基本設計の完了判定）の共通設計文書の合格の記録が無ければ検査
-#   そのものを始めない。合否の確認は reverse-checking-basic-phase の
+#   そのものを始めない。合否の確認は reverse-shared の
 #   check-acceptance-record.sh（本スクリプトの場所から相対パスで解決する
-#   ../../reverse-checking-basic-phase/scripts/check-acceptance-record.sh <対象> --common）
+#   ../../reverse-shared/scripts/check-acceptance-record.sh <対象> --common）
 #   に委ね、本スクリプトは判定方法を再実装しない。
 #
 # 検査キー（内容を要約した意味語。連番禁止）:
@@ -49,7 +49,7 @@ set -u
 # macOS bash 3.2 互換（連想配列・mapfileは不使用）。jqは不使用。
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-ACCEPTANCE_RECORD_CHECK="${SCRIPT_DIR}/../../reverse-checking-basic-phase/scripts/check-acceptance-record.sh"
+ACCEPTANCE_RECORD_CHECK="${SCRIPT_DIR}/../../reverse-shared/scripts/check-acceptance-record.sh"
 
 FAIL_COUNT=0
 PASS_COUNT=0
@@ -187,7 +187,7 @@ run_self_test() {
   local total=0 fail=0
 
   # 自分自身を隔離したfixtureへ複製し、依存(check-acceptance-record.sh。
-  # reverse-checking-basic-phaseが別担当により並行して構築される)のスタブを
+  # reverse-shared が別担当により並行して構築される)のスタブを
   # 隣に置く。実リポジトリの構築状況に左右されずに検査ロジックを確かめる
   # ためである。
   local self_dir own_name
@@ -195,7 +195,7 @@ run_self_test() {
   own_name="$(basename "$0")"
   local fixture_root="${tmp}/fixture-skills"
   local copy_dir="${fixture_root}/reverse-writing-common-detail-design/scripts"
-  local record_dir="${fixture_root}/reverse-checking-basic-phase/scripts"
+  local record_dir="${fixture_root}/reverse-shared/scripts"
   mkdir -p "$copy_dir" "$record_dir"
   cp "${self_dir}/${own_name}" "${copy_dir}/${own_name}"
   chmod +x "${copy_dir}/${own_name}"

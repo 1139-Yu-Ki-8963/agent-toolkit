@@ -32,6 +32,7 @@ set -euo pipefail
 #                    共有部品（skill-naming規約が定める<単位>-sharedフォルダ）は
 #                    複数単位の統括から名指しで参照される設計上の例外であるため
 #   入出力-空        inputs・outputs が空でない配列である（requires は空を許す）
+#   型-検査だけ      type が transform・orchestration のいずれか（検査だけの機能は作らない）
 #
 # 名前の決まり（agent-operations/skill-naming）との連結:
 #   同じルートの兄弟に docs/rules/agent-operations/skill-naming/check-skill-naming.sh
@@ -188,12 +189,19 @@ validate_one_skill() {
     add_failure "$name" "宣言-鍵欠落" "必須13鍵のうち欠落: ${missing}"
   fi
 
-  local v_name v_invocation v_unit v_category v_acceptance
+  local v_name v_invocation v_unit v_category v_acceptance v_type
   v_name="$(fm_get_scalar "$body" name)"
   v_invocation="$(fm_get_scalar "$body" invocation)"
   v_unit="$(fm_get_scalar "$body" unit)"
   v_category="$(fm_get_scalar "$body" category)"
   v_acceptance="$(fm_get_scalar "$body" acceptance)"
+  v_type="$(fm_get_scalar "$body" type)"
+
+  # 型-検査だけ
+  case "$v_type" in
+    transform|orchestration) ;;
+    *) add_failure "$name" "型-検査だけ" "type(${v_type:-（空）})が transform/orchestration のいずれでもない（検査だけの機能は作らない）" ;;
+  esac
 
   # 名前-一致
   if [ "$v_name" != "$name" ] || [ "$v_invocation" != "$name" ]; then
@@ -554,6 +562,19 @@ self_test() {
   else
     fail=$((fail+1)); echo "  [FAIL] ケース9: inputsの空配列を検知しない (exit ${rc9})" >&2
     printf '%s\n' "$out9" | sed 's/^/    /' >&2
+  fi
+  rm -rf "${root:?}"/*
+
+  # ケース14（型-検査だけ）: typeをcheckにする
+  bst_write_valid_skill "$root" "setup-alpha" "setup"
+  sed -i.bak 's/^type: transform$/type: check/' "${root}/setup-alpha/SKILL.md" && rm -f "${root}/setup-alpha/SKILL.md.bak"
+  local out14 rc14=0
+  out14="$("$0" "$root" 2>&1)" || rc14=$?
+  if [ "$rc14" -eq 1 ] && printf '%s' "$out14" | grep -q '型-検査だけ'; then
+    pass=$((pass+1)); echo "  [PASS] ケース14: type=checkの検査だけの機能を検知（exit 1）"
+  else
+    fail=$((fail+1)); echo "  [FAIL] ケース14: type=checkを検知しない (exit ${rc14})" >&2
+    printf '%s\n' "$out14" | sed 's/^/    /' >&2
   fi
   rm -rf "${root:?}"/*
 

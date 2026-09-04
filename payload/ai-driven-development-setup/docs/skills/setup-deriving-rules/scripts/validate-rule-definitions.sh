@@ -154,6 +154,13 @@ _mk_tmp() {
 # taxonomy が checker 本体を漏れなく宣言していることを検査する。
 # $1: docs/rules のルート  $2: 分類定義ファイルのパス（--taxonomy。空なら検査を飛ばす）
 # parents[].children[] が配布する規約すべての宣言である。
+#
+# 「実在しない」（検査-実在）の判定は、docs/rules/<親>/<子> が実在する
+# （＝配置済みの）子カテゴリの宣言だけを対象にする。規約は分類定義の32件を
+# 選んで docs/rules へ配置する運用であり、未配置の子は「実在しない」の
+# 不具合ではなく単に「まだ配置していない」だけであるため、対象から外し
+# [SKIP] 件数として報告する。「宣言欠落」（実在するのに宣言が無い）は
+# 配置の有無に関わらず従来どおり検査する。
 validate_checker_declarations() {
   local root="$1" taxonomy="${2:-}"
   local actual declared duplicates undeclared missing rc=0 _ta _tb mktemp_ok=1
@@ -207,6 +214,45 @@ FINDEOF
   duplicates="$(printf '%s\n' "$declared" | LC_ALL=C uniq -d)"
   declared="$(printf '%s\n' "$declared" | LC_ALL=C sort -u)"
 
+  # 分類定義に無い自身の規約（taxonomyの32子カテゴリの外にある、対象
+  # リポジトリ自身のためのrule.md）は、front matterの checker: 宣言でも
+  # 宣言済みとして扱う（和集合）。分類定義に無い自身の規約は front matter
+  # の宣言で足りる。走査は checker本体と同じ深さ（<root>/<親>/<子>/rule.md）。
+  local fm_declared="" f_fm fm_body_fm fm_checker_fm
+  while IFS= read -r f_fm; do
+    [ -n "$f_fm" ] || continue
+    fm_body_fm="$(fm_extract "$f_fm" || true)"
+    fm_checker_fm="$(fm_get_scalar "$fm_body_fm" checker)"
+    if [ -n "$fm_checker_fm" ] && [ "$fm_checker_fm" != "null" ]; then
+      fm_declared="${fm_declared}${fm_checker_fm}
+"
+    fi
+  done <<FINDEOF
+$(find "$root" -mindepth 3 -maxdepth 3 -type f -name 'rule.md')
+FINDEOF
+  declared="$(printf '%s\n%s' "$declared" "$fm_declared" | LC_ALL=C sort -u)"
+
+  # 「実在しない」（検査-実在）の判定材料は、taxonomy 全体ではなく配置済みの
+  # 子カテゴリだけに絞る。docs/rules/<親>/<子> が実在しない子は、まだ選んで
+  # 配置していないだけであり、「宣言したcheckerが実在しない」の不合格には
+  # しない。件数だけ [SKIP] で報告する。
+  local declared_placed="" skip_count=0 p_key c_key c_checker
+  while IFS=$'\t' read -r p_key c_key c_checker; do
+    [ -n "$c_checker" ] || continue
+    if [ -d "${root}/${p_key}/${c_key}" ]; then
+      declared_placed="${declared_placed}${c_checker}
+"
+    else
+      skip_count=$((skip_count + 1))
+    fi
+  done <<FINDEOF
+$(jq -r '.parents[] | .key as $p | .children[] | select(.checker) | [$p, .key, .checker] | @tsv' "$taxonomy")
+FINDEOF
+  declared_placed="$(printf '%s\n%s' "$declared_placed" "$fm_declared" | LC_ALL=C sort -u)"
+  if [ "$skip_count" -gt 0 ]; then
+    echo "[SKIP] 配置していないため実在の判定から除外したchecker宣言: ${skip_count} 件"
+  fi
+
   if [ -n "$duplicates" ]; then
     echo "$taxonomy: [検査-宣言重複] 同じcheckerが複数回宣言されている: $(printf '%s' "$duplicates" | tr '\n' ' ')" >&2
     rc=1
@@ -229,6 +275,7 @@ FINDEOF
     printf '%s\n' "$actual" > "$_ta"
     printf '%s\n' "$declared" > "$_tb"
     undeclared="$(LC_ALL=C comm -23 "$_ta" "$_tb")"
+    printf '%s\n' "$declared_placed" > "$_tb"
     missing="$(LC_ALL=C comm -13 "$_ta" "$_tb")"
     rm -f "$_ta" "$_tb"
 
@@ -1164,6 +1211,112 @@ EOF
   fi
   rm -rf "$tool_root"
   rm -f "$tool_taxonomy"
+
+  # 分類定義に無い自身の規約（taxonomyの32子カテゴリの外にある、対象
+  # リポジトリ自身のためのrule.md）は、rule.md自身のfront matterで
+  # checker を宣言していれば「宣言欠落」にならないことを確認する。
+  local fm_root fm_taxonomy fm_out fm_rc=0
+  if ! fm_root="$(mktemp -d "${TMPDIR:-/tmp}/validate-rule-definitions-self-test-fm.XXXXXX" 2>/dev/null)" || [ -z "$fm_root" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  st_write_valid_pair "$fm_root"
+  mkdir -p "${fm_root}/agent-operations/own-rule"
+  cat > "${fm_root}/agent-operations/own-rule/rule.md" <<'EOF'
+---
+key: own-rule
+title: 分類定義に無い自身の規約
+parent: agent-operations
+summary: taxonomyの32子カテゴリに含まれない、対象リポジトリ自身のための規約。
+scope: always
+paths: []
+enforcement: advisory
+checkable: true
+checker: check-own-rule.sh
+uncheckableReason: null
+formatter: none
+status: approved
+origin: manual
+workUnit: file
+---
+
+# 分類定義に無い自身の規約
+
+## 概要
+
+テスト用の概要。
+
+## 規則
+
+| 規則 | 内容 | 根拠 | 検査 |
+|---|---|---|---|
+| 例 | 例 | 例 | 静的解析: 例 |
+
+## このプロジェクトの規則
+
+| 規則 | 内容 | 根拠 | 検査 |
+|---|---|---|---|
+| 観測なし | 例 | 例 | 例 |
+
+## 違反時の手順
+
+1. 例
+EOF
+  cat > "${fm_root}/agent-operations/own-rule/check-own-rule.sh" <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+  chmod +x "${fm_root}/agent-operations/own-rule/check-own-rule.sh"
+  if ! fm_taxonomy="$(mktemp "${TMPDIR:-/tmp}/validate-rule-definitions-self-test-fm-taxonomy.XXXXXX" 2>/dev/null)" || [ -z "$fm_taxonomy" ]; then
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  cat > "$fm_taxonomy" <<'EOF'
+{"parents": [{"key":"code-standards","children":[{"key":"naming","checker":"check-naming.sh"}]}]}
+EOF
+  fm_out="$(validate_checker_declarations "$fm_root" "$fm_taxonomy" 2>&1)" || fm_rc=$?
+  rm -rf "$fm_root"
+  rm -f "$fm_taxonomy"
+  if [ "$fm_rc" -eq 0 ] && printf '%s' "$fm_out" | grep -q '検査宣言合格'; then
+    echo "  [PASS] fm-checker-declared: 分類定義に無い自身の規約はfront matterのchecker宣言で宣言欠落にならない"
+  else
+    echo "  [FAIL] fm-checker-declared: 分類定義に無い自身の規約がfront matterで宣言しても宣言欠落として検出された (rc=${fm_rc})" >&2
+    printf '%s\n' "$fm_out" | sed 's/^/    /' >&2
+    rc=1
+  fi
+
+  # 分類定義に3件の子カテゴリの宣言があり、docs/rules へ実際に配置したのは
+  # 1件だけの一時リポジトリで、--taxonomy 付きの検査が終了コード0になり、
+  # [SKIP] に2件と出ることを確認する（未配置は「実在しない」ではない）。
+  local skp_root skp_taxonomy skp_out skp_rc=0
+  if ! skp_root="$(mktemp -d "${TMPDIR:-/tmp}/validate-rule-definitions-self-test-skp.XXXXXX" 2>/dev/null)" || [ -z "$skp_root" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  st_write_valid_pair "$skp_root"
+  if ! skp_taxonomy="$(mktemp "${TMPDIR:-/tmp}/validate-rule-definitions-self-test-skp-taxonomy.XXXXXX" 2>/dev/null)" || [ -z "$skp_taxonomy" ]; then
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  cat > "$skp_taxonomy" <<'EOF'
+{"parents": [{"key":"code-standards","children":[
+  {"key":"naming","checker":"check-naming.sh"},
+  {"key":"unplaced-one","checker":"check-unplaced-one.sh"},
+  {"key":"unplaced-two","checker":"check-unplaced-two.sh"}
+]}]}
+EOF
+  skp_out="$(validate_checker_declarations "$skp_root" "$skp_taxonomy" 2>&1)" || skp_rc=$?
+  rm -rf "$skp_root"
+  rm -f "$skp_taxonomy"
+  if [ "$skp_rc" -eq 0 ] \
+    && printf '%s' "$skp_out" | grep -q '^\[SKIP\] 配置していないため実在の判定から除外したchecker宣言: 2 件$' \
+    && printf '%s' "$skp_out" | grep -q '検査宣言合格'; then
+    echo "  [PASS] taxonomy-unplaced-skip: 未配置の子カテゴリの宣言は実在しない扱いにせず[SKIP]2件で合格する"
+  else
+    echo "  [FAIL] taxonomy-unplaced-skip: 期待どおり[SKIP]2件で合格しない (rc=${skp_rc})" >&2
+    printf '%s\n' "$skp_out" | sed 's/^/    /' >&2
+    rc=1
+  fi
 
   st_case "pass" 0 "" || rc=1
   st_case "pass-three-columns" 0 "" || rc=1

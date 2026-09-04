@@ -9,8 +9,8 @@ unit: reverse
 category: setup
 kind: [screen, api, table, batch, report, external, feature]
 inputs: [ai-output/*/*/facts/*/*.json, docs/design/common/道標.md, docs/design/common/業務仕様書.md, docs/design/common/方式設計書.md, docs/design/common/データ設計書.md, docs/design/common/エラー設計書.md, docs/design/common/共通外部仕様書.md, docs/design/common/基盤設計書.md, docs/design/requirements/要件定義書.md, docs/design/lists/機能と単位の対応表.md]
-outputs: [docs/design/screens/*/画面/基本設計/画面基本設計書.md, docs/design/screens/*/画面/テスト設計/画面単体テスト設計書.md, docs/design/apis/*/API基本設計書.md, docs/design/apis/*/API単体テスト設計書.md, docs/design/tables/*/論理データモデル.md, docs/design/tables/*/テーブル単体テスト設計書.md, docs/design/batches/*/バッチ基本設計書.md, docs/design/batches/*/バッチ単体テスト設計書.md, docs/design/reports/*/帳票基本設計書.md, docs/design/reports/*/帳票単体テスト設計書.md, docs/design/externals/*/外部連携基本設計書.md, docs/design/externals/*/外部連携単体テスト設計書.md, docs/design/features/*/機能設計書.md, docs/design/features/*/機能単体テスト設計書.md]
-requires: [reverse-extracting-facts, reverse-checking-requirements]
+outputs: [docs/design/screens/*/画面/基本設計/画面基本設計書.md, docs/design/screens/*/画面/テスト設計/画面単体テスト設計書.md, docs/design/apis/*/API基本設計書.md, docs/design/apis/*/API単体テスト設計書.md, docs/design/tables/*/論理データモデル.md, docs/design/tables/*/テーブル単体テスト設計書.md, docs/design/batches/*/バッチ基本設計書.md, docs/design/batches/*/バッチ単体テスト設計書.md, docs/design/reports/*/帳票基本設計書.md, docs/design/reports/*/帳票単体テスト設計書.md, docs/design/externals/*/外部連携基本設計書.md, docs/design/externals/*/外部連携単体テスト設計書.md, docs/design/features/*/機能設計書.md, docs/design/features/*/機能単体テスト設計書.md, ai-work/records/basic-design-acceptance/*.json]
+requires: [reverse-extracting-facts, reverse-listing-units]
 acceptance: tests/
 ---
 
@@ -28,6 +28,7 @@ acceptance: tests/
 - `bash ../reverse-shared/scripts/check-entry.sh <実行フォルダ> <対象リポジトリのルート>` の終了コードが 0 であること
 - 種別ごとの単位一覧は `bash ../reverse-shared/scripts/list-units-of.sh <対象> <種別>` で読む。単位のフォルダ名は `bash ../reverse-shared/scripts/unit-dir-name.sh <識別子>` で作る（唯一の定義）
 - 単位の事実ファイルが `<実行フォルダ>/facts/<種別>/<単位のフォルダ名>.json` にあること
+- 完了時の処理の前に `references/basic-phase-viewpoints.md` の6観点を読む
 - 検査は共有部品の写しで行う。ファイルは `../reverse-shared/scripts/check-doc-heading-addendum.sh` にある。もう1つは `check-unit-test-design-doc-sections.sh` にある。対象に規約の配置は求めない
 
 ## 手順
@@ -41,7 +42,13 @@ acceptance: tests/
 7. `bash scripts/check-basic-design.sh <対象> --run <実行フォルダ> --kind <種別> --design-root <設計書の置き場>` を実行する
 8. 終了コードを見る。0 なら次の種別へ進む。1 なら不合格の理由を読み、直してから 4 へ戻る。事実に無い項目が設計書に要るときは差し戻し先「事実-不足」として事実を取り出す機能の当該単位へ戻る。同じ不合格が 2 回続いたら書き方を変える
 9. 単位が合格したら `bash ../reverse-shared/scripts/units-status.sh <実行フォルダ> set <種別> <識別子> 基本設計 済` を記録する
-10. 全種別が終わったら、単位数・合格数・要確認事項の件数を報告する
+10. 完了時の処理として、単位ごとに文書のレビュー担当（AI）が `references/basic-phase-viewpoints.md` の6観点で基本設計書と単体テスト設計書を読む。合否を判定し、合格・不合格・保留のいずれかを次で記録する
+    ```bash
+    bash ../reverse-shared/scripts/record-acceptance.sh <対象> --run <実行フォルダ> --kind <種別> --unit <識別子> --verdict <合格|不合格|保留> --viewpoints "<観点=合|否;...>" [--reason "<理由>"] --design-root <設計書の置き場>
+    ```
+    不合格は 4 へ戻る。保留は既定を置けない不明点を持つ単位だけにし、理由を確認事項に登録する
+11. 全種別が終わったら、単位数・合格数・保留数・要確認事項の件数を報告する
+
 
 ## 種別ごとの転記規則
 
@@ -123,6 +130,8 @@ acceptance: tests/
 - 必須節が順に埋まっている。実装位置（file:line）が無い。未記入のプレースホルダーが無い
 - 要確認事項一覧の各キーが確認事項の記録に登録されている
 - 事実の各項目が基本設計書に転記されている
+- 保留を除く全単位に合格の記録がある
+- 次が0を返す: `check-acceptance-record.sh <対象> --kind <種別> --unit <識別子> --design-root <置き場>`
 - `tests/` の全件が通る
 
 ## 設計判断
@@ -138,3 +147,17 @@ acceptance: tests/
 **保守責任者**: 人手（ユーザー）。事実の項目や様式を変えるときは、`docs/design/common/fact-shapes.json`・`templates/`・本スクリプトを同時に直す。
 
 **廃棄条件**: 基本設計書の様式を構造化データから生成する仕組みに置き換えた時。
+
+### record-acceptance.sh
+
+**必要性**: 合格の記録は文書の同一性（sha256）とコミットを持たなければ、後から文書が変わったときに古い合格が生き残ってしまう。記録の形を1つに決め、詳細設計へ進む機能（check-acceptance-record.sh）がその形だけを読めば済むようにする。
+
+完了の検査はこの機能自体の完了時の処理であり、独立した機能を別に持たない。本スクリプトと check-acceptance-record.sh は reverse-shared/scripts/ に置く共有部品である。共通処理の詳細設計・単位の詳細設計からも同じ場所を参照する。
+
+**代替案を採用しなかった理由**:
+- 合格をログにだけ書く: 文書の変更を検知できず、古い合格のまま詳細設計に進んでしまう
+- 完了判定を別の機能として独立させる: 基本設計書を書く手順と完了判定が分離し、機能をまたいだ受け渡しが増える
+
+**保守責任者**: 人手（ユーザー）。記録の形（キー）を変えるときは、本スクリプトと reverse-shared/scripts/check-acceptance-record.sh を同時に直す。
+
+**廃棄条件**: 合格の記録を別の仕組みに置き換えた時。

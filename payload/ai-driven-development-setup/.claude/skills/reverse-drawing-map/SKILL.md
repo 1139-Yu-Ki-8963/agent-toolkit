@@ -9,7 +9,7 @@ unit: reverse
 category: setup
 kind: none
 inputs: [.git/HEAD, README.md]
-outputs: [docs/design/common/道標.md, docs/design/requirements/要件定義書.md, docs/design/common/業務仕様書.md, docs/design/common/方式設計書.md, docs/design/common/データ設計書.md, docs/design/common/エラー設計書.md, docs/design/common/共通外部仕様書.md, docs/design/common/基盤設計書.md]
+outputs: [docs/design/common/道標.md, docs/design/requirements/要件定義書.md, docs/design/common/業務仕様書.md, docs/design/common/方式設計書.md, docs/design/common/データ設計書.md, docs/design/common/エラー設計書.md, docs/design/common/共通外部仕様書.md, docs/design/common/基盤設計書.md, ai-work/records/basic-design-acceptance/common-*.json]
 requires: []
 acceptance: tests/
 ---
@@ -116,6 +116,15 @@ acceptance: tests/
 5. 検査がすべて通ったら、`references/completion-states.md` の要件定義書と基本設計書の完了状態を観点として自己レビューし、指摘を直す
 6. `templates/承認用の要約.md` を出力の置き場の `confirmations/承認用の要約.md` へ複製して埋める。本文 100 行以内に収める
 7. 承認の前に、一覧化の実行器（`reverse-listing-units` の `list-units.sh`）を統括が走らせて候補数と実測を突き合わせ、差があれば検出条件を統括が直す。実測まで済ませてから承認を求める
+8. 完了時の処理として、共通設計文書6つを次で機械検査する
+    ```bash
+    bash ../reverse-shared/scripts/check-basic-phase.sh <対象リポジトリのルート> --common --run <実行フォルダ> --design-root <設計書の置き場>
+    ```
+    通った文書ごとに、文書のレビュー担当（AI）が `references/completion-states.md` の基本設計書の完了状態の観点で読む。合否を判定し、合格・不合格・保留のいずれかを次で記録する
+    ```bash
+    bash ../reverse-shared/scripts/record-acceptance.sh <対象> --run <実行フォルダ> --common <文書名> --verdict <合格|不合格|保留> --viewpoints "<観点=合|否;...>" [--reason "<理由>"] --design-root <設計書の置き場>
+    ```
+    不合格は 4 へ戻る。保留は既定を置けない不明点を持つ文書だけにし、理由を確認事項に登録する
 
 ### 手順 6: 範囲の承認
 
@@ -126,6 +135,8 @@ acceptance: tests/
 ## 完了条件
 
 - 道標・要件定義書・共通設計文書 6 つが実在し、`scripts/check-map.sh` と `scripts/check-design-docs.sh` が終了コード 0
+- 保留を除く共通設計文書6つに合格の記録がある
+- 次が0を返す: `check-acceptance-record.sh <対象> --common --design-root <設計書の置き場>`
 - `confirmations/承認用の要約.md` が 100 行以内で実在する
 - `confirmations/対象範囲の承認.md` の可否が `可` で、同一性の値が現在の各文書と一致する
 - `tests/` の全件が通る
@@ -155,3 +166,15 @@ acceptance: tests/
 **保守責任者**: 人手（ユーザー）。見出しの構成を変えるときは `references/design-doc-sections.json` と様式を同時に直す。
 
 **廃棄条件**: 規約の検査が共通設計文書の見出しを持つようになった時。
+
+### check-basic-phase.sh・record-acceptance.sh
+
+**必要性**: 共通設計文書6つの完了判定は、単位の完了判定と同じ記録の形（文書の同一性・コミット・観点・判定）を持つ必要がある。基本設計を書く機能が単位の合格を記録する仕組みと同じ共有部品（`reverse-shared/scripts/`）を使うことで、共通処理の詳細設計を書く機能が読み方を1つに保てる。完了の検査を独立した機能に分けず、この機能自体の手順の最後に置く。
+
+**代替案を採用しなかった理由**:
+- 完了判定を別の機能として独立させる: 検査の対象は本機能が書いた文書だけであり、別機能に分けても手順の行き来が増えるだけになる
+- 記録の形を本機能専用に別途持つ: 共通処理の詳細設計を書く機能が単位と共通設計文書で異なる形を読むことになる
+
+**保守責任者**: 人手（ユーザー）。共通設計文書6つの一覧を変えるときは、本機能・`reverse-shared/scripts/check-basic-phase.sh`・基本設計書を書く機能の様式を同時に直す。
+
+**廃棄条件**: 合格の記録を別の仕組みに置き換えた時。

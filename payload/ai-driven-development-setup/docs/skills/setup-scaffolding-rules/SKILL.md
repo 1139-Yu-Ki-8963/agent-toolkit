@@ -25,11 +25,11 @@ acceptance: tests/
 ## 手順
 
 1. `scripts/scaffold-rule-definitions.sh <対象リポジトリのルート>` で配置予定を確かめる（書き込みなし）
-2. `scripts/scaffold-rule-definitions.sh <対象リポジトリのルート> --apply` で配置する。既存の `parent.yml`・`design-notes.md` と、現場が書き足した「このプロジェクトの規則」節は上書きしない
+2. `scripts/scaffold-rule-definitions.sh <対象リポジトリのルート> --apply` で配置する。既存の `parent.yml`・`design-notes.md` と、現場が書き足した「このプロジェクトの規則」節は上書きしない。配置する規約を選ぶときは `--only <key,…>` を付ける
 3. 配置後は規約の派生の手順に従い、`--taxonomy references/rule-taxonomy.json` を渡して検査し派生する
 
 ## 完了条件
 
-- 手順 2 の後、対象の `docs/rules` に親 7 件の `parent.yml` と子 32 件の `rule.md` がある
-- 対象で規約の派生の検査（validate-rule-definitions.sh）が終了コード 0
+- 手順 2 の後、対象の `docs/rules` に親 7 件の `parent.yml` と子 32 件の `rule.md` がある。`--only` を使ったときは選んだ子とその親だけがある
+- 対象で規約の派生の検査（`validate-rule-definitions.sh --taxonomy`）が終了コード 0（配置していない子の宣言は対象外として数える）
 - `tests/` の全件が通る
