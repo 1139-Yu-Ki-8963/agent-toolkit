@@ -473,6 +473,84 @@ DOCEOF
   echo 0 > "$record_rc_file"
   assert_exit "合格" 0 bash "$under_test" "$target" --run "$run_dir" --kind table
 
+  # 合格-表の列ごとの型と制約が§4に書かれている
+  cat > "${run_dir}/facts/table/${folder}.json" <<'FACTSCOLEOF'
+{
+  "種別": "table",
+  "識別子": "orders",
+  "事実": {
+    "列": {"値": ["受注番号"], "出所": "機械", "根拠": ["orders"]},
+    "型": {"値": ["bigint unsigned"], "出所": "機械", "根拠": ["orders"]},
+    "制約": {"値": ["NOT NULL"], "出所": "機械", "根拠": ["orders"]},
+    "関係": {"値": ["顧客テーブルを参照"], "出所": "機械", "根拠": ["orders"]}
+  },
+  "未": []
+}
+FACTSCOLEOF
+  cat > "${doc_dir}/テーブル定義書.md" <<'DOCCOLEOF'
+# orders テーブル定義書
+
+## §1 構成要素
+
+**この節の位置づけ: 現行実装**
+
+| 要素名 | 種別 | 可視性 | 所在 |
+|---|---|---|---|
+| orders | table | public | db/schema.sql |
+
+## §2 処理の定義
+
+**この節の位置づけ: 現行実装**
+
+記入済み
+
+## §3 ロジック
+
+**この節の位置づけ: 現行実装**
+
+記入済み
+
+## §4 入出力の値
+
+**この節の位置づけ: 現行実装**
+
+| 要素名 | 区分 | 名前 | 型 | 有効な範囲 | 空値の許容 | 初期値 | 桁と精度 |
+|---|---|---|---|---|---|---|---|
+| orders | 列 | 受注番号 | bigint unsigned | - | NOT NULL | - | - |
+
+## §5 エラー処理
+
+**この節の位置づけ: 現行実装**
+
+記入済み（理由（観測）: 既存の実装を踏まえる）
+
+## §6 関連資料
+
+**この節の位置づけ: 現行実装**
+
+顧客テーブルを参照する。
+
+## 要確認事項一覧
+
+**この節の位置づけ: 現行実装**
+
+なし
+DOCCOLEOF
+  assert_exit "合格-表の列ごとの型と制約が§4に書かれている" 0 bash "$under_test" "$target" --run "$run_dir" --kind table
+
+  # 元の事実・様式に戻す
+  cat > "${run_dir}/facts/table/${folder}.json" <<'FACTSEOF'
+{
+  "種別": "table",
+  "識別子": "orders",
+  "事実": {
+    "列": {"値": ["受注番号"], "出所": "機械", "根拠": ["orders"]},
+    "関係": {"値": ["顧客テーブルを参照"], "出所": "機械", "根拠": ["orders"]}
+  },
+  "未": []
+}
+FACTSEOF
+
   # --- 設計書ルート分離-対象に書かない ---
   local target_code_only="${tmp}/target-code-only"
   local design_root2="${tmp}/design-root2"

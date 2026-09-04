@@ -56,8 +56,10 @@ set -u
 #
 # 終了コード:
 #   0 = 全単位に事実がある（--verifyでは既存と再取り出しの差分が0件）
-#   1 = 一覧の場所（単位そのものの所在）が対象に実在しない
+#   1 = 一覧の場所（単位そのものの所在）が対象に実在しない、または取り出しの規則の
+#       2列目が規定の形（正規表現|AIの読み取り）のどちらでもなく解釈できない項目がある
 #       （--verifyでは差分が1件以上）（差し戻し: 検出条件-見直し）
+#       （解釈できない項目は集計.jsonの「規則の無い項目」へ列挙し警告を出す）
 #   2 = 使い方の誤り・道標や一覧の不在（判定不能）
 #
 # 保守責任者: 人手（ユーザー）。取り出しの規則の書式を変えるときは、道標の
@@ -447,15 +449,19 @@ do_extract() {
   local ranges_file="${work}/unit-ranges.tsv"
   compute_unit_ranges "$lists_file" > "$ranges_file"
 
-  local unit_count=0 machine_filled=0 mi_total=0 missing_total=0 ai_items=""
+  local unit_count=0 machine_filled=0 mi_total=0 missing_total=0 ai_items="" invalid_items=""
 
   local item rule_cell parsed rtype
   while IFS=$'\t' read -r item rule_cell; do
     [ -n "$item" ] || continue
-    parsed="$(parse_rule "$rule_cell")" || continue
-    rtype="${parsed%%$'\t'*}"
-    if [ "$rtype" = "AI" ]; then
-      ai_items="${ai_items}${item}
+    if parsed="$(parse_rule "$rule_cell")"; then
+      rtype="${parsed%%$'\t'*}"
+      if [ "$rtype" = "AI" ]; then
+        ai_items="${ai_items}${item}
+"
+      fi
+    else
+      invalid_items="${invalid_items}${item}
 "
     fi
   done <<RULESLIST
@@ -606,10 +612,13 @@ RULESLIST2
 $units
 UNITSLIST
 
-  local ai_items_json
-  ai_items_json="$(printf '%s' "$ai_items" | jq -R -s -c 'split("\n") | map(select(length>0)) | unique')"
+  local ai_items_json invalid_items_json rule_free_json invalid_count
+  ai_items_json="$(printf '%s' "$ai_items" | jq -R -s -c 'split("\n") | map(select(length>0))')"
+  invalid_items_json="$(printf '%s' "$invalid_items" | jq -R -s -c 'split("\n") | map(select(length>0))')"
+  rule_free_json="$(jq -n -c --argjson a "$ai_items_json" --argjson b "$invalid_items_json" '($a + $b) | unique')"
+  invalid_count="$(printf '%s' "$invalid_items_json" | jq 'length')"
 
-  jq -n --argjson u "$unit_count" --argjson m "$machine_filled" --argjson n "$mi_total" --argjson r "$ai_items_json" \
+  jq -n --argjson u "$unit_count" --argjson m "$machine_filled" --argjson n "$mi_total" --argjson r "$rule_free_json" \
     '{"単位数": $u, "機械で埋まった項目数": $m, "未の項目数": $n, "規則の無い項目": $r}' \
     > "${out}/${kind}/集計.json"
 
@@ -617,7 +626,11 @@ UNITSLIST
 
   echo "単位数=${unit_count} 機械で埋まった項目数=${machine_filled} 未の項目数=${mi_total} 属するファイル不在=${missing_total}"
 
-  if [ "$missing_total" -gt 0 ]; then
+  if [ "$invalid_count" -gt 0 ]; then
+    echo "[WARN] 規則-解釈不能: ${invalid_count} 件の項目の取り出しの規則を解釈できませんでした（集計の規則の無い項目を確認してください）" >&2
+  fi
+
+  if [ "$missing_total" -gt 0 ] || [ "$invalid_count" -gt 0 ]; then
     return 1
   fi
   return 0
@@ -1090,6 +1103,59 @@ FIXEOF7
     *"空値項目"*) check "捕捉: 空文字列の値がある項目は未に載らない" 1 ;;
     *) check "捕捉: 空文字列の値がある項目は未に載らない" 0 ;;
   esac
+
+  # --- 規則-解釈不能: 取り出しの規則の2列目が規定のどちらの形でもない項目 ---
+  local d8="$base/case8" r8="$base/run8"
+  rm -rf "$d8" "$r8"
+  mkdir -p "$d8/src/pages" "$d8/docs/design/common" "$d8/docs/design/lists"
+  make_run "$r8"
+
+  cat > "$d8/src/pages/Broken.tsx" <<'FIXEOF8'
+<input name="orderId" />
+FIXEOF8
+
+  cat > "$d8/docs/design/common/道標.md" <<'FIXEOF8'
+# 道標
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 事実の項目 | どの構文・記述から取るか |
+|---|---|
+| 入力項目 | 正規表現: <input[[:space:]]+name="([a-zA-Z0-9_]+)" ／ 捕捉: 1 ／ 範囲: 場所 |
+| 壊れた項目 | ここには地の文が書かれていて規定の形ではない |
+
+## 5. 動的な定義
+FIXEOF8
+
+  cat > "$d8/docs/design/lists/screen.json" <<'FIXEOF8'
+[
+  {"種別":"screen","識別子":"src/pages/Broken.tsx","名前":"Broken","場所":"src/pages/Broken.tsx","根拠":"src/pages/Broken.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF8
+
+  bash "$SCRIPT_DIR/extract-facts.sh" "$d8" --run "$r8" --kind screen --out "$r8/facts" > "$base/case8.out" 2>"$base/case8.err"
+  local rc8=$?
+  check "規則-解釈不能: 終了コードが0以外" "$([ "$rc8" -ne 0 ] && echo 0 || echo 1)"
+
+  local agg8_json="$r8/facts/screen/集計.json"
+  local agg8_rule_free
+  agg8_rule_free="$(jq -c '.["規則の無い項目"]' "$agg8_json" 2>/dev/null)"
+  case "$agg8_rule_free" in
+    *壊れた項目*) check "規則-解釈不能: 集計の規則の無い項目に列挙される" 0 ;;
+    *) check "規則-解釈不能: 集計の規則の無い項目に列挙される" 1 ;;
+  esac
+
+  case "$(cat "$base/case8.err")" in
+    *"規則-解釈不能"*) check "規則-解釈不能: 標準出力（実行した側が読む位置）に警告が出る" 0 ;;
+    *) check "規則-解釈不能: 標準出力（実行した側が読む位置）に警告が出る" 1 ;;
+  esac
+
+  local broken_json="$r8/facts/screen/src_pages_Broken.tsx.json"
+  local broken_input_values
+  broken_input_values="$(jq -c '.["事実"]["入力項目"]["値"]' "$broken_json" 2>/dev/null)"
+  check "規則-解釈不能: 規定の形の項目は従来どおり値が埋まる" "$([ "$broken_input_values" = '["orderId"]' ] && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then
