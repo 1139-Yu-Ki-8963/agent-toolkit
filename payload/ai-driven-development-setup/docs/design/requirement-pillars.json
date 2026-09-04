@@ -1,0 +1,7 @@
+{
+  "pillars": [
+    {"key": "survey", "title": "調査を支える", "requiredUnits": ["reverse"], "optionalUnits": []},
+    {"key": "setup", "title": "基盤一式の作成を支える", "requiredUnits": ["setup", "reverse"], "optionalUnits": ["verify", "portal"]},
+    {"key": "operate", "title": "現場運用を支える", "requiredUnits": ["operate"], "optionalUnits": ["portal"]}
+  ]
+}

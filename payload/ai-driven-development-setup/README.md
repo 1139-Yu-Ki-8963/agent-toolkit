@@ -38,18 +38,18 @@
 
 ## 使い方（reverse）
 
-1. 対象リポジトリへ規約を配置します。`setup-scaffolding-rules` を実行します
-2. 配置した規約を派生させます。`setup-deriving-rules` を実行し、`.claude/rules` などを生成します
-3. 実行の開始として、統括の `start-run.sh` で実行フォルダを作ります
-4. 道標を描きます（第一フェーズ。承認まで）。ここでは `reverse-drawing-map` を実行します
-5. 一覧を作ります（第二フェーズの最初）。ここでは `reverse-listing-units` を実行します
-6. 要件定義書を裏付けます。ここでは `reverse-checking-requirements` を実行します
-7. 基盤文書を書きます。ここでは `reverse-writing-foundation-guides` を実行します
-8. 単位の事実を取り出します。ここでは `reverse-extracting-facts` を実行します
-9. 単位の基本設計書を書きます。ここでは `reverse-writing-basic-design` を実行します
-10. 基本設計の完了を判定します。ここでは `reverse-checking-basic-phase` を実行します
-11. 共通処理の詳細設計書を書きます。ここでは `reverse-writing-common-detail-design` を実行します
-12. 単位の詳細設計書を書きます。ここでは `reverse-writing-detail-design` を実行します
+規約の配置と派生は納品の段だけで使います。reverse の工程では先方に規約を置きません。
+
+1. 実行の開始として、統括の `start-run.sh` で実行フォルダを作ります
+2. 道標を描きます（第一フェーズ。承認まで）。ここでは `reverse-drawing-map` を実行します
+3. 一覧を作ります（第二フェーズの最初）。ここでは `reverse-listing-units` を実行します
+4. 要件定義書を裏付けます。ここでは `reverse-checking-requirements` を実行します
+5. 基盤文書を書きます。ここでは `reverse-writing-foundation-guides` を実行します
+6. 単位の事実を取り出します。ここでは `reverse-extracting-facts` を実行します
+7. 単位の基本設計書を書きます。ここでは `reverse-writing-basic-design` を実行します
+8. 基本設計の完了を判定します。ここでは `reverse-checking-basic-phase` を実行します
+9. 共通処理の詳細設計書を書きます。ここでは `reverse-writing-common-detail-design` を実行します
+10. 単位の詳細設計書を書きます。ここでは `reverse-writing-detail-design` を実行します
 
 前提として、対象リポジトリのコミットは実行の開始時点に固定し、出力の置き場は実行フォルダの下に決めます。全工程を通じて、人の判断が必要になる場面は範囲の承認・確認事項の提示・完了の受け入れの 3 回だけです。
 

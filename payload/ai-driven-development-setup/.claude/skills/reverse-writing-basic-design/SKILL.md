@@ -8,7 +8,7 @@ allowed-tools: [Read, Glob, Grep, Bash, Write]
 unit: reverse
 category: setup
 kind: [screen, api, table, batch, report, external, feature]
-inputs: [ai-output/*/*/facts/*/*.json, docs/design/common/業務仕様書.md, docs/design/common/方式設計書.md, docs/design/common/データ設計書.md, docs/design/common/エラー設計書.md, docs/design/common/共通外部仕様書.md, docs/design/common/基盤設計書.md, docs/design/requirements/要件定義書.md, docs/design/lists/機能と単位の対応表.md]
+inputs: [ai-output/*/*/facts/*/*.json, docs/design/common/道標.md, docs/design/common/業務仕様書.md, docs/design/common/方式設計書.md, docs/design/common/データ設計書.md, docs/design/common/エラー設計書.md, docs/design/common/共通外部仕様書.md, docs/design/common/基盤設計書.md, docs/design/requirements/要件定義書.md, docs/design/lists/機能と単位の対応表.md]
 outputs: [docs/design/screens/*/基本設計書.md, docs/design/apis/*/基本設計書.md, docs/design/tables/*/基本設計書.md, docs/design/batches/*/基本設計書.md, docs/design/reports/*/基本設計書.md, docs/design/externals/*/基本設計書.md, docs/design/screens/*/単体テスト設計書.md, docs/design/apis/*/単体テスト設計書.md, docs/design/tables/*/単体テスト設計書.md, docs/design/batches/*/単体テスト設計書.md, docs/design/reports/*/単体テスト設計書.md, docs/design/externals/*/単体テスト設計書.md, docs/design/features/*/集約設計書.md]
 requires: [reverse-extracting-facts, reverse-checking-requirements]
 acceptance: tests/
@@ -29,14 +29,13 @@ acceptance: tests/
 - `bash ../reverse-shared/scripts/check-entry.sh <実行フォルダ> <対象リポジトリのルート>` の終了コードが 0 であること
 - 種別ごとの単位一覧は `bash ../reverse-shared/scripts/list-units-of.sh <対象> <種別>` で読む。単位のフォルダ名は `bash ../reverse-shared/scripts/unit-dir-name.sh <識別子>` で作る（唯一の定義）
 - 単位の事実ファイルが `<実行フォルダ>/facts/<種別>/<単位のフォルダ名>.json` にあること
-- 対象に `docs/rules/documentation-standards/document-writing/check-doc-heading-addendum.sh` が配置済みであること
-- 対象に `docs/rules/quality-assurance/test-policy/check-unit-test-design-doc-sections.sh` が配置済みであること
+- 検査は共有部品の写しで行う。ファイルは `../reverse-shared/scripts/check-doc-heading-addendum.sh` にある。もう1つは `check-unit-test-design-doc-sections.sh` にある。対象に規約の配置は求めない
 
 ## 手順
 
 1. `bash ../reverse-shared/scripts/check-entry.sh <実行フォルダ> <対象リポジトリのルート>` で範囲の承認を確かめる。終了コードが 0 でなければ止まり、道標を描く機能の範囲の承認をやり直す
 2. 種別ごとに `bash ../reverse-shared/scripts/list-units-of.sh <対象> <種別>` で単位を列挙する
-3. 単位ごとに、事実ファイル・共通設計文書・要件定義書・機能と単位の対応表・規約「業務の言葉の決まり」を読む。事実の各項目を業務の言葉に写し、`templates/基本設計書.md` を複製して埋める。事実の項目名はそのまま `### <項目名>` の見出しにする。コードの名前が業務の言葉に写せないときは、用語の追加候補として要確認事項一覧に登録する
+3. 単位ごとに、事実ファイル・共通設計文書・要件定義書・機能と単位の対応表・道標の節 8（用語の候補）を読む。事実の各項目を業務の言葉に写し、`templates/基本設計書.md` を複製して埋める。事実の項目名はそのまま `### <項目名>` の見出しにする。コードの名前が業務の言葉に写せないときは、用語の追加候補として要確認事項一覧に登録する
 4. 同じ単位について `templates/単体テスト設計書.md` を複製して埋める。テストの観点は事実と要件定義書の受入条件から起こす
 5. 機能の単位は `templates/集約設計書.md` だけを複製して埋める。基本設計書と単体テスト設計書は書かない
 6. `bash scripts/check-basic-design.sh <対象> --run <実行フォルダ> --kind <種別>` を実行する

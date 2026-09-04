@@ -1,0 +1,83 @@
+---
+key: skill-naming
+title: skill の名前の決まり
+parent: agent-operations
+summary: skill の名前を単位・作業・対象の 3 語で組む決まりと、その検査。
+scope: always
+paths: []
+enforcement: advisory
+checkable: true
+checker: check-skill-naming.sh
+uncheckableReason: null
+formatter: none
+status: approved
+origin: manual
+workUnit: artifact
+---
+# skill の名前の決まり
+
+## 概要
+
+`docs/skills/` に置く機能（skill）の名前の形を定める。名前は単位・作業・対象の 3 つだけで組み、その機能がどの文脈で使われるかを表す語を入れない。旧の名前には `generating-screen-list-for-reverse-docs` のように「リバース設計書のための」という文脈の語と、種別の語が付いていた。文脈は宣言の `unit`・`category` が、種別は宣言の `kind` が表す。名前に同じ情報を重ねない。
+
+## 規則
+
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 単位・作業・対象の 3 語で組む | 名前は `<単位>-<作業>-<対象>` の順で、この 3 つだけを含む。単位は `setup`・`reverse`・`verify`・`portal`・`operate` の 5 つ。先頭の単位は宣言の `unit` と一致する | 静的解析: 先頭が 5 単位のいずれかで `unit` と一致し、語が 3 つ以上あるかを走査する |
+| 作業は動詞の ing 形で表す | 2 語目は作業を表す動詞の ing 形。使える動詞は本規約の「動詞の一覧」に持つ。一覧に無い動詞は規約へ足してから使う | 静的解析: 2 語目が動詞の一覧にあるかを走査する |
+| 対象は何を作るか・何を扱うかを表す | 3 語目以降は成果物または扱う物の名前（`rules`・`skills`・`units`・`requirements`・`basic-design`・`confirmation-items` など）。作業の手段や使用ツールの名前は入れない | 判定不能: 対象が成果物を表しているかは意味の判断を要する ／ レビュー: 名前だけを見て何ができるかを言い当てられるかを確かめる |
+| 種別は名前に入れない | 画面・接続窓口・表・バッチ・帳票・外部連携・機能・メッセージの区別は宣言の `kind` で受け、名前に入れない。1 つの作業は種別によらず 1 機能にする | 静的解析: 名前に `screen`・`api`・`table`・`batch`・`report`・`external`・`feature`・`message` が無いかを走査する |
+| 文脈や置き場を表す語を入れない | 「何のための」「どこで使う」を表す語（リポジトリ名・配布先・ツール名・`for-` で始まる修飾）を名前に入れない。文脈は宣言の `unit`・`category` が表す | 静的解析: 名前に `for-`・`claude`・`cursor`・`codex`・`docs` が無いかを走査する |
+| 共有部品は `<単位>-shared` | 単位で共有するスクリプトは `docs/skills/<単位>-shared/` に置く。機能ではないため SKILL.md を持たず、tests を持つ。共有部品は他の単位の検査の写しを持ってよく、同一性は tests で確かめる | 静的解析: `-shared` で終わるフォルダに SKILL.md が無く tests があるかを走査する |
+| 名前は 3 か所で一致し日本語名を持つ | フォルダ名・`name`・`invocation` が同じ。`日本語名` を必ず持つ | 静的解析: 3 つの一致と `日本語名` の実在を走査する |
+
+## 動詞の一覧
+
+- deriving
+- scaffolding
+- listing
+- writing
+- extracting
+- checking
+- building
+- drawing
+- surveying
+- counting
+- proposing
+- rebuilding
+- running
+- syncing
+- unlocking
+- orchestrating
+- maintaining
+- managing
+- resolving
+- installing
+- handling
+
+## このプロジェクトの規則
+
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 観測なし | この規約はこのリポジトリ自身の機能の名前を定めるもので、対象リポジトリの観測から起こす規則は無い | 観測なし |
+
+## 違反時の手順
+
+名前が止められた場合、名前を単位・作業・対象の 3 語に組み直す。種別の語は外して宣言の `kind` へ移す。文脈の語は外す。作業の動詞が一覧に無ければ、本規約の「動詞の一覧」へ足してから名前を付ける。共有部品を機能として作ろうとしていた場合は `<単位>-shared` へ置き直す。
+
+## 設計判断
+
+### check-skill-naming.sh
+
+**必要性**: `docs/skills/` 配下の機能名は今後も増え続ける。単位・作業・対象の 3 語の組み方、動詞の一覧との照合、種別語・文脈語の不在、共有部品の形、SKILL.md の3か所一致という複数段の判定がある。これらを機能を追加するたびに人が目視で確かめるのは非現実的である。`setup-deriving-skills` の `validate-skill-definitions.sh` から呼ばれ、繰り返し実行される検査として固定する必要がある。
+
+**代替案を採用しなかった理由**:
+- Bash ツール直叩き: 機能を追加・改名するたびに単位・動詞・種別語・文脈語・SKILL.mdの3か所一致を手で確認すると、確認の省略・見落としを繰り返す
+- 既存 `validate-skill-definitions.sh` への直接実装: あちらは宣言の鍵・requires の同一単位・tests の実在等、機能定義の一般形を検査する。名前の形という規約固有の判定を混ぜると責務が肥大化するため、規約自身のフォルダに置く checker として分離した
+- 既存 Makefile ターゲット拡張: このリポジトリに Makefile は存在せず、新規導入は本検査専用の依存を増やすだけになる
+- package.json scripts 追加: 同様に、このリポジトリはビルド設定を持たない
+
+**保守責任者**: 人手（ユーザー）。単位・動詞・種別語・文脈語の一覧を増減する場合は、本ファイルの規則の表・「動詞の一覧」節と `check-skill-naming.sh` を同時に更新する。
+
+**廃棄条件**: `docs/skills/` による機能定義の運用自体を廃止した時、または名前の形の検査を宣言の構造化データから機械的に導出できるようになった時。

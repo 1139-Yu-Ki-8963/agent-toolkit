@@ -8,7 +8,7 @@ allowed-tools: [Read, Glob, Grep, Bash, Write, AskUserQuestion]
 unit: reverse
 category: setup
 kind: none
-inputs: [.git/HEAD, README.md, docs/rules/*/parent.yml, .claude/rules/*/rule.md]
+inputs: [.git/HEAD, README.md]
 outputs: [docs/design/common/道標.md, docs/design/requirements/要件定義書.md, docs/design/common/業務仕様書.md, docs/design/common/方式設計書.md, docs/design/common/データ設計書.md, docs/design/common/エラー設計書.md, docs/design/common/共通外部仕様書.md, docs/design/common/基盤設計書.md]
 requires: []
 acceptance: tests/
@@ -25,7 +25,6 @@ acceptance: tests/
 
 ## 前提
 
-- 対象リポジトリに規約の配置と規約の派生が済んでいること（`docs/rules/<親>/<子>/` と `.claude/rules/` がある）
 - 対象リポジトリがコミット済みであること。読むコミットを固定し、稼働中の変更は対象外にする
 - 実行フォルダ（統括の実行の開始スクリプトが作る）を受け取る。対象リポジトリのルートは `bash ../reverse-shared/scripts/read-run.sh <実行フォルダ> 対象リポジトリ` で読む。出力の置き場（先方リポジトリに含めない出力の置き場のルート）は `bash ../reverse-shared/scripts/read-run.sh <実行フォルダ> 出力の置き場` で読む
 - 出力の置き場は次のとおりである
@@ -82,7 +81,7 @@ acceptance: tests/
 1. `templates/要件定義書.md` を `docs/design/requirements/要件定義書.md` へ複製する
 2. 道標、README、仕様に類する文書、テストコード、画面の文言、各領域の入口（経路・メニュー）を読み、6 節を埋める。現状のコードが実現している振る舞いを現状の要件として確定して書く。望ましい姿との差は本文に書かず確認事項に登録する。定義はあるが実装が無いものは本文に事実として書き、確認事項にも登録する
 3. §3 機能要件は、機能（業務の単位）ごとに 1 行とし、対応する種別と単位の候補を書く。機能要件の粒度は道標の 4.8「機能のまとめ方」に従う。§1 に「対象範囲」、§3 に「優先度」、§6 に「受入条件」の見出しを残す
-4. 用語は本文で定義せず、規約「業務の言葉の決まり」を参照する。用語の候補は道標の節 8 に集める
+4. 用語は本文で定義せず、道標の節 8（用語の候補）を参照する
 
 ### 手順 4: 共通設計文書
 
@@ -94,7 +93,10 @@ acceptance: tests/
 
 ### 手順 5: 検査と出し直し
 
-1. 対象の `docs/rules/documentation-standards/document-writing/` にある規約の検査スクリプト（`check-*.sh`）を使う。要件定義書と共通設計文書 6 つに対して実行し、終了コード 0 を確かめる。スクリプトが無ければ「規約が配置されていない」として止まる。この場合は規約の配置からやり直す
+1. 共有部品の写しの検査スクリプトを要件定義書と共通設計文書 6 つに掛け、終了コード 0 を確かめる。ファイルは次の場所にある
+   ```
+   ../reverse-shared/scripts/check-doc-heading-addendum.sh
+   ```
 2. 道標を検査する
    ```bash
    bash scripts/check-map.sh docs/design/common/道標.md --target <対象リポジトリのルート>

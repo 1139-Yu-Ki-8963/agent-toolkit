@@ -1,0 +1,9 @@
+# 公開完遂規約の受け口（TOOLKIT-PAYLOAD-CYCLE の設定値）
+# 定義: ~/agent-home/rules/always/publish/toolkit-payload-cycle/rule.md
+TOOLKIT_DIR=~/github-public/agent-toolkit
+PAYLOAD_SUBPATH=payload/ai-driven-development-setup
+DIFF_TARGET=.claude/skills
+DIFF_TARGET=delivery-payload
+DIFF_TARGET=README.md
+DIFF_TARGET=docs
+DIFF_TARGET=.claude/rules
