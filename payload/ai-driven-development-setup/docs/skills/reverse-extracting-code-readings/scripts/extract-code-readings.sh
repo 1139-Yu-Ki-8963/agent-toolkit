@@ -1148,8 +1148,8 @@ FIXEOF8
   esac
 
   case "$(cat "$base/case8.out")" in
-    *"規則-解釈不能"*) check "規則-解釈不能: 標準出力（実行した側が読む位置）に警告が出る" 0 ;;
-    *) check "規則-解釈不能: 標準出力（実行した側が読む位置）に警告が出る" 1 ;;
+    *"規則-解釈不能"*) check "規則-解釈不能: 標準出力に警告が出る" 0 ;;
+    *) check "規則-解釈不能: 標準出力に警告が出る" 1 ;;
   esac
 
   local broken_json="$r8/code-readings/screen/src_pages_Broken.tsx.json"
