@@ -1,0 +1,69 @@
+---
+name: reverse-orchestrating-flow
+日本語名: リバースの統括
+description: "reverse単位の機能の宣言を読んで実行順を組み立て、実行フォルダを作ってから各機能を順に実行し、出力の範囲で打ち切る。"
+invocation: reverse-orchestrating-flow
+type: orchestration
+allowed-tools: [Bash, Read, Glob, Grep, Skill, AskUserQuestion]
+unit: reverse
+category: setup
+kind: none
+inputs: [docs/skills/reverse-*/SKILL.md]
+outputs: [ai-output/*/*/run.json, ai-output/*/*/reports/reverse-plan.md]
+requires: []
+acceptance: tests/
+---
+<!-- 生成物: 定義は支援ツールの正本リポジトリの docs/skills/reverse-orchestrating-flow/ にある（この配布物には含まれない）。直接編集しないこと -->
+
+## いつ使うか
+
+reverse単位だけを単独で動かすとき。対象リポジトリをリバースして設計書一式を作るとき。
+
+## いつ使わないか
+
+setupと合わせて実行するとき（セットアップの統括を使う。単位に reverse が含まれると本機能へ委譲する）。1機能だけを実行するとき（その機能を直接使う）。
+
+## 手順
+
+0. 前提の確認。AskUserQuestionで次の4項目を確かめる。
+   - 作業場所（必須。対象コードの場所と出力の置き場の親を兼ねる1つのフォルダ）
+   - 先方の名前
+   - 設計書の展開先（先方リポジトリへ展開する／作業場所だけに置く。展開するときだけ先方リポジトリのルートを併せて聞く）
+   - 出力の範囲（全部・基本設計・一覧 のいずれかまで）
+
+   答えを`../reverse-shared/scripts/start-run.sh`へ渡し、実行フォルダを作る。渡す引数は`<作業場所> --project-name <先方の名前> --output-root <作業場所> --units reverse --scope <出力の範囲>`である。設計書の展開先が「先方リポジトリへ展開する」なら`--deploy-to <先方リポジトリのルート>`を足す。標準出力に出た実行フォルダのパスを、以降の手順とSTEPで呼ぶ機能へ渡す。
+1. `scripts/plan-reverse.sh <このリポジトリのルート> [--until <機能名>]`を実行し、実行順の計画を得る。出力の範囲に応じて`--until`を足す。この手順書に機能名を書かず、対応は日本語名で示す。
+
+   | 出力の範囲 | `--until`に渡す機能の日本語名 |
+   |---|---|
+   | 一覧まで | 一覧を作る |
+   | 基本設計まで | 基本設計の完了を判定する |
+   | 全部 | 指定しない |
+
+   `--until`には機能名（フォルダ名）を渡す必要があるため、計画の出力（STEPの一覧）と各機能のSKILL.mdのfront matterの日本語名を照合し、対応する機能名を求めてから渡す。
+
+   計画は`STEP <番号> <機能名>`の行と、根拠の表（入力と出力の対応・requires）からなる
+2. 計画の各`STEP`を上から順に、その機能名でSkillを呼んで実行する。名前は計画の出力から読む。この手順書に機能名を書かない
+3. 各機能の完了条件（そのSKILL.mdの「完了条件」節）を確かめてから次へ進む。満たさなければ止まり、どの機能で止まったかを報告する
+4. 全STEPが終わったら、計画の表と各機能の結果を実行フォルダの`reports/reverse-plan.md`へ書く
+
+## 完了条件
+
+- `../reverse-shared/scripts/start-run.sh` が終了コード 0 で実行フォルダを作る
+- `scripts/plan-reverse.sh` が終了コード 0 で計画を返す（循環や未解決の入力があれば終了コード 1 で止まる。`--until`の対象不在は終了コード2）
+- 全 STEP の機能がそれぞれの完了条件を満たす
+- `tests/` の全件が通る
+
+## 設計判断
+
+### scripts/plan-reverse.sh・scripts/start-run.shの委譲先
+
+**必要性**: 実行フォルダを作る処理（`start-run.sh`）と実行順を組み立てる処理（`plan-units.sh`）は、セットアップの統括（setup単位の統括）と全く同じ実装で足りる。reverseを単独で動かす統括を新設するにあたり、同じ計算を2か所に持つと、片方だけを直して整合が崩れる事故が起きる。両者から呼べる共有部品（`reverse-shared/scripts/`）へ実体を1本化し、各単位の統括は`--units`を固定して渡す入口だけを持つ。
+
+**代替案を採用しなかった理由**:
+- setup側の実装をコピーしてreverse専用に持つ: 修正のたびに2か所を同時に直す必要があり、片方の直し忘れで実行順の計算がずれる
+- reverseの統括からセットアップの統括のスクリプトを直接パスで参照する: setup単位のフォルダにreverse単位が依存する形になる。reverseを単独で切り出す（先方へ配らない）という単位分離の前提に反する
+
+**保守責任者**: 人手（ユーザー）。実行フォルダの作り方・実行順の計算方法を変える場合は`reverse-shared/scripts/`の該当スクリプトを直す。直した後、本機能とセットアップの統括の両方でself-testを確かめる。
+
+**廃棄条件**: reverse単位・setup単位のいずれかが統括の仕組み自体を廃止した時。

@@ -27,7 +27,10 @@ set -euo pipefail
 #   検収-未整備      acceptance が "tests/" であり、<機能>/tests/ に実行権限を持つ *.sh が
 #                    1本以上ある
 #   他単位-名前混入  SKILL.md 本体（front matter を除く）と scripts/ 配下の全ファイルに、
-#                    自分と異なる単位の接頭辞を持つ機能名らしき文字列が現れない
+#                    自分と異なる単位の接頭辞を持つ機能名らしき文字列が現れない。
+#                    ただし `<単位>-shared`（末尾が shared）で終わる語は対象外とする。
+#                    共有部品（skill-naming規約が定める<単位>-sharedフォルダ）は
+#                    複数単位の統括から名指しで参照される設計上の例外であるため
 #   入出力-空        inputs・outputs が空でない配列である（requires は空を許す）
 #
 # 名前の決まり（agent-operations/skill-naming）との連結:
@@ -148,6 +151,9 @@ scan_leaks_in_content() {
   local content="$1" own_unit="$2" label="$3"
   printf '%s\n' "$content" | grep -noE '\b(setup|reverse|verify|portal|operate)-[a-z0-9-]+' 2>/dev/null | while IFS=: read -r lineno match; do
     local u="${match%%-*}"
+    case "$match" in
+      *-shared) continue ;;
+    esac
     if [ "$u" != "$own_unit" ]; then
       printf '%s:%s: %s\n' "$label" "$lineno" "$match"
     fi
@@ -521,6 +527,21 @@ self_test() {
     fail=$((fail+1)); echo "  [FAIL] ケース8: 他単位の名前の混入を検知しない (exit ${rc8})" >&2
     printf '%s\n' "$out8" | sed 's/^/    /' >&2
   fi
+  # ケース14（他単位-名前混入-shared除外）: scripts/配下の<単位>-sharedへの参照は許す
+  bst_write_valid_skill "$root" "setup-alpha" "setup"
+  local h14='-'
+  local shared_ref="reverse${h14}shared/scripts/plan-units.sh"
+  printf '# %s を呼ぶ\n' "$shared_ref" >> "${root}/setup-alpha/scripts/dummy.sh"
+  local out14 rc14=0
+  out14="$("$0" "$root" 2>&1)" || rc14=$?
+  if [ "$rc14" -eq 0 ]; then
+    pass=$((pass+1)); echo "  [PASS] ケース14: <単位>-sharedへの参照は他単位-名前混入としない（exit 0）"
+  else
+    fail=$((fail+1)); echo "  [FAIL] ケース14: <単位>-sharedへの参照を誤って検知する (exit ${rc14})" >&2
+    printf '%s\n' "$out14" | sed 's/^/    /' >&2
+  fi
+  rm -rf "${root:?}"/*
+
   rm -rf "${root:?}"/*
 
   # ケース9（入出力-空）: inputsを空配列にする

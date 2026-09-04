@@ -6,7 +6,7 @@
 
 ## 単位と機能の一覧
 
-機能は単位（setup・reverse など）ごとに `docs/skills/<単位>-<作業>-<対象>/` へ定義します。現時点で定義済みの機能は次の 14 件です。
+機能は単位（setup・reverse など）ごとに `docs/skills/<単位>-<作業>-<対象>/` へ定義します。現時点で定義済みの機能は次の 15 件です。
 
 ### setup 単位
 
@@ -31,16 +31,19 @@
 | reverse-checking-basic-phase | 基本設計の完了を判定する | 基本設計書と共通設計文書を観点表でレビューし、単位・共通設計文書ごとに合否を記録する（工程2-6） | 支援ツールの開発者 |
 | reverse-writing-common-detail-design | 共通処理の詳細設計書を書く | 道標の共通方式の場所を読み、共通処理の詳細設計書を方式ごとに書き、節の構成と位置づけを機械検査する（工程2-7） | 支援ツールの開発者 |
 | reverse-writing-detail-design | 詳細設計書を書く | 事実・基本設計書・共通処理の詳細設計書を読み、コードと1対1の詳細設計書（表はテーブル定義書）を単位ごとに書き、事実の網羅と整合を機械検査する（工程2-8） | 支援ツールの開発者 |
+| reverse-orchestrating-flow | リバースの統括 | reverse単位の機能の宣言を読んで実行順を組み立て、実行フォルダを作ってから各機能を順に実行し、出力の範囲で打ち切る | 支援ツールの開発者 |
 
 ## setup の機能の位置づけ
 
 規約の配置（setup-scaffolding-rules）と規約の派生（setup-deriving-rules）は納品先で使います。機能の派生（setup-deriving-skills）・合格の集計（setup-checking-acceptance）は、支援ツール自身の道具です。統括（setup-orchestrating-units）も同様に、支援ツール自身の道具です。納品先では `docs/skills`（運用の単位の機能定義）ができてから、これらの機能を使います。
 
+setup と reverse の両方を動かすときは統括（setup-orchestrating-units）だけを呼びます。reverse だけを単独で動かすときは、統括を経由せず「リバースの統括」（reverse-orchestrating-flow）を直接呼びます。実行フォルダを作る `start-run.sh` と実行順を組み立てる計算は両方の統括で共有し、実体は `docs/skills/reverse-shared/scripts/` に置きます。
+
 ## 使い方（reverse）
 
 規約の配置と派生は納品の段だけで使います。reverse の工程では先方に規約を置きません。
 
-1. 実行の開始として、統括の `start-run.sh` で実行フォルダを作ります
+1. 実行の開始として、リバースの統括（reverse-orchestrating-flow）の `start-run.sh` で実行フォルダを作ります。reverseを単独で動かすときはこの機能を直接呼びます
 2. 道標を描きます（第一フェーズ。承認まで）。ここでは `reverse-drawing-map` を実行します
 3. 一覧を作ります（第二フェーズの最初）。ここでは `reverse-listing-units` を実行します
 4. 要件定義書を裏付けます。ここでは `reverse-checking-requirements` を実行します
@@ -69,7 +72,7 @@
 
 ## 出力の範囲
 
-統括の前提の確認（`setup-orchestrating-units`の手順0）で選ぶ「出力の範囲」は、計画の打ち切り位置（`plan-setup.sh`の`--until`）に対応します。
+統括の前提の確認で選ぶ「出力の範囲」は、計画の打ち切り位置（`--until`）に対応します。手順0は`setup-orchestrating-units`（setupと合わせて動かす場合）または`reverse-orchestrating-flow`（reverseを単独で動かす場合）が担います。
 
 | 出力の範囲 | 打ち切り位置 |
 |---|---|

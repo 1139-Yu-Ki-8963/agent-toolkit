@@ -6,9 +6,11 @@ set -u
 # 目的:
 #   reverse-shared は名前の決まり（skill-naming）によりSKILL.mdを持たない
 #   共有部品であり、検収は本tests/が担う。read-run.sh・check-entry.sh・
-#   unit-dir-name.sh・units-status.sh・list-units-of.shの--self-testを
-#   回すことに加え、references/の複製がdocs/design/common/の定義と一致して
-#   いること（複製のずれ防止）を確かめる。
+#   unit-dir-name.sh・units-status.sh・list-units-of.sh・start-run.sh・
+#   plan-units.shの
+#   --self-testを回すことに加え、references/の複製がdocs/design/common/の定義と
+#   一致していること（複製のずれ防止）を確かめる。setupの原本（写しの元）が
+#   無い環境、およびdocs/design/common自体が無い環境では、同一性の検査をSKIPにする。
 #
 # 使い方:
 #   bash test-self-tests.sh
@@ -25,8 +27,18 @@ set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SHARED_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-DESIGN_DIR="$(cd "${SHARED_DIR}/../../design/common" && pwd)"
-SETUP_DIR="$(cd "${SHARED_DIR}/../setup-scaffolding-rules/templates/rules/tool-defined" && pwd)"
+DESIGN_DIR="${SHARED_DIR}/../../design/common"
+if [ -d "$DESIGN_DIR" ]; then
+  DESIGN_DIR="$(cd "$DESIGN_DIR" && pwd)"
+else
+  DESIGN_DIR=""
+fi
+SETUP_DIR="${SHARED_DIR}/../setup-scaffolding-rules/templates/rules/tool-defined"
+if [ -d "$SETUP_DIR" ]; then
+  SETUP_DIR="$(cd "$SETUP_DIR" && pwd)"
+else
+  SETUP_DIR=""
+fi
 
 total=0
 fail=0
@@ -63,11 +75,27 @@ run_case "units-status.sh --self-test" bash "${SHARED_DIR}/scripts/units-status.
 run_case "list-units-of.sh --self-test" bash "${SHARED_DIR}/scripts/list-units-of.sh" --self-test
 run_case "check-doc-heading-addendum.sh --self-test" bash "${SHARED_DIR}/scripts/check-doc-heading-addendum.sh" --self-test
 run_case "check-unit-test-design-doc-sections.sh --self-test" bash "${SHARED_DIR}/scripts/check-unit-test-design-doc-sections.sh" --self-test
-run_case "定義と複製が一致する: unit-kinds.json" cmp -s "${DESIGN_DIR}/unit-kinds.json" "${SHARED_DIR}/references/unit-kinds.json"
-run_case "定義と複製が一致する: output-layout.json" cmp -s "${DESIGN_DIR}/output-layout.json" "${SHARED_DIR}/references/output-layout.json"
-run_case "定義と複製が一致する: fact-shapes.json" cmp -s "${DESIGN_DIR}/fact-shapes.json" "${SHARED_DIR}/references/fact-shapes.json"
-run_case "写しが原本と一致する: check-doc-heading-addendum.sh" cmp_ignoring_notice "${SETUP_DIR}/documentation-standards/document-writing/check-doc-heading-addendum.sh" "${SHARED_DIR}/scripts/check-doc-heading-addendum.sh"
-run_case "写しが原本と一致する: check-unit-test-design-doc-sections.sh" cmp_ignoring_notice "${SETUP_DIR}/quality-assurance/test-policy/check-unit-test-design-doc-sections.sh" "${SHARED_DIR}/scripts/check-unit-test-design-doc-sections.sh"
+run_case "start-run.sh --self-test" bash "${SHARED_DIR}/scripts/start-run.sh" --self-test
+run_case "plan-units.sh --self-test" bash "${SHARED_DIR}/scripts/plan-units.sh" --self-test
+if [ -n "$DESIGN_DIR" ]; then
+  run_case "定義と複製が一致する: unit-kinds.json" cmp -s "${DESIGN_DIR}/unit-kinds.json" "${SHARED_DIR}/references/unit-kinds.json"
+  run_case "定義と複製が一致する: output-layout.json" cmp -s "${DESIGN_DIR}/output-layout.json" "${SHARED_DIR}/references/output-layout.json"
+  run_case "定義と複製が一致する: fact-shapes.json" cmp -s "${DESIGN_DIR}/fact-shapes.json" "${SHARED_DIR}/references/fact-shapes.json"
+else
+  echo "SKIP: 定義と複製が一致する: unit-kinds.json（原本のdocs/design/commonが無い）"
+  echo "SKIP: 定義と複製が一致する: output-layout.json（原本のdocs/design/commonが無い）"
+  echo "SKIP: 定義と複製が一致する: fact-shapes.json（原本のdocs/design/commonが無い）"
+fi
+if [ -n "$SETUP_DIR" ] && [ -f "${SETUP_DIR}/documentation-standards/document-writing/check-doc-heading-addendum.sh" ]; then
+  run_case "写しが原本と一致する: check-doc-heading-addendum.sh" cmp_ignoring_notice "${SETUP_DIR}/documentation-standards/document-writing/check-doc-heading-addendum.sh" "${SHARED_DIR}/scripts/check-doc-heading-addendum.sh"
+else
+  echo "SKIP: 写しが原本と一致する: check-doc-heading-addendum.sh（原本が無い）"
+fi
+if [ -n "$SETUP_DIR" ] && [ -f "${SETUP_DIR}/quality-assurance/test-policy/check-unit-test-design-doc-sections.sh" ]; then
+  run_case "写しが原本と一致する: check-unit-test-design-doc-sections.sh" cmp_ignoring_notice "${SETUP_DIR}/quality-assurance/test-policy/check-unit-test-design-doc-sections.sh" "${SHARED_DIR}/scripts/check-unit-test-design-doc-sections.sh"
+else
+  echo "SKIP: 写しが原本と一致する: check-unit-test-design-doc-sections.sh（原本が無い）"
+fi
 
 echo "実行 ${total} 件 / 失敗 ${fail} 件"
 if [ "$fail" -gt 0 ]; then
