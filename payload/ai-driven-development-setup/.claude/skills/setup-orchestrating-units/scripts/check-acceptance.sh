@@ -834,7 +834,6 @@ kind: none
 inputs: [docs/skills/${REQUIRED_SKILL_NAME}/dummy-input]
 outputs: [docs/skills/${REQUIRED_SKILL_NAME}/dummy-output]
 requires: []
-acceptance: tests/
 ---
 
 ## いつ使うか
@@ -866,7 +865,6 @@ kind: none
 inputs: [docs/skills/${skill_name}/dummy-input]
 outputs: [docs/skills/${skill_name}/dummy-output]
 requires: []
-acceptance: tests/
 ---
 
 ## いつ使うか

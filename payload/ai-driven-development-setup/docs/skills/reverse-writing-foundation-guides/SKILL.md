@@ -11,7 +11,6 @@ kind: none
 inputs: [docs/design/common/調査と検出条件の定義書.md, docs/design/common/基盤設計書.md]
 outputs: [docs/design/common/技術スタック.md, docs/design/common/環境構築手順書.md]
 requires: [reverse-listing-units]
-acceptance: tests/
 ---
 
 ## いつ使うか

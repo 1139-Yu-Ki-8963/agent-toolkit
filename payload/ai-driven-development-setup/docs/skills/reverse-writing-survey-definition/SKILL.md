@@ -11,7 +11,6 @@ kind: none
 inputs: [.git/HEAD, README.md]
 outputs: [docs/design/common/調査と検出条件の定義書.md, docs/design/requirements/要件定義書.md, docs/design/common/業務仕様書.md, docs/design/common/方式設計書.md, docs/design/common/データ設計書.md, docs/design/common/エラー設計書.md, docs/design/common/共通外部仕様書.md, docs/design/common/基盤設計書.md, ai-work/records/basic-design-acceptance/common-*.json]
 requires: []
-acceptance: tests/
 ---
 
 ## いつ使うか

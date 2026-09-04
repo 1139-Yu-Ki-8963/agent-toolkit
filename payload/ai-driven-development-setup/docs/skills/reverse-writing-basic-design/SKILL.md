@@ -11,7 +11,6 @@ kind: [screen, api, table, batch, report, external, feature]
 inputs: [ai-output/*/*/code-readings/*/*.json, docs/design/common/調査と検出条件の定義書.md, docs/design/common/業務仕様書.md, docs/design/common/方式設計書.md, docs/design/common/データ設計書.md, docs/design/common/エラー設計書.md, docs/design/common/共通外部仕様書.md, docs/design/common/基盤設計書.md, docs/design/requirements/要件定義書.md, docs/design/lists/機能と単位の対応表.md]
 outputs: [docs/design/screens/*/画面/基本設計/画面基本設計書.md, docs/design/screens/*/画面/テスト設計/画面単体テスト設計書.md, docs/design/apis/*/API基本設計書.md, docs/design/apis/*/API単体テスト設計書.md, docs/design/tables/*/論理データモデル.md, docs/design/tables/*/テーブル単体テスト設計書.md, docs/design/batches/*/バッチ基本設計書.md, docs/design/batches/*/バッチ単体テスト設計書.md, docs/design/reports/*/帳票基本設計書.md, docs/design/reports/*/帳票単体テスト設計書.md, docs/design/externals/*/外部連携基本設計書.md, docs/design/externals/*/外部連携単体テスト設計書.md, docs/design/features/*/機能設計書.md, docs/design/features/*/機能単体テスト設計書.md, ai-work/records/basic-design-acceptance/*.json]
 requires: [reverse-extracting-code-readings, reverse-listing-units]
-acceptance: tests/
 ---
 
 ## いつ使うか

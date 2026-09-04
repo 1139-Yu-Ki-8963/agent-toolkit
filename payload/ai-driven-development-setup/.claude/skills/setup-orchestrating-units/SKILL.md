@@ -11,7 +11,6 @@ kind: none
 inputs: [docs/skills/*/SKILL.md, docs/skills/*/tests/*.sh, docs/design/requirements/requirement-pillars.json]
 outputs: [reports/setup-plan.md, ai-output/*/*/run.json, reports/acceptance.md]
 requires: []
-acceptance: tests/
 ---
 <!-- 生成物: 定義は支援ツールの正本リポジトリの docs/skills/setup-orchestrating-units/ にある（この配布物には含まれない）。直接編集しないこと -->
 

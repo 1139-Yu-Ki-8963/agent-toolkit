@@ -126,7 +126,6 @@ kind: none
 inputs: [docs/skills/${name}/dummy-input]
 outputs: [docs/skills/${name}/dummy-output]
 requires: []
-acceptance: tests/
 ---
 
 ## いつ使うか

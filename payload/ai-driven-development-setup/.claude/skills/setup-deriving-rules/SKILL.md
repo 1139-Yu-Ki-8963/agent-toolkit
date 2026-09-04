@@ -11,7 +11,6 @@ kind: none
 inputs: [docs/rules/*/parent.yml, docs/rules/*/*/rule.md]
 outputs: [.claude/rules/**/rule.md, .cursor/rules/*.mdc, AGENTS.md, .claude/settings.json, .cursor/hooks.json, .codex/config.toml]
 requires: []
-acceptance: tests/
 ---
 <!-- 生成物: 定義は支援ツールの正本リポジトリの docs/skills/setup-deriving-rules/ にある（この配布物には含まれない）。直接編集しないこと -->
 

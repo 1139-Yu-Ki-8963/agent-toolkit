@@ -11,7 +11,6 @@ kind: [screen, api, table, batch, report, external]
 inputs: [ai-output/*/*/code-readings/*/*.json, docs/design/screens/*/基本設計書.md, docs/design/apis/*/基本設計書.md, docs/design/tables/*/基本設計書.md, docs/design/batches/*/基本設計書.md, docs/design/reports/*/基本設計書.md, docs/design/externals/*/基本設計書.md, docs/design/common/共通処理の詳細設計書.md]
 outputs: [docs/design/screens/*/詳細設計書.md, docs/design/apis/*/詳細設計書.md, docs/design/batches/*/詳細設計書.md, docs/design/reports/*/詳細設計書.md, docs/design/externals/*/詳細設計書.md, docs/design/tables/*/テーブル定義書.md]
 requires: [reverse-writing-common-detail-design]
-acceptance: tests/
 ---
 
 ## いつ使うか

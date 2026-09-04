@@ -11,7 +11,6 @@ kind: none
 inputs: [docs/skills/*/SKILL.md]
 outputs: [.claude/skills/*/SKILL.md]
 requires: []
-acceptance: tests/
 ---
 
 ## いつ使うか

@@ -627,7 +627,7 @@ UNITSLIST
   echo "単位数=${unit_count} 機械で埋まった項目数=${machine_filled} 未の項目数=${mi_total} 属するファイル不在=${missing_total}"
 
   if [ "$invalid_count" -gt 0 ]; then
-    echo "[WARN] 規則-解釈不能: ${invalid_count} 件の項目の取り出しの規則を解釈できませんでした（集計の規則の無い項目を確認してください）" >&2
+    echo "[WARN] 規則-解釈不能: ${invalid_count} 件の項目の取り出しの規則を解釈できませんでした（集計の規則の無い項目を確認してください）"
   fi
 
   if [ "$missing_total" -gt 0 ] || [ "$invalid_count" -gt 0 ]; then
@@ -1147,7 +1147,7 @@ FIXEOF8
     *) check "規則-解釈不能: 集計の規則の無い項目に列挙される" 1 ;;
   esac
 
-  case "$(cat "$base/case8.err")" in
+  case "$(cat "$base/case8.out")" in
     *"規則-解釈不能"*) check "規則-解釈不能: 標準出力（実行した側が読む位置）に警告が出る" 0 ;;
     *) check "規則-解釈不能: 標準出力（実行した側が読む位置）に警告が出る" 1 ;;
   esac

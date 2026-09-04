@@ -11,7 +11,6 @@ kind: none
 inputs: [docs/skills/*/SKILL.md]
 outputs: [.claude/skills/*/SKILL.md]
 requires: []
-acceptance: tests/
 ---
 <!-- 生成物: 定義は支援ツールの正本リポジトリの docs/skills/setup-deriving-skills/ にある（この配布物には含まれない）。直接編集しないこと -->
 

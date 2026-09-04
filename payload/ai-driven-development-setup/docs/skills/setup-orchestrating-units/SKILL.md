@@ -11,7 +11,6 @@ kind: none
 inputs: [docs/skills/*/SKILL.md, docs/skills/*/tests/*.sh, docs/design/requirements/requirement-pillars.json]
 outputs: [reports/setup-plan.md, ai-output/*/*/run.json, reports/acceptance.md]
 requires: []
-acceptance: tests/
 ---
 
 ## いつ使うか

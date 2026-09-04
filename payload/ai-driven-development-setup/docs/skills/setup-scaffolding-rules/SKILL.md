@@ -11,7 +11,6 @@ kind: none
 inputs: [references/rule-taxonomy.json, templates/rules/**]
 outputs: [docs/rules/*/parent.yml, docs/rules/*/*/rule.md, docs/rules/*/*/*.sh]
 requires: []
-acceptance: tests/
 ---
 
 ## いつ使うか

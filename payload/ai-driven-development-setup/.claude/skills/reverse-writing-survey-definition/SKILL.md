@@ -11,7 +11,6 @@ kind: none
 inputs: [.git/HEAD, README.md]
 outputs: [docs/design/common/調査と検出条件の定義書.md, docs/design/requirements/要件定義書.md, docs/design/common/業務仕様書.md, docs/design/common/方式設計書.md, docs/design/common/データ設計書.md, docs/design/common/エラー設計書.md, docs/design/common/共通外部仕様書.md, docs/design/common/基盤設計書.md, ai-work/records/basic-design-acceptance/common-*.json]
 requires: []
-acceptance: tests/
 ---
 <!-- 生成物: 定義は支援ツールの正本リポジトリの docs/skills/reverse-writing-survey-definition/ にある（この配布物には含まれない）。直接編集しないこと -->
 
@@ -135,7 +134,7 @@ acceptance: tests/
 
 ## 完了条件
 
-- 調査と検出条件の定義書・要件定義書・共通設計文書 6 つが実在し、`scripts/check-survey-definition.sh` と `scripts/check-design-docs.sh` が終了コード 0
+- 調査と検出条件の定義書・要件定義書・共通設計文書 6 つが実在すること。`scripts/check-survey-definition.sh` と `scripts/check-design-docs.sh` が終了コード 0
 - 保留を除く共通設計文書6つに合格の記録がある
 - 次が0を返す: `check-acceptance-record.sh <対象> --common --design-root <設計書の置き場>`
 - `confirmations/承認用の要約.md` が 100 行以内で実在する

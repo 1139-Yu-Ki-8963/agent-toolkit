@@ -11,7 +11,6 @@ kind: [screen, api, table, batch, report, external, feature]
 inputs: [docs/design/common/調査と検出条件の定義書.md, docs/design/requirements/要件定義書.md]
 outputs: [docs/design/lists/*.json, docs/design/lists/*.md, docs/design/lists/機能と単位の対応表.md]
 requires: [reverse-writing-survey-definition]
-acceptance: tests/
 ---
 
 ## いつ使うか

@@ -11,7 +11,6 @@ kind: [screen, api, table, batch, report, external, feature]
 inputs: [docs/design/common/調査と検出条件の定義書.md, docs/design/requirements/要件定義書.md]
 outputs: [docs/design/lists/*.json, docs/design/lists/*.md, docs/design/lists/機能と単位の対応表.md]
 requires: [reverse-writing-survey-definition]
-acceptance: tests/
 ---
 <!-- 生成物: 定義は支援ツールの正本リポジトリの docs/skills/reverse-listing-units/ にある（この配布物には含まれない）。直接編集しないこと -->
 
@@ -25,7 +24,7 @@ acceptance: tests/
 
 ## 前提
 
-- 設計書の置き場（`bash ../reverse-shared/scripts/design-root.sh <実行フォルダ>` で読む）に `docs/design/common/調査と検出条件の定義書.md` がある。この調査と検出条件の定義書の節「単位の見つけ方」に、種別ごとの検出条件（`json 検出条件` の囲み）があること
+- 設計書の置き場（`bash ../reverse-shared/scripts/design-root.sh <実行フォルダ>` で読む）に調査と検出条件の定義書がある。パスは `docs/design/common/調査と検出条件の定義書.md`。この節「単位の見つけ方」には、検出条件（`json 検出条件` の囲み）が種別ごとにある
 - 対象リポジトリの `ai-output` の `confirmations/` に承認の記録があること（無ければ止まる。確認は手順 1）
 - この機能は検出条件を解釈するだけで、言語やフレームワークごとの分岐を持たない。見つけ方は調査と検出条件の定義書が持つ
 

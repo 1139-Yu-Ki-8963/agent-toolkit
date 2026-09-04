@@ -11,7 +11,6 @@ kind: none
 inputs: [docs/rules/*/parent.yml, docs/rules/*/*/rule.md]
 outputs: [.claude/rules/**/rule.md, .cursor/rules/*.mdc, AGENTS.md, .claude/settings.json, .cursor/hooks.json, .codex/config.toml]
 requires: []
-acceptance: tests/
 ---
 
 ## いつ使うか

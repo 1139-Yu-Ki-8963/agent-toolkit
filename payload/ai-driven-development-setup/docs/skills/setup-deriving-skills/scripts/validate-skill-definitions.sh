@@ -14,8 +14,8 @@ set -euo pipefail
 #
 # 検査キー:
 #   宣言-鍵欠落      front matter に name・日本語名・description・invocation・type・
-#                    allowed-tools・unit・category・kind・inputs・outputs・requires・
-#                    acceptance の13鍵すべてがある
+#                    allowed-tools・unit・category・kind・inputs・outputs・requires
+#                    の12鍵すべてがある
 #   名前-一致        name とフォルダ名と invocation が同じ
 #   接頭辞-不一致    name が setup-/reverse-/verify-/portal-/operate- のいずれかで
 #                    始まり、その接頭辞が unit と一致する
@@ -24,7 +24,7 @@ set -euo pipefail
 #                    unit が operate なら category は operate。それ以外の unit は
 #                    3値のどれでもよい
 #   requires-単位不一致  requires の各要素が同じルートに実在し、かつ同じ unit の機能である
-#   検収-未整備      acceptance が "tests/" であり、<機能>/tests/ に実行権限を持つ *.sh が
+#   検収-未整備      <機能>/tests/ ディレクトリが実在し、実行権限を持つ *.sh が
 #                    1本以上ある
 #   他単位-名前混入  SKILL.md 本体（front matter を除く）と scripts/ 配下の全ファイルに、
 #                    自分と異なる単位の接頭辞を持つ機能名らしき文字列が現れない。
@@ -54,7 +54,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-EXPECTED_KEYS="name 日本語名 description invocation type allowed-tools unit category kind inputs outputs requires acceptance"
+EXPECTED_KEYS="name 日本語名 description invocation type allowed-tools unit category kind inputs outputs requires"
 UNIT_PREFIXES="setup reverse verify portal operate"
 
 FAILURES=""
@@ -186,15 +186,14 @@ validate_one_skill() {
     fi
   done
   if [ -n "$missing" ]; then
-    add_failure "$name" "宣言-鍵欠落" "必須13鍵のうち欠落: ${missing}"
+    add_failure "$name" "宣言-鍵欠落" "必須12鍵のうち欠落: ${missing}"
   fi
 
-  local v_name v_invocation v_unit v_category v_acceptance v_type
+  local v_name v_invocation v_unit v_category v_type
   v_name="$(fm_get_scalar "$body" name)"
   v_invocation="$(fm_get_scalar "$body" invocation)"
   v_unit="$(fm_get_scalar "$body" unit)"
   v_category="$(fm_get_scalar "$body" category)"
-  v_acceptance="$(fm_get_scalar "$body" acceptance)"
   v_type="$(fm_get_scalar "$body" type)"
 
   # 型-検査だけ
@@ -267,17 +266,13 @@ REQLIST
   fi
 
   # 検収-未整備
-  if [ "$v_acceptance" != "tests/" ]; then
-    add_failure "$name" "検収-未整備" "acceptance(${v_acceptance:-（空）})が 'tests/' ではない"
+  if [ ! -d "${dir}/tests" ]; then
+    add_failure "$name" "検収-未整備" "tests/ ディレクトリが存在しない"
   else
-    if [ ! -d "${dir}/tests" ]; then
-      add_failure "$name" "検収-未整備" "tests/ ディレクトリが存在しない"
-    else
-      local exec_count
-      exec_count="$(find "${dir}/tests" -maxdepth 1 -type f -name '*.sh' -perm -u+x 2>/dev/null | grep -c . || true)"
-      if [ "${exec_count:-0}" -eq 0 ]; then
-        add_failure "$name" "検収-未整備" "tests/ に実行権限を持つ *.sh が1本も無い"
-      fi
+    local exec_count
+    exec_count="$(find "${dir}/tests" -maxdepth 1 -type f -name '*.sh' -perm -u+x 2>/dev/null | grep -c . || true)"
+    if [ "${exec_count:-0}" -eq 0 ]; then
+      add_failure "$name" "検収-未整備" "tests/ に実行権限を持つ *.sh が1本も無い"
     fi
   fi
 
@@ -398,7 +393,6 @@ kind: none
 inputs: [docs/skills/${name}/dummy-input]
 outputs: [docs/skills/${name}/dummy-output]
 requires: []
-acceptance: tests/
 ---
 
 ## いつ使うか

@@ -11,7 +11,6 @@ kind: none
 inputs: [docs/skills/reverse-*/SKILL.md]
 outputs: [ai-output/*/*/run.json, ai-output/*/*/reports/reverse-plan.md]
 requires: []
-acceptance: tests/
 ---
 
 ## いつ使うか

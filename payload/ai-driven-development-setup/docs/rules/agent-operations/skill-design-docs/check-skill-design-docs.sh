@@ -45,8 +45,9 @@ list_skill_names() {
   done
 }
 
-count_table_rows() {
-  # $1 = file, $2 = セクション見出し。見出し直後の表本体行（先頭 | 、区切り行 |---| を除く）を数える
+# $1 = file, $2 = セクション見出し。見出し直後の表本体行（先頭 | 、区切り行 |---| を除く）を
+# 1行1レコードで標準出力へ出す（先頭・末尾の | を除いた生の行）。
+extract_table_rows() {
   local file="$1" heading="$2"
   awk -v h="$heading" '
     $0 == h { f = 1; next }
@@ -54,30 +55,24 @@ count_table_rows() {
     f && /^\|/ {
       if (n == 0) { n = 1; next }         # ヘッダ行
       if ($0 ~ /^\|[- :|]+\|$/) { next }  # 区切り行
-      c++
+      print
     }
-    END { print c + 0 }
   ' "$file"
 }
 
-sum_case_count_column() {
-  # 「テスト対象」表の最終列（ケース数）を合計する
-  local file="$1"
-  awk '
-    $0 == "## テスト対象" { f = 1; next }
-    f && /^## / { exit }
-    f && /^\|/ {
-      if (n == 0) { n = 1; next }
-      if ($0 ~ /^\|[- :|]+\|$/) { next }
-      line = $0
-      gsub(/^\|/, "", line); gsub(/\|$/, "", line)
-      nsplit = split(line, cols, "|")
-      val = cols[nsplit]
-      gsub(/^[ \t]+|[ \t]+$/, "", val)
-      if (val ~ /^[0-9]+$/) sum += val
-    }
-    END { print sum + 0 }
-  ' "$file"
+# 表の行文字列を列配列へ分割する（先頭・末尾の | を落としてから split）
+split_cols() {
+  local line="$1"
+  line="${line#|}"
+  line="${line%|}"
+  IFS='|' read -r -a __cols <<< "$line"
+}
+
+trim() {
+  local s="$1"
+  s="${s#"${s%%[![:space:]]*}"}"
+  s="${s%"${s##*[![:space:]]}"}"
+  printf '%s' "$s"
 }
 
 check_repo() {
@@ -125,12 +120,69 @@ check_repo() {
       for h in "## テスト対象" "## §1 テスト観点" "## §2 テストケース一覧" "## §5 異常系" "## §6 境界値"; do
         heading_exists "$ud" "$h" || fail "単体テスト設計書に節が無い: $name / $h"
       done
-      local sum rows
-      sum="$(sum_case_count_column "$ud")"
-      rows="$(count_table_rows "$ud" "## §2 テストケース一覧")"
-      if [ "$sum" != "$rows" ]; then
-        fail "単体テスト設計書のケース数が不一致: $name (テスト対象の合計=$sum, §2の行数=$rows)"
-      fi
+
+      # §1 テスト観点の観点キー一覧（1列目）を集める
+      local -A viewpoint_keys=()
+      local vrow
+      while IFS= read -r vrow; do
+        [ -n "$vrow" ] || continue
+        split_cols "$vrow"
+        local vk
+        vk="$(trim "${__cols[0]:-}")"
+        [ -n "$vk" ] && viewpoint_keys["$vk"]=1
+      done < <(extract_table_rows "$ud" "## §1 テスト観点")
+
+      # §2 テストケース一覧: 9列（キー・番号・機能・ケースの名前・対応する観点のキー・区分・前提・操作・期待結果）
+      local crow
+      while IFS= read -r crow; do
+        [ -n "$crow" ] || continue
+        split_cols "$crow"
+        local col_key col_vp col_pre col_op col_exp
+        col_key="$(trim "${__cols[0]:-}")"
+        col_vp="$(trim "${__cols[4]:-}")"
+        col_pre="$(trim "${__cols[6]:-}")"
+        col_op="$(trim "${__cols[7]:-}")"
+        col_exp="$(trim "${__cols[8]:-}")"
+        if [ -z "$col_pre" ] || [ -z "$col_op" ] || [ -z "$col_exp" ]; then
+          fail "単体テスト設計書の§2に前提・操作・期待結果が無い行がある: $name / ${col_key:-(キー不明)}"
+        fi
+        if [ -n "$col_vp" ] && [ -z "${viewpoint_keys[$col_vp]:-}" ]; then
+          fail "単体テスト設計書の§2の観点キーが§1に無い: $name / ${col_key:-(キー不明)} -> $col_vp"
+        fi
+      done < <(extract_table_rows "$ud" "## §2 テストケース一覧")
+
+      # 自己テストの表: スクリプト | 件数 の2列
+      local srow script expect actual
+      while IFS= read -r srow; do
+        [ -n "$srow" ] || continue
+        split_cols "$srow"
+        script="$(trim "${__cols[0]:-}")"
+        expect="$(trim "${__cols[$((${#__cols[@]} - 1))]:-}")"
+        [ -n "$script" ] || continue
+        if [[ "$expect" != [0-9]* ]]; then
+          continue
+        fi
+        local script_path
+        script_path="$(find "$root" -type f -name "$script" 2>/dev/null | head -n 1)"
+        if [ -z "$script_path" ] || [ ! -x "$script_path" ]; then
+          warn "自己テストの実物確認が判定不能: $name / $script（見つからない、または実行権限が無い）"
+          continue
+        fi
+        local out
+        out="$("$script_path" --self-test 2>&1)"
+        local rc=$?
+        if [ "$rc" != 0 ] && [ "$rc" != 1 ]; then
+          warn "自己テストの実物確認が判定不能: $name / $script（--self-test を実行できない）"
+          continue
+        fi
+        actual="$(printf '%s\n' "$out" | grep -o '実行 [0-9]\+ 件' | grep -o '[0-9]\+' | head -n 1)"
+        if [ -z "$actual" ]; then
+          actual="$(printf '%s\n' "$out" | grep -c '^\[PASS\]')"
+        fi
+        if [ "$actual" != "$expect" ]; then
+          fail "単体テスト設計書の自己テストの件数が実物と不一致: $name / $script (記載=$expect, 実物=$actual)"
+        fi
+      done < <(extract_table_rows "$ud" "## 自己テスト")
     fi
   done <<< "$names"
 
@@ -159,7 +211,7 @@ self_test() {
   pass=0; total=0
 
   write_basic() {
-    cat > "$1" << 'EOF'
+    cat > "$1" << 'INNER_EOF'
 ## §1 外部仕様
 | 要件の柱 | 要件の項目 | この機能が満たす内容 |
 |---|---|---|
@@ -169,17 +221,17 @@ self_test() {
 ## §4 データ仕様
 ## §5 エラーと例外
 ## §6 関連資料
-EOF
+INNER_EOF
   }
   write_detail() {
-    cat > "$1" << 'EOF'
+    cat > "$1" << 'INNER_EOF'
 ## §1 構成要素
 ## §2 処理の定義
 ## §3 ロジック
 ## §4 入出力の値
 ## §5 エラー処理
 ## §6 関連資料
-EOF
+INNER_EOF
   }
 
   # ケース1: 完全な最小リポジトリ → 合格
@@ -189,27 +241,41 @@ EOF
   touch "$tmp/ok/docs/skills/reverse-doing-thing/SKILL.md"
   write_basic "$tmp/ok/docs/design/skills/reverse-doing-thing/基本設計書.md"
   write_detail "$tmp/ok/docs/design/skills/reverse-doing-thing/詳細設計書.md"
-  cat > "$tmp/ok/docs/design/skills/reverse-doing-thing/単体テスト設計書.md" << 'EOF'
+  cat > "$tmp/ok/docs/design/skills/reverse-doing-thing/単体テスト設計書.md" << 'INNER_EOF'
 ## テスト対象
-| スクリプト | 自己テストの実行 | ケース数 |
-|---|---|---|
-| a.sh | あり | 2 |
+| スクリプト | 自己テストの実行 |
+|---|---|
+| a.sh | あり |
 ## §1 テスト観点
 | キー | 観点 | 確かめる手段 |
 |---|---|---|
 | k1 | v1 | m1 |
 ## §2 テストケース一覧
-| キー | 番号 | スクリプト | 前提 | 操作 | 期待値 |
-|---|---|---|---|---|---|
-| c1 | 1 | a.sh | p | o | e |
-| c2 | 2 | a.sh | p | o | e |
+| キー | 番号 | 機能 | ケースの名前 | 対応する観点のキー | 区分 | 前提 | 操作 | 期待結果 |
+|---|---|---|---|---|---|---|---|---|
+| c1 | 1 | f1 | 名前1 | k1 | 正常 | p | o | e |
+| c2 | 2 | f1 | 名前2 | k1 | 異常 | p | o | e |
 ## §5 異常系
 ## §6 境界値
-EOF
-  cat > "$tmp/ok/docs/design/requirements/要件と機能の対応表.md" << 'EOF'
+## 自己テスト
+| スクリプト | 件数 |
+|---|---|
+| a.sh | 2 |
+INNER_EOF
+  cat > "$tmp/ok/docs/design/requirements/要件と機能の対応表.md" << 'INNER_EOF'
 | 柱1 | x | reverse-doing-thing | c | 対応済み |
 | reverse-doing-thing | 何か |
-EOF
+INNER_EOF
+  mkdir -p "$tmp/ok/scripts"
+  cat > "$tmp/ok/scripts/a.sh" << 'INNER_EOF'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--self-test" ]; then
+  echo "実行 2 件 / 合格 2 件"
+  exit 0
+fi
+exit 0
+INNER_EOF
+  chmod +x "$tmp/ok/scripts/a.sh"
   total=$((total + 1))
   fail_count=0; check_repo "$tmp/ok" > /dev/null 2>&1; if [ "$fail_count" = 0 ]; then pass=$((pass + 1)); else echo "[SELFTEST-FAIL] ケース1(合格想定)が不合格" >&2; fi
 
@@ -220,29 +286,33 @@ EOF
   total=$((total + 1))
   fail_count=0; check_repo "$tmp/ng1" > /dev/null 2>&1; if [ "$fail_count" -gt 0 ]; then pass=$((pass + 1)); else echo "[SELFTEST-FAIL] ケース2(不合格想定)が合格" >&2; fi
 
-  # ケース3: ケース数不一致 → 不合格
+  # ケース3: §2に前提・操作・期待結果が空の行がある → 不合格
   mkdir -p "$tmp/ng2/docs/skills/reverse-doing-thing"
   mkdir -p "$tmp/ng2/docs/design/skills/reverse-doing-thing"
   mkdir -p "$tmp/ng2/docs/design/requirements"
   touch "$tmp/ng2/docs/skills/reverse-doing-thing/SKILL.md"
   write_basic "$tmp/ng2/docs/design/skills/reverse-doing-thing/基本設計書.md"
   write_detail "$tmp/ng2/docs/design/skills/reverse-doing-thing/詳細設計書.md"
-  cat > "$tmp/ng2/docs/design/skills/reverse-doing-thing/単体テスト設計書.md" << 'EOF'
+  cat > "$tmp/ng2/docs/design/skills/reverse-doing-thing/単体テスト設計書.md" << 'INNER_EOF'
 ## テスト対象
-| スクリプト | 自己テストの実行 | ケース数 |
-|---|---|---|
-| a.sh | あり | 3 |
+| スクリプト | 自己テストの実行 |
+|---|---|
+| a.sh | あり |
 ## §1 テスト観点
 | キー | 観点 | 確かめる手段 |
 |---|---|---|
 | k1 | v1 | m1 |
 ## §2 テストケース一覧
-| キー | 番号 | スクリプト | 前提 | 操作 | 期待値 |
-|---|---|---|---|---|---|
-| c1 | 1 | a.sh | p | o | e |
+| キー | 番号 | 機能 | ケースの名前 | 対応する観点のキー | 区分 | 前提 | 操作 | 期待結果 |
+|---|---|---|---|---|---|---|---|---|
+| c1 | 1 | f1 | 名前1 | k1 | 正常 |  | o | e |
 ## §5 異常系
 ## §6 境界値
-EOF
+## 自己テスト
+| スクリプト | 件数 |
+|---|---|
+| a.sh | 1 |
+INNER_EOF
   cp "$tmp/ok/docs/design/requirements/要件と機能の対応表.md" "$tmp/ng2/docs/design/requirements/要件と機能の対応表.md"
   total=$((total + 1))
   fail_count=0; check_repo "$tmp/ng2" > /dev/null 2>&1; if [ "$fail_count" -gt 0 ]; then pass=$((pass + 1)); else echo "[SELFTEST-FAIL] ケース3(不合格想定)が合格" >&2; fi
@@ -258,6 +328,78 @@ EOF
   total=$((total + 1))
   check_repo "$tmp/setup-only" > /dev/null 2>&1
   if [ "$?" = 2 ]; then pass=$((pass + 1)); else echo "[SELFTEST-FAIL] ケース5(setup単位のみは判定不能想定)が異なる終了コード" >&2; fi
+
+  # ケース6: §2の観点キーが§1に無い → 不合格
+  mkdir -p "$tmp/ng3/docs/skills/reverse-doing-thing"
+  mkdir -p "$tmp/ng3/docs/design/skills/reverse-doing-thing"
+  mkdir -p "$tmp/ng3/docs/design/requirements"
+  touch "$tmp/ng3/docs/skills/reverse-doing-thing/SKILL.md"
+  write_basic "$tmp/ng3/docs/design/skills/reverse-doing-thing/基本設計書.md"
+  write_detail "$tmp/ng3/docs/design/skills/reverse-doing-thing/詳細設計書.md"
+  cat > "$tmp/ng3/docs/design/skills/reverse-doing-thing/単体テスト設計書.md" << 'INNER_EOF'
+## テスト対象
+| スクリプト | 自己テストの実行 |
+|---|---|
+| a.sh | あり |
+## §1 テスト観点
+| キー | 観点 | 確かめる手段 |
+|---|---|---|
+| k1 | v1 | m1 |
+## §2 テストケース一覧
+| キー | 番号 | 機能 | ケースの名前 | 対応する観点のキー | 区分 | 前提 | 操作 | 期待結果 |
+|---|---|---|---|---|---|---|---|---|
+| c1 | 1 | f1 | 名前1 | k9 | 正常 | p | o | e |
+## §5 異常系
+## §6 境界値
+## 自己テスト
+| スクリプト | 件数 |
+|---|---|
+| a.sh | 1 |
+INNER_EOF
+  cp "$tmp/ok/docs/design/requirements/要件と機能の対応表.md" "$tmp/ng3/docs/design/requirements/要件と機能の対応表.md"
+  total=$((total + 1))
+  fail_count=0; check_repo "$tmp/ng3" > /dev/null 2>&1; if [ "$fail_count" -gt 0 ]; then pass=$((pass + 1)); else echo "[SELFTEST-FAIL] ケース6(不合格想定)が合格" >&2; fi
+
+  # ケース7: 自己テストの件数が実物とずれる → 不合格
+  mkdir -p "$tmp/ng4/docs/skills/reverse-doing-thing"
+  mkdir -p "$tmp/ng4/docs/design/skills/reverse-doing-thing"
+  mkdir -p "$tmp/ng4/docs/design/requirements"
+  mkdir -p "$tmp/ng4/scripts"
+  touch "$tmp/ng4/docs/skills/reverse-doing-thing/SKILL.md"
+  write_basic "$tmp/ng4/docs/design/skills/reverse-doing-thing/基本設計書.md"
+  write_detail "$tmp/ng4/docs/design/skills/reverse-doing-thing/詳細設計書.md"
+  cat > "$tmp/ng4/docs/design/skills/reverse-doing-thing/単体テスト設計書.md" << 'INNER_EOF'
+## テスト対象
+| スクリプト | 自己テストの実行 |
+|---|---|
+| a.sh | あり |
+## §1 テスト観点
+| キー | 観点 | 確かめる手段 |
+|---|---|---|
+| k1 | v1 | m1 |
+## §2 テストケース一覧
+| キー | 番号 | 機能 | ケースの名前 | 対応する観点のキー | 区分 | 前提 | 操作 | 期待結果 |
+|---|---|---|---|---|---|---|---|---|
+| c1 | 1 | f1 | 名前1 | k1 | 正常 | p | o | e |
+## §5 異常系
+## §6 境界値
+## 自己テスト
+| スクリプト | 件数 |
+|---|---|
+| a.sh | 3 |
+INNER_EOF
+  cat > "$tmp/ng4/scripts/a.sh" << 'INNER_EOF'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--self-test" ]; then
+  echo "実行 2 件 / 合格 2 件"
+  exit 0
+fi
+exit 0
+INNER_EOF
+  chmod +x "$tmp/ng4/scripts/a.sh"
+  cp "$tmp/ok/docs/design/requirements/要件と機能の対応表.md" "$tmp/ng4/docs/design/requirements/要件と機能の対応表.md"
+  total=$((total + 1))
+  fail_count=0; check_repo "$tmp/ng4" > /dev/null 2>&1; if [ "$fail_count" -gt 0 ]; then pass=$((pass + 1)); else echo "[SELFTEST-FAIL] ケース7(不合格想定)が合格" >&2; fi
 
   echo "実行 ${total} 件 / 合格 ${pass} 件"
   [ "$pass" = "$total" ]

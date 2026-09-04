@@ -11,7 +11,6 @@ kind: none
 inputs: [docs/design/common/調査と検出条件の定義書.md, ai-work/records/basic-design-acceptance/common-*.json]
 outputs: [docs/design/common/共通処理の詳細設計書.md]
 requires: [reverse-writing-basic-design]
-acceptance: tests/
 ---
 <!-- 生成物: 定義は支援ツールの正本リポジトリの docs/skills/reverse-writing-common-detail-design/ にある（この配布物には含まれない）。直接編集しないこと -->
 
