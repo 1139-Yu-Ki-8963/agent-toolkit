@@ -48,6 +48,9 @@
     { "mode": "mirror", "src": "~/Projects/ai-consulting-toolkit/docs", "dst": "payload/ai-consulting-toolkit/docs" },
     { "mode": "mirror", "src": "~/Projects/ai-consulting-toolkit/portal", "dst": "payload/ai-consulting-toolkit/portal" },
     { "mode": "mirror", "src": "~/Projects/ai-driven-development-setup/.claude/skills", "dst": "payload/ai-driven-development-setup/.claude/skills" },
-    { "mode": "file", "src": "~/Projects/ai-driven-development-setup/README.md", "dst": "payload/ai-driven-development-setup/README.md" }
+    { "mode": "file", "src": "~/Projects/ai-driven-development-setup/README.md", "dst": "payload/ai-driven-development-setup/README.md" },
+    { "mode": "mirror", "src": "~/Projects/ai-driven-development-setup/docs", "dst": "payload/ai-driven-development-setup/docs" },
+    { "mode": "mirror", "src": "~/Projects/ai-driven-development-setup/.claude/rules", "dst": "payload/ai-driven-development-setup/.claude/rules" },
+    { "mode": "file", "src": "~/Projects/ai-driven-development-setup/CLAUDE.md", "dst": "payload/ai-driven-development-setup/CLAUDE.md" }
   ]
 }
