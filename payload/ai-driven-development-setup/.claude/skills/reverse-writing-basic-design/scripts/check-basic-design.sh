@@ -3,12 +3,12 @@ set -u
 
 # check-basic-design.sh — 種別ごとの基本設計書・単体テスト設計書（旧様式の
 #   ファイル名を使う。機能は機能設計書・機能単体テスト設計書）の実在・様式・
-#   事実の転記・確認事項の登録を検査する
+#   読み取り結果の転記・確認事項の登録を検査する
 #
 # 目的:
-#   基本設計書はAIが事実を業務の言葉に写して書くため文面は毎回変わる。
+#   基本設計書はAIが読み取り結果を業務の言葉に写して書くため文面は毎回変わる。
 #   詳細設計へ進んでよいかを判定するために機械で読める部分（必須節の順序・
-#   位置づけの行・未記入の不在・実装位置の不在・事実の転記・確認事項の
+#   位置づけの行・未記入の不在・実装位置の不在・読み取り結果の転記・確認事項の
 #   登録）を検査する。文面の当否は問わない。
 #
 # 使い方:
@@ -33,7 +33,7 @@ set -u
 #   位置-禁止            file:line形式の実装位置の記述がある
 #   規約-見出し          対象の設計書の書き方の検査が不合格
 #   単体テスト規約-不合格  対象の単体テスト設計書の決まりの検査が不合格
-#   事実-未転記          事実ファイルの値が空でない項目が転記されていない
+#   読み取り結果-未転記          読み取り結果ファイルの値が空でない項目が転記されていない
 #   確認事項-未登録      要確認事項一覧のキーが確認事項の記録に無い
 #
 # 終了コード:
@@ -58,12 +58,12 @@ set -u
 #     出しを行わず、様式の妥当性は本スクリプト自身の
 #     check_headings_order/check_placement_linesに委ねる（章構成の正は
 #     テンプレートという規約に従う）
-#   - table種別の事実-未転記は、論理データモデルの様式（型・制約を書かない）
+#   - table種別の読み取り結果-未転記は、論理データモデルの様式（型・制約を書かない）
 #     に合わせて「列」「関係」だけを対象にする。「型」「制約」の転記確認は
 #     詳細設計（テーブル定義書）のcheck-detail-design.shが担う
 #
-# 保守責任者: 人手（ユーザー）。事実の項目や様式を変えるときは、
-#   docs/design/common/fact-shapes.json・templates/・本スクリプトを同時に直す。
+# 保守責任者: 人手（ユーザー）。読み取り結果の項目や様式を変えるときは、
+#   docs/design/common/code-reading-items.json・templates/・本スクリプトを同時に直す。
 #
 # 廃棄条件: 基本設計書の様式を構造化データから生成する仕組みに置き換えた時。
 #
@@ -234,9 +234,9 @@ check_placeholder_and_position() {
   return "$ok"
 }
 
-# 事実の項目名が本文の見出し（##・###）または表の見出し行に現れるかを確認する。
-# $1: doc  $2: 事実の項目名  戻り値: 0=現れる・1=現れない
-fact_key_covered() {
+# 読み取り結果の項目名が本文の見出し（##・###）または表の見出し行に現れるかを確認する。
+# $1: doc  $2: 読み取り結果の項目名  戻り値: 0=現れる・1=現れない
+reading_key_covered() {
   local doc="$1" key="$2"
   if grep -E '^#{2,3}[[:space:]]' "$doc" | grep -qF -- "$key"; then
     return 0
@@ -299,10 +299,10 @@ check_regular_unit() {
     ok=0
   fi
 
-  local facts_file="${run_dir%/}/facts/${kind}/${dirname}.json"
-  if [ -f "$facts_file" ]; then
+  local readings_file="${run_dir%/}/code-readings/${kind}/${dirname}.json"
+  if [ -f "$readings_file" ]; then
     local keys k
-    keys="$(jq -r '.["事実"] // {} | to_entries[] | select((.value["値"] // []) | length > 0) | .key' "$facts_file" 2>/dev/null)"
+    keys="$(jq -r '.["読み取り結果"] // {} | to_entries[] | select((.value["値"] // []) | length > 0) | .key' "$readings_file" 2>/dev/null)"
     # 表（table）の基本設計（論理データモデル）は型・制約を書かない様式。
     # 型・制約の転記は詳細設計（テーブル定義書）のcheck-detail-design.shが見る
     if [ "$kind" = "table" ]; then
@@ -310,15 +310,15 @@ check_regular_unit() {
     fi
     while IFS= read -r k; do
       [ -n "$k" ] || continue
-      if ! fact_key_covered "$doc" "$k"; then
-        echo "[FAIL] 事実-未転記: ${doc} に事実の項目「${k}」が転記されていません" >&2
+      if ! reading_key_covered "$doc" "$k"; then
+        echo "[FAIL] 読み取り結果-未転記: ${doc} に読み取り結果の項目「${k}」が転記されていません" >&2
         ok=0
       fi
     done <<KEYS
 $keys
 KEYS
   else
-    echo "[FAIL] 事実-未転記: ${facts_file} が実在しません" >&2
+    echo "[FAIL] 読み取り結果-未転記: ${readings_file} が実在しません" >&2
     ok=0
   fi
 
@@ -451,11 +451,11 @@ FIXEOF
 
   write_facts() {
     local run="$1"
-    mkdir -p "$run/facts/screen"
-    cat > "$run/facts/screen/src_pages_OrderList.tsx.json" <<'FACTEOF'
+    mkdir -p "$run/code-readings/screen"
+    cat > "$run/code-readings/screen/src_pages_OrderList.tsx.json" <<'FACTEOF'
 {"種別":"screen","識別子":"src/pages/OrderList.tsx","名前":"OrderList","場所":"src/pages/OrderList.tsx",
  "属するファイル":[],
- "事実":{"入力項目":{"値":["受注番号"],"出所":"機械","根拠":["src/pages/OrderList.tsx"]},
+ "読み取り結果":{"入力項目":{"値":["受注番号"],"出所":"機械","根拠":["src/pages/OrderList.tsx"]},
          "表示項目":{"値":[],"出所":"機械","根拠":[]},
          "操作":{"値":[],"出所":"機械","根拠":[]},
          "遷移":{"値":[],"出所":"機械","根拠":[]},
@@ -630,7 +630,7 @@ CONFEOF
     check "不合格-文書不在: 終了コード1" "$([ "$rc2" -eq 1 ] && echo 0 || echo 1)"
     check "不合格-文書不在: 理由に文書-不在" "$(grep -qF '文書-不在' "$base/case2.err" && echo 0 || echo 1)"
 
-    # --- 不合格-事実未転記 ---
+    # --- 不合格-読み取り結果未転記 ---
     local d3="$base/case3" run3="$base/run3"
     make_fixture "$d3"
     mkdir -p "$run3"
@@ -640,8 +640,8 @@ CONFEOF
     sed -i.bak '/^### 入力項目$/,/^$/d' "$d3/docs/design/screens/src_pages_OrderList.tsx/画面基本設計書.md"
     bash "$SCRIPT_DIR/check-basic-design.sh" "$d3" --run "$run3" --kind screen > "$base/case3.out" 2>"$base/case3.err"
     local rc3=$?
-    check "不合格-事実未転記: 終了コード1" "$([ "$rc3" -eq 1 ] && echo 0 || echo 1)"
-    check "不合格-事実未転記: 理由に事実-未転記" "$(grep -qF '事実-未転記' "$base/case3.err" && echo 0 || echo 1)"
+    check "不合格-読み取り結果未転記: 終了コード1" "$([ "$rc3" -eq 1 ] && echo 0 || echo 1)"
+    check "不合格-読み取り結果未転記: 理由に読み取り結果-未転記" "$(grep -qF '読み取り結果-未転記' "$base/case3.err" && echo 0 || echo 1)"
 
     # --- 不合格-確認事項未登録 ---
     local d4="$base/case4" run4="$base/run4"
@@ -690,16 +690,16 @@ CONFEOF
     # --- 機能の単位（機能設計書・機能単体テスト設計書） ---
     local d8="$base/case8" run8="$base/run8"
     make_fixture "$d8"
-    mkdir -p "$run8/facts/feature" "$d8/docs/design/features/受注"
+    mkdir -p "$run8/code-readings/feature" "$d8/docs/design/features/受注"
     cat > "$d8/docs/design/lists/feature.json" <<'FEATFIXEOF'
 [
   {"種別":"feature","識別子":"受注","名前":"受注","場所":"受注","根拠":"","単位の定義":"","属するファイル":[],"分類軸":[]}
 ]
 FEATFIXEOF
-    cat > "$run8/facts/feature/受注.json" <<'FEATFACTEOF'
+    cat > "$run8/code-readings/feature/受注.json" <<'FEATFACTEOF'
 {"種別":"feature","識別子":"受注","名前":"受注","場所":"受注",
  "属するファイル":[],
- "事実":{"含む単位":{"値":["screen: src/pages/OrderList.tsx"],"出所":"機械","根拠":["受注"]}},
+ "読み取り結果":{"含む単位":{"値":["screen: src/pages/OrderList.tsx"],"出所":"機械","根拠":["受注"]}},
  "未":[],"取り出した実行":"self-test"}
 FEATFACTEOF
     cat > "$d8/docs/design/features/受注/機能設計書.md" <<'FEATDOCEOF'
@@ -831,7 +831,7 @@ FEATTESTDOCEOF
   else
     skip_case "合格-見本"
     skip_case "不合格-文書不在"
-    skip_case "不合格-事実未転記"
+    skip_case "不合格-読み取り結果未転記"
     skip_case "不合格-確認事項未登録"
     skip_case "不合格-節の欠落"
     skip_case "規約不在"

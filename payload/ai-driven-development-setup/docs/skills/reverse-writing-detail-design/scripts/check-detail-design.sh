@@ -2,10 +2,10 @@
 set -u
 
 # check-detail-design.sh — 種別ごとの詳細設計書（表はテーブル定義書）の
-# 実在・節の構成・事実の網羅を検査する
+# 実在・節の構成・読み取り結果の網羅を検査する
 #
 # 目的:
-#   工程2-8の完了条件（保留を除く全単位に詳細設計書がある・事実を網羅している・
+#   工程2-8の完了条件（保留を除く全単位に詳細設計書がある・読み取り結果を網羅している・
 #   file:lineが無い）を種別ごとに単位ごとへ回して機械で確かめる。
 #
 # 使い方:
@@ -34,7 +34,7 @@ set -u
 #   位置づけ-欠落      各`##`見出しの直後に位置づけの行が無い
 #   未記入-残存        `<...>`形式のプレースホルダーが残っている
 #   位置-禁止          file:line形式の実装位置の記述がある
-#   事実-未網羅        事実ファイルの値が空でない項目の値が文書本文に現れない
+#   読み取り結果-未網羅        読み取り結果ファイルの値が空でない項目の値が文書本文に現れない
 #
 # 検査から外した項目（旧様式からの移行に伴う既知の限界。理由も記す）:
 #   ファイル-不一致    旧の「対応するファイル」表（1列1ファイル）に相当する表を
@@ -42,12 +42,12 @@ set -u
 #                      「要素名・種別・可視性・所在」で1行1コード要素であり、
 #                      1行1ファイルの集合比較が成立しない。対応するファイルの手掛
 #                      かりが必要な場合は§6関連資料を人手で確認する
-#   整合-欠落          旧の実装（基本設計書の`### <項目名>`見出しが個々の事実項目を
+#   整合-欠落          旧の実装（基本設計書の`### <項目名>`見出しが個々の読み取り結果項目を
 #                      表す前提）は、旧様式の`### `見出しがテンプレート共通の節番号
-#                      付き小見出し（例:「### 2.1 業務フロー」）であり事実項目を
-#                      表さないため成立しない。基本設計と詳細設計の事実の一貫性は
-#                      事実ファイルを共通の入力源とする事実-未網羅（本スクリプト）
-#                      と事実-未転記（check-basic-design.sh）の組で担保する
+#                      付き小見出し（例:「### 2.1 業務フロー」）であり読み取り結果項目を
+#                      表さないため成立しない。基本設計と詳細設計の読み取り結果の一貫性は
+#                      読み取り結果ファイルを共通の入力源とする読み取り結果-未網羅（本スクリプト）
+#                      と読み取り結果-未転記（check-basic-design.sh）の組で担保する
 #
 # 保留の扱い: check-acceptance-record.shが0でないとき、合格の記録の判定が「保留」で
 # あればその単位は飛ばす（不合格に数えない）。判定が保留以外（不在・不合格・
@@ -205,11 +205,11 @@ HLIST
   fi
 }
 
-check_facts_coverage() {
-  local doc="$1" facts_json="$2"
+check_readings_coverage() {
+  local doc="$1" readings_json="$2"
 
-  if [ ! -f "$facts_json" ]; then
-    fail "事実-不在" "$facts_json が存在しません"
+  if [ ! -f "$readings_json" ]; then
+    fail "読み取り結果-不在" "$readings_json が存在しません"
     return
   fi
   if ! has_jq; then
@@ -218,17 +218,17 @@ check_facts_coverage() {
   fi
 
   local items ok=1
-  items="$(jq -r '.["事実"] | keys[]' "$facts_json" 2>/dev/null || true)"
+  items="$(jq -r '.["読み取り結果"] | keys[]' "$readings_json" 2>/dev/null || true)"
   local item
   while IFS= read -r item; do
     [ -n "$item" ] || continue
     local values
-    values="$(jq -r --arg k "$item" '.["事実"][$k]["値"][]?' "$facts_json" 2>/dev/null || true)"
+    values="$(jq -r --arg k "$item" '.["読み取り結果"][$k]["値"][]?' "$readings_json" 2>/dev/null || true)"
     local v
     while IFS= read -r v; do
       [ -n "$v" ] || continue
       if ! grep -qF -- "$v" "$doc"; then
-        fail "事実-未網羅" "${item}=${v}"
+        fail "読み取り結果-未網羅" "${item}=${v}"
         ok=0
       fi
     done <<VLIST
@@ -267,7 +267,7 @@ run_units() {
     folder="$(bash "$UNIT_DIR_NAME" "$identifier")"
     local doc="${design_root%/}/docs/design/${species_folder}/${folder}/${doc_name}"
     local record="${design_root%/}/ai-work/records/basic-design-acceptance/${kind}-${folder}.json"
-    local facts_json="${run_dir%/}/facts/${kind}/${folder}.json"
+    local readings_json="${run_dir%/}/code-readings/${kind}/${folder}.json"
 
     local vrc=0
     bash "$ACCEPTANCE_RECORD_CHECK" "$target" --kind "$kind" --unit "$identifier" --design-root "$design_root" > /dev/null 2>&1 || vrc=$?
@@ -286,7 +286,7 @@ run_units() {
 
     check_unit_doc "$doc" "$kind"
     [ -f "$doc" ] || continue
-    check_facts_coverage "$doc" "$facts_json"
+    check_readings_coverage "$doc" "$readings_json"
   done <<UNITLIST
 $units_out
 UNITLIST
@@ -363,15 +363,15 @@ RECORDCHECKEOF
   local ident="orders"
   local folder="orders"
   local doc_dir="${target}/docs/design/tables/${folder}"
-  mkdir -p "$doc_dir" "${target}/ai-work/records/basic-design-acceptance" "${run_dir}/facts/table"
+  mkdir -p "$doc_dir" "${target}/ai-work/records/basic-design-acceptance" "${run_dir}/code-readings/table"
 
   printf '%s\t%s\t%s\t%s\n' "$ident" "受注テーブル" "$ident" "" > "$list_data"
 
-  cat > "${run_dir}/facts/table/${folder}.json" <<'FACTSEOF'
+  cat > "${run_dir}/code-readings/table/${folder}.json" <<'FACTSEOF'
 {
   "種別": "table",
   "識別子": "orders",
-  "事実": {
+  "読み取り結果": {
     "列": {"値": ["受注番号"], "出所": "機械", "根拠": ["orders"]},
     "関係": {"値": ["顧客テーブルを参照"], "出所": "機械", "根拠": ["orders"]}
   },
@@ -474,11 +474,11 @@ DOCEOF
   assert_exit "合格" 0 bash "$under_test" "$target" --run "$run_dir" --kind table
 
   # 合格-表の列ごとの型と制約が§4に書かれている
-  cat > "${run_dir}/facts/table/${folder}.json" <<'FACTSCOLEOF'
+  cat > "${run_dir}/code-readings/table/${folder}.json" <<'FACTSCOLEOF'
 {
   "種別": "table",
   "識別子": "orders",
-  "事実": {
+  "読み取り結果": {
     "列": {"値": ["受注番号"], "出所": "機械", "根拠": ["orders"]},
     "型": {"値": ["bigint unsigned"], "出所": "機械", "根拠": ["orders"]},
     "制約": {"値": ["NOT NULL"], "出所": "機械", "根拠": ["orders"]},
@@ -538,12 +538,12 @@ FACTSCOLEOF
 DOCCOLEOF
   assert_exit "合格-表の列ごとの型と制約が§4に書かれている" 0 bash "$under_test" "$target" --run "$run_dir" --kind table
 
-  # 元の事実・様式に戻す
-  cat > "${run_dir}/facts/table/${folder}.json" <<'FACTSEOF'
+  # 元の読み取り結果・様式に戻す
+  cat > "${run_dir}/code-readings/table/${folder}.json" <<'FACTSEOF'
 {
   "種別": "table",
   "識別子": "orders",
-  "事実": {
+  "読み取り結果": {
     "列": {"値": ["受注番号"], "出所": "機械", "根拠": ["orders"]},
     "関係": {"値": ["顧客テーブルを参照"], "出所": "機械", "根拠": ["orders"]}
   },
@@ -580,7 +580,7 @@ RECEOF
   rm -f "${target}/ai-work/records/basic-design-acceptance/table-${folder}.json"
   echo 0 > "$record_rc_file"
 
-  # 不合格（複合）: 節の欠落・未記入・file:line・事実未網羅
+  # 不合格（複合）: 節の欠落・未記入・file:line・読み取り結果未網羅
   cat > "${doc_dir}/テーブル定義書.md" <<'BADEOF'
 # orders テーブル定義書
 
@@ -608,7 +608,7 @@ BADEOF
   assert_contains "不合格-複合: 節-欠落が出る" "節-欠落"
   assert_contains "不合格-複合: 未記入-残存が出る" "未記入-残存"
   assert_contains "不合格-複合: 位置-禁止が出る" "位置-禁止"
-  assert_contains "不合格-複合: 事実-未網羅が出る" "事実-未網羅"
+  assert_contains "不合格-複合: 読み取り結果-未網羅が出る" "読み取り結果-未網羅"
   write_doc_good
 
   # 判定不能-文書不在

@@ -1,25 +1,25 @@
 #!/usr/bin/env bash
 set -u
 
-# list-units.sh — 道標（reverse-drawing-map の成果物）の検出条件を実行し、
+# list-units.sh — 調査と検出条件の定義書（reverse-writing-survey-definition の成果物）の検出条件を実行し、
 # 対象リポジトリを走査して種別ごとの単位の一覧と元データを作る。
 #
 # 目的:
-#   道標の節「単位の見つけ方」にある検出条件（```json 検出条件``` の囲み）を
+#   調査と検出条件の定義書の節「単位の見つけ方」にある検出条件（```json 検出条件``` の囲み）を
 #   1つずつ実行し、種別（screen/api/table/batch/report/external/feature）ごとに
-#   単位を数える。言語やフレームワークごとの分岐は持たない。見つけ方は道標が
+#   単位を数える。言語やフレームワークごとの分岐は持たない。見つけ方は調査と検出条件の定義書が
 #   持つ検出条件がすべてを決める。
 #
 # 使い方:
-#   list-units.sh <対象リポジトリのルート> [--design-root <設計書の置き場>] [--map <道標のパス>] [--out <出力先フォルダ>] [--tolerance <0〜1の小数>]
+#   list-units.sh <対象リポジトリのルート> [--design-root <設計書の置き場>] [--map <調査と検出条件の定義書のパス>] [--out <出力先フォルダ>] [--tolerance <0〜1の小数>]
 #   list-units.sh --self-test
 #
 # --design-root の既定は <対象リポジトリのルート>。--map・--out の既定はこの値の配下。
-# --map の既定は <対象>/docs/design/common/道標.md。
+# --map の既定は <対象>/docs/design/common/調査と検出条件の定義書.md。
 # --out の既定は <対象>/docs/design/lists。
 # --tolerance の既定は 0.2。
 #
-# 道標の節0「文字コード」がUTF-8でない場合、走査対象ファイルはiconvでUTF-8に
+# 調査と検出条件の定義書の節0「文字コード」がUTF-8でない場合、走査対象ファイルはiconvでUTF-8に
 # 変換してから照合する。変換に失敗したファイルは警告として記録し照合から外す。
 #
 # 検査キー（内容を要約した意味語。連番禁止）:
@@ -33,23 +33,23 @@ set -u
 #
 # 判定:
 #   種別ごとに、上記のうち 検出条件-形式・走査-不在・例-不在 のいずれかがあれば
-#   不合格。無く、候補数が道標に無ければ 候補数無し。無く、候補数があれば
+#   不合格。無く、候補数が調査と検出条件の定義書に無ければ 候補数無し。無く、候補数があれば
 #   候補数-差 が無いときに限り合格、あるときは不合格。
 #
 # 終了コード:
 #   0 = 全種別が合格または候補数無し
 #   1 = 1種別以上が不合格
-#   2 = 使い方の誤り・道標不在・出力先を作れない・囲みが1つも無い（判定不能）
+#   2 = 使い方の誤り・調査と検出条件の定義書不在・出力先を作れない・囲みが1つも無い（判定不能）
 #
 # 保守責任者: 人手（ユーザー）。検出条件の形（項目・書き方）を変えるときは、
-#   道標の様式（reverse-drawing-map）と本スクリプトと自己テストを同時に直す。
+#   調査と検出条件の定義書の様式（reverse-writing-survey-definition）と本スクリプトと自己テストを同時に直す。
 #
 # macOS bash 3.2 互換（連想配列・mapfileは不使用）。
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 usage_error() {
-  echo "使い方: list-units.sh <対象リポジトリのルート> [--design-root <設計書の置き場>] [--map <道標のパス>] [--out <出力先フォルダ>] [--tolerance <0〜1の小数>]" >&2
+  echo "使い方: list-units.sh <対象リポジトリのルート> [--design-root <設計書の置き場>] [--map <調査と検出条件の定義書のパス>] [--out <出力先フォルダ>] [--tolerance <0〜1の小数>]" >&2
   echo "        list-units.sh --self-test" >&2
   exit 2
 }
@@ -116,7 +116,7 @@ trim() {
   printf '%s' "$v"
 }
 
-# --- 道標の節0にある「文字コード」の値を読む。無ければUTF-8とみなす。
+# --- 調査と検出条件の定義書の節0にある「文字コード」の値を読む。無ければUTF-8とみなす。
 # 注意: このマシンのawk（bwk awk）は非ASCII文字列同士の==比較が常にtrueを
 # 返す既知の不具合があるため、行の特定はgrep -E（バイト一致・空白の揺れを許容）で行う。
 read_charset() {
@@ -262,7 +262,7 @@ run_main() {
     scan_i=$((scan_i+1))
   done
 
-  local map="${design_root%/}/docs/design/common/道標.md"
+  local map="${design_root%/}/docs/design/common/調査と検出条件の定義書.md"
   local out="${design_root%/}/docs/design/lists"
   local tolerance="0.2"
 
@@ -277,7 +277,7 @@ run_main() {
   done
 
   if [ ! -f "$map" ]; then
-    echo "[FAIL] 道標-不在: ${map} が存在しません" >&2
+    echo "[FAIL] 調査と検出条件の定義書-不在: ${map} が存在しません" >&2
     exit 2
   fi
 
@@ -735,8 +735,8 @@ EOF
 # サンプル
 EOF
 
-    cat > "$d/docs/design/common/道標.md" <<'EOF'
-# 道標
+    cat > "$d/docs/design/common/調査と検出条件の定義書.md" <<'EOF'
+# 調査と検出条件の定義書
 
 ## 単位の見つけ方
 
@@ -829,7 +829,7 @@ EOF
   # --- 不合格-候補数の差 ---
   local d2="$base/case2"
   make_fixture "$d2"
-  sed -i.bak 's/| 画面 | 受注 | 2 | 経路単位 |/| 画面 | 受注 | 10 | 経路単位 |/' "$d2/docs/design/common/道標.md"
+  sed -i.bak 's/| 画面 | 受注 | 2 | 経路単位 |/| 画面 | 受注 | 10 | 経路単位 |/' "$d2/docs/design/common/調査と検出条件の定義書.md"
   bash "$SCRIPT_DIR/list-units.sh" "$d2" --out "$d2/docs/design/lists" > "$base/case2.out" 2>"$base/case2.err"
   local rc2=$?
   local screen_verdict
@@ -840,7 +840,7 @@ EOF
   # --- 不合格-例の不在 ---
   local d3="$base/case3"
   make_fixture "$d3"
-  sed -i.bak 's#"例": \["src/pages/OrderList.tsx"\]#"例": ["src/pages/Missing.tsx"]#' "$d3/docs/design/common/道標.md"
+  sed -i.bak 's#"例": \["src/pages/OrderList.tsx"\]#"例": ["src/pages/Missing.tsx"]#' "$d3/docs/design/common/調査と検出条件の定義書.md"
   bash "$SCRIPT_DIR/list-units.sh" "$d3" --out "$d3/docs/design/lists" > "$base/case3.out" 2>"$base/case3.err"
   local rc3=$?
   local screen_reasons3
@@ -854,7 +854,7 @@ EOF
   # --- 不合格-形式 ---
   local d4="$base/case4"
   make_fixture "$d4"
-  sed -i.bak 's/"種別": "table",/"種別": "table"/' "$d4/docs/design/common/道標.md"
+  sed -i.bak 's/"種別": "table",/"種別": "table"/' "$d4/docs/design/common/調査と検出条件の定義書.md"
   bash "$SCRIPT_DIR/list-units.sh" "$d4" --out "$d4/docs/design/lists" > "$base/case4.out" 2>"$base/case4.err"
   local rc4=$?
   local table_reasons4
@@ -872,8 +872,8 @@ EOF
     /^### 候補数$/ { skip=1; next }
     skip && (/^$/ || /^\|/) { next }
     { skip=0; print }
-  ' "$d5/docs/design/common/道標.md" > "$d5/docs/design/common/道標.md.new"
-  mv "$d5/docs/design/common/道標.md.new" "$d5/docs/design/common/道標.md"
+  ' "$d5/docs/design/common/調査と検出条件の定義書.md" > "$d5/docs/design/common/調査と検出条件の定義書.md.new"
+  mv "$d5/docs/design/common/調査と検出条件の定義書.md.new" "$d5/docs/design/common/調査と検出条件の定義書.md"
   bash "$SCRIPT_DIR/list-units.sh" "$d5" --out "$d5/docs/design/lists" > "$base/case5.out" 2>"$base/case5.err"
   local rc5=$?
   local screen_verdict5 api_verdict5 table_verdict5
@@ -883,18 +883,18 @@ EOF
   check "候補数無し: 終了コード0" "$([ "$rc5" -eq 0 ] && echo 0 || echo 1)"
   check "候補数無し: 3種別とも候補数無し" "$([ "$screen_verdict5" = "候補数無し" ] && [ "$api_verdict5" = "候補数無し" ] && [ "$table_verdict5" = "候補数無し" ] && echo 0 || echo 1)"
 
-  # --- 使い方-道標不在 ---
+  # --- 使い方-調査と検出条件の定義書不在 ---
   local d6="$base/case6"
   make_fixture "$d6"
   bash "$SCRIPT_DIR/list-units.sh" "$d6" --map "$d6/docs/design/common/存在しない.md" --out "$d6/docs/design/lists" > "$base/case6.out" 2>"$base/case6.err"
   local rc6=$?
-  check "使い方-道標不在: 終了コード2" "$([ "$rc6" -eq 2 ] && echo 0 || echo 1)"
+  check "使い方-調査と検出条件の定義書不在: 終了コード2" "$([ "$rc6" -eq 2 ] && echo 0 || echo 1)"
 
   # --- 名前の捕捉 ---
   local d7="$base/case7"
   make_fixture "$d7"
-  sed -i.bak 's/  "名前": { "元": "識別子" },\n/&/' "$d7/docs/design/common/道標.md" 2>/dev/null
-  perl -0pi -e 's/("種別": "screen",.*?)"名前": \{ "元": "識別子" \},/$1"名前": { "元": "内容", "正規表現": "title=\\"([^\\"]+)\\"" },/s' "$d7/docs/design/common/道標.md" 2>/dev/null
+  sed -i.bak 's/  "名前": { "元": "識別子" },\n/&/' "$d7/docs/design/common/調査と検出条件の定義書.md" 2>/dev/null
+  perl -0pi -e 's/("種別": "screen",.*?)"名前": \{ "元": "識別子" \},/$1"名前": { "元": "内容", "正規表現": "title=\\"([^\\"]+)\\"" },/s' "$d7/docs/design/common/調査と検出条件の定義書.md" 2>/dev/null
   cat >> "$d7/src/pages/OrderList.tsx" <<'EOF'
 // title="受注一覧"
 EOF
@@ -915,8 +915,8 @@ EOF2
   cat > "$d8/db/migrations/003_drop.sql" <<'EOF2'
 DROP TABLE customers;
 EOF2
-  perl -0pi -e 's/("種別": "table",.*?)"例": \["db\/migrations\/001_orders.sql"\]/$1"除外の一致": [{ "対象": "内容", "正規表現": "DROP TABLE[[:space:]]+(IF EXISTS[[:space:]]+)?([a-z_]+)", "捕捉": 2 }],\n  "例": ["db\/migrations\/001_orders.sql"]/s' "$d8/docs/design/common/道標.md"
-  sed -i.bak 's/| 表 | 受注 | 1 | テーブル単位 |/| 表 | 受注 | 2 | テーブル単位 |/' "$d8/docs/design/common/道標.md"
+  perl -0pi -e 's/("種別": "table",.*?)"例": \["db\/migrations\/001_orders.sql"\]/$1"除外の一致": [{ "対象": "内容", "正規表現": "DROP TABLE[[:space:]]+(IF EXISTS[[:space:]]+)?([a-z_]+)", "捕捉": 2 }],\n  "例": ["db\/migrations\/001_orders.sql"]/s' "$d8/docs/design/common/調査と検出条件の定義書.md"
+  sed -i.bak 's/| 表 | 受注 | 1 | テーブル単位 |/| 表 | 受注 | 2 | テーブル単位 |/' "$d8/docs/design/common/調査と検出条件の定義書.md"
   bash "$SCRIPT_DIR/list-units.sh" "$d8" --out "$d8/docs/design/lists" > "$base/case8.out" 2>"$base/case8.err"
   local rc8=$?
   local table_n8
@@ -933,7 +933,7 @@ export default function OldScreen() {
   return null;
 }
 EOF2
-  cat >> "$d9/docs/design/common/道標.md" <<'EOF2'
+  cat >> "$d9/docs/design/common/調査と検出条件の定義書.md" <<'EOF2'
 
 ```json 検出条件
 {
@@ -968,7 +968,7 @@ EOF2
   mkdir -p "$d10/src/legacy-jp"
   printf 'export default function OrderJP() {\n  // 受注一覧\n  return null;\n}\n' \
     | iconv -f UTF-8 -t EUC-JP > "$d10/src/legacy-jp/OrderJP.tsx"
-  cat >> "$d10/docs/design/common/道標.md" <<'EOF2'
+  cat >> "$d10/docs/design/common/調査と検出条件の定義書.md" <<'EOF2'
 
 ```json 検出条件
 {
@@ -989,9 +989,9 @@ EOF2
 EOF2
   {
     echo '| 文字コード | EUC-JP |'
-    cat "$d10/docs/design/common/道標.md"
-  } > "${d10}/docs/design/common/道標.md.new"
-  mv "${d10}/docs/design/common/道標.md.new" "$d10/docs/design/common/道標.md"
+    cat "$d10/docs/design/common/調査と検出条件の定義書.md"
+  } > "${d10}/docs/design/common/調査と検出条件の定義書.md.new"
+  mv "${d10}/docs/design/common/調査と検出条件の定義書.md.new" "$d10/docs/design/common/調査と検出条件の定義書.md"
   bash "$SCRIPT_DIR/list-units.sh" "$d10" --out "$d10/docs/design/lists" > "$base/case10.out" 2>"$base/case10.err"
   local rc10=$?
   local feature_n10
@@ -1005,7 +1005,7 @@ EOF2
   mkdir -p "$d11/src/legacy-jp"
   printf 'export default function OrderJP() {\n  // 受注一覧\n  return null;\n}\n' \
     | iconv -f UTF-8 -t EUC-JP > "$d11/src/legacy-jp/OrderJP.tsx"
-  cat >> "$d11/docs/design/common/道標.md" <<'EOF2'
+  cat >> "$d11/docs/design/common/調査と検出条件の定義書.md" <<'EOF2'
 
 ```json 検出条件
 {
@@ -1026,9 +1026,9 @@ EOF2
 EOF2
   {
     echo '|文字コード|EUC-JP|'
-    cat "$d11/docs/design/common/道標.md"
-  } > "${d11}/docs/design/common/道標.md.new"
-  mv "${d11}/docs/design/common/道標.md.new" "$d11/docs/design/common/道標.md"
+    cat "$d11/docs/design/common/調査と検出条件の定義書.md"
+  } > "${d11}/docs/design/common/調査と検出条件の定義書.md.new"
+  mv "${d11}/docs/design/common/調査と検出条件の定義書.md.new" "$d11/docs/design/common/調査と検出条件の定義書.md"
   bash "$SCRIPT_DIR/list-units.sh" "$d11" --out "$d11/docs/design/lists" > "$base/case11.out" 2>"$base/case11.err"
   local rc11=$?
   local feature_n11
@@ -1041,7 +1041,7 @@ EOF2
   # --- 識別子-捕捉不能の警告 ---
   local d12="$base/case12"
   make_fixture "$d12"
-  sed -i.bak 's/"識別子": { "元": "一致の捕捉", "正規表現": "CREATE TABLE (\[a-z_\]+)" },/"識別子": { "元": "一致の捕捉", "正規表現": "CREATE TABLE_X (\[a-z_\]+)" },/' "$d12/docs/design/common/道標.md"
+  sed -i.bak 's/"識別子": { "元": "一致の捕捉", "正規表現": "CREATE TABLE (\[a-z_\]+)" },/"識別子": { "元": "一致の捕捉", "正規表現": "CREATE TABLE_X (\[a-z_\]+)" },/' "$d12/docs/design/common/調査と検出条件の定義書.md"
   bash "$SCRIPT_DIR/list-units.sh" "$d12" --out "$d12/docs/design/lists" > "$base/case12.out" 2>"$base/case12.err"
   local rc12=$?
   local table_capture_fail12

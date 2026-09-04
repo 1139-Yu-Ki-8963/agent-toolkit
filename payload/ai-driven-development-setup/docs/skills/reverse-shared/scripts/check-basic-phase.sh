@@ -4,8 +4,8 @@ set -u
 # check-basic-phase.sh — 共通設計文書6つの機械検査を集約する
 #
 # 目的:
-#   基本設計の完了判定のうち、共通設計文書6つは道標を描く機能の手順5の
-#   最後で機械検査する。見出し構成の検査は道標を描く機能のcheck-design-docs.sh
+#   基本設計の完了判定のうち、共通設計文書6つは調査と検出条件の定義書を描く機能の手順5の
+#   最後で機械検査する。見出し構成の検査は調査と検出条件の定義書を描く機能のcheck-design-docs.sh
 #   を呼ぶ。単位ごとの機械検査は基本設計書を書く機能のcheck-basic-design.sh
 #   がその機能の完了時の処理として直接呼ぶため、本スクリプトは持たない。
 #
@@ -30,14 +30,14 @@ set -u
 #   2 = 使い方の誤り・共有部品が無い（判定不能）
 #
 # 保守責任者: 人手（ユーザー）。共通設計文書6つの一覧を変えるときは、
-#   本スクリプトと道標を描く機能の様式を同時に直す。
+#   本スクリプトと調査と検出条件の定義書を描く機能の様式を同時に直す。
 #
 # 廃棄条件: 完了判定の集約を別の仕組みに置き換えた時。
 #
 # macOS bash 3.2 互換。jqを使用する。
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-DESIGN_DOCS_SH="${SCRIPT_DIR}/../../reverse-drawing-map/scripts/check-design-docs.sh"
+DESIGN_DOCS_SH="${SCRIPT_DIR}/../../reverse-writing-survey-definition/scripts/check-design-docs.sh"
 COMMON_DOCS="業務仕様書 方式設計書 データ設計書 エラー設計書 共通外部仕様書 基盤設計書"
 
 usage_error() {
@@ -140,7 +140,7 @@ self_test() {
   bash "$SCRIPT_DIR/check-basic-phase.sh" "$base" --run "$base" > "$base/u3.out" 2>"$base/u3.err"
   check "使い方-common未指定は終了コード2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
 
-  local tmpl_dir="${SCRIPT_DIR}/../../reverse-drawing-map/templates/common"
+  local tmpl_dir="${SCRIPT_DIR}/../../reverse-writing-survey-definition/templates/common"
   local docs="業務仕様書 方式設計書 データ設計書 エラー設計書 共通外部仕様書 基盤設計書"
 
   write_common_docs() {

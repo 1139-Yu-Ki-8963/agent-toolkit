@@ -4,26 +4,26 @@ set -u
 # check-entry.sh — 範囲の承認を確かめる（reverse単位の共有部品）
 #
 # 目的:
-#   一覧を作る機能などreverse単位の第二フェーズ以降の各機能は、道標を描く
+#   一覧を作る機能などreverse単位の第二フェーズ以降の各機能は、調査と検出条件の定義書を描く
 #   機能の範囲の承認（confirmations/対象範囲の承認.md）が可であり、承認時の
-#   道標と現在の道標が同一であることを確かめてから走査を始める。この確認を
+#   調査と検出条件の定義書と現在の調査と検出条件の定義書が同一であることを確かめてから走査を始める。この確認を
 #   個別の機能が再実装せず、本スクリプトへ委ねる。
 #
-# 前提とする対象範囲の承認.mdの行形式（reverse-drawing-map 手順6が書く）:
+# 前提とする対象範囲の承認.mdの行形式（reverse-writing-survey-definition 手順6が書く）:
 #   可否: 可                 （または 否）
-#   道標: <道標.mdの shasum -a 256 の値>
+#   調査と検出条件の定義書: <調査と検出条件の定義書.mdの shasum -a 256 の値>
 #
 # 使い方:
 #   check-entry.sh <実行フォルダ> <対象リポジトリのルート>
 #   check-entry.sh --self-test
 #
 # 終了コード:
-#   0 = 可否が可、かつ道標の同一性の値が一致
+#   0 = 可否が可、かつ調査と検出条件の定義書の同一性の値が一致
 #   1 = 可否が可でない、または同一性の値が不一致・不在
-#   2 = 使い方の誤り・承認ファイル不在・道標ファイル不在（判定不能）
+#   2 = 使い方の誤り・承認ファイル不在・調査と検出条件の定義書ファイル不在（判定不能）
 #
 # 保守責任者: 人手（ユーザー）。対象範囲の承認.mdの行形式を変えるときは、
-#   reverse-drawing-map SKILL.mdの手順6と本スクリプトと自己テストを同時に直す。
+#   reverse-writing-survey-definition SKILL.mdの手順6と本スクリプトと自己テストを同時に直す。
 #
 # 廃棄条件: 範囲の承認の確認方法を別の仕組みに変えた時。
 #
@@ -39,14 +39,14 @@ check_entry() {
   local run_dir="$1" target="$2" design_root="$3"
   [ -n "$design_root" ] || design_root="$target"
   local approval="${run_dir%/}/confirmations/対象範囲の承認.md"
-  local map="${design_root%/}/docs/design/common/道標.md"
+  local map="${design_root%/}/docs/design/common/調査と検出条件の定義書.md"
 
   if [ ! -f "$approval" ]; then
     echo "[FAIL] 承認-不在: ${approval} が存在しません" >&2
     return 2
   fi
   if [ ! -f "$map" ]; then
-    echo "[FAIL] 道標-不在: ${map} が存在しません" >&2
+    echo "[FAIL] 調査と検出条件の定義書-不在: ${map} が存在しません" >&2
     return 2
   fi
 
@@ -58,20 +58,20 @@ check_entry() {
   fi
 
   local recorded_hash
-  recorded_hash="$(grep -E '^道標:[[:space:]]*' "$approval" | head -n1 | sed -E 's/^道標:[[:space:]]*//')"
+  recorded_hash="$(grep -E '^調査と検出条件の定義書:[[:space:]]*' "$approval" | head -n1 | sed -E 's/^調査と検出条件の定義書:[[:space:]]*//')"
   if [ -z "$recorded_hash" ]; then
-    echo "[FAIL] 同一性-不在: 承認の記録に道標の同一性の値がありません" >&2
+    echo "[FAIL] 同一性-不在: 承認の記録に調査と検出条件の定義書の同一性の値がありません" >&2
     return 1
   fi
 
   local current_hash
   current_hash="$(shasum -a 256 "$map" | awk '{print $1}')"
   if [ "$recorded_hash" != "$current_hash" ]; then
-    echo "[FAIL] 同一性-不一致: 承認時の道標と現在の道標が一致しません" >&2
+    echo "[FAIL] 同一性-不一致: 承認時の調査と検出条件の定義書と現在の調査と検出条件の定義書が一致しません" >&2
     return 1
   fi
 
-  echo "合格: 承認済み・道標は同一"
+  echo "合格: 承認済み・調査と検出条件の定義書は同一"
   return 0
 }
 
@@ -84,9 +84,9 @@ run_self_test() {
 
   local target="${tmp}/target"
   mkdir -p "${target}/docs/design/common"
-  echo "# 道標" > "${target}/docs/design/common/道標.md"
+  echo "# 調査と検出条件の定義書" > "${target}/docs/design/common/調査と検出条件の定義書.md"
   local hash
-  hash="$(shasum -a 256 "${target}/docs/design/common/道標.md" | awk '{print $1}')"
+  hash="$(shasum -a 256 "${target}/docs/design/common/調査と検出条件の定義書.md" | awk '{print $1}')"
   local wrong_hash
   wrong_hash="$(printf '0%.0s' $(seq 1 64))"
 
@@ -112,7 +112,7 @@ run_self_test() {
 否の理由: なし
 日時: 2026-09-03T10:00:00+09:00
 対象のコミット: abc1234
-道標: ${hash}
+調査と検出条件の定義書: ${hash}
 EOF2
   assert_exit "合格" 0 bash "$0" "$run_ok" "$target"
 
@@ -122,7 +122,7 @@ EOF2
   cat > "${run_no}/confirmations/対象範囲の承認.md" << EOF2
 可否: 否
 否の理由: 範囲を見直すため
-道標: ${hash}
+調査と検出条件の定義書: ${hash}
 EOF2
   assert_exit "不合格-否" 1 bash "$0" "$run_no" "$target"
 
@@ -131,7 +131,7 @@ EOF2
   mkdir -p "${run_mismatch}/confirmations"
   cat > "${run_mismatch}/confirmations/対象範囲の承認.md" << EOF2
 可否: 可
-道標: ${wrong_hash}
+調査と検出条件の定義書: ${wrong_hash}
 EOF2
   assert_exit "不合格-同一性不一致" 1 bash "$0" "$run_mismatch" "$target"
 
@@ -140,10 +140,10 @@ EOF2
   mkdir -p "${run_missing}"
   assert_exit "判定不能-承認ファイル不在" 2 bash "$0" "$run_missing" "$target"
 
-  # 判定不能-道標ファイル不在
+  # 判定不能-調査と検出条件の定義書ファイル不在
   local target_missing="${tmp}/target-missing"
   mkdir -p "${target_missing}"
-  assert_exit "判定不能-道標ファイル不在" 2 bash "$0" "$run_ok" "$target_missing"
+  assert_exit "判定不能-調査と検出条件の定義書ファイル不在" 2 bash "$0" "$run_ok" "$target_missing"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then

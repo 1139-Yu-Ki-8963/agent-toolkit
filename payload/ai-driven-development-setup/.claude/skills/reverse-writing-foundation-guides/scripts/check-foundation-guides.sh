@@ -5,23 +5,23 @@ set -u
 #
 # 目的:
 #   工程2-3（基盤文書）の完了条件を機械で確かめる。技術スタックの各行が
-#   道標の節1「依存の定義」の場所に実在するかを確かめ、環境構築手順書の
+#   調査と検出条件の定義書の節1「依存の定義」の場所に実在するかを確かめ、環境構築手順書の
 #   節構成・未記入・実装位置(file:line)・秘密の値らしき記述の混入を検出する。
 #   文面の良し悪しは検査しない。
 #
 # 使い方:
-#   check-foundation-guides.sh <対象リポジトリのルート> [--design-root <設計書のルート>] [--map <道標の相対パス>]
+#   check-foundation-guides.sh <対象リポジトリのルート> [--design-root <設計書のルート>] [--map <調査と検出条件の定義書の相対パス>]
 #   check-foundation-guides.sh --self-test
 #
-# --design-root の既定は対象リポジトリのルート。道標・技術スタック・環境構築
+# --design-root の既定は対象リポジトリのルート。調査と検出条件の定義書・技術スタック・環境構築
 # 手順書は設計書のルート配下で読み書きする。依存の定義ファイル（--mapで示した
-# 場所）は対象コードから読む。--map の既定は docs/design/common/道標.md。
+# 場所）は対象コードから読む。--map の既定は docs/design/common/調査と検出条件の定義書.md。
 # 技術スタック・環境構築手順書のパスは docs/design/common/技術スタック.md・
 # docs/design/common/環境構築手順書.md に固定する（工程2-3の出力先であり、
 # 変更する理由が無いため引数を持たない）。
 #
 # 検査キー（内容を要約した意味語。連番禁止）:
-#   依存-不在      技術スタックの行の「名前」が、道標の節1「依存の定義」の
+#   依存-不在      技術スタックの行の「名前」が、調査と検出条件の定義書の節1「依存の定義」の
 #                  場所のファイルのいずれにも文字列として現れない
 #   節-欠落        環境構築手順書の見出しが規定の9個・順序と一致しない
 #                  （§1〜§7 ＋ 要確認事項一覧 ＋ 関連資料）
@@ -35,7 +35,7 @@ set -u
 # 終了コード:
 #   0 = 全件合格
 #   1 = 1件以上不合格（[FAIL]行を標準エラーへ列挙）
-#   2 = 使い方の誤り・対象/道標/技術スタック/環境構築手順書の不在（判定不能）
+#   2 = 使い方の誤り・対象/調査と検出条件の定義書/技術スタック/環境構築手順書の不在（判定不能）
 #
 # 保守責任者: 人手（ユーザー）。様式（templates/技術スタック.md・
 #   templates/環境構築手順書.md）の節構成を変えるときは、本スクリプトと
@@ -118,7 +118,7 @@ path_list_missing_or_files() {
 }
 
 usage_error() {
-  echo "使い方: check-foundation-guides.sh <対象リポジトリのルート> [--design-root <設計書のルート>] [--map <道標の相対パス>]" >&2
+  echo "使い方: check-foundation-guides.sh <対象リポジトリのルート> [--design-root <設計書のルート>] [--map <調査と検出条件の定義書の相対パス>]" >&2
   echo "        check-foundation-guides.sh --self-test" >&2
   exit 2
 }
@@ -134,7 +134,7 @@ check_foundation_guides() {
     return 2
   fi
   if [ ! -f "$map_file" ]; then
-    echo "道標が見つかりません: ${map_file}" >&2
+    echo "調査と検出条件の定義書が見つかりません: ${map_file}" >&2
     return 2
   fi
   if [ ! -f "$tech_file" ]; then
@@ -146,7 +146,7 @@ check_foundation_guides() {
     return 2
   fi
 
-  # 道標の節1「依存の定義」の場所を読む
+  # 調査と検出条件の定義書の節1「依存の定義」の場所を読む
   local map_content sec1 rows1 dep_row dep_loc
   map_content="$(cat "$map_file")"
   sec1="$(section_text "$map_content" "## 1. 調査")"
@@ -280,8 +280,8 @@ run_self_test() {
     local root="$1"
     mkdir -p "${root}/docs/design/common"
     echo '{"dependencies": {"react": "18.0.0", "typescript": "5.0.0"}}' > "${root}/package.json"
-    cat > "${root}/docs/design/common/道標.md" << 'MAPEOF6'
-# 道標
+    cat > "${root}/docs/design/common/調査と検出条件の定義書.md" << 'MAPEOF6'
+# 調査と検出条件の定義書
 
 ## 1. 調査
 
@@ -305,7 +305,7 @@ MAPEOF6
 
 ## 関連資料
 
-- `docs/design/common/道標.md` — 道標
+- `docs/design/common/調査と検出条件の定義書.md` — 調査と検出条件の定義書
 TECHEOF
     cat > "${root}/docs/design/common/環境構築手順書.md" << 'ENVEOF'
 # 環境構築手順書
@@ -360,7 +360,7 @@ npm testを実行する。
 
 ## 関連資料
 
-- `docs/design/common/道標.md` — 道標
+- `docs/design/common/調査と検出条件の定義書.md` — 調査と検出条件の定義書
 - `docs/design/common/基盤設計書.md` — 基盤設計書
 ENVEOF
   }
@@ -439,11 +439,11 @@ ENVEOF
   assert_exit "不合格-秘密混入" 1 bash "$0" "$root_secret"
   assert_contains "不合格-秘密混入: 秘密-混入が出る" "秘密-混入"
 
-  # 判定不能-道標不在
+  # 判定不能-調査と検出条件の定義書不在
   local root_no_map="${tmp}/target-no-map"
   build_target "$root_no_map"
-  rm -f "${root_no_map}/docs/design/common/道標.md"
-  assert_exit "判定不能-道標不在" 2 bash "$0" "$root_no_map"
+  rm -f "${root_no_map}/docs/design/common/調査と検出条件の定義書.md"
+  assert_exit "判定不能-調査と検出条件の定義書不在" 2 bash "$0" "$root_no_map"
 
   # 設計書ルート分離-対象に書かない（依存の定義は対象のpackage.jsonを読む）
   local root_code_only="${tmp}/target-code-only"
@@ -487,7 +487,7 @@ fi
 TARGET="$1"
 shift
 DESIGN_ROOT="$TARGET"
-MAP_REL="docs/design/common/道標.md"
+MAP_REL="docs/design/common/調査と検出条件の定義書.md"
 
 while [ $# -gt 0 ]; do
   case "$1" in

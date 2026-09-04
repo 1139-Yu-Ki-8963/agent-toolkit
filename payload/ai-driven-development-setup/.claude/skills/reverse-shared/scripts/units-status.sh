@@ -5,15 +5,15 @@ set -u
 # （reverse単位の共有部品）
 #
 # 目的:
-#   一覧を作る・事実を取り出す・基本設計書を書く 等、reverse単位の各機能は
-#   単位ごとの工程（事実・基本設計・完了判定・詳細設計）の状態を個別の
+#   一覧を作る・読み取り結果を取り出す・基本設計書を書く 等、reverse単位の各機能は
+#   単位ごとの工程（読み取り結果・基本設計・完了判定・詳細設計）の状態を個別の
 #   ファイルにバラバラに記録せず、本スクリプトを介して
 #   <実行フォルダ>/logs/units-status.json へ集約する。
 #
 # 状態を持つファイルの形:
-#   {"<種別>":{"<識別子>":{"事実":"済|未|保留","基本設計":"…",
+#   {"<種別>":{"<識別子>":{"読み取り結果":"済|未|保留","基本設計":"…",
 #     "完了判定":"合格|不合格|保留|未","詳細設計":"…"}}}
-#   工程は 事実・基本設計・完了判定・詳細設計 の4つに限る。
+#   工程は 読み取り結果・基本設計・完了判定・詳細設計 の4つに限る。
 #   無いキーは「未」とみなす。
 #
 # 使い方:
@@ -36,7 +36,7 @@ set -u
 #
 # macOS bash 3.2 互換。
 
-VALID_PHASES="事実 基本設計 完了判定 詳細設計"
+VALID_PHASES="読み取り結果 基本設計 完了判定 詳細設計"
 
 usage_error() {
   echo "使い方: units-status.sh <実行フォルダ> set <種別> <識別子> <工程> <状態>" >&2
@@ -168,25 +168,25 @@ run_self_test() {
   }
 
   local got0
-  got0="$(bash "$0" "$run_dir" get screen "/orders/{id}" 事実)"
+  got0="$(bash "$0" "$run_dir" get screen "/orders/{id}" 読み取り結果)"
   assert_eq "未設定は未" "未" "$got0"
 
-  bash "$0" "$run_dir" set screen "/orders" 事実 済 > /dev/null
+  bash "$0" "$run_dir" set screen "/orders" 読み取り結果 済 > /dev/null
   local got1
-  got1="$(bash "$0" "$run_dir" get screen "/orders" 事実)"
+  got1="$(bash "$0" "$run_dir" get screen "/orders" 読み取り結果)"
   assert_eq "set後にgetで同じ値" "済" "$got1"
 
   local got2
   got2="$(bash "$0" "$run_dir" get screen "/orders" 基本設計)"
   assert_eq "別工程は未のまま" "未" "$got2"
 
-  bash "$0" "$run_dir" set screen "/orders/{id}" 事実 未 > /dev/null
-  bash "$0" "$run_dir" set api "/orders" 事実 済 > /dev/null
+  bash "$0" "$run_dir" set screen "/orders/{id}" 読み取り結果 未 > /dev/null
+  bash "$0" "$run_dir" set api "/orders" 読み取り結果 済 > /dev/null
 
   local list_out expected_list
-  list_out="$(bash "$0" "$run_dir" list 事実 済 | sort)"
+  list_out="$(bash "$0" "$run_dir" list 読み取り結果 済 | sort)"
   expected_list="$(printf 'api\t/orders\nscreen\t/orders' | sort)"
-  assert_eq "listで事実=済の2件" "$expected_list" "$list_out"
+  assert_eq "listで読み取り結果=済の2件" "$expected_list" "$list_out"
 
   assert_rc "不正な工程はset時終了コード2" 2 bash "$0" "$run_dir" set screen x 不明工程 済
   assert_rc "不正な工程はget時終了コード2" 2 bash "$0" "$run_dir" get screen x 不明工程

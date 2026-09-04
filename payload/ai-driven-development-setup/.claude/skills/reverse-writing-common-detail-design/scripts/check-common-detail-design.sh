@@ -4,17 +4,17 @@ set -u
 # check-common-detail-design.sh — 共通処理の詳細設計書の見出し構成と実在を検査する
 #
 # 目的:
-#   共通処理の詳細設計書は、道標の節7「共通方式の場所」で場所が「なし」でない
+#   共通処理の詳細設計書は、調査と検出条件の定義書の節7「共通方式の場所」で場所が「なし」でない
 #   方式ごとに `## §N <方式>` の節を持ち、各節に位置づけの行と6つの`###`小節
 #   （クラス設計・メソッド設計・ロジック設計・戻り値と引数・エラー処理・
 #   データ定義）を持つ。工程2-7の完了条件（file:lineが無い・各節に位置づけが
 #   ある・未記入が無い）を機械で確かめる。
 #
 # 使い方:
-#   check-common-detail-design.sh <対象リポジトリのルート> [--design-root <設計書のルート>] [--map <道標のパス>]
+#   check-common-detail-design.sh <対象リポジトリのルート> [--design-root <設計書のルート>] [--map <調査と検出条件の定義書のパス>]
 #   check-common-detail-design.sh --self-test
 #
-# --design-root の既定は対象リポジトリのルート。道標・共通処理の詳細設計書・
+# --design-root の既定は対象リポジトリのルート。調査と検出条件の定義書・共通処理の詳細設計書・
 # 合格の記録は設計書のルート配下で読み書きする。
 #
 # 入口:
@@ -27,7 +27,7 @@ set -u
 # 検査キー（内容を要約した意味語。連番禁止）:
 #   検査基盤-不在    check-acceptance-record.sh が見つからない（判定不能）
 #   合格記録-不在    check-acceptance-record.sh の終了コードが0でない
-#   道標-不在        道標（--map）が存在しない
+#   調査と検出条件の定義書-不在        調査と検出条件の定義書（--map）が存在しない
 #   文書-不在        共通処理の詳細設計書.md が存在しない
 #   節-欠落          場所が「なし」でない方式の「## §N <方式>」見出しが無い
 #   位置づけ-欠落    上記見出しの直後に位置づけの行が無い
@@ -39,7 +39,7 @@ set -u
 # 終了コード:
 #   0 = 全件合格
 #   1 = 1件以上不合格
-#   2 = 使い方の誤り・検査基盤の不在・道標や文書の不在（判定不能）
+#   2 = 使い方の誤り・検査基盤の不在・調査と検出条件の定義書や文書の不在（判定不能）
 #
 # 保守責任者: 人手（ユーザー）。10方式の一覧・6小節の名前を変えるときは、
 #   ../templates/共通処理の詳細設計書.md と本スクリプトと自己テストを同時に直す。
@@ -64,7 +64,7 @@ passck() {
 }
 
 usage_error() {
-  echo "使い方: check-common-detail-design.sh <対象リポジトリのルート> [--design-root <設計書のルート>] [--map <道標のパス>]" >&2
+  echo "使い方: check-common-detail-design.sh <対象リポジトリのルート> [--design-root <設計書のルート>] [--map <調査と検出条件の定義書のパス>]" >&2
   echo "        check-common-detail-design.sh --self-test" >&2
   exit 2
 }
@@ -89,7 +89,7 @@ check_doc() {
   local doc="${design_root%/}/docs/design/common/共通処理の詳細設計書.md"
 
   if [ ! -f "$map" ]; then
-    echo "[FAIL] 道標-不在: ${map} が存在しません" >&2
+    echo "[FAIL] 調査と検出条件の定義書-不在: ${map} が存在しません" >&2
     return 2
   fi
   if [ ! -f "$doc" ]; then
@@ -212,8 +212,8 @@ STUBEOF
   local target="${tmp}/target"
   mkdir -p "${target}/docs/design/common"
 
-  cat > "${target}/docs/design/common/道標.md" <<'MAPEOF'
-# 道標
+  cat > "${target}/docs/design/common/調査と検出条件の定義書.md" <<'MAPEOF'
+# 調査と検出条件の定義書
 
 ## 7. 共通方式の場所
 
@@ -384,16 +384,16 @@ BADEOF
   assert_exit "判定不能-文書不在" 2 bash "$under_test" "$target"
   write_doc_good
 
-  # 判定不能-道標不在
+  # 判定不能-調査と検出条件の定義書不在
   local target2="${tmp}/target-nomap"
   mkdir -p "${target2}/docs/design/common"
   cp "${target}/docs/design/common/共通処理の詳細設計書.md" "${target2}/docs/design/common/"
-  assert_exit "判定不能-道標不在" 2 bash "$under_test" "$target2"
+  assert_exit "判定不能-調査と検出条件の定義書不在" 2 bash "$under_test" "$target2"
 
   # --- 設計書ルート分離-対象に書かない ---
   local dc3="${tmp}/target-code-only" design4="${tmp}/design4"
   mkdir -p "$dc3" "$design4/docs/design/common"
-  cp "${target}/docs/design/common/道標.md" "$design4/docs/design/common/"
+  cp "${target}/docs/design/common/調査と検出条件の定義書.md" "$design4/docs/design/common/"
   cp "${target}/docs/design/common/共通処理の詳細設計書.md" "$design4/docs/design/common/"
   write_record_stub 0
   assert_exit "設計書ルート分離-合格" 0 bash "$under_test" "$dc3" --design-root "$design4"
@@ -443,7 +443,7 @@ while [ $# -gt 0 ]; do
     *) usage_error ;;
   esac
 done
-[ -n "$MAP" ] || MAP="${DESIGN_ROOT%/}/docs/design/common/道標.md"
+[ -n "$MAP" ] || MAP="${DESIGN_ROOT%/}/docs/design/common/調査と検出条件の定義書.md"
 
 bash "$ACCEPTANCE_RECORD_CHECK" "$TARGET" --common --design-root "$DESIGN_ROOT"
 vrc=$?

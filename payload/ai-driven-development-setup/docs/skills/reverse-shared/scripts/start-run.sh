@@ -10,7 +10,7 @@ set -u
 #   本スクリプトを呼ぶ。対象リポジトリのHEADを実行開始時点に固定し、
 #   実行の識別子（YYYY-MM-DD-<対象のHEAD短縮7桁>）を作り、
 #   <output-root>/<project-name>/<識別子>/ に run.json と
-#   confirmations/・logs/・facts/・reports/ を作る。
+#   confirmations/・logs/・code-readings/・reports/ を作る。
 #
 # 使い方:
 #   start-run.sh <対象リポジトリのルート> --project-name <先方の名前> --output-root <出力の置き場の親> \
@@ -86,7 +86,7 @@ run_start() {
     mkdir -p "${design_root}/docs/design" "${design_root}/ai-work/records"
   fi
 
-  mkdir -p "${run_dir}/confirmations" "${run_dir}/logs" "${run_dir}/facts" "${run_dir}/reports"
+  mkdir -p "${run_dir}/confirmations" "${run_dir}/logs" "${run_dir}/code-readings" "${run_dir}/reports"
   cat > "${run_dir}/run.json" <<JSON
 {
   "対象リポジトリ": "$(json_escape "$target")",
@@ -133,7 +133,7 @@ self_test() {
   if [ "$rc1" -eq 0 ] && [ "$out1" = "$expected_dir" ] \
     && [ -f "${expected_dir}/run.json" ] \
     && [ -d "${expected_dir}/confirmations" ] && [ -d "${expected_dir}/logs" ] \
-    && [ -d "${expected_dir}/facts" ] && [ -d "${expected_dir}/reports" ] \
+    && [ -d "${expected_dir}/code-readings" ] && [ -d "${expected_dir}/reports" ] \
     && grep -q "対象リポジトリ" "${expected_dir}/run.json" \
     && grep -q "先方の名前" "${expected_dir}/run.json" \
     && grep -q "出力の置き場" "${expected_dir}/run.json" \

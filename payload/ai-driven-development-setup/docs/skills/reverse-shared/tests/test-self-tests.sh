@@ -21,7 +21,7 @@ set -u
 #   1 = 1件以上不合格
 #
 # 保守責任者: 人手（ユーザー）。references/の複製元（docs/design/common/unit-kinds.json・
-#   docs/design/common/output-layout.json・docs/design/common/fact-shapes.json）を変える
+#   docs/design/common/output-layout.json・docs/design/common/code-reading-items.json）を変える
 #   ときは、複製先とあわせて本テストも確かめる。
 #
 # 廃棄条件: reverse-shared自体を廃止した時。
@@ -84,11 +84,11 @@ run_case "check-acceptance-record.sh --self-test" bash "${SHARED_DIR}/scripts/ch
 if [ -n "$DESIGN_DIR" ]; then
   run_case "定義と複製が一致する: unit-kinds.json" cmp -s "${DESIGN_DIR}/unit-kinds.json" "${SHARED_DIR}/references/unit-kinds.json"
   run_case "定義と複製が一致する: output-layout.json" cmp -s "${DESIGN_DIR}/output-layout.json" "${SHARED_DIR}/references/output-layout.json"
-  run_case "定義と複製が一致する: fact-shapes.json" cmp -s "${DESIGN_DIR}/fact-shapes.json" "${SHARED_DIR}/references/fact-shapes.json"
+  run_case "定義と複製が一致する: code-reading-items.json" cmp -s "${DESIGN_DIR}/code-reading-items.json" "${SHARED_DIR}/references/code-reading-items.json"
 else
   echo "SKIP: 定義と複製が一致する: unit-kinds.json（原本のdocs/design/commonが無い）"
   echo "SKIP: 定義と複製が一致する: output-layout.json（原本のdocs/design/commonが無い）"
-  echo "SKIP: 定義と複製が一致する: fact-shapes.json（原本のdocs/design/commonが無い）"
+  echo "SKIP: 定義と複製が一致する: code-reading-items.json（原本のdocs/design/commonが無い）"
 fi
 if [ -n "$SETUP_DIR" ] && [ -f "${SETUP_DIR}/documentation-standards/document-writing/check-doc-heading-addendum.sh" ]; then
   run_case "写しが原本と一致する: check-doc-heading-addendum.sh" cmp_ignoring_notice "${SETUP_DIR}/documentation-standards/document-writing/check-doc-heading-addendum.sh" "${SHARED_DIR}/scripts/check-doc-heading-addendum.sh"
