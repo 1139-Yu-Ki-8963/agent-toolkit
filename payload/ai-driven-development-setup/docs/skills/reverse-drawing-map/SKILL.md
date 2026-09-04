@@ -139,7 +139,6 @@ acceptance: tests/
 - 次が0を返す: `check-acceptance-record.sh <対象> --common --design-root <設計書の置き場>`
 - `confirmations/承認用の要約.md` が 100 行以内で実在する
 - `confirmations/対象範囲の承認.md` の可否が `可` で、同一性の値が現在の各文書と一致する
-- `tests/` の全件が通る
 
 ## 設計判断
 

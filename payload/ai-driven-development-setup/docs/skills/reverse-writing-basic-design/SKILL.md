@@ -132,7 +132,6 @@ acceptance: tests/
 - 事実の各項目が基本設計書に転記されている
 - 保留を除く全単位に合格の記録がある
 - 次が0を返す: `check-acceptance-record.sh <対象> --kind <種別> --unit <識別子> --design-root <置き場>`
-- `tests/` の全件が通る
 
 ## 設計判断
 

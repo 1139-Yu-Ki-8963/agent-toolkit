@@ -50,7 +50,6 @@ acceptance: tests/
 - 各節に位置づけの行と6つの小節がある
 - file:lineが無く、未記入のプレースホルダーが無く、追記の見出しが無い
 - `scripts/check-common-detail-design.sh` が終了コード0
-- `tests/` の全件が通る
 
 ## 設計判断
 

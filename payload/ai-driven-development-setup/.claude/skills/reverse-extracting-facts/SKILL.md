@@ -57,7 +57,6 @@ acceptance: tests/
 - 一覧の全単位に事実ファイルがある
 - 事実ファイルが形の定義（reverse-shared/references/fact-shapes.json）に合う
 - 同じコードから2回取り出して一致する（`--verify` または手動の2回読みで確認）
-- `tests/` の全件が通る
 
 ## 設計判断
 

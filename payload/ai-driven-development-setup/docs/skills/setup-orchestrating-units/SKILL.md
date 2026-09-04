@@ -66,7 +66,6 @@ docs/skills配下の全機能のtestsを回し、機能・単位・要件（柱�
 - `scripts/plan-setup.sh` が終了コード 0 で計画を返す（循環や未解決の入力があれば終了コード 1 で止まる。`--until`の対象不在は終了コード2）
 - 全 STEP の機能がそれぞれの完了条件を満たす
 - `scripts/check-acceptance.sh` が終了コード 0 で機能・単位・要件の合格を返す
-- `tests/` の全件が通る
 
 ## 設計判断
 

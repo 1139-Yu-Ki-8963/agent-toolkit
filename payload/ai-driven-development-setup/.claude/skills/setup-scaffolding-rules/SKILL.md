@@ -33,4 +33,3 @@ acceptance: tests/
 
 - 手順 2 の後、対象の `docs/rules` に親 7 件の `parent.yml` と子 32 件の `rule.md` がある。`--only` を使ったときは選んだ子とその親だけがある
 - 対象で規約の派生の検査（`validate-rule-definitions.sh --taxonomy`）が終了コード 0（配置していない子の宣言は対象外として数える）
-- `tests/` の全件が通る
