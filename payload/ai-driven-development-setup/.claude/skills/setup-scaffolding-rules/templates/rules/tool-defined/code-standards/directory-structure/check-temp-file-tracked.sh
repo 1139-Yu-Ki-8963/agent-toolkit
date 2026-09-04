@@ -20,8 +20,8 @@
 #     並んだ層の順序（先頭が最も外側、末尾が最も内側）と逆になっていないかを
 #     走査する（宣言待ち方式）
 #   - 運営文書の置き場を固定する: ファイル名から種類を確定できる運営文書が、
-#     作業指示書は docs/tasks/、検査・検証・進行の記録と台帳は
-#     docs/tasks/work-records/、設計判断は docs/decisions/ に置かれているかを走査する
+#     作業指示書は ai-work/todo/、検査・検証・進行の記録と台帳・設計判断は
+#     ai-work/records/ に置かれているかを走査する
 #
 # 判定:
 #   書き込み先パスから上記の各規則の違反を走査し、1件でも見つかれば
@@ -370,21 +370,21 @@ judge_operational_document_placement() {
 
   case "$base" in
     *指示書.md)
-      expected_dir="docs/tasks"
+      expected_dir="ai-work/todo"
       kind="作業指示書"
       matches=$((matches + 1))
       ;;
   esac
   case "$base" in
     [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*検査*.md|[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*検証*.md|[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]-*進行*.md|*台帳.md)
-      expected_dir="docs/tasks/work-records"
+      expected_dir="ai-work/records"
       kind="検査・検証・進行の記録または台帳"
       matches=$((matches + 1))
       ;;
   esac
   case "$base" in
     ADR-*.md|adr-*.md|*設計判断*.md)
-      expected_dir="docs/decisions"
+      expected_dir="ai-work/records"
       kind="設計判断の記録"
       matches=$((matches + 1))
       ;;
@@ -899,15 +899,15 @@ export const z = 1;')"; then code=0; else code=$?; fi
     rc=1
   fi
 
-  # 系20: 運営文書の置き場を固定する — 指示書が docs/tasks/ 直下なら許可
+  # 系20: 運営文書の置き場を固定する — 指示書が ai-work/todo/ 直下なら許可
   if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
     echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
     exit 2
   fi
-  if msg="$(judge_operational_document_placement "$tmp" "docs/tasks/作業指示書.md")"; then code=0; else code=$?; fi
+  if msg="$(judge_operational_document_placement "$tmp" "ai-work/todo/作業指示書.md")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '許可\[運営文書の置き場を固定する\]'; then
-    echo "  [PASS] 系20: 指示書は docs/tasks/ 直下で許可される"
+    echo "  [PASS] 系20: 指示書は ai-work/todo/ 直下で許可される"
   else
     echo "  [FAIL] 系20: 指示書の正しい置き場が許可されない（exit=${code}）" >&2
     rc=1
@@ -927,43 +927,43 @@ export const z = 1;')"; then code=0; else code=$?; fi
     rc=1
   fi
 
-  # 系22: 運営文書の置き場を固定する — 日付付き検証記録が work-records なら許可
+  # 系22: 運営文書の置き場を固定する — 日付付き検証記録が ai-work/records なら許可
   if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
     echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
     exit 2
   fi
-  if msg="$(judge_operational_document_placement "$tmp" "docs/tasks/work-records/2026-08-23-配る規約の検証.md")"; then code=0; else code=$?; fi
+  if msg="$(judge_operational_document_placement "$tmp" "ai-work/records/2026-08-23-配る規約の検証.md")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '許可\[運営文書の置き場を固定する\]'; then
-    echo "  [PASS] 系22: 日付付き検証記録は work-records で許可される"
+    echo "  [PASS] 系22: 日付付き検証記録は ai-work/records で許可される"
   else
     echo "  [FAIL] 系22: 検証記録の正しい置き場が許可されない（exit=${code}）" >&2
     rc=1
   fi
 
-  # 系23: 運営文書の置き場を固定する — 台帳が work-records なら許可
+  # 系23: 運営文書の置き場を固定する — 台帳が ai-work/records なら許可
   if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
     echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
     exit 2
   fi
-  if msg="$(judge_operational_document_placement "$tmp" "docs/tasks/work-records/運営台帳.md")"; then code=0; else code=$?; fi
+  if msg="$(judge_operational_document_placement "$tmp" "ai-work/records/運営台帳.md")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '許可\[運営文書の置き場を固定する\]'; then
-    echo "  [PASS] 系23: 台帳は work-records で許可される"
+    echo "  [PASS] 系23: 台帳は ai-work/records で許可される"
   else
     echo "  [FAIL] 系23: 台帳の正しい置き場が許可されない（exit=${code}）" >&2
     rc=1
   fi
 
-  # 系24: 運営文書の置き場を固定する — ADRが docs/decisions なら許可
+  # 系24: 運営文書の置き場を固定する — ADRが ai-work/records なら許可
   if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
     echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
     exit 2
   fi
-  if msg="$(judge_operational_document_placement "$tmp" "docs/decisions/ADR-storage.md")"; then code=0; else code=$?; fi
+  if msg="$(judge_operational_document_placement "$tmp" "ai-work/records/ADR-storage.md")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '許可\[運営文書の置き場を固定する\]'; then
-    echo "  [PASS] 系24: ADRは docs/decisions で許可される"
+    echo "  [PASS] 系24: ADRは ai-work/records で許可される"
   else
     echo "  [FAIL] 系24: ADRの正しい置き場が許可されない（exit=${code}）" >&2
     rc=1
@@ -988,7 +988,7 @@ export const z = 1;')"; then code=0; else code=$?; fi
     echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
     exit 2
   fi
-  if msg="$(judge_operational_document_placement "$tmp" "docs/tasks/2026-08-23-検証指示書.md")"; then code=0; else code=$?; fi
+  if msg="$(judge_operational_document_placement "$tmp" "ai-work/todo/2026-08-23-検証指示書.md")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '対象外\[運営文書の置き場を固定する\]'; then
     echo "  [PASS] 系26: 複数種類に一致する名前は対象外になる"
@@ -1014,6 +1014,20 @@ export const z = 1;')"; then code=0; else code=$?; fi
     echo "  [PASS] 系28: 環境変数が空文字なら should_skip_with_reason は skip しない"
   else
     echo "  [FAIL] 系28: 空文字なのに skip した（exit=${skip_code2}）" >&2
+    rc=1
+  fi
+
+  # 系29: 運営文書の置き場を固定する — 指示書が旧の置き場 docs/tasks/ にあると拒否
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
+    exit 2
+  fi
+  if msg="$(judge_operational_document_placement "$tmp" "docs/tasks/作業指示書.md")"; then code=0; else code=$?; fi
+  rm -rf "$tmp"
+  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -q '拒否\[運営文書の置き場を固定する\]'; then
+    echo "  [PASS] 系29: 指示書が旧の置き場 docs/tasks/ にあると拒否される"
+  else
+    echo "  [FAIL] 系29: 旧の置き場の指示書が拒否されない（exit=${code}）" >&2
     rc=1
   fi
 

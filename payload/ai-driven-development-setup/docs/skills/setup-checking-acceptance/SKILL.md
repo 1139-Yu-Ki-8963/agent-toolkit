@@ -8,7 +8,7 @@ allowed-tools: [Bash, Read, Glob, Grep]
 unit: setup
 category: setup
 kind: none
-inputs: [docs/skills/*/SKILL.md, docs/skills/*/tests/*.sh, docs/design/requirement-pillars.json]
+inputs: [docs/skills/*/SKILL.md, docs/skills/*/tests/*.sh, docs/design/requirements/requirement-pillars.json]
 outputs: [reports/acceptance.md]
 requires: [setup-deriving-skills]
 acceptance: tests/

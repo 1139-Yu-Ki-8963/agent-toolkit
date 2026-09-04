@@ -16,9 +16,10 @@
 #      — ファイル名に「要件定義書」を含む文書に、対象範囲・優先度・
 #        受入条件の3見出しがあるかを走査する
 #   4. 基本設計書は詳細設計を書ける状態を作る
-#      — ファイル名に「基本設計書」を含む文書に、完了状態の各項目に対応する
-#        見出し（外部仕様・業務仕様の確定・方式設計・データ仕様の確定・
-#        エラーと例外の仕様確定・単体テスト設計書）があるかを走査する
+#      — ファイル名に「基本設計書」を含む文書に、様式の見出し
+#        （外部仕様・業務仕様・方式設計・データ仕様・エラーと例外）が
+#        あるか、および同じフォルダに単体テスト設計書のファイルが実在
+#        するかを走査する
 #
 # 判定の設計:
 #   追記章の検査は、見出し行（^#{1,6}\s+...）という記号的な特徴で機械的に
@@ -51,12 +52,20 @@
 #   - 要件定義書・基本設計書の検査は見出しの存在だけを見る。各見出し配下の
 #     記述内容が実際に確定しているか（不明点が残っていないか）までは判定
 #     しない
+#   - 基本設計書の見出しは、画面・テーブル・API・バッチ・帳票・外部連携が
+#     共通で使う様式（外部仕様・業務仕様・方式設計・データ仕様・エラーと
+#     例外）で判定する。画面基本設計書は様式が異なる既知の例外であり、本
+#     checker では見出しの差を種別ごとに区別しない
+#   - 単体テスト設計書の実在確認は、基本設計書と同じフォルダのファイルを
+#     ディスクから直接確認する（本文の記述ではなく実ファイルの有無を見る）。
+#     ファイル名は「基本設計書」を「単体テスト設計書」に置き換えた名前を
+#     期待する
 #
 # 止めるか知らせるか:
 #   追記章と補足章を作らない: 止める（追記・補足の見出しがそのまま確定すると、章立てを設計し直さない場当たりの追記が履歴に残り続けるため）
 #   任意記載と省略記載をしない: 止める（省略記載がそのまま確定すると、打ち切られた内容が何であったか後から復元できなくなるため）
 #   要件定義書は合意した範囲を確定させる: 止める（対象範囲・優先度・受入条件を欠いた要件定義書が確定すると、合意した範囲を後から復元できなくなるため）
-#   基本設計書は詳細設計を書ける状態を作る: 止める（完了状態の見出しを欠いた基本設計書が確定すると、詳細設計に進める根拠を後から復元できなくなるため）
+#   基本設計書は詳細設計を書ける状態を作る: 止める（様式の見出しまたは単体テスト設計書を欠いた基本設計書が確定すると、詳細設計に進める根拠を後から復元できなくなるため）
 #
 # 逃げ道:
 #   DOC_HEADING_ADDENDUM_SKIP_REASON に理由を書けば通る。理由が空の場合は通らない
@@ -69,7 +78,7 @@ set -uo pipefail
 HEADING_RE='^#{1,6}[[:space:]]+(追記|補足|その他)'
 ELLIPSIS_RE='(…|\.\.\.|以下略)'
 REQUIREMENTS_SECTIONS="対象範囲 優先度 受入条件"
-BASIC_DESIGN_SECTIONS="外部仕様 業務仕様の確定 方式設計 データ仕様の確定 エラーと例外の仕様確定 単体テスト設計書"
+BASIC_DESIGN_SECTIONS="外部仕様 業務仕様 方式設計 データ仕様 エラーと例外"
 
 # 必須見出しの欠落を確認する。$1: 本文, $2: 見出し語のスペース区切り一覧
 # 出力: 欠落している見出し語をスペース区切りで返す（すべて揃っていれば空）
@@ -81,6 +90,18 @@ missing_sections() {
     fi
   done
   printf '%s' "$missing"
+}
+
+# 基本設計書と同じフォルダに単体テスト設計書のファイルが実在するかを確認する。
+# $1: 基本設計書の file_path
+# 戻り値: 0=実在する・1=実在しない
+sibling_exists() {
+  local file_path="$1" dir base sibling
+  [ -z "$file_path" ] && return 1
+  dir="$(dirname "$file_path")"
+  base="$(basename "$file_path")"
+  sibling="${base/基本設計書/単体テスト設計書}"
+  [ -f "${dir}/${sibling}" ]
 }
 
 judge() {
@@ -120,8 +141,15 @@ judge() {
 
   if printf '%s' "$base" | grep -qF '基本設計書'; then
     missing="$(missing_sections "$text" "$BASIC_DESIGN_SECTIONS")"
+    local reasons=""
     if [ -n "$missing" ]; then
-      echo "拒否[基本設計書は詳細設計を書ける状態を作る]: 必須見出しが欠けています（${missing}）"
+      reasons="必須見出しが欠けています（${missing}）"
+    fi
+    if ! sibling_exists "$file_path"; then
+      reasons="${reasons}${reasons:+／}単体テスト設計書が同じフォルダに見当たりません"
+    fi
+    if [ -n "$reasons" ]; then
+      echo "拒否[基本設計書は詳細設計を書ける状態を作る]: ${reasons}"
       return 2
     fi
   fi
@@ -312,7 +340,12 @@ self_test() {
     rc=1
   fi
 
-  # 系10: ファイル名が「基本設計書」で、完了状態の見出しが欠けている → 拒否
+  # 基本設計書の判定は同じフォルダの単体テスト設計書の実在をディスクから見るため、
+  # 系10〜系12 は孤立した一時フォルダを使う
+  local basic_tmpdir
+  basic_tmpdir="$(mktemp -d -p "${TMPDIR:-/tmp}")"
+
+  # 系10: ファイル名が「基本設計書」で、様式の見出しが欠けている（単体テスト設計書も無い） → 拒否（見出し理由）
   local t10='# 注文機能基本設計書
 
 ## 外部仕様
@@ -320,72 +353,80 @@ self_test() {
 
 ## 方式設計
 性能方式・可用性方式を確定する。'
-  if msg="$(judge "docs/注文機能基本設計書.md" "$t10")"; then code=0; else code=$?; fi
-  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '基本設計書は詳細設計を書ける状態を作る'; then
-    echo "  [PASS] 系10: 完了状態の見出しが欠けた基本設計書は拒否される（${msg}）"
+  if msg="$(judge "${basic_tmpdir}/注文機能基本設計書.md" "$t10")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '基本設計書は詳細設計を書ける状態を作る' && printf '%s' "$msg" | grep -qF '必須見出しが欠けています'; then
+    echo "  [PASS] 系10: 様式の見出しが欠けた基本設計書は拒否される（${msg}）"
   else
-    echo "  [FAIL] 系10: 見出しが欠けているのに許可、または規則名が含まれない（exit=${code}, ${msg}）" >&2
+    echo "  [FAIL] 系10: 見出しが欠けているのに許可、または規則名・理由が含まれない（exit=${code}, ${msg}）" >&2
     rc=1
   fi
 
-  # 系11: ファイル名が「基本設計書」で、完了状態の見出しがすべて揃っている → 許可
+  # 系11: 様式の見出しはすべて揃っているが、同じフォルダに単体テスト設計書が無い → 拒否（実在理由）
   local t11='# 注文機能基本設計書
 
 ## 外部仕様
 画面・帳票・外部インタフェースを確定する。
 
-## 業務仕様の確定
+## 業務仕様
 業務フロー・状態遷移・業務ルールを確定する。
 
 ## 方式設計
 性能方式・可用性方式を確定する。
 
-## データ仕様の確定
+## データ仕様
 概念と論理を確定する。
 
-## エラーと例外の仕様確定
-エラー分類・エラーコード体系を確定する。
-
-## 単体テスト設計書
-テスト観点を確定する。'
-  if msg="$(judge "docs/注文機能基本設計書.md" "$t11")"; then code=0; else code=$?; fi
-  if [ "$code" -eq 0 ]; then
-    echo "  [PASS] 系11: 完了状態の見出しがすべて揃った基本設計書は許可される（${msg}）"
+## エラーと例外
+エラー分類・エラーコード体系を確定する。'
+  if msg="$(judge "${basic_tmpdir}/注文機能基本設計書.md" "$t11")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '基本設計書は詳細設計を書ける状態を作る' && printf '%s' "$msg" | grep -qF '単体テスト設計書が同じフォルダに見当たりません' && ! printf '%s' "$msg" | grep -qF '必須見出しが欠けています'; then
+    echo "  [PASS] 系11: 見出しは揃うが単体テスト設計書が無い基本設計書は拒否される（${msg}）"
   else
-    echo "  [FAIL] 系11: 見出しが揃っているのに拒否された（exit=${code}, ${msg}）" >&2
+    echo "  [FAIL] 系11: 単体テスト設計書の不在が理由に反映されない、または見出し不足と誤判定された（exit=${code}, ${msg}）" >&2
     rc=1
   fi
 
-  # 系12（近傍事例）: 要件定義書・基本設計書のどちらでもないファイル名 → 見出し欠落検査は対象外として許可
+  # 系12: 様式の見出しがすべて揃い、同じフォルダに単体テスト設計書も実在する → 許可
+  touch "${basic_tmpdir}/注文機能単体テスト設計書.md"
+  if msg="$(judge "${basic_tmpdir}/注文機能基本設計書.md" "$t11")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 0 ]; then
+    echo "  [PASS] 系12: 見出しが揃い単体テスト設計書も実在する基本設計書は許可される（${msg}）"
+  else
+    echo "  [FAIL] 系12: 見出しと単体テスト設計書が揃っているのに拒否された（exit=${code}, ${msg}）" >&2
+    rc=1
+  fi
+  rm -rf "$basic_tmpdir"
+
+  # 系13（近傍事例）: 要件定義書・基本設計書のどちらでもないファイル名 → 見出し欠落検査は対象外として許可
   local t12='# メモ
 
 ## 概要
 自由に書いたメモ。'
   if msg="$(judge "docs/メモ.md" "$t12")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ]; then
-    echo "  [PASS] 系12: 要件定義書・基本設計書以外は見出し欠落検査の対象外として許可される（${msg}）"
+    echo "  [PASS] 系13: 要件定義書・基本設計書以外は見出し欠落検査の対象外として許可される（${msg}）"
   else
-    echo "  [FAIL] 系12: 対象外ファイル名なのに拒否された（exit=${code}, ${msg}）" >&2
+    echo "  [FAIL] 系13: 対象外ファイル名なのに拒否された（exit=${code}, ${msg}）" >&2
     rc=1
   fi
 
-  # 系13: 環境変数に理由を設定すると should_skip_with_reason は skip する
+  # 系14: 環境変数に理由を設定すると should_skip_with_reason は skip する
   local skip_out skip_code
   if skip_out="$(DOC_HEADING_ADDENDUM_SKIP_REASON="テスト理由" should_skip_with_reason)"; then skip_code=0; else skip_code=$?; fi
   if [ "$skip_code" -eq 0 ] && printf '%s' "$skip_out" | grep -qF 'DOC-HEADING-ADDENDUM-SKIP' && printf '%s' "$skip_out" | grep -qF 'テスト理由'; then
-    echo "  [PASS] 系13: 理由を設定すると should_skip_with_reason は skip する（${skip_out}）"
+    echo "  [PASS] 系14: 理由を設定すると should_skip_with_reason は skip する（${skip_out}）"
   else
-    echo "  [FAIL] 系13: 理由があるのに skip しない、またはタグ・理由が含まれない（exit=${skip_code}, ${skip_out}）" >&2
+    echo "  [FAIL] 系14: 理由があるのに skip しない、またはタグ・理由が含まれない（exit=${skip_code}, ${skip_out}）" >&2
     rc=1
   fi
 
-  # 系14: 環境変数を空文字にすると should_skip_with_reason は skip しない
+  # 系15: 環境変数を空文字にすると should_skip_with_reason は skip しない
   local skip_code2
   if DOC_HEADING_ADDENDUM_SKIP_REASON="" should_skip_with_reason >/dev/null 2>&1; then skip_code2=0; else skip_code2=$?; fi
   if [ "$skip_code2" -eq 1 ]; then
-    echo "  [PASS] 系14: 環境変数が空文字なら should_skip_with_reason は skip しない"
+    echo "  [PASS] 系15: 環境変数が空文字なら should_skip_with_reason は skip しない"
   else
-    echo "  [FAIL] 系14: 空文字なのに skip した（exit=${skip_code2}）" >&2
+    echo "  [FAIL] 系15: 空文字なのに skip した（exit=${skip_code2}）" >&2
     rc=1
   fi
 

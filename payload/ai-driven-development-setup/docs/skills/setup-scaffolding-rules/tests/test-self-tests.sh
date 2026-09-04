@@ -13,7 +13,7 @@ set -u
 # *.test.sh は旧リポジトリ（reverse-docs-skills）の置き場
 #   （delivery-payload/references/ 等）を前提にした自己テストを含む場合がある。
 #   その場合はここで失敗として数え、隠さない
-#   （記録: docs/design/体系の再設計.md「実践で見つかった欠点と不具合」）。
+#   （記録: ai-work/records/2026-09-04-体系の再設計の経緯と不具合.md「実践で見つかった欠点と不具合」）。
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPTS_DIR="${SCRIPT_DIR}/../scripts"

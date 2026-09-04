@@ -1,19 +1,19 @@
 #!/usr/bin/env bash
 set -u
 
-# check-detail-design.sh — 単位ごとの詳細設計書（表はテーブル定義書）の
-# 実在・節の構成・事実の網羅・基本設計書との整合を検査する
+# check-detail-design.sh — 種別ごとの詳細設計書（表はテーブル定義書）の
+# 実在・節の構成・事実の網羅を検査する
 #
 # 目的:
 #   工程2-8の完了条件（保留を除く全単位に詳細設計書がある・事実を網羅している・
-#   基本設計書と整合する・file:lineが無い・対応するファイルの表が一覧と一致する）
-#   を種別ごとに単位ごとへ回して機械で確かめる。
+#   file:lineが無い）を種別ごとに単位ごとへ回して機械で確かめる。
 #
 # 使い方:
 #   check-detail-design.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別>
 #   check-detail-design.sh --self-test
 #
-# 種別: screen / api / table / batch / report / external（featureは対象外）
+# 種別: screen / api / table / batch / report / external（featureは対象外。
+#   機能設計書には対応する詳細設計テンプレートが存在しないため）
 #
 # 依存（相対パスで呼ぶ。本スクリプトの場所からの相対解決）:
 #   ../../reverse-shared/scripts/list-units-of.sh   一覧の取得
@@ -26,16 +26,25 @@ set -u
 #   種別-不正          --kind が対象外（feature含む）または一覧に無い（判定不能）
 #   一覧-不在          list-units-of.sh が一覧無しで終了コード2を返す（判定不能）
 #   合格記録-不在      check-acceptance-record.sh の終了コードが0でなく、判定が保留でもない
-#   文書-不在          詳細設計書（表はテーブル定義書）が実在しない
-#   節-欠落            様式が定める`##`見出しが順に揃わない
-#   位置づけ-欠落      （表を除く）各`##`見出しの直後に位置づけの行が無い
+#   文書-不在          種別ごとの詳細設計書（表はテーブル定義書）が実在しない
+#   節-欠落            種別ごとの様式が定める`##`見出しが順に揃わない
+#   位置づけ-欠落      各`##`見出しの直後に位置づけの行が無い
 #   未記入-残存        `<...>`形式のプレースホルダーが残っている
 #   位置-禁止          file:line形式の実装位置の記述がある
-#   ファイル-不一致    「対応するファイル」表の1列目の集合が、一覧の場所＋属する
-#                      ファイルの集合と一致しない
 #   事実-未網羅        事実ファイルの値が空でない項目の値が文書本文に現れない
-#   基本設計書-不在    対応する基本設計書.mdが実在しない
-#   整合-欠落          基本設計書の`### <項目名>`見出しの項目名が詳細設計書に無い
+#
+# 検査から外した項目（旧様式からの移行に伴う既知の限界。理由も記す）:
+#   ファイル-不一致    旧の「対応するファイル」表（1列1ファイル）に相当する表を
+#                      旧様式のテンプレートは持たない。テーブル定義書の§1構成要素は
+#                      「要素名・種別・可視性・所在」で1行1コード要素であり、
+#                      1行1ファイルの集合比較が成立しない。対応するファイルの手掛
+#                      かりが必要な場合は§6関連資料を人手で確認する
+#   整合-欠落          旧の実装（基本設計書の`### <項目名>`見出しが個々の事実項目を
+#                      表す前提）は、旧様式の`### `見出しがテンプレート共通の節番号
+#                      付き小見出し（例:「### 2.1 業務フロー」）であり事実項目を
+#                      表さないため成立しない。基本設計と詳細設計の事実の一貫性は
+#                      事実ファイルを共通の入力源とする事実-未網羅（本スクリプト）
+#                      と事実-未転記（check-basic-design.sh）の組で担保する
 #
 # 保留の扱い: check-acceptance-record.shが0でないとき、合格の記録の判定が「保留」で
 # あればその単位は飛ばす（不合格に数えない）。判定が保留以外（不在・不合格・
@@ -47,7 +56,7 @@ set -u
 #   2 = 使い方の誤り・依存の不在・種別の不正・一覧の不在（判定不能）
 #
 # 保守責任者: 人手（ユーザー）。様式の見出し構成を変えるときは、
-#   ../templates/詳細設計書.md・../templates/テーブル定義書.md と
+#   ../templates/<種別key>/内のテンプレートとexpected_headings()・doc_name_of()・
 #   本スクリプトと自己テストを同時に直す。
 #
 # 廃棄条件: 詳細設計書の様式を構造化データに変えた時。
@@ -96,41 +105,49 @@ has_jq() {
 }
 
 # 様式の"## "見出しの並び（表とそれ以外）
+# 種別ごとの詳細設計書（表はテーブル定義書）の様式（見出しはテンプレートの
+# 実測どおり「§N ...」を含めて1行ずつ書く。並び順はテンプレートの節の順）
 expected_headings() {
-  local kind="$1"
-  if [ "$kind" = "table" ]; then
-    printf '%s\n' "対応するファイル" "列" "制約" "関係" "要確認事項一覧" "関連資料"
-  else
-    printf '%s\n' "対応するファイル" "クラス設計" "メソッド設計" "ロジック設計" "戻り値と引数" "エラー処理" "データ定義" "要確認事項一覧" "関連資料"
-  fi
+  case "$1" in
+    screen)
+      printf '%s\n' \
+        "§1 画面概要" "§2 機能一覧" "§3 画面構造" \
+        "§4 業務ルール（条件付き：業務モード・権限制御がある画面のみ）" \
+        "§5 状態管理" "§6 データフロー" "§7 ロジック" "§8 疑似コード" \
+        "§9 API 通信仕様（条件付き：API を呼ぶ画面のみ）" "§10 データ定義" \
+        "§11 イベント処理" "§12 領域別仕様" \
+        "§13 定数・設定値（条件付き：画面固有の定数がある場合のみ）" \
+        "§14 エラーハンドリング" "§15 画面遷移仕様" "§16 非機能要件" \
+        "§17 共通仕様への準拠" "§18 実装契約" "§19 関連資料"
+      ;;
+    api)
+      printf '%s\n' \
+        "§1 API概要" "§2 リクエスト" "§3 レスポンス" "§4 処理フロー" \
+        "§5 ロジック" "§6 業務ルールとバリデーション" "§7 エラー" \
+        "§8 非機能" "§9 関連資料"
+      ;;
+    *)
+      printf '%s\n' \
+        "§1 構成要素" "§2 処理の定義" "§3 ロジック" "§4 入出力の値" \
+        "§5 エラー処理" "§6 関連資料"
+      ;;
+  esac
 }
 
 doc_name_of() {
-  if [ "$1" = "table" ]; then
-    printf '%s' "テーブル定義書.md"
-  else
-    printf '%s' "詳細設計書.md"
-  fi
-}
-
-# 「対応するファイル」表の1列目を1行1件で返す
-extract_files_column() {
-  local doc="$1"
-  awk '
-    /^## 対応するファイル/ {flag=1; next}
-    /^## / {flag=0}
-    flag && /^\|/ {print}
-  ' "$doc" | while IFS= read -r line; do
-    case "$line" in
-      *"ファイル"*"役割"*) continue ;;
-      *"---"*) continue ;;
-    esac
-    printf '%s\n' "$line" | awk -F'|' '{gsub(/^[ \t]+|[ \t]+$/,"",$2); print $2}'
-  done
+  case "$1" in
+    screen) printf '%s' "画面詳細設計書.md" ;;
+    api) printf '%s' "API詳細設計書.md" ;;
+    table) printf '%s' "テーブル定義書.md" ;;
+    batch) printf '%s' "バッチ詳細設計書.md" ;;
+    report) printf '%s' "帳票詳細設計書.md" ;;
+    external) printf '%s' "外部連携詳細設計書.md" ;;
+    *) printf '%s' "" ;;
+  esac
 }
 
 check_unit_doc() {
-  local doc="$1" kind="$2" location="$3" files_csv="$4"
+  local doc="$1" kind="$2"
 
   if [ ! -f "$doc" ]; then
     fail "文書-不在" "$doc"
@@ -148,25 +165,23 @@ check_unit_doc() {
     fail "節-欠落" "${doc}: 見出しが規定と一致しません（実際: $(printf '%s' "$actual_list" | tr '\n' '/')）"
   fi
 
-  # 位置づけ-欠落（表は対象外）
-  if [ "$kind" != "table" ]; then
-    local ok_place=1 h
-    while IFS= read -r h; do
-      [ -n "$h" ] || continue
-      local heading_line
-      heading_line="$(grep -n -F "## ${h}" "$doc" | head -1 | cut -d: -f1)"
-      [ -n "$heading_line" ] || continue
-      local next_nonblank
-      next_nonblank="$(awk -v start="$heading_line" 'NR>start && NF>0 {print; exit}' "$doc")"
-      if [[ "$next_nonblank" != "**この節の位置づけ: "* ]]; then
-        fail "位置づけ-欠落" "${doc}: 「## ${h}」の直後に位置づけの行がありません"
-        ok_place=0
-      fi
-    done <<HLIST
+  # 位置づけ-欠落
+  local ok_place=1 h
+  while IFS= read -r h; do
+    [ -n "$h" ] || continue
+    local heading_line
+    heading_line="$(grep -n -F "## ${h}" "$doc" | head -1 | cut -d: -f1)"
+    [ -n "$heading_line" ] || continue
+    local next_nonblank
+    next_nonblank="$(awk -v start="$heading_line" 'NR>start && NF>0 {print; exit}' "$doc")"
+    if [[ "$next_nonblank" != "**この節の位置づけ: "* ]]; then
+      fail "位置づけ-欠落" "${doc}: 「## ${h}」の直後に位置づけの行がありません"
+      ok_place=0
+    fi
+  done <<HLIST
 $expected_list
 HLIST
-    [ "$ok_place" -eq 1 ] && passck
-  fi
+  [ "$ok_place" -eq 1 ] && passck
 
   # 未記入-残存
   local placeholder_lines
@@ -184,16 +199,6 @@ HLIST
     fail "位置-禁止" "${doc}: 実装位置(file:line)の記述があります（例: $(printf '%s\n' "$pos_lines" | head -1)）"
   else
     passck
-  fi
-
-  # ファイル-不一致
-  local expected_files actual_files
-  expected_files="$( { printf '%s\n' "$location"; printf '%s\n' "$files_csv" | tr ';' '\n'; } | sed '/^$/d' | sort -u)"
-  actual_files="$(extract_files_column "$doc" | sed '/^$/d' | sort -u)"
-  if [ "$expected_files" = "$actual_files" ]; then
-    passck
-  else
-    fail "ファイル-不一致" "${doc}: 一覧（$(printf '%s' "$expected_files" | tr '\n' ';')）と文書（$(printf '%s' "$actual_files" | tr '\n' ';')）が一致しません"
   fi
 }
 
@@ -232,28 +237,6 @@ ILIST
   [ "$ok" -eq 1 ] && passck
 }
 
-check_basic_design_consistency() {
-  local doc="$1" basic_doc="$2"
-
-  if [ ! -f "$basic_doc" ]; then
-    fail "基本設計書-不在" "$basic_doc が存在しません"
-    return
-  fi
-
-  local headings ok=1 h
-  headings="$(grep -E '^### ' "$basic_doc" | sed 's/^### //')"
-  while IFS= read -r h; do
-    [ -n "$h" ] || continue
-    if ! grep -qF -- "$h" "$doc"; then
-      fail "整合-欠落" "${h}"
-      ok=0
-    fi
-  done <<HLIST
-$headings
-HLIST
-  [ "$ok" -eq 1 ] && passck
-}
-
 run_units() {
   local target="$1" run_dir="$2" kind="$3"
   local species_folder
@@ -280,7 +263,6 @@ run_units() {
     [ -n "$identifier" ] || continue
     folder="$(bash "$UNIT_DIR_NAME" "$identifier")"
     local doc="${target%/}/docs/design/${species_folder}/${folder}/${doc_name}"
-    local basic_doc="${target%/}/docs/design/${species_folder}/${folder}/基本設計書.md"
     local record="${target%/}/ai-work/records/basic-design-acceptance/${kind}-${folder}.json"
     local facts_json="${run_dir%/}/facts/${kind}/${folder}.json"
 
@@ -299,10 +281,9 @@ run_units() {
       continue
     fi
 
-    check_unit_doc "$doc" "$kind" "$location" "$files_csv"
+    check_unit_doc "$doc" "$kind"
     [ -f "$doc" ] || continue
     check_facts_coverage "$doc" "$facts_json"
-    check_basic_design_consistency "$doc" "$basic_doc"
   done <<UNITLIST
 $units_out
 UNITLIST
@@ -376,96 +357,68 @@ RECORDCHECKEOF
 
   local target="${tmp}/target"
   local run_dir="${tmp}/run"
-  local ident="src/pages/OrderList.tsx"
-  local folder="src_pages_OrderList.tsx"
-  local doc_dir="${target}/docs/design/screens/${folder}"
-  mkdir -p "$doc_dir" "${target}/ai-work/records/basic-design-acceptance" "${run_dir}/facts/screen"
+  local ident="orders"
+  local folder="orders"
+  local doc_dir="${target}/docs/design/tables/${folder}"
+  mkdir -p "$doc_dir" "${target}/ai-work/records/basic-design-acceptance" "${run_dir}/facts/table"
 
-  printf '%s\t%s\t%s\t%s\n' "$ident" "OrderList一覧" "$ident" "${ident};src/api/orders.ts" > "$list_data"
+  printf '%s\t%s\t%s\t%s\n' "$ident" "受注テーブル" "$ident" "" > "$list_data"
 
-  cat > "${doc_dir}/基本設計書.md" <<'BASICEOF'
-# 基本設計書
-
-## 外部仕様
-
-### 入力項目
-
-記入済み
-
-### 表示項目
-
-記入済み
-BASICEOF
-
-  cat > "${run_dir}/facts/screen/${folder}.json" <<'FACTSEOF'
+  cat > "${run_dir}/facts/table/${folder}.json" <<'FACTSEOF'
 {
-  "種別": "screen",
-  "識別子": "src/pages/OrderList.tsx",
+  "種別": "table",
+  "識別子": "orders",
   "事実": {
-    "入力項目": {"値": ["注文ID"], "出所": "機械", "根拠": ["src/pages/OrderList.tsx"]},
-    "表示項目": {"値": ["注文一覧"], "出所": "機械", "根拠": ["src/pages/OrderList.tsx"]},
-    "操作": {"値": [], "出所": "機械", "根拠": []}
+    "列": {"値": ["受注番号"], "出所": "機械", "根拠": ["orders"]},
+    "関係": {"値": ["顧客テーブルを参照"], "出所": "機械", "根拠": ["orders"]}
   },
-  "未": ["操作"]
+  "未": []
 }
 FACTSEOF
 
   write_doc_good() {
-    cat > "${doc_dir}/詳細設計書.md" <<'DOCEOF'
-# 詳細設計書
+    cat > "${doc_dir}/テーブル定義書.md" <<'DOCEOF'
+# orders テーブル定義書
 
-## 対応するファイル
-
-**この節の位置づけ: 現行実装**
-
-| ファイル | 役割 |
-|---|---|
-| src/pages/OrderList.tsx | 画面本体 |
-| src/api/orders.ts | 一覧取得 |
-
-## クラス設計
+## §1 構成要素
 
 **この節の位置づけ: 現行実装**
 
-記入済み（入力項目・表示項目を扱う）
+| 要素名 | 種別 | 可視性 | 所在 |
+|---|---|---|---|
+| orders | table | public | db/schema.sql |
 
-## メソッド設計
+## §2 処理の定義
 
 **この節の位置づけ: 現行実装**
 
 記入済み
 
-## ロジック設計
+## §3 ロジック
 
 **この節の位置づけ: 現行実装**
 
 記入済み
 
-## 戻り値と引数
+## §4 入出力の値
 
 **この節の位置づけ: 現行実装**
 
-記入済み
+記入済み。受注番号を扱う。
 
-## エラー処理
+## §5 エラー処理
 
 **この節の位置づけ: 現行実装**
 
 記入済み（理由（観測）: 既存の実装を踏まえる）
 
-## データ定義
+## §6 関連資料
 
 **この節の位置づけ: 現行実装**
 
-記入済み。注文ID・注文一覧を扱う。
+顧客テーブルを参照する。
 
 ## 要確認事項一覧
-
-**この節の位置づけ: 現行実装**
-
-なし
-
-## 関連資料
 
 **この節の位置づけ: 現行実装**
 
@@ -511,67 +464,66 @@ DOCEOF
     fi
   }
 
+
   # 合格
   write_doc_good
   echo 0 > "$record_rc_file"
-  assert_exit "合格" 0 bash "$under_test" "$target" --run "$run_dir" --kind screen
+  assert_exit "合格" 0 bash "$under_test" "$target" --run "$run_dir" --kind table
 
   # 不合格-合格記録なし
   echo 1 > "$record_rc_file"
-  assert_exit "不合格-合格記録なし" 1 bash "$under_test" "$target" --run "$run_dir" --kind screen
+  assert_exit "不合格-合格記録なし" 1 bash "$under_test" "$target" --run "$run_dir" --kind table
   assert_contains "不合格-合格記録なし: 合格記録-不在が出る" "合格記録-不在"
 
   # 保留はスキップして全体は合格
-  cat > "${target}/ai-work/records/basic-design-acceptance/screen-${folder}.json" <<'RECEOF'
-{"種別":"screen","識別子":"src/pages/OrderList.tsx","判定":"保留"}
+  cat > "${target}/ai-work/records/basic-design-acceptance/table-${folder}.json" <<'RECEOF'
+{"種別":"table","識別子":"orders","判定":"保留"}
 RECEOF
-  assert_exit "保留は不合格にしない" 0 bash "$under_test" "$target" --run "$run_dir" --kind screen
+  assert_exit "保留は不合格にしない" 0 bash "$under_test" "$target" --run "$run_dir" --kind table
   assert_skip "保留は不合格にしない: skipが出る"
-  rm -f "${target}/ai-work/records/basic-design-acceptance/screen-${folder}.json"
+  rm -f "${target}/ai-work/records/basic-design-acceptance/table-${folder}.json"
   echo 0 > "$record_rc_file"
 
-  # 不合格（複合）: 節の欠落・未記入・file:line・ファイル不一致・事実未網羅・整合欠落
-  cat > "${doc_dir}/詳細設計書.md" <<'BADEOF'
-# 詳細設計書
+  # 不合格（複合）: 節の欠落・未記入・file:line・事実未網羅
+  cat > "${doc_dir}/テーブル定義書.md" <<'BADEOF'
+# orders テーブル定義書
 
-## 対応するファイル
+## §1 構成要素
 
 **この節の位置づけ: 現行実装**
 
-| ファイル | 役割 |
-|---|---|
-| src/pages/OrderList.tsx | 画面本体 |
+| 要素名 | 種別 | 可視性 | 所在 |
+|---|---|---|---|
+| orders | table | public | db/schema.sql |
 
-## クラス設計
+## §2 処理の定義
 
 **この節の位置づけ: 現行実装**
 
 <ここを埋める>
 
-## メソッド設計
+## §3 ロジック
 
 **この節の位置づけ: 現行実装**
 
-src/app/order.ts:88 を参照する。
+src/legacy.ts:12 を参照する。
 BADEOF
-  assert_exit "不合格-複合" 1 bash "$under_test" "$target" --run "$run_dir" --kind screen
+  assert_exit "不合格-複合" 1 bash "$under_test" "$target" --run "$run_dir" --kind table
   assert_contains "不合格-複合: 節-欠落が出る" "節-欠落"
   assert_contains "不合格-複合: 未記入-残存が出る" "未記入-残存"
   assert_contains "不合格-複合: 位置-禁止が出る" "位置-禁止"
-  assert_contains "不合格-複合: ファイル-不一致が出る" "ファイル-不一致"
   assert_contains "不合格-複合: 事実-未網羅が出る" "事実-未網羅"
-  assert_contains "不合格-複合: 整合-欠落が出る" "整合-欠落"
   write_doc_good
 
   # 判定不能-文書不在
-  rm -f "${doc_dir}/詳細設計書.md"
-  assert_exit "不合格-文書不在" 1 bash "$under_test" "$target" --run "$run_dir" --kind screen
+  rm -f "${doc_dir}/テーブル定義書.md"
+  assert_exit "不合格-文書不在" 1 bash "$under_test" "$target" --run "$run_dir" --kind table
   assert_contains "不合格-文書不在: 文書-不在が出る" "文書-不在"
   write_doc_good
 
   # 判定不能-一覧不在
   mv "$list_data" "${list_data}.bak"
-  assert_exit "判定不能-一覧不在" 2 bash "$under_test" "$target" --run "$run_dir" --kind screen
+  assert_exit "判定不能-一覧不在" 2 bash "$under_test" "$target" --run "$run_dir" --kind table
   mv "${list_data}.bak" "$list_data"
 
   # 判定不能-種別不正
@@ -582,7 +534,7 @@ BADEOF
 
   # 判定不能-検査基盤不在
   rm -f "${shared_dir}/list-units-of.sh"
-  assert_exit "判定不能-検査基盤不在" 2 bash "$under_test" "$target" --run "$run_dir" --kind screen
+  assert_exit "判定不能-検査基盤不在" 2 bash "$under_test" "$target" --run "$run_dir" --kind table
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then

@@ -79,7 +79,7 @@ OPTIONAL_KEYS="docType derivedPath"
 # いずれもtaxonomyのcheckerとして宣言されない診断ツールだが、このうち
 # check-rule-drift.shは検査本体の命名規則（check-*.sh）に一致するため、
 # 何も除かないとvalidate_checker_declarationsが「宣言の無いchecker」として
-# 誤検出する（実践で見つかった不具合: docs/design/体系の再設計.md
+# 誤検出する（実践で見つかった不具合: ai-work/records/2026-09-04-体系の再設計の経緯と不具合.md
 # 「実践で見つかった欠点と不具合」）。4本まとめて除くのは、将来の改名や
 # 追加時に同じ命名規則へ一致する可能性を個別に判断せずに済ませるため。
 DEPLOYED_TOOL_NAMES="build-derived-rules.sh validate-rule-definitions.sh check-rule-drift.sh resolve-applicable-rules.sh"

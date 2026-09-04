@@ -7,7 +7,7 @@ set -euo pipefail
 #   規約の配置（setup-scaffolding-rules）機能として、規約の配置だけに絞って持ち込んだ。
 #   納品スキル・agent・生成エンジンの配布（旧 --with-skills）は運用（operate）単位の
 #   別機能として切り出す対象のため、本スクリプトからは取り除いた
-#   （設計の記録: docs/design/体系の再設計.md「実践で見つかった欠点と不具合」）。
+#   （設計の記録: ai-work/records/2026-09-04-体系の再設計の経緯と不具合.md「実践で見つかった欠点と不具合」）。
 #
 # 設計の定義: docs/skills/setup-deriving-rules/references/規約定義と派生生成の設計.md
 # 宣言データ: references/rule-taxonomy.json（親7・子32の英語キー・表示名・既定値）
@@ -68,7 +68,7 @@ set -euo pipefail
 #   1 = 引数不正、または taxonomy 読み込み失敗
 #   --self-test のみ、期待どおりの生成ができなければ1
 #
-# 保守責任者・廃棄条件: docs/design/体系の再設計.md を参照。
+# 保守責任者・廃棄条件: docs/design/common/体系の設計.md を参照。
 #
 # macOS bash 3.2 互換（連想配列・mapfileは不使用）。
 
@@ -1217,7 +1217,7 @@ EOF
   #   乖離の再発防止。改善課題1-3）。旧版は generation-engine/samples/docs/rules
   #   （納品済みの完成サンプル）との三者一致も見ていたが、本移設ではその
   #   サンプル資産を持ち込んでいないため9cは対象外とした（動かない箇所の記録:
-  #   docs/design/体系の再設計.md「実践で見つかった欠点と不具合」）。
+  #   ai-work/records/2026-09-04-体系の再設計の経緯と不具合.md「実践で見つかった欠点と不具合」）。
   local ok9=1
 
   # 9a. テンプレート: advisory時の雛形として「違反時の手順」節と、
@@ -1762,7 +1762,7 @@ EOF
   # ケース13（旧: 納品サンプルへの禁止語検索）は、旧リポジトリの
   # generation-engine/samples/docs/rules（納品済みの完成サンプル）を対象にしていた。
   # 本移設ではそのサンプル資産を持ち込んでいないため対象外とした（動かない箇所の
-  # 記録: docs/design/体系の再設計.md「実践で見つかった欠点と不具合」）。
+  # 記録: ai-work/records/2026-09-04-体系の再設計の経緯と不具合.md「実践で見つかった欠点と不具合」）。
 
   rm -rf "$out1" "$out2"
 
@@ -1778,7 +1778,7 @@ EOF
   #   持ち込んでいない（既知の制約は本スクリプト冒頭のコメントを参照）ため、
   #   その部分の検証は対象外とした。resolve_applies_when_state は関数として
   #   残しており、output-layout.sh 不在時は内蔵のフェイルセーフにより常に
-  #   「未解析」を返す（動かない箇所の記録: docs/design/体系の再設計.md
+  #   「未解析」を返す（動かない箇所の記録: ai-work/records/2026-09-04-体系の再設計の経緯と不具合.md
   #   「実践で見つかった欠点と不具合」）。
   local ok11=1
   local src11="${TOOLDEFINED_TEMPLATE_DIR}/business-domain/state-transitions/rule.md"

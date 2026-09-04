@@ -611,7 +611,7 @@ OUTPUT_ELEMENTS
 build_report() {
   local root="$1" unit_filter="$2"
   local skills_root="${root}/docs/skills"
-  local pillars_json="${root}/docs/design/requirement-pillars.json"
+  local pillars_json="${root}/docs/design/requirements/requirement-pillars.json"
   local report_text=""
   local overall_has_problem=0
   local overall_has_unknown=0
@@ -886,8 +886,8 @@ INNER_DUMMY_EOF
 
 st_reset_pillars() {
   local target_root="$1"
-  mkdir -p "${target_root}/docs/design"
-  cat > "${target_root}/docs/design/requirement-pillars.json" <<'INNER_PILLARS_EOF'
+  mkdir -p "${target_root}/docs/design/requirements"
+  cat > "${target_root}/docs/design/requirements/requirement-pillars.json" <<'INNER_PILLARS_EOF'
 {
   "pillars": [
     {"key": "survey", "title": "調査を支える", "requiredUnits": ["reverse"], "optionalUnits": []},

@@ -7,8 +7,8 @@ set -u
 #   reverse-shared は名前の決まり（skill-naming）によりSKILL.mdを持たない
 #   共有部品であり、検収は本tests/が担う。read-run.sh・check-entry.sh・
 #   unit-dir-name.sh・units-status.sh・list-units-of.shの--self-testを
-#   回すことに加え、references/の複製がdocs/design/の定義と一致している
-#   こと（複製のずれ防止）を確かめる。
+#   回すことに加え、references/の複製がdocs/design/common/の定義と一致して
+#   いること（複製のずれ防止）を確かめる。
 #
 # 使い方:
 #   bash test-self-tests.sh
@@ -17,15 +17,15 @@ set -u
 #   0 = 全件合格
 #   1 = 1件以上不合格
 #
-# 保守責任者: 人手（ユーザー）。references/の複製元（docs/design/unit-kinds.json・
-#   docs/design/output-layout.json・docs/design/fact-shapes.json）を変えるときは、
-#   複製先とあわせて本テストも確かめる。
+# 保守責任者: 人手（ユーザー）。references/の複製元（docs/design/common/unit-kinds.json・
+#   docs/design/common/output-layout.json・docs/design/common/fact-shapes.json）を変える
+#   ときは、複製先とあわせて本テストも確かめる。
 #
 # 廃棄条件: reverse-shared自体を廃止した時。
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SHARED_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
-DESIGN_DIR="$(cd "${SHARED_DIR}/../../design" && pwd)"
+DESIGN_DIR="$(cd "${SHARED_DIR}/../../design/common" && pwd)"
 SETUP_DIR="$(cd "${SHARED_DIR}/../setup-scaffolding-rules/templates/rules/tool-defined" && pwd)"
 
 total=0

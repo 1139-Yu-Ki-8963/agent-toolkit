@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 set -u
 
-# check-basic-design.sh — 基本設計書・単体テスト設計書（機能は集約設計書）の
-#   実在・様式・事実の転記・確認事項の登録を検査する
+# check-basic-design.sh — 種別ごとの基本設計書・単体テスト設計書（旧様式の
+#   ファイル名を使う。機能は機能設計書・機能単体テスト設計書）の実在・様式・
+#   事実の転記・確認事項の登録を検査する
 #
 # 目的:
 #   基本設計書はAIが事実を業務の言葉に写して書くため文面は毎回変わる。
@@ -22,7 +23,7 @@ set -u
 #   共有部品-不在        reverse-sharedのunit-dir-name.sh・list-units-of.shが無い
 #   規約-不在            支援ツール側の写しの設計書の書き方・単体テスト設計書の検査スクリプトが無い
 #   一覧-不在            対象の一覧（docs/design/lists/<種別>.json）が読めない
-#   文書-不在            基本設計書・単体テスト設計書（機能は集約設計書）が実在しない
+#   文書-不在            種別ごとの基本設計書・単体テスト設計書（機能は機能設計書・機能単体テスト設計書）が実在しない
 #   節-欠落              必須見出しが順に揃っていない
 #   位置づけ-欠落        必須見出しの直後に位置づけの行が無い
 #   未記入-残存          山括弧のプレースホルダーが残っている
@@ -37,8 +38,29 @@ set -u
 #   1 = 1単位以上が不合格
 #   2 = 使い方の誤り・共有部品や規約スクリプトの不在・一覧が読めない（判定不能）
 #
+# 既知の限界:
+#   - 見出しの様式は種別ごとにbasic_expected_headings()が持つ表で判定する
+#     （章構成の正はテンプレートであり、この表はテンプレートの実測を写した
+#     ものにすぎない。テンプレートを変えたら本表を追従させる）
+#   - 論理データモデル.md・機能設計書.mdはファイル名に「基本設計書」という
+#     文字列を含まないため、設計書の書き方の決まり（reverse-sharedの
+#     check-doc-heading-addendum.sh）のファイル名一致による検査は
+#     table・feature種別には効かない（no-op）。この2種別の様式検査は本
+#     スクリプト自身のcheck_headings_order/check_placement_linesが担う
+#   - 画面基本設計書.mdはファイル名に「基本設計書」を含み、上記の共有
+#     チェッカーが持つ完了状態見出し（外部仕様・業務仕様・方式設計・データ
+#     仕様・エラーと例外）と、実際の画面の様式（画面の目的・画面構成・
+#     機能仕様・業務ルール・入出力の業務的意味・画面遷移の業務文脈・関連
+#     資料）が一致しない。そのためscreen種別ではこの共有チェッカーの呼び
+#     出しを行わず、様式の妥当性は本スクリプト自身の
+#     check_headings_order/check_placement_linesに委ねる（章構成の正は
+#     テンプレートという規約に従う）
+#   - table種別の事実-未転記は、論理データモデルの様式（型・制約を書かない）
+#     に合わせて「列」「関係」だけを対象にする。「型」「制約」の転記確認は
+#     詳細設計（テーブル定義書）のcheck-detail-design.shが担う
+#
 # 保守責任者: 人手（ユーザー）。事実の項目や様式を変えるときは、
-#   docs/design/fact-shapes.json・templates/・本スクリプトを同時に直す。
+#   docs/design/common/fact-shapes.json・templates/・本スクリプトを同時に直す。
 #
 # 廃棄条件: 基本設計書の様式を構造化データから生成する仕組みに置き換えた時。
 #
@@ -67,6 +89,56 @@ species_folder() {
     external) echo externals ;;
     feature) echo features ;;
     *) echo "" ;;
+  esac
+}
+
+# 種別ごとの基本設計書のファイル名（旧様式の名前をそのまま使う）
+basic_doc_name() {
+  case "$1" in
+    screen) echo "画面基本設計書.md" ;;
+    api) echo "API基本設計書.md" ;;
+    table) echo "論理データモデル.md" ;;
+    batch) echo "バッチ基本設計書.md" ;;
+    report) echo "帳票基本設計書.md" ;;
+    external) echo "外部連携基本設計書.md" ;;
+    feature) echo "機能設計書.md" ;;
+    *) echo "" ;;
+  esac
+}
+
+# 種別ごとの単体テスト設計書のファイル名（旧様式の名前をそのまま使う）
+test_doc_name() {
+  case "$1" in
+    screen) echo "画面単体テスト設計書.md" ;;
+    api) echo "API単体テスト設計書.md" ;;
+    table) echo "テーブル単体テスト設計書.md" ;;
+    batch) echo "バッチ単体テスト設計書.md" ;;
+    report) echo "帳票単体テスト設計書.md" ;;
+    external) echo "外部連携単体テスト設計書.md" ;;
+    feature) echo "機能単体テスト設計書.md" ;;
+    *) echo "" ;;
+  esac
+}
+
+# 種別ごとの基本設計書の様式（見出しはテンプレートの実測どおり「§N ...」を
+# 含めて1行ずつ書く。並び順はテンプレートの節の順）
+basic_expected_headings() {
+  case "$1" in
+    screen)
+      printf '%s\n' \
+        "§1 画面の目的" "§2 画面構成" "§3 機能仕様（業務機能の一覧）" \
+        "§4 業務ルール" "§5 入出力の業務的意味" "§6 画面遷移の業務文脈" "§7 関連資料"
+      ;;
+    feature)
+      printf '%s\n' \
+        "§1 機能概要" "§2 機能の範囲" "§3 業務フロー" "§4 業務ルール" "§5 データ" \
+        "§6 構成要素間の状態受け渡し" "§7 呼び出し仕様" "§8 エラーと業務メッセージ" \
+        "§9 非機能" "§10 共通仕様への準拠" "§11 関連資料"
+      ;;
+    *)
+      printf '%s\n' \
+        "§1 外部仕様" "§2 業務仕様" "§3 方式設計" "§4 データ仕様" "§5 エラーと例外" "§6 関連資料"
+      ;;
   esac
 }
 
@@ -159,10 +231,28 @@ check_placeholder_and_position() {
   return "$ok"
 }
 
+# 事実の項目名が本文の見出し（##・###）または表の見出し行に現れるかを確認する。
+# $1: doc  $2: 事実の項目名  戻り値: 0=現れる・1=現れない
+fact_key_covered() {
+  local doc="$1" key="$2"
+  if grep -E '^#{2,3}[[:space:]]' "$doc" | grep -qF -- "$key"; then
+    return 0
+  fi
+  awk -v key="$key" '
+    /^\|/ {
+      header = $0
+      if ((getline nextline) > 0) {
+        if (nextline ~ /^\|[ :|-]+\|?$/ && index(header, key) > 0) { found = 1 }
+      }
+    }
+    END { exit(found ? 0 : 1) }
+  ' "$doc"
+}
+
 check_regular_unit() {
   local target="$1" run_dir="$2" unit_path="$3" kind="$4" dirname="$5" heading_script="$6" unittest_script="$7"
-  local doc="${unit_path}/基本設計書.md"
-  local test_doc="${unit_path}/単体テスト設計書.md"
+  local doc="${unit_path}/$(basic_doc_name "$kind")"
+  local test_doc="${unit_path}/$(test_doc_name "$kind")"
   local ok=1
 
   if [ ! -f "$doc" ]; then
@@ -175,23 +265,14 @@ check_regular_unit() {
   fi
   [ "$ok" -eq 1 ] || return 1
 
-  local expected='## 外部仕様
-## 業務仕様の確定
-## 方式設計
-## データ仕様の確定
-## エラーと例外の仕様確定
-## 単体テスト設計書'
+  local headings expected
+  headings="$(basic_expected_headings "$kind")"
+  expected="$(printf '%s\n' "$headings" | sed 's/^/## /')"
   if ! check_headings_order "$doc" "$expected"; then
     echo "[FAIL] 節-欠落: ${doc} の必須見出しが順に揃っていません" >&2
     ok=0
   fi
 
-  local headings='外部仕様
-業務仕様の確定
-方式設計
-データ仕様の確定
-エラーと例外の仕様確定
-単体テスト設計書'
   if ! check_placement_lines "$doc" "$headings"; then
     echo "[FAIL] 位置づけ-欠落: ${doc} に位置づけの行が無い見出しがあります" >&2
     ok=0
@@ -199,9 +280,15 @@ check_regular_unit() {
 
   check_placeholder_and_position "$doc" || ok=0
 
-  if ! run_heading_addendum_check "$heading_script" "$doc"; then
-    echo "[FAIL] 規約-見出し: ${doc} が設計書の書き方の検査に不合格です" >&2
-    ok=0
+  # 既知の限界: 画面基本設計書の様式（画面の目的・画面構成…）は、設計書の書き方の
+  # 決まりが定める共通の完了状態見出し（外部仕様・業務仕様・方式設計・データ仕様・
+  # エラーと例外）と一致しない。screen種別ではこの共有チェッカーを呼ばず、様式の
+  # 妥当性は本スクリプト自身のcheck_headings_order/check_placement_linesに委ねる
+  if [ "$kind" != "screen" ]; then
+    if ! run_heading_addendum_check "$heading_script" "$doc"; then
+      echo "[FAIL] 規約-見出し: ${doc} が設計書の書き方の検査に不合格です" >&2
+      ok=0
+    fi
   fi
 
   if ! run_unit_test_doc_check "$unittest_script" "$test_doc"; then
@@ -213,9 +300,14 @@ check_regular_unit() {
   if [ -f "$facts_file" ]; then
     local keys k
     keys="$(jq -r '.["事実"] // {} | to_entries[] | select((.value["値"] // []) | length > 0) | .key' "$facts_file" 2>/dev/null)"
+    # 表（table）の基本設計（論理データモデル）は型・制約を書かない様式。
+    # 型・制約の転記は詳細設計（テーブル定義書）のcheck-detail-design.shが見る
+    if [ "$kind" = "table" ]; then
+      keys="$(printf '%s\n' "$keys" | grep -vE '^(型|制約)$' || true)"
+    fi
     while IFS= read -r k; do
       [ -n "$k" ] || continue
-      if ! grep -qF "### ${k}" "$doc"; then
+      if ! fact_key_covered "$doc" "$k"; then
         echo "[FAIL] 事実-未転記: ${doc} に事実の項目「${k}」が転記されていません" >&2
         ok=0
       fi
@@ -226,34 +318,6 @@ KEYS
     echo "[FAIL] 事実-未転記: ${facts_file} が実在しません" >&2
     ok=0
   fi
-
-  if ! check_confirmations_registered "$doc" "$run_dir"; then
-    echo "[FAIL] 確認事項-未登録: ${doc} の要確認事項一覧のキーが確認事項の記録にありません" >&2
-    ok=0
-  fi
-
-  [ "$ok" -eq 1 ]
-}
-
-check_feature_unit() {
-  local run_dir="$1" unit_path="$2"
-  local doc="${unit_path}/集約設計書.md"
-  local ok=1
-
-  if [ ! -f "$doc" ]; then
-    echo "[FAIL] 文書-不在: ${doc} が実在しません" >&2
-    return 1
-  fi
-
-  local expected='## 目的
-## 含む単位
-## 業務の流れ'
-  if ! check_headings_order "$doc" "$expected"; then
-    echo "[FAIL] 節-欠落: ${doc} の必須見出しが順に揃っていません" >&2
-    ok=0
-  fi
-
-  check_placeholder_and_position "$doc" || ok=0
 
   if ! check_confirmations_registered "$doc" "$run_dir"; then
     echo "[FAIL] 確認事項-未登録: ${doc} の要確認事項一覧のキーが確認事項の記録にありません" >&2
@@ -282,11 +346,7 @@ check_kind() {
     dirname="$(bash "$UNIT_DIR_NAME_SH" "$id")"
     unit_path="${target}/docs/design/${folder}/${dirname}"
 
-    if [ "$kind" = "feature" ]; then
-      check_feature_unit "$run_dir" "$unit_path" || fail=1
-    else
-      check_regular_unit "$target" "$run_dir" "$unit_path" "$kind" "$dirname" "$heading_script" "$unittest_script" || fail=1
-    fi
+    check_regular_unit "$target" "$run_dir" "$unit_path" "$kind" "$dirname" "$heading_script" "$unittest_script" || fail=1
   done <<UNITS
 $units_tsv
 UNITS
@@ -402,61 +462,74 @@ FACTEOF
 
   write_valid_docs() {
     local unit_path="$1"
-    cat > "$unit_path/基本設計書.md" <<'DOCEOF'
-# OrderList
+    cat > "$unit_path/画面基本設計書.md" <<'DOCEOF'
+# OrderList 画面基本設計書
 
 - 種別: 画面
 - 識別子: src/pages/OrderList.tsx
 - 対応する機能: 受注一覧
 
-## 外部仕様
+## §1 画面の目的
+**この節の位置づけ: 現行実装**
+
+受注の一覧を確認する。
+
+## §2 画面構成
+**この節の位置づけ: 現行実装**
+
+一覧表とページ送りで構成する。
+
+## §3 機能仕様（業務機能の一覧）
+**この節の位置づけ: 現行実装**
+
+一覧の検索・表示を行う。
+
+## §4 業務ルール
+**この節の位置づけ: 現行実装**
+
+取消は行わない。
+
+## §5 入出力の業務的意味
 **この節の位置づけ: 現行実装**
 
 ### 入力項目
 受注番号を入力する。
 
-## 業務仕様の確定
+### 表示項目
+一覧を表示する。
+
+### 操作
+検索する。
+
+### 遷移
+詳細画面へ遷移する。
+
+### 呼ぶ接続窓口
+一覧取得の接続窓口を呼ぶ。
+
+## §6 画面遷移の業務文脈
 **この節の位置づけ: 現行実装**
 
-取消は行わない。
+一覧から詳細へ遷移する。
 
-## 方式設計
+## §7 関連資料
 **この節の位置づけ: 現行実装**
 
-一覧は画面内で完結する。
-
-## データ仕様の確定
-**この節の位置づけ: 現行実装**
-
-排他は行わない。
-
-## エラーと例外の仕様確定
-**この節の位置づけ: 現行実装**
-
-通信失敗は再試行しない。
-
-## 単体テスト設計書
-**この節の位置づけ: 現行実装**
-
-同じフォルダの単体テスト設計書を参照する。要点: 入力の受理を確かめる。
+- なし
 
 ## 要確認事項一覧
 
 | キー | 事項 | 既定 | 状態 |
 |---|---|---|---|
 | 受注番号-桁数 | 受注番号の桁数 | 8桁とする | 未回答 |
-
-## 関連資料
-
-- なし
 DOCEOF
 
-    cat > "$unit_path/単体テスト設計書.md" <<'TESTDOCEOF'
+    cat > "$unit_path/画面単体テスト設計書.md" <<'TESTDOCEOF'
 ## 本書が検証するもの
 
 | 段 | 検証する状態 | 対応する設計書 | 文書 |
 |---|---|---|---|
-| 単体 | 入力の受理 | 基本設計書 | 本書 |
+| 単体 | 入力の受理 | 画面基本設計書 | 本書 |
 
 ## テスト対象
 OrderList
@@ -545,7 +618,7 @@ CONFEOF
     write_facts "$run3"
     write_confirmations "$run3"
     write_valid_docs "$d3/docs/design/screens/src_pages_OrderList.tsx"
-    sed -i.bak '/^### 入力項目$/,/^$/d' "$d3/docs/design/screens/src_pages_OrderList.tsx/基本設計書.md"
+    sed -i.bak '/^### 入力項目$/,/^$/d' "$d3/docs/design/screens/src_pages_OrderList.tsx/画面基本設計書.md"
     bash "$SCRIPT_DIR/check-basic-design.sh" "$d3" --run "$run3" --kind screen > "$base/case3.out" 2>"$base/case3.err"
     local rc3=$?
     check "不合格-事実未転記: 終了コード1" "$([ "$rc3" -eq 1 ] && echo 0 || echo 1)"
@@ -569,7 +642,7 @@ CONFEOF
     write_facts "$run5"
     write_confirmations "$run5"
     write_valid_docs "$d5/docs/design/screens/src_pages_OrderList.tsx"
-    sed -i.bak '/^## 方式設計$/,/^$/d' "$d5/docs/design/screens/src_pages_OrderList.tsx/基本設計書.md"
+    sed -i.bak '/^## §2 画面構成$/,/^$/d' "$d5/docs/design/screens/src_pages_OrderList.tsx/画面基本設計書.md"
     bash "$SCRIPT_DIR/check-basic-design.sh" "$d5" --run "$run5" --kind screen > "$base/case5.out" 2>"$base/case5.err"
     local rc5=$?
     check "不合格-節の欠落: 終了コード1" "$([ "$rc5" -eq 1 ] && echo 0 || echo 1)"
@@ -595,41 +668,143 @@ CONFEOF
     check "一覧不在: 終了コード2" "$([ "$rc7" -eq 2 ] && echo 0 || echo 1)"
     check "一覧不在: 理由に一覧-不在" "$(grep -qF '一覧-不在' "$base/case7.err" && echo 0 || echo 1)"
 
-    # --- 機能の単位（集約設計書のみ） ---
+    # --- 機能の単位（機能設計書・機能単体テスト設計書） ---
     local d8="$base/case8" run8="$base/run8"
     make_fixture "$d8"
-    mkdir -p "$run8" "$d8/docs/design/features/受注"
+    mkdir -p "$run8/facts/feature" "$d8/docs/design/features/受注"
     cat > "$d8/docs/design/lists/feature.json" <<'FEATFIXEOF'
 [
   {"種別":"feature","識別子":"受注","名前":"受注","場所":"受注","根拠":"","単位の定義":"","属するファイル":[],"分類軸":[]}
 ]
 FEATFIXEOF
-    cat > "$d8/docs/design/features/受注/集約設計書.md" <<'FEATDOCEOF'
-# 受注
+    cat > "$run8/facts/feature/受注.json" <<'FEATFACTEOF'
+{"種別":"feature","識別子":"受注","名前":"受注","場所":"受注",
+ "属するファイル":[],
+ "事実":{"含む単位":{"値":["screen: src/pages/OrderList.tsx"],"出所":"機械","根拠":["受注"]}},
+ "未":[],"取り出した実行":"self-test"}
+FEATFACTEOF
+    cat > "$d8/docs/design/features/受注/機能設計書.md" <<'FEATDOCEOF'
+# 受注 機能設計書
 
-## 目的
+## §1 機能概要
+**この節の位置づけ: 現行実装**
+
 受注業務をまとめる。
 
-## 含む単位
+## §2 機能の範囲
+**この節の位置づけ: 現行実装**
+
+### 含む単位
 
 | 種別 | 識別子 | 役割 |
 |---|---|---|
 | screen | src/pages/OrderList.tsx | 一覧表示 |
 
-## 業務の流れ
+## §3 業務フロー
+**この節の位置づけ: 現行実装**
+
 受注一覧から詳細へ遷移する。
+
+## §4 業務ルール
+**この節の位置づけ: 現行実装**
+
+取消は行わない。
+
+## §5 データ
+**この節の位置づけ: 現行実装**
+
+受注を扱う。
+
+## §6 構成要素間の状態受け渡し
+**この節の位置づけ: 現行実装**
+
+一覧から詳細へ識別子を渡す。
+
+## §7 呼び出し仕様
+**この節の位置づけ: 現行実装**
+
+一覧取得の接続窓口を呼ぶ。
+
+## §8 エラーと業務メッセージ
+**この節の位置づけ: 現行実装**
+
+通信失敗は再試行しない。
+
+## §9 非機能
+**この節の位置づけ: 現行実装**
+
+性能要件は無し。
+
+## §10 共通仕様への準拠
+**この節の位置づけ: 現行実装**
+
+共通部品を利用する。
+
+## §11 関連資料
+**この節の位置づけ: 現行実装**
+
+- なし
 
 ## 要確認事項一覧
 
 | キー | 事項 | 既定 | 状態 |
 |---|---|---|---|
-
-## 関連資料
-
-- なし
 FEATDOCEOF
+
+    cat > "$d8/docs/design/features/受注/機能単体テスト設計書.md" <<'FEATTESTDOCEOF'
+## 本書が検証するもの
+
+| 段 | 検証する状態 | 対応する設計書 | 文書 |
+|---|---|---|---|
+| 単体 | 一覧の表示 | 機能設計書 | 本書 |
+
+## テスト対象
+受注
+
+## テストの粒度と自動化の方針
+機能単位で自動化する
+
+## 本書が扱わない範囲
+他の機能
+
+## §1 テスト観点
+
+| キー | 観点 |
+|---|---|
+| `一覧表示` | `一覧を表示できる` |
+
+## §2 テストケース一覧
+
+| キー | 番号 | 対応する観点のキー | 入力 | 期待結果 |
+|---|---|---|---|---|
+| `正常系` | 1 | `一覧表示` | `受注一覧を開く` | `一覧が表示される` |
+
+## §3 入力条件
+受注一覧を開く
+
+## §4 期待結果
+一覧が表示される
+
+## §5 異常系
+
+| 観点のキー | 条件 | 期待結果 |
+|---|---|---|
+| `一覧表示` | `通信失敗` | `エラーを表示する` |
+
+## §6 境界値
+
+| 観点のキー | 境界 | 期待結果 |
+|---|---|---|
+| `一覧表示` | `0件` | `空の一覧を表示する` |
+
+## §7 網羅基準
+全観点を1件以上のケースで覆う
+
+## §8 前提条件と終了条件
+前提条件は無し。終了条件はテスト結果の記録。
+FEATTESTDOCEOF
     bash "$SCRIPT_DIR/check-basic-design.sh" "$d8" --run "$run8" --kind feature > "$base/case8.out" 2>"$base/case8.err"
-    check "機能-集約設計書のみで合格: 終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
+    check "機能-機能設計書で合格: 終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
   }
 
   if deps_available; then
@@ -642,7 +817,7 @@ FEATDOCEOF
     skip_case "不合格-節の欠落"
     skip_case "規約不在"
     skip_case "一覧不在"
-    skip_case "機能-集約設計書のみで合格"
+    skip_case "機能-機能設計書で合格"
     if deps_available; then
       echo "共有部品を再確認し本体ケースを実行します"
       run_full_cases
