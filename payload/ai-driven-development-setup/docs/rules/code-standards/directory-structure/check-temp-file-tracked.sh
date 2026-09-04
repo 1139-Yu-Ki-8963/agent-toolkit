@@ -446,9 +446,9 @@ judge_design_document_placement() {
       kind="要件定義書"
       kind_group="fixed"
       ;;
-    調査と検出条件の定義書.md|業務仕様書.md|方式設計書.md|データ設計書.md|エラー設計書.md|共通外部仕様書.md|基盤設計書.md|共通処理の詳細設計書.md|結合テスト仕様書.md|技術スタック.md|環境構築手順書.md)
+    調査と検出条件の定義書.md|業務仕様書.md|方式設計書.md|データ設計書.md|エラー設計書.md|共通外部仕様書.md|基盤設計書.md|共通処理の詳細設計書.md|種別横断結合テスト設計書.md|技術スタック.md|環境構築手順書.md)
       expected_dir="docs/design/common"
-      kind="調査と検出条件の定義書・共通設計文書・共通処理の詳細設計書・結合テスト仕様書・技術スタック・環境構築手順書のいずれか"
+      kind="調査と検出条件の定義書・共通設計文書・共通処理の詳細設計書・種別横断結合テスト設計書・技術スタック・環境構築手順書のいずれか"
       kind_group="fixed"
       ;;
     *一覧.md|*一覧.json|テスト観点表.md|テスト観点表.json)
@@ -1151,17 +1151,17 @@ export const z = 1;')"; then code=0; else code=$?; fi
     rc=1
   fi
 
-  # 系31: 設計文書の置き場を固定する — 結合テスト仕様書が common なら許可
+  # 系31: 設計文書の置き場を固定する — 種別横断結合テスト設計書が common なら許可
   if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
     echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
     exit 2
   fi
-  if msg="$(judge_design_document_placement "$tmp" "docs/design/common/結合テスト仕様書.md")"; then code=0; else code=$?; fi
+  if msg="$(judge_design_document_placement "$tmp" "docs/design/common/種別横断結合テスト設計書.md")"; then code=0; else code=$?; fi
   rm -rf "$tmp"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '許可\[設計文書の置き場を固定する\]'; then
-    echo "  [PASS] 系31: 結合テスト仕様書は docs/design/common/ で許可される"
+    echo "  [PASS] 系31: 種別横断結合テスト設計書は docs/design/common/ で許可される"
   else
-    echo "  [FAIL] 系31: 結合テスト仕様書の正しい置き場が許可されない（exit=${code}）" >&2
+    echo "  [FAIL] 系31: 種別横断結合テスト設計書の正しい置き場が許可されない（exit=${code}）" >&2
     rc=1
   fi
 

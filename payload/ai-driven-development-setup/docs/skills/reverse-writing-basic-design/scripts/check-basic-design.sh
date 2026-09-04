@@ -36,6 +36,11 @@ set -u
 #   読み取り結果-未転記          読み取り結果ファイルの値が空でない項目が転記されていない
 #   確認事項-未登録      要確認事項一覧のキーが確認事項の記録に無い
 #
+# テスト設計書の出力:
+#   実行フォルダのrun.jsonの「テスト設計書の出力」（read-run.shで読む。キー不在は
+#   「出力しない」とみなす）が「出力する」のときだけ単体テスト設計書の実在・様式の
+#   検査（文書-不在・単体テスト規約-不合格）を行う。「出力しない」のときは対象外とする。
+#
 # 終了コード:
 #   0 = 種別内の全単位が合格
 #   1 = 1単位以上が不合格
@@ -75,6 +80,20 @@ UNIT_DIR_NAME_SH="${SHARED_DIR}/unit-dir-name.sh"
 LIST_UNITS_OF_SH="${SHARED_DIR}/list-units-of.sh"
 HEADING_SCRIPT="${SHARED_DIR}/check-doc-heading-addendum.sh"
 UNITTEST_SCRIPT="${SHARED_DIR}/check-unit-test-design-doc-sections.sh"
+READ_RUN_SH="${SHARED_DIR}/read-run.sh"
+
+# 実行フォルダのrun.jsonから「テスト設計書の出力」を読む。read-run.shが
+# 無い・失敗する・キーが無い場合は「出力しない」とみなす（fail-safe）。
+tests_output_of() {
+  local run_dir="$1" value
+  [ -f "$READ_RUN_SH" ] || { echo "出力しない"; return; }
+  value="$(bash "$READ_RUN_SH" "$run_dir" "テスト設計書の出力" 2>/dev/null)"
+  if [ "$value" = "出力する" ]; then
+    echo "出力する"
+  else
+    echo "出力しない"
+  fi
+}
 
 usage_error() {
   echo "使い方: check-basic-design.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別> [--design-root <設計書のルート>]" >&2
@@ -253,7 +272,7 @@ reading_key_covered() {
 }
 
 check_regular_unit() {
-  local target="$1" run_dir="$2" unit_path="$3" kind="$4" dirname="$5" heading_script="$6" unittest_script="$7"
+  local target="$1" run_dir="$2" unit_path="$3" kind="$4" dirname="$5" heading_script="$6" unittest_script="$7" tests_output="$8"
   local doc="${unit_path}/$(basic_doc_name "$kind")"
   local test_doc="${unit_path}/$(test_doc_name "$kind")"
   local ok=1
@@ -262,7 +281,7 @@ check_regular_unit() {
     echo "[FAIL] 文書-不在: ${doc} が実在しません" >&2
     ok=0
   fi
-  if [ ! -f "$test_doc" ]; then
+  if [ "$tests_output" = "出力する" ] && [ ! -f "$test_doc" ]; then
     echo "[FAIL] 文書-不在: ${test_doc} が実在しません" >&2
     ok=0
   fi
@@ -294,9 +313,11 @@ check_regular_unit() {
     fi
   fi
 
-  if ! run_unit_test_doc_check "$unittest_script" "$test_doc"; then
-    echo "[FAIL] 単体テスト規約-不合格: ${test_doc} が単体テスト設計書の決まりの検査に不合格です" >&2
-    ok=0
+  if [ "$tests_output" = "出力する" ]; then
+    if ! run_unit_test_doc_check "$unittest_script" "$test_doc"; then
+      echo "[FAIL] 単体テスト規約-不合格: ${test_doc} が単体テスト設計書の決まりの検査に不合格です" >&2
+      ok=0
+    fi
   fi
 
   local readings_file="${run_dir%/}/code-readings/${kind}/${dirname}.json"
@@ -331,7 +352,7 @@ KEYS
 }
 
 check_kind() {
-  local target="$1" run_dir="$2" kind="$3" heading_script="$4" unittest_script="$5" design_root="$6"
+  local target="$1" run_dir="$2" kind="$3" heading_script="$4" unittest_script="$5" design_root="$6" tests_output="$7"
   local folder units_tsv rc
   folder="$(species_folder "$kind")"
 
@@ -349,7 +370,7 @@ check_kind() {
     dirname="$(bash "$UNIT_DIR_NAME_SH" "$id")"
     unit_path="${design_root}/docs/design/${folder}/${dirname}"
 
-    check_regular_unit "$target" "$run_dir" "$unit_path" "$kind" "$dirname" "$heading_script" "$unittest_script" || fail=1
+    check_regular_unit "$target" "$run_dir" "$unit_path" "$kind" "$dirname" "$heading_script" "$unittest_script" "$tests_output" || fail=1
   done <<UNITS
 $units_tsv
 UNITS
@@ -390,7 +411,10 @@ run_main() {
     exit 2
   fi
 
-  check_kind "$target" "$run_dir" "$kind" "$HEADING_SCRIPT" "$UNITTEST_SCRIPT" "$design_root"
+  local tests_output
+  tests_output="$(tests_output_of "$run_dir")"
+
+  check_kind "$target" "$run_dir" "$kind" "$HEADING_SCRIPT" "$UNITTEST_SCRIPT" "$design_root" "$tests_output"
   local rc=$?
   if [ "$rc" -eq 2 ]; then
     exit 2
@@ -602,6 +626,40 @@ CONFEOF
     write_valid_docs "$d1/docs/design/screens/src_pages_OrderList.tsx"
     bash "$SCRIPT_DIR/check-basic-design.sh" "$d1" --run "$run1" --kind screen > "$base/case1.out" 2>"$base/case1.err"
     check "合格-見本: 終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
+
+    # --- テスト設計書の出力-出力しない: 単体テスト設計書が無くても合格 ---
+    local d1n="$base/case1-tests-off" run1n="$base/run1-tests-off"
+    make_fixture "$d1n"
+    mkdir -p "$run1n"
+    write_facts "$run1n"
+    write_confirmations "$run1n"
+    write_valid_docs "$d1n/docs/design/screens/src_pages_OrderList.tsx"
+    rm -f "$d1n/docs/design/screens/src_pages_OrderList.tsx/画面単体テスト設計書.md"
+    cat > "$run1n/run.json" <<'RUNOFFJSON'
+{
+  "テスト設計書の出力": "出力しない"
+}
+RUNOFFJSON
+    bash "$SCRIPT_DIR/check-basic-design.sh" "$d1n" --run "$run1n" --kind screen > "$base/case1n.out" 2>"$base/case1n.err"
+    check "テスト設計書の出力-出力しない: 単体テスト設計書が無くても合格" "$([ $? -eq 0 ] && echo 0 || echo 1)"
+
+    # --- テスト設計書の出力-出力する: 単体テスト設計書が無ければ文書-不在 ---
+    local d1y="$base/case1-tests-on" run1y="$base/run1-tests-on"
+    make_fixture "$d1y"
+    mkdir -p "$run1y"
+    write_facts "$run1y"
+    write_confirmations "$run1y"
+    write_valid_docs "$d1y/docs/design/screens/src_pages_OrderList.tsx"
+    rm -f "$d1y/docs/design/screens/src_pages_OrderList.tsx/画面単体テスト設計書.md"
+    cat > "$run1y/run.json" <<'RUNONJSON'
+{
+  "テスト設計書の出力": "出力する"
+}
+RUNONJSON
+    bash "$SCRIPT_DIR/check-basic-design.sh" "$d1y" --run "$run1y" --kind screen > "$base/case1y.out" 2>"$base/case1y.err"
+    local rc1y=$?
+    check "テスト設計書の出力-出力する: 終了コード1" "$([ "$rc1y" -eq 1 ] && echo 0 || echo 1)"
+    check "テスト設計書の出力-出力する: 理由に文書-不在" "$(grep -qF '文書-不在' "$base/case1y.err" && echo 0 || echo 1)"
 
     # --- 設計書ルート分離-対象に書かない ---
     local d1c="$base/case1-code-only" design1="$base/case1-design"
@@ -830,6 +888,9 @@ FEATTESTDOCEOF
     run_full_cases
   else
     skip_case "合格-見本"
+    skip_case "テスト設計書の出力-出力しない: 単体テスト設計書が無くても合格"
+    skip_case "テスト設計書の出力-出力する: 終了コード1"
+    skip_case "テスト設計書の出力-出力する: 理由に文書-不在"
     skip_case "不合格-文書不在"
     skip_case "不合格-読み取り結果未転記"
     skip_case "不合格-確認事項未登録"

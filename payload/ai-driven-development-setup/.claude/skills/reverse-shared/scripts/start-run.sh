@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -u
 
-# start-run.sh — 実行フォルダを作り、run.json に7つの設定値と対象のコミットを書く
+# start-run.sh — 実行フォルダを作り、run.json に8つの設定値と対象のコミットを書く
 # （reverse単位・setup単位で共有する部品）
 #
 # 目的:
@@ -14,7 +14,8 @@ set -u
 #
 # 使い方:
 #   start-run.sh <対象リポジトリのルート> --project-name <先方の名前> --output-root <出力の置き場の親> \
-#     [--units <単位をカンマ区切り>] [--scope <出力の範囲>] [--deploy-to <先方リポジトリのルート>]
+#     [--units <単位をカンマ区切り>] [--scope <出力の範囲>] [--deploy-to <対象プロジェクトのリポジトリのルート>] \
+#     [--tests <出力する|出力しない>]
 #   start-run.sh --self-test
 #
 # --units の既定: setup,reverse
@@ -27,10 +28,15 @@ set -u
 #   使い方となり、run.jsonの「設計書の置き場」は<実行フォルダ>/designになる
 #   （このとき配下に docs/design/・ai-work/records/ を作る）。
 #
+# --tests の既定: 出力しない（単体テスト設計書・種別内結合テスト設計書・
+#   種別横断結合テスト設計書のいずれも作らない）。「出力する」を指定すると
+#   基本設計を書く機能が単体テスト設計書を対で書く。値は「出力する」
+#   「出力しない」のいずれかで、それ以外は使い方の誤り（終了コード1）。
+#
 # run.json のキー:
-#   対象リポジトリ・先方の名前・出力の置き場・実行の識別子・実行する単位・出力の範囲
-#   （この6つが設定値）・対象のコミット（対象リポジトリのHEADのフルハッシュ。
-#   設定値ではなく実行開始時に確定する値）・設計書の置き場（--deploy-toの値、
+#   対象リポジトリ・対象プロジェクトの名前・出力の置き場・実行の識別子・実行する単位・
+#   出力の範囲・テスト設計書の出力（この7つが設定値）・対象のコミット（対象リポジトリの
+#   HEADのフルハッシュ。設定値ではなく実行開始時に確定する値）・設計書の置き場（--deploy-toの値、
 #   または<実行フォルダ>/design。設計書の書き込み先を各機能が読む値）
 #
 # 出力:
@@ -49,7 +55,7 @@ set -u
 # macOS bash 3.2 互換（連想配列・mapfileは不使用）。
 
 usage() {
-  echo "usage: $(basename "$0") <対象リポジトリのルート> --project-name <先方の名前> --output-root <出力の置き場の親> [--units <単位をカンマ区切り>] [--scope <出力の範囲>] [--deploy-to <先方リポジトリのルート>] | --self-test" >&2
+  echo "usage: $(basename "$0") <対象リポジトリのルート> --project-name <対象プロジェクトの名前> --output-root <出力の置き場の親> [--units <単位をカンマ区切り>] [--scope <出力の範囲>] [--deploy-to <対象プロジェクトのリポジトリのルート>] [--tests <出力する|出力しない>] | --self-test" >&2
 }
 
 # 簡易なJSON文字列エスケープ（バックスラッシュとダブルクォートのみ）
@@ -58,9 +64,13 @@ json_escape() {
 }
 
 run_start() {
-  local target="$1" project_name="$2" output_root="$3" units="$4" scope="$5" deploy_to="$6"
+  local target="$1" project_name="$2" output_root="$3" units="$4" scope="$5" deploy_to="$6" tests="$7"
   if [ ! -d "$target" ]; then
     echo "ERROR: 対象リポジトリのルートが存在しない: $target" >&2
+    return 1
+  fi
+  if [ "$tests" != "出力する" ] && [ "$tests" != "出力しない" ]; then
+    echo "ERROR: --tests は 出力する か 出力しない のいずれかを指定する: $tests" >&2
     return 1
   fi
   local commit
@@ -95,6 +105,7 @@ run_start() {
   "実行の識別子": "$(json_escape "$identifier")",
   "実行する単位": "$(json_escape "$units")",
   "出力の範囲": "$(json_escape "$scope")",
+  "テスト設計書の出力": "$(json_escape "$tests")",
   "対象のコミット": "$(json_escape "$commit")",
   "設計書の置き場": "$(json_escape "$design_root")"
 }
@@ -141,8 +152,9 @@ self_test() {
     && grep -q "対象のコミット" "${expected_dir}/run.json" \
     && grep -q "$commit" "${expected_dir}/run.json" \
     && grep -q '"実行する単位": "setup,reverse"' "${expected_dir}/run.json" \
-    && grep -q '"出力の範囲": "全部"' "${expected_dir}/run.json"; then
-    pass=$((pass+1)); echo "  [PASS] ケース1: 実行フォルダを作りrun.jsonに既定の実行する単位・出力の範囲を書く"
+    && grep -q '"出力の範囲": "全部"' "${expected_dir}/run.json" \
+    && grep -q '"テスト設計書の出力": "出力しない"' "${expected_dir}/run.json"; then
+    pass=$((pass+1)); echo "  [PASS] ケース1: 実行フォルダを作りrun.jsonに既定の実行する単位・出力の範囲・テスト設計書の出力を書く"
   else
     fail=$((fail+1)); echo "  [FAIL] ケース1: 実行フォルダの作成が不正 (exit ${rc1})" >&2
     printf '%s\n' "$out1" | sed 's/^/    /' >&2
@@ -209,6 +221,31 @@ self_test() {
   else
     fail=$((fail+1)); echo "  [FAIL] ケース6: 既定の設計書の置き場が実行フォルダ配下のdesignにならない" >&2
   fi
+
+  # ケース7: --tests 出力する を指定するとrun.jsonへそのまま書く
+  local target4="${root}/target4"
+  mkdir -p "$target4"
+  ( cd "$target4" && git init -q \
+    && git -c "user.name=${test_author_name}" -c "user.email=${test_author_email}" commit -q --allow-empty -m init ) >/dev/null 2>&1
+  local out7 rc7=0
+  out7="$("$0" "$target4" --project-name acme4 --output-root "$out_root" --tests 出力する 2>&1)" || rc7=$?
+  if [ "$rc7" -eq 0 ] \
+    && grep -q '"テスト設計書の出力": "出力する"' "${out7}/run.json"; then
+    pass=$((pass+1)); echo "  [PASS] ケース7: --tests 出力する を指定するとrun.jsonへそのまま書く"
+  else
+    fail=$((fail+1)); echo "  [FAIL] ケース7: --tests 出力する の指定が反映されない (exit ${rc7})" >&2
+    printf '%s\n' "$out7" | sed 's/^/    /' >&2
+  fi
+
+  # ケース8: --tests に不正な値を指定すると終了コード1
+  local out8 rc8=0
+  out8="$("$0" "$target4" --project-name acme5 --output-root "$out_root" --tests 不正 2>&1)" || rc8=$?
+  if [ "$rc8" -eq 1 ]; then
+    pass=$((pass+1)); echo "  [PASS] ケース8: --tests に不正な値を指定すると終了コード1"
+  else
+    fail=$((fail+1)); echo "  [FAIL] ケース8: --tests の不正な値を検知しない (exit ${rc8})" >&2
+    printf '%s\n' "$out8" | sed 's/^/    /' >&2
+  fi
   rm -rf "$root"
 
   if [ "$fail" -eq 0 ]; then
@@ -225,7 +262,7 @@ main() {
     exit $?
   fi
 
-  local target="" project_name="" output_root="" units="setup,reverse" scope="全部" deploy_to=""
+  local target="" project_name="" output_root="" units="setup,reverse" scope="全部" deploy_to="" tests="出力しない"
   local args=()
   while [ $# -gt 0 ]; do
     case "$1" in
@@ -234,6 +271,7 @@ main() {
       --units) units="${2:-}"; shift 2 ;;
       --scope) scope="${2:-}"; shift 2 ;;
       --deploy-to) deploy_to="${2:-}"; shift 2 ;;
+      --tests) tests="${2:-}"; shift 2 ;;
       *) args+=("$1"); shift ;;
     esac
   done
@@ -243,7 +281,7 @@ main() {
   fi
   target="${args[0]}"
 
-  run_start "$target" "$project_name" "$output_root" "$units" "$scope" "$deploy_to"
+  run_start "$target" "$project_name" "$output_root" "$units" "$scope" "$deploy_to" "$tests"
   exit $?
 }
 
