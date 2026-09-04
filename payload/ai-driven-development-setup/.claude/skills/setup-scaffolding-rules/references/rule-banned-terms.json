@@ -32,7 +32,7 @@
     {"term": "ずれ検知", "replacement": "食い違いの検出", "scope": ["skills"]},
     {"term": "指揮役", "replacement": "統括スキル", "scope": ["skills"]},
     {"term": "第1層集約", "replacement": "機械検証の一括実行", "scope": ["skills"]},
-    {"term": "facts", "replacement": "事実の記録", "scope": ["skills"]},
+    {"term": "facts", "replacement": "コードの読み取り結果の記録", "scope": ["skills"]},
     {"term": "R1〜R9", "replacement": "9つの手順", "scope": ["skills"]},
     {"term": "機械ゲート", "replacement": "機械検査", "scope": ["skills"]},
     {"term": "ゲート", "replacement": "検査", "scope": ["skills"]},
