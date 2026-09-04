@@ -145,6 +145,26 @@ utf8_path_for() {
   return 1
 }
 
+# --- 道標の節4の当該種別の「目印」欄が「対象外」かどうかを判定する ---
+kind_is_out_of_scope() {
+  local map="$1" kind="$2" ja
+  ja="$(kind_ja "$kind")"
+  [ -n "$ja" ] || return 1
+
+  local mark
+  mark="$(awk -v ja="$ja" '
+    BEGIN { infile = 0 }
+    $0 ~ ("^### 4\\.[0-9]+ " ja "$") { infile = 1; next }
+    infile && /^### / { exit }
+    infile && /^## / { exit }
+    infile && /^\| 目印 \|/ { print; exit }
+  ' "$map")"
+  case "$mark" in
+    *"| 対象外 |"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 # --- 道標の節4の当該種別の「事実の項目 | どの構文・記述から取るか」の表を
 #     生の行（"| 項目 | 規則 |"）のまま返す ---
 read_extraction_rule_rows() {
@@ -393,6 +413,11 @@ scan_regex_source() {
 
 do_extract() {
   local target="$1" kind="$2" map="$3" lists="$4" out="$5" exec_id="$6" run_dir="$7"
+
+  if kind_is_out_of_scope "$map" "$kind"; then
+    echo "対象外: ${kind} は道標の目印が対象外のため取り出しを飛ばします"
+    return 0
+  fi
 
   local rules
   rules="$(read_extraction_rules "$map" "$kind")"
@@ -854,6 +879,21 @@ FIXEOF
 
   bash "$SCRIPT_DIR/extract-facts.sh" "$d3" --run "$r3" --kind api > /dev/null 2>"$base/case3e.err"
   check "使い方誤り-規則不在(api用の表が無い): 終了コード2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
+
+  local d3f="$base/case3f" r3f="$base/run3f"
+  make_fixture "$d3f"
+  make_run "$r3f"
+  cat >> "$d3f/docs/design/common/道標.md" <<'FIXEOF2'
+
+### 4.2 接続窓口
+
+| 目印 | 対象外 |
+|---|---|
+FIXEOF2
+  bash "$SCRIPT_DIR/extract-facts.sh" "$d3f" --run "$r3f" --kind api > "$base/case3f.out" 2>"$base/case3f.err"
+  rc3f=$?
+  check "対象外-種別は飛ばす: 終了コード0" "$([ "$rc3f" -eq 0 ] && echo 0 || echo 1)"
+  check "対象外-種別は飛ばす: 対象外の表示が出る" "$(grep -q "対象外" "$base/case3f.out" && echo 0 || echo 1)"
 
   # --- 文字コード-EUC-JP ---
   local d4="$base/case4" r4="$base/run4"

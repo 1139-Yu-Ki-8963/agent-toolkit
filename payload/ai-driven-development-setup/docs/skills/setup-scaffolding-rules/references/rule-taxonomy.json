@@ -365,7 +365,7 @@
           "checker": "check-instruction-writing.sh",
           "scope": "scoped",
           "paths": [
-            "docs/tasks/*.md"
+            "ai-work/todo/*.md"
           ],
           "phases": [
             "フロー外"

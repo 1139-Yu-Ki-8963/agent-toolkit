@@ -22,6 +22,9 @@
 #   - 運営文書の置き場を固定する: ファイル名から種類を確定できる運営文書が、
 #     作業指示書は ai-work/todo/、検査・検証・進行の記録と台帳・設計判断は
 #     ai-work/records/ に置かれているかを走査する
+#   - 設計文書の置き場を固定する: ファイル名から種類を確定できる設計文書が、
+#     docs/design/ 配下の定めた置き場（requirements・common・lists・
+#     <種別>/<単位>）にあるかを走査する
 #
 # 判定:
 #   書き込み先パスから上記の各規則の違反を走査し、1件でも見つかれば
@@ -61,6 +64,7 @@
 #   置き場を役割で分ける: 知らせる（宣言は対象プロジェクトのリバース解析が進めば自然に整い、判定できるようになるため）
 #   依存の向きを一方向に保つ: 止める（内側の層から外側の層への取り込みが一度実装され履歴に残ると、依存の逆転が既成事実として固定されるため）
 #   運営文書の置き場を固定する: 止める（誤った置き場へ運営文書が追加されると、課題や判断の探索先が分散するため）
+#   設計文書の置き場を固定する: 止める（誤った置き場に設計文書が入ると、AI が定義を探す先が分散し、派生と検査の対象から漏れるため）
 #
 # 逃げ道:
 #   TEMP_FILE_TRACKED_SKIP_REASON に理由を書けば通る。理由が空の場合は通らない
@@ -409,6 +413,104 @@ judge_operational_document_placement() {
   return 2
 }
 
+# ---- 設計文書の置き場を固定する ----
+judge_design_document_placement() {
+  # $1: cwd, $2: file_path
+  local cwd="$1" file_path="$2" relative base expected_dir kind kind_group actual_dir sub
+
+  case "$file_path" in
+    "$cwd"/*) relative="${file_path#"$cwd"/}" ;;
+    /*)
+      echo "対象外[設計文書の置き場を固定する]: 書き込み先は対象リポジトリの外です（${file_path}）"
+      return 0
+      ;;
+    *) relative="${file_path#./}" ;;
+  esac
+
+  case "$relative" in
+    docs/design/*) ;;
+    *)
+      echo "対象外[設計文書の置き場を固定する]: 書き込み先は docs/design/ の外です（${relative}）"
+      return 0
+      ;;
+  esac
+
+  base="$(basename "$relative")"
+  expected_dir=""
+  kind=""
+  kind_group=""
+
+  case "$base" in
+    要件定義書.md)
+      expected_dir="docs/design/requirements"
+      kind="要件定義書"
+      kind_group="fixed"
+      ;;
+    道標.md|業務仕様書.md|方式設計書.md|データ設計書.md|エラー設計書.md|共通外部仕様書.md|基盤設計書.md|共通処理の詳細設計書.md|結合テスト仕様書.md|技術スタック.md|環境構築手順書.md)
+      expected_dir="docs/design/common"
+      kind="道標・共通設計文書・共通処理の詳細設計書・結合テスト仕様書・技術スタック・環境構築手順書のいずれか"
+      kind_group="fixed"
+      ;;
+    *一覧.md|*一覧.json|テスト観点表.md|テスト観点表.json)
+      expected_dir="docs/design/lists"
+      kind="種別ごとの一覧・成果物一覧・テスト観点表・テストケース一覧のいずれか"
+      kind_group="fixed"
+      ;;
+    操作シナリオ仕様書.md|操作シナリオ仕様書.yml|操作シナリオ仕様書.yaml)
+      kind="操作シナリオ仕様書"
+      kind_group="unit-screens"
+      ;;
+    *基本設計書.md|*単体テスト設計書.md|*詳細設計書.md|テーブル定義書.md|集約設計書.md)
+      kind="基本設計書・単体テスト設計書・詳細設計書・テーブル定義書・集約設計書のいずれか"
+      kind_group="unit-any"
+      ;;
+    *)
+      echo "対象外[設計文書の置き場を固定する]: ファイル名から設計文書の種類を確定できません（${relative}）"
+      return 0
+      ;;
+  esac
+
+  if [ "$kind_group" = "fixed" ]; then
+    if [ "$(dirname "$relative")" = "$expected_dir" ]; then
+      echo "許可[設計文書の置き場を固定する]: ${kind}は定めた置き場（${expected_dir}/）にあります"
+      return 0
+    fi
+    echo "拒否[設計文書の置き場を固定する]: ${kind}は ${expected_dir}/ に置きます（書き込み先: ${relative}）"
+    return 2
+  fi
+
+  # 単位の文書（docs/design/<種別>/<単位>/ の2階層を要求する）
+  actual_dir="$(dirname "$relative")"
+  case "$actual_dir" in
+    docs/design/screens/*|docs/design/apis/*|docs/design/tables/*|docs/design/batches/*|docs/design/reports/*|docs/design/externals/*|docs/design/features/*)
+      sub="${actual_dir#docs/design/*/}"
+      case "$sub" in
+        ""|*/*)
+          echo "拒否[設計文書の置き場を固定する]: ${kind}は docs/design/<種別>/<単位>/ の2階層に置きます（書き込み先: ${relative}）"
+          return 2
+          ;;
+      esac
+      ;;
+    *)
+      echo "拒否[設計文書の置き場を固定する]: ${kind}は docs/design/<種別>/<単位>/ に置きます（種別が確認できません。書き込み先: ${relative}）"
+      return 2
+      ;;
+  esac
+
+  if [ "$kind_group" = "unit-screens" ]; then
+    case "$actual_dir" in
+      docs/design/screens/*) ;;
+      *)
+        echo "拒否[設計文書の置き場を固定する]: ${kind}は docs/design/screens/<単位>/ に置きます（書き込み先: ${relative}）"
+        return 2
+        ;;
+    esac
+  fi
+
+  echo "許可[設計文書の置き場を固定する]: ${kind}は定めた置き場（${actual_dir}/）にあります"
+  return 0
+}
+
 # ---- 依存の向きを一方向に保つ ----
 judge_dependency_direction() {
   # $1: cwd, $2: file_path, $3: content
@@ -504,6 +606,10 @@ judge() {
 
   if [ -n "$cwd" ]; then
     if msg="$(judge_operational_document_placement "$cwd" "$file_path")"; then code=0; else code=$?; fi
+    echo "$msg"
+    [ "$code" -eq 2 ] && return 2
+
+    if msg="$(judge_design_document_placement "$cwd" "$file_path")"; then code=0; else code=$?; fi
     echo "$msg"
     [ "$code" -eq 2 ] && return 2
 
@@ -1028,6 +1134,146 @@ export const z = 1;')"; then code=0; else code=$?; fi
     echo "  [PASS] 系29: 指示書が旧の置き場 docs/tasks/ にあると拒否される"
   else
     echo "  [FAIL] 系29: 旧の置き場の指示書が拒否されない（exit=${code}）" >&2
+    rc=1
+  fi
+
+  # 系30: 設計文書の置き場を固定する — 要件定義書が requirements なら許可
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
+    exit 2
+  fi
+  if msg="$(judge_design_document_placement "$tmp" "docs/design/requirements/要件定義書.md")"; then code=0; else code=$?; fi
+  rm -rf "$tmp"
+  if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '許可\[設計文書の置き場を固定する\]'; then
+    echo "  [PASS] 系30: 要件定義書は docs/design/requirements/ で許可される"
+  else
+    echo "  [FAIL] 系30: 要件定義書の正しい置き場が許可されない（exit=${code}）" >&2
+    rc=1
+  fi
+
+  # 系31: 設計文書の置き場を固定する — 結合テスト仕様書が common なら許可
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
+    exit 2
+  fi
+  if msg="$(judge_design_document_placement "$tmp" "docs/design/common/結合テスト仕様書.md")"; then code=0; else code=$?; fi
+  rm -rf "$tmp"
+  if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '許可\[設計文書の置き場を固定する\]'; then
+    echo "  [PASS] 系31: 結合テスト仕様書は docs/design/common/ で許可される"
+  else
+    echo "  [FAIL] 系31: 結合テスト仕様書の正しい置き場が許可されない（exit=${code}）" >&2
+    rc=1
+  fi
+
+  # 系32: 設計文書の置き場を固定する — テスト観点表が lists なら許可
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
+    exit 2
+  fi
+  if msg="$(judge_design_document_placement "$tmp" "docs/design/lists/テスト観点表.md")"; then code=0; else code=$?; fi
+  rm -rf "$tmp"
+  if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '許可\[設計文書の置き場を固定する\]'; then
+    echo "  [PASS] 系32: テスト観点表は docs/design/lists/ で許可される"
+  else
+    echo "  [FAIL] 系32: テスト観点表の正しい置き場が許可されない（exit=${code}）" >&2
+    rc=1
+  fi
+
+  # 系33: 設計文書の置き場を固定する — テスト観点表が common なら拒否
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
+    exit 2
+  fi
+  if msg="$(judge_design_document_placement "$tmp" "docs/design/common/テスト観点表.md")"; then code=0; else code=$?; fi
+  rm -rf "$tmp"
+  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -q '拒否\[設計文書の置き場を固定する\]'; then
+    echo "  [PASS] 系33: テスト観点表を common へ置くと拒否される"
+  else
+    echo "  [FAIL] 系33: テスト観点表の誤った置き場が拒否されない（exit=${code}）" >&2
+    rc=1
+  fi
+
+  # 系34: 設計文書の置き場を固定する — 基本設計書が docs/design/screens/受注一覧/ なら許可
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
+    exit 2
+  fi
+  if msg="$(judge_design_document_placement "$tmp" "docs/design/screens/受注一覧/基本設計書.md")"; then code=0; else code=$?; fi
+  rm -rf "$tmp"
+  if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '許可\[設計文書の置き場を固定する\]'; then
+    echo "  [PASS] 系34: 基本設計書は docs/design/screens/受注一覧/ で許可される"
+  else
+    echo "  [FAIL] 系34: 基本設計書の正しい置き場が許可されない（exit=${code}）" >&2
+    rc=1
+  fi
+
+  # 系35: 設計文書の置き場を固定する — 基本設計書が docs/design/受注一覧/ （種別が無い）なら拒否
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
+    exit 2
+  fi
+  if msg="$(judge_design_document_placement "$tmp" "docs/design/受注一覧/基本設計書.md")"; then code=0; else code=$?; fi
+  rm -rf "$tmp"
+  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -q '拒否\[設計文書の置き場を固定する\]'; then
+    echo "  [PASS] 系35: 基本設計書は種別の無い置き場だと拒否される"
+  else
+    echo "  [FAIL] 系35: 種別の無い誤った置き場が拒否されない（exit=${code}）" >&2
+    rc=1
+  fi
+
+  # 系36: 設計文書の置き場を固定する — 操作シナリオ仕様書が docs/design/screens/受注一覧/ なら許可
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
+    exit 2
+  fi
+  if msg="$(judge_design_document_placement "$tmp" "docs/design/screens/受注一覧/操作シナリオ仕様書.md")"; then code=0; else code=$?; fi
+  rm -rf "$tmp"
+  if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '許可\[設計文書の置き場を固定する\]'; then
+    echo "  [PASS] 系36: 操作シナリオ仕様書は docs/design/screens/受注一覧/ で許可される"
+  else
+    echo "  [FAIL] 系36: 操作シナリオ仕様書の正しい置き場が許可されない（exit=${code}）" >&2
+    rc=1
+  fi
+
+  # 系37: 設計文書の置き場を固定する — 操作シナリオ仕様書が docs/design/apis/受注/ なら拒否
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
+    exit 2
+  fi
+  if msg="$(judge_design_document_placement "$tmp" "docs/design/apis/受注/操作シナリオ仕様書.md")"; then code=0; else code=$?; fi
+  rm -rf "$tmp"
+  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -q '拒否\[設計文書の置き場を固定する\]'; then
+    echo "  [PASS] 系37: 操作シナリオ仕様書は screens 以外だと拒否される"
+  else
+    echo "  [FAIL] 系37: 操作シナリオ仕様書の誤った種別が拒否されない（exit=${code}）" >&2
+    rc=1
+  fi
+
+  # 系38: 設計文書の置き場を固定する — docs/README.md は docs/design/ の外なので対象外
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
+    exit 2
+  fi
+  if msg="$(judge_design_document_placement "$tmp" "docs/README.md")"; then code=0; else code=$?; fi
+  rm -rf "$tmp"
+  if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '対象外\[設計文書の置き場を固定する\]'; then
+    echo "  [PASS] 系38: docs/README.md は docs/design/ の外なので対象外になる"
+  else
+    echo "  [FAIL] 系38: docs/design/ の外が対象外として区別できない（exit=${code}）" >&2
+    rc=1
+  fi
+
+  # 系39: 設計文書の置き場を固定する — ai-work/todo/作業指示書.md は設計文書の判定では対象外
+  if ! tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-temp-file-tracked-self-test.XXXXXX" 2>/dev/null)" || [ -z "$tmp" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）"
+    exit 2
+  fi
+  if msg="$(judge_design_document_placement "$tmp" "ai-work/todo/作業指示書.md")"; then code=0; else code=$?; fi
+  rm -rf "$tmp"
+  if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -q '対象外\[設計文書の置き場を固定する\]'; then
+    echo "  [PASS] 系39: ai-work/todo/作業指示書.md は設計文書の判定では対象外になる"
+  else
+    echo "  [FAIL] 系39: 運営文書パスが設計文書の判定で対象外として区別できない（exit=${code}）" >&2
     rc=1
   fi
 

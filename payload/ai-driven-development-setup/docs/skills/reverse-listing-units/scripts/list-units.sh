@@ -617,6 +617,14 @@ GLOBS
       reasons_json="$(sort -u "$work/reasons-${species}.txt" | jq -R -s -c 'split("\n") | map(select(length>0))')"
     fi
 
+    local id_capture_fail=0
+    if [ -f "$work/reasons-${species}.warn" ]; then
+      id_capture_fail="$(grep -c "識別子-捕捉不能" "$work/reasons-${species}.warn" || true)"
+    fi
+    if [ "${id_capture_fail:-0}" -gt 0 ] 2>/dev/null; then
+      echo "警告: ${species} は識別子の捕捉に失敗した単位が ${id_capture_fail} 件あります" >&2
+    fi
+
     local hard_fail=0
     case "$reasons_json" in
       *検出条件-形式*|*走査-不在*|*例-不在*) hard_fail=1 ;;
@@ -657,7 +665,8 @@ GLOBS
     local entry wrapped
     entry="$(jq -n --argjson v_actual "$actual" --argjson v_candidate "$candidate_json" --argjson v_ratio "$ratio_json" \
       --arg v_verdict "$verdict" --argjson v_reasons "$reasons_json" \
-      '{"実測": $v_actual, "候補数": $v_candidate, "差の割合": $v_ratio, "判定": $v_verdict, "不合格の理由": $v_reasons}')"
+      --argjson v_id_capture_fail "${id_capture_fail:-0}" \
+      '{"実測": $v_actual, "候補数": $v_candidate, "差の割合": $v_ratio, "判定": $v_verdict, "不合格の理由": $v_reasons, "識別子捕捉不能件数": $v_id_capture_fail}')"
     wrapped="$(jq -n --arg k "$species" --argjson v "$entry" '{($k): $v}')"
     echo "$wrapped" >> "$work/agg.jsonl"
   done
@@ -1017,6 +1026,17 @@ EOF2
   check "文字コード行-空白揺れ: featureが1件（パイプ直後空白無しでも変換される）" "$([ "$feature_n11" -eq 1 ] && echo 0 || echo 1)"
 
 
+
+  # --- 識別子-捕捉不能の警告 ---
+  local d12="$base/case12"
+  make_fixture "$d12"
+  sed -i.bak 's/"識別子": { "元": "一致の捕捉", "正規表現": "CREATE TABLE (\[a-z_\]+)" },/"識別子": { "元": "一致の捕捉", "正規表現": "CREATE TABLE_X (\[a-z_\]+)" },/' "$d12/docs/design/common/道標.md"
+  bash "$SCRIPT_DIR/list-units.sh" "$d12" --out "$d12/docs/design/lists" > "$base/case12.out" 2>"$base/case12.err"
+  local rc12=$?
+  local table_capture_fail12
+  table_capture_fail12="$(jq -r '.table["識別子捕捉不能件数"]' "$d12/docs/design/lists/一覧の集計.json" 2>/dev/null)"
+  check "識別子-捕捉不能: 標準出力に警告が出る" "$(grep -q "識別子の捕捉に失敗" "$base/case12.err" && echo 0 || echo 1)"
+  check "識別子-捕捉不能: 一覧の集計.jsonに件数が載る" "$([ "${table_capture_fail12:-0}" -gt 0 ] 2>/dev/null && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then

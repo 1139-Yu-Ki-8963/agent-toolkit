@@ -377,7 +377,7 @@ check_map() {
     local block_count
     block_count="$(json_block_count "$subtext")"
 
-    if [ "$mark_value" != "AI の読み取り" ]; then
+    if [ "$mark_value" != "AI の読み取り" ] && [ "$mark_value" != "対象外" ]; then
       if [ "${block_count:-0}" -lt 1 ] 2>/dev/null; then
         fail "見つけ方-欠落" "${heading}: json 検出条件 の囲みがありません"
         ok4=0
@@ -413,6 +413,13 @@ check_map() {
           fi
           if [ -z "$jid" ]; then
             fail "検出条件-形式" "${heading}: 識別子.元 が空です"
+          fi
+          if [ "$jid" = "一致の捕捉" ]; then
+            local jid_regex
+            jid_regex="$(jq -r ".[\"識別子\"][\"正規表現\"] // empty" <<< "$b")"
+            if [ -z "$jid_regex" ]; then
+              fail "検出条件-識別子の正規表現なし" "${heading}: 識別子.元が一致の捕捉なのに識別子.正規表現がありません"
+            fi
           fi
           if [ "${jexamples:-0}" -lt 1 ] 2>/dev/null; then
             fail "検出条件-形式" "${heading}: 例 が空です"
@@ -480,7 +487,7 @@ check_map() {
     fi
 
     # 取り出しの規則（事実の項目）
-    if [ "$mark_value" != "AI の読み取り" ]; then
+    if [ "$mark_value" != "AI の読み取り" ] && [ "$mark_value" != "対象外" ]; then
       local fact_tbl
       fact_tbl="$(awk '
         BEGIN{seen=0}
@@ -1209,6 +1216,38 @@ MAPEOF2
   sed -i.bak 's/| 文字コード | UTF-8 |/| 文字コード | 謎の文字コード |/' "$map_bad_charset"
   assert_exit "不合格-文字コード種別" 1 bash "$0" "$map_bad_charset" --target "$target"
   assert_contains "不合格-文字コード種別: 文字コード-形式が出る" "文字コード-形式"
+
+  # 合格-識別子の正規表現あり
+  local map_id_regex_ok="${tmp}/map-id-regex-ok.md"
+  build_map "$map_id_regex_ok" "1"
+  sed -i.bak 's/"識別子": { "元": "テーブル名" },/"識別子": { "元": "一致の捕捉", "正規表現": "CREATE TABLE ([a-z_]+)" },/' "$map_id_regex_ok"
+  assert_exit "合格-識別子の正規表現あり" 0 bash "$0" "$map_id_regex_ok" --target "$target"
+
+  # 不合格-識別子の正規表現なし
+  local map_id_regex_missing="${tmp}/map-id-regex-missing.md"
+  build_map "$map_id_regex_missing" "1"
+  sed -i.bak 's/"識別子": { "元": "テーブル名" },/"識別子": { "元": "一致の捕捉" },/' "$map_id_regex_missing"
+  assert_exit "不合格-識別子の正規表現なし" 1 bash "$0" "$map_id_regex_missing" --target "$target"
+  assert_contains "不合格-識別子の正規表現なし: 検出条件-識別子の正規表現なしが出る" "検出条件-識別子の正規表現なし"
+
+  # 合格-候補数の様式どおり（整数）
+  local map_candidate_ok="${tmp}/map-candidate-ok.md"
+  build_map "$map_candidate_ok" "0"
+  sed -i.bak 's/| 帳票 | 帳票領域 | 1 | ファイル数 |/| 帳票 | 帳票領域 | 15 | ファイル数（幅12〜20の中央値） |/' "$map_candidate_ok"
+  assert_exit "合格-候補数の様式どおり（整数）" 0 bash "$0" "$map_candidate_ok" --target "$target"
+
+  # 合格-見つけ方が対象外
+  local map_out_of_scope="${tmp}/map-out-of-scope.md"
+  build_map "$map_out_of_scope" "0"
+  sed -i.bak 's/| 目印 | AI の読み取り |/| 目印 | 対象外 |/' "$map_out_of_scope"
+  assert_exit "合格-見つけ方が対象外" 0 bash "$0" "$map_out_of_scope" --target "$target"
+
+  # 不合格-見つけ方が対象外でもAIの読み取りでもない
+  local map_scope_unclear="${tmp}/map-scope-unclear.md"
+  build_map "$map_scope_unclear" "0"
+  sed -i.bak 's/| 目印 | AI の読み取り |/| 目印 | 不明 |/' "$map_scope_unclear"
+  assert_exit "不合格-見つけ方が対象外でもAIの読み取りでもない" 1 bash "$0" "$map_scope_unclear" --target "$target"
+  assert_contains "不合格-見つけ方が対象外でもAIの読み取りでもない: 見つけ方-欠落が出る" "見つけ方-欠落"
 
   # 使い方-ファイル不在
   assert_exit "使い方-ファイル不在" 2 bash "$0" "${tmp}/no-such-file.md"
