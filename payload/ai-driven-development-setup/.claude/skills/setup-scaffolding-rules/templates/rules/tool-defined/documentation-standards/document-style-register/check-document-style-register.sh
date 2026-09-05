@@ -100,9 +100,9 @@ scan_file() {
           .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1")
           .replace(/[\*_~`]/g, "")
           .trim();
-        if (!s || keitaiRe.test(s)) return;
-        if (jodoRe.test(s)) {
-          console.log(`FAIL ${path}:${lineNo} 常体の文末を検出: ${s}。`);
+        if (!s || jodoRe.test(s)) return;
+        if (keitaiRe.test(s)) {
+          console.log(`FAIL ${path}:${lineNo} 敬体の文末を検出: ${s}。`);
           failed = true;
         }
       });
@@ -182,10 +182,10 @@ run_check_with_definition_and_lister() {
 
   local rc=0
   if [ "$total_fail" -gt 0 ]; then
-    echo "FAIL: 常体の文末を持つ文書 ${total_fail} 件（CLEAN ${clean} 件）"
+    echo "FAIL: 敬体の文末を持つ文書 ${total_fail} 件（CLEAN ${clean} 件）"
     rc=1
   else
-    echo "CLEAN: ${clean} 件の文書に常体の文末はない"
+    echo "CLEAN: ${clean} 件の文書に敬体の文末はない"
   fi
   echo "除外 ${excluded} 件"
   return "$rc"
@@ -245,45 +245,45 @@ self_test() {
 
   mkdir -p "$tmpdir/customer" "$tmpdir/.claude/skills/sample" \
     "$tmpdir/docs/rules/sample" "$tmpdir/.claude/agents"
-  printf '%s\n' '# 敬体' '' '本書は対象の仕様を示します。' > "$tmpdir/customer/polite.md"
-  printf '%s\n' '# 常体混入' '' '本書は対象の仕様を示します。この項目は未確定である。' > "$tmpdir/customer/mixed.md"
-  printf '%s\n' '# 句点なし常体' '' 'この項目は未確定である' > "$tmpdir/customer/plain-no-period.md"
-  printf '%s\n' '# 末尾常体' '' '前文は敬体です。末尾は常体である' > "$tmpdir/customer/trailing-no-period.md"
-  printf '%s\n' '# 装飾付き常体' '' 'この機能は**未確定である**。' > "$tmpdir/customer/decorated.md"
-  printf '%s\n' '# 単一アスタリスク' '' 'この機能は*未確定である*。' > "$tmpdir/customer/single-asterisk.md"
-  printf '%s\n' '# 単一アンダースコア' '' 'この機能は_未確定である_。' > "$tmpdir/customer/single-underscore.md"
-  printf '%s\n' '# リンク' '' 'この機能は[未確定である](details.md)。' > "$tmpdir/customer/link.md"
-  printf '%s\n' '# 内部スキル' '' 'このスキルは作業手順を定義するものである。' > "$tmpdir/.claude/skills/sample/SKILL.md"
-  printf '%s\n' '# 設計判断' '' 'この判断は内部作業のためである。' > "$tmpdir/docs/rules/sample/design-notes.md"
-  printf '%s\n' '# レビュー担当' '' 'この担当は規約を確認するものである。' > "$tmpdir/.claude/agents/rule-reviewer.md"
-  printf '%s\n' '# 顧客提示単位資料' '' '本書は顧客へ提示する単位資料である。' > "$tmpdir/customer/SKILL.md"
-  printf '%s\n' '# 顧客提示設計書' '' '本書は顧客へ提示する設計書である。' > "$tmpdir/customer/設計書様式.md"
-  printf '%s\n' '# 一覧外' '' 'この文書は対象の仕様を示すものである。' > "$tmpdir/customer/design-notes-old.md"
-  printf '%s\n' '# コメント' '' '<!-- この記入規則は常体でよい。 -->' '' '本書は対象の仕様を示します。' > "$tmpdir/customer/comment.md"
-  printf '%s\n' '# 表' '' '| 項目 | 説明 |' '|---|---|' '| 例 | 未確定である |' '' '本書は対象の仕様を示します。' > "$tmpdir/customer/table.md"
+  printf '%s\n' '# である調' '' '本書は対象の仕様を示す。' > "$tmpdir/customer/plain.md"
+  printf '%s\n' '# 敬体混入' '' '本書は対象の仕様を示す。この項目は未確定です。' > "$tmpdir/customer/mixed.md"
+  printf '%s\n' '# 句点なし敬体' '' 'この項目は未確定です' > "$tmpdir/customer/keitai-no-period.md"
+  printf '%s\n' '# 末尾敬体' '' '前文はである調だ。末尾は敬体です' > "$tmpdir/customer/trailing-no-period.md"
+  printf '%s\n' '# 装飾付き敬体' '' 'この機能は**未確定です**。' > "$tmpdir/customer/decorated.md"
+  printf '%s\n' '# 単一アスタリスク' '' 'この機能は*未確定です*。' > "$tmpdir/customer/single-asterisk.md"
+  printf '%s\n' '# 単一アンダースコア' '' 'この機能は_未確定です_。' > "$tmpdir/customer/single-underscore.md"
+  printf '%s\n' '# リンク' '' 'この機能は[未確定です](details.md)。' > "$tmpdir/customer/link.md"
+  printf '%s\n' '# 内部スキル' '' 'このスキルは作業手順を定義するものです。' > "$tmpdir/.claude/skills/sample/SKILL.md"
+  printf '%s\n' '# 設計判断' '' 'この判断は内部作業のためです。' > "$tmpdir/docs/rules/sample/design-notes.md"
+  printf '%s\n' '# レビュー担当' '' 'この担当は規約を確認するものです。' > "$tmpdir/.claude/agents/rule-reviewer.md"
+  printf '%s\n' '# 顧客提示単位資料' '' '本書は顧客へ提示する単位資料です。' > "$tmpdir/customer/SKILL.md"
+  printf '%s\n' '# 顧客提示設計書' '' '本書は顧客へ提示する設計書です。' > "$tmpdir/customer/設計書様式.md"
+  printf '%s\n' '# 一覧外' '' 'この文書は対象の仕様を示すものです。' > "$tmpdir/customer/design-notes-old.md"
+  printf '%s\n' '# コメント' '' '<!-- この記入規則は敬体でよいです。 -->' '' '本書は対象の仕様を示す。' > "$tmpdir/customer/comment.md"
+  printf '%s\n' '# 表' '' '| 項目 | 説明 |' '|---|---|' '| 例 | 未確定です |' '' '本書は対象の仕様を示す。' > "$tmpdir/customer/table.md"
   printf '%s\n' '{broken json' > "$tmpdir/invalid-exclusions.json"
 
-  assert_rc '敬体だけの顧客提示文書は合格' 0 run_check "$tmpdir/customer/polite.md"
-  assert_rc '常体を混ぜた顧客提示文書は不合格' 1 run_check "$tmpdir/customer/mixed.md"
-  assert_rc '句点なしの常体文も不合格' 1 run_check "$tmpdir/customer/plain-no-period.md"
-  assert_rc '敬体文の後にある句点なし常体文も不合格' 1 run_check "$tmpdir/customer/trailing-no-period.md"
-  assert_rc '装飾された常体文も不合格' 1 run_check "$tmpdir/customer/decorated.md"
-  assert_rc '単一アスタリスクで装飾された常体文も不合格' 1 \
+  assert_rc 'である調だけの顧客提示文書は合格' 0 run_check "$tmpdir/customer/plain.md"
+  assert_rc '敬体を混ぜた顧客提示文書は不合格' 1 run_check "$tmpdir/customer/mixed.md"
+  assert_rc '句点なしの敬体文も不合格' 1 run_check "$tmpdir/customer/keitai-no-period.md"
+  assert_rc 'である調文の後にある句点なし敬体文も不合格' 1 run_check "$tmpdir/customer/trailing-no-period.md"
+  assert_rc '装飾された敬体文も不合格' 1 run_check "$tmpdir/customer/decorated.md"
+  assert_rc '単一アスタリスクで装飾された敬体文も不合格' 1 \
     run_check "$tmpdir/customer/single-asterisk.md"
-  assert_rc '単一アンダースコアで装飾された常体文も不合格' 1 \
+  assert_rc '単一アンダースコアで装飾された敬体文も不合格' 1 \
     run_check "$tmpdir/customer/single-underscore.md"
-  assert_rc 'リンク表示文字が常体なら不合格' 1 run_check "$tmpdir/customer/link.md"
+  assert_rc 'リンク表示文字が敬体なら不合格' 1 run_check "$tmpdir/customer/link.md"
   assert_rc '内部配置のSKILL.mdは除外' 0 run_check "$tmpdir/.claude/skills/sample/SKILL.md"
   assert_rc '内部配置のdesign-notes.mdは除外' 0 run_check "$tmpdir/docs/rules/sample/design-notes.md"
   assert_rc '内部配置のrule-reviewer.mdは除外' 0 run_check "$tmpdir/.claude/agents/rule-reviewer.md"
   assert_rc '顧客提示配置のSKILL.mdは除外せず不合格' 1 run_check "$tmpdir/customer/SKILL.md"
   assert_rc '顧客提示配置の設計書様式.mdは除外せず不合格' 1 run_check "$tmpdir/customer/設計書様式.md"
   assert_rc '一覧外の文書は不合格' 1 run_check "$tmpdir/customer/design-notes-old.md"
-  assert_rc 'HTMLコメント内の常体は無視' 0 run_check "$tmpdir/customer/comment.md"
-  assert_rc '表の行にある常体は無視' 0 run_check "$tmpdir/customer/table.md"
+  assert_rc 'HTMLコメント内の敬体は無視' 0 run_check "$tmpdir/customer/comment.md"
+  assert_rc '表の行にある敬体は無視' 0 run_check "$tmpdir/customer/table.md"
   assert_rc '存在しない対象は判定不能' 2 run_check "$tmpdir/customer/no-such-file.md"
   assert_rc '実在対象と存在しない対象の混在は判定不能' 2 \
-    run_check "$tmpdir/customer/polite.md" "$tmpdir/customer/no-such-file.md"
+    run_check "$tmpdir/customer/plain.md" "$tmpdir/customer/no-such-file.md"
   assert_rc 'ディレクトリの文書列挙失敗は判定不能' 2 \
     run_check_with_definition_and_lister "$(_exclusion_json)" \
       fail_markdown_file_listing "$tmpdir/customer"
@@ -291,14 +291,14 @@ self_test() {
   assert_contains '文書読み取り失敗はUNKNOWNを出力' '[UNKNOWN]' \
     scan_file "$tmpdir/customer/no-such-file.md"
   assert_rc '存在しない除外定義は判定不能' 2 \
-    run_check_with_definition "$tmpdir/no-such-exclusions.json" "$tmpdir/customer/polite.md"
+    run_check_with_definition "$tmpdir/no-such-exclusions.json" "$tmpdir/customer/plain.md"
   assert_contains '存在しない除外定義はUNKNOWNを出力' '[UNKNOWN]' \
-    run_check_with_definition "$tmpdir/no-such-exclusions.json" "$tmpdir/customer/polite.md"
+    run_check_with_definition "$tmpdir/no-such-exclusions.json" "$tmpdir/customer/plain.md"
   assert_rc '不正な除外定義は判定不能' 2 \
-    run_check_with_definition "$tmpdir/invalid-exclusions.json" "$tmpdir/customer/polite.md"
+    run_check_with_definition "$tmpdir/invalid-exclusions.json" "$tmpdir/customer/plain.md"
   assert_rc '不足した依存コマンドは判定不能' 2 _require_command 'document-style-missing-command'
-  assert_rc '内部除外と顧客提示文書の混在は合格' 0 run_check "$tmpdir/.claude/skills/sample/SKILL.md" "$tmpdir/customer/polite.md"
-  assert_contains '除外件数を出力する' '除外 1 件' run_check "$tmpdir/.claude/skills/sample/SKILL.md" "$tmpdir/customer/polite.md"
+  assert_rc '内部除外と顧客提示文書の混在は合格' 0 run_check "$tmpdir/.claude/skills/sample/SKILL.md" "$tmpdir/customer/plain.md"
+  assert_contains '除外件数を出力する' '除外 1 件' run_check "$tmpdir/.claude/skills/sample/SKILL.md" "$tmpdir/customer/plain.md"
 
   echo "self-test: ${pass} PASS, ${fail} FAIL"
   [ "$fail" -eq 0 ]

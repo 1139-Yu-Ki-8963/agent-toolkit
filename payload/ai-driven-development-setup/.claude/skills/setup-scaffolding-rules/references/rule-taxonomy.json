@@ -326,7 +326,7 @@
         {
           "key": "document-style-register",
           "title": "顧客向け文書の文体の決まり",
-          "summary": "顧客へ提示する文書の地の文を敬体で書く取り決め。",
+          "summary": "顧客へ提示する文書の地の文をである調で書く取り決め。",
           "toolDefined": true,
           "checker": "check-document-style-register.sh",
           "scope": "scoped",

@@ -445,8 +445,8 @@ DOC
   template_count="$(find "$reverse_template_root" -type f -name '*.md' | wc -l | tr -d ' ')"
   guidance_count="$(grep -rl 'INTRODUCTION_GUIDANCE' "$reverse_template_root" --include='*.md' | wc -l | tr -d ' ')"
   assert_eq "追加回帰9-全テンプレートが冒頭記入規則を宣言" "$template_count" "$guidance_count"
-  style_guidance_count="$(grep -rl '生成する本文の自由記述は敬体（です・ます）で書く。' "$reverse_template_root" --include='*.md' | wc -l | tr -d ' ')"
-  assert_eq "追加回帰9-全テンプレートが本文の敬体を指定" "$template_count" "$style_guidance_count"
+  style_guidance_count="$(grep -rl '生成する本文の自由記述はである調で書く。' "$reverse_template_root" --include='*.md' | wc -l | tr -d ' ')"
+  assert_eq "追加回帰9-全テンプレートが本文のである調を指定" "$template_count" "$style_guidance_count"
 
   # 追加回帰10（1-238）: 2節の試験入力から冒頭案内を組み立て、節数と
   # 「節・内容・読み手へのお願い」の案内行数が一致することを確認する。
