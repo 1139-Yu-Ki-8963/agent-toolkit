@@ -9,8 +9,8 @@ set -u
 #   入口から呼ぶ。引数はそのまま渡す。
 #
 # 使い方:
-#   start-run.sh <対象リポジトリのルート> --project-name <先方の名前> --output-root <出力の置き場の親> \
-#     [--units <単位をカンマ区切り>] [--scope <出力の範囲>] [--deploy-to <先方リポジトリのルート>]
+#   start-run.sh <対象リポジトリのルート> --project-name <対象プロジェクト名> --output-root <出力の置き場の親> \
+#     [--units <単位をカンマ区切り>] [--scope <出力の範囲>] [--deploy-to <対象プロジェクトのフォルダのルート>]
 #   start-run.sh --self-test
 #
 # 終了コード:

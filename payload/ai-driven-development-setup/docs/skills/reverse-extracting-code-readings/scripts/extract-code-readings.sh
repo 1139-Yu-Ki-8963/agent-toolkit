@@ -783,7 +783,7 @@ FIXEOF
     rm -rf "$r"
     mkdir -p "$r"
     cat > "$r/run.json" <<'FIXEOF'
-{"対象リポジトリ":"/path/to/target","先方の名前":"サンプル先方","出力の置き場":"/path/to/ai-output","実行の識別子":"2026-09-03-abc1234","対象のコミット":"abc1234def"}
+{"対象リポジトリ":"/path/to/target","対象プロジェクト名":"サンプル対象プロジェクト","出力の置き場":"/path/to/ai-output","実行の識別子":"2026-09-03-abc1234","対象のコミット":"abc1234def"}
 FIXEOF
   }
 

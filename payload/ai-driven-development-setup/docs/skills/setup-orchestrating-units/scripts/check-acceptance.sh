@@ -585,7 +585,7 @@ missing_other_unit_name() {
 
 missing_html_output_outside_portal() {
   # portal 以外の単位の機能が宣言の outputs に .html を持つものを列挙する。
-  # 決まり: 先方の docs/ には AI が読む定義（md・json）だけを置き、人が見る
+  # 決まり: 対象プロジェクトの docs/ には AI が読む定義（md・json）だけを置き、人が見る
   # HTML は portal 単位だけが出す。
   local index_position one_output collected_lines=""
   for ((index_position = 0; index_position < ${#SKILL_NAMES[@]}; index_position++)); do

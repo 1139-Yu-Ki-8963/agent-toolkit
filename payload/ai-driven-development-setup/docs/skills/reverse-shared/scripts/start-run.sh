@@ -13,7 +13,7 @@ set -u
 #   confirmations/・logs/・code-readings/・reports/ を作る。
 #
 # 使い方:
-#   start-run.sh <対象リポジトリのルート> --project-name <先方の名前> --output-root <出力の置き場の親> \
+#   start-run.sh <対象リポジトリのルート> --project-name <対象プロジェクト名> --output-root <出力の置き場の親> \
 #     [--units <単位をカンマ区切り>] [--scope <出力の範囲>] [--deploy-to <対象プロジェクトのリポジトリのルート>] \
 #     [--tests <出力する|出力しない>]
 #   start-run.sh --self-test
@@ -23,8 +23,8 @@ set -u
 #   本スクリプトでは検査しない。使い道はplan-setup.shの--untilへの対応づけであり、
 #   その対応はdocs/skills/setup-orchestrating-units/SKILL.mdの手順1が持つ）
 #
-# --deploy-to: 設計書を先方リポジトリへ展開する使い方のときだけ指定する
-#   （先方リポジトリのルート）。指定が無ければ設計書は作業場所だけに置く
+# --deploy-to: 設計書を対象プロジェクトのフォルダへ展開する使い方のときだけ指定する
+#   （対象プロジェクトのフォルダのルート）。指定が無ければ設計書は作業場所だけに置く
 #   使い方となり、run.jsonの「設計書の置き場」は<実行フォルダ>/designになる
 #   （このとき配下に docs/design/・ai-work/records/ を作る）。
 #
@@ -100,7 +100,7 @@ run_start() {
   cat > "${run_dir}/run.json" <<JSON
 {
   "対象リポジトリ": "$(json_escape "$target")",
-  "先方の名前": "$(json_escape "$project_name")",
+  "対象プロジェクト名": "$(json_escape "$project_name")",
   "出力の置き場": "$(json_escape "$output_root")",
   "実行の識別子": "$(json_escape "$identifier")",
   "実行する単位": "$(json_escape "$units")",
@@ -146,7 +146,7 @@ self_test() {
     && [ -d "${expected_dir}/confirmations" ] && [ -d "${expected_dir}/logs" ] \
     && [ -d "${expected_dir}/code-readings" ] && [ -d "${expected_dir}/reports" ] \
     && grep -q "対象リポジトリ" "${expected_dir}/run.json" \
-    && grep -q "先方の名前" "${expected_dir}/run.json" \
+    && grep -q "対象プロジェクト名" "${expected_dir}/run.json" \
     && grep -q "出力の置き場" "${expected_dir}/run.json" \
     && grep -q "実行の識別子" "${expected_dir}/run.json" \
     && grep -q "対象のコミット" "${expected_dir}/run.json" \
@@ -198,7 +198,7 @@ self_test() {
     printf '%s\n' "$out4" | sed 's/^/    /' >&2
   fi
 
-  # ケース5: --deploy-to を指定すると設計書の置き場が先方リポジトリのルートになる
+  # ケース5: --deploy-to を指定すると設計書の置き場が対象プロジェクトのフォルダのルートになる
   local target3="${root}/target3"
   mkdir -p "$target3"
   ( cd "$target3" && git init -q \
@@ -207,7 +207,7 @@ self_test() {
   out5="$("$0" "$target3" --project-name acme3 --output-root "$out_root" --deploy-to "$target3" 2>&1)" || rc5=$?
   if [ "$rc5" -eq 0 ] \
     && grep -qF "\"設計書の置き場\": \"${target3}\"" "${out5}/run.json"; then
-    pass=$((pass+1)); echo "  [PASS] ケース5: --deploy-toを指定すると設計書の置き場が先方リポジトリのルートになる"
+    pass=$((pass+1)); echo "  [PASS] ケース5: --deploy-toを指定すると設計書の置き場が対象プロジェクトのフォルダのルートになる"
   else
     fail=$((fail+1)); echo "  [FAIL] ケース5: --deploy-toが設計書の置き場に反映されない (exit ${rc5})" >&2
     printf '%s\n' "$out5" | sed 's/^/    /' >&2
