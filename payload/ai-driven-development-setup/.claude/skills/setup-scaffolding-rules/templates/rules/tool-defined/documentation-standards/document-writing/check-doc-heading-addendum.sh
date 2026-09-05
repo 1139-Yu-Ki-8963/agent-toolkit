@@ -78,6 +78,12 @@
 # 使い方:
 #   フック本体として: PreToolUse(Write|Edit) の入力 JSON を stdin から受け取る
 #   単体実行: check-doc-heading-addendum.sh --self-test
+#
+# 判定の決定性:
+#   本文は一時ファイルへ1回書き出してから grep に読ませる（変数を
+#   grep -q・head へパイプで渡さない）。pipefail の下でパイプの下流が
+#   早期終了すると上流が SIGPIPE で失敗し、判定が揺れるため（第1回
+#   改善指示書1-19）。詳細は reverse-shared 詳細設計書 §3 を参照。
 set -uo pipefail
 
 HEADING_RE='^#{1,6}[[:space:]]+(追記|補足|その他)'
@@ -85,12 +91,21 @@ ELLIPSIS_RE='(…|\.\.\.|以下略)'
 REQUIREMENTS_SECTIONS="対象範囲 優先度 受入条件"
 BASIC_DESIGN_SECTIONS="外部仕様 業務仕様 方式設計 データ仕様 エラーと例外"
 
-# 必須見出しの欠落を確認する。$1: 本文, $2: 見出し語のスペース区切り一覧
+# 部分文字列の有無を確認する（パイプで消費者へ渡さず判定を決定的にする）。
+# $1: 対象の文字列, $2: 探す部分文字列
+contains() {
+  case "$1" in
+    *"$2"*) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+# 必須見出しの欠落を確認する。$1: 本文を書き出した一時ファイルのパス, $2: 見出し語のスペース区切り一覧
 # 出力: 欠落している見出し語をスペース区切りで返す（すべて揃っていれば空）
 missing_sections() {
-  local text="$1" sections="$2" missing="" section
+  local tmpf="$1" sections="$2" missing="" section
   for section in $sections; do
-    if ! printf '%s\n' "$text" | grep -qE "^#{1,6}[^\n]*${section}"; then
+    if ! grep -qE "^#{1,6}[^\n]*${section}" "$tmpf"; then
       missing="${missing}${missing:+、}${section}"
     fi
   done
@@ -119,46 +134,66 @@ judge() {
     return 0
   fi
 
+  # 本文を一時ファイルへ1回書き出し、以降の走査はすべてこのファイルを読ませる。
+  # 変数を grep -q・head へパイプで渡すと、pipefail の下で下流の早期終了が
+  # 上流の SIGPIPE 失敗になり判定が揺れるため（第1回改善指示書1-19）。
+  local tmpf
+  tmpf="$(mktemp "${TMPDIR:-/tmp}/doc-heading-addendum.XXXXXX" 2>/dev/null)"
+  if [ -z "$tmpf" ]; then
+    echo "[FAIL] 一時領域-作成不能" >&2
+    return 2
+  fi
+  printf '%s\n' "$text" > "$tmpf"
+
   local hit
-  hit=$(printf '%s\n' "$text" | grep -nE "$HEADING_RE" | head -1)
+  hit=$(grep -m1 -nE "$HEADING_RE" "$tmpf")
   if [ -n "$hit" ]; then
     echo "拒否[追記章と補足章を作らない]: 追記・補足・その他で始まる見出しがある（${hit}）"
+    rm -f "$tmpf"
     return 2
   fi
 
   local ellipsis_hit
-  ellipsis_hit=$(printf '%s\n' "$text" | grep -nE "$ELLIPSIS_RE" | head -1)
+  ellipsis_hit=$(grep -m1 -nE "$ELLIPSIS_RE" "$tmpf")
   if [ -n "$ellipsis_hit" ]; then
     echo "拒否[任意記載と省略記載をしない]: 「…」「以下略」で列挙を打ち切る記述がある（${ellipsis_hit}）"
+    rm -f "$tmpf"
     return 2
   fi
 
   local base missing
   base="$(basename "$file_path")"
 
-  if printf '%s' "$base" | grep -qF '要件定義書'; then
-    missing="$(missing_sections "$text" "$REQUIREMENTS_SECTIONS")"
-    if [ -n "$missing" ]; then
-      echo "拒否[要件定義書は合意した範囲を確定させる]: 必須見出しが欠けています（${missing}）"
-      return 2
-    fi
-  fi
+  case "$base" in
+    *要件定義書*)
+      missing="$(missing_sections "$tmpf" "$REQUIREMENTS_SECTIONS")"
+      if [ -n "$missing" ]; then
+        echo "拒否[要件定義書は合意した範囲を確定させる]: 必須見出しが欠けています（${missing}）"
+        rm -f "$tmpf"
+        return 2
+      fi
+      ;;
+  esac
 
-  if printf '%s' "$base" | grep -qF '基本設計書'; then
-    missing="$(missing_sections "$text" "$BASIC_DESIGN_SECTIONS")"
-    local reasons=""
-    if [ -n "$missing" ]; then
-      reasons="必須見出しが欠けています（${missing}）"
-    fi
-    if [ "${DOC_HEADING_ADDENDUM_REQUIRE_TEST_SIBLING:-1}" != "0" ] && ! sibling_exists "$file_path"; then
-      reasons="${reasons}${reasons:+／}単体テスト設計書が同じフォルダに見当たりません"
-    fi
-    if [ -n "$reasons" ]; then
-      echo "拒否[基本設計書は詳細設計を書ける状態を作る]: ${reasons}"
-      return 2
-    fi
-  fi
+  case "$base" in
+    *基本設計書*)
+      missing="$(missing_sections "$tmpf" "$BASIC_DESIGN_SECTIONS")"
+      local reasons=""
+      if [ -n "$missing" ]; then
+        reasons="必須見出しが欠けています（${missing}）"
+      fi
+      if [ "${DOC_HEADING_ADDENDUM_REQUIRE_TEST_SIBLING:-1}" != "0" ] && ! sibling_exists "$file_path"; then
+        reasons="${reasons}${reasons:+／}単体テスト設計書が同じフォルダに見当たりません"
+      fi
+      if [ -n "$reasons" ]; then
+        echo "拒否[基本設計書は詳細設計を書ける状態を作る]: ${reasons}"
+        rm -f "$tmpf"
+        return 2
+      fi
+      ;;
+  esac
 
+  rm -f "$tmpf"
   echo "許可: 追記・補足章、省略記載、必須見出しの欠落のいずれも見当たらない"
   return 0
 }
@@ -277,7 +312,7 @@ self_test() {
 ## 画面項目
 氏名、住所、電話番号…'
   if msg="$(judge "docs/設計書.md" "$t5")"; then code=0; else code=$?; fi
-  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '任意記載と省略記載をしない'; then
+  if [ "$code" -eq 2 ] && contains "$msg" '任意記載と省略記載をしない'; then
     echo "  [PASS] 系5: 「…」で打ち切る記述は拒否される（${msg}）"
   else
     echo "  [FAIL] 系5: 省略記載があるのに許可、または規則名が含まれない（exit=${code}, ${msg}）" >&2
@@ -290,7 +325,7 @@ self_test() {
 ## 画面項目
 氏名、住所、電話番号、以下略'
   if msg="$(judge "docs/設計書.md" "$t6")"; then code=0; else code=$?; fi
-  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '任意記載と省略記載をしない'; then
+  if [ "$code" -eq 2 ] && contains "$msg" '任意記載と省略記載をしない'; then
     echo "  [PASS] 系6: 「以下略」で打ち切る記述は拒否される（${msg}）"
   else
     echo "  [FAIL] 系6: 省略記載があるのに許可、または規則名が含まれない（exit=${code}, ${msg}）" >&2
@@ -319,7 +354,7 @@ self_test() {
 ## 優先度
 最優先。'
   if msg="$(judge "docs/注文機能要件定義書.md" "$t8")"; then code=0; else code=$?; fi
-  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '要件定義書は合意した範囲を確定させる'; then
+  if [ "$code" -eq 2 ] && contains "$msg" '要件定義書は合意した範囲を確定させる'; then
     echo "  [PASS] 系8: 受入条件の見出しが欠けた要件定義書は拒否される（${msg}）"
   else
     echo "  [FAIL] 系8: 見出しが欠けているのに許可、または規則名が含まれない（exit=${code}, ${msg}）" >&2
@@ -359,7 +394,7 @@ self_test() {
 ## 方式設計
 性能方式・可用性方式を確定する。'
   if msg="$(judge "${basic_tmpdir}/注文機能基本設計書.md" "$t10")"; then code=0; else code=$?; fi
-  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '基本設計書は詳細設計を書ける状態を作る' && printf '%s' "$msg" | grep -qF '必須見出しが欠けています'; then
+  if [ "$code" -eq 2 ] && contains "$msg" '基本設計書は詳細設計を書ける状態を作る' && contains "$msg" '必須見出しが欠けています'; then
     echo "  [PASS] 系10: 様式の見出しが欠けた基本設計書は拒否される（${msg}）"
   else
     echo "  [FAIL] 系10: 見出しが欠けているのに許可、または規則名・理由が含まれない（exit=${code}, ${msg}）" >&2
@@ -384,7 +419,7 @@ self_test() {
 ## エラーと例外
 エラー分類・エラーコード体系を確定する。'
   if msg="$(judge "${basic_tmpdir}/注文機能基本設計書.md" "$t11")"; then code=0; else code=$?; fi
-  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '基本設計書は詳細設計を書ける状態を作る' && printf '%s' "$msg" | grep -qF '単体テスト設計書が同じフォルダに見当たりません' && ! printf '%s' "$msg" | grep -qF '必須見出しが欠けています'; then
+  if [ "$code" -eq 2 ] && contains "$msg" '基本設計書は詳細設計を書ける状態を作る' && contains "$msg" '単体テスト設計書が同じフォルダに見当たりません' && ! contains "$msg" '必須見出しが欠けています'; then
     echo "  [PASS] 系11: 見出しは揃うが単体テスト設計書が無い基本設計書は拒否される（${msg}）"
   else
     echo "  [FAIL] 系11: 単体テスト設計書の不在が理由に反映されない、または見出し不足と誤判定された（exit=${code}, ${msg}）" >&2
@@ -418,7 +453,7 @@ self_test() {
   # 系14: 環境変数に理由を設定すると should_skip_with_reason は skip する
   local skip_out skip_code
   if skip_out="$(DOC_HEADING_ADDENDUM_SKIP_REASON="テスト理由" should_skip_with_reason)"; then skip_code=0; else skip_code=$?; fi
-  if [ "$skip_code" -eq 0 ] && printf '%s' "$skip_out" | grep -qF 'DOC-HEADING-ADDENDUM-SKIP' && printf '%s' "$skip_out" | grep -qF 'テスト理由'; then
+  if [ "$skip_code" -eq 0 ] && contains "$skip_out" 'DOC-HEADING-ADDENDUM-SKIP' && contains "$skip_out" 'テスト理由'; then
     echo "  [PASS] 系14: 理由を設定すると should_skip_with_reason は skip する（${skip_out}）"
   else
     echo "  [FAIL] 系14: 理由があるのに skip しない、またはタグ・理由が含まれない（exit=${skip_code}, ${skip_out}）" >&2
@@ -447,6 +482,27 @@ self_test() {
     rc=1
   fi
   rm -rf "$basic_tmpdir16"
+
+  # 系17: 同じ入力を20回渡しても判定が変わらない（第1回改善指示書1-19）。
+  #       様式の見出しが揃い単体テスト設計書も実在する基本設計書は、
+  #       毎回「許可」（終了コード0）を返すはずである
+  local basic_tmpdir17 run_codes fail_count
+  basic_tmpdir17="$(mktemp -d -p "${TMPDIR:-/tmp}")"
+  touch "${basic_tmpdir17}/注文機能単体テスト設計書.md"
+  fail_count=0
+  run_codes=""
+  for _ in $(seq 1 20); do
+    if judge "${basic_tmpdir17}/注文機能基本設計書.md" "$t11" >/dev/null; then code=0; else code=$?; fi
+    run_codes="${run_codes}${code} "
+    [ "$code" -ne 0 ] && fail_count=$((fail_count + 1))
+  done
+  if [ "$fail_count" -eq 0 ]; then
+    echo "  [PASS] 系17: 同じ入力を20回渡しても判定が変わらない（結果: ${run_codes})"
+  else
+    echo "  [FAIL] 系17: 同じ入力なのに判定が揺れた（20回中${fail_count}回不一致, 結果: ${run_codes})" >&2
+    rc=1
+  fi
+  rm -rf "$basic_tmpdir17"
 
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"

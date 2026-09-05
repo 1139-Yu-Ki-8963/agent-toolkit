@@ -27,6 +27,57 @@ run_one() {
 
 run_one "check-basic-design.sh" "${SCRIPTS_DIR}/check-basic-design.sh"
 
+# basic-phase-viewpoints.md が挙げる scripts/...sh・../reverse-shared/scripts/...sh の
+# パスが、機能のフォルダ（reverse-writing-basic-design/）を起点に実在するかを検査する
+# （第1回改善指示書1-21）。パスの起点はこの参照自身の置き場（references/）ではない。
+check_reference_paths() {
+  local ref="$1" func_dir="$2"
+  local rel path fail=0 total=0
+  while IFS= read -r rel; do
+    [ -z "$rel" ] && continue
+    total=$((total + 1))
+    path="${func_dir}/${rel}"
+    [ -f "$path" ] || fail=$((fail + 1))
+  done < <(grep -oE '(\.\./reverse-shared/scripts/[a-zA-Z_-]+\.sh( --[a-z]+)?|scripts/[a-zA-Z_-]+\.sh)' "$ref" \
+    | awk '{print $1}' | sort -u)
+  echo "${fail} ${total}"
+}
+
+run_reference_path_checks() {
+  local ref="${SCRIPT_DIR}/../references/basic-phase-viewpoints.md"
+  local func_dir
+  func_dir="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+  local result fail total
+  result="$(check_reference_paths "$ref" "$func_dir")"
+  fail="$(echo "$result" | awk '{print $1}')"
+  total="$(echo "$result" | awk '{print $2}')"
+  TOTAL=$((TOTAL + 1))
+  if [ "$fail" -eq 0 ] && [ "$total" -gt 0 ]; then
+    echo "PASS: basic-phase-viewpoints.mdの参照パスが機能のフォルダから全て実在する（${total}件）"
+  else
+    echo "FAIL: basic-phase-viewpoints.mdの参照パスに不在がある（不在${fail}/${total}件）"
+    FAIL=$((FAIL + 1))
+  fi
+
+  # 負例: 存在しないパスへ書き換えた一時複製で、検査が実際に不在を検出することを確かめる
+  local tmp_ref
+  tmp_ref="$(mktemp "${TMPDIR:-/tmp}/basic-phase-viewpoints-XXXXXX.md")"
+  sed 's/check-basic-design\.sh/check-basic-design-nonexistent.sh/' "$ref" > "$tmp_ref"
+  result="$(check_reference_paths "$tmp_ref" "$func_dir")"
+  fail="$(echo "$result" | awk '{print $1}')"
+  rm -f "$tmp_ref"
+  TOTAL=$((TOTAL + 1))
+  if [ "$fail" -gt 0 ]; then
+    echo "PASS: 存在しないパスへ書き換えると検査が不在を検出する（負例）"
+  else
+    echo "FAIL: 存在しないパスへ書き換えても検査が不在を検出しない（負例）"
+    FAIL=$((FAIL + 1))
+  fi
+}
+
+run_reference_path_checks
+
 echo "実行 ${TOTAL} 件 / 失敗 ${FAIL} 件"
 if [ "$FAIL" -gt 0 ]; then
   exit 1

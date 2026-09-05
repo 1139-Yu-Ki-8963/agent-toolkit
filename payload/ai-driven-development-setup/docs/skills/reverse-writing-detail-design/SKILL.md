@@ -41,7 +41,7 @@ requires: [reverse-writing-common-detail-design]
    bash ../reverse-writing-common-detail-design/scripts/check-common-detail-design.sh <対象リポジトリのルート> --design-root <設計書の置き場>
    ```
 3. 種別ごとに、`bash ../reverse-shared/scripts/list-units-of.sh <対象リポジトリのルート> <種別>` で一覧を得る
-4. 単位ごとに次を実行する。終了コードが0でなく、合格の記録の判定が「保留」であればこの単位を飛ばす。保留でなければ止まり、工程2-5・2-6（読み取り結果の不足なら工程2-4も）へ差し戻す
+4. 単位ごとに次を実行する。終了コードが0でなければ止まり、工程2-5・2-6（読み取り結果の不足なら工程2-4も）へ差し戻す。終了コード0でも標準エラーに`[SKIP] 判定-保留`が出ていれば、その単位は保留のため詳細設計書を書かず次の単位へ進む
    ```bash
    bash ../reverse-shared/scripts/check-acceptance-record.sh <対象リポジトリのルート> --kind <種別> --unit <識別子> --design-root <設計書の置き場>
    ```

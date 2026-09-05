@@ -75,6 +75,32 @@ trim() {
   printf '%s' "$s"
 }
 
+# 単体テスト設計書の「§7 網羅基準」末尾の自己テスト件数表は、スクリプト列に
+# `--self-test`の引数や`（…）`の注記を書く実物がある（例:
+# `scripts/list-units.sh --self-test`・`tests/test-self-tests.sh（独自ケース）`）。
+# これらを除いた素のパスだけを取り出す。
+clean_script_ref() {
+  local s
+  s="$(trim "$1")"
+  s="${s%（*）}"
+  s="${s% --self-test}"
+  trim "$s"
+}
+
+# 素のパスから実物のスクリプトファイルを解決する。"/"を含めばサブディレクトリ
+# 込みの相対パスとして`docs/skills/<name>/`直下から見る。含まなければ
+# `scripts/`配下にあるという命名の決まり（skill-naming規約）を前提に補う。
+resolve_script_path() {
+  local root="$1" name="$2" cleaned="$3" candidate
+  [ -n "$cleaned" ] || return 1
+  case "$cleaned" in
+    */*) candidate="${root%/}/docs/skills/${name}/${cleaned}" ;;
+    *) candidate="${root%/}/docs/skills/${name}/scripts/${cleaned}" ;;
+  esac
+  [ -f "$candidate" ] || return 1
+  printf '%s' "$candidate"
+}
+
 check_repo() {
   local root="$1"
   [ -d "$root" ] || { echo "[FAIL] リポジトリのルートが存在しません: $root" >&2; return 2; }
@@ -102,6 +128,16 @@ check_repo() {
         heading_exists "$bd" "$h" || fail "基本設計書に節が無い: $name / $h"
       done
       grep -q '要件の柱' "$bd" 2>/dev/null || fail "基本設計書の§1に「要件との対応」の表が無い: $name"
+
+      if heading_exists "$bd" "### 終了コード・差し戻し・保留の一覧"; then
+        local pending_header
+        pending_header="$(awk '
+          /^### 終了コード・差し戻し・保留の一覧$/ { f = 1; next }
+          f && /^\|/ { print; exit }
+        ' "$bd")"
+        [[ "$pending_header" == *"保留のとき"* ]] \
+          || fail "基本設計書の§5終了コード・差し戻し・保留の一覧の表に列「保留のとき」が無い: $name"
+      fi
     fi
 
     if [ ! -f "$dd" ]; then
@@ -151,7 +187,20 @@ check_repo() {
         fi
       done < <(extract_table_rows "$ud" "## §2 テストケース一覧")
 
-      # 自己テストの表: スクリプト | 件数 の2列
+      # 自己テストの表: スクリプト | 件数 の2列。「## §7 網羅基準」節の内側
+      # （末尾に置く実測件数の表を含む）から拾う。独立した「## 自己テスト」
+      # 見出しは実物のどの単体テスト設計書も持たないため検索対象にしない
+      # （2026-09-05 実測: rule.md「§7の末尾に置いてもよい」の記述と現物は
+      # 一致していたが、本チェッカーだけが独立見出しを前提にしており、
+      # 実測不一致を1件も検出していなかった）。
+      #
+      # スクリプト列の値は実物では素のファイル名だけとは限らず、
+      # `scripts/list-units.sh --self-test`・`tests/test-self-tests.sh（独自
+      # ケース）`のように`--self-test`の引数や`（…）`の注記、`scripts/`等の
+      # サブディレクトリ接頭辞を伴う（2026-09-05 実測: find -name によるbasename
+      # 照合ではこれらに1件もヒットせず、22件全件が判定不能警告になっていた）。
+      # clean_script_ref/resolve_script_pathで注記を除いてから
+      # `docs/skills/<機能>/`を起点に実在を確かめる。
       local srow script expect actual
       while IFS= read -r srow; do
         [ -n "$srow" ] || continue
@@ -162,8 +211,9 @@ check_repo() {
         if [[ "$expect" != [0-9]* ]]; then
           continue
         fi
-        local script_path
-        script_path="$(find "$root" -type f -name "$script" 2>/dev/null | head -n 1)"
+        local cleaned script_path
+        cleaned="$(clean_script_ref "$script")"
+        script_path="$(resolve_script_path "$root" "$name" "$cleaned")"
         if [ -z "$script_path" ] || [ ! -x "$script_path" ]; then
           warn "自己テストの実物確認が判定不能: $name / $script（見つからない、または実行権限が無い）"
           continue
@@ -175,14 +225,18 @@ check_repo() {
           warn "自己テストの実物確認が判定不能: $name / $script（--self-test を実行できない）"
           continue
         fi
-        actual="$(printf '%s\n' "$out" | grep -o '実行 [0-9]\+ 件' | grep -o '[0-9]\+' | head -n 1)"
+        # 「実行 N 件」は自身が他スクリプトの--self-testを子として呼ぶ場合、
+        # 子の集計行が先に出力されうる。最後の出現（自身の最終集計）を取る。
+        actual="$(printf '%s\n' "$out" | grep -o '実行 [0-9]\+ 件' | grep -o '[0-9]\+' | tail -n 1)"
         if [ -z "$actual" ]; then
-          actual="$(printf '%s\n' "$out" | grep -c '^\[PASS\]')"
+          # PASS行は "  [PASS] ケース1: ..." のように行頭に空白を伴う実装がある
+          # ため、行頭からの完全一致ではなく出現有無で数える。
+          actual="$(printf '%s\n' "$out" | grep -c '\[PASS\]')"
         fi
         if [ "$actual" != "$expect" ]; then
           fail "単体テスト設計書の自己テストの件数が実物と不一致: $name / $script (記載=$expect, 実物=$actual)"
         fi
-      done < <(extract_table_rows "$ud" "## 自己テスト")
+      done < <(extract_table_rows "$ud" "## §7 網羅基準")
     fi
   done <<< "$names"
 
@@ -257,7 +311,10 @@ INNER_EOF
 | c2 | 2 | f1 | 名前2 | k1 | 異常 | p | o | e |
 ## §5 異常系
 ## §6 境界値
-## 自己テスト
+## §7 網羅基準
+
+検査スクリプトの自己テストの実測件数は次のとおり。
+
 | スクリプト | 件数 |
 |---|---|
 | a.sh | 2 |
@@ -266,8 +323,8 @@ INNER_EOF
 | 柱1 | x | reverse-doing-thing | c | 対応済み |
 | reverse-doing-thing | 何か |
 INNER_EOF
-  mkdir -p "$tmp/ok/scripts"
-  cat > "$tmp/ok/scripts/a.sh" << 'INNER_EOF'
+  mkdir -p "$tmp/ok/docs/skills/reverse-doing-thing/scripts"
+  cat > "$tmp/ok/docs/skills/reverse-doing-thing/scripts/a.sh" << 'INNER_EOF'
 #!/usr/bin/env bash
 if [ "${1:-}" = "--self-test" ]; then
   echo "実行 2 件 / 合格 2 件"
@@ -275,7 +332,7 @@ if [ "${1:-}" = "--self-test" ]; then
 fi
 exit 0
 INNER_EOF
-  chmod +x "$tmp/ok/scripts/a.sh"
+  chmod +x "$tmp/ok/docs/skills/reverse-doing-thing/scripts/a.sh"
   total=$((total + 1))
   fail_count=0; check_repo "$tmp/ok" > /dev/null 2>&1; if [ "$fail_count" = 0 ]; then pass=$((pass + 1)); else echo "[SELFTEST-FAIL] ケース1(合格想定)が不合格" >&2; fi
 
@@ -308,7 +365,10 @@ INNER_EOF
 | c1 | 1 | f1 | 名前1 | k1 | 正常 |  | o | e |
 ## §5 異常系
 ## §6 境界値
-## 自己テスト
+## §7 網羅基準
+
+検査スクリプトの自己テストの実測件数は次のとおり。
+
 | スクリプト | 件数 |
 |---|---|
 | a.sh | 1 |
@@ -351,7 +411,10 @@ INNER_EOF
 | c1 | 1 | f1 | 名前1 | k9 | 正常 | p | o | e |
 ## §5 異常系
 ## §6 境界値
-## 自己テスト
+## §7 網羅基準
+
+検査スクリプトの自己テストの実測件数は次のとおり。
+
 | スクリプト | 件数 |
 |---|---|
 | a.sh | 1 |
@@ -364,7 +427,7 @@ INNER_EOF
   mkdir -p "$tmp/ng4/docs/skills/reverse-doing-thing"
   mkdir -p "$tmp/ng4/docs/design/skills/reverse-doing-thing"
   mkdir -p "$tmp/ng4/docs/design/requirements"
-  mkdir -p "$tmp/ng4/scripts"
+  mkdir -p "$tmp/ng4/docs/skills/reverse-doing-thing/scripts"
   touch "$tmp/ng4/docs/skills/reverse-doing-thing/SKILL.md"
   write_basic "$tmp/ng4/docs/design/skills/reverse-doing-thing/基本設計書.md"
   write_detail "$tmp/ng4/docs/design/skills/reverse-doing-thing/詳細設計書.md"
@@ -383,12 +446,15 @@ INNER_EOF
 | c1 | 1 | f1 | 名前1 | k1 | 正常 | p | o | e |
 ## §5 異常系
 ## §6 境界値
-## 自己テスト
+## §7 網羅基準
+
+検査スクリプトの自己テストの実測件数は次のとおり。
+
 | スクリプト | 件数 |
 |---|---|
 | a.sh | 3 |
 INNER_EOF
-  cat > "$tmp/ng4/scripts/a.sh" << 'INNER_EOF'
+  cat > "$tmp/ng4/docs/skills/reverse-doing-thing/scripts/a.sh" << 'INNER_EOF'
 #!/usr/bin/env bash
 if [ "${1:-}" = "--self-test" ]; then
   echo "実行 2 件 / 合格 2 件"
@@ -396,10 +462,182 @@ if [ "${1:-}" = "--self-test" ]; then
 fi
 exit 0
 INNER_EOF
-  chmod +x "$tmp/ng4/scripts/a.sh"
+  chmod +x "$tmp/ng4/docs/skills/reverse-doing-thing/scripts/a.sh"
   cp "$tmp/ok/docs/design/requirements/要件と機能の対応表.md" "$tmp/ng4/docs/design/requirements/要件と機能の対応表.md"
   total=$((total + 1))
   fail_count=0; check_repo "$tmp/ng4" > /dev/null 2>&1; if [ "$fail_count" -gt 0 ]; then pass=$((pass + 1)); else echo "[SELFTEST-FAIL] ケース7(不合格想定)が合格" >&2; fi
+
+  # ケース8: §7網羅基準に観点/基準の表（非数値）と自己テストの件数表が
+  # 独立見出し無しで同居する実物の形でも、件数のずれを検出する
+  # （2026-09-05実測: 独立見出し「## 自己テスト」を前提にしていた旧実装は
+  # 実物のどの単体テスト設計書にも一致せず、この検出を1件も行っていなかった）
+  mkdir -p "$tmp/ng5/docs/skills/reverse-doing-thing/scripts"
+  mkdir -p "$tmp/ng5/docs/design/skills/reverse-doing-thing"
+  mkdir -p "$tmp/ng5/docs/design/requirements"
+  touch "$tmp/ng5/docs/skills/reverse-doing-thing/SKILL.md"
+  write_basic "$tmp/ng5/docs/design/skills/reverse-doing-thing/基本設計書.md"
+  write_detail "$tmp/ng5/docs/design/skills/reverse-doing-thing/詳細設計書.md"
+  cat > "$tmp/ng5/docs/design/skills/reverse-doing-thing/単体テスト設計書.md" << 'INNER_EOF'
+## テスト対象
+| スクリプト | 自己テストの実行 |
+|---|---|
+| a.sh | あり |
+## §1 テスト観点
+| キー | 観点 | 確かめる手段 |
+|---|---|---|
+| k1 | v1 | m1 |
+## §2 テストケース一覧
+| キー | 番号 | 機能 | ケースの名前 | 対応する観点のキー | 区分 | 前提 | 操作 | 期待結果 |
+|---|---|---|---|---|---|---|---|---|
+| c1 | 1 | f1 | 名前1 | k1 | 正常 | p | o | e |
+## §5 異常系
+## §6 境界値
+## §7 網羅基準
+
+| 観点 | 基準 |
+|---|---|
+| 条件の網羅 | §1の全観点に§2のケースを1件以上対応させる |
+
+検査スクリプトの自己テストの実測件数は次のとおり。
+
+| スクリプト | 件数 |
+|---|---|
+| scripts/a.sh --self-test | 9 |
+INNER_EOF
+  cat > "$tmp/ng5/docs/skills/reverse-doing-thing/scripts/a.sh" << 'INNER_EOF'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--self-test" ]; then
+  echo "実行 2 件 / 合格 2 件"
+  exit 0
+fi
+exit 0
+INNER_EOF
+  chmod +x "$tmp/ng5/docs/skills/reverse-doing-thing/scripts/a.sh"
+  cp "$tmp/ok/docs/design/requirements/要件と機能の対応表.md" "$tmp/ng5/docs/design/requirements/要件と機能の対応表.md"
+  total=$((total + 1))
+  fail_count=0; check_repo "$tmp/ng5" > /dev/null 2>&1
+  if [ "$fail_count" -gt 0 ]; then
+    pass=$((pass + 1))
+  else
+    echo "[SELFTEST-FAIL] ケース8(§7内の観点表と件数表が同居しても件数ずれを検出する想定)が合格" >&2
+  fi
+
+  # ケース9: スクリプト列が`tests/xxx.sh（注記）`の実物形（reverse-sharedの
+  # 単体テスト設計書と同じ形）でも、件数が一致すれば警告・不合格にならない
+  # （2026-09-05実測: この形の実物照合は1件も行われていなかった不具合の
+  # 直接の再現。件数が合っているのに誤って不合格にしないことも確かめる）
+  mkdir -p "$tmp/ok2/docs/skills/reverse-doing-thing/tests"
+  mkdir -p "$tmp/ok2/docs/design/skills/reverse-doing-thing"
+  mkdir -p "$tmp/ok2/docs/design/requirements"
+  touch "$tmp/ok2/docs/skills/reverse-doing-thing/SKILL.md"
+  write_basic "$tmp/ok2/docs/design/skills/reverse-doing-thing/基本設計書.md"
+  write_detail "$tmp/ok2/docs/design/skills/reverse-doing-thing/詳細設計書.md"
+  cat > "$tmp/ok2/docs/design/skills/reverse-doing-thing/単体テスト設計書.md" << 'INNER_EOF'
+## テスト対象
+| スクリプト | 自己テストの実行 |
+|---|---|
+| a.sh | あり |
+## §1 テスト観点
+| キー | 観点 | 確かめる手段 |
+|---|---|---|
+| k1 | v1 | m1 |
+## §2 テストケース一覧
+| キー | 番号 | 機能 | ケースの名前 | 対応する観点のキー | 区分 | 前提 | 操作 | 期待結果 |
+|---|---|---|---|---|---|---|---|---|
+| c1 | 1 | f1 | 名前1 | k1 | 正常 | p | o | e |
+## §5 異常系
+## §6 境界値
+## §7 網羅基準
+
+検査スクリプトの自己テストの実測件数は次のとおり。
+
+| スクリプト | 件数 |
+|---|---|
+| tests/a.sh（独自ケース） | 2 |
+INNER_EOF
+  cat > "$tmp/ok2/docs/skills/reverse-doing-thing/tests/a.sh" << 'INNER_EOF'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--self-test" ]; then
+  echo "実行 2 件 / 合格 2 件"
+  exit 0
+fi
+exit 0
+INNER_EOF
+  chmod +x "$tmp/ok2/docs/skills/reverse-doing-thing/tests/a.sh"
+  cp "$tmp/ok/docs/design/requirements/要件と機能の対応表.md" "$tmp/ok2/docs/design/requirements/要件と機能の対応表.md"
+  total=$((total + 1))
+  fail_count=0; warn_count=0; check_repo "$tmp/ok2" > /dev/null 2>&1
+  if [ "$fail_count" = 0 ] && [ "$warn_count" = 0 ]; then
+    pass=$((pass + 1))
+  else
+    echo "[SELFTEST-FAIL] ケース9(tests/xxx.sh（注記）形の実物照合が合格想定)が不合格または警告 (fail=${fail_count} warn=${warn_count})" >&2
+  fi
+
+  # ケース10: §5終了コード・差し戻し・保留の一覧の表に列「保留のとき」が無い → 不合格
+  mkdir -p "$tmp/ng6/docs/skills/reverse-doing-thing/scripts"
+  mkdir -p "$tmp/ng6/docs/design/skills/reverse-doing-thing"
+  mkdir -p "$tmp/ng6/docs/design/requirements"
+  touch "$tmp/ng6/docs/skills/reverse-doing-thing/SKILL.md"
+  cat > "$tmp/ng6/docs/design/skills/reverse-doing-thing/基本設計書.md" << 'INNER_EOF'
+## §1 外部仕様
+| 要件の柱 | 要件の項目 | この機能が満たす内容 |
+|---|---|---|
+| 柱1 | x | y |
+## §2 業務仕様
+## §3 方式設計
+## §4 データ仕様
+## §5 エラーと例外
+### 終了コード・差し戻し・保留の一覧
+| 検査 | スクリプト | 検査キー |
+|---|---|---|
+| a | b | c |
+## §6 関連資料
+INNER_EOF
+  write_detail "$tmp/ng6/docs/design/skills/reverse-doing-thing/詳細設計書.md"
+  cat > "$tmp/ng6/docs/design/skills/reverse-doing-thing/単体テスト設計書.md" << 'INNER_EOF'
+## テスト対象
+| スクリプト | 自己テストの実行 | ケース数 |
+|---|---|---|
+| a.sh | あり | 2 |
+## §1 テスト観点
+| キー | 観点 | 確かめる手段 |
+|---|---|---|
+| k1 | v1 | m1 |
+## §2 テストケース一覧
+| キー | 番号 | 機能 | ケースの名前 | 対応する観点のキー | 区分 | 前提 | 操作 | 期待結果 |
+|---|---|---|---|---|---|---|---|---|
+| c1 | 1 | f1 | 名前1 | k1 | 正常 | p | o | e |
+| c2 | 2 | f1 | 名前2 | k1 | 異常 | p | o | e |
+## §5 異常系
+## §6 境界値
+## §7 網羅基準
+
+検査スクリプトの自己テストの実測件数は次のとおり。
+
+| スクリプト | 件数 |
+|---|---|
+| a.sh | 2 |
+INNER_EOF
+  cat > "$tmp/ng6/docs/design/requirements/要件と機能の対応表.md" << 'INNER_EOF'
+| 柱1 | x | reverse-doing-thing | c | 対応済み |
+| reverse-doing-thing | 何か |
+INNER_EOF
+  cat > "$tmp/ng6/docs/skills/reverse-doing-thing/scripts/a.sh" << 'INNER_EOF'
+#!/usr/bin/env bash
+if [ "${1:-}" = "--self-test" ]; then
+  echo "実行 2 件 / 合格 2 件"
+  exit 0
+fi
+exit 0
+INNER_EOF
+  chmod +x "$tmp/ng6/docs/skills/reverse-doing-thing/scripts/a.sh"
+  total=$((total + 1))
+  fail_count=0; check_repo "$tmp/ng6" > /dev/null 2>&1
+  if [ "$fail_count" -gt 0 ]; then
+    pass=$((pass + 1))
+  else
+    echo "[SELFTEST-FAIL] ケース10(§5保留のとき列欠落は不合格想定)が合格" >&2
+  fi
 
   echo "実行 ${total} 件 / 合格 ${pass} 件"
   [ "$pass" = "$total" ]

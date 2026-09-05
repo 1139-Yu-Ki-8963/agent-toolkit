@@ -318,6 +318,58 @@ NUMBERED
   return "$ok"
 }
 
+# 様式-他種別名: 複数の様式に複製された定型文（外部結合の行・本書が扱わない範囲の文・
+#   論理データモデルの§1）が自分の種別以外の種別の名前を持たないかを検査する
+#   （起票: 第1回改善指示書1-20）。
+# 走査は地の文全体ではなく、この関数に渡された1行（既知の複製定型文だけを事前に
+# 抜き出したもの）に限る。「表」は表示・観測可能な値・状態・表示等の一般語と
+# 衝突するため、種別名としての用法（表の単位・表の種別という複合語）だけを判定する
+# （実測で「表示」の誤検出を確認済み。設計書の「決めていないこと」節の除外語）。
+# $1: 判定する1行  $2: 自分の種別の名前（スペース区切り、複数可）
+# 戻り値: 0=違反なし（他種別名が無い、または空行） 1=違反あり
+assert_no_cross_kind_name() {
+  local text="$1" own="$2" cleaned n name
+  [ -n "$text" ] || return 0
+  cleaned="${text//画面固有の操作シナリオ仕様書/}"
+  for n in $own; do
+    cleaned="${cleaned//$n/}"
+  done
+  for name in 画面 接続窓口 バッチ 帳票 外部連携 機能 API; do
+    case " $own " in
+      *" $name "*) continue ;;
+    esac
+    if printf '%s' "$cleaned" | grep -qF "$name"; then
+      return 1
+    fi
+  done
+  case " $own " in
+    *" 表 "*) : ;;
+    *)
+      if printf '%s' "$cleaned" | grep -qE '表の単位|表の種別'; then
+        return 1
+      fi
+      ;;
+  esac
+  return 0
+}
+
+# 様式-他種別名の検査で使う複製定型文（アンカー行）を1行取り出す。呼び出し側が
+# grepの結果を無検証で空文字のままassert_no_cross_kind_nameへ渡すと、将来アンカー
+# 文言が改名・移動して0件になったときに何も検証せず合格し続ける（レビュー指摘。
+# 第1回改善指示書1-20）。見つからない場合は空文字ではなく終了コード1で区別する。
+# $1: grep対象（ファイルまたはディレクトリ）  $2: grepパターン（拡張正規表現）
+# 標準出力: 見つかった行（見つからない場合は何も出さない）
+# 戻り値: 0=見つかった 1=見つからない（定型文-不在）
+find_template_anchor_line() {
+  local target="$1" pattern="$2" line
+  line="$(grep -rh -- "$pattern" "$target" 2>/dev/null | head -n1)"
+  if [ -z "$line" ]; then
+    return 1
+  fi
+  printf '%s\n' "$line"
+  return 0
+}
+
 # 読み取り結果の項目名が本文の見出し（##・###）または表の見出し行に現れるかを確認する。
 # $1: doc  $2: 読み取り結果の項目名  戻り値: 0=現れる・1=現れない
 reading_key_covered() {
@@ -1184,6 +1236,58 @@ DOCHEOF
   component_hits="$(grep -rlE '^###? .*構成要素一覧' "$templates_dir" 2>/dev/null | wc -l | tr -d ' ')"
   check "実装用語-混入: 除外見出し「観測の出どころ」がひな形に実在する" "$([ "${observation_hits:-0}" -ge 1 ] && echo 0 || echo 1)"
   check "実装用語-混入: 除外見出し「構成要素一覧」がひな形に実在する" "$([ "${component_hits:-0}" -ge 1 ] && echo 0 || echo 1)"
+
+  # --- 様式-他種別名: 種別ごとの様式が複製した定型文（外部結合の行・本書が扱わない
+  #     範囲の文）に他の種別の名前を持たないこと（起票: 第1回改善指示書1-20）。
+  #     アンカー行が見つからない場合は「定型文-不在」として不合格にする（skipでは
+  #     なく失敗）。様式の定型文が消えたことは再発防止テストの前提が崩れた状態で
+  #     あり、検証せず合格させてはならない（code-reviewer指摘によるv2） ---
+  check_template_anchor() {
+    local label="$1" anchor_name="$2" own="$3" target="$4" pattern="$5"
+    local line rc
+    if ! line="$(find_template_anchor_line "$target" "$pattern")"; then
+      echo "FAIL: 様式-他種別名: ${label}の${anchor_name}: 定型文-不在（アンカーが見つからない）" >&2
+      check "様式-他種別名: ${label}の${anchor_name}に他種別の名前が無い" 1
+      return
+    fi
+    assert_no_cross_kind_name "$line" "$own"; rc=$?
+    check "様式-他種別名: ${label}の${anchor_name}に他種別の名前が無い" "$rc"
+  }
+
+  # 「外部結合」の行は7種別すべての単体テスト設計書が持つ
+  check_template_anchor "画面" "外部結合の行" "画面" "$templates_dir/screen" '外部結合 |'
+  check_template_anchor "接続窓口" "外部結合の行" "接続窓口 API" "$templates_dir/api" '外部結合 |'
+  check_template_anchor "表" "外部結合の行" "表" "$templates_dir/table" '外部結合 |'
+  check_template_anchor "バッチ" "外部結合の行" "バッチ" "$templates_dir/batch" '外部結合 |'
+  check_template_anchor "帳票" "外部結合の行" "帳票" "$templates_dir/report" '外部結合 |'
+  check_template_anchor "外部連携" "外部結合の行" "外部連携" "$templates_dir/external" '外部結合 |'
+  check_template_anchor "機能" "外部結合の行" "機能" "$templates_dir/feature" '外部結合 |'
+
+  # 「本書が扱わない範囲」の自由記述文は接続窓口（api）以外の6種別が持つ。apiは
+  # 表形式（本書が扱わない範囲の表）を使うため、この自由記述の定型文自体を持たない
+  # （下のAPI単体テスト設計書の本書が扱わない範囲の表がapi向けの等価な検査）
+  check_template_anchor "画面" "本書が扱わない範囲の文" "画面" "$templates_dir/screen" 'にまたがる結合テスト'
+  check_template_anchor "表" "本書が扱わない範囲の文" "表" "$templates_dir/table" 'にまたがる結合テスト'
+  check_template_anchor "バッチ" "本書が扱わない範囲の文" "バッチ" "$templates_dir/batch" 'にまたがる結合テスト'
+  check_template_anchor "帳票" "本書が扱わない範囲の文" "帳票" "$templates_dir/report" 'にまたがる結合テスト'
+  check_template_anchor "外部連携" "本書が扱わない範囲の文" "外部連携" "$templates_dir/external" 'にまたがる結合テスト'
+  check_template_anchor "機能" "本書が扱わない範囲の文" "機能" "$templates_dir/feature" 'にまたがる結合テスト'
+
+  check_template_anchor "論理データモデル" "§1外部仕様の文" "表" "$templates_dir/table/論理データモデル.md" '本テーブルは利用者から直接見える対象ではない'
+  check_template_anchor "API単体テスト設計書" "冒頭コメント" "接続窓口 API" "$templates_dir/api/API単体テスト設計書.md" '種別横断結合テスト設計書が扱う'
+  check_template_anchor "API単体テスト設計書" "本書が扱わない範囲の表" "接続窓口 API" "$templates_dir/api/API単体テスト設計書.md" '^| 複数の.*連携 |'
+
+  local cross_kind_phrase_hits
+  cross_kind_phrase_hits="$(grep -rn '複数の画面・機能・API' "$templates_dir" 2>/dev/null | wc -l | tr -d ' ')"
+  check "様式-他種別名: 旧定型文「複数の画面・機能・API」の複製が残っていない" "$([ "${cross_kind_phrase_hits:-0}" -eq 0 ] && echo 0 || echo 1)"
+
+  # 再発防止: アンカー行が消えた複製は「定型文-不在」で不合格になること（本チェック
+  # 自体の自己確認。空文字を無条件で合格扱いにする退行を防ぐ）
+  local missing_anchor_file="$base/missing-anchor-template.md"
+  printf '## 見出し\n本文にアンカー文言は無い。\n' > "$missing_anchor_file"
+  find_template_anchor_line "$missing_anchor_file" '外部結合 |' > /dev/null
+  local rc_missing_anchor=$?
+  check "様式-他種別名: アンカーが見つからない複製は不合格になる（再発防止）" "$([ "$rc_missing_anchor" -eq 1 ] && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件 / skip ${skip} 件"
   if [ "$fail" -gt 0 ]; then

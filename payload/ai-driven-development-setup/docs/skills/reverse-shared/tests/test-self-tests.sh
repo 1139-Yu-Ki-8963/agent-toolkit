@@ -40,6 +40,12 @@ if [ -d "$SETUP_DIR" ]; then
 else
   SETUP_DIR=""
 fi
+SETUP_REFERENCES_DIR="${SHARED_DIR}/../setup-scaffolding-rules/references"
+if [ -d "$SETUP_REFERENCES_DIR" ]; then
+  SETUP_REFERENCES_DIR="$(cd "$SETUP_REFERENCES_DIR" && pwd)"
+else
+  SETUP_REFERENCES_DIR=""
+fi
 
 total=0
 fail=0
@@ -53,6 +59,76 @@ run_case() {
     echo "FAIL: ${desc}"
     fail=$((fail + 1))
   fi
+}
+
+process_function_mapping_ok() {
+  # 流れの設計の各工程の「担当」欄がバッククォートで名指しする機能名について、
+  # docs/skills に実在し、そのSKILL.mdのoutputsが「出力」欄の語と対応することを見る。
+  # バッククォートの名指しが無い工程（人が担当・機能名を書かない慣行の工程）は対象外。
+  local doc="$1" skills_root="$2"
+  local blocks
+  blocks="$(awk '
+    /^### 工程 / { if (started) print "===SECTION==="; started=1 }
+    started { print }
+    END { if (started) print "===SECTION===" }
+  ' "$doc")"
+  local block="" line all_ok=1
+  while IFS= read -r line; do
+    if [ "$line" = "===SECTION===" ]; then
+      if [ -n "$block" ]; then
+        process_one_section "$block" "$skills_root" || all_ok=0
+      fi
+      block=""
+      continue
+    fi
+    block="${block}${line}"$'\n'
+  done <<< "$blocks"
+  [ "$all_ok" -eq 1 ]
+}
+
+process_one_section() {
+  local block="$1" skills_root="$2"
+  local tanto shukka
+  tanto="$(printf '%s\n' "$block" | grep -m1 '^| 担当 ' || true)"
+  shukka="$(printf '%s\n' "$block" | grep -m1 '^| 出力 ' || true)"
+  [ -n "$tanto" ] || return 0
+  local names
+  names="$(printf '%s' "$tanto" | grep -o '`[a-zA-Z0-9-]\+`' | tr -d '`')"
+  [ -n "$names" ] || return 0
+  [ -n "$shukka" ] || return 0
+  case "$shukka" in
+    *'無し'*) return 0 ;;
+  esac
+  local name section_ok=1
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    local skill_file="${skills_root}/${name}/SKILL.md"
+    if [ ! -f "$skill_file" ]; then
+      echo "[FAIL] 工程-機能不在: ${name}" >&2
+      section_ok=0
+      continue
+    fi
+    local outputs_line
+    outputs_line="$(grep -m1 '^outputs:' "$skill_file" | sed 's/^outputs: *//')"
+    outputs_line="${outputs_line#\[}"
+    outputs_line="${outputs_line%\]}"
+    local elems=() elem base stem matched=0
+    IFS=',' read -r -a elems <<< "$outputs_line"
+    for elem in "${elems[@]}"; do
+      elem="$(printf '%s' "$elem" | sed -e 's/^ *//' -e 's/ *$//')"
+      base="${elem##*/}"
+      stem="${base%.*}"
+      [ -n "$stem" ] || continue
+      case "$shukka" in
+        *"$stem"*) matched=1; break ;;
+      esac
+    done
+    if [ "$matched" -ne 1 ]; then
+      echo "[FAIL] 工程-出力不一致: ${name} の outputs が出力欄と対応しない (${shukka})" >&2
+      section_ok=0
+    fi
+  done <<< "$names"
+  [ "$section_ok" -eq 1 ]
 }
 
 cmp_ignoring_notice() {
@@ -90,6 +166,11 @@ else
   echo "SKIP: 定義と複製が一致する: output-layout.json（原本のdocs/design/commonが無い）"
   echo "SKIP: 定義と複製が一致する: code-reading-items.json（原本のdocs/design/commonが無い）"
 fi
+if [ -n "$SETUP_REFERENCES_DIR" ] && [ -f "${SETUP_REFERENCES_DIR}/rule-taxonomy.json" ]; then
+  run_case "定義と複製が一致する: rule-taxonomy.json" cmp -s "${SETUP_REFERENCES_DIR}/rule-taxonomy.json" "${SHARED_DIR}/references/rule-taxonomy.json"
+else
+  echo "SKIP: 定義と複製が一致する: rule-taxonomy.json（原本が無い）"
+fi
 if [ -n "$SETUP_DIR" ] && [ -f "${SETUP_DIR}/documentation-standards/document-writing/check-doc-heading-addendum.sh" ]; then
   run_case "写しが原本と一致する: check-doc-heading-addendum.sh" cmp_ignoring_notice "${SETUP_DIR}/documentation-standards/document-writing/check-doc-heading-addendum.sh" "${SHARED_DIR}/scripts/check-doc-heading-addendum.sh"
 else
@@ -99,6 +180,11 @@ if [ -n "$SETUP_DIR" ] && [ -f "${SETUP_DIR}/quality-assurance/test-policy/check
   run_case "写しが原本と一致する: check-unit-test-design-doc-sections.sh" cmp_ignoring_notice "${SETUP_DIR}/quality-assurance/test-policy/check-unit-test-design-doc-sections.sh" "${SHARED_DIR}/scripts/check-unit-test-design-doc-sections.sh"
 else
   echo "SKIP: 写しが原本と一致する: check-unit-test-design-doc-sections.sh（原本が無い）"
+fi
+if [ -n "$DESIGN_DIR" ] && [ -f "${DESIGN_DIR}/リバースの流れの設計.md" ]; then
+  run_case "工程の担当欄の機能が実在しoutputsが出力欄と対応する" process_function_mapping_ok "${DESIGN_DIR}/リバースの流れの設計.md" "${SHARED_DIR}/.."
+else
+  echo "SKIP: 工程の担当欄の機能が実在しoutputsが出力欄と対応する（原本のdocs/design/commonが無い）"
 fi
 
 echo "実行 ${total} 件 / 失敗 ${fail} 件"

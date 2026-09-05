@@ -120,11 +120,11 @@ requires: []
     ```bash
     bash ../reverse-shared/scripts/check-basic-phase.sh <対象リポジトリのルート> --common --run <実行フォルダ> --design-root <設計書の置き場>
     ```
-    通った文書ごとに、文書のレビュー担当（AI）が `references/completion-states.md` の基本設計書の完了状態の観点で読む。合否を判定し、合格・不合格・保留のいずれかを次で記録する
+    通った文書ごとに、文書のレビュー担当（AI）が `references/completion-states.md` の基本設計書の完了状態の観点で読む。各観点を合・否・要確認で判定し、合格・不合格・保留のいずれかを次で記録する
     ```bash
-    bash ../reverse-shared/scripts/record-acceptance.sh <対象> --run <実行フォルダ> --common <文書名> --verdict <合格|不合格|保留> --viewpoints "<観点=合|否;...>" [--reason "<理由>"] --design-root <設計書の置き場>
+    bash ../reverse-shared/scripts/record-acceptance.sh <対象> --run <実行フォルダ> --common <文書名> --verdict <合格|不合格|保留> --viewpoints "<観点=合|否|要確認;...>" --judged "<文書名>=<sha256>" [--reason "<理由>"] --design-root <設計書の置き場>
     ```
-    不合格は 4 へ戻る。保留は既定を置けない不明点を持つ文書だけにし、理由を確認事項に登録する
+    不合格は 4 へ戻る。保留は既定を置けない不明点を持つ文書だけにし、理由を確認事項に登録する。判定の直前に`shasum -a 256`で文書の値を取り、`--judged`へ渡す
 
 ### 手順 6: 範囲の承認
 

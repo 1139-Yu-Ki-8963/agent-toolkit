@@ -11,11 +11,18 @@ set -u
 # 使い方:
 #   record-acceptance.sh <対象リポジトリのルート> --run <実行フォルダ> \
 #     --kind <種別> --unit <識別子> --verdict <合格|不合格|保留> \
-#     --viewpoints "<観点=合|否;...>" [--reason "<理由>"] [--design-root <設計書のルート>]
+#     --viewpoints "<観点=合|否|要確認;...>" --judged "<文書名>=<sha256>;..." \
+#     [--reason "<理由>"] [--design-root <設計書のルート>]
 #   record-acceptance.sh <対象リポジトリのルート> --run <実行フォルダ> \
 #     --common <文書名> --verdict <合格|不合格|保留> \
-#     --viewpoints "<観点=合|否;...>" [--reason "<理由>"] [--design-root <設計書のルート>]
+#     --viewpoints "<観点=合|否|要確認;...>" --judged "<文書名>=<sha256>" \
+#     [--reason "<理由>"] [--design-root <設計書のルート>]
 #   record-acceptance.sh --self-test
+#
+# --judged は判定した時点の文書の同一性の値（sha256）。判定の直前に
+# `shasum -a 256 <文書>` で取る。共通設計文書は1件、単位は基本設計書・
+# 単体テスト設計書の2件を渡す。記録を書く直前に現在の値と突き合わせ、
+# 1件でも一致しなければ記録を作らない（第1回改善指示書1-23）。
 #
 # --design-root の既定は対象リポジトリのルート。合格の記録・基本設計書・
 # 単体テスト設計書・共通設計文書は設計書のルート配下で読み書きする。
@@ -34,9 +41,15 @@ set -u
 # 記録はreverse-shared/scripts/units-status.shの完了判定も更新する（無ければ
 # この更新だけ省く）。
 #
+# 観点の値に要確認が含まれるとき、--reasonへ確認事項一覧のキーを含める。
+# キーが<実行フォルダ>/confirmations/確認事項の記録.mdに実在しなければ
+# 記録を作らない（第1回改善指示書1-18）。
+#
 # 終了コード:
 #   0 = 記録を書いた
-#   2 = 使い方の誤り・種別が不正・判定の値が不正・共有部品が無い（判定不能）
+#   1 = 判定した時点と記録を書く時点で文書の同一性の値が食い違う（記録を作らない）
+#   2 = 使い方の誤り・種別が不正・判定の値が不正・共有部品が無い・
+#       要確認のキーが確認事項の記録に無い（判定不能）
 #
 # 保守責任者: 人手（ユーザー）。記録の形（キー）を変えるときは、本スクリプトと
 #   check-acceptance-record.shを同時に直す。
@@ -51,8 +64,8 @@ DESIGN_DOC_NAME_SH="${SCRIPT_DIR}/design-doc-name.sh"
 UNITS_STATUS_SH="${SCRIPT_DIR}/units-status.sh"
 
 usage_error() {
-  echo "使い方: record-acceptance.sh <対象> --run <実行フォルダ> --kind <種別> --unit <識別子> --verdict <合格|不合格|保留> --viewpoints \"<観点=合|否;...>\" [--reason \"...\"] [--design-root <設計書のルート>]" >&2
-  echo "        record-acceptance.sh <対象> --run <実行フォルダ> --common <文書名> --verdict <合格|不合格|保留> --viewpoints \"...\" [--reason \"...\"] [--design-root <設計書のルート>]" >&2
+  echo "使い方: record-acceptance.sh <対象> --run <実行フォルダ> --kind <種別> --unit <識別子> --verdict <合格|不合格|保留> --viewpoints \"<観点=合|否|要確認;...>\" --judged \"<文書名>=<sha256>;...\" [--reason \"...\"] [--design-root <設計書のルート>]" >&2
+  echo "        record-acceptance.sh <対象> --run <実行フォルダ> --common <文書名> --verdict <合格|不合格|保留> --viewpoints \"...\" --judged \"<文書名>=<sha256>\" [--reason \"...\"] [--design-root <設計書のルート>]" >&2
   echo "        record-acceptance.sh --self-test" >&2
   exit 2
 }
@@ -78,7 +91,94 @@ doc_sha_json() {
   jq -n --arg n "$name" --arg s "$sha" '{($n): $s}'
 }
 
-parse_viewpoints_json() {
+# 観点の値に要確認が含まれるとき、理由にその観点の確認事項一覧のキーが
+# 含まれているかを確かめる。$1: viewpoints  $2: reason  $3: run_dir
+# 確認事項の記録.md の1列目（キー）を候補として抽出し、reasonへ含まれるか
+# 見る。表の行を1件も抽出できない場合は、reasonがファイルへ丸ごと含まれる
+# かで判定する（形式を特定できない場合の代替）。
+check_yakukakunin_key() {
+  local viewpoints="$1" reason="$2" run_dir="$3"
+  case "$viewpoints" in
+    *=要確認*) ;;
+    *) return 0 ;;
+  esac
+  local conf_file="${run_dir%/}/confirmations/確認事項の記録.md"
+  if [ ! -f "$conf_file" ]; then
+    return 1
+  fi
+  local line key found=1
+  while IFS= read -r line; do
+    case "$line" in
+      '|'*) ;;
+      *) continue ;;
+    esac
+    case "$line" in
+      '|'*'---'*) continue ;;
+    esac
+    key="${line#|}"
+    key="${key%%|*}"
+    key="$(trim_str "$key")"
+    [ -n "$key" ] || continue
+    [ "$key" = "キー" ] && continue
+    found=0
+    case "$reason" in
+      *"$key"*) return 0 ;;
+    esac
+  done < "$conf_file"
+  if [ "$found" -eq 1 ]; then
+    case "$(cat "$conf_file")" in
+      *"$reason"*) [ -n "$reason" ] && return 0 ;;
+    esac
+  fi
+  return 1
+}
+
+# 判定（--verdict）と観点（--viewpoints）の整合を確かめる。$1: verdict
+# $2: viewpoints。保留は観点によらず許す（既定を置けない不明点は観点の
+# 外の事情のため）。否が1つでもあるのに合格、否が無く要確認と合だけなのに
+# 不合格は、record-acceptance.shが観点との整合を検査して確定する
+# （設計判断: 流れの設計「完了判定の状態」の「誰が決めるか」を参照）。
+check_verdict_viewpoint_consistency() {
+  local verdict="$1" viewpoints="$2"
+  [ "$verdict" = "保留" ] && return 0
+  local has_no=1
+  case "$viewpoints" in
+    *=否*) has_no=0 ;;
+  esac
+  if [ "$has_no" -eq 0 ] && [ "$verdict" = "合格" ]; then
+    return 1
+  fi
+  if [ "$has_no" -eq 1 ] && [ "$verdict" = "不合格" ]; then
+    return 2
+  fi
+  return 0
+}
+
+# 判定した時点の同一性の値（judged_json）と、記録を書く時点の現在値
+# （docs_json）を突き合わせる。docs_jsonの各文書名について一致しなければ
+# 標準エラーへ差分を出し、1件でも食い違えば1を返す（第1回改善指示書1-23）。
+check_judged_match() {
+  local judged_json="$1" docs_json="$2"
+  local name cur judged_val mismatch=0
+  for name in $(printf '%s' "$docs_json" | jq -r 'keys[]'); do
+    cur="$(printf '%s' "$docs_json" | jq -r --arg n "$name" '.[$n]')"
+    judged_val="$(printf '%s' "$judged_json" | jq -r --arg n "$name" '.[$n] // "__不在__"')"
+    if [ "$judged_val" = "__不在__" ] || [ "$judged_val" != "$cur" ]; then
+      echo "[FAIL] 同一性-判定後変更: ${name} が判定した後に変わっています" >&2
+      mismatch=1
+    fi
+  done
+  return "$mismatch"
+}
+
+trim_str() {
+  local s="$1"
+  s="${s#"${s%%[![:space:]]*}"}"
+  s="${s%"${s##*[![:space:]]}"}"
+  printf '%s' "$s"
+}
+
+parse_kv_pairs_json() {
   local vp="$1"
   [ -n "$vp" ] || { echo '{}'; return 0; }
   local old_ifs="$IFS" k v entries=""
@@ -106,7 +206,7 @@ execution_id_of() {
 }
 
 record_unit() {
-  local target="$1" run_dir="$2" kind="$3" unit="$4" verdict="$5" viewpoints="$6" reason="$7" design_root="$8"
+  local target="$1" run_dir="$2" kind="$3" unit="$4" verdict="$5" viewpoints="$6" reason="$7" design_root="$8" judged_json="$9"
   local folder
   folder="$(species_folder "$kind")"
   if [ -z "$folder" ]; then
@@ -138,9 +238,13 @@ record_unit() {
     "$(doc_sha_json "${unit_path}/${test_name}" "$test_name")" \
     | jq -s 'add')"
 
+  if ! check_judged_match "$judged_json" "$docs_json"; then
+    return 1
+  fi
+
   local commit vp_json exec_id out_dir out_file
   commit="$(git -C "$target" rev-parse --short HEAD 2>/dev/null)"
-  vp_json="$(parse_viewpoints_json "$viewpoints")"
+  vp_json="$(parse_kv_pairs_json "$viewpoints")"
   exec_id="$(execution_id_of "$run_dir")"
   out_dir="${design_root}/ai-work/records/basic-design-acceptance"
   mkdir -p "$out_dir" 2>/dev/null
@@ -161,12 +265,17 @@ record_unit() {
 }
 
 record_common() {
-  local target="$1" run_dir="$2" doc_name="$3" verdict="$4" viewpoints="$5" reason="$6" design_root="$7"
+  local target="$1" run_dir="$2" doc_name="$3" verdict="$4" viewpoints="$5" reason="$6" design_root="$7" judged_json="$8"
   local doc_path="${design_root}/docs/design/common/${doc_name}.md"
   local docs_json commit vp_json exec_id out_dir out_file
   docs_json="$(doc_sha_json "$doc_path" "${doc_name}.md")"
+
+  if ! check_judged_match "$judged_json" "$docs_json"; then
+    return 1
+  fi
+
   commit="$(git -C "$target" rev-parse --short HEAD 2>/dev/null)"
-  vp_json="$(parse_viewpoints_json "$viewpoints")"
+  vp_json="$(parse_kv_pairs_json "$viewpoints")"
   exec_id="$(execution_id_of "$run_dir")"
   out_dir="${design_root}/ai-work/records/basic-design-acceptance"
   mkdir -p "$out_dir" 2>/dev/null
@@ -186,7 +295,7 @@ run_main() {
   target="${target%/}"
   [ -d "$target" ] || usage_error
 
-  local run_dir="" kind="" unit="" common="" verdict="" viewpoints="" reason="" design_root="$target"
+  local run_dir="" kind="" unit="" common="" verdict="" viewpoints="" reason="" design_root="$target" judged=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --run) run_dir="$2"; shift 2 ;;
@@ -195,6 +304,7 @@ run_main() {
       --common) common="$2"; shift 2 ;;
       --verdict) verdict="$2"; shift 2 ;;
       --viewpoints) viewpoints="$2"; shift 2 ;;
+      --judged) judged="$2"; shift 2 ;;
       --reason) reason="$2"; shift 2 ;;
       --design-root) design_root="$2"; shift 2 ;;
       *) usage_error ;;
@@ -202,6 +312,7 @@ run_main() {
   done
 
   [ -n "$run_dir" ] || usage_error
+  [ -n "$judged" ] || usage_error
 
   case "$verdict" in
     合格|不合格|保留) ;;
@@ -211,12 +322,32 @@ run_main() {
       ;;
   esac
 
+  check_verdict_viewpoint_consistency "$verdict" "$viewpoints"
+  case "$?" in
+    1)
+      echo "[FAIL] 判定-観点不整合: 否があるため合格にできません" >&2
+      exit 2
+      ;;
+    2)
+      echo "[FAIL] 判定-観点不整合: 否が無いため不合格にできません" >&2
+      exit 2
+      ;;
+  esac
+
+  if ! check_yakukakunin_key "$viewpoints" "$reason" "$run_dir"; then
+    echo "[FAIL] 要確認-キー不在: 理由に確認事項一覧のキーがありません（${run_dir%/}/confirmations/確認事項の記録.md）" >&2
+    exit 2
+  fi
+
+  local judged_json
+  judged_json="$(parse_kv_pairs_json "$judged")"
+
   local rc
   if [ -n "$common" ]; then
-    record_common "$target" "$run_dir" "$common" "$verdict" "$viewpoints" "$reason" "$design_root"
+    record_common "$target" "$run_dir" "$common" "$verdict" "$viewpoints" "$reason" "$design_root" "$judged_json"
     rc=$?
   elif [ -n "$kind" ] && [ -n "$unit" ]; then
-    record_unit "$target" "$run_dir" "$kind" "$unit" "$verdict" "$viewpoints" "$reason" "$design_root"
+    record_unit "$target" "$run_dir" "$kind" "$unit" "$verdict" "$viewpoints" "$reason" "$design_root" "$judged_json"
     rc=$?
   else
     usage_error
@@ -246,6 +377,8 @@ self_test() {
     fi
   }
 
+  sha_of() { shasum -a 256 "$1" 2>/dev/null | awk '{print $1}'; }
+
   # --- 使い方エラー系 ---
   bash "$SCRIPT_DIR/record-acceptance.sh" > "$base/u1.out" 2>"$base/u1.err"
   check "使い方-引数無しは終了コード2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
@@ -254,15 +387,20 @@ self_test() {
   mkdir -p "$d" "$run"
   # gitのコミットは不要。対象のコミットが空でも記録は書ける（コミット=空文字）ことを確かめる
 
-  bash "$SCRIPT_DIR/record-acceptance.sh" "$d" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" --verdict 不明 --viewpoints "" > "$base/u2.out" 2>"$base/u2.err"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" --verdict 不明 --viewpoints "" --judged "x=y" > "$base/u2.out" 2>"$base/u2.err"
   check "使い方-判定不正は終了コード2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
+
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" --verdict 合格 --viewpoints "" > "$base/u3.out" 2>"$base/u3.err"
+  check "使い方-judged無しは終了コード2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
 
   # --- 単位の記録 ---
   mkdir -p "$d/docs/design/screens/src_pages_OrderList.tsx"
   echo "# 画面基本設計書" > "$d/docs/design/screens/src_pages_OrderList.tsx/画面基本設計書.md"
   echo "# 画面単体テスト設計書" > "$d/docs/design/screens/src_pages_OrderList.tsx/画面単体テスト設計書.md"
+  local judged1
+  judged1="画面基本設計書.md=$(sha_of "$d/docs/design/screens/src_pages_OrderList.tsx/画面基本設計書.md");画面単体テスト設計書.md=$(sha_of "$d/docs/design/screens/src_pages_OrderList.tsx/画面単体テスト設計書.md")"
   bash "$SCRIPT_DIR/record-acceptance.sh" "$d" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" \
-    --verdict 合格 --viewpoints "外部仕様の確定=合;単体テスト設計書の実在=合" --reason "" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合;単体テスト設計書の実在=合" --judged "$judged1" --reason "" \
     > "$base/r1.out" 2>"$base/r1.err"
   check "単位の記録: 終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
 
@@ -289,7 +427,7 @@ self_test() {
   mkdir -p "$d/docs/design/common"
   echo "# 基盤設計書" > "$d/docs/design/common/基盤設計書.md"
   bash "$SCRIPT_DIR/record-acceptance.sh" "$d" --run "$run" --common 基盤設計書 \
-    --verdict 不合格 --viewpoints "非機能の方式の確定=否" --reason "性能方式が未確定" \
+    --verdict 不合格 --viewpoints "非機能の方式の確定=否" --judged "基盤設計書.md=$(sha_of "$d/docs/design/common/基盤設計書.md")" --reason "性能方式が未確定" \
     > "$base/r2.out" 2>"$base/r2.err"
   check "共通設計文書の記録: 終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
 
@@ -305,8 +443,10 @@ self_test() {
   mkdir -p "$dc" "$design2/docs/design/screens/src_pages_OrderList.tsx"
   echo "# 画面基本設計書" > "$design2/docs/design/screens/src_pages_OrderList.tsx/画面基本設計書.md"
   echo "# 画面単体テスト設計書" > "$design2/docs/design/screens/src_pages_OrderList.tsx/画面単体テスト設計書.md"
+  local judged3
+  judged3="画面基本設計書.md=$(sha_of "$design2/docs/design/screens/src_pages_OrderList.tsx/画面基本設計書.md");画面単体テスト設計書.md=$(sha_of "$design2/docs/design/screens/src_pages_OrderList.tsx/画面単体テスト設計書.md")"
   bash "$SCRIPT_DIR/record-acceptance.sh" "$dc" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" \
-    --verdict 合格 --viewpoints "外部仕様の確定=合" --reason "" --design-root "$design2" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged3" --reason "" --design-root "$design2" \
     > "$base/r3.out" 2>"$base/r3.err"
   check "設計書ルート分離-合格" "$([ $? -eq 0 ] && echo 0 || echo 1)"
   total=$((total + 1))
@@ -326,8 +466,10 @@ self_test() {
   mkdir -p "$d2/docs/design/apis/api_get_orders"
   echo "# API基本設計書" > "$d2/docs/design/apis/api_get_orders/API基本設計書.md"
   echo "# API単体テスト設計書" > "$d2/docs/design/apis/api_get_orders/API単体テスト設計書.md"
+  local judged4
+  judged4="API基本設計書.md=$(sha_of "$d2/docs/design/apis/api_get_orders/API基本設計書.md");API単体テスト設計書.md=$(sha_of "$d2/docs/design/apis/api_get_orders/API単体テスト設計書.md")"
   bash "$SCRIPT_DIR/record-acceptance.sh" "$d2" --run "$run2" --kind api --unit "api/get_orders" \
-    --verdict 合格 --viewpoints "外部仕様の確定=合" --reason "" > "$base/r4.out" 2>"$base/r4.err"
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged4" --reason "" > "$base/r4.out" 2>"$base/r4.err"
   check "api種別: 終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
   local api_record="$d2/ai-work/records/basic-design-acceptance/api-api_get_orders.json"
   local api_basic api_test
@@ -339,8 +481,10 @@ self_test() {
   mkdir -p "$d2/docs/design/tables/orders"
   echo "# 論理データモデル" > "$d2/docs/design/tables/orders/論理データモデル.md"
   echo "# テーブル単体テスト設計書" > "$d2/docs/design/tables/orders/テーブル単体テスト設計書.md"
+  local judged5
+  judged5="論理データモデル.md=$(sha_of "$d2/docs/design/tables/orders/論理データモデル.md");テーブル単体テスト設計書.md=$(sha_of "$d2/docs/design/tables/orders/テーブル単体テスト設計書.md")"
   bash "$SCRIPT_DIR/record-acceptance.sh" "$d2" --run "$run2" --kind table --unit "orders" \
-    --verdict 合格 --viewpoints "外部仕様の確定=合" --reason "" > "$base/r5.out" 2>"$base/r5.err"
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged5" --reason "" > "$base/r5.out" 2>"$base/r5.err"
   check "table種別: 終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
   local table_record="$d2/ai-work/records/basic-design-acceptance/table-orders.json"
   local table_basic table_test
@@ -352,8 +496,10 @@ self_test() {
   mkdir -p "$d2/docs/design/features/注文機能"
   echo "# 機能設計書" > "$d2/docs/design/features/注文機能/機能設計書.md"
   echo "# 機能単体テスト設計書" > "$d2/docs/design/features/注文機能/機能単体テスト設計書.md"
+  local judged6
+  judged6="機能設計書.md=$(sha_of "$d2/docs/design/features/注文機能/機能設計書.md");機能単体テスト設計書.md=$(sha_of "$d2/docs/design/features/注文機能/機能単体テスト設計書.md")"
   bash "$SCRIPT_DIR/record-acceptance.sh" "$d2" --run "$run2" --kind feature --unit "注文機能" \
-    --verdict 合格 --viewpoints "外部仕様の確定=合" --reason "" > "$base/r6.out" 2>"$base/r6.err"
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged6" --reason "" > "$base/r6.out" 2>"$base/r6.err"
   check "feature種別: 終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
   local feature_record="$d2/ai-work/records/basic-design-acceptance/feature-注文機能.json"
   local feature_basic feature_test
@@ -364,7 +510,7 @@ self_test() {
 
   # --- 解釈できない種別は記録を作らず終了コード2 ---
   bash "$SCRIPT_DIR/record-acceptance.sh" "$d2" --run "$run2" --kind 不正種別 --unit "何か" \
-    --verdict 合格 --viewpoints "" --reason "" > "$base/r7.out" 2>"$base/r7.err"
+    --verdict 合格 --viewpoints "" --judged "x=y" --reason "" > "$base/r7.out" 2>"$base/r7.err"
   local rc7=$?
   check "解釈できない種別は終了コード2" "$([ "$rc7" -eq 2 ] && echo 0 || echo 1)"
   total=$((total + 1))
@@ -374,6 +520,74 @@ self_test() {
     echo "FAIL: 解釈できない種別は記録を作らない（記録ファイルが実在します）"
     fail=$((fail + 1))
   fi
+
+  # --- 要確認を含む合格の記録（確認事項一覧にキーが実在） ---
+  mkdir -p "${run2}/confirmations"
+  cat > "${run2}/confirmations/確認事項の記録.md" <<'CONFEOF'
+| キー | 単位 | 種類 | 事項 | 既定 | 反映先 | 回答 | 状態 |
+|---|---|---|---|---|---|---|---|
+| 性能-数値目標 | api/get_orders | 確認事項 | 性能の数値目標が無い | 既定なし | 方式設計書 | 未回答 | 未回答 |
+CONFEOF
+  local yk_record="$d2/ai-work/records/basic-design-acceptance/api-api_get_orders.json"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d2" --run "$run2" --kind api --unit "api/get_orders" \
+    --verdict 合格 --viewpoints "非機能の方式の確定=要確認" --judged "$judged4" --reason "性能-数値目標は要確認事項一覧に登録済み" \
+    > "$base/r8.out" 2>"$base/r8.err"
+  check "要確認を含む合格の記録は終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
+  local yk_vp
+  yk_vp="$(jq -r '.["観点"]["非機能の方式の確定"]' "$yk_record" 2>/dev/null)"
+  check "要確認を含む合格の記録: 観点の値が要確認" "$([ "$yk_vp" = "要確認" ] && echo 0 || echo 1)"
+
+  # --- 要確認でキー不在なら終了コード2で記録を作らない ---
+  rm -f "$yk_record"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d2" --run "$run2" --kind api --unit "api/get_orders" \
+    --verdict 合格 --viewpoints "非機能の方式の確定=要確認" --judged "$judged4" --reason "根拠のないキー" \
+    > "$base/r9.out" 2>"$base/r9.err"
+  local rc9=$?
+  check "要確認でキー不在は終了コード2" "$([ "$rc9" -eq 2 ] && echo 0 || echo 1)"
+  check "要確認でキー不在の理由に要確認-キー不在" "$(grep -qF '要確認-キー不在' "$base/r9.err" && echo 0 || echo 1)"
+  total=$((total + 1))
+  if [ ! -f "$yk_record" ]; then
+    echo "PASS: 要確認でキー不在は記録を作らない"
+  else
+    echo "FAIL: 要確認でキー不在は記録を作らない（記録ファイルが実在します）"
+    fail=$((fail + 1))
+  fi
+
+  # --- 判定と観点の整合（コードレビュー警告1: 否ありなのに合格・要確認のみなのに不合格） ---
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d2" --run "$run2" --kind api --unit "api/get_orders" \
+    --verdict 合格 --viewpoints "非機能の方式の確定=否" --judged "$judged4" --reason "" \
+    > "$base/r12.out" 2>"$base/r12.err"
+  local rc12=$?
+  check "否ありなのに合格は終了コード2" "$([ "$rc12" -eq 2 ] && echo 0 || echo 1)"
+  check "否ありなのに合格の理由に判定-観点不整合" "$(grep -qF '判定-観点不整合' "$base/r12.err" && echo 0 || echo 1)"
+
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d2" --run "$run2" --kind api --unit "api/get_orders" \
+    --verdict 不合格 --viewpoints "非機能の方式の確定=要確認" --judged "$judged4" --reason "性能-数値目標は要確認事項一覧に登録済み" \
+    > "$base/r13.out" 2>"$base/r13.err"
+  local rc13=$?
+  check "要確認のみなのに不合格は終了コード2" "$([ "$rc13" -eq 2 ] && echo 0 || echo 1)"
+  check "要確認のみなのに不合格の理由に判定-観点不整合" "$(grep -qF '判定-観点不整合' "$base/r13.err" && echo 0 || echo 1)"
+
+  # --- 判定した時点と記録を書く時点の同一性の食い違い（第1回改善指示書1-23） ---
+  local judged_old="画面基本設計書.md=$(sha_of "$d/docs/design/screens/src_pages_OrderList.tsx/画面基本設計書.md");画面単体テスト設計書.md=$(sha_of "$d/docs/design/screens/src_pages_OrderList.tsx/画面単体テスト設計書.md")"
+  echo "# 画面基本設計書（改訂）" > "$d/docs/design/screens/src_pages_OrderList.tsx/画面基本設計書.md"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged_old" --reason "" \
+    > "$base/r10.out" 2>"$base/r10.err"
+  local rc10=$?
+  check "判定後に文書が変わったら終了コード1" "$([ "$rc10" -eq 1 ] && echo 0 || echo 1)"
+  check "判定後に文書が変わったら理由に同一性-判定後変更" "$(grep -qF '同一性-判定後変更' "$base/r10.err" && echo 0 || echo 1)"
+  local before_mtime after_mtime
+  before_mtime="$(jq -r '.["文書"]["画面基本設計書.md"]' "$record_file" 2>/dev/null)"
+  check "判定後に文書が変わっても既存の記録は上書きされない" "$([ "$before_mtime" = "$sha_expected1" ] && echo 0 || echo 1)"
+
+  # --- 判定した時点と記録を書く時点が同じなら終了コード0 ---
+  local judged_now
+  judged_now="画面基本設計書.md=$(sha_of "$d/docs/design/screens/src_pages_OrderList.tsx/画面基本設計書.md");画面単体テスト設計書.md=$(sha_of "$d/docs/design/screens/src_pages_OrderList.tsx/画面単体テスト設計書.md")"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged_now" --reason "" \
+    > "$base/r11.out" 2>"$base/r11.err"
+  check "判定した時点と記録を書く時点が同じなら終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then

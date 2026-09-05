@@ -21,19 +21,27 @@ set -u
 # エラー設計書・共通外部仕様書・基盤設計書）すべての合格を確かめる
 # （工程2-7・2-8の入口はこの形で呼ぶ）。
 #
+# 判定が保留の記録は、標準エラーへ[SKIP]判定-保留を出して飛ばす。飛ばした
+# 記録は不合格に数えず、同一性の照合も行わない。呼び出し側に断りの引数は
+# 無く、この既定の振る舞いが完了の唯一の定義になる（第1回改善指示書
+# 1-17。引数で切り替える案は意味を2つ残し付け忘れで再発するため退けた）。
+#
 # 単位のフォルダ名はreverse-shared/scripts/unit-dir-name.shで作る（唯一の
 # 定義を再実装しない）。
 #
 # 検査キー（内容を要約した意味語。連番禁止）:
-#   記録-不在      合格の記録ファイルが実在しない
-#   判定-不合格    記録の判定が合格ではない（不合格・保留・不明）
-#   同一性-不一致  記録のsha256と現在の文書のsha256が一致しない
-#   共有部品-不在  unit-dir-name.shが無い（--kind指定時）
+#   記録-不在        合格の記録ファイルが実在しない
+#   判定-保留（飛ばす）  記録の判定が保留（不合格に数えず飛ばす）
+#   判定-不合格（不合格・不明）  記録の判定が不合格または不明（保留は含まない）
+#   同一性-不一致    記録のsha256と現在の文書のsha256が一致しない
+#   共有部品-不在    unit-dir-name.shが無い（--kind指定時）
 #
 # 終了コード:
-#   0 = 対象の記録が実在し判定=合格で、文書のsha256がすべて一致
-#   1 = 記録が無い・判定が合格でない・sha256が不一致
+#   0 = 対象の記録（保留を除く）が実在し判定=合格で、文書のsha256が一致
+#   1 = 記録が無い・判定が不合格または不明・sha256が不一致（保留は除く）
 #   2 = 使い方の誤り（判定不能）
+#
+# 標準出力: 照合を終えると「照合 N 件 / 飛ばした保留 M 件」を1行出す。
 #
 # 保守責任者: 人手（ユーザー）。共通設計文書6つの一覧や記録の形を変えるときは、
 #   本スクリプトとrecord-acceptance.shを同時に直す。
@@ -66,16 +74,23 @@ species_folder() {
   esac
 }
 
-# 記録ファイルの判定=合格・文書のsha256一致を確かめる。$1: 対象  $2: 記録ファイル
-# $3: 文書ディレクトリ（記録の「文書」キーがこの下のファイル名に対応する）
+# 記録ファイルの判定=合格・文書のsha256一致を確かめる。$1: 記録ファイル
+# $2: 文書ディレクトリ（記録の「文書」キーがこの下のファイル名に対応する）
+# 判定が保留の記録は不合格に数えず飛ばす（CHECKED_COUNT/SKIPPED_PENDING_COUNTへ集計）。
 check_record_record() {
   local record="$1" doc_dir="$2"
+  CHECKED_COUNT=$((CHECKED_COUNT + 1))
   if [ ! -f "$record" ]; then
     echo "[FAIL] 記録-不在: ${record} が実在しません" >&2
     return 1
   fi
   local verdict
   verdict="$(jq -r '.["判定"] // empty' "$record" 2>/dev/null)"
+  if [ "$verdict" = "保留" ]; then
+    echo "[SKIP] 判定-保留: ${record} は保留のため照合を飛ばします" >&2
+    SKIPPED_PENDING_COUNT=$((SKIPPED_PENDING_COUNT + 1))
+    return 0
+  fi
   if [ "$verdict" != "合格" ]; then
     echo "[FAIL] 判定-不合格: ${record} の判定は「${verdict:-空}」です" >&2
     return 1
@@ -143,6 +158,9 @@ run_main() {
     esac
   done
 
+  CHECKED_COUNT=0
+  SKIPPED_PENDING_COUNT=0
+
   local rc
   if [ "$common_mode" -eq 1 ]; then
     check_record_common_all "$design_root"
@@ -153,6 +171,7 @@ run_main() {
   else
     usage_error
   fi
+  echo "照合 ${CHECKED_COUNT} 件 / 飛ばした保留 ${SKIPPED_PENDING_COUNT} 件"
   exit "$rc"
 }
 
@@ -187,11 +206,14 @@ self_test() {
   echo "# 画面単体テスト設計書" > "$d/docs/design/screens/src_pages_OrderList.tsx/画面単体テスト設計書.md"
 
   local record_sh="${SCRIPT_DIR}/record-acceptance.sh"
+  sha_of() { shasum -a 256 "$1" 2>/dev/null | awk '{print $1}'; }
   local run="$base/run"
   mkdir -p "$run"
 
   bash "$record_sh" "$d" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" \
-    --verdict 合格 --viewpoints "外部仕様の確定=合" --reason "" > /dev/null 2>&1
+    --verdict 合格 --viewpoints "外部仕様の確定=合" \
+    --judged "画面基本設計書.md=$(sha_of "$d/docs/design/screens/src_pages_OrderList.tsx/画面基本設計書.md");画面単体テスト設計書.md=$(sha_of "$d/docs/design/screens/src_pages_OrderList.tsx/画面単体テスト設計書.md")" \
+    --reason "" > /dev/null 2>&1
   bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d" --kind screen --unit "src/pages/OrderList.tsx" \
     > "$base/v1.out" 2>"$base/v1.err"
   check "合格記録は終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
@@ -214,7 +236,8 @@ self_test() {
   local name
   for name in 業務仕様書 方式設計書 データ設計書 エラー設計書 共通外部仕様書 基盤設計書; do
     echo "# ${name}" > "$d/docs/design/common/${name}.md"
-    bash "$record_sh" "$d" --run "$run" --common "$name" --verdict 合格 --viewpoints "" --reason "" > /dev/null 2>&1
+    bash "$record_sh" "$d" --run "$run" --common "$name" --verdict 合格 --viewpoints "" \
+      --judged "${name}.md=$(sha_of "$d/docs/design/common/${name}.md")" --reason "" > /dev/null 2>&1
   done
   bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d" --common > "$base/v4.out" 2>"$base/v4.err"
   check "共通設計文書6つとも合格なら終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
@@ -230,7 +253,9 @@ self_test() {
   echo "# 画面基本設計書" > "$design3/docs/design/screens/src_pages_OrderList.tsx/画面基本設計書.md"
   echo "# 画面単体テスト設計書" > "$design3/docs/design/screens/src_pages_OrderList.tsx/画面単体テスト設計書.md"
   bash "$record_sh" "$dc2" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" \
-    --verdict 合格 --viewpoints "外部仕様の確定=合" --reason "" --design-root "$design3" > /dev/null 2>&1
+    --verdict 合格 --viewpoints "外部仕様の確定=合" \
+    --judged "画面基本設計書.md=$(sha_of "$design3/docs/design/screens/src_pages_OrderList.tsx/画面基本設計書.md");画面単体テスト設計書.md=$(sha_of "$design3/docs/design/screens/src_pages_OrderList.tsx/画面単体テスト設計書.md")" \
+    --reason "" --design-root "$design3" > /dev/null 2>&1
   bash "$SCRIPT_DIR/check-acceptance-record.sh" "$dc2" --kind screen --unit "src/pages/OrderList.tsx" --design-root "$design3" \
     > "$base/v6.out" 2>"$base/v6.err"
   check "設計書ルート分離-合格" "$([ $? -eq 0 ] && echo 0 || echo 1)"
@@ -243,7 +268,9 @@ self_test() {
   echo "# API基本設計書" > "$d2/docs/design/apis/api_get_orders/API基本設計書.md"
   echo "# API単体テスト設計書" > "$d2/docs/design/apis/api_get_orders/API単体テスト設計書.md"
   bash "$record_sh" "$d2" --run "$run2" --kind api --unit "api/get_orders" \
-    --verdict 合格 --viewpoints "外部仕様の確定=合" --reason "" > /dev/null 2>&1
+    --verdict 合格 --viewpoints "外部仕様の確定=合" \
+    --judged "API基本設計書.md=$(sha_of "$d2/docs/design/apis/api_get_orders/API基本設計書.md");API単体テスト設計書.md=$(sha_of "$d2/docs/design/apis/api_get_orders/API単体テスト設計書.md")" \
+    --reason "" > /dev/null 2>&1
   bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d2" --kind api --unit "api/get_orders" \
     > "$base/v7.out" 2>"$base/v7.err"
   check "api種別: 記録直後の照合は終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
@@ -252,7 +279,9 @@ self_test() {
   echo "# 論理データモデル" > "$d2/docs/design/tables/orders/論理データモデル.md"
   echo "# テーブル単体テスト設計書" > "$d2/docs/design/tables/orders/テーブル単体テスト設計書.md"
   bash "$record_sh" "$d2" --run "$run2" --kind table --unit "orders" \
-    --verdict 合格 --viewpoints "外部仕様の確定=合" --reason "" > /dev/null 2>&1
+    --verdict 合格 --viewpoints "外部仕様の確定=合" \
+    --judged "論理データモデル.md=$(sha_of "$d2/docs/design/tables/orders/論理データモデル.md");テーブル単体テスト設計書.md=$(sha_of "$d2/docs/design/tables/orders/テーブル単体テスト設計書.md")" \
+    --reason "" > /dev/null 2>&1
   bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d2" --kind table --unit "orders" \
     > "$base/v8.out" 2>"$base/v8.err"
   check "table種別: 記録直後の照合は終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
@@ -261,10 +290,68 @@ self_test() {
   echo "# 機能設計書" > "$d2/docs/design/features/注文機能/機能設計書.md"
   echo "# 機能単体テスト設計書" > "$d2/docs/design/features/注文機能/機能単体テスト設計書.md"
   bash "$record_sh" "$d2" --run "$run2" --kind feature --unit "注文機能" \
-    --verdict 合格 --viewpoints "外部仕様の確定=合" --reason "" > /dev/null 2>&1
+    --verdict 合格 --viewpoints "外部仕様の確定=合" \
+    --judged "機能設計書.md=$(sha_of "$d2/docs/design/features/注文機能/機能設計書.md");機能単体テスト設計書.md=$(sha_of "$d2/docs/design/features/注文機能/機能単体テスト設計書.md")" \
+    --reason "" > /dev/null 2>&1
   bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d2" --kind feature --unit "注文機能" \
     > "$base/v9.out" 2>"$base/v9.err"
   check "feature種別: 記録直後の照合は終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
+
+  # --- 保留の単位は既定で飛ばす ---
+  local d3="$base/target3"
+  mkdir -p "$d3/docs/design/screens/src_pages_Pending.tsx" "$d3/ai-work/records/basic-design-acceptance"
+  echo "# 画面基本設計書" > "$d3/docs/design/screens/src_pages_Pending.tsx/画面基本設計書.md"
+  echo "# 画面単体テスト設計書" > "$d3/docs/design/screens/src_pages_Pending.tsx/画面単体テスト設計書.md"
+  bash "$record_sh" "$d3" --run "$run" --kind screen --unit "src/pages/Pending.tsx" \
+    --verdict 保留 --viewpoints "不明点の不在=否" \
+    --judged "画面基本設計書.md=$(sha_of "$d3/docs/design/screens/src_pages_Pending.tsx/画面基本設計書.md");画面単体テスト設計書.md=$(sha_of "$d3/docs/design/screens/src_pages_Pending.tsx/画面単体テスト設計書.md")" \
+    --reason "既定を置けない不明点がある" > /dev/null 2>&1
+  bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d3" --kind screen --unit "src/pages/Pending.tsx" \
+    > "$base/v10.out" 2>"$base/v10.err"
+  check "保留の単位は終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
+  check "保留の単位は理由にSKIP判定-保留" "$(grep -qF '判定-保留' "$base/v10.err" && echo 0 || echo 1)"
+
+  bash "$record_sh" "$d3" --run "$run" --kind screen --unit "src/pages/Pending.tsx" \
+    --verdict 不合格 --viewpoints "不明点の不在=否" \
+    --judged "画面基本設計書.md=$(sha_of "$d3/docs/design/screens/src_pages_Pending.tsx/画面基本設計書.md");画面単体テスト設計書.md=$(sha_of "$d3/docs/design/screens/src_pages_Pending.tsx/画面単体テスト設計書.md")" \
+    --reason "業務ルールが未確定" > /dev/null 2>&1
+  bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d3" --kind screen --unit "src/pages/Pending.tsx" \
+    > "$base/v11.out" 2>"$base/v11.err"
+  check "保留でなく不合格なら終了コード1" "$([ $? -eq 1 ] && echo 0 || echo 1)"
+  check "保留でなく不合格なら理由に判定-不合格" "$(grep -qF '判定-不合格' "$base/v11.err" && echo 0 || echo 1)"
+
+  # --- 共通設計文書の1つが保留でも残りが合格なら終了コード0 ---
+  mkdir -p "$d3/docs/design/common"
+  for name in 業務仕様書 方式設計書 データ設計書 エラー設計書 共通外部仕様書; do
+    echo "# ${name}" > "$d3/docs/design/common/${name}.md"
+    bash "$record_sh" "$d3" --run "$run" --common "$name" --verdict 合格 --viewpoints "" \
+      --judged "${name}.md=$(sha_of "$d3/docs/design/common/${name}.md")" --reason "" > /dev/null 2>&1
+  done
+  echo "# 基盤設計書" > "$d3/docs/design/common/基盤設計書.md"
+  bash "$record_sh" "$d3" --run "$run" --common 基盤設計書 \
+    --verdict 保留 --viewpoints "" \
+    --judged "基盤設計書.md=$(sha_of "$d3/docs/design/common/基盤設計書.md")" --reason "既定を置けない不明点がある" > /dev/null 2>&1
+  bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d3" --common \
+    > "$base/v12.out" 2>"$base/v12.err"
+  check "共通設計文書の1つが保留でも残りが合格なら終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
+  check "共通設計文書の保留はSKIP判定-保留" "$(grep -qF '判定-保留' "$base/v12.err" && echo 0 || echo 1)"
+
+  # --- 観点に要確認を含む合格の記録は照合で終了コード0 ---
+  mkdir -p "$d3/docs/design/screens/src_pages_YakuKakunin.tsx" "$run/confirmations"
+  echo "# 画面基本設計書" > "$d3/docs/design/screens/src_pages_YakuKakunin.tsx/画面基本設計書.md"
+  echo "# 画面単体テスト設計書" > "$d3/docs/design/screens/src_pages_YakuKakunin.tsx/画面単体テスト設計書.md"
+  cat > "$run/confirmations/確認事項の記録.md" <<'CONFEOF'
+| キー | 単位 | 種類 | 事項 | 既定 | 反映先 | 回答 | 状態 |
+|---|---|---|---|---|---|---|---|
+| 性能-数値目標 | src/pages/YakuKakunin.tsx | 確認事項 | 性能の数値目標が無い | 既定なし | 方式設計書 | 未回答 | 未回答 |
+CONFEOF
+  bash "$record_sh" "$d3" --run "$run" --kind screen --unit "src/pages/YakuKakunin.tsx" \
+    --verdict 合格 --viewpoints "非機能の方式の確定=要確認" \
+    --judged "画面基本設計書.md=$(sha_of "$d3/docs/design/screens/src_pages_YakuKakunin.tsx/画面基本設計書.md");画面単体テスト設計書.md=$(sha_of "$d3/docs/design/screens/src_pages_YakuKakunin.tsx/画面単体テスト設計書.md")" \
+    --reason "性能-数値目標は要確認事項一覧に登録済み" > /dev/null 2>&1
+  bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d3" --kind screen --unit "src/pages/YakuKakunin.tsx" \
+    > "$base/v13.out" 2>"$base/v13.err"
+  check "要確認を含む合格の記録は照合で終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then
