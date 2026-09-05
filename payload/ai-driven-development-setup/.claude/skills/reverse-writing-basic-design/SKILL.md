@@ -38,7 +38,7 @@ requires: [reverse-extracting-code-readings, reverse-listing-units]
 3. 種別ごとに `bash ../reverse-shared/scripts/list-units-of.sh <対象> <種別>` で単位を列挙する
 4. 単位ごとに、読み取り結果ファイル・共通設計文書・要件定義書・機能と単位の対応表・調査と検出条件の定義書の節 8（用語の候補）を読む。種別に対応する `templates/<種別key>/` 配下の様式（後述「種別ごとの様式」表）を複製して埋める。読み取り結果の各項目を業務の言葉に写し、読み取り結果の項目名はそのまま `### <項目名>` の見出しにする。コードの名前が業務の言葉に写せないときは、用語の追加候補として要確認事項一覧に登録する。記述は後述「記述の3区分」に従い分ける
 5. テスト設計書の出力（`../reverse-shared/scripts/read-run.sh <実行フォルダ> テスト設計書の出力`）を確認する。「出力する」のときだけ、同じ単位について種別に対応する単体テスト設計書の様式を複製して埋める。テストの観点は読み取り結果と要件定義書の受入条件から起こす。「出力しない」のときは単体テスト設計書を作らない
-6. 埋め終えたら後述「実装用語の混入検査」の種別ごとの検出パターンで grep する。検出0件になるまで該当箇所を業務語彙へ書き直す
+6. 埋め終えたら手順7の検査（`scripts/check-basic-design.sh` の検査キー `実装用語-混入` を含む）で確かめる
 7. `bash scripts/check-basic-design.sh <対象> --run <実行フォルダ> --kind <種別> --design-root <設計書の置き場>` を実行する
 8. 終了コードを見る。0 なら次の種別へ進む。1 なら不合格の理由が名指しする項目を、読み取り結果とコードを再度読んで書き出し、4 へ戻る。理由に無い箇所は変えない。欠けが無くなるまで回数の上限なく戻る。読み取り結果に無い項目が設計書に要るときは差し戻し先「読み取り結果-不足」として読み取り結果を取り出す機能の当該単位へ戻る
 9. 単位が合格したら `bash ../reverse-shared/scripts/units-status.sh <実行フォルダ> set <種別> <識別子> 基本設計 済` を記録する
@@ -112,15 +112,7 @@ requires: [reverse-extracting-code-readings, reverse-listing-units]
 
 ### 実装用語の混入検査
 
-埋め終えた文書へ次の型で grep をかけ、検出0件を確認する。検出した箇所は業務語彙へ書き直す。
-
-| 種別 | 検出パターンの例 |
-|---|---|
-| screen | `useState\|useEffect\|Props\b\|interface [A-Z]\|: *(string\|number\|boolean)\b\|\.(tsx\|ts\|jsx\|js\|css)\b` |
-| api | `interface [A-Z]\|class [A-Z].*:\|def [a-z_]+\(\|: *(string\|number\|boolean)\b\|FastAPI\|Express\|@app\.(get\|post\|put\|delete)\|\.(py\|pl\|pm\|cgi\|rb\|go\|java)\b` |
-| batch・report・external | `interface [A-Z]\|: *(string\|number\|boolean)\b\|styled-components\|FastAPI\|Express\|@app\.(get\|post\|put\|delete)\|\.(py\|pl\|pm\|cgi\|rb\|go\|java)\b` |
-| table | `interface [A-Z]\|: *(string\|number\|boolean)\b\|CREATE TABLE\|PRIMARY KEY\|FOREIGN KEY\|\.(sql\|py\|ts\|js\|prisma)\b` |
-| feature | 含む構成要素の種別の検出の型を併用する |
+検出の型は `scripts/check-basic-design.sh` の検査キー `実装用語-混入` が唯一の定義として持つ（`impl_term_pattern` 関数）。対象は本文であり、観測の出どころ・構成要素一覧の節の内側と前付けは検査の対象外である。前付けは読み手が読む本文ではなく、一覧マニフェストを組み立てる元データである（代表ファイル選定契約の詳細は本SKILL.mdの外の共通規約を参照）。閉じの`---`が無い場合は前付けとみなさず、全体を本文として検査する。
 
 内部成果物の名前（読み取り結果ファイルのパス・`code-reading-items`・`取り出した実行`）も本文に書かない。
 

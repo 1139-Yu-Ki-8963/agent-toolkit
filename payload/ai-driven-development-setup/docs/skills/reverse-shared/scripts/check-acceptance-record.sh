@@ -183,8 +183,8 @@ self_test() {
 
   local d="$base/target"
   mkdir -p "$d/docs/design/screens/src_pages_OrderList.tsx" "$d/ai-work/records/basic-design-acceptance"
-  echo "# 基本設計書" > "$d/docs/design/screens/src_pages_OrderList.tsx/基本設計書.md"
-  echo "# 単体テスト設計書" > "$d/docs/design/screens/src_pages_OrderList.tsx/単体テスト設計書.md"
+  echo "# 画面基本設計書" > "$d/docs/design/screens/src_pages_OrderList.tsx/画面基本設計書.md"
+  echo "# 画面単体テスト設計書" > "$d/docs/design/screens/src_pages_OrderList.tsx/画面単体テスト設計書.md"
 
   local record_sh="${SCRIPT_DIR}/record-acceptance.sh"
   local run="$base/run"
@@ -196,7 +196,7 @@ self_test() {
     > "$base/v1.out" 2>"$base/v1.err"
   check "合格記録は終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
 
-  echo "# 変更後" > "$d/docs/design/screens/src_pages_OrderList.tsx/基本設計書.md"
+  echo "# 変更後" > "$d/docs/design/screens/src_pages_OrderList.tsx/画面基本設計書.md"
   bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d" --kind screen --unit "src/pages/OrderList.tsx" \
     > "$base/v2.out" 2>"$base/v2.err"
   local rc2=$?
@@ -227,13 +227,44 @@ self_test() {
   # --- 設計書ルート分離-対象に書かない ---
   local dc2="$base/target-code-only" design3="$base/design3"
   mkdir -p "$dc2" "$design3/docs/design/screens/src_pages_OrderList.tsx" "$design3/ai-work/records/basic-design-acceptance"
-  echo "# 基本設計書" > "$design3/docs/design/screens/src_pages_OrderList.tsx/基本設計書.md"
-  echo "# 単体テスト設計書" > "$design3/docs/design/screens/src_pages_OrderList.tsx/単体テスト設計書.md"
+  echo "# 画面基本設計書" > "$design3/docs/design/screens/src_pages_OrderList.tsx/画面基本設計書.md"
+  echo "# 画面単体テスト設計書" > "$design3/docs/design/screens/src_pages_OrderList.tsx/画面単体テスト設計書.md"
   bash "$record_sh" "$dc2" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" \
     --verdict 合格 --viewpoints "外部仕様の確定=合" --reason "" --design-root "$design3" > /dev/null 2>&1
   bash "$SCRIPT_DIR/check-acceptance-record.sh" "$dc2" --kind screen --unit "src/pages/OrderList.tsx" --design-root "$design3" \
     > "$base/v6.out" 2>"$base/v6.err"
   check "設計書ルート分離-合格" "$([ $? -eq 0 ] && echo 0 || echo 1)"
+
+  # --- 種別ごとの文書名で記録直後の照合が0（api・table・feature） ---
+  local d2="$base/target2" run2="$base/run2"
+  mkdir -p "$d2" "$run2"
+
+  mkdir -p "$d2/docs/design/apis/api_get_orders"
+  echo "# API基本設計書" > "$d2/docs/design/apis/api_get_orders/API基本設計書.md"
+  echo "# API単体テスト設計書" > "$d2/docs/design/apis/api_get_orders/API単体テスト設計書.md"
+  bash "$record_sh" "$d2" --run "$run2" --kind api --unit "api/get_orders" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --reason "" > /dev/null 2>&1
+  bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d2" --kind api --unit "api/get_orders" \
+    > "$base/v7.out" 2>"$base/v7.err"
+  check "api種別: 記録直後の照合は終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
+
+  mkdir -p "$d2/docs/design/tables/orders"
+  echo "# 論理データモデル" > "$d2/docs/design/tables/orders/論理データモデル.md"
+  echo "# テーブル単体テスト設計書" > "$d2/docs/design/tables/orders/テーブル単体テスト設計書.md"
+  bash "$record_sh" "$d2" --run "$run2" --kind table --unit "orders" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --reason "" > /dev/null 2>&1
+  bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d2" --kind table --unit "orders" \
+    > "$base/v8.out" 2>"$base/v8.err"
+  check "table種別: 記録直後の照合は終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
+
+  mkdir -p "$d2/docs/design/features/注文機能"
+  echo "# 機能設計書" > "$d2/docs/design/features/注文機能/機能設計書.md"
+  echo "# 機能単体テスト設計書" > "$d2/docs/design/features/注文機能/機能単体テスト設計書.md"
+  bash "$record_sh" "$d2" --run "$run2" --kind feature --unit "注文機能" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --reason "" > /dev/null 2>&1
+  bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d2" --kind feature --unit "注文機能" \
+    > "$base/v9.out" 2>"$base/v9.err"
+  check "feature種別: 記録直後の照合は終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then

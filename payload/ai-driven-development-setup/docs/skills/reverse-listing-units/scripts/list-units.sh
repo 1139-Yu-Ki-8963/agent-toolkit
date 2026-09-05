@@ -25,8 +25,11 @@ set -u
 # 調査と検出条件の定義書の節9「到達範囲」を読み、`json 検出条件` の囲みを持たない種別（一覧化が
 # 「対象外」または「AI の読み取り」の種別）も集計へ書く。対象外は判定と対象外の理由を、AI の読み取り
 # は読みの一致（値は空。手で埋める）を持たせる。集計を書き出す前に既存の一覧の集計.jsonを読み、
-# 実行器が作らない鍵（読みの一致の値等）は引き継ぐ。これにより同じ入力で何度実行しても
-# 到達範囲の記録が消えない（冪等）。
+# 囲みを持たない種別（到達範囲の対象外・AI の読み取り）に限り、実行器が作らない鍵（読みの一致の値等）
+# を引き継ぐ。これにより同じ入力で何度実行しても到達範囲の記録が消えない（冪等）。
+# 囲みを持つ種別（`json 検出条件` の対象、$all_species に含まれる種別）は、種別が対象外・AI の
+# 読み取りから機械へ切り替わったとき旧い到達範囲・対象外の理由の鍵を残さないよう、今回の実測を
+# 丸ごと採用し既存の値と合成しない。
 #
 # 検査キー（内容を要約した意味語。連番禁止）:
 #   検出条件-形式    ```json 検出条件``` の囲みがJSONとして読めない、または
@@ -782,16 +785,26 @@ GLOBS
   done < <(read_reach_rows "$map")
 
   # --- 既存の一覧の集計.jsonを読み、実行器が作らない鍵（読みの一致の値等）を引き継いで書き出す ---
-  local new_agg
+  # `json 検出条件`の囲みを持つ種別（$all_speciesに含まれる種別）は、今回の
+  # 実測を丸ごと採用する（旧い到達範囲・対象外の理由の鍵を残さない）。
+  # 囲みを持たない種別（到達範囲の対象外・AIの読み取り）だけ、既存の値を
+  # 引き継ぐ合成を行う。
+  local new_agg covered_json
   new_agg="$(jq -s 'add // {}' "$work/agg.jsonl")"
+  covered_json="$(printf '%s\n' "$all_species" | jq -R -s -c 'split("\n") | map(select(length>0))')"
   if [ -f "$out/一覧の集計.json" ] && jq -e . "$out/一覧の集計.json" > /dev/null 2>&1; then
-    jq -n --argjson old "$(cat "$out/一覧の集計.json")" --argjson new "$new_agg" '
+    jq -n --argjson old "$(cat "$out/一覧の集計.json")" --argjson new "$new_agg" --argjson covered "$covered_json" '
       $new | with_entries(
         .key as $k
         | ($old[$k] // {}) as $o
+        | .value as $n_full
         | (.value | with_entries(select(.key != "読みの一致" or .value != ""))) as $n
-        | .value = ($o + $n)
-        | if (($new[$k] | has("読みの一致")) and ((.value | has("読みの一致")) | not)) then .value["読みの一致"] = "" else . end
+        | if ($covered | index($k)) then
+            .value = $n_full
+          else
+            (.value = ($o + $n))
+            | if (($new[$k] | has("読みの一致")) and ((.value | has("読みの一致")) | not)) then .value["読みの一致"] = "" else . end
+          end
       )' > "$out/一覧の集計.json"
   else
     printf '%s\n' "$new_agg" > "$out/一覧の集計.json"
@@ -1211,6 +1224,38 @@ EOF2
   check "到達範囲-読みの一致が再実行で残る: 終了コード0" "$([ "$rc13_3" -eq 0 ] && echo 0 || echo 1)"
   check "到達範囲-読みの一致が再実行で残る: 値が保持される" "$([ "$external_yomi13_3" = "2 回の読みが一致" ] && echo 0 || echo 1)"
   check "到達範囲-読みの一致が再実行で残る: batchの理由も残る" "$([ "$batch_reason13_3" = "定期実行の処理が無い" ] && echo 0 || echo 1)"
+
+  # --- 遷移-対象外から機械へ切り替わった種別に旧い鍵が残らない ---
+  local d14="$base/case14"
+  make_fixture "$d14"
+  # 表のjson検出条件の囲みを外し、節9で表を対象外にする
+  perl -0pi -e 's/```json 検出条件\n\{\n  "種別": "table".*?\n```\n\n//s' "$d14/docs/design/common/調査と検出条件の定義書.md"
+  cat >> "$d14/docs/design/common/調査と検出条件の定義書.md" <<'EOF4'
+
+## 9. 到達範囲
+
+| 種別 | 一覧化 | 読み取り結果の取り出し | 基本設計 | 詳細設計 | 理由 |
+|---|---|---|---|---|---|
+| 画面 | 機械 | 機械 | 機械 | 機械 | 画面の部品がある |
+| 接続窓口 | 機械 | 機械 | 機械 | 機械 | 経路の定義がある |
+| 表 | 対象外 | 対象外 | 対象外 | 対象外 | 検証用 |
+EOF4
+  bash "$SCRIPT_DIR/list-units.sh" "$d14" --out "$d14/docs/design/lists" > "$base/case14-1.out" 2>"$base/case14-1.err"
+  local rc14_1=$?
+  local table_reach14_1
+  table_reach14_1="$(jq -r '.table["到達範囲"]' "$d14/docs/design/lists/一覧の集計.json" 2>/dev/null)"
+  check "遷移-対象外から機械へ: 1回目は対象外として集計に載る" "$([ "$rc14_1" -eq 0 ] && [ "$table_reach14_1" = "対象外" ] && echo 0 || echo 1)"
+
+  # 表のjson検出条件の囲みを戻し、節9も機械にする
+  perl -0pi -e 's/\n### 候補数/\n```json 検出条件\n{\n  "種別": "table",\n  "単位の定義": "1 つのテーブル定義を 1 つと数える",\n  "走査": { "含む": ["db\/migrations"], "除く": [], "拡張子": [".sql"] },\n  "一致": [\n    { "対象": "内容", "正規表現": "CREATE TABLE ([a-z_]+)", "単位": true }\n  ],\n  "分割": "一致",\n  "識別子": { "元": "一致の捕捉", "正規表現": "CREATE TABLE ([a-z_]+)" },\n  "名前": { "元": "識別子" },\n  "属するファイル": [],\n  "分類軸": [],\n  "例": ["db\/migrations\/001_orders.sql"]\n}\n```\n\n### 候補数/s' "$d14/docs/design/common/調査と検出条件の定義書.md"
+  sed -i.bak 's/| 表 | 対象外 | 対象外 | 対象外 | 対象外 | 検証用 |/| 表 | 機械 | 機械 | 機械 | 機械 | 検証用 |/' "$d14/docs/design/common/調査と検出条件の定義書.md"
+  bash "$SCRIPT_DIR/list-units.sh" "$d14" --out "$d14/docs/design/lists" > "$base/case14-2.out" 2>"$base/case14-2.err"
+  local rc14_2=$?
+  local table_has_reach14_2 table_has_oosreason14_2
+  table_has_reach14_2="$(jq -r '.table | has("到達範囲")' "$d14/docs/design/lists/一覧の集計.json" 2>/dev/null)"
+  table_has_oosreason14_2="$(jq -r '.table | has("対象外の理由")' "$d14/docs/design/lists/一覧の集計.json" 2>/dev/null)"
+  check "遷移-対象外から機械へ: 2回目は終了コード0" "$([ "$rc14_2" -eq 0 ] && echo 0 || echo 1)"
+  check "遷移-対象外から機械へ: 2回目は到達範囲・対象外の理由の鍵が残らない" "$([ "$table_has_reach14_2" = "false" ] && [ "$table_has_oosreason14_2" = "false" ] && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then

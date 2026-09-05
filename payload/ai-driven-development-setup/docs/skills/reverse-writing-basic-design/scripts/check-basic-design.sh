@@ -20,10 +20,12 @@ set -u
 #
 # 種別ごとの単位一覧はreverse-shared/scripts/list-units-of.shで読み、単位の
 # フォルダ名はreverse-shared/scripts/unit-dir-name.shで作る（唯一の定義を
-# 再実装しない）。
+# 再実装しない）。種別ごとの基本設計書・単体テスト設計書のファイル名は
+# reverse-shared/scripts/design-doc-name.shで作る（record-acceptance.shと
+# 共有し、実名の定義を二重に持たない）。
 #
 # 検査キー（内容を要約した意味語。連番禁止）:
-#   共有部品-不在        reverse-sharedのunit-dir-name.sh・list-units-of.shが無い
+#   共有部品-不在        reverse-sharedのunit-dir-name.sh・list-units-of.sh・design-doc-name.shが無い
 #   規約-不在            支援ツール側の写しの設計書の書き方・単体テスト設計書の検査スクリプトが無い
 #   一覧-不在            対象の一覧（docs/design/lists/<種別>.json）が読めない
 #   文書-不在            種別ごとの基本設計書・単体テスト設計書（機能は機能設計書・機能単体テスト設計書）が実在しない
@@ -31,6 +33,11 @@ set -u
 #   位置づけ-欠落        必須見出しの直後に位置づけの行が無い
 #   未記入-残存          山括弧のプレースホルダーが残っている
 #   位置-禁止            file:line形式の実装位置の記述がある
+#   実装用語-混入        種別ごとの実装用語の検出パターンに一致する記述がある。対象は
+#                        本文であり、次の3つは対象外: (1)観測の出どころを含む見出しの
+#                        内側 (2)構成要素一覧を含む見出しの内側（feature様式が相対パスを
+#                        求めるため） (3)文書冒頭の前付け（source_refが相対パスを
+#                        持つため）
 #   規約-見出し          対象の設計書の書き方の検査が不合格
 #   単体テスト規約-不合格  対象の単体テスト設計書の決まりの検査が不合格
 #   読み取り結果-未転記          読み取り結果ファイルの値が空でない項目が転記されていない
@@ -77,6 +84,7 @@ set -u
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SHARED_DIR="${SCRIPT_DIR}/../../reverse-shared/scripts"
 UNIT_DIR_NAME_SH="${SHARED_DIR}/unit-dir-name.sh"
+DESIGN_DOC_NAME_SH="${SHARED_DIR}/design-doc-name.sh"
 LIST_UNITS_OF_SH="${SHARED_DIR}/list-units-of.sh"
 HEADING_SCRIPT="${SHARED_DIR}/check-doc-heading-addendum.sh"
 UNITTEST_SCRIPT="${SHARED_DIR}/check-unit-test-design-doc-sections.sh"
@@ -114,32 +122,16 @@ species_folder() {
   esac
 }
 
-# 種別ごとの基本設計書のファイル名（旧様式の名前をそのまま使う）
+# 種別ごとの基本設計書のファイル名（唯一の定義はreverse-sharedの
+# design-doc-name.sh。ここでは呼び出すだけで実名を再実装しない）
 basic_doc_name() {
-  case "$1" in
-    screen) echo "画面基本設計書.md" ;;
-    api) echo "API基本設計書.md" ;;
-    table) echo "論理データモデル.md" ;;
-    batch) echo "バッチ基本設計書.md" ;;
-    report) echo "帳票基本設計書.md" ;;
-    external) echo "外部連携基本設計書.md" ;;
-    feature) echo "機能設計書.md" ;;
-    *) echo "" ;;
-  esac
+  bash "$DESIGN_DOC_NAME_SH" "$1" basic 2>/dev/null
 }
 
-# 種別ごとの単体テスト設計書のファイル名（旧様式の名前をそのまま使う）
+# 種別ごとの単体テスト設計書のファイル名（唯一の定義はreverse-sharedの
+# design-doc-name.sh。ここでは呼び出すだけで実名を再実装しない）
 test_doc_name() {
-  case "$1" in
-    screen) echo "画面単体テスト設計書.md" ;;
-    api) echo "API単体テスト設計書.md" ;;
-    table) echo "テーブル単体テスト設計書.md" ;;
-    batch) echo "バッチ単体テスト設計書.md" ;;
-    report) echo "帳票単体テスト設計書.md" ;;
-    external) echo "外部連携単体テスト設計書.md" ;;
-    feature) echo "機能単体テスト設計書.md" ;;
-    *) echo "" ;;
-  esac
+  bash "$DESIGN_DOC_NAME_SH" "$1" test 2>/dev/null
 }
 
 # 種別ごとの基本設計書の様式（見出しはテンプレートの実測どおり「§N ...」を
@@ -165,7 +157,7 @@ basic_expected_headings() {
 }
 
 deps_available() {
-  [ -f "$UNIT_DIR_NAME_SH" ] && [ -f "$LIST_UNITS_OF_SH" ]
+  [ -f "$UNIT_DIR_NAME_SH" ] && [ -f "$LIST_UNITS_OF_SH" ] && [ -f "$DESIGN_DOC_NAME_SH" ]
 }
 
 # --- 見出しの並びが期待どおりか（`## `見出しの先頭からn行を比べる） ---
@@ -254,6 +246,78 @@ check_placeholder_and_position() {
   return "$ok"
 }
 
+# 種別ごとの実装用語の検出パターン（唯一の定義。SKILL.mdの表はこれを指すだけにする）。
+# featureは他6種別の型の和集合。
+impl_term_pattern() {
+  case "$1" in
+    screen)
+      printf '%s' 'useState|useEffect|Props\b|interface [A-Z]|: *(string|number|boolean)\b|\.(tsx|ts|jsx|js|css)\b'
+      ;;
+    api)
+      printf '%s' 'interface [A-Z]|class [A-Z].*:|def [a-z_]+\(|: *(string|number|boolean)\b|FastAPI|Express|@app\.(get|post|put|delete)|\.(py|pl|pm|cgi|rb|go|java)\b'
+      ;;
+    batch|report|external)
+      printf '%s' 'interface [A-Z]|: *(string|number|boolean)\b|styled-components|FastAPI|Express|@app\.(get|post|put|delete)|\.(py|pl|pm|cgi|rb|go|java)\b'
+      ;;
+    table)
+      printf '%s' 'interface [A-Z]|: *(string|number|boolean)\b|CREATE TABLE|PRIMARY KEY|FOREIGN KEY|\.(sql|py|ts|js|prisma)\b'
+      ;;
+    feature)
+      printf '%s' 'useState|useEffect|Props\b|interface [A-Z]|class [A-Z].*:|def [a-z_]+\(|: *(string|number|boolean)\b|\.(tsx|ts|jsx|js|css)\b|FastAPI|Express|@app\.(get|post|put|delete)|\.(py|pl|pm|cgi|rb|go|java)\b|styled-components|CREATE TABLE|PRIMARY KEY|FOREIGN KEY|\.(sql|prisma)\b'
+      ;;
+    *) printf '%s' '' ;;
+  esac
+}
+
+# 混入検査の対象は本文であり、様式が構造として実装の所在を求める場所は対象外とする。
+# 除外区間は次の3つ（1つのawk状態機械で判定する）。
+#   1. `観測の出どころ` を含む見出し（`## `/`### `）から次の見出しまで
+#      （起票1-13・1-14。読み取った実装箇所のファイルと行をこの表にだけ記録する様式）
+#   2. `構成要素一覧` を含む見出しから次の見出しまで
+#      （feature種別の様式が構成要素の識別子に非HTTP系の相対パスを求めるため）
+#   3. 文書冒頭の前付け（`---`で始まり次の`---`で閉じる区間。1行目が`---`のときだけ開始する）
+#      前付けは読み手が読む本文ではなく、一覧マニフェストを組み立てる元データである
+#      （詳細は代表ファイル選定契約（共通規約）を参照）。様式が`source_ref`に
+#      相対パスを求めるため（起票1-15）、本検査は本文だけを対象とする。閉じの`---`が
+#      無い場合は前付けとみなさず、1行目の`---`を含めて全体を本文として検査する。
+# 見出しの区間は番号に依存せず、見出し文字列の部分一致で判定する。文書の末尾に
+# 達した場合はそこまでを除外区間とする。
+# $1: file  $2: パターン  戻り値: 0=検出0件・1=検出あり
+check_impl_term_leak() {
+  local file="$1" pattern="$2"
+  [ -n "$pattern" ] || return 0
+  local numbered ok=0 lineno content matched
+  numbered="$(awk '
+    NR == 1 && $0 == "---" { infm = 1; buf[++nbuf] = NR"\t"$0; next }
+    infm == 1 {
+      if ($0 == "---") { infm = 0; nbuf = 0; next }
+      buf[++nbuf] = NR"\t"$0
+      next
+    }
+    /^(##|###) / {
+      if ($0 ~ /観測の出どころ/ || $0 ~ /構成要素一覧/) { insec = 1; next }
+      if (insec == 1) { insec = 0 }
+    }
+    insec != 1 { print NR"\t"$0 }
+    END {
+      if (infm == 1) {
+        for (i = 1; i <= nbuf; i++) print buf[i]
+      }
+    }
+  ' "$file")"
+  while IFS=$'\t' read -r lineno content; do
+    [ -n "$lineno" ] || continue
+    matched="$(printf '%s' "$content" | grep -oE "$pattern" | head -n 1)"
+    if [ -n "$matched" ]; then
+      echo "[FAIL] 実装用語-混入: ${file}:${lineno}: ${matched}" >&2
+      ok=1
+    fi
+  done <<NUMBERED
+$numbered
+NUMBERED
+  return "$ok"
+}
+
 # 読み取り結果の項目名が本文の見出し（##・###）または表の見出し行に現れるかを確認する。
 # $1: doc  $2: 読み取り結果の項目名  戻り値: 0=現れる・1=現れない
 reading_key_covered() {
@@ -302,6 +366,15 @@ check_regular_unit() {
   fi
 
   check_placeholder_and_position "$doc" || ok=0
+
+  local impl_pattern
+  impl_pattern="$(impl_term_pattern "$kind")"
+  if [ -n "$impl_pattern" ]; then
+    check_impl_term_leak "$doc" "$impl_pattern" || ok=0
+    if [ "$tests_output" = "出力する" ] && [ -f "$test_doc" ]; then
+      check_impl_term_leak "$test_doc" "$impl_pattern" || ok=0
+    fi
+  fi
 
   # 既知の限界: 画面基本設計書の様式（画面の目的・画面構成…）は、設計書の書き方の
   # 決まりが定める共通の完了状態見出し（外部仕様・業務仕様・方式設計・データ仕様・
@@ -403,7 +476,7 @@ run_main() {
   fi
 
   if ! deps_available; then
-    echo "[FAIL] 共有部品-不在: unit-dir-name.sh または list-units-of.sh がありません" >&2
+    echo "[FAIL] 共有部品-不在: unit-dir-name.sh・list-units-of.sh・design-doc-name.sh のいずれかがありません" >&2
     exit 2
   fi
 
@@ -453,7 +526,7 @@ self_test() {
     local name="$1"
     total=$((total + 1))
     skip=$((skip + 1))
-    echo "SKIP: ${name}（reverse-sharedのunit-dir-name.sh/list-units-of.shが無いため）"
+    echo "SKIP: ${name}（reverse-sharedのunit-dir-name.sh/list-units-of.sh/design-doc-name.shが無いため）"
   }
 
   # --- 使い方エラー系（共有部品に依存しない） ---
@@ -495,7 +568,7 @@ FACTEOF
 # OrderList 画面基本設計書
 
 - 種別: 画面
-- 識別子: src/pages/OrderList.tsx
+- 識別子: 受注一覧画面
 - 対応する機能: 受注一覧
 
 ## §1 画面の目的
@@ -818,7 +891,7 @@ FEATFIXEOF
     cat > "$run8/code-readings/feature/受注.json" <<'FEATFACTEOF'
 {"種別":"feature","識別子":"受注","名前":"受注","場所":"受注",
  "属するファイル":[],
- "読み取り結果":{"含む単位":{"値":["screen: src/pages/OrderList.tsx"],"出所":"機械","根拠":["受注"]}},
+ "読み取り結果":{},
  "未":[],"取り出した実行":"self-test"}
 FEATFACTEOF
     cat > "$d8/docs/design/features/受注/機能設計書.md" <<'FEATDOCEOF'
@@ -832,11 +905,11 @@ FEATFACTEOF
 ## §2 機能の範囲
 **この節の位置づけ: 現行実装**
 
-### 含む単位
+### 2.1 構成要素一覧
 
-| 種別 | 識別子 | 役割 |
-|---|---|---|
-| screen | src/pages/OrderList.tsx | 一覧表示 |
+| 構成要素キー | 種別 | 識別子 | 個別設計書 |
+|---|---|---|---|
+| order-list画面 | screen | src/pages/OrderList.tsx | 画面基本設計書 |
 
 ## §3 業務フロー
 **この節の位置づけ: 現行実装**
@@ -965,6 +1038,152 @@ FEATTESTDOCEOF
       run_full_cases
     fi
   fi
+
+  # --- 実装用語-混入: 観測の出どころの節の内側は対象外 ---
+  local impl_pattern_api
+  impl_pattern_api="$(impl_term_pattern api)"
+
+  local docA="$base/impl-term-a.md"
+  cat > "$docA" <<'DOCAEOF'
+## §1 外部仕様
+**この節の位置づけ: 現行実装**
+
+利用者から見える契約を定める。
+
+## §6 関連資料
+**この節の位置づけ: 現行実装**
+
+### 6.1 観測の出どころ
+
+| 対応する節・項目 | ファイル | 行 |
+|---|---|---|
+| §1 外部仕様 | src/handlers/orders.py | 73 |
+DOCAEOF
+  check_impl_term_leak "$docA" "$impl_pattern_api" > "$base/implA.out" 2>"$base/implA.err"
+  check "実装用語-混入: 観測の出どころ節の内側は検出0件で終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
+
+  local docB="$base/impl-term-b.md"
+  cat > "$docB" <<'DOCBEOF'
+## §1 外部仕様
+**この節の位置づけ: 現行実装**
+
+src/handlers/orders.py の処理を読み取った。
+
+## §6 関連資料
+**この節の位置づけ: 現行実装**
+
+### 6.1 観測の出どころ
+
+| 対応する節・項目 | ファイル | 行 |
+|---|---|---|
+| §1 外部仕様 | src/handlers/orders.py | 73 |
+DOCBEOF
+  check_impl_term_leak "$docB" "$impl_pattern_api" > "$base/implB.out" 2>"$base/implB.err"
+  local rc_implb=$?
+  check "実装用語-混入: 本文（節の外）の同じファイル名は終了コード1" "$([ "$rc_implb" -eq 1 ] && echo 0 || echo 1)"
+  check "実装用語-混入: 理由に検査キーが出る" "$(grep -qF '実装用語-混入' "$base/implB.err" && echo 0 || echo 1)"
+
+  local docC="$base/impl-term-c.md"
+  cat > "$docC" <<'DOCCEOF'
+## §6 関連資料
+**この節の位置づけ: 現行実装**
+
+### 6.1 観測の出どころ
+
+| 対応する節・項目 | ファイル | 行 |
+|---|---|---|
+| §1 外部仕様 | src/handlers/orders.py | 73 |
+
+## §7 別の節
+**この節の位置づけ: 現行実装**
+
+src/handlers/orders.py をここにも書いてしまう。
+DOCCEOF
+  check_impl_term_leak "$docC" "$impl_pattern_api" > "$base/implC.out" 2>"$base/implC.err"
+  local rc_implc=$?
+  check "実装用語-混入: 出どころ節の後の別の節では検出される（除外範囲が次の見出しで閉じる）" "$([ "$rc_implc" -eq 1 ] && echo 0 || echo 1)"
+
+  local docD="$base/impl-term-d.md"
+  cat > "$docD" <<'DOCDEOF'
+## §2 機能の範囲
+**この節の位置づけ: 現行実装**
+
+### 2.1 構成要素一覧
+
+| 構成要素キー | 種別 | 識別子 | 個別設計書 |
+|---|---|---|---|
+| order-list画面 | screen | src/pages/OrderList.tsx | 画面基本設計書 |
+DOCDEOF
+  check_impl_term_leak "$docD" "$impl_pattern_api" > "$base/implD.out" 2>"$base/implD.err"
+  check "実装用語-混入: 構成要素一覧の表の内側の相対パスは検出されない" "$([ $? -eq 0 ] && echo 0 || echo 1)"
+
+  local docE="$base/impl-term-e.md"
+  cat > "$docE" <<'DOCEEOF'
+---
+doc_id: api-order-create
+source_ref: src/api/order_create.py
+status: draft
+---
+
+## §1 外部仕様
+**この節の位置づけ: 現行実装**
+
+利用者から見える契約を定める。
+DOCEEOF
+  check_impl_term_leak "$docE" "$impl_pattern_api" > "$base/implE.out" 2>"$base/implE.err"
+  check "実装用語-混入: 前付けのsource_refの相対パスは検出されない" "$([ $? -eq 0 ] && echo 0 || echo 1)"
+
+  local docF="$base/impl-term-f.md"
+  cat > "$docF" <<'DOCFEOF'
+---
+doc_id: api-order-create
+source_ref: src/api/order_create.py
+status: draft
+---
+
+## §1 外部仕様
+**この節の位置づけ: 現行実装**
+
+src/api/order_create.py の処理を読み取った。
+DOCFEOF
+  check_impl_term_leak "$docF" "$impl_pattern_api" > "$base/implF.out" 2>"$base/implF.err"
+  local rc_implf=$?
+  check "実装用語-混入: 前付けを閉じた後の本文の同じ相対パスは終了コード1" "$([ "$rc_implf" -eq 1 ] && echo 0 || echo 1)"
+
+  local docG="$base/impl-term-g.md"
+  cat > "$docG" <<'DOCGEOF'
+## §1 外部仕様
+**この節の位置づけ: 現行実装**
+
+source_ref: src/api/order_create.py
+DOCGEOF
+  check_impl_term_leak "$docG" "$impl_pattern_api" > "$base/implG.out" 2>"$base/implG.err"
+  local rc_implg=$?
+  check "実装用語-混入: 1行目が---でない文書のsource_ref風の行は本文として検出される" "$([ "$rc_implg" -eq 1 ] && echo 0 || echo 1)"
+
+  local docH="$base/impl-term-h.md"
+  cat > "$docH" <<'DOCHEOF'
+---
+doc_id: api-order-create
+source_ref: src/api/order_create.py
+status: draft
+
+## §1 外部仕様
+**この節の位置づけ: 現行実装**
+
+src/api/order_create.py の処理を読み取った。
+DOCHEOF
+  check_impl_term_leak "$docH" "$impl_pattern_api" > "$base/implH.out" 2>"$base/implH.err"
+  local rc_implh=$?
+  check "実装用語-混入: 1行目が---で閉じの---が無い文書は全体が本文として検出される" "$([ "$rc_implh" -eq 1 ] && echo 0 || echo 1)"
+
+  # --- 再発防止: 除外に使う見出し文字列がひな形の見出し行に実在すること ---
+  local templates_dir="${SCRIPT_DIR}/../templates"
+  local observation_hits component_hits
+  observation_hits="$(grep -rlE '^###? .*観測の出どころ' "$templates_dir" 2>/dev/null | wc -l | tr -d ' ')"
+  component_hits="$(grep -rlE '^###? .*構成要素一覧' "$templates_dir" 2>/dev/null | wc -l | tr -d ' ')"
+  check "実装用語-混入: 除外見出し「観測の出どころ」がひな形に実在する" "$([ "${observation_hits:-0}" -ge 1 ] && echo 0 || echo 1)"
+  check "実装用語-混入: 除外見出し「構成要素一覧」がひな形に実在する" "$([ "${component_hits:-0}" -ge 1 ] && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件 / skip ${skip} 件"
   if [ "$fail" -gt 0 ]; then
