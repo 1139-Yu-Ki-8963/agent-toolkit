@@ -24,7 +24,8 @@ set -u
 #   compare-code-readings.sh で比べる。差分が0件なら「検証: 一致」に続けて
 #   「未の項目: N」（Nは未の項目の総数）を出し終了コード0で返す。未の項目が
 #   あっても差分が0件なら合格として扱う。差分が1件以上あれば終了コード1で
-#   返す（このとき --out は上書きしない）。
+#   返す（このとき --out は上書きしない）。差分が0件でも、再取り出しが1
+#   （規則を解釈できない項目・属するファイルの不在）を返せば終了コード1で返す。
 #
 # 取り出しの規則の書式（調査と検出条件の定義書の節4「検出条件の形の制約」に定める）:
 #   正規表現: <ERE> ／ 捕捉: <N> ／ 範囲: <場所|属するファイル|両方|単位>
@@ -58,7 +59,7 @@ set -u
 #   0 = 全単位に読み取り結果がある（--verifyでは既存と再取り出しの差分が0件）
 #   1 = 一覧の場所（単位そのものの所在）が対象に実在しない、または取り出しの規則の
 #       2列目が規定の形（正規表現|AIの読み取り）のどちらでもなく解釈できない項目がある
-#       （--verifyでは差分が1件以上）（差し戻し: 検出条件-見直し）
+#       （--verifyでは差分が1件以上、または再取り出しが1を返した）（差し戻し: 検出条件-見直し）
 #       （解釈できない項目は集計.jsonの「規則の無い項目」へ列挙し警告を出す）
 #   2 = 使い方の誤り・調査と検出条件の定義書や一覧の不在（判定不能）
 #
@@ -704,6 +705,10 @@ run_main() {
     fi
     echo "検証: 一致"
     echo "未の項目: ${verify_mi}"
+    if [ "$extract_rc" -ne 0 ]; then
+      echo "[FAIL] 検証-取り出し不合格: 再取り出しが終了コード ${extract_rc} を返しました（規則を解釈できない項目、または属するファイルの不在があります）" >&2
+      exit 1
+    fi
     exit 0
   fi
 
@@ -1156,6 +1161,19 @@ FIXEOF8
   local broken_input_values
   broken_input_values="$(jq -c '.["読み取り結果"]["入力項目"]["値"]' "$broken_json" 2>/dev/null)"
   check "規則-解釈不能: 規定の形の項目は従来どおり値が埋まる" "$([ "$broken_input_values" = '["orderId"]' ] && echo 0 || echo 1)"
+
+  # --- 規則-解釈不能: --verify を付けても終了コードで伝わる ---
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d8" --run "$r8" --kind screen --out "$r8/code-readings" --verify > "$base/case8v.out" 2>"$base/case8v.err"
+  local rc8v=$?
+  check "規則-解釈不能: --verify でも終了コードが0以外" "$([ "$rc8v" -ne 0 ] && echo 0 || echo 1)"
+  case "$(cat "$base/case8v.out")" in
+    *"検証: 一致"*) check "規則-解釈不能: --verify の比較自体は一致する" 0 ;;
+    *) check "規則-解釈不能: --verify の比較自体は一致する" 1 ;;
+  esac
+  case "$(cat "$base/case8v.err")" in
+    *"検証-取り出し不合格"*) check "規則-解釈不能: --verify で取り出し不合格の理由を標準エラーへ出す" 0 ;;
+    *) check "規則-解釈不能: --verify で取り出し不合格の理由を標準エラーへ出す" 1 ;;
+  esac
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then

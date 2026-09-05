@@ -23,10 +23,11 @@ set -u
 # 検査キー（内容を要約した意味語。連番禁止）:
 #   依存-不在      技術スタックの行の「名前」が、調査と検出条件の定義書の節1「依存の定義」の
 #                  場所のファイルのいずれにも文字列として現れない
+#                  （場所がフォルダなら配下のファイルを走査する）
 #   節-欠落        環境構築手順書の見出しが規定の9個・順序と一致しない
 #                  （§1〜§7 ＋ 要確認事項一覧 ＋ 関連資料）
-#   位置づけ-欠落  環境構築手順書の§1〜§7の直後に
-#                  「**この節の位置づけ: 現行実装**」の行が無い
+#   位置づけ-欠落  環境構築手順書の§1〜§7の直後に「**この節の位置づけ: 」で
+#                  始まり「**」で終わる行が無い（理由を添えた形も合格）
 #   未記入-残存    環境構築手順書に「<...>」形式のプレースホルダーが残っている
 #   位置-禁止      環境構築手順書にfile:line形式の実装位置の記述がある
 #   秘密-混入      環境構築手順書に「=」の右へ20字以上の英数字が続く記述がある
@@ -100,8 +101,8 @@ section_text() {
 }
 
 path_list_missing_or_files() {
-  # path_list_files <target> <;区切りのパス一覧>
-  # 対象配下に実在するパスだけを改行区切りで返す
+  # 対象配下に実在するパスを改行区切りで返す。フォルダなら配下のファイル
+  # （深さ3まで。.git・node_modules・vendor は除く）を列挙する
   local target="$1" list="$2"
   local -a parts
   local old_ifs="$IFS"
@@ -111,7 +112,10 @@ path_list_missing_or_files() {
   for p in "${parts[@]}"; do
     p="$(trim "$p")"
     [ -z "$p" ] && continue
-    if [ -e "${target}/${p}" ]; then
+    if [ -d "${target}/${p}" ]; then
+      find "${target}/${p}" -maxdepth 3 -type f \
+        -not -path '*/.git/*' -not -path '*/node_modules/*' -not -path '*/vendor/*' 2>/dev/null | sort
+    elif [ -e "${target}/${p}" ]; then
       printf '%s\n' "${target}/${p}"
     fi
   done
@@ -227,10 +231,13 @@ check_foundation_guides() {
     fi
     local next_nonblank
     next_nonblank="$(awk -v start="$heading_line_no" 'NR>start && NF>0 {print; exit}' "$env_file")"
-    if [ "$next_nonblank" != "**この節の位置づけ: 現行実装**" ]; then
-      fail "位置づけ-欠落" "「${h}」の直後に位置づけの行がありません"
-      ok_place=0
-    fi
+    case "$next_nonblank" in
+      "**この節の位置づけ: "*"**") ;;
+      *)
+        fail "位置づけ-欠落" "「${h}」の直後に位置づけの行がありません"
+        ok_place=0
+        ;;
+    esac
   done
   [ "$ok_place" -eq 1 ] && passck
 
@@ -403,6 +410,22 @@ ENVEOF
   assert_exit "不合格-依存不在" 1 bash "$0" "$root_dep"
   assert_contains "不合格-依存不在: 依存-不在が出る" "依存-不在"
 
+  # 合格-場所がフォルダ（配下のファイルに名前が現れる）
+  local root_dir="${tmp}/target-dir"
+  build_target "$root_dir"
+  mkdir -p "${root_dir}/config"
+  mv "${root_dir}/package.json" "${root_dir}/config/package.json"
+  sed -i.bak 's/| 依存の定義 | package.json | package.json |/| 依存の定義 | この領域に依存を定めるファイルは無い | config |/' "${root_dir}/docs/design/common/調査と検出条件の定義書.md"
+  assert_exit "合格-場所がフォルダ" 0 bash "$0" "$root_dir"
+
+  # 合格-依存の定義が不在で表が0行
+  local root_none="${tmp}/target-none"
+  build_target "$root_none"
+  rm -f "${root_none}/package.json"
+  sed -i.bak 's/| 依存の定義 | package.json | package.json |/| 依存の定義 | なし | なし |/' "${root_none}/docs/design/common/調査と検出条件の定義書.md"
+  sed -i.bak '/^| 言語 | typescript |/d; /^| フレームワーク | react |/d' "${root_none}/docs/design/common/技術スタック.md"
+  assert_exit "合格-依存の定義が不在で表が0行" 0 bash "$0" "$root_none"
+
   # 不合格-節の欠落
   local root_sec="${tmp}/target-sec"
   build_target "$root_sec"
@@ -417,6 +440,12 @@ ENVEOF
   perl -i -pe 'BEGIN{$done=0} if (!$done && /^\*\*この節の位置づけ: 現行実装\*\*$/) { $_ = "位置づけの行を書き忘れた\n"; $done=1 }' "${root_place}/docs/design/common/環境構築手順書.md"
   assert_exit "不合格-位置づけ欠落" 1 bash "$0" "$root_place"
   assert_contains "不合格-位置づけ欠落: 位置づけ-欠落が出る" "位置づけ-欠落"
+
+  # 合格-位置づけに理由を添えた形
+  local root_reason="${tmp}/target-reason"
+  build_target "$root_reason"
+  perl -i -pe 'BEGIN{$done=0} if (!$done && /^\*\*この節の位置づけ: 現行実装\*\*$/) { $_ = "**この節の位置づけ: 現行実装。今の作りを記録している**\n"; $done=1 }' "${root_reason}/docs/design/common/環境構築手順書.md"
+  assert_exit "合格-位置づけに理由を添えた形" 0 bash "$0" "$root_reason"
 
   # 不合格-未記入残存
   local root_blank="${tmp}/target-blank"

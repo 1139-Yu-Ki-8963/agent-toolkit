@@ -22,6 +22,12 @@ set -u
 # 調査と検出条件の定義書の節0「文字コード」がUTF-8でない場合、走査対象ファイルはiconvでUTF-8に
 # 変換してから照合する。変換に失敗したファイルは警告として記録し照合から外す。
 #
+# 調査と検出条件の定義書の節9「到達範囲」を読み、`json 検出条件` の囲みを持たない種別（一覧化が
+# 「対象外」または「AI の読み取り」の種別）も集計へ書く。対象外は判定と対象外の理由を、AI の読み取り
+# は読みの一致（値は空。手で埋める）を持たせる。集計を書き出す前に既存の一覧の集計.jsonを読み、
+# 実行器が作らない鍵（読みの一致の値等）は引き継ぐ。これにより同じ入力で何度実行しても
+# 到達範囲の記録が消えない（冪等）。
+#
 # 検査キー（内容を要約した意味語。連番禁止）:
 #   検出条件-形式    ```json 検出条件``` の囲みがJSONとして読めない、または
 #                    種別が不正、または分割が「一致」なのに単位:trueの一致が無い
@@ -73,6 +79,67 @@ is_valid_species() {
     screen|api|table|batch|report|external|feature) return 0 ;;
     *) return 1 ;;
   esac
+}
+
+# --- 日本語種別名からの逆引き ---
+species_from_ja() {
+  case "$1" in
+    画面) echo "screen" ;;
+    接続窓口) echo "api" ;;
+    表) echo "table" ;;
+    バッチ) echo "batch" ;;
+    帳票) echo "report" ;;
+    外部連携) echo "external" ;;
+    機能) echo "feature" ;;
+    *) echo "" ;;
+  esac
+}
+
+# --- 種別が all_species（既に囲みで処理済みの種別一覧、空白区切り）に含まれるかを判定する ---
+species_already_covered() {
+  local target="$1" list="$2" s
+  for s in $list; do
+    [ "$s" = "$target" ] && return 0
+  done
+  return 1
+}
+
+# --- 調査と検出条件の定義書の節9「到達範囲」の表を読み、
+#     "種別の英字<TAB>一覧化の値<TAB>理由" の行を返す（種別の日本語が
+#     species_from_ja で解決できない行は捨てる） ---
+read_reach_rows() {
+  local map="$1" line in_section=0
+  while IFS= read -r line; do
+    line="${line%$'\r'}"
+    case "$line" in
+      '## '*)
+        case "$line" in
+          *到達範囲*) in_section=1 ;;
+          *) in_section=0 ;;
+        esac
+        continue
+        ;;
+    esac
+    [ "$in_section" -eq 1 ] || continue
+    case "$line" in
+      '|'*) : ;;
+      *) continue ;;
+    esac
+    case "$line" in
+      *---*) continue ;;
+    esac
+    local ja reach reason species
+    ja="$(printf '%s' "$line" | awk -F'|' '{print $2}')"
+    reach="$(printf '%s' "$line" | awk -F'|' '{print $3}')"
+    reason="$(printf '%s' "$line" | awk -F'|' '{print $7}')"
+    ja="$(trim "$ja")"
+    reach="$(trim "$reach")"
+    reason="$(trim "$reason")"
+    [ "$ja" = "種別" ] && continue
+    species="$(species_from_ja "$ja")"
+    [ -n "$species" ] || continue
+    printf '%s\t%s\t%s\n' "$species" "$reach" "$reason"
+  done < "$map"
 }
 
 # --- グロブをPOSIX拡張正規表現へ変換（**は任意階層、*は/を含まない任意文字列） ---
@@ -682,9 +749,58 @@ GLOBS
     echo "$wrapped" >> "$work/agg.jsonl"
   done
 
-  jq -s 'add // {}' "$work/agg.jsonl" > "$out/一覧の集計.json"
+  # --- 到達範囲の表を読み、囲みを持たない種別（対象外・AI の読み取り）も集計へ書く ---
+  local oos_n=0 ai_n=0
+  local reach_species reach_status reach_reason
+  while IFS=$'\t' read -r reach_species reach_status reach_reason; do
+    [ -n "$reach_species" ] || continue
+    species_already_covered "$reach_species" "$all_species" && continue
+
+    case "$reach_status" in
+      対象外*)
+        local entry_oos wrapped_oos
+        entry_oos="$(jq -n --arg reason "$reach_reason" \
+          '{"実測":0,"候補数":0,"差の割合":0.0000,"判定":"対象外","不合格の理由":[],"識別子捕捉不能件数":0,"到達範囲":"対象外","対象外の理由":$reason}')"
+        wrapped_oos="$(jq -n --arg k "$reach_species" --argjson v "$entry_oos" '{($k): $v}')"
+        echo "$wrapped_oos" >> "$work/agg.jsonl"
+        oos_n=$((oos_n + 1))
+        ;;
+      AI*)
+        local candidate_ai candidate_ai_json entry_ai wrapped_ai
+        candidate_ai="$(lookup_candidate "$work/candidate_rows.txt" "$(species_ja "$reach_species")")"
+        if [ -z "$candidate_ai" ]; then candidate_ai_json="null"; else candidate_ai_json="$candidate_ai"; fi
+        entry_ai="$(jq -n --argjson cand "$candidate_ai_json" \
+          '{"実測":0,"候補数":$cand,"差の割合":null,"判定":"AI の読み取り","不合格の理由":[],"識別子捕捉不能件数":0,"到達範囲":"AI の読み取り","読みの一致":""}')"
+        wrapped_ai="$(jq -n --arg k "$reach_species" --argjson v "$entry_ai" '{($k): $v}')"
+        echo "$wrapped_ai" >> "$work/agg.jsonl"
+        ai_n=$((ai_n + 1))
+        ;;
+      *)
+        : # 機械なのに囲みが無い種別は、従来どおり集計へ載せない
+        ;;
+    esac
+  done < <(read_reach_rows "$map")
+
+  # --- 既存の一覧の集計.jsonを読み、実行器が作らない鍵（読みの一致の値等）を引き継いで書き出す ---
+  local new_agg
+  new_agg="$(jq -s 'add // {}' "$work/agg.jsonl")"
+  if [ -f "$out/一覧の集計.json" ] && jq -e . "$out/一覧の集計.json" > /dev/null 2>&1; then
+    jq -n --argjson old "$(cat "$out/一覧の集計.json")" --argjson new "$new_agg" '
+      $new | with_entries(
+        .key as $k
+        | ($old[$k] // {}) as $o
+        | (.value | with_entries(select(.key != "読みの一致" or .value != ""))) as $n
+        | .value = ($o + $n)
+        | if (($new[$k] | has("読みの一致")) and ((.value | has("読みの一致")) | not)) then .value["読みの一致"] = "" else . end
+      )' > "$out/一覧の集計.json"
+  else
+    printf '%s\n' "$new_agg" > "$out/一覧の集計.json"
+  fi
 
   echo "合格 ${ok_n} 種別 / 不合格 ${fail_n} 種別"
+  if [ $((oos_n + ai_n)) -gt 0 ]; then
+    echo "到達範囲の対象外 ${oos_n} 種別 / AI の読み取り ${ai_n} 種別"
+  fi
 
   if [ "$fail_n" -gt 0 ]; then
     exit 1
@@ -1048,6 +1164,53 @@ EOF2
   table_capture_fail12="$(jq -r '.table["識別子捕捉不能件数"]' "$d12/docs/design/lists/一覧の集計.json" 2>/dev/null)"
   check "識別子-捕捉不能: 標準出力に警告が出る" "$(grep -q "識別子の捕捉に失敗" "$base/case12.err" && echo 0 || echo 1)"
   check "識別子-捕捉不能: 一覧の集計.jsonに件数が載る" "$([ "${table_capture_fail12:-0}" -gt 0 ] 2>/dev/null && echo 0 || echo 1)"
+
+  # --- 到達範囲-対象外とAIの読み取りが集計から消えない ---
+  local d13="$base/case13"
+  make_fixture "$d13"
+  cat >> "$d13/docs/design/common/調査と検出条件の定義書.md" <<'EOF2'
+
+## 9. 到達範囲
+
+| 種別 | 一覧化 | 読み取り結果の取り出し | 基本設計 | 詳細設計 | 理由 |
+|---|---|---|---|---|---|
+| 画面 | 機械 | 機械 | 機械 | 機械 | 画面の部品がある |
+| 接続窓口 | 機械 | 機械 | 機械 | 機械 | 経路の定義がある |
+| 表 | 機械 | 機械 | 機械 | 機械 | 移行の定義がある |
+| バッチ | 対象外 | 対象外 | 対象外 | 対象外 | 定期実行の処理が無い |
+| 帳票 | 対象外 | 対象外 | 対象外 | 対象外 | 帳票を出す記述が無い |
+| 外部連携 | AI の読み取り | AI の読み取り | AI の読み取り | AI の読み取り | 通信の呼び出しを読んで判断する |
+| 機能 | AI の読み取り | AI の読み取り | AI の読み取り | AI の読み取り | 設定表を読んで判断する |
+EOF2
+  bash "$SCRIPT_DIR/list-units.sh" "$d13" --out "$d13/docs/design/lists" > "$base/case13-1.out" 2>"$base/case13-1.err"
+  local rc13_1=$?
+  local batch_verdict13 batch_reason13 external_reach13 external_yomi13
+  batch_verdict13="$(jq -r '.batch["判定"]' "$d13/docs/design/lists/一覧の集計.json" 2>/dev/null)"
+  batch_reason13="$(jq -r '.batch["対象外の理由"]' "$d13/docs/design/lists/一覧の集計.json" 2>/dev/null)"
+  external_reach13="$(jq -r '.external["到達範囲"]' "$d13/docs/design/lists/一覧の集計.json" 2>/dev/null)"
+  external_yomi13="$(jq -r '.external["読みの一致"]' "$d13/docs/design/lists/一覧の集計.json" 2>/dev/null)"
+  check "到達範囲-対象外とAIの読み取り: 終了コード0" "$([ "$rc13_1" -eq 0 ] && echo 0 || echo 1)"
+  check "到達範囲-対象外とAIの読み取り: 標準出力に集計行が出る" "$(grep -q "到達範囲の対象外 2 種別 / AI の読み取り 2 種別" "$base/case13-1.out" && echo 0 || echo 1)"
+  check "到達範囲-対象外とAIの読み取り: batchが対象外でbatchの理由が一致" "$([ "$batch_verdict13" = "対象外" ] && [ "$batch_reason13" = "定期実行の処理が無い" ] && echo 0 || echo 1)"
+  check "到達範囲-対象外とAIの読み取り: externalがAIの読み取りで読みの一致が空" "$([ "$external_reach13" = "AI の読み取り" ] && [ "$external_yomi13" = "" ] && echo 0 || echo 1)"
+
+  cp "$d13/docs/design/lists/一覧の集計.json" "$base/case13-agg-1.json"
+  bash "$SCRIPT_DIR/list-units.sh" "$d13" --out "$d13/docs/design/lists" > "$base/case13-2.out" 2>"$base/case13-2.err"
+  local rc13_2=$?
+  check "到達範囲-2回実行で集計が同一: 終了コード0" "$([ "$rc13_2" -eq 0 ] && echo 0 || echo 1)"
+  check "到達範囲-2回実行で集計が同一: diffが0行" "$(diff "$base/case13-agg-1.json" "$d13/docs/design/lists/一覧の集計.json" > /dev/null 2>&1 && echo 0 || echo 1)"
+
+  local tmp_agg13="$d13/docs/design/lists/一覧の集計.json.tmp"
+  jq '.external["読みの一致"] = "2 回の読みが一致"' "$d13/docs/design/lists/一覧の集計.json" > "$tmp_agg13"
+  mv "$tmp_agg13" "$d13/docs/design/lists/一覧の集計.json"
+  bash "$SCRIPT_DIR/list-units.sh" "$d13" --out "$d13/docs/design/lists" > "$base/case13-3.out" 2>"$base/case13-3.err"
+  local rc13_3=$?
+  local external_yomi13_3 batch_reason13_3
+  external_yomi13_3="$(jq -r '.external["読みの一致"]' "$d13/docs/design/lists/一覧の集計.json" 2>/dev/null)"
+  batch_reason13_3="$(jq -r '.batch["対象外の理由"]' "$d13/docs/design/lists/一覧の集計.json" 2>/dev/null)"
+  check "到達範囲-読みの一致が再実行で残る: 終了コード0" "$([ "$rc13_3" -eq 0 ] && echo 0 || echo 1)"
+  check "到達範囲-読みの一致が再実行で残る: 値が保持される" "$([ "$external_yomi13_3" = "2 回の読みが一致" ] && echo 0 || echo 1)"
+  check "到達範囲-読みの一致が再実行で残る: batchの理由も残る" "$([ "$batch_reason13_3" = "定期実行の処理が無い" ] && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then
