@@ -103,21 +103,55 @@ array_elements() {
 # 重なりの判定（近似）
 # ---------------------------------------------------------------------------
 
-prefix_of_pattern() {
-  local p="$1"
-  case "$p" in
-    *'*'*) printf '%s' "${p%%\**}" ;;
-    *) printf '%s' "$p" ;;
+# element_matches: パターンを "/" で区切った1要素どうしが一致するかを見る。
+#   どちらかの要素が "*" を含む場合、その要素は相手側の要素に対して
+#   "*" を ".*" へ置き換えた正規表現として一致を試みる。両方が "*" を
+#   含む場合は判定を単純化し一致とみなす。どちらも "*" を含まない場合は
+#   文字列として等しいときだけ一致とする。
+element_matches() {
+  local a="$1" b="$2" pattern
+  case "$a" in
+    *'*'*)
+      case "$b" in
+        *'*'*) return 0 ;;
+        *)
+          pattern="$(printf '%s' "$a" | sed 's/\*/.*/g')"
+          [[ "$b" =~ ^${pattern}$ ]]
+          return $?
+          ;;
+      esac
+      ;;
+    *)
+      case "$b" in
+        *'*'*)
+          pattern="$(printf '%s' "$b" | sed 's/\*/.*/g')"
+          [[ "$a" =~ ^${pattern}$ ]]
+          return $?
+          ;;
+        *)
+          [ "$a" = "$b" ]
+          return $?
+          ;;
+      esac
+      ;;
   esac
 }
 
+# patterns_overlap: 2つのパターンを "/" で区切った要素列に分け、要素数が
+#   同じで全要素が element_matches するときだけ「重なる」とする。要素数が
+#   異なれば重ならない。
 patterns_overlap() {
-  local a b
-  a="$(prefix_of_pattern "$1")"
-  b="$(prefix_of_pattern "$2")"
-  case "$b" in "$a"*) return 0 ;; esac
-  case "$a" in "$b"*) return 0 ;; esac
-  return 1
+  local a="$1" b="$2"
+  local -a a_elems b_elems
+  IFS='/' read -r -a a_elems <<< "$a"
+  IFS='/' read -r -a b_elems <<< "$b"
+  local n="${#a_elems[@]}"
+  [ "$n" -eq "${#b_elems[@]}" ] || return 1
+  local i
+  for ((i = 0; i < n; i++)); do
+    element_matches "${a_elems[$i]}" "${b_elems[$i]}" || return 1
+  done
+  return 0
 }
 
 # ---------------------------------------------------------------------------
@@ -698,6 +732,28 @@ self_test() {
     printf '%s\n' "$out9" | sed 's/^/    /' >&2
   fi
   rm -rf "${skills_root:?}"/*
+
+  # ケース10: 要素数が違うパターンどうしは重ならない
+  if patterns_overlap "docs/design/screens/*/基本設計書.md" "docs/design/screens/画面結合テスト設計書.md"; then
+    fail=$((fail + 1)); echo "  [FAIL] ケース10: 要素数が違うパターンが重なると誤判定した" >&2
+  else
+    pass=$((pass + 1)); echo "  [PASS] ケース10: 要素数が違うパターンは重ならない"
+  fi
+
+  # ケース11: 同じ形のワイルドカードを持つパターンどうしは重なる
+  if patterns_overlap "docs/design/screens/*/基本設計書.md" "docs/design/screens/*/基本設計書.md"; then
+    pass=$((pass + 1)); echo "  [PASS] ケース11: 同じ形のパターンは重なる"
+  else
+    fail=$((fail + 1)); echo "  [FAIL] ケース11: 同じ形のパターンが重ならないと誤判定した" >&2
+  fi
+
+  # ケース12: ワイルドカードの位置が違っても要素ごとに一致すれば重なる
+  if patterns_overlap "docs/design/*/*/基本設計書.md" "docs/design/screens/a/基本設計書.md"; then
+    pass=$((pass + 1)); echo "  [PASS] ケース12: ワイルドカードの位置が違っても要素ごとに一致すれば重なる"
+  else
+    fail=$((fail + 1)); echo "  [FAIL] ケース12: 要素ごとの一致で重なると判定すべきところを重ならないと誤判定した" >&2
+  fi
+
   rm -rf "$root"
 
   if [ "$fail" -eq 0 ]; then
