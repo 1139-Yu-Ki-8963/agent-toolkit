@@ -615,6 +615,32 @@ CONFEOF
   fi
   check "方式設計書の7節が要求水準を持たない状態で要確認の単位の判定が定まり照合が0を返す" "$([ "$rc10r" -eq 0 ] && [ "$rc10c" -eq 0 ] && echo 0 || echo 1)"
 
+  # --- 外部仕様の確定が要確認でも判定が定まり照合が0を返す（第1回改善指示書1-22・再検証） ---
+  local ext_record="$d2/ai-work/records/basic-design-acceptance/api-api_get_orders.json"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d2" --run "$run2" --kind api --unit "api/get_orders" \
+    --verdict 合格 \
+    --viewpoints "外部仕様の確定=要確認;業務ルールと例外系の確定=合;非機能の方式の確定=合;データの整合性・トランザクション境界・排他の確定=合;不明点の不在=合;単体テスト設計書の実在=合" \
+    --judged "$judged4" --reason "性能-数値目標は要確認事項一覧に登録済み" \
+    > "$base/r10x.out" 2>"$base/r10x.err"
+  local rc10xr=$?
+  local rc10xc1=1
+  local vp_ext1=""
+  if [ "$rc10xr" -eq 0 ]; then
+    bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d2" --kind api --unit "api/get_orders" --run "$run2" \
+      > "$base/r10xchk1.out" 2>"$base/r10xchk1.err"
+    rc10xc1=$?
+    vp_ext1="$(jq -r '.["観点"]["外部仕様の確定"]' "$ext_record" 2>/dev/null)"
+  fi
+  check "外部仕様の確定が要確認でも判定が定まり照合が0を返す" "$([ "$rc10xr" -eq 0 ] && [ "$rc10xc1" -eq 0 ] && [ "$vp_ext1" = "要確認" ] && echo 0 || echo 1)"
+
+  # --- 同じ記録を2回照合しても外部仕様の確定の値が変わらない（第1回改善指示書1-22・再検証） ---
+  bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d2" --kind api --unit "api/get_orders" --run "$run2" \
+    > "$base/r10xchk2.out" 2>"$base/r10xchk2.err"
+  local rc10xc2=$?
+  local vp_ext2
+  vp_ext2="$(jq -r '.["観点"]["外部仕様の確定"]' "$ext_record" 2>/dev/null)"
+  check "外部仕様の確定が要確認の記録を2回照合しても観点の値が一致する" "$([ "$rc10xc2" -eq 0 ] && [ "$vp_ext1" = "$vp_ext2" ] && echo 0 || echo 1)"
+
   # --- 判定と観点の整合（コードレビュー警告1: 否ありなのに合格・要確認のみなのに不合格） ---
   bash "$SCRIPT_DIR/record-acceptance.sh" "$d2" --run "$run2" --kind api --unit "api/get_orders" \
     --verdict 合格 --viewpoints "非機能の方式の確定=否" --judged "$judged4" --reason "" \
