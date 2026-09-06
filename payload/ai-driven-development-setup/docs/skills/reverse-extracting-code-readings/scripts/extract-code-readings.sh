@@ -28,10 +28,11 @@ set -u
 #   （規則を解釈できない項目・属するファイルの不在）を返せば終了コード1で返す。
 #
 # 取り出しの規則の書式（調査と検出条件の定義書の節4「検出条件の形の制約」に定める）:
-#   正規表現: <ERE> ／ 捕捉: <N> ／ 範囲: <場所|属するファイル|両方|単位>
+#   正規表現: <ERE> ／ 捕捉: <N> ／ 範囲: <場所|属するファイル|両方|単位|単位の定義>
 #   （区切りは全角スラッシュ「 ／ 」。捕捉の既定1、範囲の既定 両方。
 #    セル内の \| は | に戻す。範囲の値は前方一致で読む。例えば
-#    「場所（画面ファイル）」は「場所」として扱う）
+#    「場所（画面ファイル）」は「場所」として扱う。ただし「単位の定義」は
+#    「単位」より先に照合し「単位」へ丸められないようにする）
 #   または
 #   AI の読み取り: <説明>
 #
@@ -41,6 +42,42 @@ set -u
 #     単位の直前の行まで（同じ場所を持つ他の単位が無ければファイル末尾）。
 #     1ファイルに1単位しか無い場合は区間がファイル全体に一致する。
 #     「単位」は「属するファイルを読まない」ことを強調した場所の別名。
+#   単位の定義: 場所・単位と同じ開始行を使うが、終端を一覧の次の単位の
+#     直前の行ではなく、定義を開く文の行以降で最初に開く括弧（丸・角・波
+#     の3種をまとめて1つの残高で数える）が閉じる行までとする。残高は
+#     文字ごとに数え、`(`・`[`・`{` で+1、`)`・`]`・`}` で-1とする。減算で
+#     残高が0に戻った直後、空白を除く次の文字が`;`のときはその行を終端
+#     とし残りの文字は数えない（例: `CREATE TABLE t (id INT);`は1行、
+#     `); CREATE TABLE zombi (`は`;`で終端）。`;`以外で行が終わるときは、
+#     探索範囲内の次の空白でない行の、空白を除く最初の文字が波括弧`{`か
+#     どうかで先読みする。波括弧なら終端にせず数え続け、そうでなければ
+#     その行を終端とする（丸括弧`(`・角括弧`[`では続行しない。例:
+#     `function Foo(props) {`は対応する`}`の行が終端。波括弧を次行に置く
+#     様式（`function foo($x)`の次行が`{`）は先読みにより`{`のある行へ
+#     進み、対応する`}`の行が終端になる）。次の文字が`;`でも行末でもなけ
+#     ればそのまま数え続ける（例: `def f(x):`は`:`の次で数え続けるが行末
+#     で0のため1行）。探索は一覧の次の単位の直前の行までに限る（この境界
+#     を超えて次の単位の閉じ括弧を誤って終端に採ることを防ぐ）。一覧から
+#     意図して除外した定義（廃止されたもの）が直前の単位と次の単位の間に
+#     残っていても、この終端決定で除外された定義の内容を隣の単位が取り
+#     込まない。最初の開き括弧が現れる前に探索範囲が尽きるか、範囲内で
+#     残高が0に戻らなければ、従来の終端（一覧の次の単位の直前の行）に
+#     落ちる。既知の限界は6つある。本体を括弧で囲まない定義（Pythonの
+#     `def`、Rubyの`end`等）は開始行だけになる。ただし次の行が`{`で始ま
+#     る場合は続行する。デコレータや注釈の行から始まる定義は、デコレー
+#     タの括弧が閉じる行までになり、本体は取れない（開始行が定義の文の
+#     行になるよう検出条件を書く）。署名と`{`の間にコメント行があるとき
+#     も同様に開始行だけになる（先読みは空行だけを飛ばし、コメント行は
+#     飛ばさない）。文字列やコメントの中の括弧も数えるため、閉じ括弧が
+#     あれば定義の途中で終端になり（欠落）、開き括弧があれば閉じずに
+#     従来の終端まで伸びる（取り込み）。切り出しは行単位のため、次の
+#     定義が一覧に無いときは終端の行の残り全体を取り込み、一覧に載る
+#     次の単位が同じ行から始まるときは探索範囲がその手前で切れ、終端が
+#     決まらず従来の終端に落ちる（行粒度）。メソッド連鎖（`.get(…)`を
+#     次の行に続ける書き方）は最初の呼び出しの括弧が閉じた行で終端に
+#     なり、続く連鎖を取れない（開始行を連鎖の全体を含む文にする検出
+#     条件を書く）
+#     （第1回改善指示書1-28）。
 #   属するファイル: 一覧の属するファイルの各要素をglobとして対象ルートから
 #     展開し、実在するファイルだけを走査する。属するファイルは検出条件の
 #     規則の文字列であり、単位ごとに実在するとは限らない。展開結果が0件の
@@ -236,6 +273,7 @@ normalize_scope() {
   case "$raw" in
     属するファイル*) printf '属するファイル' ;;
     両方*) printf '両方' ;;
+    単位の定義*) printf '単位の定義' ;;
     単位*) printf '単位' ;;
     場所*) printf '場所' ;;
     *) printf '両方' ;;
@@ -351,12 +389,105 @@ resolve_belongs_files() {
   done | awk 'NF' | awk '!seen[$0]++'
 }
 
+# --- 範囲「単位の定義」の終端を、開始行以降で最初に開く括弧（丸・角・波
+#     の3種をまとめて1つの残高）から数えて求める。文字ごとに残高を更新し
+#     （開き+1・閉じ-1）、減算で残高が0に戻った直後、空白を除く次の文字が
+#     ";" または "," のときはその行を終端とし残りの文字は数えない（","は
+#     呼び出し式や配列要素の区切りであり本体が続かないため）。";" ・ ","
+#     のいずれでもなく行が終わるときは、探索範囲内の次の空白でない行の、
+#     空白を除く最初の文字が波括弧 "{" かどうかで先読みする。波括弧なら
+#     終端にせず数え続け、そうでなければその行を終端とする（丸括弧 "(" ・
+#     角括弧 "[" では続行しない）。次の文字が ";" ・ "," のいずれでも
+#     行末でもなければそのまま数え続ける。探索は end（一覧の次の単位の
+#     直前の行。0ならファイル末尾）までに限り、越えて探さない（先読みも
+#     この上限を超えない）。標準出力に行番号を出し0で返る。最初の開き
+#     括弧が現れる前に範囲が尽きる、または範囲内で残高が0に戻らない場合
+#     は何も出さず非0で返る ---
+find_definition_close_line() {
+  local cf="$1" start="$2" end="$3"
+  local close
+  close="$(awk -v s="$start" -v e="$end" '
+    function first_nonblank(str,    t) {
+      t = str
+      sub(/^[ \t]+/, "", t)
+      return t
+    }
+    function is_opener(c) {
+      return (c == "(" || c == "[" || c == "{")
+    }
+    # 開始行から先の最初の空白でない行を探し、その先頭が波括弧"{"かどうか
+    # を返す（見つからなければ -1、波括弧でなければ -1、波括弧ならその
+    # 行番号）。丸括弧"("・角括弧"["では続行しない（別の文の開始を誤って
+    # 取り込むことを防ぐ）。探索範囲（upto）を超えない
+    function next_open_ln(from, upto,    k, t) {
+      for (k = from + 1; k <= upto; k++) {
+        if (!(k in lines)) continue
+        t = first_nonblank(lines[k])
+        if (t == "") continue
+        if (substr(t, 1, 1) == "{") return k
+        return -1
+      }
+      return -1
+    }
+    NR < s { next }
+    e > 0 && NR > e { exit }
+    {
+      line0 = $0
+      sub(/\r+$/, "", line0)
+      lines[NR] = line0
+      last = NR
+    }
+    END {
+      limit = (e > 0) ? e : last
+      opened = 0
+      bal = 0
+      last_close = ""
+      for (ln = s; ln <= limit; ln++) {
+        if (!(ln in lines)) continue
+        line = lines[ln]
+        n = length(line)
+        done = 0
+        for (i = 1; i <= n; i++) {
+          c = substr(line, i, 1)
+          if (!opened) {
+            if (is_opener(c)) { opened = 1; bal = 1 }
+            continue
+          }
+          if (is_opener(c)) {
+            bal++
+          } else if (c == ")" || c == "]" || c == "}") {
+            bal--
+            if (bal == 0) {
+              last_close = c
+              j = i + 1
+              while (j <= n) {
+                cj = substr(line, j, 1)
+                if (cj == " " || cj == "\t") { j++; continue }
+                break
+              }
+              if (j <= n && (substr(line, j, 1) == ";" || substr(line, j, 1) == ",")) { print ln; done = 1; exit }
+            }
+          }
+        }
+        if (opened && bal == 0 && !done) {
+          if (last_close == ")" && next_open_ln(ln, limit) != -1) { continue }
+          print ln; exit
+        }
+      }
+    }
+  ' "$cf" 2>/dev/null)"
+  [ -n "$close" ] || return 1
+  printf '%s' "$close"
+}
+
 # --- 一覧の元データ（<種別>.json）の識別子・場所・根拠から、単位ごとの
 #     区間（開始行・終了行）を求める。標準出力: 識別子<TAB>場所<TAB>開始行
 #     <TAB>終了行（0はファイル末尾までを表す）。
 #     区間 = 根拠の行から、同じ場所で次に大きい行を持つ別の単位の直前の
 #     行まで（無ければファイル末尾）。1ファイル1単位なら区間はファイル
-#     全体に一致する ---
+#     全体に一致する。範囲が「単位の定義」のときは、この区間の終端は
+#     find_definition_close_line() の探索の上限として渡し、括弧の対応で
+#     求めた行が求まればそちらを使う ---
 compute_unit_ranges() {
   local lists_file="$1"
   [ -f "$lists_file" ] || return 0
@@ -529,7 +660,7 @@ RULESLIST
       local place_abs="${target}/${place}"
       local place_ok=1
       case "$scope" in
-        場所|単位|両方)
+        場所|単位|両方|単位の定義)
           if [ ! -f "$place_abs" ]; then
             echo "[FAIL] 属するファイル-不在: ${kind}/${id}: ${place}" >&2
             missing_total=$((missing_total + 1))
@@ -539,15 +670,22 @@ RULESLIST
       esac
 
       case "$scope" in
-        場所|単位|両方)
+        場所|単位|両方|単位の定義)
           if [ "$place_ok" -eq 1 ]; then
             local cf
             if cf="$(utf8_path_for "$place_abs" "$charset" "$charset_cache")" && [ -n "$cf" ]; then
               local slice_file="${work}/${dirname}.item${item_idx}.slice.txt"
-              if [ "$end_line" = "0" ]; then
+              local effective_end="$end_line"
+              if [ "$scope" = "単位の定義" ]; then
+                local def_close
+                if def_close="$(find_definition_close_line "$cf" "$start_line" "$end_line")"; then
+                  effective_end="$def_close"
+                fi
+              fi
+              if [ "$effective_end" = "0" ]; then
                 sed -n "${start_line},\$p" "$cf" > "$slice_file" 2>/dev/null
               else
-                sed -n "${start_line},${end_line}p" "$cf" > "$slice_file" 2>/dev/null
+                sed -n "${start_line},${effective_end}p" "$cf" > "$slice_file" 2>/dev/null
               fi
               scan_regex_source "$place" "$slice_file" "$regex" "$capture" "$values_file" "$evidence_file"
             else
@@ -1177,6 +1315,914 @@ FIXEOF8
     *"検証-取り出し不合格"*) check "規則-解釈不能: --verify で取り出し不合格の理由を標準エラーへ出す" 0 ;;
     *) check "規則-解釈不能: --verify で取り出し不合格の理由を標準エラーへ出す" 1 ;;
   esac
+
+  # --- 範囲「単位の定義」: 一覧から除外した定義（廃止されたもの）が対象
+  #     単位と次の単位の間に残っていても、単位の定義は括弧の対応で終端を
+  #     決めるため取り込まない。単位（従来の終端）は対比として取り込む
+  #     ことを確かめる。括弧付きの値「単位の定義（補足）」も単位の定義へ
+  #     正規化されることを同じ対象で確かめる（第1回改善指示書1-28）---
+  local d9="$base/case9" r9="$base/run9"
+  rm -rf "$d9" "$r9"
+  mkdir -p "$d9/src/pages" "$d9/docs/design/common" "$d9/docs/design/lists"
+  make_run "$r9"
+
+  cat > "$d9/src/pages/Tables.tsx" <<'FIXEOF9'
+CREATE TABLE orders (
+  id INT,
+  amount INT
+)
+CREATE TABLE legacy_orders (
+  notes TEXT
+)
+CREATE TABLE users (
+  id INT,
+  name TEXT
+)
+FIXEOF9
+
+  cat > "$d9/docs/design/common/調査と検出条件の定義書.md" <<'FIXEOF9'
+# 調査と検出条件の定義書
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 読み取り結果の項目 | どの構文・記述から取るか |
+|---|---|
+| 列-単位の定義 | 正規表現: ([a-z_]+) (INT\|TEXT) ／ 捕捉: 1 ／ 範囲: 単位の定義 |
+| 列-単位 | 正規表現: ([a-z_]+) (INT\|TEXT) ／ 捕捉: 1 ／ 範囲: 単位 |
+| 列-単位の定義注釈 | 正規表現: ([a-z_]+) (INT\|TEXT) ／ 捕捉: 1 ／ 範囲: 単位の定義（テーブル定義） |
+
+## 5. 動的な定義
+FIXEOF9
+
+  cat > "$d9/docs/design/lists/screen.json" <<'FIXEOF9'
+[
+  {"種別":"screen","識別子":"orders","名前":"orders","場所":"src/pages/Tables.tsx","根拠":"src/pages/Tables.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"users","名前":"users","場所":"src/pages/Tables.tsx","根拠":"src/pages/Tables.tsx:8","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF9
+
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d9" --run "$r9" --kind screen --out "$r9/code-readings" > "$base/case9.out" 2>"$base/case9.err"
+  local rc9=$?
+  local orders9_json="$r9/code-readings/screen/orders.json"
+  local v_def v_unit v_def_note
+  v_def="$(jq -c '.["読み取り結果"]["列-単位の定義"]["値"]' "$orders9_json" 2>/dev/null)"
+  v_unit="$(jq -c '.["読み取り結果"]["列-単位"]["値"]' "$orders9_json" 2>/dev/null)"
+  v_def_note="$(jq -c '.["読み取り結果"]["列-単位の定義注釈"]["値"]' "$orders9_json" 2>/dev/null)"
+  check "単位の定義: 除外された定義を取り込まない（列がid,amountだけ）" "$([ "$rc9" -eq 0 ] && [ "$v_def" = '["id","amount"]' ] && echo 0 || echo 1)"
+  case "$v_unit" in
+    *notes*) check "単位: 除外された定義を取り込む（対比。notesが混入する）" 0 ;;
+    *) check "単位: 除外された定義を取り込む（対比。notesが混入する）" 1 ;;
+  esac
+  check "単位の定義: 括弧付きの値「単位の定義（補足）」も単位の定義に正規化される" "$([ "$v_def_note" = '["id","amount"]' ] && echo 0 || echo 1)"
+
+  # --- 範囲「単位の定義」: 閉じ括弧が見つからない壊れた定義は、従来の
+  #     終端（一覧の次の単位の直前の行）に落ちる（第1回改善指示書1-28）---
+  local d10="$base/case10" r10="$base/run10"
+  rm -rf "$d10" "$r10"
+  mkdir -p "$d10/src/pages" "$d10/docs/design/common" "$d10/docs/design/lists"
+  make_run "$r10"
+
+  cat > "$d10/src/pages/Broken.tsx" <<'FIXEOF10'
+CREATE TABLE broken (
+  id INT
+CREATE TABLE next_one (
+  id INT,
+  amount INT
+FIXEOF10
+
+  cat > "$d10/docs/design/common/調査と検出条件の定義書.md" <<'FIXEOF10'
+# 調査と検出条件の定義書
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 読み取り結果の項目 | どの構文・記述から取るか |
+|---|---|
+| 列-単位の定義 | 正規表現: ([a-z_]+) (INT\|TEXT) ／ 捕捉: 1 ／ 範囲: 単位の定義 |
+
+## 5. 動的な定義
+FIXEOF10
+
+  cat > "$d10/docs/design/lists/screen.json" <<'FIXEOF10'
+[
+  {"種別":"screen","識別子":"broken","名前":"broken","場所":"src/pages/Broken.tsx","根拠":"src/pages/Broken.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"next-one","名前":"next-one","場所":"src/pages/Broken.tsx","根拠":"src/pages/Broken.tsx:3","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF10
+
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d10" --run "$r10" --kind screen --out "$r10/code-readings" > "$base/case10.out" 2>"$base/case10.err"
+  local rc10=$?
+  local broken10_json="$r10/code-readings/screen/broken.json"
+  local v_broken
+  v_broken="$(jq -c '.["読み取り結果"]["列-単位の定義"]["値"]' "$broken10_json" 2>/dev/null)"
+  check "単位の定義: 閉じ括弧が無い壊れた定義は従来の終端に落ちる" "$([ "$rc10" -eq 0 ] && [ "$v_broken" = '["id"]' ] && echo 0 || echo 1)"
+
+  # --- 範囲「単位の定義」: 字下げされた閉じ括弧の行（字下げを除く最初の
+  #     文字が ")" である行）も終端として認識する（第1回改善指示書1-28）---
+  local d11="$base/case11" r11="$base/run11"
+  rm -rf "$d11" "$r11"
+  mkdir -p "$d11/src/pages" "$d11/docs/design/common" "$d11/docs/design/lists"
+  make_run "$r11"
+
+  cat > "$d11/src/pages/Indented.tsx" <<'FIXEOF11'
+CREATE TABLE indented (
+  id INT
+  )
+  notes TEXT
+CREATE TABLE after_indented (
+  other INT
+)
+FIXEOF11
+
+  cat > "$d11/docs/design/common/調査と検出条件の定義書.md" <<'FIXEOF11'
+# 調査と検出条件の定義書
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 読み取り結果の項目 | どの構文・記述から取るか |
+|---|---|
+| 列-単位の定義 | 正規表現: ([a-z_]+) (INT\|TEXT) ／ 捕捉: 1 ／ 範囲: 単位の定義 |
+
+## 5. 動的な定義
+FIXEOF11
+
+  cat > "$d11/docs/design/lists/screen.json" <<'FIXEOF11'
+[
+  {"種別":"screen","識別子":"indented","名前":"indented","場所":"src/pages/Indented.tsx","根拠":"src/pages/Indented.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"after-indented","名前":"after-indented","場所":"src/pages/Indented.tsx","根拠":"src/pages/Indented.tsx:5","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF11
+
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d11" --run "$r11" --kind screen --out "$r11/code-readings" > "$base/case11.out" 2>"$base/case11.err"
+  local rc11=$?
+  local indented11_json="$r11/code-readings/screen/indented.json"
+  local v_indented
+  v_indented="$(jq -c '.["読み取り結果"]["列-単位の定義"]["値"]' "$indented11_json" 2>/dev/null)"
+  check "単位の定義: 字下げされた閉じ括弧の行を終端にする" "$([ "$rc11" -eq 0 ] && [ "$v_indented" = '["id"]' ] && echo 0 || echo 1)"
+
+  # --- 範囲「単位の定義」: 閉じ無しの定義の直後に閉じ括弧を持つ次の単位
+  #     があっても、探索を次の単位の直前までに限るため、次の単位の閉じ
+  #     括弧を誤って終端に採らない。単位（対比）も同じ値になる
+  #     （第1回改善指示書1-28 反証所見1）---
+  local d12="$base/case12" r12="$base/run12"
+  rm -rf "$d12" "$r12"
+  mkdir -p "$d12/src/pages" "$d12/docs/design/common" "$d12/docs/design/lists"
+  make_run "$r12"
+
+  cat > "$d12/src/pages/Broken2.tsx" <<'FIXEOF12'
+CREATE TABLE broken2 (
+  id INT
+CREATE TABLE next2 (
+  amount INT
+)
+FIXEOF12
+
+  cat > "$d12/docs/design/common/調査と検出条件の定義書.md" <<'FIXEOF12'
+# 調査と検出条件の定義書
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 読み取り結果の項目 | どの構文・記述から取るか |
+|---|---|
+| 列-単位の定義 | 正規表現: ([a-z_]+) (INT\|TEXT) ／ 捕捉: 1 ／ 範囲: 単位の定義 |
+| 列-単位 | 正規表現: ([a-z_]+) (INT\|TEXT) ／ 捕捉: 1 ／ 範囲: 単位 |
+
+## 5. 動的な定義
+FIXEOF12
+
+  cat > "$d12/docs/design/lists/screen.json" <<'FIXEOF12'
+[
+  {"種別":"screen","識別子":"broken2","名前":"broken2","場所":"src/pages/Broken2.tsx","根拠":"src/pages/Broken2.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"next2","名前":"next2","場所":"src/pages/Broken2.tsx","根拠":"src/pages/Broken2.tsx:3","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF12
+
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d12" --run "$r12" --kind screen --out "$r12/code-readings" > "$base/case12.out" 2>"$base/case12.err"
+  local rc12=$?
+  local broken2_json="$r12/code-readings/screen/broken2.json"
+  local v_def12 v_unit12
+  v_def12="$(jq -c '.["読み取り結果"]["列-単位の定義"]["値"]' "$broken2_json" 2>/dev/null)"
+  v_unit12="$(jq -c '.["読み取り結果"]["列-単位"]["値"]' "$broken2_json" 2>/dev/null)"
+  check "単位の定義: 次の単位の閉じ括弧を誤って終端に採らない（単位も対比で同じ値）" "$([ "$rc12" -eq 0 ] && [ "$v_def12" = '["id"]' ] && [ "$v_unit12" = '["id"]' ] && echo 0 || echo 1)"
+
+  # --- 範囲「単位の定義」: ネストした括弧の閉じ行（"),"）では終わらず、
+  #     定義の最後（対応が0に戻る行）まで取る（第1回改善指示書1-28
+  #     反証所見3）---
+  local d13="$base/case13" r13="$base/run13"
+  rm -rf "$d13" "$r13"
+  mkdir -p "$d13/src/pages" "$d13/docs/design/common" "$d13/docs/design/lists"
+  make_run "$r13"
+
+  cat > "$d13/src/pages/Nested.tsx" <<'FIXEOF13'
+CREATE TABLE nested (
+  id INT,
+  meta JSONB DEFAULT (
+    '{}'
+  ),
+  amount INT
+)
+CREATE TABLE after_nested (
+  other INT
+)
+FIXEOF13
+
+  cat > "$d13/docs/design/common/調査と検出条件の定義書.md" <<'FIXEOF13'
+# 調査と検出条件の定義書
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 読み取り結果の項目 | どの構文・記述から取るか |
+|---|---|
+| 列-単位の定義 | 正規表現: ([a-z_]+) (INT\|TEXT) ／ 捕捉: 1 ／ 範囲: 単位の定義 |
+
+## 5. 動的な定義
+FIXEOF13
+
+  cat > "$d13/docs/design/lists/screen.json" <<'FIXEOF13'
+[
+  {"種別":"screen","識別子":"nested","名前":"nested","場所":"src/pages/Nested.tsx","根拠":"src/pages/Nested.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"after-nested","名前":"after-nested","場所":"src/pages/Nested.tsx","根拠":"src/pages/Nested.tsx:8","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF13
+
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d13" --run "$r13" --kind screen --out "$r13/code-readings" > "$base/case13.out" 2>"$base/case13.err"
+  local rc13=$?
+  local nested13_json="$r13/code-readings/screen/nested.json"
+  local v_nested13
+  v_nested13="$(jq -c '.["読み取り結果"]["列-単位の定義"]["値"]' "$nested13_json" 2>/dev/null)"
+  check "単位の定義: ネストした括弧の閉じ行では終わらず定義の最後まで取る" "$([ "$rc13" -eq 0 ] && [ "$v_nested13" = '["id","amount"]' ] && echo 0 || echo 1)"
+
+  # --- 範囲「単位の定義」: 開始行の中で開いて閉じる1行定義は、その行だけ
+  #     を終端にする（第1回改善指示書1-28 反証所見2）---
+  local d14="$base/case14" r14="$base/run14"
+  rm -rf "$d14" "$r14"
+  mkdir -p "$d14/src/pages" "$d14/docs/design/common" "$d14/docs/design/lists"
+  make_run "$r14"
+
+  cat > "$d14/src/pages/Oneline.tsx" <<'FIXEOF14'
+CREATE TABLE oneline (id INT);
+CREATE TABLE afterone (
+  other INT
+)
+FIXEOF14
+
+  cat > "$d14/docs/design/common/調査と検出条件の定義書.md" <<'FIXEOF14'
+# 調査と検出条件の定義書
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 読み取り結果の項目 | どの構文・記述から取るか |
+|---|---|
+| 列-単位の定義 | 正規表現: ([a-z_]+) (INT\|TEXT) ／ 捕捉: 1 ／ 範囲: 単位の定義 |
+
+## 5. 動的な定義
+FIXEOF14
+
+  cat > "$d14/docs/design/lists/screen.json" <<'FIXEOF14'
+[
+  {"種別":"screen","識別子":"oneline","名前":"oneline","場所":"src/pages/Oneline.tsx","根拠":"src/pages/Oneline.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"afterone","名前":"afterone","場所":"src/pages/Oneline.tsx","根拠":"src/pages/Oneline.tsx:2","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF14
+
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d14" --run "$r14" --kind screen --out "$r14/code-readings" > "$base/case14.out" 2>"$base/case14.err"
+  local rc14=$?
+  local oneline14_json="$r14/code-readings/screen/oneline.json"
+  local v_oneline14
+  v_oneline14="$(jq -c '.["読み取り結果"]["列-単位の定義"]["値"]' "$oneline14_json" 2>/dev/null)"
+  check "単位の定義: 1行定義はその行だけを終端にする" "$([ "$rc14" -eq 0 ] && [ "$v_oneline14" = '["id"]' ] && echo 0 || echo 1)"
+
+  # --- 範囲「単位の定義」: 定義を開く文の行に開き括弧が無く、次の行以降で
+  #     開いても、そこから残高を数え始める（第2版反証所見1）---
+  local d15="$base/case15" r15="$base/run15"
+  rm -rf "$d15" "$r15"
+  mkdir -p "$d15/src/pages" "$d15/docs/design/common" "$d15/docs/design/lists"
+  make_run "$r15"
+
+  cat > "$d15/src/pages/NextLine.tsx" <<'FIXEOF15'
+CREATE TABLE orders
+(
+  id INT,
+  amount INT
+)
+CREATE TABLE legacy_orders (
+  notes TEXT
+)
+CREATE TABLE users (
+  id INT,
+  name TEXT
+)
+FIXEOF15
+
+  cat > "$d15/docs/design/common/調査と検出条件の定義書.md" <<'FIXEOF15'
+# 調査と検出条件の定義書
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 読み取り結果の項目 | どの構文・記述から取るか |
+|---|---|
+| 列-単位の定義 | 正規表現: ([a-z_]+) (INT\|TEXT) ／ 捕捉: 1 ／ 範囲: 単位の定義 |
+
+## 5. 動的な定義
+FIXEOF15
+
+  cat > "$d15/docs/design/lists/screen.json" <<'FIXEOF15'
+[
+  {"種別":"screen","識別子":"orders","名前":"orders","場所":"src/pages/NextLine.tsx","根拠":"src/pages/NextLine.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"users","名前":"users","場所":"src/pages/NextLine.tsx","根拠":"src/pages/NextLine.tsx:9","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF15
+
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d15" --run "$r15" --kind screen --out "$r15/code-readings" > "$base/case15.out" 2>"$base/case15.err"
+  local rc15=$?
+  local orders15_json="$r15/code-readings/screen/orders.json"
+  local v_def15
+  v_def15="$(jq -c '.["読み取り結果"]["列-単位の定義"]["値"]' "$orders15_json" 2>/dev/null)"
+  check "単位の定義: 開始行に開き括弧が無く次行以降で開いても除外定義を取り込まない" "$([ "$rc15" -eq 0 ] && [ "$v_def15" = '["id","amount"]' ] && echo 0 || echo 1)"
+
+  # --- 範囲「単位の定義」: 残高が0に戻った直後の次の文字が ";" のとき、
+  #     同じ行に次の定義の開きが続いていてもその行で終端にする
+  #     （第2版反証所見2）---
+  local d16="$base/case16" r16="$base/run16"
+  rm -rf "$d16" "$r16"
+  mkdir -p "$d16/src/pages" "$d16/docs/design/common" "$d16/docs/design/lists"
+  make_run "$r16"
+
+  cat > "$d16/src/pages/SameLine.tsx" <<'FIXEOF16'
+CREATE TABLE orders (
+  id INT,
+  amount INT
+); CREATE TABLE zombi (
+  ghost TEXT
+)
+CREATE TABLE users (
+  id INT,
+  name TEXT
+)
+FIXEOF16
+
+  cat > "$d16/docs/design/common/調査と検出条件の定義書.md" <<'FIXEOF16'
+# 調査と検出条件の定義書
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 読み取り結果の項目 | どの構文・記述から取るか |
+|---|---|
+| 列-単位の定義 | 正規表現: ([a-z_]+) (INT\|TEXT) ／ 捕捉: 1 ／ 範囲: 単位の定義 |
+
+## 5. 動的な定義
+FIXEOF16
+
+  cat > "$d16/docs/design/lists/screen.json" <<'FIXEOF16'
+[
+  {"種別":"screen","識別子":"orders","名前":"orders","場所":"src/pages/SameLine.tsx","根拠":"src/pages/SameLine.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"users","名前":"users","場所":"src/pages/SameLine.tsx","根拠":"src/pages/SameLine.tsx:7","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF16
+
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d16" --run "$r16" --kind screen --out "$r16/code-readings" > "$base/case16.out" 2>"$base/case16.err"
+  local rc16=$?
+  local orders16_json="$r16/code-readings/screen/orders.json"
+  local v_def16
+  v_def16="$(jq -c '.["読み取り結果"]["列-単位の定義"]["値"]' "$orders16_json" 2>/dev/null)"
+  check "単位の定義: 残高0直後が';'の行を終端にし同じ行の次の定義を取り込まない" "$([ "$rc16" -eq 0 ] && [ "$v_def16" = '["id","amount"]' ] && echo 0 || echo 1)"
+
+  # --- 範囲「単位の定義」: 文字列中の開き括弧を数えて残高が範囲内で0に
+  #     戻らない場合、従来の終端まで伸びて隣の内容を取り込む（取り込み
+  #     方向。既知の限界の確認）（第2版反証所見4）---
+  local d17="$base/case17" r17="$base/run17"
+  rm -rf "$d17" "$r17"
+  mkdir -p "$d17/src/pages" "$d17/docs/design/common" "$d17/docs/design/lists"
+  make_run "$r17"
+
+  cat > "$d17/src/pages/StrParen.tsx" <<'FIXEOF17'
+CREATE TABLE strtest (
+  id INT,
+  note TEXT DEFAULT '('
+)
+orphan_column TEXT
+CREATE TABLE after_str (
+  other INT
+)
+FIXEOF17
+
+  cat > "$d17/docs/design/common/調査と検出条件の定義書.md" <<'FIXEOF17'
+# 調査と検出条件の定義書
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 読み取り結果の項目 | どの構文・記述から取るか |
+|---|---|
+| 列-単位の定義 | 正規表現: ([a-z_]+) (INT\|TEXT) ／ 捕捉: 1 ／ 範囲: 単位の定義 |
+
+## 5. 動的な定義
+FIXEOF17
+
+  cat > "$d17/docs/design/lists/screen.json" <<'FIXEOF17'
+[
+  {"種別":"screen","識別子":"strtest","名前":"strtest","場所":"src/pages/StrParen.tsx","根拠":"src/pages/StrParen.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"after-str","名前":"after-str","場所":"src/pages/StrParen.tsx","根拠":"src/pages/StrParen.tsx:6","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF17
+
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d17" --run "$r17" --kind screen --out "$r17/code-readings" > "$base/case17.out" 2>"$base/case17.err"
+  local rc17=$?
+  local strtest17_json="$r17/code-readings/screen/strtest.json"
+  local v_def17
+  v_def17="$(jq -c '.["読み取り結果"]["列-単位の定義"]["値"]' "$strtest17_json" 2>/dev/null)"
+  check "単位の定義: 文字列中の開き括弧で残高が戻らず従来の終端まで伸びて隣を取り込む（既知の限界）" "$([ "$rc17" -eq 0 ] && [ "$v_def17" = '["id","note","orphan_column"]' ] && echo 0 || echo 1)"
+
+  # --- 範囲「単位の定義」: 関数シグネチャ形（丸括弧の対応が0に戻った直後
+  #     が"{"）は数え続け、対応する"}"の行を終端にする（第2版指摘）---
+  local d18="$base/case18" r18="$base/run18"
+  rm -rf "$d18" "$r18"
+  mkdir -p "$d18/src/pages" "$d18/docs/design/common" "$d18/docs/design/lists"
+  make_run "$r18"
+
+  cat > "$d18/src/pages/FuncSig.tsx" <<'FIXEOF18'
+function Foo(props) {
+  return props.id;
+}
+function Legacy(props) {
+  return props.legacy;
+}
+function Bar(props) {
+  return props.name;
+}
+FIXEOF18
+
+  cat > "$d18/docs/design/common/調査と検出条件の定義書.md" <<'FIXEOF18'
+# 調査と検出条件の定義書
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 読み取り結果の項目 | どの構文・記述から取るか |
+|---|---|
+| 戻り値-単位の定義 | 正規表現: return props\.([a-z]+) ／ 捕捉: 1 ／ 範囲: 単位の定義 |
+
+## 5. 動的な定義
+FIXEOF18
+
+  cat > "$d18/docs/design/lists/screen.json" <<'FIXEOF18'
+[
+  {"種別":"screen","識別子":"foo","名前":"foo","場所":"src/pages/FuncSig.tsx","根拠":"src/pages/FuncSig.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"bar","名前":"bar","場所":"src/pages/FuncSig.tsx","根拠":"src/pages/FuncSig.tsx:7","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF18
+
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d18" --run "$r18" --kind screen --out "$r18/code-readings" > "$base/case18.out" 2>"$base/case18.err"
+  local rc18=$?
+  local foo18_json="$r18/code-readings/screen/foo.json"
+  local v_def18
+  v_def18="$(jq -c '.["読み取り結果"]["戻り値-単位の定義"]["値"]' "$foo18_json" 2>/dev/null)"
+  check "単位の定義: 関数シグネチャ形は対応する'}'の行を終端にし除外定義を取り込まない" "$([ "$rc18" -eq 0 ] && [ "$v_def18" = '["id"]' ] && echo 0 || echo 1)"
+
+  # --- 範囲「単位の定義」: 括弧を閉じても直後が";"でも行末でもない場合
+  #     （Pythonのdefの":"）は数え続けるが、行末で残高が0に戻れば開始行
+  #     だけを終端にする（既知の限界の確認）（第2版指摘）---
+  local d19="$base/case19" r19="$base/run19"
+  rm -rf "$d19" "$r19"
+  mkdir -p "$d19/src/pages" "$d19/docs/design/common" "$d19/docs/design/lists"
+  make_run "$r19"
+
+  cat > "$d19/src/pages/PyDef.tsx" <<'FIXEOF19'
+def order_summary(x):
+    return x.id
+def legacy_summary(x):
+    return x.legacy
+def user_summary(x):
+    return x.name
+FIXEOF19
+
+  cat > "$d19/docs/design/common/調査と検出条件の定義書.md" <<'FIXEOF19'
+# 調査と検出条件の定義書
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 読み取り結果の項目 | どの構文・記述から取るか |
+|---|---|
+| 戻り値-単位の定義 | 正規表現: return x\.([a-z]+) ／ 捕捉: 1 ／ 範囲: 単位の定義 |
+
+## 5. 動的な定義
+FIXEOF19
+
+  cat > "$d19/docs/design/lists/screen.json" <<'FIXEOF19'
+[
+  {"種別":"screen","識別子":"order-summary","名前":"order-summary","場所":"src/pages/PyDef.tsx","根拠":"src/pages/PyDef.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"user-summary","名前":"user-summary","場所":"src/pages/PyDef.tsx","根拠":"src/pages/PyDef.tsx:5","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF19
+
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d19" --run "$r19" --kind screen --out "$r19/code-readings" > "$base/case19.out" 2>"$base/case19.err"
+  local rc19=$?
+  local ordersummary19_json="$r19/code-readings/screen/order-summary.json"
+  local v_def19
+  v_def19="$(jq -c '.["読み取り結果"]["戻り値-単位の定義"]["値"]' "$ordersummary19_json" 2>/dev/null)"
+  check "単位の定義: 本体を括弧で囲まない定義（def）は行末で0に戻り開始行だけになる" "$([ "$rc19" -eq 0 ] && [ "$v_def19" = '[]' ] && echo 0 || echo 1)"
+
+  # --- 範囲「単位の定義」: 波括弧を次行に置く様式（Allman）は、丸括弧の
+  #     対応が行末で0に戻っても次の空白でない行の先頭が"{"なら終端にせず
+  #     数え続け（先読み）、対応する"}"の行を終端にする（第3版反証所見1）---
+  local d20="$base/case20" r20="$base/run20"
+  rm -rf "$d20" "$r20"
+  mkdir -p "$d20/src/pages" "$d20/docs/design/common" "$d20/docs/design/lists"
+  make_run "$r20"
+
+  cat > "$d20/src/pages/FuncAllman.tsx" <<'FIXEOF20'
+function foo(props)
+{
+  return props.id;
+}
+function legacy(props)
+{
+  return props.legacy;
+}
+function bar(props)
+{
+  return props.name;
+}
+FIXEOF20
+
+  cat > "$d20/docs/design/common/調査と検出条件の定義書.md" <<'FIXEOF20'
+# 調査と検出条件の定義書
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 読み取り結果の項目 | どの構文・記述から取るか |
+|---|---|
+| 戻り値-単位の定義 | 正規表現: return props\.([a-z]+) ／ 捕捉: 1 ／ 範囲: 単位の定義 |
+
+## 5. 動的な定義
+FIXEOF20
+
+  cat > "$d20/docs/design/lists/screen.json" <<'FIXEOF20'
+[
+  {"種別":"screen","識別子":"foo","名前":"foo","場所":"src/pages/FuncAllman.tsx","根拠":"src/pages/FuncAllman.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"bar","名前":"bar","場所":"src/pages/FuncAllman.tsx","根拠":"src/pages/FuncAllman.tsx:9","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF20
+
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d20" --run "$r20" --kind screen --out "$r20/code-readings" > "$base/case20.out" 2>"$base/case20.err"
+  local rc20=$?
+  local foo20_json="$r20/code-readings/screen/foo.json"
+  local v_def20
+  v_def20="$(jq -c '.["読み取り結果"]["戻り値-単位の定義"]["値"]' "$foo20_json" 2>/dev/null)"
+  check "単位の定義: 波括弧が次行の定義は先読みで本体まで取り除外定義を取り込まない" "$([ "$rc20" -eq 0 ] && [ "$v_def20" = '["id"]' ] && echo 0 || echo 1)"
+
+  # --- 範囲「単位の定義」: デコレータ行を定義の開始行にしていると、その
+  #     行自体の丸括弧で残高が0に戻り、次の行は定義の文自体（先頭が開き
+  #     括弧でない）から始まるため先読みでは救えず、開始行だけが終端に
+  #     なる（既知の限界の確認）（第3版反証所見2）---
+  local d21="$base/case21" r21="$base/run21"
+  rm -rf "$d21" "$r21"
+  mkdir -p "$d21/src/pages" "$d21/docs/design/common" "$d21/docs/design/lists"
+  make_run "$r21"
+
+  cat > "$d21/src/pages/Decorator.tsx" <<'FIXEOF21'
+@Injectable()
+export class FooService {
+  getId() {
+    return this.id;
+  }
+}
+@Injectable()
+export class LegacyService {
+  getId() {
+    return this.legacy;
+  }
+}
+@Injectable()
+export class BarService {
+  getId() {
+    return this.name;
+  }
+}
+FIXEOF21
+
+  cat > "$d21/docs/design/common/調査と検出条件の定義書.md" <<'FIXEOF21'
+# 調査と検出条件の定義書
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 読み取り結果の項目 | どの構文・記述から取るか |
+|---|---|
+| 戻り値-単位の定義 | 正規表現: return this\.([a-z]+) ／ 捕捉: 1 ／ 範囲: 単位の定義 |
+
+## 5. 動的な定義
+FIXEOF21
+
+  cat > "$d21/docs/design/lists/screen.json" <<'FIXEOF21'
+[
+  {"種別":"screen","識別子":"foo-service","名前":"foo-service","場所":"src/pages/Decorator.tsx","根拠":"src/pages/Decorator.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"bar-service","名前":"bar-service","場所":"src/pages/Decorator.tsx","根拠":"src/pages/Decorator.tsx:13","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF21
+
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d21" --run "$r21" --kind screen --out "$r21/code-readings" > "$base/case21.out" 2>"$base/case21.err"
+  local rc21=$?
+  local fooservice21_json="$r21/code-readings/screen/foo-service.json"
+  local v_def21
+  v_def21="$(jq -c '.["読み取り結果"]["戻り値-単位の定義"]["値"]' "$fooservice21_json" 2>/dev/null)"
+  check "単位の定義: デコレータ行から始まる定義は先読みで救えず開始行だけになる" "$([ "$rc21" -eq 0 ] && [ "$v_def21" = '[]' ] && echo 0 || echo 1)"
+
+  # --- 範囲「単位の定義」: 行末で残高が0に戻った直後の次の行が丸括弧
+  #     "(" で始まっていても、先読みの継続条件は波括弧"{"だけであり
+  #     続けない。閉じ括弧の行（"）"）を終端にし、次の行に丸括弧で
+  #     始まる別の文（別のSELECT文など）が続いても取り込まない
+  #     （第4版反証所見1）---
+  local d22="$base/case22" r22="$base/run22"
+  rm -rf "$d22" "$r22"
+  mkdir -p "$d22/src/pages" "$d22/docs/design/common" "$d22/docs/design/lists"
+  make_run "$r22"
+
+  cat > "$d22/src/pages/OpenParenNext.tsx" <<'FIXEOF22'
+CREATE TABLE a (
+  id INT,
+  amount INT
+)
+(orphan_column INT);
+CREATE TABLE next_one (
+  id INT,
+  name TEXT
+)
+FIXEOF22
+
+  cat > "$d22/docs/design/common/調査と検出条件の定義書.md" <<'FIXEOF22'
+# 調査と検出条件の定義書
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 読み取り結果の項目 | どの構文・記述から取るか |
+|---|---|
+| 列-単位の定義 | 正規表現: ([a-z_]+) (INT\|TEXT) ／ 捕捉: 1 ／ 範囲: 単位の定義 |
+
+## 5. 動的な定義
+FIXEOF22
+
+  cat > "$d22/docs/design/lists/screen.json" <<'FIXEOF22'
+[
+  {"種別":"screen","識別子":"a","名前":"a","場所":"src/pages/OpenParenNext.tsx","根拠":"src/pages/OpenParenNext.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"next-one","名前":"next-one","場所":"src/pages/OpenParenNext.tsx","根拠":"src/pages/OpenParenNext.tsx:6","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF22
+
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d22" --run "$r22" --kind screen --out "$r22/code-readings" > "$base/case22.out" 2>"$base/case22.err"
+  local rc22=$?
+  local a22_json="$r22/code-readings/screen/a.json"
+  local v_def22
+  v_def22="$(jq -c '.["読み取り結果"]["列-単位の定義"]["値"]' "$a22_json" 2>/dev/null)"
+  check "単位の定義: 次行が丸括弧で始まる別の文は先読みで続けず閉じ括弧の行を終端にする" "$([ "$rc22" -eq 0 ] && [ "$v_def22" = '["id","amount"]' ] && echo 0 || echo 1)"
+
+  # --- 範囲「単位の定義」: 括弧で囲まない定義（Pythonのdef）の次行が丸
+  #     括弧で始まるタプル代入でも、先読みの継続条件は波括弧"{"だけで
+  #     あり続けない。開始行だけが終端になる（第4版反証所見1）---
+  local d23="$base/case23" r23="$base/run23"
+  rm -rf "$d23" "$r23"
+  mkdir -p "$d23/src/pages" "$d23/docs/design/common" "$d23/docs/design/lists"
+  make_run "$r23"
+
+  cat > "$d23/src/pages/TupleAssign.tsx" <<'FIXEOF23'
+def order_summary(x):
+    (a, b) = (x.id, x.name)
+    return a
+def user_summary(x):
+    return x.name
+FIXEOF23
+
+  cat > "$d23/docs/design/common/調査と検出条件の定義書.md" <<'FIXEOF23'
+# 調査と検出条件の定義書
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 読み取り結果の項目 | どの構文・記述から取るか |
+|---|---|
+| 戻り値-単位の定義 | 正規表現: x\.([a-z]+) ／ 捕捉: 1 ／ 範囲: 単位の定義 |
+
+## 5. 動的な定義
+FIXEOF23
+
+  cat > "$d23/docs/design/lists/screen.json" <<'FIXEOF23'
+[
+  {"種別":"screen","識別子":"order-summary","名前":"order-summary","場所":"src/pages/TupleAssign.tsx","根拠":"src/pages/TupleAssign.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"user-summary","名前":"user-summary","場所":"src/pages/TupleAssign.tsx","根拠":"src/pages/TupleAssign.tsx:4","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF23
+
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d23" --run "$r23" --kind screen --out "$r23/code-readings" > "$base/case23.out" 2>"$base/case23.err"
+  local rc23=$?
+  local ordersummary23_json="$r23/code-readings/screen/order-summary.json"
+  local v_def23
+  v_def23="$(jq -c '.["読み取り結果"]["戻り値-単位の定義"]["値"]' "$ordersummary23_json" 2>/dev/null)"
+  check "単位の定義: defの次行が丸括弧で始まるタプル代入でも続けず開始行だけになる" "$([ "$rc23" -eq 0 ] && [ "$v_def23" = '[]' ] && echo 0 || echo 1)"
+
+  # --- 範囲「単位の定義」: オブジェクトを並べる様式（`},`の次行が`{`）
+  #     では、残高を0に戻した閉じ括弧が波括弧`}`のため先読みをせず、
+  #     閉じた行で終端にする。次行が波括弧で始まっていても続けず、
+  #     除外した隣のオブジェクトを取り込まない（第5版反証所見1）---
+  local d24="$base/case24" r24="$base/run24"
+  rm -rf "$d24" "$r24"
+  mkdir -p "$d24/src/pages" "$d24/docs/design/common" "$d24/docs/design/lists"
+  make_run "$r24"
+
+  cat > "$d24/src/pages/RouteList.tsx" <<'FIXEOF24'
+const routes = [
+  {
+    id: "orders",
+    label: "orders-real"
+  },
+  {
+    id: "zombi",
+    label: "zombi-ghost"
+  }
+];
+function users(props) {
+  return props.name;
+}
+FIXEOF24
+
+  cat > "$d24/docs/design/common/調査と検出条件の定義書.md" <<'FIXEOF24'
+# 調査と検出条件の定義書
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 読み取り結果の項目 | どの構文・記述から取るか |
+|---|---|
+| ラベル-単位の定義 | 正規表現: label: "([a-z-]+)" ／ 捕捉: 1 ／ 範囲: 単位の定義 |
+
+## 5. 動的な定義
+FIXEOF24
+
+  cat > "$d24/docs/design/lists/screen.json" <<'FIXEOF24'
+[
+  {"種別":"screen","識別子":"orders","名前":"orders","場所":"src/pages/RouteList.tsx","根拠":"src/pages/RouteList.tsx:2","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"users","名前":"users","場所":"src/pages/RouteList.tsx","根拠":"src/pages/RouteList.tsx:11","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF24
+
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d24" --run "$r24" --kind screen --out "$r24/code-readings" > "$base/case24.out" 2>"$base/case24.err"
+  local rc24=$?
+  local orders24_json="$r24/code-readings/screen/orders.json"
+  local v_def24
+  v_def24="$(jq -c '.["読み取り結果"]["ラベル-単位の定義"]["値"]' "$orders24_json" 2>/dev/null)"
+  check "単位の定義: 波括弧で閉じた行の次行が波括弧でも先読みで続けず隣のオブジェクトを取り込まない" "$([ "$rc24" -eq 0 ] && [ "$v_def24" = '["orders-real"]' ] && echo 0 || echo 1)"
+
+  # --- 範囲「単位の定義」: CRLF改行のファイルで、丸括弧の署名と波括弧の
+  #     本体の間に`\r`だけの空行があっても、行末の`\r`を除いて空行と
+  #     判定するため先読みが続き、対応する`}`の行を終端にする
+  #     （第5版反証所見2）---
+  local d25="$base/case25" r25="$base/run25"
+  rm -rf "$d25" "$r25"
+  mkdir -p "$d25/src/pages" "$d25/docs/design/common" "$d25/docs/design/lists"
+  make_run "$r25"
+
+  printf 'function foo($x)\r\n\r\n{\r\n  return $x->id;\r\n}\r\nfunction legacy($x)\r\n\r\n{\r\n  return $x->legacy;\r\n}\r\nfunction bar($x)\r\n\r\n{\r\n  return $x->name;\r\n}\r\n' > "$d25/src/pages/CrlfAllman.php"
+
+  cat > "$d25/docs/design/common/調査と検出条件の定義書.md" <<'FIXEOF25'
+# 調査と検出条件の定義書
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 読み取り結果の項目 | どの構文・記述から取るか |
+|---|---|
+| 戻り値-単位の定義 | 正規表現: return \$x->([a-z]+); ／ 捕捉: 1 ／ 範囲: 単位の定義 |
+
+## 5. 動的な定義
+FIXEOF25
+
+  cat > "$d25/docs/design/lists/screen.json" <<'FIXEOF25'
+[
+  {"種別":"screen","識別子":"foo","名前":"foo","場所":"src/pages/CrlfAllman.php","根拠":"src/pages/CrlfAllman.php:1","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"bar","名前":"bar","場所":"src/pages/CrlfAllman.php","根拠":"src/pages/CrlfAllman.php:11","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF25
+
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d25" --run "$r25" --kind screen --out "$r25/code-readings" > "$base/case25.out" 2>"$base/case25.err"
+  local rc25=$?
+  local foo25_json="$r25/code-readings/screen/foo.json"
+  local v_def25
+  v_def25="$(jq -c '.["読み取り結果"]["戻り値-単位の定義"]["値"]' "$foo25_json" 2>/dev/null)"
+  check "単位の定義: CRLFの空行を挟んでも先読みが続き除外定義を取り込まない" "$([ "$rc25" -eq 0 ] && [ "$v_def25" = '["id"]' ] && echo 0 || echo 1)"
+
+  # --- 範囲「単位の定義」: 呼び出し式が`),`で閉じる行（丸括弧の残高が
+  #     0に戻った直後が`,`）は、`,`を終端の合図として扱いその行で終わる。
+  #     次行の除外オブジェクトへ先読みで続けない（第6版反証所見1）---
+  local d26="$base/case26" r26="$base/run26"
+  rm -rf "$d26" "$r26"
+  mkdir -p "$d26/src/pages" "$d26/docs/design/common" "$d26/docs/design/lists"
+  make_run "$r26"
+
+  cat > "$d26/src/pages/RouteList.tsx" <<'FIXEOF26'
+const routes = [
+  wrapHandler(ordersHandler, "orders-real"),
+  {
+    id: "zombi",
+    label: "zombi-ghost"
+  }
+];
+function users(props) {
+  return props.name;
+}
+FIXEOF26
+
+  cat > "$d26/docs/design/common/調査と検出条件の定義書.md" <<'FIXEOF26'
+# 調査と検出条件の定義書
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 読み取り結果の項目 | どの構文・記述から取るか |
+|---|---|
+| ラベル-単位の定義 | 正規表現: label: "([a-z-]+)" ／ 捕捉: 1 ／ 範囲: 単位の定義 |
+
+## 5. 動的な定義
+FIXEOF26
+
+  cat > "$d26/docs/design/lists/screen.json" <<'FIXEOF26'
+[
+  {"種別":"screen","識別子":"orders","名前":"orders","場所":"src/pages/RouteList.tsx","根拠":"src/pages/RouteList.tsx:2","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"users","名前":"users","場所":"src/pages/RouteList.tsx","根拠":"src/pages/RouteList.tsx:8","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF26
+
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d26" --run "$r26" --kind screen --out "$r26/code-readings" > "$base/case26.out" 2>"$base/case26.err"
+  local rc26=$?
+  local orders26_json="$r26/code-readings/screen/orders.json"
+  local v_def26
+  v_def26="$(jq -c '.["読み取り結果"]["ラベル-単位の定義"]["値"]' "$orders26_json" 2>/dev/null)"
+  check "単位の定義: カンマで閉じた呼び出し式は次行の除外オブジェクトを取り込まない" "$([ "$rc26" -eq 0 ] && [ "$v_def26" = '[]' ] && echo 0 || echo 1)"
+
+  # --- 範囲「単位の定義」: CRLF改行のファイルで、丸括弧の署名と波括弧の
+  #     本体の間の空行に`\r`が2個続いても、行末の1個以上の`\r`をすべて
+  #     除いて空行と判定するため先読みが続き、対応する`}`の行を終端に
+  #     する（第6版反証所見3）---
+  local d27="$base/case27" r27="$base/run27"
+  rm -rf "$d27" "$r27"
+  mkdir -p "$d27/src/pages" "$d27/docs/design/common" "$d27/docs/design/lists"
+  make_run "$r27"
+
+  printf 'function foo($x)\r\n\r\r\n{\r\n  return $x->id;\r\n}\r\nfunction legacy($x)\r\n\r\r\n{\r\n  return $x->legacy;\r\n}\r\nfunction bar($x)\r\n\r\r\n{\r\n  return $x->name;\r\n}\r\n' > "$d27/src/pages/CrlfAllman.php"
+
+  cat > "$d27/docs/design/common/調査と検出条件の定義書.md" <<'FIXEOF27'
+# 調査と検出条件の定義書
+
+## 4. 単位の見つけ方
+
+### 4.1 画面
+
+| 読み取り結果の項目 | どの構文・記述から取るか |
+|---|---|
+| 戻り値-単位の定義 | 正規表現: return \$x->([a-z]+); ／ 捕捉: 1 ／ 範囲: 単位の定義 |
+
+## 5. 動的な定義
+FIXEOF27
+
+  cat > "$d27/docs/design/lists/screen.json" <<'FIXEOF27'
+[
+  {"種別":"screen","識別子":"foo","名前":"foo","場所":"src/pages/CrlfAllman.php","根拠":"src/pages/CrlfAllman.php:1","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"bar","名前":"bar","場所":"src/pages/CrlfAllman.php","根拠":"src/pages/CrlfAllman.php:11","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF27
+
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d27" --run "$r27" --kind screen --out "$r27/code-readings" > "$base/case27.out" 2>"$base/case27.err"
+  local rc27=$?
+  local foo27_json="$r27/code-readings/screen/foo.json"
+  local v_def27
+  v_def27="$(jq -c '.["読み取り結果"]["戻り値-単位の定義"]["値"]' "$foo27_json" 2>/dev/null)"
+  check "単位の定義: CRLFの空行に\\rが2個続いても先読みが続き除外定義を取り込まない" "$([ "$rc27" -eq 0 ] && [ "$v_def27" = '["id"]' ] && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then
