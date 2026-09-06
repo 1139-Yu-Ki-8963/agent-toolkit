@@ -20,16 +20,16 @@ requires: [reverse-writing-common-detail-design]
 
 ## いつ使わないか
 
-共通処理の詳細設計書がまだ検査を通っていないとき（工程2-7をやり直す）。当該単位に合格の記録が無い、または保留のとき（保留の単位は飛ばす）。機能（種別 feature）の詳細設計を書くとき（機能は詳細設計を持たない）。
+共通処理の詳細設計書がまだ検査を通っていないとき（工程2-7をやり直す）。当該単位に合格の記録が無いとき。機能（種別 feature）の詳細設計を書くとき（機能は詳細設計を持たない）。
 
 ## 前提
 
 - 対象リポジトリの `docs/design/common/共通処理の詳細設計書.md` が検査を通っていること
 - 対象リポジトリの `ai-work/records/basic-design-acceptance/<種別>-<単位のフォルダ名>.json` に、当該単位の合格の記録があること
-- 合格の記録の確認は次のコマンドで行う
-  ```bash
-  bash ../reverse-shared/scripts/check-acceptance-record.sh <対象リポジトリのルート> --kind <種別> --unit <識別子>
-  ```
+- 合格の記録の確認は次のコマンドで行う（要確認の観点を持つ記録は`--run`が無いと要確認-判定不能で不合格になる。2026-09-06改善）
+   ```bash
+   bash ../reverse-shared/scripts/check-acceptance-record.sh <対象リポジトリのルート> --kind <種別> --unit <識別子> --run <実行フォルダ>
+   ```
 - 実行フォルダの `code-readings/<種別>/<単位のフォルダ名>.json` に、当該単位の読み取り結果があること（工程2-4の出力）
 - 単位の一覧は `../reverse-shared/scripts/list-units-of.sh <対象リポジトリのルート> <種別>` で読む。単位のフォルダ名は一覧の出力（5列目）をそのまま使い、識別子から `unit-dir-name.sh` を直接呼んで作り直さない
 - 詳細設計書の見出し（h1）は一覧の表示名（2列目）と一致させる
@@ -42,10 +42,10 @@ requires: [reverse-writing-common-detail-design]
    bash ../reverse-writing-common-detail-design/scripts/check-common-detail-design.sh <対象リポジトリのルート> --design-root <設計書の置き場>
    ```
 3. 種別ごとに、`bash ../reverse-shared/scripts/list-units-of.sh <対象リポジトリのルート> <種別>` で一覧を得る
-4. 単位ごとに次を実行する。終了コードが0でなければ止まり、工程2-5・2-6（読み取り結果の不足なら工程2-4も）へ差し戻す。終了コード0でも標準エラーに`[SKIP] 判定-保留`が出ていれば、その単位は保留のため詳細設計書を書かず次の単位へ進む
-   ```bash
-   bash ../reverse-shared/scripts/check-acceptance-record.sh <対象リポジトリのルート> --kind <種別> --unit <識別子> --design-root <設計書の置き場>
-   ```
+4. 単位ごとに次を実行する。終了コードが0でなければ止まり、工程2-5・2-6（読み取り結果の不足なら工程2-4も）へ差し戻す
+    ```bash
+    bash ../reverse-shared/scripts/check-acceptance-record.sh <対象リポジトリのルート> --kind <種別> --unit <識別子> --design-root <設計書の置き場> --run <実行フォルダ>
+    ```
 5. 種別に対応する `templates/<種別key>/` 配下の様式（後述「種別ごとの様式」表）を、`docs/design/<フォルダ>/<単位のフォルダ名>/` へ複製する
 6. 読み取り結果（`code-readings/<種別>/<単位のフォルダ名>.json`）・基本設計書・共通処理の詳細設計書・一覧の属するファイルを読み、様式を埋める。読み取り結果の値をそのまま本文に転記し、コードの名前だけの記述にしない。設計の理由は `理由（観測）:`（実測に基づく）／`理由（推定）:`（実測から読み取れない）の形で書く
 7. 本文に実装の位置（file:line）を書かない。読み取り結果に無い項目が要る場合は「読み取り結果-不足」として工程2-4の当該単位へ差し戻す
@@ -105,7 +105,7 @@ requires: [reverse-writing-common-detail-design]
 
 ## 完了条件
 
-- 保留を除く全単位に詳細設計書（表はテーブル定義書）がある
+- 全単位に詳細設計書（表はテーブル定義書）がある
 - 読み取り結果ファイルの値が空でない各項目の値が文書本文に現れる（読み取り結果の網羅）
 - 基本設計書の`### <項目名>`見出しの各項目名が詳細設計書に現れる（基本設計書との整合）
 - file:lineが無く、対応するファイルの表が一覧の場所と属するファイルの集合に一致する

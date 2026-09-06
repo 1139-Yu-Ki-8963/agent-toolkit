@@ -11,11 +11,15 @@ set -u
 #   ある・未記入が無い）を機械で確かめる。
 #
 # 使い方:
-#   check-common-detail-design.sh <対象リポジトリのルート> [--design-root <設計書のルート>] [--map <調査と検出条件の定義書のパス>]
+#   check-common-detail-design.sh <対象リポジトリのルート> [--design-root <設計書のルート>] [--map <調査と検出条件の定義書のパス>] [--run <実行フォルダ>]
 #   check-common-detail-design.sh --self-test
 #
 # --design-root の既定は対象リポジトリのルート。調査と検出条件の定義書・共通処理の詳細設計書・
 # 合格の記録は設計書のルート配下で読み書きする。
+#
+# --run はcheck-acceptance-record.shへそのまま渡す実行フォルダ（2026-09-06
+# 改善）。要確認の観点を持つ共通設計文書の合格の記録は--run無しでは
+# 要確認-判定不能として不合格になる。
 #
 # 入口:
 #   工程2-6（基本設計の完了判定）の共通設計文書の合格の記録が無ければ検査
@@ -436,16 +440,22 @@ fi
 TARGET="$1"; shift
 DESIGN_ROOT="$TARGET"
 MAP=""
+RUN_DIR=""
 while [ $# -gt 0 ]; do
   case "$1" in
     --map) MAP="${2:-}"; shift 2 ;;
     --design-root) DESIGN_ROOT="${2:-}"; shift 2 ;;
+    --run) RUN_DIR="${2:-}"; shift 2 ;;
     *) usage_error ;;
   esac
 done
 [ -n "$MAP" ] || MAP="${DESIGN_ROOT%/}/docs/design/common/調査と検出条件の定義書.md"
 
-bash "$ACCEPTANCE_RECORD_CHECK" "$TARGET" --common --design-root "$DESIGN_ROOT"
+if [ -n "$RUN_DIR" ]; then
+  bash "$ACCEPTANCE_RECORD_CHECK" "$TARGET" --common --design-root "$DESIGN_ROOT" --run "$RUN_DIR"
+else
+  bash "$ACCEPTANCE_RECORD_CHECK" "$TARGET" --common --design-root "$DESIGN_ROOT"
+fi
 vrc=$?
 if [ "$vrc" -ne 0 ]; then
   echo "[FAIL] 合格記録-不在: 共通設計文書の合格の記録がありません（check-acceptance-record.sh 終了コード ${vrc}）" >&2

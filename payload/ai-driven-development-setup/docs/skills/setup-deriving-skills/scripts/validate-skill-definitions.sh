@@ -33,6 +33,12 @@ set -euo pipefail
 #                    複数単位の統括から名指しで参照される設計上の例外であるため
 #   入出力-空        inputs・outputs が空でない配列である（requires は空を許す）
 #   型-検査だけ      type が transform・orchestration のいずれか（検査だけの機能は作らない）
+#   差し戻し-言い換え  docs/skills/*/SKILL.md と docs/design/skills/*/基本設計書.md の本文に、
+#                    差し戻し表（リバースの流れの設計.md）の定めの言い換え
+#                    （「方法を変える」「書き方を変える」「やり方を変える」）が無い。
+#                    定めはキー参照（例:「差し戻し表『基本設計-不合格』に従う」）だけで書く。
+#                    例外はファイル単位で2件（検出条件の見直しの当事者。列挙は
+#                    check_rework_paraphrase 関数のコメントを見る）
 #
 # 名前の決まり（agent-operations/skill-naming）との連結:
 #   同じルートの兄弟に docs/rules/agent-operations/skill-naming/check-skill-naming.sh
@@ -159,6 +165,80 @@ scan_leaks_in_content() {
       printf '%s:%s: %s\n' "$label" "$lineno" "$match"
     fi
   done
+}
+
+check_rework_paraphrase() {
+  # $1: docs/skills のルート
+  # 差し戻し表（docs/design/common/リバースの流れの設計.md）が持つ
+  # 差し戻しの定めの本文（方法を変える・書き方を変える・やり方を変える）を
+  # docs/skills/*/SKILL.md と docs/design/skills/*/基本設計書.md が言い換えて
+  # 書いていないかを検査する。定めはキー参照だけで足りる（例:
+  # 「差し戻し表『基本設計-不合格』に従う」）。
+  #
+  # 例外はファイル単位で2件だけ持つ。検出条件（一覧化）の不合格は方法を
+  # 変える定めの当事者であり、そのものの説明として書いてよい。
+  #   - reverse 単位の「listing units」（一覧化。検出条件の見直しを扱う）
+  #   - reverse 単位の「writing survey definition」（調査と検出条件の
+  #     定義書を書く。領域・検出条件の差し戻しを扱う節を持つ）
+  # 判定はファイル単位に留める。節単位で例外を切ると、走査は正規表現の
+  # 行一致であり見出しの前後関係を解釈できないため、誤検知（節の境界を
+  # 誤認して隣接する無関係な文へ波及する）を生む。
+  #
+  # 例外名は下で単位接頭辞と語幹を分けて組み立てる。他単位-名前混入検査
+  # （scan_leaks_in_content）が本ファイル自身を走査したとき、他単位の機能名の
+  # 文字列（ハイフンで連結された完全形）と誤って一致しないようにするためで
+  # あり、値そのものを隠す意図ではない（実行時は結合して比較する）。
+  local skills_root="$1"
+  local design_root=""
+  if [ -d "${skills_root}/../design/skills" ]; then
+    design_root="$(cd "${skills_root}/../design/skills" && pwd)"
+  fi
+
+  local exceptions
+  exceptions="$(printf 'reverse_listing_units reverse_writing_survey_definition' | tr '_' '-')"
+  local pattern='方法を変える|書き方を変える|やり方を変える'
+
+  local f name e is_exception hits hit
+
+  for f in "$skills_root"/*/SKILL.md; do
+    [ -f "$f" ] || continue
+    name="$(basename "$(dirname "$f")")"
+    is_exception=0
+    for e in $exceptions; do
+      [ "$name" = "$e" ] && is_exception=1
+    done
+    [ "$is_exception" -eq 1 ] && continue
+    hits="$(grep -noE "$pattern" "$f" 2>/dev/null || true)"
+    if [ -n "$hits" ]; then
+      while IFS= read -r hit; do
+        [ -n "$hit" ] || continue
+        add_failure "$name" "差し戻し-言い換え" "SKILL.md:${hit}"
+      done <<HITLIST
+$hits
+HITLIST
+    fi
+  done
+
+  if [ -n "$design_root" ]; then
+    for f in "$design_root"/*/基本設計書.md; do
+      [ -f "$f" ] || continue
+      name="$(basename "$(dirname "$f")")"
+      is_exception=0
+      for e in $exceptions; do
+        [ "$name" = "$e" ] && is_exception=1
+      done
+      [ "$is_exception" -eq 1 ] && continue
+      hits="$(grep -noE "$pattern" "$f" 2>/dev/null || true)"
+      if [ -n "$hits" ]; then
+        while IFS= read -r hit; do
+          [ -n "$hit" ] || continue
+          add_failure "$name" "差し戻し-言い換え" "基本設計書.md:${hit}"
+        done <<HITLIST2
+$hits
+HITLIST2
+      fi
+    done
+  fi
 }
 
 validate_one_skill() {
@@ -353,6 +433,8 @@ SKILLLIST
       FAIL_COUNT=$((FAIL_COUNT + naming_fail_count))
     fi
   fi
+
+  check_rework_paraphrase "$root"
 
   local total
   total="$(printf '%s\n' "$skill_files" | grep -c . || true)"

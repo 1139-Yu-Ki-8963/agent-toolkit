@@ -10,14 +10,16 @@ set -u
 #
 # 使い方:
 #   record-acceptance.sh <対象リポジトリのルート> --run <実行フォルダ> \
-#     --kind <種別> --unit <識別子> --verdict <合格|不合格|保留> \
+#     --kind <種別> --unit <識別子> --verdict <合格|不合格> \
 #     --viewpoints "<観点=合|否|要確認;...>" --judged "<文書名>=<sha256>;..." \
 #     [--reason "<理由>"] [--design-root <設計書のルート>]
 #   record-acceptance.sh <対象リポジトリのルート> --run <実行フォルダ> \
-#     --common <文書名> --verdict <合格|不合格|保留> \
+#     --common <文書名> --verdict <合格|不合格> \
 #     --viewpoints "<観点=合|否|要確認;...>" --judged "<文書名>=<sha256>" \
 #     [--reason "<理由>"] [--design-root <設計書のルート>]
 #   record-acceptance.sh --self-test
+#
+# 単位・共通設計文書の保留は廃止（2026-09-05）。判定は合格・不合格の2値。
 #
 # --judged は判定した時点の文書の同一性の値（sha256）。判定の直前に
 # `shasum -a 256 <文書>` で取る。共通設計文書は1件、単位は基本設計書・
@@ -46,13 +48,19 @@ set -u
 #
 # 観点の値に要確認が含まれるとき、--reasonへ確認事項一覧のキーを含める。
 # キーが<実行フォルダ>/confirmations/確認事項の記録.mdに実在しなければ
-# 記録を作らない（第1回改善指示書1-18）。
+# 記録を作らない（第1回改善指示書1-18）。--runは常に必須（使い方の誤り）
+# なので、確認事項の記録.mdが読めない場合は要確認-判定不能として記録を
+# 作らない（2026-09-06改善。読む側のcheck-acceptance-record.shと同じ区別）。
+#
+# 観点のキーが空文字列の項目（例: "外部仕様の確定=合;=合"）も観点-キー空
+# として拒む（読む側が空のキーを観点の値-不正として拒むのと対にする）。
 #
 # 終了コード:
 #   0 = 記録を書いた
 #   1 = 判定した時点と記録を書く時点で文書の同一性の値が食い違う（記録を作らない）
-#   2 = 使い方の誤り・種別が不正・判定の値が不正・共有部品が無い・
-#       要確認のキーが確認事項の記録に無い（判定不能）
+#   2 = 使い方の誤り・種別が不正・判定の値が不正・観点のキーが空・
+#       要確認のキーが確認事項の記録に無い・確認事項の記録.mdを参照できない
+#       （判定不能）
 #
 # 保守責任者: 人手（ユーザー）。記録の形（キー）を変えるときは、本スクリプトと
 #   check-acceptance-record.shを同時に直す。
@@ -66,6 +74,8 @@ UNIT_DIR_NAME_SH="${SCRIPT_DIR}/unit-dir-name.sh"
 LIST_UNITS_OF_SH="${SCRIPT_DIR}/list-units-of.sh"
 DESIGN_DOC_NAME_SH="${SCRIPT_DIR}/design-doc-name.sh"
 UNITS_STATUS_SH="${SCRIPT_DIR}/units-status.sh"
+# shellcheck source=viewpoint-validation.sh
+. "${SCRIPT_DIR}/viewpoint-validation.sh"
 
 # 単位のフォルダ名をlist-units-of.shの5列目から得る。一覧が無い、または
 # 該当する識別子の行が無ければ、unit-dir-name.shへ識別子を渡した値へ
@@ -83,8 +93,8 @@ unit_folder_name() {
 }
 
 usage_error() {
-  echo "使い方: record-acceptance.sh <対象> --run <実行フォルダ> --kind <種別> --unit <識別子> --verdict <合格|不合格|保留> --viewpoints \"<観点=合|否|要確認;...>\" --judged \"<文書名>=<sha256>;...\" [--reason \"...\"] [--design-root <設計書のルート>]" >&2
-  echo "        record-acceptance.sh <対象> --run <実行フォルダ> --common <文書名> --verdict <合格|不合格|保留> --viewpoints \"...\" --judged \"<文書名>=<sha256>\" [--reason \"...\"] [--design-root <設計書のルート>]" >&2
+  echo "使い方: record-acceptance.sh <対象> --run <実行フォルダ> --kind <種別> --unit <識別子> --verdict <合格|不合格> --viewpoints \"<観点=合|否|要確認;...>\" --judged \"<文書名>=<sha256>;...\" [--reason \"...\"] [--design-root <設計書のルート>]" >&2
+  echo "        record-acceptance.sh <対象> --run <実行フォルダ> --common <文書名> --verdict <合格|不合格> --viewpoints \"...\" --judged \"<文書名>=<sha256>\" [--reason \"...\"] [--design-root <設計書のルート>]" >&2
   echo "        record-acceptance.sh --self-test" >&2
   exit 2
 }
@@ -110,56 +120,49 @@ doc_sha_json() {
   jq -n --arg n "$name" --arg s "$sha" '{($n): $s}'
 }
 
-# 観点の値に要確認が含まれるとき、理由にその観点の確認事項一覧のキーが
-# 含まれているかを確かめる。$1: viewpoints  $2: reason  $3: run_dir
-# 確認事項の記録.md の1列目（キー）を候補として抽出し、reasonへ含まれるか
-# 見る。表の行を1件も抽出できない場合は、reasonがファイルへ丸ごと含まれる
-# かで判定する（形式を特定できない場合の代替）。
-check_yakukakunin_key() {
-  local viewpoints="$1" reason="$2" run_dir="$3"
-  case "$viewpoints" in
-    *=要確認*) ;;
-    *) return 0 ;;
-  esac
-  local conf_file="${run_dir%/}/confirmations/確認事項の記録.md"
-  if [ ! -f "$conf_file" ]; then
-    return 1
-  fi
-  local line key found=1
-  while IFS= read -r line; do
-    case "$line" in
-      '|'*) ;;
-      *) continue ;;
+
+# 観点の値が 合・否・要確認 のいずれかであることを確かめる。$1: viewpoints。
+# 値が空・`=`が無い項目・3値以外の値はすべて同じ扱いで拒否する（流れの設計
+# 「完了判定の状態」の「観点の値は 合・否・要確認 の3つ」）。キーが空文字列
+# の項目（例: "=合"）も拒む（読む側のcheck-acceptance-record.shが空のキー
+# を観点の値-不正として拒むのと対にする。改善指示書対応）。
+check_viewpoint_values_valid() {
+  local viewpoints="$1"
+  [ -n "$viewpoints" ] || return 0
+  local old_ifs="$IFS" k v item
+  IFS=';'
+  local arr=($viewpoints)
+  IFS="$old_ifs"
+  for item in "${arr[@]}"; do
+    [ -n "$item" ] || continue
+    case "$item" in
+      *=*)
+        k="${item%%=*}"
+        v="${item#*=}"
+        ;;
+      *)
+        k="$item"
+        v=""
+        ;;
     esac
-    case "$line" in
-      '|'*'---'*) continue ;;
-    esac
-    key="${line#|}"
-    key="${key%%|*}"
-    key="$(trim_str "$key")"
-    [ -n "$key" ] || continue
-    [ "$key" = "キー" ] && continue
-    found=0
-    case "$reason" in
-      *"$key"*) return 0 ;;
-    esac
-  done < "$conf_file"
-  if [ "$found" -eq 1 ]; then
-    case "$(cat "$conf_file")" in
-      *"$reason"*) [ -n "$reason" ] && return 0 ;;
-    esac
-  fi
-  return 1
+    if [ -z "$k" ]; then
+      echo "[FAIL] 観点-キー空: 値=${v}" >&2
+      return 1
+    fi
+    if ! is_valid_viewpoint_value "$v"; then
+      echo "[FAIL] 観点-値不正: ${k}=${v}" >&2
+      return 1
+    fi
+  done
+  return 0
 }
 
 # 判定（--verdict）と観点（--viewpoints）の整合を確かめる。$1: verdict
-# $2: viewpoints。保留は観点によらず許す（既定を置けない不明点は観点の
-# 外の事情のため）。否が1つでもあるのに合格、否が無く要確認と合だけなのに
+# $2: viewpoints。否が1つでもあるのに合格、否が無く要確認と合だけなのに
 # 不合格は、record-acceptance.shが観点との整合を検査して確定する
 # （設計判断: 流れの設計「完了判定の状態」の「誰が決めるか」を参照）。
 check_verdict_viewpoint_consistency() {
   local verdict="$1" viewpoints="$2"
-  [ "$verdict" = "保留" ] && return 0
   local has_no=1
   case "$viewpoints" in
     *=否*) has_no=0 ;;
@@ -190,12 +193,6 @@ check_judged_match() {
   return "$mismatch"
 }
 
-trim_str() {
-  local s="$1"
-  s="${s#"${s%%[![:space:]]*}"}"
-  s="${s%"${s##*[![:space:]]}"}"
-  printf '%s' "$s"
-}
 
 parse_kv_pairs_json() {
   local vp="$1"
@@ -334,12 +331,16 @@ run_main() {
   [ -n "$judged" ] || usage_error
 
   case "$verdict" in
-    合格|不合格|保留) ;;
+    合格|不合格) ;;
     *)
-      echo "[FAIL] 使い方-判定: ${verdict:-（空）} は 合格・不合格・保留 のいずれでもありません" >&2
+      echo "[FAIL] 使い方-判定: ${verdict:-（空）} は 合格・不合格 のいずれでもありません" >&2
       exit 2
       ;;
   esac
+
+  if ! check_viewpoint_values_valid "$viewpoints"; then
+    exit 2
+  fi
 
   check_verdict_viewpoint_consistency "$verdict" "$viewpoints"
   case "$?" in
@@ -353,10 +354,20 @@ run_main() {
       ;;
   esac
 
-  if ! check_yakukakunin_key "$viewpoints" "$reason" "$run_dir"; then
-    echo "[FAIL] 要確認-キー不在: 理由に確認事項一覧のキーがありません（${run_dir%/}/confirmations/確認事項の記録.md）" >&2
-    exit 2
-  fi
+  local yk_rc
+  check_yakukakunin_key "$viewpoints" "$reason" "$run_dir"
+  yk_rc=$?
+  case "$yk_rc" in
+    0) ;;
+    2)
+      echo "[FAIL] 要確認-判定不能: 確認事項の記録を参照できません（${run_dir%/}/confirmations/確認事項の記録.md）" >&2
+      exit 2
+      ;;
+    *)
+      echo "[FAIL] 要確認-キー不在: 理由に確認事項一覧のキーがありません（${run_dir%/}/confirmations/確認事項の記録.md）" >&2
+      exit 2
+      ;;
+  esac
 
   local judged_json
   judged_json="$(parse_kv_pairs_json "$judged")"
@@ -408,6 +419,23 @@ self_test() {
 
   bash "$SCRIPT_DIR/record-acceptance.sh" "$d" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" --verdict 不明 --viewpoints "" --judged "x=y" > "$base/u2.out" 2>"$base/u2.err"
   check "使い方-判定不正は終了コード2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
+
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" --verdict 保留 --viewpoints "" --judged "x=y" > "$base/u2b.out" 2>"$base/u2b.err"
+  check "使い方-判定「保留」は廃止のため終了コード2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
+
+  local yk_bad_record="$d/ai-work/records/basic-design-acceptance/screen-src_pages_OrderList.tsx.json"
+  rm -f "$yk_bad_record"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" --verdict 合格 --viewpoints "外部仕様の確定=不明" --judged "x=y" > "$base/u2c.out" 2>"$base/u2c.err"
+  local rc2c=$?
+  check "観点の値が不明なら終了コード2" "$([ "$rc2c" -eq 2 ] && echo 0 || echo 1)"
+  check "観点の値が不明なら理由に観点-値不正" "$(grep -qF '観点-値不正' "$base/u2c.err" && echo 0 || echo 1)"
+  total=$((total + 1))
+  if [ ! -f "$yk_bad_record" ]; then
+    echo "PASS: 観点の値が不明なら記録を作らない"
+  else
+    echo "FAIL: 観点の値が不明なら記録を作らない（記録ファイルが実在します）"
+    fail=$((fail + 1))
+  fi
 
   bash "$SCRIPT_DIR/record-acceptance.sh" "$d" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" --verdict 合格 --viewpoints "" > "$base/u3.out" 2>"$base/u3.err"
   check "使い方-judged無しは終了コード2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
@@ -572,6 +600,21 @@ CONFEOF
     fail=$((fail + 1))
   fi
 
+  # --- 方式設計書の7節が要求水準を持たない状態で要確認の単位の判定が定まり照合が0を返す ---
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d2" --run "$run2" --kind api --unit "api/get_orders" \
+    --verdict 合格 \
+    --viewpoints "外部仕様の確定=合;業務ルールと例外系の確定=合;非機能の方式の確定=要確認;データの整合性・トランザクション境界・排他の確定=合;不明点の不在=合;単体テスト設計書の実在=合" \
+    --judged "$judged4" --reason "性能-数値目標は要確認事項一覧に登録済み" \
+    > "$base/r10.out" 2>"$base/r10.err"
+  local rc10r=$?
+  local rc10c=1
+  if [ "$rc10r" -eq 0 ]; then
+    bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d2" --kind api --unit "api/get_orders" --run "$run2" \
+      > "$base/r10chk.out" 2>"$base/r10chk.err"
+    rc10c=$?
+  fi
+  check "方式設計書の7節が要求水準を持たない状態で要確認の単位の判定が定まり照合が0を返す" "$([ "$rc10r" -eq 0 ] && [ "$rc10c" -eq 0 ] && echo 0 || echo 1)"
+
   # --- 判定と観点の整合（コードレビュー警告1: 否ありなのに合格・要確認のみなのに不合格） ---
   bash "$SCRIPT_DIR/record-acceptance.sh" "$d2" --run "$run2" --kind api --unit "api/get_orders" \
     --verdict 合格 --viewpoints "非機能の方式の確定=否" --judged "$judged4" --reason "" \
@@ -607,6 +650,42 @@ CONFEOF
     --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged_now" --reason "" \
     > "$base/r11.out" 2>"$base/r11.err"
   check "判定した時点と記録を書く時点が同じなら終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
+
+  # --- 観点のキーが空文字列なら終了コード2（書く側。観点-キー空） ---
+  local emptykey_record="$d/ai-work/records/basic-design-acceptance/screen-src_pages_EmptyKeyWrite.tsx.json"
+  rm -f "$emptykey_record"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d" --run "$run" --kind screen --unit "src/pages/EmptyKeyWrite.tsx" \
+    --verdict 合格 --viewpoints "=合" --judged "x=y" \
+    > "$base/r14.out" 2>"$base/r14.err"
+  local rc14=$?
+  check "観点のキーが空文字列なら終了コード2" "$([ "$rc14" -eq 2 ] && echo 0 || echo 1)"
+  check "観点のキーが空文字列なら理由に観点-キー空" "$(grep -qF '観点-キー空' "$base/r14.err" && echo 0 || echo 1)"
+  total=$((total + 1))
+  if [ ! -f "$emptykey_record" ]; then
+    echo "PASS: 観点のキーが空文字列なら記録を作らない"
+  else
+    echo "FAIL: 観点のキーが空文字列なら記録を作らない（記録ファイルが実在します）"
+    fail=$((fail + 1))
+  fi
+
+  # --- 要確認ありで確認事項の記録.mdが読めないなら終了コード2（要確認-判定不能） ---
+  local run3="$base/run3-no-confirmations"
+  mkdir -p "$run3"
+  local noyk_record="$d2/ai-work/records/basic-design-acceptance/api-api_get_orders.json"
+  rm -f "$noyk_record"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d2" --run "$run3" --kind api --unit "api/get_orders" \
+    --verdict 合格 --viewpoints "非機能の方式の確定=要確認" --judged "$judged4" --reason "性能-数値目標は要確認事項一覧に登録済み" \
+    > "$base/r15.out" 2>"$base/r15.err"
+  local rc15b=$?
+  check "要確認ありで確認事項の記録.mdが読めないなら終了コード2" "$([ "$rc15b" -eq 2 ] && echo 0 || echo 1)"
+  check "要確認ありで確認事項の記録.mdが読めない理由に要確認-判定不能" "$(grep -qF '要確認-判定不能' "$base/r15.err" && echo 0 || echo 1)"
+  total=$((total + 1))
+  if [ ! -f "$noyk_record" ]; then
+    echo "PASS: 要確認ありで確認事項の記録.mdが読めないなら記録を作らない"
+  else
+    echo "FAIL: 要確認ありで確認事項の記録.mdが読めないなら記録を作らない（記録ファイルが実在します）"
+    fail=$((fail + 1))
+  fi
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then

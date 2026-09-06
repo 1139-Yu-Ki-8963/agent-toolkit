@@ -137,16 +137,6 @@ check_repo() {
         heading_exists "$bd" "$h" || fail "基本設計書に節が無い: $name / $h"
       done
       grep -q '要件の柱' "$bd" 2>/dev/null || fail "基本設計書の§1に「要件との対応」の表が無い: $name"
-
-      if heading_exists "$bd" "### 終了コード・差し戻し・保留の一覧"; then
-        local pending_header
-        pending_header="$(awk '
-          /^### 終了コード・差し戻し・保留の一覧$/ { f = 1; next }
-          f && /^\|/ { print; exit }
-        ' "$bd")"
-        [[ "$pending_header" == *"保留のとき"* ]] \
-          || fail "基本設計書の§5終了コード・差し戻し・保留の一覧の表に列「保留のとき」が無い: $name"
-      fi
     fi
 
     if [ ! -f "$dd" ]; then
@@ -706,72 +696,6 @@ INNER_EOF
     pass=$((pass + 1))
   else
     echo "[SELFTEST-FAIL] ケース9(tests/xxx.sh（注記）形の実物照合が合格想定)が不合格または警告 (fail=${fail_count} warn=${warn_count})" >&2
-  fi
-
-  # ケース10: §5終了コード・差し戻し・保留の一覧の表に列「保留のとき」が無い → 不合格
-  mkdir -p "$tmp/ng6/docs/skills/reverse-doing-thing/scripts"
-  mkdir -p "$tmp/ng6/docs/design/skills/reverse-doing-thing"
-  mkdir -p "$tmp/ng6/docs/design/requirements"
-  touch "$tmp/ng6/docs/skills/reverse-doing-thing/SKILL.md"
-  cat > "$tmp/ng6/docs/design/skills/reverse-doing-thing/基本設計書.md" << 'INNER_EOF'
-## §1 外部仕様
-| 要件の柱 | 要件の項目 | この機能が満たす内容 |
-|---|---|---|
-| 柱1 | x | y |
-## §2 業務仕様
-## §3 方式設計
-## §4 データ仕様
-## §5 エラーと例外
-### 終了コード・差し戻し・保留の一覧
-| 検査 | スクリプト | 検査キー |
-|---|---|---|
-| a | b | c |
-## §6 関連資料
-INNER_EOF
-  write_detail "$tmp/ng6/docs/design/skills/reverse-doing-thing/詳細設計書.md"
-  cat > "$tmp/ng6/docs/design/skills/reverse-doing-thing/単体テスト設計書.md" << 'INNER_EOF'
-## テスト対象
-| スクリプト | 自己テストの実行 | ケース数 |
-|---|---|---|
-| a.sh | あり | 2 |
-## §1 テスト観点
-| キー | 観点 | 確かめる手段 |
-|---|---|---|
-| k1 | v1 | m1 |
-## §2 テストケース一覧
-| キー | 番号 | 機能 | ケースの名前 | 対応する観点のキー | 区分 | 前提 | 操作 | 期待結果 |
-|---|---|---|---|---|---|---|---|---|
-| c1 | 1 | f1 | 名前1 | k1 | 正常 | p | o | e |
-| c2 | 2 | f1 | 名前2 | k1 | 異常 | p | o | e |
-## §5 異常系
-## §6 境界値
-## §7 網羅基準
-
-検査スクリプトの自己テストの実測件数は次のとおり。
-
-| スクリプト | 件数 |
-|---|---|
-| a.sh | 2 |
-INNER_EOF
-  cat > "$tmp/ng6/docs/design/requirements/要件と機能の対応表.md" << 'INNER_EOF'
-| 柱1 | x | reverse-doing-thing | c | 対応済み |
-| reverse-doing-thing | 何か |
-INNER_EOF
-  cat > "$tmp/ng6/docs/skills/reverse-doing-thing/scripts/a.sh" << 'INNER_EOF'
-#!/usr/bin/env bash
-if [ "${1:-}" = "--self-test" ]; then
-  echo "実行 2 件 / 合格 2 件"
-  exit 0
-fi
-exit 0
-INNER_EOF
-  chmod +x "$tmp/ng6/docs/skills/reverse-doing-thing/scripts/a.sh"
-  total=$((total + 1))
-  fail_count=0; check_repo "$tmp/ng6" > /dev/null 2>&1
-  if [ "$fail_count" -gt 0 ]; then
-    pass=$((pass + 1))
-  else
-    echo "[SELFTEST-FAIL] ケース10(§5保留のとき列欠落は不合格想定)が合格" >&2
   fi
 
   # ケース11: §2の10列目（自己テストのケース名）が自己テストの出力と

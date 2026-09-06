@@ -95,32 +95,6 @@ record_header_indices() {
   ' "$file"
 }
 
-# 確認事項の記録.md から「状態」列が「保留」の行を 単位\x1f理由 で返す。
-# 理由は「理由」列（あれば）、無ければ「事項」列から写す。単位列の値は
-# そのまま完全な形で使う（他の列への部分一致は行わない）。
-extract_pending_rows() {
-  local file="$1"
-  [ -f "$file" ] || return 0
-  local hdr
-  hdr="$(record_header_indices "$file")"
-  [ -n "$hdr" ] || return 0
-  local unit_i item_i reason_i status_i
-  IFS=$'\037' read -r _ unit_i item_i reason_i status_i <<< "$hdr"
-  [ "${unit_i:-0}" -gt 0 ] && [ "${status_i:-0}" -gt 0 ] || return 0
-  awk -v unit_i="$unit_i" -v item_i="$item_i" -v reason_i="$reason_i" -v status_i="$status_i" \
-    "$AWK_SPLIT_ROW"'
-    BEGIN { n = 0 }
-    /^\|/ {
-      cnt = split_row($0, cols)
-      if (n == 0) { n = 1; next }
-      if (cols[1] ~ /^[-: ]+$/) next
-      if (cols[status_i] != "保留") next
-      reason = (reason_i > 0 && cols[reason_i] != "") ? cols[reason_i] : cols[item_i]
-      printf "%s\037%s\n", cols[unit_i], reason
-    }
-  ' "$file"
-}
-
 # 1設計書ファイルの「## 要確認事項一覧」節から キー\x1f事項\x1f確認先\x1f既定 を返す。
 # 見出しは前方一致（末尾の空白・付記を許す）で判定する（check-basic-design.sh:206と同じ）。
 extract_survey_items() {
@@ -228,34 +202,6 @@ collect_design_items() {
 }
 
 # ------------------------------------------------------------------
-# 保留節
-# ------------------------------------------------------------------
-
-build_pending_section() {
-  local record_file="$1"
-  echo "## 保留"
-  echo
-  echo "| 単位 | 理由 |"
-  echo "|---|---|"
-  local pending
-  pending="$(extract_pending_rows "$record_file")"
-  if [ -z "$pending" ]; then
-    echo "| （該当なし） | - |"
-    echo
-    echo "保留 0件"
-    return 0
-  fi
-  local unit reason count=0
-  while IFS=$'\037' read -r unit reason; do
-    [ -n "$unit" ] || continue
-    echo "| ${unit} | ${reason} |"
-    count=$((count + 1))
-  done <<< "$pending"
-  echo
-  echo "保留 ${count}件"
-}
-
-# ------------------------------------------------------------------
 # 通常実行（組み立て）
 # ------------------------------------------------------------------
 
@@ -341,8 +287,6 @@ run_build() {
         echo "- ${k}"
       done
     fi
-    echo
-    build_pending_section "$record_file"
   }
 }
 
@@ -464,115 +408,88 @@ EOF
     fail=$((fail + 1)); echo "  [FAIL] ケース5: --verifyの合格判定が不正 (exit ${rc5})" >&2
   fi
 
-  if printf '%s' "$out1" | grep -q '## 保留' && printf '%s' "$out1" | grep -q '保留 0件'; then
-    pass=$((pass + 1)); echo "  [PASS] ケース6: 保留0件でも節と件数が出力される"
-  else
-    fail=$((fail + 1)); echo "  [FAIL] ケース6: 保留0件時の節出力が不正" >&2
-  fi
-
-  # ケース7: 状態が「保留」の行だけが単位と理由（事項列）付きで保留節に載る。
-  # 理由の文字列は他行に現れない固有の文にし、部分一致による偽PASSを防ぐ。
-  local run7="${tmp}/run7"
-  mkdir -p "${run7}/confirmations"
-  cat > "${run7}/confirmations/確認事項の記録.md" << 'EOF'
-| キー | 単位 | 種類 | 事項 | 既定 | 反映先 | 回答 | 状態 |
-|---|---|---|---|---|---|---|---|
-| screen-OrderDetail-保留 | OrderDetail | 制約 | 桁数がコードから確定できない固有の保留理由 | 対象外 | 確認事項一覧 |  | 保留 |
-| 他の行-未回答 | OrderList | 制約 | 別の事項 | 既定あり | 反映先あり |  | 未回答 |
-EOF
-  local out7 rc7=0
-  out7="$(run_build "$run7" "$design_root" 2>&1)" || rc7=$?
-  if [ "$rc7" -eq 0 ] && printf '%s' "$out7" | grep -A5 '## 保留' | grep -q 'OrderDetail' \
-    && printf '%s' "$out7" | grep -A5 '## 保留' | grep -q '桁数がコードから確定できない固有の保留理由' \
-    && ! printf '%s' "$out7" | grep -A5 '## 保留' | grep -q 'OrderList'; then
-    pass=$((pass + 1)); echo "  [PASS] ケース7: 状態が保留の行だけが単位と理由付きで保留節に載る"
-  else
-    fail=$((fail + 1)); echo "  [FAIL] ケース7: 保留の反映が不正 (exit ${rc7})" >&2
-    printf '%s\n' "$out7" | sed 's/^/    /' >&2
-  fi
-
-  # ケース8: セル内のエスケープ済みパイプ "\|" で列がずれない
-  local design8="${tmp}/design8"
-  mkdir -p "${design8}/docs/design/requirements"
-  cat > "${design8}/docs/design/requirements/要件定義書.md" << 'EOF'
+  # ケース6: セル内のエスケープ済みパイプ "\|" で列がずれない
+  local design6="${tmp}/design6"
+  mkdir -p "${design6}/docs/design/requirements"
+  cat > "${design6}/docs/design/requirements/要件定義書.md" << 'EOF'
 ## 要確認事項一覧
 
 | キー | 確認事項 | 確認先 |
 |---|---|---|
 | 表示形式-パイプ | A\|Bのどちらを既定にするか | 事業部門 |
 EOF
-  local run8="${tmp}/run8"
-  mkdir -p "${run8}/confirmations"
-  local out8 rc8=0
-  out8="$(run_build "$run8" "$design8" 2>&1)" || rc8=$?
-  if [ "$rc8" -eq 0 ] && printf '%s' "$out8" | grep -qF '| 表示形式-パイプ | 全体 | 業務ルール | A|Bのどちらを既定にするか |'; then
-    pass=$((pass + 1)); echo "  [PASS] ケース8: セル内のエスケープ済みパイプで列がずれない"
+  local run6="${tmp}/run6"
+  mkdir -p "${run6}/confirmations"
+  local out6 rc6=0
+  out6="$(run_build "$run6" "$design6" 2>&1)" || rc6=$?
+  if [ "$rc6" -eq 0 ] && printf '%s' "$out6" | grep -qF '| 表示形式-パイプ | 全体 | 業務ルール | A|Bのどちらを既定にするか |'; then
+    pass=$((pass + 1)); echo "  [PASS] ケース6: セル内のエスケープ済みパイプで列がずれない"
   else
-    fail=$((fail + 1)); echo "  [FAIL] ケース8: エスケープ済みパイプの扱いが不正 (exit ${rc8})" >&2
-    printf '%s\n' "$out8" | sed 's/^/    /' >&2
+    fail=$((fail + 1)); echo "  [FAIL] ケース6: エスケープ済みパイプの扱いが不正 (exit ${rc6})" >&2
+    printf '%s\n' "$out6" | sed 's/^/    /' >&2
   fi
 
-  # ケース9: 見出しの前方一致（末尾に空白があっても要確認事項一覧を認識する）
-  local design9="${tmp}/design9"
-  mkdir -p "${design9}/docs/design/requirements"
+  # ケース7: 見出しの前方一致（末尾に空白があっても要確認事項一覧を認識する）
+  local design7="${tmp}/design7"
+  mkdir -p "${design7}/docs/design/requirements"
   printf '## 要確認事項一覧 \n\n| キー | 確認事項 | 確認先 |\n|---|---|---|\n| 見出し-末尾空白 | 見出し末尾に空白がある場合の確認 | 設計担当 |\n' \
-    > "${design9}/docs/design/requirements/要件定義書.md"
-  local run9="${tmp}/run9"
-  mkdir -p "${run9}/confirmations"
-  local out9 rc9=0
-  out9="$(run_build "$run9" "$design9" 2>&1)" || rc9=$?
-  if [ "$rc9" -eq 0 ] && printf '%s' "$out9" | grep -q '見出し-末尾空白'; then
-    pass=$((pass + 1)); echo "  [PASS] ケース9: 見出し末尾の空白があっても要確認事項一覧を認識する"
+    > "${design7}/docs/design/requirements/要件定義書.md"
+  local run7="${tmp}/run7"
+  mkdir -p "${run7}/confirmations"
+  local out7 rc7=0
+  out7="$(run_build "$run7" "$design7" 2>&1)" || rc7=$?
+  if [ "$rc7" -eq 0 ] && printf '%s' "$out7" | grep -q '見出し-末尾空白'; then
+    pass=$((pass + 1)); echo "  [PASS] ケース7: 見出し末尾の空白があっても要確認事項一覧を認識する"
   else
-    fail=$((fail + 1)); echo "  [FAIL] ケース9: 見出しの前方一致が不正 (exit ${rc9})" >&2
-    printf '%s\n' "$out9" | sed 's/^/    /' >&2
+    fail=$((fail + 1)); echo "  [FAIL] ケース7: 見出しの前方一致が不正 (exit ${rc7})" >&2
+    printf '%s\n' "$out7" | sed 's/^/    /' >&2
   fi
 
-  # ケース10: 同じキーが2つの設計書に現れると単位欄に「ほか1件」が出る
-  local design10="${tmp}/design10"
-  mkdir -p "${design10}/docs/design/requirements" "${design10}/docs/design/common"
-  cat > "${design10}/docs/design/requirements/要件定義書.md" << 'EOF'
+  # ケース8: 同じキーが2つの設計書に現れると単位欄に「ほか1件」が出る
+  local design8="${tmp}/design8"
+  mkdir -p "${design8}/docs/design/requirements" "${design8}/docs/design/common"
+  cat > "${design8}/docs/design/requirements/要件定義書.md" << 'EOF'
 ## 要確認事項一覧
 
 | キー | 確認事項 | 確認先 |
 |---|---|---|
 | 重複-キー | 両方の設計書に現れる事項 | 事業部門 |
 EOF
-  cat > "${design10}/docs/design/common/業務仕様書.md" << 'EOF'
+  cat > "${design8}/docs/design/common/業務仕様書.md" << 'EOF'
 ## 要確認事項一覧
 
 | キー | 確認事項 | 確認先 |
 |---|---|---|
 | 重複-キー | 両方の設計書に現れる事項 | 運用部門 |
 EOF
-  local run10="${tmp}/run10"
-  mkdir -p "${run10}/confirmations"
-  local out10 rc10=0
-  out10="$(run_build "$run10" "$design10" 2>&1)" || rc10=$?
-  if [ "$rc10" -eq 0 ] && printf '%s' "$out10" | grep '重複-キー' | grep -q 'ほか1件'; then
-    pass=$((pass + 1)); echo "  [PASS] ケース10: 同じキーが2設計書にあると単位欄に「ほか1件」が出る"
+  local run8="${tmp}/run8"
+  mkdir -p "${run8}/confirmations"
+  local out8 rc8=0
+  out8="$(run_build "$run8" "$design8" 2>&1)" || rc8=$?
+  if [ "$rc8" -eq 0 ] && printf '%s' "$out8" | grep '重複-キー' | grep -q 'ほか1件'; then
+    pass=$((pass + 1)); echo "  [PASS] ケース8: 同じキーが2設計書にあると単位欄に「ほか1件」が出る"
   else
-    fail=$((fail + 1)); echo "  [FAIL] ケース10: 重複キーの件数表示が不正 (exit ${rc10})" >&2
-    printf '%s\n' "$out10" | sed 's/^/    /' >&2
+    fail=$((fail + 1)); echo "  [FAIL] ケース8: 重複キーの件数表示が不正 (exit ${rc8})" >&2
+    printf '%s\n' "$out8" | sed 's/^/    /' >&2
   fi
 
-  # ケース11: bash 3.2 で「記録ファイル不在」かつ「新規0件」（全配列が空）でも
+  # ケース9: bash 3.2 で「記録ファイル不在」かつ「新規0件」（全配列が空）でも
   # unbound variableにならず正常に完了する。/bin/bashが3.2系のときだけ実行する。
   local bash32_version
   bash32_version="$(/bin/bash -c 'echo "$BASH_VERSION"' 2>/dev/null || true)"
   if [[ "$bash32_version" == 3.2* ]]; then
-    local run11="${tmp}/run11" design11="${tmp}/design11"
-    mkdir -p "${run11}/confirmations" "${design11}/docs/design/common"
-    local out11 rc11=0
-    out11="$(/bin/bash -c 'set -uo pipefail; source "'"${SCRIPT_DIR}/build-confirmation-items.sh"'"; run_build "'"$run11"'" "'"$design11"'"' 2>&1)" || rc11=$?
-    if [ "$rc11" -eq 0 ] && printf '%s' "$out11" | grep -q '記録に無いキー 0件'; then
-      pass=$((pass + 1)); echo "  [PASS] ケース11: /bin/bash(3.2)で記録不在・新規0件でもunbound variableにならない"
+    local run9="${tmp}/run9" design9="${tmp}/design9"
+    mkdir -p "${run9}/confirmations" "${design9}/docs/design/common"
+    local out9 rc9=0
+    out9="$(/bin/bash -c 'set -uo pipefail; source "'"${SCRIPT_DIR}/build-confirmation-items.sh"'"; run_build "'"$run9"'" "'"$design9"'"' 2>&1)" || rc9=$?
+    if [ "$rc9" -eq 0 ] && printf '%s' "$out9" | grep -q '記録に無いキー 0件'; then
+      pass=$((pass + 1)); echo "  [PASS] ケース9: /bin/bash(3.2)で記録不在・新規0件でもunbound variableにならない"
     else
-      fail=$((fail + 1)); echo "  [FAIL] ケース11: bash3.2互換性が不正 (exit ${rc11})" >&2
-      printf '%s\n' "$out11" | sed 's/^/    /' >&2
+      fail=$((fail + 1)); echo "  [FAIL] ケース9: bash3.2互換性が不正 (exit ${rc9})" >&2
+      printf '%s\n' "$out9" | sed 's/^/    /' >&2
     fi
   else
-    pass=$((pass + 1)); echo "  [PASS扱い-省略] ケース11: /bin/bashが3.2系でないため省略（現在: ${bash32_version:-不明}）"
+    pass=$((pass + 1)); echo "  [PASS扱い-省略] ケース9: /bin/bashが3.2系でないため省略（現在: ${bash32_version:-不明}）"
   fi
 
   echo "実行 $((pass + fail)) 件 / 合格 ${pass} 件（失敗 ${fail} 件）"

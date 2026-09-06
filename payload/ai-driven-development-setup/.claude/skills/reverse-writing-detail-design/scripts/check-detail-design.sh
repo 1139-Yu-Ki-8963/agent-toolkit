@@ -5,7 +5,7 @@ set -u
 # 実在・節の構成・読み取り結果の網羅を検査する
 #
 # 目的:
-#   工程2-8の完了条件（保留を除く全単位に詳細設計書がある・読み取り結果を網羅している・
+#   工程2-8の完了条件（全単位に詳細設計書がある・読み取り結果を網羅している・
 #   file:lineが無い）を種別ごとに単位ごとへ回して機械で確かめる。
 #
 # 使い方:
@@ -50,14 +50,14 @@ set -u
 #                      読み取り結果ファイルを共通の入力源とする読み取り結果-未網羅（本スクリプト）
 #                      と読み取り結果-未転記（check-basic-design.sh）の組で担保する
 #
-# 保留の扱い: check-acceptance-record.shは判定が保留の記録を既定で飛ばし、終了コード
-# 0で標準エラーに[SKIP] 判定-保留を出す。本スクリプトはこの終了コードと標準エラーを
-# 見て、終了コードが0でなければ不合格、0でも標準エラーに判定-保留が出ていれば
-# その単位を飛ばす（不合格に数えない）。合格の記録の判定を本スクリプトが
-# 再読み込みすることはしない（定義はcheck-acceptance-record.sh 1か所に置く）。
+# 単位の保留は廃止（2026-09-05）。check-acceptance-record.shの終了コードが
+# 0でなければ不合格にする。合格の記録の判定を本スクリプトが再読み込み
+# することはしない（定義はcheck-acceptance-record.sh 1か所に置く）。
+# check-acceptance-record.shの呼び出しには--runを渡す（2026-09-06改善。
+# 要確認の観点を持つ記録は--run無しでは要確認-判定不能として不合格になる）。
 #
 # 終了コード:
-#   0 = 全単位合格（保留は飛ばした単位を除く）
+#   0 = 全単位合格
 #   1 = 1単位以上不合格
 #   2 = 使い方の誤り・依存の不在・種別の不正・一覧の不在（判定不能）
 #
@@ -77,7 +77,6 @@ ACCEPTANCE_RECORD_CHECK="${SCRIPT_DIR}/../../reverse-shared/scripts/check-accept
 
 FAIL_COUNT=0
 PASS_COUNT=0
-SKIP_COUNT=0
 
 fail() {
   echo "[FAIL] $1: $2" >&2
@@ -86,11 +85,6 @@ fail() {
 
 passck() {
   PASS_COUNT=$((PASS_COUNT + 1))
-}
-
-skipck() {
-  echo "[SKIP] 保留-対象外: $1" >&2
-  SKIP_COUNT=$((SKIP_COUNT + 1))
 }
 
 usage_error() {
@@ -289,14 +283,10 @@ run_units() {
     local doc="${design_root%/}/docs/design/${species_folder}/${folder}/${doc_name}"
     local readings_json="${run_dir%/}/code-readings/${kind}/${folder}.json"
 
-    local vrc=0 acc_err
-    acc_err="$(bash "$ACCEPTANCE_RECORD_CHECK" "$target" --kind "$kind" --unit "$identifier" --design-root "$design_root" 2>&1 1>/dev/null)" || vrc=$?
+    local vrc=0
+    bash "$ACCEPTANCE_RECORD_CHECK" "$target" --kind "$kind" --unit "$identifier" --design-root "$design_root" --run "$run_dir" > /dev/null 2>&1 || vrc=$?
     if [ "$vrc" -ne 0 ]; then
       fail "合格記録-不在" "${kind}/${identifier}"
-      continue
-    fi
-    if printf '%s\n' "$acc_err" | grep -qF '判定-保留'; then
-      skipck "${kind}/${identifier}"
       continue
     fi
 
@@ -367,14 +357,9 @@ LISTEOF
   chmod +x "${shared_dir}/list-units-of.sh"
 
   local record_rc_file="${tmp}/record-rc.txt"
-  local record_skip_file="${tmp}/record-skip.txt"
   echo 0 > "$record_rc_file"
-  echo 0 > "$record_skip_file"
   cat > "${record_dir}/check-acceptance-record.sh" <<RECORDCHECKEOF
 #!/usr/bin/env bash
-if [ "\$(cat "${record_skip_file}")" = "1" ]; then
-  echo "[SKIP] 判定-保留: stub" >&2
-fi
 exit "\$(cat "${record_rc_file}")"
 RECORDCHECKEOF
   chmod +x "${record_dir}/check-acceptance-record.sh"
@@ -477,19 +462,6 @@ DOCEOF
       fail=$((fail + 1))
     fi
   }
-
-  assert_skip() {
-    local desc="$1"
-    total=$((total + 1))
-    if grep -qF "[SKIP] 保留-対象外" "${tmp}/err.log"; then
-      echo "PASS: ${desc}"
-    else
-      echo "FAIL: ${desc}（skipが出ていません）"
-      sed -n '1,20p' "${tmp}/err.log"
-      fail=$((fail + 1))
-    fi
-  }
-
 
   # 合格
   write_doc_good
@@ -594,14 +566,8 @@ FACTSEOF
   assert_exit "不合格-合格記録なし" 1 bash "$under_test" "$target" --run "$run_dir" --kind table
   assert_contains "不合格-合格記録なし: 合格記録-不在が出る" "合格記録-不在"
 
-  # 保留はスキップして全体は合格（check-acceptance-record.shは終了コード0で[SKIP]を出す）
-  echo 0 > "$record_rc_file"
-  echo 1 > "$record_skip_file"
-  assert_exit "保留は不合格にしない" 0 bash "$under_test" "$target" --run "$run_dir" --kind table
-  assert_skip "保留は不合格にしない: skipが出る"
-  echo 0 > "$record_skip_file"
-
   # 不合格（複合）: 節の欠落・未記入・file:line・読み取り結果未網羅
+  echo 0 > "$record_rc_file"
   cat > "${doc_dir}/テーブル定義書.md" <<'BADEOF'
 # 受注テーブル テーブル定義書
 
@@ -712,7 +678,7 @@ if [ "$rrc" -eq 2 ]; then
   exit 2
 fi
 
-echo "合格 ${PASS_COUNT} 件 / 不合格 ${FAIL_COUNT} 件 / 保留 ${SKIP_COUNT} 件"
+echo "合格 ${PASS_COUNT} 件 / 不合格 ${FAIL_COUNT} 件"
 if [ "$FAIL_COUNT" -gt 0 ]; then
   exit 1
 fi

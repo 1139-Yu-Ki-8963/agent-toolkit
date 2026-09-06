@@ -1,7 +1,7 @@
 ---
 name: reverse-building-confirmation-items
 日本語名: 確認事項一覧を作る
-description: "確認事項の記録と各設計書の要確認事項一覧を読み、8列1枚の確認事項一覧を決定的なスクリプトで組み立てる。記録に無いキー・保留の単位を検知する。工程2-11。"
+description: "確認事項の記録と各設計書の要確認事項一覧を読み、8列1枚の確認事項一覧を決定的なスクリプトで組み立てる。記録に無いキーを検知する。工程2-11。"
 invocation: reverse-building-confirmation-items
 type: transform
 allowed-tools: [Bash, Read, Glob, Grep]
@@ -26,7 +26,6 @@ requires: [reverse-proposing-rules]
 - 実行フォルダを受け取る
 - 設計書の置き場は `bash ../reverse-shared/scripts/design-root.sh <実行フォルダ>` で読む
 - 確認事項の記録は `<実行フォルダ>/confirmations/確認事項の記録.md`
-- 保留の単位は units-status.json を経由せず、確認事項の記録自身の「状態」列が「保留」の行から直接取る（単位列・理由に相当する列は完全一致で照合し、他の列への部分一致は行わない）
 
 ## 手順
 
@@ -61,7 +60,6 @@ requires: [reverse-proposing-rules]
 
 - 出力の全行に既定と反映先がある
 - 設計書の要確認事項一覧の全キーが出力に載っている（`--verify`で確認）
-- 保留の節が常にあり、0件でも節と件数の記載がある
 - `scripts/build-confirmation-items.sh`が終了コード0
 
 ## 設計判断
