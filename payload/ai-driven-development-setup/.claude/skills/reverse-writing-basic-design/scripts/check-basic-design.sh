@@ -18,11 +18,11 @@ set -u
 # --design-root の既定は対象リポジトリのルート。一覧・基本設計書・単体テスト
 # 設計書は設計書のルート配下で読み書きする。
 #
-# 種別ごとの単位一覧はreverse-shared/scripts/list-units-of.shで読み、単位の
-# フォルダ名はreverse-shared/scripts/unit-dir-name.shで作る（唯一の定義を
-# 再実装しない）。種別ごとの基本設計書・単体テスト設計書のファイル名は
-# reverse-shared/scripts/design-doc-name.shで作る（record-acceptance.shと
-# 共有し、実名の定義を二重に持たない）。
+# 種別ごとの単位一覧はreverse-shared/scripts/list-units-of.shで読む。単位の
+# フォルダ名はlist-units-of.shの出力（5列目）をそのまま使い、識別子から
+# unit-dir-name.shを直接呼んで作り直すことはしない。種別ごとの基本設計書・
+# 単体テスト設計書のファイル名はreverse-shared/scripts/design-doc-name.shで
+# 作る（record-acceptance.shと共有し、実名の定義を二重に持たない）。
 #
 # 検査キー（内容を要約した意味語。連番禁止）:
 #   共有部品-不在        reverse-sharedのunit-dir-name.sh・list-units-of.sh・design-doc-name.shが無い
@@ -33,6 +33,7 @@ set -u
 #   位置づけ-欠落        必須見出しの直後に位置づけの行が無い
 #   未記入-残存          山括弧のプレースホルダーが残っている
 #   位置-禁止            file:line形式の実装位置の記述がある
+#   見出し-表示名不一致  基本設計書のh1が一覧の表示名と一致しない
 #   実装用語-混入        種別ごとの実装用語の検出パターンに一致する記述がある。対象は
 #                        本文であり、次の3つは対象外: (1)観測の出どころを含む見出しの
 #                        内側 (2)構成要素一覧を含む見出しの内側（feature様式が相対パスを
@@ -389,7 +390,7 @@ reading_key_covered() {
 }
 
 check_regular_unit() {
-  local target="$1" run_dir="$2" unit_path="$3" kind="$4" dirname="$5" heading_script="$6" unittest_script="$7" tests_output="$8"
+  local target="$1" run_dir="$2" unit_path="$3" kind="$4" dirname="$5" heading_script="$6" unittest_script="$7" tests_output="$8" name="${9:-}"
   local doc="${unit_path}/$(basic_doc_name "$kind")"
   local test_doc="${unit_path}/$(test_doc_name "$kind")"
   local ok=1
@@ -403,6 +404,18 @@ check_regular_unit() {
     ok=0
   fi
   [ "$ok" -eq 1 ] || return 1
+
+  if [ -n "$name" ]; then
+    local suffix expected_h1 actual_h1
+    suffix="$(basic_doc_name "$kind")"
+    suffix="${suffix%.md}"
+    expected_h1="# ${name} ${suffix}"
+    actual_h1="$(grep -m1 '^# ' "$doc")"
+    if [ "$actual_h1" != "$expected_h1" ]; then
+      echo "[FAIL] 見出し-表示名不一致: ${doc} のh1「${actual_h1}」が期待「${expected_h1}」と一致しません" >&2
+      ok=0
+    fi
+  fi
 
   local headings expected
   headings="$(basic_expected_headings "$kind")"
@@ -491,14 +504,17 @@ check_kind() {
   [ -n "$units_tsv" ] || return 0
 
   local fail=0 id name place belongs dirname unit_path
-  while IFS=$'\t' read -r id name place belongs; do
+  # list-units-of.shの出力はタブ区切りだが、bashのreadはタブをIFSの空白と
+  # みなし連続分をまとめて削る。属するファイル（4列目）が空でフォルダ名
+  # （5列目）が非空という並びだと空欄が消えてフォルダ名が前の変数へずれ
+  # 込むため、タブを一度\037（IFSの空白扱いされない制御文字）へ置換してから読む
+  while IFS=$'\037' read -r id name place belongs dirname; do
     [ -n "$id" ] || continue
-    dirname="$(bash "$UNIT_DIR_NAME_SH" "$id")"
     unit_path="${design_root}/docs/design/${folder}/${dirname}"
 
-    check_regular_unit "$target" "$run_dir" "$unit_path" "$kind" "$dirname" "$heading_script" "$unittest_script" "$tests_output" || fail=1
+    check_regular_unit "$target" "$run_dir" "$unit_path" "$kind" "$dirname" "$heading_script" "$unittest_script" "$tests_output" "$name" || fail=1
   done <<UNITS
-$units_tsv
+$(printf '%s' "$units_tsv" | tr '\t' '\037')
 UNITS
 
   return "$fail"
@@ -594,7 +610,7 @@ self_test() {
 
     cat > "$d/docs/design/lists/screen.json" <<'FIXEOF'
 [
-  {"種別":"screen","識別子":"src/pages/OrderList.tsx","名前":"OrderList","場所":"src/pages/OrderList.tsx","根拠":"src/pages/OrderList.tsx","単位の定義":"","属するファイル":[],"分類軸":[]}
+  {"種別":"screen","識別子":"src/pages/OrderList.tsx","表示名":"OrderList","場所":"src/pages/OrderList.tsx","根拠":"src/pages/OrderList.tsx","単位の定義":"","属するファイル":["src/pages/OrderList.tsx"],"分類軸":[],"フォルダ名":"src_pages_OrderList.tsx"}
 ]
 FIXEOF
   }
@@ -775,7 +791,7 @@ RUNOFFJSON
              "$d1napi/docs/design/apis/api_orders"
     cat > "$d1napi/docs/design/lists/api.json" <<'APIFIXEOF'
 [
-  {"種別":"api","識別子":"api/orders","名前":"orders","場所":"api/orders","根拠":"api/orders","単位の定義":"","属するファイル":[],"分類軸":[]}
+  {"種別":"api","識別子":"api/orders","表示名":"orders","場所":"api/orders","根拠":"api/orders","単位の定義":"","属するファイル":["api/orders"],"分類軸":[],"フォルダ名":"api_orders"}
 ]
 APIFIXEOF
     cat > "$run1napi/code-readings/api/api_orders.json" <<'APIFACTEOF'
@@ -937,7 +953,7 @@ RUNONJSON
     mkdir -p "$run8/code-readings/feature" "$d8/docs/design/features/受注"
     cat > "$d8/docs/design/lists/feature.json" <<'FEATFIXEOF'
 [
-  {"種別":"feature","識別子":"受注","名前":"受注","場所":"受注","根拠":"","単位の定義":"","属するファイル":[],"分類軸":[]}
+  {"種別":"feature","識別子":"受注","表示名":"受注","場所":"受注","根拠":"","単位の定義":"","属するファイル":[],"分類軸":[]}
 ]
 FEATFIXEOF
     cat > "$run8/code-readings/feature/受注.json" <<'FEATFACTEOF'

@@ -19,8 +19,8 @@ set -u
 #   機能設計書には対応する詳細設計テンプレートが存在しないため）
 #
 # 依存（相対パスで呼ぶ。本スクリプトの場所からの相対解決）:
-#   ../../reverse-shared/scripts/list-units-of.sh   一覧の取得
-#   ../../reverse-shared/scripts/unit-dir-name.sh    識別子からフォルダ名を得る
+#   ../../reverse-shared/scripts/list-units-of.sh   一覧の取得（5列目のフォルダ名をそのまま使う。
+#     unit-dir-name.shを識別子から直接呼んで作り直すことはしない）
 #   ../../reverse-shared/references/unit-kinds.json  種別キーとフォルダの対応
 #   ../../reverse-shared/scripts/check-acceptance-record.sh  合格の記録の確認
 #
@@ -34,6 +34,7 @@ set -u
 #   位置づけ-欠落      各`##`見出しの直後に位置づけの行が無い
 #   未記入-残存        `<...>`形式のプレースホルダーが残っている
 #   位置-禁止          file:line形式の実装位置の記述がある
+#   見出し-表示名不一致  詳細設計書のh1が一覧の表示名と一致しない
 #   読み取り結果-未網羅        読み取り結果ファイルの値が空でない項目の値が文書本文に現れない
 #
 # 検査から外した項目（旧様式からの移行に伴う既知の限界。理由も記す）:
@@ -152,11 +153,25 @@ doc_name_of() {
 }
 
 check_unit_doc() {
-  local doc="$1" kind="$2"
+  local doc="$1" kind="$2" name="${3:-}"
 
   if [ ! -f "$doc" ]; then
     fail "文書-不在" "$doc"
     return
+  fi
+
+  # 見出し-表示名不一致（h1が元データの表示名と一致するか）
+  if [ -n "$name" ]; then
+    local suffix expected_h1 actual_h1
+    suffix="$(doc_name_of "$kind")"
+    suffix="${suffix%.md}"
+    expected_h1="# ${name} ${suffix}"
+    actual_h1="$(grep -m1 '^# ' "$doc")"
+    if [ "$actual_h1" = "$expected_h1" ]; then
+      passck
+    else
+      fail "見出し-表示名不一致" "${doc}: h1「${actual_h1}」が期待「${expected_h1}」と一致しません"
+    fi
   fi
 
   # 節-欠落
@@ -264,9 +279,13 @@ run_units() {
   rm -f "${TMPDIR:-/tmp}/check-detail-design-list.$$"
 
   local line identifier name location files_csv folder
-  while IFS=$'\t' read -r identifier name location files_csv; do
+  # list-units-of.shの出力はタブ区切りだが、タブはbashのreadでは値に
+  # 関わらず「IFSの空白」として連続分がまとめて削られる。属するファイル
+  # （4列目）が空でフォルダ名（5列目）が非空という並びだと、空欄が消えて
+  # フォルダ名が前の変数へずれ込む。タブを一度\037（IFSの空白扱いされない
+  # 制御文字）へ置換してから読み、この崩れを避ける
+  while IFS=$'\037' read -r identifier name location files_csv folder; do
     [ -n "$identifier" ] || continue
-    folder="$(bash "$UNIT_DIR_NAME" "$identifier")"
     local doc="${design_root%/}/docs/design/${species_folder}/${folder}/${doc_name}"
     local readings_json="${run_dir%/}/code-readings/${kind}/${folder}.json"
 
@@ -281,11 +300,11 @@ run_units() {
       continue
     fi
 
-    check_unit_doc "$doc" "$kind"
+    check_unit_doc "$doc" "$kind" "$name"
     [ -f "$doc" ] || continue
     check_readings_coverage "$doc" "$readings_json"
   done <<UNITLIST
-$units_out
+$(printf '%s' "$units_out" | tr '\t' '\037')
 UNITLIST
 
   return 0
@@ -367,7 +386,9 @@ RECORDCHECKEOF
   local doc_dir="${target}/docs/design/tables/${folder}"
   mkdir -p "$doc_dir" "${target}/ai-work/records/basic-design-acceptance" "${run_dir}/code-readings/table"
 
-  printf '%s\t%s\t%s\t%s\n' "$ident" "受注テーブル" "$ident" "" > "$list_data"
+  # 4列目（属するファイル）を空にし5列目（フォルダ名）を非空にした行で、
+  # タブ2つ連続の並びを作る（読み取り側の空欄崩れの回帰確認を兼ねる）
+  printf '%s\t%s\t%s\t%s\t%s\n' "$ident" "受注テーブル" "$ident" "" "$folder" > "$list_data"
 
   cat > "${run_dir}/code-readings/table/${folder}.json" <<'FACTSEOF'
 {
@@ -383,7 +404,7 @@ FACTSEOF
 
   write_doc_good() {
     cat > "${doc_dir}/テーブル定義書.md" <<'DOCEOF'
-# orders テーブル定義書
+# 受注テーブル テーブル定義書
 
 ## §1 構成要素
 
@@ -490,7 +511,7 @@ DOCEOF
 }
 FACTSCOLEOF
   cat > "${doc_dir}/テーブル定義書.md" <<'DOCCOLEOF'
-# orders テーブル定義書
+# 受注テーブル テーブル定義書
 
 ## §1 構成要素
 
@@ -582,7 +603,7 @@ FACTSEOF
 
   # 不合格（複合）: 節の欠落・未記入・file:line・読み取り結果未網羅
   cat > "${doc_dir}/テーブル定義書.md" <<'BADEOF'
-# orders テーブル定義書
+# 受注テーブル テーブル定義書
 
 ## §1 構成要素
 

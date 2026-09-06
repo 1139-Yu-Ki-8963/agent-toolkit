@@ -31,8 +31,8 @@ requires: [reverse-writing-common-detail-design]
   bash ../reverse-shared/scripts/check-acceptance-record.sh <対象リポジトリのルート> --kind <種別> --unit <識別子>
   ```
 - 実行フォルダの `code-readings/<種別>/<単位のフォルダ名>.json` に、当該単位の読み取り結果があること（工程2-4の出力）
-- 単位の一覧は `../reverse-shared/scripts/list-units-of.sh <対象リポジトリのルート> <種別>` で読む
-- 単位のフォルダ名は `../reverse-shared/scripts/unit-dir-name.sh <識別子>` で求める
+- 単位の一覧は `../reverse-shared/scripts/list-units-of.sh <対象リポジトリのルート> <種別>` で読む。単位のフォルダ名は一覧の出力（5列目）をそのまま使い、識別子から `unit-dir-name.sh` を直接呼んで作り直さない
+- 詳細設計書の見出し（h1）は一覧の表示名（2列目）と一致させる
 
 ## 手順
 

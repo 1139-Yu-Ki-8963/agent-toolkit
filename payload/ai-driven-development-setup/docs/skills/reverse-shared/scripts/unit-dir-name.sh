@@ -1,22 +1,25 @@
 #!/usr/bin/env bash
 set -u
 
-# unit-dir-name.sh — 識別子から単位のフォルダ名を作る（reverse単位の共有部品）
+# unit-dir-name.sh — 表示名から単位のフォルダ名を作る（reverse単位の共有部品）
 #
 # 目的:
-#   一覧の元データが持つ識別子（ファイルパス・経路・テーブル名など）は
+#   一覧化（工程2-1）の完了時の処理「業務名の確定」が組んだ表示名は、
 #   フォルダ名に使えない文字を含みうる。本スクリプトはその置換規則を
-#   単位のフォルダ名の唯一の定義として持ち、reverse単位の各機能（一覧を
-#   作る・読み取り結果を取り出す・基本設計書を書く 等）が個別に置換規則を
-#   再実装しない。
+#   単位のフォルダ名の唯一の定義として持つ。呼び出し元は工程2-1の
+#   業務名の確定だけであり、確定した値は一覧の元データjsonの「フォルダ名」
+#   フィールドへ書く。後続の各機能（一覧を作る・読み取り結果を取り出す・
+#   基本設計書を書く 等）は本スクリプトを再度呼ばず、list-units-of.shの
+#   出力（5列目）からフォルダ名を得る。
 #
 # 置換規則:
-#   識別子に含まれる / （スラッシュ）・空白・{ ・} ・: ・\ ・? ・* を
-#   すべて _ （アンダースコア）へ置換し、先頭の _ を除いたものをフォルダ名
-#   とする。
+#   表示名に含まれる / （スラッシュ）・空白・{ ・} ・: ・\ ・? ・* ・"
+#   （二重引用符）・< ・> ・| （パイプ）をすべて _ （アンダースコア）へ
+#   置換し、先頭の _ を除いたものをフォルダ名とする。全角括弧（（）等）は
+#   置換対象に含まない。
 #
 # 使い方:
-#   unit-dir-name.sh <識別子>
+#   unit-dir-name.sh <表示名>
 #   unit-dir-name.sh --self-test
 #
 # 終了コード:
@@ -32,14 +35,14 @@ set -u
 # macOS bash 3.2 互換。
 
 usage_error() {
-  echo "使い方: unit-dir-name.sh <識別子>" >&2
+  echo "使い方: unit-dir-name.sh <表示名>" >&2
   echo "        unit-dir-name.sh --self-test" >&2
   exit 2
 }
 
 unit_dir_name() {
-  local id="$1" out
-  out="$id"
+  local name="$1" out
+  out="$name"
   out="${out//\//_}"
   out="${out//\{/_}"
   out="${out//\}/_}"
@@ -47,6 +50,10 @@ unit_dir_name() {
   out="${out//\\/_}"
   out="${out//\?/_}"
   out="${out//\*/_}"
+  out="${out//\"/_}"
+  out="${out//</_}"
+  out="${out//>/_}"
+  out="${out//|/_}"
   out="${out// /_}"
   while [ "${out#_}" != "$out" ]; do
     out="${out#_}"
@@ -69,12 +76,12 @@ run_self_test() {
     fi
   }
 
-  check "スラッシュと波括弧を含む経路" "/orders/{id}" "orders__id_"
-  check "空白を含む識別子" "src/pages/Order List.tsx" "src_pages_Order_List.tsx"
-  check "先頭のアンダースコアを除く" "/orders" "orders"
-  check "コロン・疑問符・アスタリスクを置換" 'a:b?c*d' "a_b_c_d"
+  check "フォルダ名-表示名変換" "注文詳細取得API" "注文詳細取得API"
+  check "フォルダ名-空白置換" "注文 一覧" "注文_一覧"
+  check "フォルダ名-先頭記号除去" "/注文" "注文"
+  check "フォルダ名-波括弧置換" "注文（/orders/{id}）" "注文（_orders__id_）"
+  check "記号12種のうち二重引用符・山括弧・パイプを置換" 'a:b?c*d"e<f>g|h' "a_b_c_d_e_f_g_h"
   check "バックスラッシュを置換" 'a\b' "a_b"
-  check "置換対象が無い識別子はそのまま" "orders" "orders"
 
   total=$((total + 1))
   bash "$0" > /dev/null 2>"${TMPDIR:-/tmp}/unit-dir-name-self-test.err"

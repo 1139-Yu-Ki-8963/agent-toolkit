@@ -34,10 +34,13 @@ set -u
 #   {"種別","識別子","文書":{"<文書名>":"<sha256>"},"コミット":"<対象のHEAD>",
 #    "判定","観点":{...},"理由","判定した実行"}
 #
-# 単位のフォルダ名はreverse-shared/scripts/unit-dir-name.shで作る（唯一の
-# 定義を再実装しない）。種別ごとの文書名（基本設計書・単体テスト設計書。
-# featureも他の6種別と同じく2件）はreverse-shared/scripts/design-doc-name.sh
-# で作る（check-basic-design.shと共有し、実名の二重定義を持たない）。単位の
+# 単位のフォルダ名はreverse-shared/scripts/list-units-of.shの出力（5列目）
+# から得る（unit-dir-name.shは呼ばない）。一覧の元データが無い、または該当
+# する識別子の行が無いときだけ、unit-dir-name.shへ識別子を渡した値を使う
+# （一覧不在時の現行維持のためのfallbackであり唯一の定義の再実装ではない）。
+# 種別ごとの文書名（基本設計書・単体テスト設計書。featureも他の6種別と
+# 同じく2件）はreverse-shared/scripts/design-doc-name.shで作る
+# （check-basic-design.shと共有し、実名の二重定義を持たない）。単位の
 # 記録はreverse-shared/scripts/units-status.shの完了判定も更新する（無ければ
 # この更新だけ省く）。
 #
@@ -60,8 +63,24 @@ set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UNIT_DIR_NAME_SH="${SCRIPT_DIR}/unit-dir-name.sh"
+LIST_UNITS_OF_SH="${SCRIPT_DIR}/list-units-of.sh"
 DESIGN_DOC_NAME_SH="${SCRIPT_DIR}/design-doc-name.sh"
 UNITS_STATUS_SH="${SCRIPT_DIR}/units-status.sh"
+
+# 単位のフォルダ名をlist-units-of.shの5列目から得る。一覧が無い、または
+# 該当する識別子の行が無ければ、unit-dir-name.shへ識別子を渡した値へ
+# fallbackする（一覧不在時の現行維持）。
+unit_folder_name() {
+  local design_root="$1" kind="$2" unit="$3" folder=""
+  if [ -f "$LIST_UNITS_OF_SH" ]; then
+    folder="$(bash "$LIST_UNITS_OF_SH" "$design_root" "$kind" 2>/dev/null \
+      | awk -F'\t' -v id="$unit" '$1==id{print $5; exit}')"
+  fi
+  if [ -z "$folder" ]; then
+    folder="$(bash "$UNIT_DIR_NAME_SH" "$unit")"
+  fi
+  printf '%s' "$folder"
+}
 
 usage_error() {
   echo "使い方: record-acceptance.sh <対象> --run <実行フォルダ> --kind <種別> --unit <識別子> --verdict <合格|不合格|保留> --viewpoints \"<観点=合|否|要確認;...>\" --judged \"<文書名>=<sha256>;...\" [--reason \"...\"] [--design-root <設計書のルート>]" >&2
@@ -223,7 +242,7 @@ record_unit() {
   fi
 
   local dirname unit_path docs_json basic_name test_name
-  dirname="$(bash "$UNIT_DIR_NAME_SH" "$unit")"
+  dirname="$(unit_folder_name "$design_root" "$kind" "$unit")"
   unit_path="${design_root}/docs/design/${folder}/${dirname}"
 
   basic_name="$(bash "$DESIGN_DOC_NAME_SH" "$kind" basic 2>/dev/null)"

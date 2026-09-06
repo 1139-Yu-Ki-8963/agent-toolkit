@@ -15,15 +15,20 @@ set -u
 #
 # --design-root の既定は <対象リポジトリのルート>。--lists の既定は <設計書の置き場>/docs/design/lists。
 #
-# 出力（タブ区切り。1行1単位）:
-#   識別子 <TAB> 名前 <TAB> 場所 <TAB> 属するファイル（; 区切り）
+# 出力（タブ区切り。1行1単位。5列）:
+#   識別子 <TAB> 表示名 <TAB> 場所 <TAB> 属するファイル（; 区切り） <TAB> フォルダ名
+#
+#   表示名は元データjsonの「表示名」項目。無ければ「業務名」項目、それも
+#   無ければ識別子で埋める。フォルダ名は元データjsonの「フォルダ名」項目。
+#   無ければ表示名をunit-dir-name.shで変換した値とする。呼び出し元は
+#   unit-dir-name.shを再度呼ばず、本スクリプトの5列目からフォルダ名を得る。
 #
 # 終了コード:
 #   0 = 一覧を読んで出力した（0件でも0）
 #   2 = 使い方の誤り・<種別>.json が存在しない・JSONとして読めない（判定不能）
 #
-# 保守責任者: 人手（ユーザー）。一覧の元データの形（識別子・名前・場所・
-#   属するファイル）を変えるときは、list-units.sh と本スクリプトと
+# 保守責任者: 人手（ユーザー）。一覧の元データの形（識別子・表示名・場所・
+#   属するファイル・フォルダ名）を変えるときは、list-units.sh と本スクリプトと
 #   自己テストを同時に直す。
 #
 # 廃棄条件: 一覧の元データの読み方を別の仕組みに変えた時。
@@ -39,6 +44,8 @@ usage_error() {
 list_units_of() {
   local target="$1" kind="$2" lists="$3"
   local file="${lists%/}/${kind}.json"
+  local script_dir
+  script_dir="$(cd "$(dirname "$0")" && pwd)"
 
   if [ ! -f "$file" ]; then
     echo "[FAIL] 一覧-不在: ${file} が存在しません" >&2
@@ -53,7 +60,24 @@ list_units_of() {
     return 2
   fi
 
-  jq -r '.[] | [.["識別子"], .["名前"], .["場所"], ((.["属するファイル"] // []) | join(";"))] | @tsv' "$file"
+  local id name place belongs folder
+  # jqの出力はタブ区切りだが、bashのreadはタブをIFSの空白とみなし連続分を
+  # まとめて削る。属するファイル（4列目）が空でフォルダ名（5列目）が非空
+  # という並びだと空欄が消えてフォルダ名が前の変数へずれ込むため、タブを
+  # 一度\037（IFSの空白扱いされない制御文字）へ置換してから読む
+  while IFS=$'\037' read -r id name place belongs folder; do
+    if [ -z "$folder" ]; then
+      folder="$(bash "${script_dir}/unit-dir-name.sh" "$name")"
+    fi
+    printf '%s\t%s\t%s\t%s\t%s\n' "$id" "$name" "$place" "$belongs" "$folder"
+  done < <(jq -r '.[] | [
+      .["識別子"],
+      (.["表示名"] // .["業務名"] // .["識別子"]),
+      .["場所"],
+      ((.["属するファイル"] // []) | join(";")),
+      (.["フォルダ名"] // "")
+    ] | @tsv' "$file" | tr '\t' '\037')
+
   return 0
 }
 
@@ -67,8 +91,9 @@ run_self_test() {
   mkdir -p "${target}/docs/design/lists"
   cat > "${target}/docs/design/lists/screen.json" << 'FIXEOF'
 [
-  {"種別":"screen","識別子":"src/pages/OrderList.tsx","名前":"OrderList","場所":"src/pages/OrderList.tsx","根拠":"src/pages/OrderList.tsx:1","単位の定義":"","属するファイル":["src/pages/OrderList.tsx","src/api/orders.ts"],"分類軸":[]},
-  {"種別":"screen","識別子":"src/pages/OrderDetail.tsx","名前":"OrderDetail","場所":"src/pages/OrderDetail.tsx","根拠":"src/pages/OrderDetail.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]}
+  {"種別":"screen","識別子":"src/pages/OrderList.tsx","表示名":"注文一覧","場所":"src/pages/OrderList.tsx","根拠":"src/pages/OrderList.tsx:1","単位の定義":"","属するファイル":["src/pages/OrderList.tsx","src/api/orders.ts"],"分類軸":[],"フォルダ名":"order-list"},
+  {"種別":"screen","識別子":"src/pages/OrderDetail.tsx","表示名":"注文 一覧2","場所":"src/pages/OrderDetail.tsx","根拠":"src/pages/OrderDetail.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]},
+  {"種別":"screen","識別子":"src/pages/Empty.tsx","表示名":"空一覧","場所":"src/pages/Empty.tsx","根拠":"src/pages/Empty.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[],"フォルダ名":"custom-folder"}
 ]
 FIXEOF
 
@@ -85,8 +110,12 @@ FIXEOF
 
   local out expected
   out="$(bash "$0" "$target" screen)"
-  expected="$(printf 'src/pages/OrderList.tsx\tOrderList\tsrc/pages/OrderList.tsx\tsrc/pages/OrderList.tsx;src/api/orders.ts\nsrc/pages/OrderDetail.tsx\tOrderDetail\tsrc/pages/OrderDetail.tsx\t')"
-  assert_eq "2件をタブ区切りで出す" "$expected" "$out"
+  expected="$(printf 'src/pages/OrderList.tsx\t注文一覧\tsrc/pages/OrderList.tsx\tsrc/pages/OrderList.tsx;src/api/orders.ts\torder-list\nsrc/pages/OrderDetail.tsx\t注文 一覧2\tsrc/pages/OrderDetail.tsx\t\t注文_一覧2\nsrc/pages/Empty.tsx\t空一覧\tsrc/pages/Empty.tsx\t\tcustom-folder')"
+  assert_eq "一覧読取-フォルダ名列: 5列をタブ区切りで出す" "$expected" "$out"
+
+  local empty_belongs_line
+  empty_belongs_line="$(printf '%s\n' "$out" | grep '^src/pages/Empty.tsx' )"
+  assert_eq "一覧読取-空列直後の非空列: 属するファイルが空でもフォルダ名がずれない" "$(printf 'src/pages/Empty.tsx\t空一覧\tsrc/pages/Empty.tsx\t\tcustom-folder')" "$empty_belongs_line"
 
   total=$((total + 1))
   bash "$0" "$target" api > /dev/null 2>"${tmp}/err.log"

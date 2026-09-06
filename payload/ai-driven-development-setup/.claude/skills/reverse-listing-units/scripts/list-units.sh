@@ -295,7 +295,10 @@ excluded_identifiers_for_block() {
 
 # --- 1単位をJSON行としてoutfileへ追記する（キーは日本語だがjqの識別子構文に
 #     使えないため、jqフィルタ内はすべて.["key"]形式で参照する）。v_supplementが
-#     "true"のとき、元データに"補完":trueを写す（候補数の突き合わせには含めない） ---
+#     "true"のとき、元データに"補完":trueを写す（候補数の突き合わせには含めない）。
+#     業務名・区別・表示名・フォルダ名は空文字で初期化する（完了時の処理
+#     「業務名の確定」が業務名.jsonへ書いた値を、本処理の後段(merge_business_names)が
+#     識別子一致で写す。list-units.shは業務名.jsonを読むだけで書かない） ---
 emit_unit() {
   local v_type="$1" v_id="$2" v_name="$3" v_place="$4" v_basis="$5"
   local v_def="$6" v_belongs="$7" v_axis="$8" v_supplement="$9" outfile="${10}"
@@ -303,15 +306,49 @@ emit_unit() {
     jq -nc --arg v_type "$v_type" --arg v_id "$v_id" --arg v_name "$v_name" \
       --arg v_place "$v_place" --arg v_basis "$v_basis" \
       --argjson v_def "$v_def" --argjson v_belongs "$v_belongs" --argjson v_axis "$v_axis" \
-      '{"種別": $v_type, "識別子": $v_id, "名前": $v_name, "場所": $v_place, "根拠": $v_basis, "単位の定義": $v_def, "属するファイル": $v_belongs, "分類軸": $v_axis, "補完": true}' \
+      '{"種別": $v_type, "識別子": $v_id, "名前": $v_name, "場所": $v_place, "根拠": $v_basis, "単位の定義": $v_def, "属するファイル": $v_belongs, "分類軸": $v_axis, "業務名": "", "区別": "", "表示名": "", "フォルダ名": "", "補完": true}' \
       >> "$outfile"
   else
     jq -nc --arg v_type "$v_type" --arg v_id "$v_id" --arg v_name "$v_name" \
       --arg v_place "$v_place" --arg v_basis "$v_basis" \
       --argjson v_def "$v_def" --argjson v_belongs "$v_belongs" --argjson v_axis "$v_axis" \
-      '{"種別": $v_type, "識別子": $v_id, "名前": $v_name, "場所": $v_place, "根拠": $v_basis, "単位の定義": $v_def, "属するファイル": $v_belongs, "分類軸": $v_axis}' \
+      '{"種別": $v_type, "識別子": $v_id, "名前": $v_name, "場所": $v_place, "根拠": $v_basis, "単位の定義": $v_def, "属するファイル": $v_belongs, "分類軸": $v_axis, "業務名": "", "区別": "", "表示名": "", "フォルダ名": ""}' \
       >> "$outfile"
   fi
+}
+
+# --- 業務名.jsonがあれば読み、種別ごとの単位JSON（$out/${species}.json）の
+#     業務名・区別・表示名・フォルダ名を識別子一致で写す。業務名.jsonは読むだけで
+#     書き換えない。区別が無い(null)ときは表示名=業務名、あるときは
+#     「業務名（区別）」の形にする ---
+merge_business_names() {
+  local species="$1" out="$2" business_names_path="$3"
+  [ -f "$business_names_path" ] || return 0
+  jq -e . "$business_names_path" > /dev/null 2>&1 || return 0
+
+  local names_json
+  names_json="$(jq -c --arg k "$species" '.[$k] // []' "$business_names_path" 2>/dev/null)"
+  [ -n "$names_json" ] || return 0
+
+  local tmp="${out}/${species}.json.tmp"
+  jq --argjson names "$names_json" '
+    ($names | map({(.["識別子"]): .}) | add // {}) as $byid
+    | map(
+        . as $u
+        | ($byid[$u["識別子"]]) as $n
+        | if $n then
+            ($n["業務名"] // "") as $bn
+            | ($n["区別"] // "") as $bg
+            | (if ($bg | length) > 0 then ($bn + "（" + $bg + "）") else $bn end) as $disp
+            | .["業務名"] = $bn
+            | .["区別"] = $bg
+            | .["表示名"] = $disp
+            | .["フォルダ名"] = ($n["フォルダ名"] // "")
+          else
+            .
+          end
+      )
+  ' "${out}/${species}.json" > "$tmp" 2>/dev/null && mv "$tmp" "${out}/${species}.json"
 }
 
 # ============================================================
@@ -668,14 +705,16 @@ GLOBS
       echo "[]" > "$out/${species}.json"
     fi
 
+    merge_business_names "$species" "$out" "${out}/業務名.json"
+
     local ja
     ja="$(species_ja "$species")"
     {
       echo "# ${ja}一覧"
       echo ""
-      echo "| 識別子 | 名前 | 場所 | 根拠 |"
-      echo "|---|---|---|---|"
-      jq -r '.[] | "| " + .["識別子"] + " | " + .["名前"] + " | " + .["場所"] + " | " + .["根拠"] + " |"' "$out/${species}.json"
+      echo "| 表示名 | 識別子 | 場所 |"
+      echo "|---|---|---|"
+      jq -r '.[] | "| " + (if (.["表示名"] // "") == "" then .["名前"] else .["表示名"] end) + " | " + .["識別子"] + " | " + .["場所"] + " |"' "$out/${species}.json"
     } > "$out/${species}.md"
 
     # 例-不在チェック
@@ -1256,6 +1295,45 @@ EOF4
   table_has_oosreason14_2="$(jq -r '.table | has("対象外の理由")' "$d14/docs/design/lists/一覧の集計.json" 2>/dev/null)"
   check "遷移-対象外から機械へ: 2回目は終了コード0" "$([ "$rc14_2" -eq 0 ] && echo 0 || echo 1)"
   check "遷移-対象外から機械へ: 2回目は到達範囲・対象外の理由の鍵が残らない" "$([ "$table_has_reach14_2" = "false" ] && [ "$table_has_oosreason14_2" = "false" ] && echo 0 || echo 1)"
+
+  # --- 業務名.jsonが無いとき、業務名・区別・表示名・フォルダ名は空文字で初期化される ---
+  local d15="$base/case15"
+  make_fixture "$d15"
+  bash "$SCRIPT_DIR/list-units.sh" "$d15" --out "$d15/docs/design/lists" > "$base/case15.out" 2>"$base/case15.err"
+  local rc15=$?
+  local screen_bn15 screen_disp15
+  screen_bn15="$(jq -r '.[0]["業務名"]' "$d15/docs/design/lists/screen.json" 2>/dev/null)"
+  screen_disp15="$(jq -r '.[0]["表示名"]' "$d15/docs/design/lists/screen.json" 2>/dev/null)"
+  check "業務名-空初期化: 終了コード0" "$([ "$rc15" -eq 0 ] && echo 0 || echo 1)"
+  check "業務名-空初期化: 業務名.json不在時は業務名が空文字" "$([ "$screen_bn15" = "" ] && echo 0 || echo 1)"
+  check "業務名-空初期化: 業務名.json不在時は表示名が空文字" "$([ "$screen_disp15" = "" ] && echo 0 || echo 1)"
+
+  # --- 業務名.jsonがあれば識別子一致で業務名・区別・表示名・フォルダ名を写す（読むだけで書かない） ---
+  local d16="$base/case16"
+  make_fixture "$d16"
+  bash "$SCRIPT_DIR/list-units.sh" "$d16" --out "$d16/docs/design/lists" > "$base/case16-pre.out" 2>"$base/case16-pre.err"
+  cat > "$d16/docs/design/lists/業務名.json" <<'EOF16'
+{
+  "screen": [
+    {"識別子":"src/pages/OrderList.tsx","業務名":"受注一覧","区別":null,"フォルダ名":"受注一覧"}
+  ],
+  "退役フォルダ名": {}
+}
+EOF16
+  cp "$d16/docs/design/lists/業務名.json" "$base/case16-before.json"
+  bash "$SCRIPT_DIR/list-units.sh" "$d16" --out "$d16/docs/design/lists" > "$base/case16.out" 2>"$base/case16.err"
+  local rc16=$?
+  local screen_bn16 screen_disp16 screen_folder16 screen_md16
+  screen_bn16="$(jq -r '.[] | select(.["識別子"]=="src/pages/OrderList.tsx") | .["業務名"]' "$d16/docs/design/lists/screen.json" 2>/dev/null)"
+  screen_disp16="$(jq -r '.[] | select(.["識別子"]=="src/pages/OrderList.tsx") | .["表示名"]' "$d16/docs/design/lists/screen.json" 2>/dev/null)"
+  screen_folder16="$(jq -r '.[] | select(.["識別子"]=="src/pages/OrderList.tsx") | .["フォルダ名"]' "$d16/docs/design/lists/screen.json" 2>/dev/null)"
+  screen_md16="$(grep -F '受注一覧' "$d16/docs/design/lists/screen.md" || true)"
+  check "業務名-識別子一致で写す: 終了コード0" "$([ "$rc16" -eq 0 ] && echo 0 || echo 1)"
+  check "業務名-識別子一致で写す: 業務名が受注一覧" "$([ "$screen_bn16" = "受注一覧" ] && echo 0 || echo 1)"
+  check "業務名-識別子一致で写す: 表示名が受注一覧(区別なし)" "$([ "$screen_disp16" = "受注一覧" ] && echo 0 || echo 1)"
+  check "業務名-識別子一致で写す: フォルダ名が受注一覧" "$([ "$screen_folder16" = "受注一覧" ] && echo 0 || echo 1)"
+  check "業務名-識別子一致で写す: 一覧mdの表示名列に受注一覧が出る" "$([ -n "$screen_md16" ] && echo 0 || echo 1)"
+  check "業務名-識別子一致で写す: 業務名.jsonは読むだけで書き換えない" "$(cmp -s "$base/case16-before.json" "$d16/docs/design/lists/業務名.json" && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then

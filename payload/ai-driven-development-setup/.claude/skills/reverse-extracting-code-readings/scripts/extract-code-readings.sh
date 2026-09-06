@@ -48,9 +48,11 @@ set -u
 #   両方: 場所（単位の区間）と属するファイル（展開結果）の両方を走査する。
 #
 # 読み取り結果ファイルの形（<out>/<種別>/<単位のフォルダ名>.json）:
-#   {"種別","識別子","名前","場所","属するファイル":[...],
+#   {"種別","識別子","表示名","場所","属するファイル":[...],
 #    "読み取り結果":{"<項目>":{"値":[...],"出所":"機械"|"AI","根拠":[...]}},
 #    "未":[...],"取り出した実行":"<実行の識別子>"}
+#   フォルダ名はlist-units-of.shの出力（5列目）をそのまま使う。識別子から
+#   unit-dir-name.shを直接呼んで作り直すことはしない。
 #   値は常に配列。機械で0件だった項目・AIの読み取りの項目は値[]で「未」に
 #   載る。捕捉した文字列が空文字列であっても、一致自体があれば正当な値
 #   （空文字列）として値に載せ、未には載せない。
@@ -469,13 +471,14 @@ do_extract() {
 $rules
 RULESLIST
 
-  local id name place belongs
-  while IFS=$'\t' read -r id name place belongs; do
+  local id name place belongs dirname
+  # list-units-of.shの出力はタブ区切りだが、bashのreadはタブをIFSの空白と
+  # みなし連続分をまとめて削る。属するファイル（4列目）が空でフォルダ名
+  # （5列目）が非空という並びだと空欄が消えてフォルダ名が前の変数へずれ
+  # 込むため、タブを一度\037（IFSの空白扱いされない制御文字）へ置換してから読む
+  while IFS=$'\037' read -r id name place belongs dirname; do
     [ -n "$id" ] || continue
     unit_count=$((unit_count + 1))
-
-    local dirname
-    dirname="$(bash "$SHARED_SCRIPTS/unit-dir-name.sh" "$id")"
 
     local belongs_json
     if [ -n "$belongs" ]; then
@@ -600,7 +603,7 @@ RULESLIST2
     jq -n --arg v_kind "$kind" --arg v_id "$id" --arg v_name "$name" --arg v_place "$place" \
       --argjson v_belongs "$belongs_json" --argjson v_readings "$readings_json" \
       --argjson v_mi "$mi_json" --arg v_exec "$exec_id" \
-      '{"種別": $v_kind, "識別子": $v_id, "名前": $v_name, "場所": $v_place,
+      '{"種別": $v_kind, "識別子": $v_id, "表示名": $v_name, "場所": $v_place,
         "属するファイル": $v_belongs, "読み取り結果": $v_readings, "未": $v_mi,
         "取り出した実行": $v_exec}' > "${out}/${kind}/${dirname}.json"
 
@@ -610,7 +613,7 @@ RULESLIST2
       "$SHARED_SCRIPTS/units-status.sh" "$run_dir" set "$kind" "$id" 読み取り結果 済 > /dev/null 2>&1
     fi
   done <<UNITSLIST
-$units
+$(printf '%s' "$units" | tr '\t' '\037')
 UNITSLIST
 
   local ai_items_json invalid_items_json rule_free_json invalid_count

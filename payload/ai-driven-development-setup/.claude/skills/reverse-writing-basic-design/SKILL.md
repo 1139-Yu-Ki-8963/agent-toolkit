@@ -26,7 +26,7 @@ requires: [reverse-extracting-code-readings, reverse-listing-units]
 
 - 実行フォルダを受け取る。対象リポジトリのルートと出力の置き場は `bash ../reverse-shared/scripts/read-run.sh <実行フォルダ> <キー>` で読む
 - `bash ../reverse-shared/scripts/check-entry.sh <実行フォルダ> <対象リポジトリのルート>` の終了コードが 0 であること
-- 種別ごとの単位一覧は `bash ../reverse-shared/scripts/list-units-of.sh <対象> <種別>` で読む。単位のフォルダ名は `bash ../reverse-shared/scripts/unit-dir-name.sh <識別子>` で作る（唯一の定義）
+- 種別ごとの単位一覧は `bash ../reverse-shared/scripts/list-units-of.sh <対象> <種別>` で読む。単位のフォルダ名は一覧の出力（5列目）をそのまま使い、識別子から `unit-dir-name.sh` を直接呼んで作り直さない。基本設計書・詳細設計書の見出し（h1）は一覧の表示名（2列目）と一致させる
 - 単位の読み取り結果ファイルが `<実行フォルダ>/code-readings/<種別>/<単位のフォルダ名>.json` にあること
 - 完了時の処理の前に `references/basic-phase-viewpoints.md` の6観点を読む
 - 検査は共有部品の写しで行う。ファイルは `../reverse-shared/scripts/check-doc-heading-addendum.sh` にある。もう1つは `check-unit-test-design-doc-sections.sh` にある。対象に規約の配置は求めない

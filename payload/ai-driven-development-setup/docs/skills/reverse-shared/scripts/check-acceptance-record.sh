@@ -26,8 +26,10 @@ set -u
 # 無く、この既定の振る舞いが完了の唯一の定義になる（第1回改善指示書
 # 1-17。引数で切り替える案は意味を2つ残し付け忘れで再発するため退けた）。
 #
-# 単位のフォルダ名はreverse-shared/scripts/unit-dir-name.shで作る（唯一の
-# 定義を再実装しない）。
+# 単位のフォルダ名はreverse-shared/scripts/list-units-of.shの出力（5列目）
+# から得る（unit-dir-name.shは呼ばない）。一覧の元データが無い、または該当
+# する識別子の行が無いときだけ、unit-dir-name.shへ識別子を渡した値を使う
+# （一覧不在時の現行維持のためのfallbackであり唯一の定義の再実装ではない）。
 #
 # 検査キー（内容を要約した意味語。連番禁止）:
 #   記録-不在        合格の記録ファイルが実在しない
@@ -52,7 +54,23 @@ set -u
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 UNIT_DIR_NAME_SH="${SCRIPT_DIR}/unit-dir-name.sh"
+LIST_UNITS_OF_SH="${SCRIPT_DIR}/list-units-of.sh"
 COMMON_DOCS="業務仕様書 方式設計書 データ設計書 エラー設計書 共通外部仕様書 基盤設計書"
+
+# 単位のフォルダ名をlist-units-of.shの5列目から得る。一覧が無い、または
+# 該当する識別子の行が無ければ、unit-dir-name.shへ識別子を渡した値へ
+# fallbackする（一覧不在時の現行維持）。
+unit_folder_name() {
+  local design_root="$1" kind="$2" unit="$3" folder=""
+  if [ -f "$LIST_UNITS_OF_SH" ]; then
+    folder="$(bash "$LIST_UNITS_OF_SH" "$design_root" "$kind" 2>/dev/null \
+      | awk -F'\t' -v id="$unit" '$1==id{print $5; exit}')"
+  fi
+  if [ -z "$folder" ]; then
+    folder="$(bash "$UNIT_DIR_NAME_SH" "$unit")"
+  fi
+  printf '%s' "$folder"
+}
 
 usage_error() {
   echo "使い方: check-acceptance-record.sh <対象> --kind <種別> --unit <識別子> [--design-root <設計書のルート>]" >&2
@@ -137,7 +155,7 @@ check_record_unit() {
     echo "[FAIL] 共有部品-不在: unit-dir-name.sh がありません" >&2
     return 2
   fi
-  dirname="$(bash "$UNIT_DIR_NAME_SH" "$unit")"
+  dirname="$(unit_folder_name "$design_root" "$kind" "$unit")"
   record="${design_root}/ai-work/records/basic-design-acceptance/${kind}-${dirname}.json"
   check_record_record "$record" "${design_root}/docs/design/${folder}/${dirname}"
 }
