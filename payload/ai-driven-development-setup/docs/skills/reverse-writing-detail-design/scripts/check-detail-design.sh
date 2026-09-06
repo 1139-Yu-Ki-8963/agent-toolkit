@@ -146,6 +146,17 @@ doc_name_of() {
   esac
 }
 
+# 見出し-前付け読み飛ばし: 前付け（1行目が`---`だけの行で始まり、次の`---`だけの
+# 行で閉じる区間）を読み飛ばした後の最初の`# `で始まる行（本文のh1）を返す。
+# 前付けの中の`# `行は見出しとして扱わない。前付けが閉じていない文書は空を返す
+# （壊れた前付けの行を表示名の候補として報告すると読み手を誤らせるため）。
+# 本番の検査（check_unit_doc）と自己テストの両方が本関数を呼ぶ
+# （第1回改善指示書1-27）。
+# $1: 文書パス
+extract_body_h1() {
+  awk 'NR==1&&/^---$/{fm=1;next} fm&&/^---$/{fm=0;next} fm{next} /^# /{print;exit}' "$1"
+}
+
 check_unit_doc() {
   local doc="$1" kind="$2" name="${3:-}"
 
@@ -160,7 +171,7 @@ check_unit_doc() {
     suffix="$(doc_name_of "$kind")"
     suffix="${suffix%.md}"
     expected_h1="# ${name} ${suffix}"
-    actual_h1="$(grep -m1 '^# ' "$doc")"
+    actual_h1="$(extract_body_h1 "$doc")"
     if [ "$actual_h1" = "$expected_h1" ]; then
       passck
     else
@@ -618,6 +629,44 @@ BADEOF
   # 判定不能-検査基盤不在
   rm -f "${shared_dir}/list-units-of.sh"
   assert_exit "判定不能-検査基盤不在" 2 bash "$under_test" "$target" --run "$run_dir" --kind table
+
+  # --- 見出し-前付け読み飛ばし: extract_body_h1（本番と共有）の抽出が前付け
+  #     （---〜---）の中の見出し風の行を本文の見出しと誤認しないこと
+  #     （第1回改善指示書1-27） ---
+  check_h1() {
+    local desc="$1" expected="$2" actual="$3"
+    total=$((total + 1))
+    if [ "$actual" = "$expected" ]; then
+      echo "PASS: ${desc}"
+    else
+      echo "FAIL: ${desc}（期待「${expected}」/ 実際「${actual}」）"
+      fail=$((fail + 1))
+    fi
+  }
+
+  local h1_case1="${tmp}/h1-case1.md"
+  printf -- '---\n# 受注テーブル テーブル定義書（unit_kind=table・1つの表に1枚）\nkey: 受注\n---\n\n# 受注テーブル テーブル定義書\n' > "$h1_case1"
+  check_h1 "見出し-前付け読み飛ばし: 前付けあり・中に見出し風の行がある文書は本文の見出しを取る" "# 受注テーブル テーブル定義書" "$(extract_body_h1 "$h1_case1")"
+
+  local h1_case2="${tmp}/h1-case2.md"
+  printf '# 受注テーブル テーブル定義書\n\n本文。\n' > "$h1_case2"
+  check_h1 "見出し-前付け読み飛ばし: 前付けなし・1行目が見出しの文書は本文の見出しを取る" "# 受注テーブル テーブル定義書" "$(extract_body_h1 "$h1_case2")"
+
+  local h1_case3="${tmp}/h1-case3.md"
+  printf '地の文がまず来る。\n\n# 受注テーブル テーブル定義書\n' > "$h1_case3"
+  check_h1 "見出し-前付け読み飛ばし: 前付けなし・見出しの前に地の文がある文書は本文の見出しを取る" "# 受注テーブル テーブル定義書" "$(extract_body_h1 "$h1_case3")"
+
+  local h1_case4="${tmp}/h1-case4.md"
+  printf -- '---\nkey: 受注\n---\n\n# 受注テーブル テーブル定義書\n' > "$h1_case4"
+  check_h1 "見出し-前付け読み飛ばし: 前付けあり・中に見出し風の行が無い文書は本文の見出しを取る" "# 受注テーブル テーブル定義書" "$(extract_body_h1 "$h1_case4")"
+
+  local h1_case5="${tmp}/h1-case5.md"
+  printf '見出しを1つも持たない文書。\n\n本文。\n' > "$h1_case5"
+  check_h1 "見出し-前付け読み飛ばし: 見出しが1つも無い文書は空を返す" "" "$(extract_body_h1 "$h1_case5")"
+
+  local h1_case6="${tmp}/h1-case6.md"
+  printf -- '---\n# 受注テーブル テーブル定義書（unit_kind=table・1つの表に1枚）\nkey: 受注\n\n# 受注テーブル テーブル定義書\n' > "$h1_case6"
+  check_h1 "見出し-前付け読み飛ばし: 前付けが閉じていない文書は空を返す（壊れた前付けを本文と見なさない）" "" "$(extract_body_h1 "$h1_case6")"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then

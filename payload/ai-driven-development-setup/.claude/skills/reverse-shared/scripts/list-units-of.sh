@@ -18,14 +18,18 @@ set -u
 # 出力（タブ区切り。1行1単位。5列）:
 #   識別子 <TAB> 表示名 <TAB> 場所 <TAB> 属するファイル（; 区切り） <TAB> フォルダ名
 #
-#   表示名は元データjsonの「表示名」項目。無ければ「業務名」項目、それも
-#   無ければ識別子で埋める。フォルダ名は元データjsonの「フォルダ名」項目。
+#   表示名は元データjsonの「表示名」項目。null、または空白（半角・全角の
+#   空白・タブ・改行・ゼロ幅空白U+200B・BOM U+FEFF）だけなら「業務名」項目、
+#   それもnullまたは空白だけなら識別子で埋める。表示名・業務名が数値や配列
+#   など文字列でない値のときは、空白判定の前に文字列にする（falseも文字列
+#   falseとして非空扱い）。フォルダ名は元データjsonの「フォルダ名」項目。
 #   無ければ表示名をunit-dir-name.shで変換した値とする。呼び出し元は
 #   unit-dir-name.shを再度呼ばず、本スクリプトの5列目からフォルダ名を得る。
 #
 # 終了コード:
 #   0 = 一覧を読んで出力した（0件でも0）
-#   2 = 使い方の誤り・<種別>.json が存在しない・JSONとして読めない（判定不能）
+#   2 = 使い方の誤り・<種別>.json が存在しない・JSONとして読めない・
+#       読み取りの途中でjqの処理が失敗した（判定不能）
 #
 # 保守責任者: 人手（ユーザー）。一覧の元データの形（識別子・表示名・場所・
 #   属するファイル・フォルダ名）を変えるときは、list-units.sh と本スクリプトと
@@ -61,22 +65,44 @@ list_units_of() {
   fi
 
   local id name place belongs folder
+  local tmp_out
+  tmp_out="$(mktemp "${TMPDIR:-/tmp}/list-units-of.XXXXXX")" || {
+    echo "[FAIL] 一時ファイルを作成できません" >&2
+    return 2
+  }
+  # 中断（SIGINTでのkill等）でも一時ファイルが残らないよう、関数の終了時に
+  # 必ず後始末する（run_self_testの流儀に揃える。第1回改善指示書1-29・第3版反証）。
+  trap 'rm -f "$tmp_out"' RETURN
+
   # jqの出力はタブ区切りだが、bashのreadはタブをIFSの空白とみなし連続分を
   # まとめて削る。属するファイル（4列目）が空でフォルダ名（5列目）が非空
   # という並びだと空欄が消えてフォルダ名が前の変数へずれ込むため、タブを
-  # 一度\037（IFSの空白扱いされない制御文字）へ置換してから読む
+  # 一度\037（IFSの空白扱いされない制御文字）へ置換してから読む。
+  # 表示名・業務名が文字列でない値（数値・配列等）でもgsubで落ちないよう、
+  # 空白判定の前にtostringで文字列化する（第1回改善指示書1-29・再検証）。
+  # 一時ファイルへ書き出す途中経路（jq | tr）でjq自身が失敗した場合も
+  # 判定不能として拾えるよう、このパイプラインだけpipefailを効かせる。
+  if ! (set -o pipefail; jq -r '
+      def to_str: if . == null then null elif type == "string" then . else tostring end;
+      def is_blank_str($s): ($s | gsub("[\\s　​﻿]"; "")) == "";
+      def norm: to_str as $s | if $s == null then null elif is_blank_str($s) then null else $s end;
+      .[] | [
+      .["識別子"],
+      ((.["表示名"] | norm) // (.["業務名"] | norm) // .["識別子"]),
+      .["場所"],
+      ((.["属するファイル"] // []) | join(";")),
+      (.["フォルダ名"] // "")
+    ] | @tsv' "$file" | tr '\t' '\037' > "$tmp_out"); then
+    echo "[FAIL] 一覧-形式: ${file} の読み取りに失敗しました" >&2
+    return 2
+  fi
+
   while IFS=$'\037' read -r id name place belongs folder; do
     if [ -z "$folder" ]; then
       folder="$(bash "${script_dir}/unit-dir-name.sh" "$name")"
     fi
     printf '%s\t%s\t%s\t%s\t%s\n' "$id" "$name" "$place" "$belongs" "$folder"
-  done < <(jq -r '.[] | [
-      .["識別子"],
-      (.["表示名"] // .["業務名"] // .["識別子"]),
-      .["場所"],
-      ((.["属するファイル"] // []) | join(";")),
-      (.["フォルダ名"] // "")
-    ] | @tsv' "$file" | tr '\t' '\037')
+  done < "$tmp_out"
 
   return 0
 }
@@ -138,6 +164,19 @@ FIXEOF
     fail=$((fail + 1))
   fi
 
+  # 有効なJSONだが要素が期待する形でなく、読み取り中にjqの処理自体が
+  # 実行時エラーになる経路（第1回改善指示書1-29・第3版反証）。
+  echo '{"属するファイル":123}' > "${target}/docs/design/lists/broken.json"
+  total=$((total + 1))
+  bash "$0" "$target" broken > "${tmp}/out-broken.log" 2>"${tmp}/err-broken.log"
+  local rc_runtime=$?
+  if [ "$rc_runtime" -eq 2 ] && grep -q '読み取りに失敗' "${tmp}/err-broken.log" && [ ! -s "${tmp}/out-broken.log" ]; then
+    echo "PASS: 一覧読取-実行時エラー: 有効なJSONでもjqの実行時エラーは終了コード2で標準出力が空"
+  else
+    echo "FAIL: 一覧読取-実行時エラー: 有効なJSONでもjqの実行時エラーは終了コード2で標準出力が空（実際: ${rc_runtime}）"
+    fail=$((fail + 1))
+  fi
+
   total=$((total + 1))
   bash "$0" "$target" screen --lists "${target}/docs/design/lists" > "${tmp}/out2.log" 2>&1
   local rc_lists_opt=$?
@@ -147,6 +186,49 @@ FIXEOF
     echo "FAIL: --listsオプション指定でも動く（実際: ${rc_lists_opt}）"
     fail=$((fail + 1))
   fi
+
+  cat > "${target}/docs/design/lists/message.json" << 'FIXEOF'
+[
+  {"種別":"message","識別子":"unit-a","表示名":"","業務名":"","場所":"","属するファイル":[]},
+  {"種別":"message","識別子":"unit-b","表示名":"","業務名":"経理連携","場所":"","属するファイル":[]},
+  {"種別":"message","識別子":"unit-c","場所":"","属するファイル":[]},
+  {"種別":"message","識別子":"unit-d","表示名":" ","業務名":"","場所":"","属するファイル":[]},
+  {"種別":"message","識別子":"unit-e","表示名":"\t","業務名":"","場所":"","属するファイル":[]},
+  {"種別":"message","識別子":"unit-f","表示名":123,"業務名":"","場所":"","属するファイル":[]},
+  {"種別":"message","識別子":"unit-g","表示名":"​","業務名":"﻿","場所":"","属するファイル":[]},
+  {"種別":"message","識別子":"unit-h","表示名":["a","b"],"業務名":"","場所":"","属するファイル":[]}
+]
+FIXEOF
+
+  local name_a name_b name_c name_d name_e
+  name_a="$(bash "$0" "$target" message | awk -F'\t' '$1=="unit-a"{print $2}')"
+  assert_eq "表示名-空文字列の既定: 表示名・業務名とも空文字列なら識別子" "unit-a" "$name_a"
+
+  name_b="$(bash "$0" "$target" message | awk -F'\t' '$1=="unit-b"{print $2}')"
+  assert_eq "表示名-空文字列の既定: 表示名が空で業務名があれば業務名" "経理連携" "$name_b"
+
+  name_c="$(bash "$0" "$target" message | awk -F'\t' '$1=="unit-c"{print $2}')"
+  assert_eq "表示名-空文字列の既定: 表示名・業務名とも鍵が無ければ識別子" "unit-c" "$name_c"
+
+  name_d="$(bash "$0" "$target" message | awk -F'\t' '$1=="unit-d"{print $2}')"
+  assert_eq "表示名-空白のみの既定: 空白だけの表示名は識別子" "unit-d" "$name_d"
+
+  name_e="$(bash "$0" "$target" message | awk -F'\t' '$1=="unit-e"{print $2}')"
+  assert_eq "表示名-空白のみの既定: タブだけの表示名は識別子" "unit-e" "$name_e"
+
+  local name_f name_g name_h out_f rc_f out_h rc_h
+  # 数値・配列の表示名は終了コード0のまま出力されることも合わせて検査する
+  # （第1回改善指示書1-29・第3版反証。値だけでなく終了コードも見る）。
+  out_f="$(bash "$0" "$target" message)"; rc_f=$?
+  name_f="$(printf '%s\n' "$out_f" | awk -F'\t' '$1=="unit-f"{print $2}')"
+  assert_eq "表示名-文字列以外の既定: 数値の表示名はそのまま文字列にする" "123|0" "${name_f}|${rc_f}"
+
+  name_g="$(bash "$0" "$target" message | awk -F'\t' '$1=="unit-g"{print $2}')"
+  assert_eq "表示名-不可視文字のみの既定: ゼロ幅空白・BOMだけなら識別子" "unit-g" "$name_g"
+
+  out_h="$(bash "$0" "$target" message)"; rc_h=$?
+  name_h="$(printf '%s\n' "$out_h" | awk -F'\t' '$1=="unit-h"{print $2}')"
+  assert_eq "表示名-文字列以外の既定: 配列の表示名は文字列化される" '["a","b"]|0' "${name_h}|${rc_h}"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then

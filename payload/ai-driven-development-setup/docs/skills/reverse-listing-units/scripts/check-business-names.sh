@@ -37,7 +37,10 @@ set -u
 #   3 = 業務名.json・元データJSON・unit-kinds.jsonのいずれかが無いか読めない
 #       （標準エラー出力にキーcheck-入力不在で不在か読めないパスを1行ずつ。
 #        unit-kinds.jsonが無いか読めないときはunit-kinds.jsonの1行だけを出す。
-#        複数の元データJSONが無いときはunit-kinds.jsonのkeyの記載順に出す）
+#        複数の元データJSONが無いときはunit-kinds.jsonのkeyの記載順に出す。
+#        一覧の集計.json（docs/design/lists/一覧の集計.json）の判定が
+#        「対象外」の種別は元データJSONの実在を求めず、走査からも外す。
+#        一覧の集計.jsonが無いか読めないときは全種別を対象にする）
 #
 # 終了コード（`--propose <種別> <識別子> <業務名>`がある呼び出し=試算。ファイルは
 # 一切書き換えない）:
@@ -491,16 +494,36 @@ parse_args() {
 # ============================================================
 # 成功時は大域変数 RESOLVED_KINDS へ kinds（改行区切り、unit-kinds.jsonの記載順）を
 # 書く。unit-kinds.json・業務名.json・元データJSONの不在はこの中でexitする。
+# 到達範囲が対象外の種別（一覧の集計.jsonの判定が「対象外」）は一覧を
+# 持たないのが正しいため、不在の判定と走査の対象（RESOLVED_KINDS）の
+# 両方から外す。対象外かどうかは一覧の集計.jsonに記録された値から読み、
+# 推測しない。一覧の集計.jsonが無いか読めないときは従来どおり全種別を
+# 対象にする（対象外の集合が空。第1回改善指示書1-32）。
+# 併せて大域変数 ALL_KINDS へ、対象外を除く前のunit-kinds.jsonの全key
+# （改行区切り、記載順）を書く。試算（--propose）の種別の照合は、対象外
+# の種別を渡した場合でも識別子不在（終了コード4）に落ちる必要があるため
+# ALL_KINDSを使い、RESOLVED_KINDS（対象外を除いた集合）は使わない
+# （第1回改善指示書1-32）。
+# さらに大域変数 OUT_OF_SCOPE_KINDS へ、一覧の集計.jsonの判定が「対象外」
+# の種別（改行区切り）を書く。試算（--propose）は、渡された種別がこの
+# 集合に含まれるとき、業務名.jsonの実在と可読性は確かめるが、中身
+# （識別子）は参照せずに識別子不在（終了コード4）へ進む。対象外の種別は
+# 元データJSONを持たない設計のため、業務名.json側に残る古い記載を
+# 書き戻しの材料にしないための区別である（第1回改善指示書1-32 第2版反証）。
 # コマンド置換（$(...)）を経由すると、この関数内のexitがサブシェルだけを
 # 終了させ呼び出し元へ終了コードが伝わらないため、標準出力へは書かず
 # 大域変数へ直接代入する（本関数は必ずコマンド置換を使わず直接呼ぶこと）。
 RESOLVED_KINDS=""
+ALL_KINDS=""
+OUT_OF_SCOPE_KINDS=""
 resolve_inputs_or_exit() {
   local design_root="$1" prefix="$2"
   local unit_kinds_rel="docs/design/common/unit-kinds.json"
   local business_names_rel="docs/design/lists/業務名.json"
+  local aggregate_rel="docs/design/lists/一覧の集計.json"
   local unit_kinds_path="${design_root%/}/${unit_kinds_rel}"
   local business_names_path="${design_root%/}/${business_names_rel}"
+  local aggregate_path="${design_root%/}/${aggregate_rel}"
 
   if [ ! -f "$unit_kinds_path" ] || ! jq -e . "$unit_kinds_path" > /dev/null 2>&1; then
     input_missing_and_exit "${prefix}-入力不在" "$unit_kinds_rel"
@@ -508,14 +531,26 @@ resolve_inputs_or_exit() {
 
   local kinds
   kinds="$(jq -r '.[]["key"]' "$unit_kinds_path")"
+  ALL_KINDS="$kinds"
+
+  local out_of_scope=""
+  if [ -f "$aggregate_path" ] && jq -e . "$aggregate_path" > /dev/null 2>&1; then
+    out_of_scope="$(jq -r 'to_entries[] | select(.value["判定"] == "対象外") | .key' "$aggregate_path")"
+  fi
+  OUT_OF_SCOPE_KINDS="$out_of_scope"
 
   local -a missing=()
   if [ ! -f "$business_names_path" ] || ! jq -e . "$business_names_path" > /dev/null 2>&1; then
     missing+=("$business_names_rel")
   fi
+  local -a scoped_kinds=()
   local k
   while IFS= read -r k; do
     [ -n "$k" ] || continue
+    if [ -n "$out_of_scope" ] && printf '%s\n' "$out_of_scope" | grep -Fxq -- "$k"; then
+      continue
+    fi
+    scoped_kinds+=("$k")
     local p="${design_root%/}/docs/design/lists/${k}.json"
     if [ ! -f "$p" ] || ! jq -e . "$p" > /dev/null 2>&1; then
       missing+=("docs/design/lists/${k}.json")
@@ -526,7 +561,10 @@ resolve_inputs_or_exit() {
     input_missing_and_exit "${prefix}-入力不在" "${missing[@]}"
   fi
 
-  RESOLVED_KINDS="$kinds"
+  RESOLVED_KINDS=""
+  if [ ${#scoped_kinds[@]} -gt 0 ]; then
+    RESOLVED_KINDS="$(printf '%s\n' "${scoped_kinds[@]}")"
+  fi
 }
 
 # ============================================================
@@ -635,10 +673,22 @@ run_check() {
 run_propose() {
   local design_root="$1" kind="$2" id="$3" name="$4"
   resolve_inputs_or_exit "$design_root" "propose"
-  local kinds="$RESOLVED_KINDS"
+  # 種別の照合はunit-kinds.jsonの全key（ALL_KINDS）で行う。対象外の種別
+  # （RESOLVED_KINDSから除かれる）を渡した場合でも、その種別の一覧を
+  # 読まずに識別子不在（終了コード4）へ進む必要があるため、対象外を
+  # 除いたRESOLVED_KINDSは使わない（第1回改善指示書1-32）。
+  local kinds="$ALL_KINDS"
 
   if ! printf '%s\n' "$kinds" | grep -Fxq -- "$kind"; then
     arg_error "propose-引数不正" "$kind $id $name"
+  fi
+
+  # 対象外の種別（一覧の集計.jsonの判定が「対象外」）は、業務名.jsonに
+  # その種別の識別子が残骸として残っていても書き戻しの材料にしない。
+  # 業務名.jsonの実在と可読性は確かめるが、中身（識別子）は参照せずに
+  # 識別子不在（終了コード4）へ直接進む（第1回改善指示書1-32 第2版反証）。
+  if [ -n "$OUT_OF_SCOPE_KINDS" ] && printf '%s\n' "$OUT_OF_SCOPE_KINDS" | grep -Fxq -- "$kind"; then
+    identifier_missing_and_exit "propose-識別子不在" "$id"
   fi
 
   local business_names_path="${design_root%/}/docs/design/lists/業務名.json"
@@ -1071,6 +1121,99 @@ EOF
   local gouhi26_after
   gouhi26_after="$(jq -r '.["合否"]' "$base/case26-after.out" 2>/dev/null)"
   check "一覧-業務名-用語表除外: 用語表にある英字語(PayPay)は規則4の対象外になり合格" "$([ "$gouhi26_after" = "合格" ] && echo 0 || echo 1)"
+
+  # ============================================================
+  # ケース27: 入力不在-対象外の種別-検証
+  #   一覧の集計.jsonの判定が「対象外」の種別は、元データJSONの実在を
+  #   求める対象と走査の対象の両方から外れることを検証する
+  #   （第1回改善指示書1-32）
+  # ============================================================
+  write_unit_kinds_3() {
+    cat > "$1" <<'EOF'
+[
+  { "key": "screen", "名前": "画面", "フォルダ": "screens" },
+  { "key": "api", "名前": "接続窓口", "フォルダ": "apis" },
+  { "key": "table", "名前": "表", "フォルダ": "tables" }
+]
+EOF
+  }
+
+  # --- (a) 対象外の種別（table）の一覧が無くても終了コード0 ---
+  local w27a="$base/case27a"
+  mkdir -p "$w27a/docs/design/common" "$w27a/docs/design/lists"
+  write_unit_kinds_3 "$w27a/docs/design/common/unit-kinds.json"
+  echo "[]" > "$w27a/docs/design/lists/screen.json"
+  echo "[]" > "$w27a/docs/design/lists/api.json"
+  echo '{"退役フォルダ名":{}}' > "$w27a/docs/design/lists/業務名.json"
+  echo '{"table":{"判定":"対象外"}}' > "$w27a/docs/design/lists/一覧の集計.json"
+  bash "$0" "$w27a" > "$base/case27a.out" 2>"$base/case27a.err"
+  local rc27a=$?
+  check "入力不在-対象外の種別: 一覧が無くても終了コード0" "$([ "$rc27a" -eq 0 ] && echo 0 || echo 1)"
+
+  # --- (b) 対象の種別（api）の一覧が無ければ終了コード3で、
+  #         標準エラーの不在の一覧に対象外の種別（table）を含めない ---
+  local w27b="$base/case27b"
+  mkdir -p "$w27b/docs/design/common" "$w27b/docs/design/lists"
+  write_unit_kinds_3 "$w27b/docs/design/common/unit-kinds.json"
+  echo "[]" > "$w27b/docs/design/lists/screen.json"
+  echo '{"退役フォルダ名":{}}' > "$w27b/docs/design/lists/業務名.json"
+  echo '{"table":{"判定":"対象外"}}' > "$w27b/docs/design/lists/一覧の集計.json"
+  bash "$0" "$w27b" > "$base/case27b.out" 2>"$base/case27b.err"
+  local rc27b=$?
+  check "入力不在-対象外の種別: 対象の種別が無いと終了コード3" "$([ "$rc27b" -eq 3 ] && echo 0 || echo 1)"
+  check "入力不在-対象外の種別: 対象外はエラー出力に出ない" "$(grep -q 'docs/design/lists/api.json' "$base/case27b.err" && ! grep -q 'docs/design/lists/table.json' "$base/case27b.err" && echo 0 || echo 1)"
+
+  # --- (c) 一覧の集計.jsonが無いときは従来どおり全種別が対象 ---
+  local w27c="$base/case27c"
+  mkdir -p "$w27c/docs/design/common" "$w27c/docs/design/lists"
+  write_unit_kinds_3 "$w27c/docs/design/common/unit-kinds.json"
+  echo "[]" > "$w27c/docs/design/lists/screen.json"
+  echo "[]" > "$w27c/docs/design/lists/api.json"
+  echo '{"退役フォルダ名":{}}' > "$w27c/docs/design/lists/業務名.json"
+  bash "$0" "$w27c" > "$base/case27c.out" 2>"$base/case27c.err"
+  local rc27c=$?
+  check "入力不在-一覧の集計が無いとき: 全種別が対象で終了コード3" "$([ "$rc27c" -eq 3 ] && echo 0 || echo 1)"
+
+  # --- (d) --propose の試算でも同じ解決を使い、対象外の種別（table）の
+  #         一覧の不在で終了コード3にならない（識別子不在の終了コード4になる） ---
+  local w27d="$base/case27d"
+  mkdir -p "$w27d/docs/design/common" "$w27d/docs/design/lists"
+  write_unit_kinds_3 "$w27d/docs/design/common/unit-kinds.json"
+  echo "[]" > "$w27d/docs/design/lists/screen.json"
+  echo "[]" > "$w27d/docs/design/lists/api.json"
+  echo '{"退役フォルダ名":{}}' > "$w27d/docs/design/lists/業務名.json"
+  echo '{"table":{"判定":"対象外"}}' > "$w27d/docs/design/lists/一覧の集計.json"
+  bash "$0" "$w27d" --propose screen 存在しない識別子 テスト > "$base/case27d.out" 2>"$base/case27d.err"
+  local rc27d=$?
+  check "入力不在-対象外の種別-試算: 終了コード4" "$([ "$rc27d" -eq 4 ] && echo 0 || echo 1)"
+
+  # --- (e) --propose で対象外の種別（table）自身を渡しても、その種別の
+  #         一覧を読まず識別子不在（終了コード4）になる（第1回改善指示書1-32） ---
+  bash "$0" "$w27d" --propose table 存在しない識別子 テスト > "$base/case27e.out" 2>"$base/case27e.err"
+  local rc27e=$?
+  check "入力不在-対象外の種別-試算-種別自身: 終了コード4でpropose-識別子不在" "$([ "$rc27e" -eq 4 ] && grep -q 'propose-識別子不在' "$base/case27e.err" && echo 0 || echo 1)"
+
+  # --- (g) 対象外の種別（table）の業務名.jsonに識別子の残骸（T_ORDER）が
+  #         残っていても、実在と可読性は確かめるが中身は参照せず識別子
+  #         不在（終了コード4）になる（第1回改善指示書1-32 第2版反証） ---
+  local w27g="$base/case27g"
+  mkdir -p "$w27g/docs/design/common" "$w27g/docs/design/lists"
+  write_unit_kinds_3 "$w27g/docs/design/common/unit-kinds.json"
+  echo "[]" > "$w27g/docs/design/lists/screen.json"
+  echo "[]" > "$w27g/docs/design/lists/api.json"
+  cat > "$w27g/docs/design/lists/業務名.json" <<'EOF'
+{"table":[{"識別子":"T_ORDER","業務名":"受注一覧","フォルダ名":"受注一覧"}],"退役フォルダ名":{}}
+EOF
+  echo '{"table":{"判定":"対象外"}}' > "$w27g/docs/design/lists/一覧の集計.json"
+  bash "$0" "$w27g" --propose table T_ORDER 受注一覧 > "$base/case27g.out" 2>"$base/case27g.err"
+  local rc27g=$?
+  check "入力不在-対象外の種別-試算-識別子残骸: 終了コード4でpropose-識別子不在" "$([ "$rc27g" -eq 4 ] && grep -q 'propose-識別子不在' "$base/case27g.err" && echo 0 || echo 1)"
+
+  # --- (f) --propose にunit-kinds.jsonのkeyに無い種別（bogus）を渡すと
+  #         終了コード2（propose-引数不正）になる ---
+  bash "$0" "$w27d" --propose bogus 存在しない識別子 テスト > "$base/case27f.out" 2>"$base/case27f.err"
+  local rc27f=$?
+  check "入力不在-対象外の種別-試算-未知種別: 終了コード2でpropose-引数不正" "$([ "$rc27f" -eq 2 ] && grep -q 'propose-引数不正' "$base/case27f.err" && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then

@@ -437,6 +437,17 @@ reading_key_covered() {
   ' "$doc"
 }
 
+# 見出し-前付け読み飛ばし: 前付け（1行目が`---`だけの行で始まり、次の`---`だけの
+# 行で閉じる区間）を読み飛ばした後の最初の`# `で始まる行（本文のh1）を返す。
+# 前付けの中の`# `行は見出しとして扱わない。前付けが閉じていない文書は空を返す
+# （壊れた前付けの行を表示名の候補として報告すると読み手を誤らせるため）。
+# 本番の検査（check_regular_unit）と自己テストの両方が本関数を呼ぶ
+# （第1回改善指示書1-27）。
+# $1: 文書パス
+extract_body_h1() {
+  awk 'NR==1&&/^---$/{fm=1;next} fm&&/^---$/{fm=0;next} fm{next} /^# /{print;exit}' "$1"
+}
+
 check_regular_unit() {
   local target="$1" run_dir="$2" unit_path="$3" kind="$4" dirname="$5" heading_script="$6" unittest_script="$7" tests_output="$8" name="${9:-}"
   local doc="${unit_path}/$(basic_doc_name "$kind")"
@@ -458,7 +469,7 @@ check_regular_unit() {
     suffix="$(basic_doc_name "$kind")"
     suffix="${suffix%.md}"
     expected_h1="# ${name} ${suffix}"
-    actual_h1="$(grep -m1 '^# ' "$doc")"
+    actual_h1="$(extract_body_h1 "$doc")"
     if [ "$actual_h1" != "$expected_h1" ]; then
       echo "[FAIL] 見出し-表示名不一致: ${doc} のh1「${actual_h1}」が期待「${expected_h1}」と一致しません" >&2
       ok=0
@@ -1386,6 +1397,33 @@ FILELIST
   assert_no_cross_kind_enumeration_file "$enum_negative_file" "機能" 2>/dev/null
   local rc_enum_negative=$?
   check "様式-他種別名(全文走査): 列挙を含む行は不合格になる（再発防止）" "$([ "$rc_enum_negative" -eq 1 ] && echo 0 || echo 1)"
+
+  # --- 見出し-前付け読み飛ばし: extract_body_h1（本番と共有）の抽出が前付け
+  #     （---〜---）の中の見出し風の行を本文の見出しと誤認しないこと
+  #     （第1回改善指示書1-27） ---
+  local h1_case1="$base/h1-case1.md"
+  printf -- '---\n# API基本設計書（unit_kind=api・1つの接続窓口に1枚）\nkey: 受注\n---\n\n# 受注 API基本設計書\n' > "$h1_case1"
+  check "見出し-前付け読み飛ばし: 前付けあり・中に見出し風の行がある文書は本文の見出しを取る" "$([ "$(extract_body_h1 "$h1_case1")" = "# 受注 API基本設計書" ] && echo 0 || echo 1)"
+
+  local h1_case2="$base/h1-case2.md"
+  printf '# 受注 API基本設計書\n\n本文。\n' > "$h1_case2"
+  check "見出し-前付け読み飛ばし: 前付けなし・1行目が見出しの文書は本文の見出しを取る" "$([ "$(extract_body_h1 "$h1_case2")" = "# 受注 API基本設計書" ] && echo 0 || echo 1)"
+
+  local h1_case3="$base/h1-case3.md"
+  printf '地の文がまず来る。\n\n# 受注 API基本設計書\n' > "$h1_case3"
+  check "見出し-前付け読み飛ばし: 前付けなし・見出しの前に地の文がある文書は本文の見出しを取る" "$([ "$(extract_body_h1 "$h1_case3")" = "# 受注 API基本設計書" ] && echo 0 || echo 1)"
+
+  local h1_case4="$base/h1-case4.md"
+  printf -- '---\nkey: 受注\n---\n\n# 受注 API基本設計書\n' > "$h1_case4"
+  check "見出し-前付け読み飛ばし: 前付けあり・中に見出し風の行が無い文書は本文の見出しを取る" "$([ "$(extract_body_h1 "$h1_case4")" = "# 受注 API基本設計書" ] && echo 0 || echo 1)"
+
+  local h1_case5="$base/h1-case5.md"
+  printf '見出しを1つも持たない文書。\n\n本文。\n' > "$h1_case5"
+  check "見出し-前付け読み飛ばし: 見出しが1つも無い文書は空を返す" "$([ -z "$(extract_body_h1 "$h1_case5")" ] && echo 0 || echo 1)"
+
+  local h1_case6="$base/h1-case6.md"
+  printf -- '---\n# API基本設計書（unit_kind=api・1つの接続窓口に1枚）\nkey: 受注\n\n# 受注 API基本設計書\n' > "$h1_case6"
+  check "見出し-前付け読み飛ばし: 前付けが閉じていない文書は空を返す（壊れた前付けを本文と見なさない）" "$([ -z "$(extract_body_h1 "$h1_case6")" ] && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件 / skip ${skip} 件"
   if [ "$fail" -gt 0 ]; then
