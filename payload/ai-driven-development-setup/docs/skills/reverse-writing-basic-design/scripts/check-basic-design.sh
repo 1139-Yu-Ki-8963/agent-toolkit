@@ -354,6 +354,54 @@ assert_no_cross_kind_name() {
   return 0
 }
 
+# 様式-他種別名(全文走査)で使う定型文パターン。種別名（画面・機能・API・テーブル・
+# バッチ・帳票・外部連携）を`・`・`と`・`/`で2つ以上並べた列挙を検出する
+# （第1回改善指示書1-20・再検証。アンカー行だけでなく様式全体を対象にする）。
+CROSS_KIND_ENUM_PATTERN='(画面|機能|API|テーブル|バッチ|帳票|外部連携)[[:space:]]*(・|と|/)[[:space:]]*(画面|機能|API|テーブル|バッチ|帳票|外部連携)'
+
+# 様式-他種別名(全文走査): 1行に上記の列挙パターンが現れ、かつ自分の種別以外の
+# 名前を含む場合に不合格とする。自分の種別が空文字のときは、列挙そのものを
+# 一切許さない（プロジェクト共通のように単一の「自分の種別」を持たない文書向け）。
+# $1: 判定する1行  $2: 自分の種別の名前（1語。空文字可）
+# 戻り値: 0=違反なし 1=違反あり
+assert_no_cross_kind_enumeration_line() {
+  local line="$1" own="$2" matched m stripped name
+  matched="$(printf '%s' "$line" | grep -oE "$CROSS_KIND_ENUM_PATTERN")" || return 0
+  [ -n "$matched" ] || return 0
+  if [ -z "$own" ]; then
+    return 1
+  fi
+  while IFS= read -r m; do
+    [ -n "$m" ] || continue
+    stripped="${m//$own/}"
+    for name in 画面 機能 API テーブル バッチ 帳票 外部連携; do
+      [ "$name" = "$own" ] && continue
+      case "$stripped" in
+        *"$name"*) return 1 ;;
+      esac
+    done
+  done <<CROSSMATCHED
+$matched
+CROSSMATCHED
+  return 0
+}
+
+# 様式-他種別名(全文走査): ファイル全体を対象に上記の判定を行う。
+# $1: 判定するファイル  $2: 自分の種別の名前（1語。空文字可）
+# 標準エラー出力: 違反行を1行ずつ出す（再現・確認のため）
+# 戻り値: 0=違反なし 1=違反あり
+assert_no_cross_kind_enumeration_file() {
+  local file="$1" own="$2" line ok=0
+  [ -f "$file" ] || return 0
+  while IFS= read -r line || [ -n "$line" ]; do
+    if ! assert_no_cross_kind_enumeration_line "$line" "$own"; then
+      echo "[FAIL] 様式-他種別名(全文): ${file}: ${line}" >&2
+      ok=1
+    fi
+  done < "$file"
+  return "$ok"
+}
+
 # 様式-他種別名の検査で使う複製定型文（アンカー行）を1行取り出す。呼び出し側が
 # grepの結果を無検証で空文字のままassert_no_cross_kind_nameへ渡すと、将来アンカー
 # 文言が改名・移動して0件になったときに何も検証せず合格し続ける（レビュー指摘。
@@ -1304,6 +1352,40 @@ DOCHEOF
   find_template_anchor_line "$missing_anchor_file" '外部結合 |' > /dev/null
   local rc_missing_anchor=$?
   check "様式-他種別名: アンカーが見つからない複製は不合格になる（再発防止）" "$([ "$rc_missing_anchor" -eq 1 ] && echo 0 || echo 1)"
+
+  # --- 様式-他種別名(全文走査): アンカー行だけでなく様式全体（原本の7種別の
+  #     テンプレート全ファイル）を対象に、自分の種別以外の名前を含む列挙が
+  #     無いことを確かめる（第1回改善指示書1-20・再検証。レビュー指摘により
+  #     アンカー行突合だけでは検出できない箇所があったため追加） ---
+  local enum_ok=1 kind_dir kind_own f
+  for kind_dir in screen api table batch report external feature; do
+    case "$kind_dir" in
+      screen) kind_own=画面 ;;
+      api) kind_own=API ;;
+      table) kind_own=テーブル ;;
+      batch) kind_own=バッチ ;;
+      report) kind_own=帳票 ;;
+      external) kind_own=外部連携 ;;
+      feature) kind_own=機能 ;;
+    esac
+    [ -d "$templates_dir/$kind_dir" ] || continue
+    while IFS= read -r f; do
+      [ -n "$f" ] || continue
+      if ! assert_no_cross_kind_enumeration_file "$f" "$kind_own"; then
+        enum_ok=0
+      fi
+    done <<FILELIST
+$(find "$templates_dir/$kind_dir" -type f -name '*.md' 2>/dev/null)
+FILELIST
+  done
+  check "様式-他種別名(全文走査): 原本の全様式に自分の種別以外の名前を含む列挙が無い" "$([ "$enum_ok" -eq 1 ] && echo 0 || echo 1)"
+
+  # 再発防止: 全文走査が実際に列挙を検出できること（検出漏れの退行を防ぐ）
+  local enum_negative_file="$base/enum-negative.md"
+  printf '## 見出し\n複数の画面・APIをまたぐ連携はここに書かない。\n' > "$enum_negative_file"
+  assert_no_cross_kind_enumeration_file "$enum_negative_file" "機能" 2>/dev/null
+  local rc_enum_negative=$?
+  check "様式-他種別名(全文走査): 列挙を含む行は不合格になる（再発防止）" "$([ "$rc_enum_negative" -eq 1 ] && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件 / skip ${skip} 件"
   if [ "$fail" -gt 0 ]; then
