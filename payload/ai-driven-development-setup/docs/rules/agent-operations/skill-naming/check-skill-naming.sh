@@ -74,33 +74,38 @@ fm_scalar() {
   '
 }
 
-# rule.md の「## 動詞の一覧」節から動詞を読む。標準出力へ
-# "・deriving・scaffolding・...・handling・" の形（前後に区切り文字）で返す。
+# rule.md の「## 動詞の一覧」節から動詞を読む。標準出力へ空白区切りの1行
+# （"deriving scaffolding ... handling"）で返す。区切りは1バイトの空白に
+# 固定し、多バイト文字（中黒等）を区切りに使わない。バイト単位の `tr`
+# （GNU）は多バイト文字を1バイト目しか書き換えず区切りが壊れるため
+# （第1回改善指示書1-26）、区切りには1バイトの空白（改行からの変換）
+# だけを使い、照合は word_in_list（空白区切りの走査）に委ねる。
 load_verbs() {
   local rule_file="$1"
   [ -f "$rule_file" ] || return 1
   # 「## 動詞の一覧」の直後にある "- <動詞>" 形式の箇条書きを読む
-  # （1文が長くなりすぎるため、動詞の並びを「・」区切りの1行ではなく
-  # 箇条書きで書いている。this規約 rule.md の「## 動詞の一覧」節を参照）。
+  # （1文が長くなりすぎるため、動詞の並びを1行ではなく箇条書きで書いて
+  # いる。this規約 rule.md の「## 動詞の一覧」節を参照）。
   local block
-  block="$(awk '
+  # CRLFで保存されたrule.md（行末に\rが残る）だと見出しの正規表現
+  # `/^## 動詞の一覧$/` が`$`の直前に\rが挟まり不一致になる。見出し判定の
+  # 前段でtrにより行末のCRを取り除き、CRLF/LFのどちらでも同じ判定にする
+  # （第1回改善指示書1-26）。
+  block="$(tr -d '\r' < "$rule_file" | awk '
     /^## 動詞の一覧$/ { f = 1; next }
     f && /^## / { exit }
     f && /^- / { print }
-  ' "$rule_file")"
+  ')"
   [ -n "$block" ] || return 1
   local verbs
-  verbs="$(printf '%s\n' "$block" | sed -E 's/^- +//' | tr -d '`' | tr '\n' '・')"
-  [ -n "$verbs" ] || return 1
-  printf '・%s' "$verbs"
+  verbs="$(printf '%s\n' "$block" | sed -E 's/^- +//' | tr -d '`' | tr '\n' ' ')"
+  [ -n "${verbs// /}" ] || return 1
+  printf '%s' "$verbs"
 }
 
 verb_allowed() {
-  local tok="$1" verbs_padded="$2"
-  case "$verbs_padded" in
-    *"・${tok}・"*) return 0 ;;
-    *) return 1 ;;
-  esac
+  local tok="$1" verbs_list="$2"
+  word_in_list "$tok" "$verbs_list"
 }
 
 word_in_list() {
@@ -115,7 +120,7 @@ word_in_list() {
 # $1: 対象フォルダの絶対（または相対）パス  $2: 動詞一覧（load_verbsの戻り値）
 # 標準出力へ [FAIL] 行を列挙する。戻り値: 0=全規則合格 1=1件以上不合格
 judge_one() {
-  local dir="$1" verbs_padded="$2"
+  local dir="$1" verbs_list="$2"
   local name
   name="$(basename "$dir")"
   local fail=0
@@ -150,7 +155,7 @@ judge_one() {
   fi
 
   if [ -n "$second_tok" ]; then
-    if ! verb_allowed "$second_tok" "$verbs_padded"; then
+    if ! verb_allowed "$second_tok" "$verbs_list"; then
       echo "[FAIL] ${name}: 作業は動詞のing形で表す: 2語目 '${second_tok}' が動詞の一覧に無い"
       fail=1
     fi
@@ -219,8 +224,8 @@ judge_one() {
 #         または explicit時にルート不在か走査対象0件）
 do_scan() {
   local root="$1" explicit="$2"
-  local verbs_padded
-  if ! verbs_padded="$(load_verbs "$RULE_FILE")"; then
+  local verbs_list
+  if ! verbs_list="$(load_verbs "$RULE_FILE")"; then
     echo "[UNKNOWN] 動詞の一覧を読めません（rule.md: ${RULE_FILE}）" >&2
     return 2
   fi
@@ -239,7 +244,7 @@ do_scan() {
   local fail_all=0 d
   while IFS= read -r d; do
     [ -n "$d" ] || continue
-    if ! judge_one "$d" "$verbs_padded"; then
+    if ! judge_one "$d" "$verbs_list"; then
       fail_all=1
     fi
   done <<EOF
@@ -594,6 +599,66 @@ run_self_test() {
     pass=$((pass + 1))
   else
     echo "  [FAIL] ケース17: 標準入力が空なのに止めた（rc=${rc17}）" >&2
+    fail=$((fail + 1))
+  fi
+
+  # ケース18（LC_ALL=C）: 動詞の一覧の区切りが1バイトの空白であることの回帰
+  # 確認。バイト単位の`tr`（GNU）でも壊れる区切りを使っていた旧実装は、
+  # LC_ALL=Cで多バイト文字がバイト単位に変換されるため、この条件下で
+  # 再現できていた（第1回改善指示書1-26）。
+  if LC_ALL=C bash "${BASH_SOURCE[0]}" "${tmp}/skills-ok" >/dev/null 2>&1; then
+    echo "  [PASS] ケース18: LC_ALL=Cでも動詞の一覧を正しく読み合格する"
+    pass=$((pass + 1))
+  else
+    echo "  [FAIL] ケース18: LC_ALL=Cで動詞の一覧が読めず不合格になった" >&2
+    fail=$((fail + 1))
+  fi
+
+  # ケース19: 動詞の一覧へ新しい動詞を1つ足すと、その動詞を使った名前が
+  # 合格になる（一覧を実際に読んでいることの裏取り。第1回改善指示書1-26）。
+  local rule_copy_dir
+  if rule_copy_dir="$(_mk_tmp_dir)" && [ -n "$rule_copy_dir" ]; then
+    cp "${BASH_SOURCE[0]}" "${rule_copy_dir}/check-skill-naming.sh"
+    cp "${RULE_FILE}" "${rule_copy_dir}/rule.md"
+    awk '
+      /^## 動詞の一覧$/ { print; getline; print; print "- testing"; next }
+      { print }
+    ' "${rule_copy_dir}/rule.md" > "${rule_copy_dir}/rule.md.new" \
+      && mv "${rule_copy_dir}/rule.md.new" "${rule_copy_dir}/rule.md"
+    mkdir -p "${tmp}/skills-newverb"
+    _write_skill "${tmp}/skills-newverb/setup-testing-rules" "setup-testing-rules" "テスト" "" "setup"
+    if bash "${rule_copy_dir}/check-skill-naming.sh" "${tmp}/skills-newverb" >/dev/null 2>&1; then
+      echo "  [PASS] ケース19: 一覧へ足した動詞'testing'を使った名前が合格する"
+      pass=$((pass + 1))
+    else
+      echo "  [FAIL] ケース19: 一覧へ足した動詞を認識できなかった" >&2
+      fail=$((fail + 1))
+    fi
+    rm -rf "$rule_copy_dir"
+  else
+    echo "  [FAIL] ケース19: 一時ディレクトリを作れず確認できなかった" >&2
+    fail=$((fail + 1))
+  fi
+
+  # ケース20: 動詞の一覧の行末にCR（Windows改行）が付いても正しく読める
+  # （CRLFで保存されたrule.mdでも同じ判定にする。第1回改善指示書1-26の
+  # 反証で見つかった追加分）。
+  local crlf_dir
+  if crlf_dir="$(_mk_tmp_dir)" && [ -n "$crlf_dir" ]; then
+    cp "${BASH_SOURCE[0]}" "${crlf_dir}/check-skill-naming.sh"
+    awk '{ printf "%s\r\n", $0 }' "${RULE_FILE}" > "${crlf_dir}/rule.md"
+    mkdir -p "${tmp}/skills-crlf"
+    _write_skill "${tmp}/skills-crlf/setup-deriving-rules" "setup-deriving-rules" "テスト" "" "setup"
+    if bash "${crlf_dir}/check-skill-naming.sh" "${tmp}/skills-crlf" >/dev/null 2>&1; then
+      echo "  [PASS] ケース20: 一覧の行末にCRが付いたrule.mdでも合格する"
+      pass=$((pass + 1))
+    else
+      echo "  [FAIL] ケース20: CR付きrule.mdで動詞を読めず不合格になった" >&2
+      fail=$((fail + 1))
+    fi
+    rm -rf "$crlf_dir"
+  else
+    echo "  [FAIL] ケース20: 一時ディレクトリを作れず確認できなかった" >&2
     fail=$((fail + 1))
   fi
 

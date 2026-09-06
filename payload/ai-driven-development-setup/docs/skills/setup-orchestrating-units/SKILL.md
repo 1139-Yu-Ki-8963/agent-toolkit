@@ -78,3 +78,5 @@ docs/skills配下の全機能のtestsを回し、機能・単位・要件（柱�
 `scripts/check-acceptance.sh`は元は検査だけの独立した機能だった。
 完了の検査は独立した機能ではなく統括の完了時の処理であるという方針により、本機能へ`git mv`で移した。
 判定の中身（front matter読み取り・6つの欠落検査・柱の集計）は変えていない。
+
+**2026-09-06の変更**: 前段（`validate-skill-definitions.sh`）の出力に集計行（`検査不合格: N 件`）がある。この行そのものを`[FAIL]`行として数えていたため、内側の不合格件数より集計が常に1件多く表示される不具合が実行側で見つかった（第1回改善指示書1-26）。内側の`validate-skill-definitions.sh`側で集計行の接頭辞を`[FAIL]`から外し、件数に数えないようにした。`validate-rule-definitions.sh`の既存の書き方に揃えたものであり、`check-acceptance.sh`側の数え方は変えていない。

@@ -1116,6 +1116,30 @@ INNER_SHARED_NG_EOF
   fi
   rm -rf "${temp_root:?}/docs/skills/setup-alpha" "${temp_root:?}/docs/skills/setup-shared"
 
+  # ケース14: 前段（validate-skill-definitions.sh）が3件の不合格を返す合成
+  # 入力で、集計の件数表示が3件（内側の検査と一致）になることを確かめる。
+  # 集計行そのものを件数に数える不具合があると4件になっていた
+  # （第1回改善指示書1-26）。
+  copy_real_validate_script "$temp_root"
+  st_write_skill "$temp_root" "setup-alpha" "setup" "setup"
+  st_write_skill "$temp_root" "setup-beta" "setup" "setup"
+  st_write_skill "$temp_root" "setup-gamma" "setup" "setup"
+  local one_broken_skill
+  for one_broken_skill in setup-alpha setup-beta setup-gamma; do
+    sed -i.bak '/^kind: /d' "${temp_root}/docs/skills/${one_broken_skill}/SKILL.md" \
+      && rm -f "${temp_root}/docs/skills/${one_broken_skill}/SKILL.md.bak"
+  done
+  st_reset_pillars "$temp_root"
+  local output_14 exit_code_14=0
+  output_14="$("$0" "$temp_root" 2>&1)" || exit_code_14=$?
+  if [ "$exit_code_14" -eq 1 ] && printf '%s' "$output_14" | grep -q '不合格（3 件）'; then
+    pass_count=$((pass_count+1)); echo "  [PASS] ケース14: 前段の不合格件数と集計の件数が一致する（3件）"
+  else
+    fail_count=$((fail_count+1)); echo "  [FAIL] ケース14: 前段の不合格件数と集計の件数がずれる (exit ${exit_code_14})" >&2
+    printf '%s\n' "$output_14" | sed 's/^/    /' >&2
+  fi
+  rm -rf "${temp_root:?}/docs/skills/setup-alpha" "${temp_root:?}/docs/skills/setup-beta" "${temp_root:?}/docs/skills/setup-gamma"
+
   rm -rf "$temp_root"
 
   if [ "$fail_count" -eq 0 ]; then

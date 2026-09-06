@@ -125,7 +125,12 @@ check_heading_structure() {
   local actual
   actual="$(extract_headings "$doc")"
   if [ "$actual" != "$expected" ]; then
-    fail "節-欠落" "${doc}: 節の名前・順序・件数が様式と一致しません（期待: $(printf '%s' "$expected" | tr '\n' '／')／実際: $(printf '%s' "$actual" | tr '\n' '／')）"
+    # tr はバイト単位で置き換えるため、多バイトの区切り文字（全角スラッシュ）を
+    # 直接渡すと1バイト目しか書かれず表示が壊れる（第1回改善指示書1-26と同型）。
+    # 区切りには1バイトの制御文字（\x01）を使い、置き換え後の変換はPOSIXの
+    # 範囲の書き方（awkのgsub）で行う。sedの`\x01`のような16進エスケープは
+    # 環境によって解釈されない（第1回改善指示書1-26の反証で見つかった追加分）。
+    fail "節-欠落" "${doc}: 節の名前・順序・件数が様式と一致しません（期待: $(printf '%s' "$expected" | tr '\n' '\1' | awk '{ gsub(/\001/, "／"); print }')／実際: $(printf '%s' "$actual" | tr '\n' '\1' | awk '{ gsub(/\001/, "／"); print }')）"
     return 1
   fi
   passck

@@ -359,7 +359,11 @@ SKILLLIST
 
   if [ "$FAIL_COUNT" -gt 0 ]; then
     printf '%s' "$FAILURES" >&2
-    echo "[FAIL] 検査不合格: ${FAIL_COUNT} 件" >&2
+    # 集計行自身は個別の不合格ではないため `[FAIL]` 接頭辞を付けない
+    # （validate-rule-definitions.sh の既存の書き方に揃えた）。付けると
+    # 呼び出し側（check-acceptance.sh）が `[FAIL]` 行を数える際に集計行
+    # そのものを1件多く数えてしまう（第1回改善指示書1-26）。
+    echo "検査不合格: ${FAIL_COUNT} 件" >&2
     return 1
   fi
 
