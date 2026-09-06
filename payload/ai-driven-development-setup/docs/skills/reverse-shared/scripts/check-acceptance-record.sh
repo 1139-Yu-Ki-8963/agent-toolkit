@@ -326,6 +326,19 @@ self_test() {
   sha_of() { shasum -a 256 "$1" 2>/dev/null | awk '{print $1}'; }
   local run="$base/run"
   mkdir -p "$run"
+  # run.jsonは統括の実行の開始スクリプトが必ず作る。本自己テストは
+  # record-acceptance.shを呼ぶため、run.json不在で判定不能になるのを避け
+  # 既定値を持たせる（2026-09-07反証対応。record-acceptance.shが--run指定時に
+  # 設定を読めないと記録を作らず判定不能で止まるようになったため）。
+  # 「実行の識別子」はstart-run.shが必ず書く値であり、record-acceptance.shの
+  # 共通設計文書の記録（record_common）はこの値の読み取り可否で実行フォルダの
+  # 実在・可読性を確かめる（2026-09-07反証対応・第3版・所見1）。
+  cat > "$run/run.json" <<'RUNBASEJSON'
+{
+  "実行の識別子": "2026-09-03-abc1234",
+  "テスト設計書の出力": "出力する"
+}
+RUNBASEJSON
 
   bash "$record_sh" "$d" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" \
     --verdict 合格 --viewpoints "外部仕様の確定=合" \
@@ -380,6 +393,12 @@ self_test() {
   # --- 種別ごとの文書名で記録直後の照合が0（api・table・feature） ---
   local d2="$base/target2" run2="$base/run2"
   mkdir -p "$d2" "$run2"
+  cat > "$run2/run.json" <<'RUN2BASEJSON'
+{
+  "実行の識別子": "2026-09-07-check-run2",
+  "テスト設計書の出力": "出力する"
+}
+RUN2BASEJSON
 
   mkdir -p "$d2/docs/design/apis/api_get_orders"
   echo "# API基本設計書" > "$d2/docs/design/apis/api_get_orders/API基本設計書.md"

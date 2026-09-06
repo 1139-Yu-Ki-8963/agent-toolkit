@@ -22,9 +22,15 @@ set -u
 # 単位・共通設計文書の保留は廃止（2026-09-05）。判定は合格・不合格の2値。
 #
 # --judged は判定した時点の文書の同一性の値（sha256）。判定の直前に
-# `shasum -a 256 <文書>` で取る。共通設計文書は1件、単位は基本設計書・
-# 単体テスト設計書の2件を渡す。記録を書く直前に現在の値と突き合わせ、
-# 1件でも一致しなければ記録を作らない（第1回改善指示書1-23）。
+# `shasum -a 256 <文書>` で取る。共通設計文書は1件、単位は基本設計書の1件
+# を渡す。実行フォルダのrun.jsonの「テスト設計書の出力」が「出力する」の
+# ときだけ単体テスト設計書も加えた2件を渡す。「出力しない」は基本設計書の
+# 1件のみ（第1回改善指示書1-31）。`--run`は常に必須のため、`--run`が
+# 指定されているのに設定が読めない・値が不正なときは記録を作らず判定不能
+# で止める（黙って「出力しない」に落とすと、単体テスト設計書が記録の
+# `文書`から静かに抜け落ちる。2026-09-07反証対応）。記録を書く直前に現在
+# の値と突き合わせ、1件でも一致しなければ記録を作らない（第1回改善指示書
+# 1-23）。
 #
 # --design-root の既定は対象リポジトリのルート。合格の記録・基本設計書・
 # 単体テスト設計書・共通設計文書は設計書のルート配下で読み書きする。
@@ -74,8 +80,151 @@ UNIT_DIR_NAME_SH="${SCRIPT_DIR}/unit-dir-name.sh"
 LIST_UNITS_OF_SH="${SCRIPT_DIR}/list-units-of.sh"
 DESIGN_DOC_NAME_SH="${SCRIPT_DIR}/design-doc-name.sh"
 UNITS_STATUS_SH="${SCRIPT_DIR}/units-status.sh"
+READ_RUN_SH="${SCRIPT_DIR}/read-run.sh"
 # shellcheck source=viewpoint-validation.sh
 . "${SCRIPT_DIR}/viewpoint-validation.sh"
+
+# 実行フォルダのrun.jsonから「テスト設計書の出力」を読む。呼び出し元は
+# `--run`を常に必須とするため、run_dirは常に読む（空文字列は使い方の誤りで
+# usage_errorに掛かるため通常は到達しないが、到達してもread-run.shが
+# run.json不在として判定不能を返すだけであり、特別扱いの分岐は持たない。
+# 2026-09-07反証対応・第2版で「run_dirが空なら出力しないとみなす」という
+# 到達不能な分岐を削った）。read-run.shが無い・失敗する・値が「出力する」
+# ／「出力しない」のどちらでもないときは、標準出力に何も書かず終了コード2
+# を返して呼び出し元へ判定不能を伝える（黙って「出力しない」に落とすと、
+# 「出力する」構成の単位で単体テスト設計書のsha256が記録の`文書`から静かに
+# 抜け落ち、以後その文書を消しても記録と一致し続けて合格し続ける。
+# 2026-09-07反証対応）。判定不能のときは、値の代わりに理由（read-run.shの
+# 検査キー`run-不在`／`jq-不在`／`run-形式`／`キー-不在`、または`値-不正`・
+# `共有部品-不在`）を標準出力へ書く。呼び出し元は`$(...)`で受け取った文字列を
+# そのままエラーメッセージへ添える（呼び出し元が`$(...)`で呼ぶとサブシェルに
+# なりグローバル変数の書き換えが伝わらないため、戻り値の文字列そのものに理由
+# を載せる。2026-09-07反証対応・第2版）。
+# check-basic-design.shの`tests_output_of()`（検査側。設定が読めないときは
+# 「出力しない」に倒す既定を持つ）とは既定が異なるため関数名を分け、複製では
+# ないことを明示する（第1回改善指示書1-31）。
+#
+# 値の受け取り方: `$(...)`はコマンドの標準出力の末尾の改行をすべて取り除く。
+# run.jsonの値そのものに末尾の改行や空白が混ざっていても素通しで取り除かれ、
+# 「出力する」のような正規値と誤って一致してしまう（2026-09-07反証対応・
+# 第3版・所見2）。改行では終わらない番人文字列と終了コードを値の直後に続けて
+# 1回の`$(...)`で受け取ることで、末尾の取り除きを起こさせず、値をそのまま
+# 復元する。read-run.shは正常時に必ずjq自身の終端改行を1つ付けて返す
+# （`jq -r`の仕様）ため、番人文字列を取り除いた直後にその1つだけを取り除き、
+# 残りの改行・空白（値そのものに混ざっていた分）は取り除かずに完全一致で
+# 判定する。
+tests_output_setting_of() {
+  local run_dir="$1" raw value rc err_file reason marker
+  if [ ! -f "$READ_RUN_SH" ]; then
+    echo "共有部品-不在"
+    return 2
+  fi
+  err_file="$(mktemp "${TMPDIR:-/tmp}/tests-output-setting.XXXXXX")" || {
+    echo "一時領域-不可"
+    return 2
+  }
+  # 関数内のtrap ... RETURNは呼び出し元が持つRETURN trapを上書きしうる
+  # 潜在欠陥のため使わない。成功・失敗いずれの経路でも読み取り直後に
+  # rm -fで後始末してから値を返す（2026-09-07反証対応・第4版・所見2）。
+  marker="__設定終端__"
+  raw="$(bash "$READ_RUN_SH" "$run_dir" "テスト設計書の出力" 2>"$err_file"; printf '%s%d' "$marker" "$?")"
+  rc="${raw##*"${marker}"}"
+  value="${raw%"${marker}${rc}"}"
+  if [ "$rc" -ne 0 ]; then
+    reason="$(sed -n 's/^\[FAIL\] \([^:]*\):.*/\1/p' "$err_file" | head -1)"
+    rm -f "$err_file"
+    echo "${reason:-理由不明}"
+    return 2
+  fi
+  rm -f "$err_file"
+  value="${value%$'\n'}"
+  case "$value" in
+    出力する|出力しない)
+      echo "$value"
+      return 0
+      ;;
+    *)
+      echo "値-不正"
+      return 2
+      ;;
+  esac
+}
+
+# --runのフォルダのrun.jsonの実在・可読性・「実行の識別子」キーの実在と
+# 値の形（空でない文字列）を確かめる。単位の記録（record_unit）・共通設計
+# 文書の記録（record_common）の両方がこの1つの関数で同じ検査を受ける。
+# read-run.shへstart-run.shが必ず書く「実行の識別子」を渡し、戻り値その
+# ものはexecution_id_of()が改めて読む（本関数はrun.jsonの実在・可読性・
+# キーの実在・値の形の判定にだけ使う）。かつては共通設計文書の記録だけが
+# 専用のcommon_run_dir_readable()（同じ検査だが単位側には呼ばれていな
+# かった）を持ち、単位の記録は「テスト設計書の出力」キーの読み取り可否
+# しか確かめていなかったため、「実行の識別子」キーが無いrun.jsonでも
+# 単位の記録だけは記録を書けてしまう非対称があった
+# （2026-09-07反証対応・第4版・所見1）。
+#
+# run.jsonがファイルとして実在してもOSの権限で読めないとき、read-run.sh
+# の`jq -e . "$run_json"`はファイルを開けずJSONの形式不正と区別が付かず
+# 「run-形式」を返してしまう。read-run.shを呼ぶ前に読み取り権限そのもの
+# を確かめ、権限が無ければ「run-不可読」として区別する（read-run.sh
+# 自身は変えない。ファイルが実在しない場合はこの判定を素通りし、従来
+# どおりread-run.shの「run-不在」に委ねる。2026-09-07反証対応・第5版・
+# 所見2）。実行フォルダ自体に実行権限が無く中に入れないときは、
+# run.jsonが実在していても`[ -e ]`がOS側で偽を返し上記の判定を素通り
+# してしまい、read-run.shが見つからず誤って「run-不在」になる。実行
+# フォルダの実在（`[ -d ]`）と実行権限（`[ -x ]`）を先に確かめ、実在
+# するが入れないときも「run-不可読」とする（フォルダ自体が実在しない
+# ときはこの判定も素通りする。2026-09-07反証対応・第6版・所見2）。
+#
+# 「実行の識別子」キーが実在しても、値がnull・空文字列・数値等であれば、
+# 記録の`判定した実行`欄に`"null"`／`""`／`"123"`のような値がそのまま
+# 書かれてしまう（execution_id_of()はキーの値をそのまま使うだけで、値の
+# 形は問わない設計のため）。read-run.shはキーの実在しか確かめないため、
+# read-run.shを変えずに本関数側で`jq -e`により値が空でない文字列である
+# ことを確かめ、満たさなければ「識別子-不正」として判定不能にする
+# （2026-09-07反証対応・第5版・所見1）。半角・全角の空白だけの文字列は
+# `type == "string" and length > 0`だけでは「空でない文字列」として
+# 通ってしまうため、空白を取り除いたうえで長さを確かめる
+# （2026-09-07反証対応・第6版・所見1）。ゼロ幅空白U+200B・BOM U+FEFF
+# のような不可視文字は`\s`にも全角空白にも一致せず、取り除いた後も
+# 「空でない文字列」として通ってしまうため、list-units-of.shの
+# is_blank_str()と同じ文字集合（jqの`\s`・全角空白・ゼロ幅空白・BOM）
+# まで広げる（2026-09-07反証対応・第7版・所見1）。
+run_dir_readable_or_reason() {
+  local run_dir="$1" run_json="${run_dir%/}/run.json" rc err_file reason
+  if [ ! -f "$READ_RUN_SH" ]; then
+    echo "共有部品-不在"
+    return 2
+  fi
+  if [ -d "$run_dir" ] && [ ! -x "$run_dir" ]; then
+    echo "run-不可読"
+    return 2
+  fi
+  if [ -e "$run_json" ] && [ ! -r "$run_json" ]; then
+    echo "run-不可読"
+    return 2
+  fi
+  err_file="$(mktemp "${TMPDIR:-/tmp}/run-dir-readable.XXXXXX")" || {
+    echo "一時領域-不可"
+    return 2
+  }
+  # 関数内のtrap ... RETURNは呼び出し元が持つRETURN trapを上書きしうる
+  # 潜在欠陥のため使わない。成功・失敗いずれの経路でも読み取り直後に
+  # rm -fで後始末する（2026-09-07反証対応・第4版・所見2）。
+  bash "$READ_RUN_SH" "$run_dir" "実行の識別子" > /dev/null 2>"$err_file"
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    reason="$(sed -n 's/^\[FAIL\] \([^:]*\):.*/\1/p' "$err_file" | head -1)"
+    rm -f "$err_file"
+    echo "${reason:-理由不明}"
+    return 2
+  fi
+  rm -f "$err_file"
+  if ! jq -e '.["実行の識別子"] | type == "string" and (gsub("[\\s　​﻿]"; "") | length > 0)' "$run_json" > /dev/null 2>&1; then
+    echo "識別子-不正"
+    return 2
+  fi
+  return 0
+}
 
 # 単位のフォルダ名をlist-units-of.shの5列目から得る。一覧が無い、または
 # 該当する識別子の行が無ければ、unit-dir-name.shへ識別子を渡した値へ
@@ -212,13 +361,15 @@ parse_kv_pairs_json() {
   printf '%s' "$entries" | jq -s 'add // {}'
 }
 
+# 呼び出し元（record_unit・record_common）は本関数を呼ぶ前に必ず
+# run_dir_readable_or_reason()で「実行の識別子」キーの実在を確かめている
+# ため、本関数はその値をそのまま使う。キーが無いときにフォルダ名
+# （basename）へ黙って落ちる既定は廃止した。落ちた先が実行フォルダの
+# 取り違えや壊れたrun.jsonであっても判定不能にならず記録が書けてしまう
+# ため（2026-09-07反証対応・第4版・所見1）。
 execution_id_of() {
-  local run_dir="$1" val=""
-  if [ -f "${run_dir%/}/run.json" ]; then
-    val="$(jq -r '.["実行の識別子"] // empty' "${run_dir%/}/run.json" 2>/dev/null)"
-  fi
-  [ -n "$val" ] || val="$(basename "$run_dir")"
-  printf '%s' "$val"
+  local run_dir="$1"
+  jq -r '.["実行の識別子"]' "${run_dir%/}/run.json" 2>/dev/null
 }
 
 record_unit() {
@@ -238,7 +389,7 @@ record_unit() {
     return 2
   fi
 
-  local dirname unit_path docs_json basic_name test_name
+  local dirname unit_path docs_json basic_name test_name tests_output tests_output_rc
   dirname="$(unit_folder_name "$design_root" "$kind" "$unit")"
   unit_path="${design_root}/docs/design/${folder}/${dirname}"
 
@@ -249,10 +400,34 @@ record_unit() {
     return 2
   fi
 
-  docs_json="$(printf '%s\n%s\n' \
-    "$(doc_sha_json "${unit_path}/${basic_name}" "$basic_name")" \
-    "$(doc_sha_json "${unit_path}/${test_name}" "$test_name")" \
-    | jq -s 'add')"
+  # 実行フォルダはrun.jsonの実在・可読性・「実行の識別子」キーの実在を
+  # 単位・共通の両方で同じ検査（run_dir_readable_or_reason）で確かめる。
+  # 読めなければ判定不能で記録を作らない（2026-09-07反証対応・第4版・所見1）。
+  local run_reason run_rc
+  run_reason="$(run_dir_readable_or_reason "$run_dir")"
+  run_rc=$?
+  if [ "$run_rc" -ne 0 ]; then
+    echo "[FAIL] 設定-判定不能: 実行フォルダを確認できません（${run_dir%/}/run.json、理由: ${run_reason:-理由不明}）" >&2
+    return 2
+  fi
+
+  # 記録の「文書」は基本設計書を常に含み、単体テスト設計書は「テスト設計書
+  # の出力」が「出力する」のときだけ含める（第1回改善指示書1-31）。設定が
+  # 読めない・値が不正なときは判定不能で記録を作らない（2026-09-07反証対応）。
+  tests_output="$(tests_output_setting_of "$run_dir")"
+  tests_output_rc=$?
+  if [ "$tests_output_rc" -ne 0 ]; then
+    echo "[FAIL] 設定-判定不能: テスト設計書の出力の設定を読めません（${run_dir%/}/run.json、理由: ${tests_output:-不明}）" >&2
+    return 2
+  fi
+  if [ "$tests_output" = "出力する" ]; then
+    docs_json="$(printf '%s\n%s\n' \
+      "$(doc_sha_json "${unit_path}/${basic_name}" "$basic_name")" \
+      "$(doc_sha_json "${unit_path}/${test_name}" "$test_name")" \
+      | jq -s 'add')"
+  else
+    docs_json="$(doc_sha_json "${unit_path}/${basic_name}" "$basic_name")"
+  fi
 
   if ! check_judged_match "$judged_json" "$docs_json"; then
     return 1
@@ -284,6 +459,14 @@ record_common() {
   local target="$1" run_dir="$2" doc_name="$3" verdict="$4" viewpoints="$5" reason="$6" design_root="$7" judged_json="$8"
   local doc_path="${design_root}/docs/design/common/${doc_name}.md"
   local docs_json commit vp_json exec_id out_dir out_file
+  local run_reason run_rc
+  run_reason="$(run_dir_readable_or_reason "$run_dir")"
+  run_rc=$?
+  if [ "$run_rc" -ne 0 ]; then
+    echo "[FAIL] 設定-判定不能: 実行フォルダを確認できません（${run_dir%/}/run.json、理由: ${run_reason:-理由不明}）" >&2
+    return 2
+  fi
+
   docs_json="$(doc_sha_json "$doc_path" "${doc_name}.md")"
 
   if ! check_judged_match "$judged_json" "$docs_json"; then
@@ -416,6 +599,15 @@ self_test() {
   local d="$base/target" run="$base/run"
   mkdir -p "$d" "$run"
   # gitのコミットは不要。対象のコミットが空でも記録は書ける（コミット=空文字）ことを確かめる
+  # run.jsonは統括の実行の開始スクリプトが必ず作るため、テスト用の実行フォルダにも
+  # 既定値（出力しない）を持たせる（2026-09-07反証対応。run.json不在は判定不能に
+  # なるため、run.json不在そのものを検証する後続のケースとは分ける）。
+  cat > "$run/run.json" <<'RUNBASEJSON'
+{
+  "実行の識別子": "2026-09-03-abc1234",
+  "テスト設計書の出力": "出力しない"
+}
+RUNBASEJSON
 
   bash "$SCRIPT_DIR/record-acceptance.sh" "$d" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" --verdict 不明 --viewpoints "" --judged "x=y" > "$base/u2.out" 2>"$base/u2.err"
   check "使い方-判定不正は終了コード2" "$([ $? -eq 2 ] && echo 0 || echo 1)"
@@ -485,6 +677,56 @@ self_test() {
   check "共通設計文書の記録: 判定が不合格" "$([ "$verdict2" = "不合格" ] && echo 0 || echo 1)"
   check "共通設計文書の記録: 理由が反映される" "$([ "$reason2" = "性能方式が未確定" ] && echo 0 || echo 1)"
 
+  # --- 共通設計文書の記録も--runの実行フォルダの実在を確かめる（第3版・所見1） ---
+  local run_missing="$base/run-does-not-exist"
+  local common_missing_record="$d/ai-work/records/basic-design-acceptance/common-基盤設計書2.json"
+  echo "# 基盤設計書2" > "$d/docs/design/common/基盤設計書2.md"
+  rm -f "$common_missing_record"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d" --run "$run_missing" --common 基盤設計書2 \
+    --verdict 合格 --viewpoints "非機能の方式の確定=合" --judged "基盤設計書2.md=$(sha_of "$d/docs/design/common/基盤設計書2.md")" --reason "" \
+    > "$base/r2b.out" 2>"$base/r2b.err"
+  local rc2b=$?
+  check "共通設計文書の記録: run.json不在は終了コード2" "$([ "$rc2b" -eq 2 ] && echo 0 || echo 1)"
+  check "共通設計文書の記録: run.json不在の理由に設定-判定不能とrun-不在" "$(grep -qF '設定-判定不能' "$base/r2b.err" && grep -qF 'run-不在' "$base/r2b.err" && echo 0 || echo 1)"
+  total=$((total + 1))
+  if [ ! -f "$common_missing_record" ]; then
+    echo "PASS: 共通設計文書の記録: run.json不在は記録を作らない"
+  else
+    echo "FAIL: 共通設計文書の記録: run.json不在は記録を作らない（記録ファイルが実在します）"
+    fail=$((fail + 1))
+  fi
+
+  # --- 共通設計文書の記録もrun.jsonがJSONとして読めない・「実行の識別子」
+  # キーが無いときは単位の記録と同じ検査（run_dir_readable_or_reason）で
+  # 判定不能になる（2026-09-07反証対応・第4版） ---
+  local run_common_json_invalid="$base/run-common-json-invalid"
+  local common_json_invalid_record="$d/ai-work/records/basic-design-acceptance/common-基盤設計書3.json"
+  mkdir -p "$run_common_json_invalid"
+  echo "# 基盤設計書3" > "$d/docs/design/common/基盤設計書3.md"
+  printf '{ invalid json' > "$run_common_json_invalid/run.json"
+  rm -f "$common_json_invalid_record"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d" --run "$run_common_json_invalid" --common 基盤設計書3 \
+    --verdict 合格 --viewpoints "非機能の方式の確定=合" --judged "基盤設計書3.md=$(sha_of "$d/docs/design/common/基盤設計書3.md")" --reason "" \
+    > "$base/r2c.out" 2>"$base/r2c.err"
+  local rc2c=$?
+  check "共通設計文書の記録: run.json形式不正-判定不能で記録を作らない" "$([ "$rc2c" -eq 2 ] && grep -qF '設定-判定不能' "$base/r2c.err" && grep -qF 'run-形式' "$base/r2c.err" && [ ! -f "$common_json_invalid_record" ] && echo 0 || echo 1)"
+
+  local run_common_id_missing="$base/run-common-id-missing"
+  local common_id_missing_record="$d/ai-work/records/basic-design-acceptance/common-基盤設計書4.json"
+  mkdir -p "$run_common_id_missing"
+  echo "# 基盤設計書4" > "$d/docs/design/common/基盤設計書4.md"
+  cat > "$run_common_id_missing/run.json" <<'RUNCOMMONIDJSON'
+{
+  "対象リポジトリ": "/path/to/target"
+}
+RUNCOMMONIDJSON
+  rm -f "$common_id_missing_record"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d" --run "$run_common_id_missing" --common 基盤設計書4 \
+    --verdict 合格 --viewpoints "非機能の方式の確定=合" --judged "基盤設計書4.md=$(sha_of "$d/docs/design/common/基盤設計書4.md")" --reason "" \
+    > "$base/r2d.out" 2>"$base/r2d.err"
+  local rc2d=$?
+  check "共通設計文書の記録: 実行の識別子キー不在-判定不能で記録を作らない" "$([ "$rc2d" -eq 2 ] && grep -qF '設定-判定不能' "$base/r2d.err" && grep -qF 'キー-不在' "$base/r2d.err" && [ ! -f "$common_id_missing_record" ] && echo 0 || echo 1)"
+
   # --- 設計書ルート分離-対象に書かない ---
   local dc="$base/target-code-only" design2="$base/design2"
   mkdir -p "$dc" "$design2/docs/design/screens/src_pages_OrderList.tsx"
@@ -509,6 +751,16 @@ self_test() {
   # --- 種別ごとの文書名が実名と一致（api・table・feature） ---
   local d2="$base/target2" run2="$base/run2"
   mkdir -p "$d2" "$run2"
+  # 以降のjudgedはすべて基本設計書・単体テスト設計書の2件を渡すため、
+  # このrun2は「テスト設計書の出力」を「出力する」にしておく
+  # （第1回改善指示書1-31。既定「出力しない」だと単体テスト設計書の
+  # sha256が記録の文書へ含まれず、以下のケースが揃わなくなる）。
+  cat > "$run2/run.json" <<'RUN2JSON'
+{
+  "実行の識別子": "2026-09-07-run2",
+  "テスト設計書の出力": "出力する"
+}
+RUN2JSON
 
   mkdir -p "$d2/docs/design/apis/api_get_orders"
   echo "# API基本設計書" > "$d2/docs/design/apis/api_get_orders/API基本設計書.md"
@@ -712,6 +964,356 @@ CONFEOF
     echo "FAIL: 要確認ありで確認事項の記録.mdが読めないなら記録を作らない（記録ファイルが実在します）"
     fail=$((fail + 1))
   fi
+
+  # --- 第1回改善指示書1-31: テスト設計書の出力設定に応じて単体テスト設計書を
+  # 記録の文書へ含めるかどうかを切り替える。記録直後にcheck-acceptance-record.sh
+  # で照合し、期待どおりの合否になることを確かめる ---
+  local d31="$base/target-tests-output"
+
+  # 出力しない・基本設計書のみ実在 → 合格
+  local run31a="$d31/run-off-basic-only" unit31a="$d31/docs/design/screens/src_pages_TestsOffBasicOnly.tsx"
+  mkdir -p "$run31a" "$unit31a"
+  echo "# 画面基本設計書" > "$unit31a/画面基本設計書.md"
+  cat > "$run31a/run.json" <<'RUN31AJSON'
+{
+  "実行の識別子": "2026-09-07-run31a",
+  "テスト設計書の出力": "出力しない"
+}
+RUN31AJSON
+  local judged31a="画面基本設計書.md=$(sha_of "$unit31a/画面基本設計書.md")"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d31" --run "$run31a" --kind screen --unit "src/pages/TestsOffBasicOnly.tsx" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged31a" --reason "" \
+    > "$base/r31a.out" 2>"$base/r31a.err"
+  local rc31a_record=$?
+  bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d31" --kind screen --unit "src/pages/TestsOffBasicOnly.tsx" --run "$run31a" \
+    > "$base/r31achk.out" 2>"$base/r31achk.err"
+  local rc31a_check=$?
+  check "テスト出力設定-出力しない基本のみ実在-記録と照合が合格" "$([ "$rc31a_record" -eq 0 ] && [ "$rc31a_check" -eq 0 ] && echo 0 || echo 1)"
+
+  # 出力する・両方実在 → 合格
+  local run31b="$d31/run-on-both" unit31b="$d31/docs/design/screens/src_pages_TestsOnBoth.tsx"
+  mkdir -p "$run31b" "$unit31b"
+  echo "# 画面基本設計書" > "$unit31b/画面基本設計書.md"
+  echo "# 画面単体テスト設計書" > "$unit31b/画面単体テスト設計書.md"
+  cat > "$run31b/run.json" <<'RUN31BJSON'
+{
+  "実行の識別子": "2026-09-07-run31b",
+  "テスト設計書の出力": "出力する"
+}
+RUN31BJSON
+  local judged31b="画面基本設計書.md=$(sha_of "$unit31b/画面基本設計書.md");画面単体テスト設計書.md=$(sha_of "$unit31b/画面単体テスト設計書.md")"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d31" --run "$run31b" --kind screen --unit "src/pages/TestsOnBoth.tsx" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged31b" --reason "" \
+    > "$base/r31b.out" 2>"$base/r31b.err"
+  local rc31b_record=$?
+  bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d31" --kind screen --unit "src/pages/TestsOnBoth.tsx" --run "$run31b" \
+    > "$base/r31bchk.out" 2>"$base/r31bchk.err"
+  local rc31b_check=$?
+  check "テスト出力設定-出力する両方実在-記録と照合が合格" "$([ "$rc31b_record" -eq 0 ] && [ "$rc31b_check" -eq 0 ] && echo 0 || echo 1)"
+
+  # 出力する・テスト設計書が不在 → 不合格
+  local run31c="$d31/run-on-missing" unit31c="$d31/docs/design/screens/src_pages_TestsOnMissing.tsx"
+  mkdir -p "$run31c" "$unit31c"
+  echo "# 画面基本設計書" > "$unit31c/画面基本設計書.md"
+  cat > "$run31c/run.json" <<'RUN31CJSON'
+{
+  "実行の識別子": "2026-09-07-run31c",
+  "テスト設計書の出力": "出力する"
+}
+RUN31CJSON
+  local judged31c="画面基本設計書.md=$(sha_of "$unit31c/画面基本設計書.md");画面単体テスト設計書.md="
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d31" --run "$run31c" --kind screen --unit "src/pages/TestsOnMissing.tsx" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged31c" --reason "" \
+    > "$base/r31c.out" 2>"$base/r31c.err"
+  local rc31c_record=$?
+  bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d31" --kind screen --unit "src/pages/TestsOnMissing.tsx" --run "$run31c" \
+    > "$base/r31cchk.out" 2>"$base/r31cchk.err"
+  local rc31c_check=$?
+  check "テスト出力設定-出力するテスト不在-照合が不合格" "$([ "$rc31c_record" -eq 0 ] && [ "$rc31c_check" -eq 1 ] && echo 0 || echo 1)"
+
+  # 出力しない・基本設計書も不在 → 不合格
+  local run31d="$d31/run-off-missing" unit31d="$d31/docs/design/screens/src_pages_TestsOffMissing.tsx"
+  mkdir -p "$run31d" "$unit31d"
+  cat > "$run31d/run.json" <<'RUN31DJSON'
+{
+  "実行の識別子": "2026-09-07-run31d",
+  "テスト設計書の出力": "出力しない"
+}
+RUN31DJSON
+  local judged31d="画面基本設計書.md="
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d31" --run "$run31d" --kind screen --unit "src/pages/TestsOffMissing.tsx" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged31d" --reason "" \
+    > "$base/r31d.out" 2>"$base/r31d.err"
+  local rc31d_record=$?
+  bash "$SCRIPT_DIR/check-acceptance-record.sh" "$d31" --kind screen --unit "src/pages/TestsOffMissing.tsx" --run "$run31d" \
+    > "$base/r31dchk.out" 2>"$base/r31dchk.err"
+  local rc31d_check=$?
+  check "テスト出力設定-出力しない基本不在-照合が不合格" "$([ "$rc31d_record" -eq 0 ] && [ "$rc31d_check" -eq 1 ] && echo 0 || echo 1)"
+
+  # --- 反証対応: --run指定でrun.jsonが読めない・値が不正なときは判定不能
+  # で止まり記録を作らない。空の分岐は使い方の誤り検査で到達不能なため
+  # 持たない（2026-09-07反証対応・第2版。第1回改善指示書1-31） ---
+
+  # run.jsonが無い（実行フォルダの取り違え等）→ 判定不能。理由に
+  # read-run.shの検査キー（run-不在）が含まれる（2026-09-07反証対応・第2版）
+  local run31e="$d31/run-runjson-missing" unit31e="$d31/docs/design/screens/src_pages_TestsRunjsonMissing.tsx"
+  mkdir -p "$run31e" "$unit31e"
+  echo "# 画面基本設計書" > "$unit31e/画面基本設計書.md"
+  echo "# 画面単体テスト設計書" > "$unit31e/画面単体テスト設計書.md"
+  local judged31e="画面基本設計書.md=$(sha_of "$unit31e/画面基本設計書.md");画面単体テスト設計書.md=$(sha_of "$unit31e/画面単体テスト設計書.md")"
+  local record31e="$d31/ai-work/records/basic-design-acceptance/screen-src_pages_TestsRunjsonMissing.tsx.json"
+  rm -f "$record31e"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d31" --run "$run31e" --kind screen --unit "src/pages/TestsRunjsonMissing.tsx" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged31e" --reason "" \
+    > "$base/r31e.out" 2>"$base/r31e.err"
+  local rc31e=$?
+  check "テスト出力設定-run.json不在-判定不能で記録を作らない" "$([ "$rc31e" -eq 2 ] && grep -qF '設定-判定不能' "$base/r31e.err" && grep -qF 'run-不在' "$base/r31e.err" && [ ! -f "$record31e" ] && echo 0 || echo 1)"
+
+  # 値が出力する・出力しないのどちらでもない → 判定不能
+  local run31f="$d31/run-invalid-value" unit31f="$d31/docs/design/screens/src_pages_TestsInvalidValue.tsx"
+  mkdir -p "$run31f" "$unit31f"
+  echo "# 画面基本設計書" > "$unit31f/画面基本設計書.md"
+  cat > "$run31f/run.json" <<'RUN31FJSON'
+{
+  "実行の識別子": "2026-09-07-run31f",
+  "テスト設計書の出力": "出力するかも"
+}
+RUN31FJSON
+  local judged31f="画面基本設計書.md=$(sha_of "$unit31f/画面基本設計書.md")"
+  local record31f="$d31/ai-work/records/basic-design-acceptance/screen-src_pages_TestsInvalidValue.tsx.json"
+  rm -f "$record31f"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d31" --run "$run31f" --kind screen --unit "src/pages/TestsInvalidValue.tsx" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged31f" --reason "" \
+    > "$base/r31f.out" 2>"$base/r31f.err"
+  local rc31f=$?
+  check "テスト出力設定-値が不正-判定不能で記録を作らない" "$([ "$rc31f" -eq 2 ] && grep -qF '設定-判定不能' "$base/r31f.err" && [ ! -f "$record31f" ] && echo 0 || echo 1)"
+
+  # 値が「出力する」に末尾の改行が混ざる → $(...)の末尾改行除去に紛れて正規値と
+  # 誤って一致しない。完全一致でだけ受理し、末尾に余計な文字が付く値は不正
+  # とする（2026-09-07反証対応・第3版・所見2）
+  local run31g="$d31/run-trailing-newline" unit31g="$d31/docs/design/screens/src_pages_TestsTrailingNewline.tsx"
+  mkdir -p "$run31g" "$unit31g"
+  echo "# 画面基本設計書" > "$unit31g/画面基本設計書.md"
+  cat > "$run31g/run.json" <<'RUN31GJSON'
+{
+  "実行の識別子": "2026-09-07-run31g",
+  "テスト設計書の出力": "出力する\n"
+}
+RUN31GJSON
+  local judged31g="画面基本設計書.md=$(sha_of "$unit31g/画面基本設計書.md")"
+  local record31g="$d31/ai-work/records/basic-design-acceptance/screen-src_pages_TestsTrailingNewline.tsx.json"
+  rm -f "$record31g"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d31" --run "$run31g" --kind screen --unit "src/pages/TestsTrailingNewline.tsx" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged31g" --reason "" \
+    > "$base/r31g.out" 2>"$base/r31g.err"
+  local rc31g=$?
+  check "テスト出力設定-値に末尾改行-判定不能で記録を作らない" "$([ "$rc31g" -eq 2 ] && grep -qF '設定-判定不能' "$base/r31g.err" && grep -qF '値-不正' "$base/r31g.err" && [ ! -f "$record31g" ] && echo 0 || echo 1)"
+
+  # run.jsonがJSONとして読めない（壊れたJSON）→ 判定不能。理由に
+  # read-run.shの検査キー（run-形式）が含まれる（2026-09-07反証対応・第4版）
+  local run31h="$d31/run-json-invalid" unit31h="$d31/docs/design/screens/src_pages_TestsJsonInvalid.tsx"
+  mkdir -p "$run31h" "$unit31h"
+  echo "# 画面基本設計書" > "$unit31h/画面基本設計書.md"
+  echo "# 画面単体テスト設計書" > "$unit31h/画面単体テスト設計書.md"
+  printf '{ invalid json' > "$run31h/run.json"
+  local judged31h="画面基本設計書.md=$(sha_of "$unit31h/画面基本設計書.md");画面単体テスト設計書.md=$(sha_of "$unit31h/画面単体テスト設計書.md")"
+  local record31h="$d31/ai-work/records/basic-design-acceptance/screen-src_pages_TestsJsonInvalid.tsx.json"
+  rm -f "$record31h"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d31" --run "$run31h" --kind screen --unit "src/pages/TestsJsonInvalid.tsx" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged31h" --reason "" \
+    > "$base/r31h.out" 2>"$base/r31h.err"
+  local rc31h=$?
+  check "テスト出力設定-run.json形式不正-判定不能で記録を作らない" "$([ "$rc31h" -eq 2 ] && grep -qF '設定-判定不能' "$base/r31h.err" && grep -qF 'run-形式' "$base/r31h.err" && [ ! -f "$record31h" ] && echo 0 || echo 1)"
+
+  # run.jsonに「実行の識別子」キーが無い（「テスト設計書の出力」キーは
+  # 実在する）→ 判定不能。理由にread-run.shの検査キー（キー-不在）が
+  # 含まれる（2026-09-07反証対応・第4版・所見1）
+  local run31i="$d31/run-id-missing" unit31i="$d31/docs/design/screens/src_pages_TestsIdMissing.tsx"
+  mkdir -p "$run31i" "$unit31i"
+  echo "# 画面基本設計書" > "$unit31i/画面基本設計書.md"
+  echo "# 画面単体テスト設計書" > "$unit31i/画面単体テスト設計書.md"
+  cat > "$run31i/run.json" <<'RUN31IJSON'
+{
+  "テスト設計書の出力": "出力する"
+}
+RUN31IJSON
+  local judged31i="画面基本設計書.md=$(sha_of "$unit31i/画面基本設計書.md");画面単体テスト設計書.md=$(sha_of "$unit31i/画面単体テスト設計書.md")"
+  local record31i="$d31/ai-work/records/basic-design-acceptance/screen-src_pages_TestsIdMissing.tsx.json"
+  rm -f "$record31i"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d31" --run "$run31i" --kind screen --unit "src/pages/TestsIdMissing.tsx" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged31i" --reason "" \
+    > "$base/r31i.out" 2>"$base/r31i.err"
+  local rc31i=$?
+  check "テスト出力設定-実行の識別子キー不在-判定不能で記録を作らない" "$([ "$rc31i" -eq 2 ] && grep -qF '設定-判定不能' "$base/r31i.err" && grep -qF 'キー-不在' "$base/r31i.err" && [ ! -f "$record31i" ] && echo 0 || echo 1)"
+
+  # --- 反証対応・第5版・所見1: run.jsonに「実行の識別子」キーは実在する
+  # がnull・空文字列・数値のときも判定不能とし理由に「識別子-不正」を
+  # 含める（単位の記録・共通設計文書の記録の両方） ---
+  local run31j="$d31/run-id-null" unit31j="$d31/docs/design/screens/src_pages_TestsIdNull.tsx"
+  mkdir -p "$run31j" "$unit31j"
+  echo "# 画面基本設計書" > "$unit31j/画面基本設計書.md"
+  cat > "$run31j/run.json" <<'RUN31JJSON'
+{
+  "実行の識別子": null,
+  "テスト設計書の出力": "出力しない"
+}
+RUN31JJSON
+  local judged31j="画面基本設計書.md=$(sha_of "$unit31j/画面基本設計書.md")"
+  local record31j="$d31/ai-work/records/basic-design-acceptance/screen-src_pages_TestsIdNull.tsx.json"
+  rm -f "$record31j"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d31" --run "$run31j" --kind screen --unit "src/pages/TestsIdNull.tsx" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged31j" --reason "" \
+    > "$base/r31j.out" 2>"$base/r31j.err"
+  local rc31j=$?
+  check "実行識別子-null-判定不能で記録を作らない" "$([ "$rc31j" -eq 2 ] && grep -qF '設定-判定不能' "$base/r31j.err" && grep -qF '識別子-不正' "$base/r31j.err" && [ ! -f "$record31j" ] && echo 0 || echo 1)"
+
+  local run31k="$d31/run-id-empty" unit31k="$d31/docs/design/screens/src_pages_TestsIdEmpty.tsx"
+  mkdir -p "$run31k" "$unit31k"
+  echo "# 画面基本設計書" > "$unit31k/画面基本設計書.md"
+  cat > "$run31k/run.json" <<'RUN31KJSON'
+{
+  "実行の識別子": "",
+  "テスト設計書の出力": "出力しない"
+}
+RUN31KJSON
+  local judged31k="画面基本設計書.md=$(sha_of "$unit31k/画面基本設計書.md")"
+  local record31k="$d31/ai-work/records/basic-design-acceptance/screen-src_pages_TestsIdEmpty.tsx.json"
+  rm -f "$record31k"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d31" --run "$run31k" --kind screen --unit "src/pages/TestsIdEmpty.tsx" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged31k" --reason "" \
+    > "$base/r31k.out" 2>"$base/r31k.err"
+  local rc31k=$?
+  check "実行識別子-空文字列-判定不能で記録を作らない" "$([ "$rc31k" -eq 2 ] && grep -qF '設定-判定不能' "$base/r31k.err" && grep -qF '識別子-不正' "$base/r31k.err" && [ ! -f "$record31k" ] && echo 0 || echo 1)"
+
+  local run31l="$d31/run-id-numeric" unit31l="$d31/docs/design/screens/src_pages_TestsIdNumeric.tsx"
+  mkdir -p "$run31l" "$unit31l"
+  echo "# 画面基本設計書" > "$unit31l/画面基本設計書.md"
+  cat > "$run31l/run.json" <<'RUN31LJSON'
+{
+  "実行の識別子": 123,
+  "テスト設計書の出力": "出力しない"
+}
+RUN31LJSON
+  local judged31l="画面基本設計書.md=$(sha_of "$unit31l/画面基本設計書.md")"
+  local record31l="$d31/ai-work/records/basic-design-acceptance/screen-src_pages_TestsIdNumeric.tsx.json"
+  rm -f "$record31l"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d31" --run "$run31l" --kind screen --unit "src/pages/TestsIdNumeric.tsx" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged31l" --reason "" \
+    > "$base/r31l.out" 2>"$base/r31l.err"
+  local rc31l=$?
+  check "実行識別子-数値-判定不能で記録を作らない" "$([ "$rc31l" -eq 2 ] && grep -qF '設定-判定不能' "$base/r31l.err" && grep -qF '識別子-不正' "$base/r31l.err" && [ ! -f "$record31l" ] && echo 0 || echo 1)"
+
+  local run_common_id_null="$base/run-common-id-null"
+  mkdir -p "$run_common_id_null"
+  cat > "$run_common_id_null/run.json" <<'RUNCOMMONIDNULLJSON'
+{
+  "実行の識別子": null
+}
+RUNCOMMONIDNULLJSON
+  echo "# 基盤設計書5" > "$d/docs/design/common/基盤設計書5.md"
+  local common_id_null_record="$d/ai-work/records/basic-design-acceptance/common-基盤設計書5.json"
+  rm -f "$common_id_null_record"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d" --run "$run_common_id_null" --common 基盤設計書5 \
+    --verdict 合格 --viewpoints "非機能の方式の確定=合" --judged "基盤設計書5.md=$(sha_of "$d/docs/design/common/基盤設計書5.md")" --reason "" \
+    > "$base/r_common_id_null.out" 2>"$base/r_common_id_null.err"
+  local rc_common_id_null=$?
+  check "共通設計記録-実行識別子null-判定不能で記録を作らない" "$([ "$rc_common_id_null" -eq 2 ] && grep -qF '設定-判定不能' "$base/r_common_id_null.err" && grep -qF '識別子-不正' "$base/r_common_id_null.err" && [ ! -f "$common_id_null_record" ] && echo 0 || echo 1)"
+
+  # --- 反証対応・第5版・所見2: run.jsonが実在してもOSの権限で読めない
+  # とき「run-不可読」で判定不能にする（read-run.shの「run-形式」と
+  # 誤って混同しない）。rootはファイル権限の制約を受けないため検証
+  # できず、この観点だけ自動PASS扱いにする ---
+  if [ "$(id -u)" = "0" ]; then
+    check "run読取不可-判定不能で記録を作らない" 0
+  else
+    local run31m="$d31/run-unreadable" unit31m="$d31/docs/design/screens/src_pages_TestsUnreadable.tsx"
+    mkdir -p "$run31m" "$unit31m"
+    echo "# 画面基本設計書" > "$unit31m/画面基本設計書.md"
+    cat > "$run31m/run.json" <<'RUN31MJSON'
+{
+  "実行の識別子": "2026-09-07-run31m",
+  "テスト設計書の出力": "出力しない"
+}
+RUN31MJSON
+    chmod 000 "$run31m/run.json"
+    local judged31m="画面基本設計書.md=$(sha_of "$unit31m/画面基本設計書.md")"
+    local record31m="$d31/ai-work/records/basic-design-acceptance/screen-src_pages_TestsUnreadable.tsx.json"
+    rm -f "$record31m"
+    bash "$SCRIPT_DIR/record-acceptance.sh" "$d31" --run "$run31m" --kind screen --unit "src/pages/TestsUnreadable.tsx" \
+      --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged31m" --reason "" \
+      > "$base/r31m.out" 2>"$base/r31m.err"
+    local rc31m=$?
+    chmod 644 "$run31m/run.json"
+    check "run読取不可-判定不能で記録を作らない" "$([ "$rc31m" -eq 2 ] && grep -qF '設定-判定不能' "$base/r31m.err" && grep -qF 'run-不可読' "$base/r31m.err" && [ ! -f "$record31m" ] && echo 0 || echo 1)"
+  fi
+
+  # --- 反証対応・第6版・所見1: 「実行の識別子」が空白だけの文字列でも
+  # 「空でない文字列」として通してしまう抜けを塞ぐ ---
+  local run31n="$d31/run-id-blank" unit31n="$d31/docs/design/screens/src_pages_TestsIdBlank.tsx"
+  mkdir -p "$run31n" "$unit31n"
+  echo "# 画面基本設計書" > "$unit31n/画面基本設計書.md"
+  cat > "$run31n/run.json" <<'RUN31NJSON'
+{
+  "実行の識別子": "   ",
+  "テスト設計書の出力": "出力しない"
+}
+RUN31NJSON
+  local judged31n="画面基本設計書.md=$(sha_of "$unit31n/画面基本設計書.md")"
+  local record31n="$d31/ai-work/records/basic-design-acceptance/screen-src_pages_TestsIdBlank.tsx.json"
+  rm -f "$record31n"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d31" --run "$run31n" --kind screen --unit "src/pages/TestsIdBlank.tsx" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged31n" --reason "" \
+    > "$base/r31n.out" 2>"$base/r31n.err"
+  local rc31n=$?
+  check "実行識別子-空白のみ-判定不能で記録を作らない" "$([ "$rc31n" -eq 2 ] && grep -qF '設定-判定不能' "$base/r31n.err" && grep -qF '識別子-不正' "$base/r31n.err" && [ ! -f "$record31n" ] && echo 0 || echo 1)"
+
+  # --- 反証対応・第6版・所見2: 実行フォルダ自体に実行権限が無く中に
+  # 入れないときも「run-不可読」で判定不能にする。rootは権限の制約を
+  # 受けないため検証できず、この観点だけ自動PASS扱いにする ---
+  if [ "$(id -u)" = "0" ]; then
+    check "実行フォルダ実行権限なし-判定不能で記録を作らない" 0
+  else
+    local run31o="$d31/run-dir-unreadable" unit31o="$d31/docs/design/screens/src_pages_TestsDirUnreadable.tsx"
+    mkdir -p "$run31o" "$unit31o"
+    echo "# 画面基本設計書" > "$unit31o/画面基本設計書.md"
+    cat > "$run31o/run.json" <<'RUN31OJSON'
+{
+  "実行の識別子": "2026-09-07-run31o",
+  "テスト設計書の出力": "出力しない"
+}
+RUN31OJSON
+    chmod 600 "$run31o"
+    local judged31o="画面基本設計書.md=$(sha_of "$unit31o/画面基本設計書.md")"
+    local record31o="$d31/ai-work/records/basic-design-acceptance/screen-src_pages_TestsDirUnreadable.tsx.json"
+    rm -f "$record31o"
+    bash "$SCRIPT_DIR/record-acceptance.sh" "$d31" --run "$run31o" --kind screen --unit "src/pages/TestsDirUnreadable.tsx" \
+      --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged31o" --reason "" \
+      > "$base/r31o.out" 2>"$base/r31o.err"
+    local rc31o=$?
+    chmod 755 "$run31o"
+    check "実行フォルダ実行権限なし-判定不能で記録を作らない" "$([ "$rc31o" -eq 2 ] && grep -qF '設定-判定不能' "$base/r31o.err" && grep -qF 'run-不可読' "$base/r31o.err" && [ ! -f "$record31o" ] && echo 0 || echo 1)"
+  fi
+
+  # --- 反証対応・第7版・所見1: 「実行の識別子」がゼロ幅空白U+200B
+  # だけの文字列だと`[\s　]`に一致せず「空でない文字列」として通って
+  # しまう抜けを塞ぐ ---
+  local run31p="$d31/run-id-invisible" unit31p="$d31/docs/design/screens/src_pages_TestsIdInvisible.tsx"
+  mkdir -p "$run31p" "$unit31p"
+  echo "# 画面基本設計書" > "$unit31p/画面基本設計書.md"
+  cat > "$run31p/run.json" <<'RUN31PJSON'
+{
+  "実行の識別子": "​",
+  "テスト設計書の出力": "出力しない"
+}
+RUN31PJSON
+  local judged31p="画面基本設計書.md=$(sha_of "$unit31p/画面基本設計書.md")"
+  local record31p="$d31/ai-work/records/basic-design-acceptance/screen-src_pages_TestsIdInvisible.tsx.json"
+  rm -f "$record31p"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d31" --run "$run31p" --kind screen --unit "src/pages/TestsIdInvisible.tsx" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged31p" --reason "" \
+    > "$base/r31p.out" 2>"$base/r31p.err"
+  local rc31p=$?
+  check "実行識別子-不可視文字のみ-判定不能で記録を作らない" "$([ "$rc31p" -eq 2 ] && grep -qF '設定-判定不能' "$base/r31p.err" && grep -qF '識別子-不正' "$base/r31p.err" && [ ! -f "$record31p" ] && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then
