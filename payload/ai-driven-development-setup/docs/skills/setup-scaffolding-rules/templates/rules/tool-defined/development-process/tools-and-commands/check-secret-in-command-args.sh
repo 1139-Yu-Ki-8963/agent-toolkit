@@ -340,6 +340,7 @@ self_test() {
   fi
   printf '{"name":"app"}\n' > "$tmp/package.json"
   if msg="$(judge_tools_declared "$tmp")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp/<tmp>}"
   if [ "$code" -eq 0 ]; then
     echo "  [PASS] 系6: devDependenciesが無ければ通知される（${msg}）"
   else
@@ -355,6 +356,7 @@ self_test() {
   fi
   printf '{"name":"app","devDependencies":{"eslint":"^9.0.0"}}\n' > "$tmp/package.json"
   if msg="$(judge_tools_declared "$tmp")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp/<tmp>}"
   if [ "$code" -eq 0 ]; then
     echo "  [PASS] 系7: devDependenciesがあれば許可される（${msg}）"
   else

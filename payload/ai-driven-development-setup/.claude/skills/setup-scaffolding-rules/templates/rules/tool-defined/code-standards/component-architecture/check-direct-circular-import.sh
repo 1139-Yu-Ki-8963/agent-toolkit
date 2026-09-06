@@ -269,6 +269,7 @@ self_test() {
   if msg="$(judge "$tmp/a.ts" 'import { x } from "./b";
 export const y = 1;')"; then code=0; else code=$?; fi
   echo "$msg" > "$tmp/.msg"
+  msg="${msg//$tmp/<tmp>}"
   rm -rf "$tmp"
   if [ "$code" -eq 2 ]; then
     echo "  [PASS] 系2: 直接の相互importは拒否される（${msg}）"
@@ -285,6 +286,7 @@ export const y = 1;')"; then code=0; else code=$?; fi
   printf 'export const z = 1;\n' > "$tmp/d.ts"
   if msg="$(judge "$tmp/c.ts" 'import { z } from "./d";
 export const w = z + 1;')"; then code=0; else code=$?; fi
+  msg="${msg//$tmp/<tmp>}"
   rm -rf "$tmp"
   if [ "$code" -eq 0 ]; then
     echo "  [PASS] 系3: 一方向のimportは許可される（${msg}）"
@@ -300,6 +302,7 @@ export const w = z + 1;')"; then code=0; else code=$?; fi
   fi
   if msg="$(judge "$tmp/e.ts" 'import { f } from "./f";
 export const g = f;')"; then code=0; else code=$?; fi
+  msg="${msg//$tmp/<tmp>}"
   rm -rf "$tmp"
   if [ "$code" -eq 0 ]; then
     echo "  [PASS] 系4: import先が未実在なら許可される（${msg}）"

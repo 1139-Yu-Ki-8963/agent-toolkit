@@ -54,7 +54,8 @@ run_reference_path_checks() {
   total="$(echo "$result" | awk '{print $2}')"
   TOTAL=$((TOTAL + 1))
   if [ "$fail" -eq 0 ] && [ "$total" -gt 0 ]; then
-    echo "PASS: basic-phase-viewpoints.mdの参照パスが機能のフォルダから全て実在する（${total}件）"
+    echo "PASS: basic-phase-viewpoints.mdの参照パスが機能のフォルダから全て実在する"
+    echo "  (対象 ${total}件)"
   else
     echo "FAIL: basic-phase-viewpoints.mdの参照パスに不在がある（不在${fail}/${total}件）"
     FAIL=$((FAIL + 1))

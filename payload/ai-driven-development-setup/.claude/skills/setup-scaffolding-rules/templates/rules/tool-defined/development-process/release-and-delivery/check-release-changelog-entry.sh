@@ -290,6 +290,7 @@ self_test() {
   fi
   printf '## [1.2.3] - 2026-01-01\n- 変更内容\n' > "$tmp/CHANGELOG.md"
   if msg="$(judge_changelog_entry "$tmp" "npm version patch")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp/<tmp>}"
   if [ "$code" -eq 0 ]; then
     echo "  [PASS] 系3: 版の項目があるCHANGELOGは許可される（${msg}）"
   else
@@ -305,6 +306,7 @@ self_test() {
   fi
   printf '# 変更履歴\n未整理\n' > "$tmp/CHANGELOG.md"
   if msg="$(judge_changelog_entry "$tmp" "git tag -a v1.0.0 -m release")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp/<tmp>}"
   if [ "$code" -eq 2 ]; then
     echo "  [PASS] 系4: 版の項目が無いCHANGELOGは拒否される（${msg}）"
   else
@@ -353,6 +355,7 @@ self_test() {
   mkdir -p "$tmp/.github/workflows"
   printf 'jobs:\n  release:\n    steps:\n      - run: npm publish\n' > "$tmp/.github/workflows/release.yml"
   if msg="$(judge_release_automated "$tmp")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp/<tmp>}"
   if [ "$code" -eq 0 ]; then
     echo "  [PASS] 系8: publishの手順があれば許可される（${msg}）"
   else
@@ -369,6 +372,7 @@ self_test() {
   mkdir -p "$tmp/.github/workflows"
   printf 'jobs:\n  release:\n    steps:\n      - run: npm publish\n' > "$tmp/.github/workflows/release.yml"
   if msg="$(judge_publish_gated_by_test "$tmp")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp/<tmp>}"
   if [ "$code" -eq 2 ]; then
     echo "  [PASS] 系9: テストの記述が無ければ拒否される（${msg}）"
   else
@@ -385,6 +389,7 @@ self_test() {
   mkdir -p "$tmp/.github/workflows"
   printf 'jobs:\n  release:\n    steps:\n      - run: npm test\n      - run: npm publish\n' > "$tmp/.github/workflows/release.yml"
   if msg="$(judge_publish_gated_by_test "$tmp")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp/<tmp>}"
   if [ "$code" -eq 0 ]; then
     echo "  [PASS] 系10: testとpublishの両方があれば許可される（${msg}）"
   else

@@ -239,7 +239,7 @@ judge_required_sections() {
   if [ "$actual_headings" != "$expected_headings" ]; then
     expected_inline="$(printf '%s\n' "$expected_headings" | awk 'BEGIN { ORS="" } NR > 1 { printf " → " } { printf "%s", $0 } END { print "" }')"
     actual_inline="$(printf '%s\n' "$actual_headings" | awk 'BEGIN { ORS="" } NR > 1 { printf " → " } { printf "%s", $0 } END { print "" }')"
-    [ -n "$actual_inline" ] || actual_inline="（見出しなし）"
+    [ -n "$actual_inline" ] || actual_inline="見出しなし"
     echo "拒否[記載項目を省かない]: ${expected_count}節の名前・順序・件数がテンプレートと一致しません（期待: ${expected_inline}／実際: ${actual_inline}）"
     return 2
   fi
@@ -720,7 +720,7 @@ API単位で自動化する
   # 系2: 単体テスト設計書だが見出しが1つも無い → 拒否
   if msg="$(judge "docs/design/screens/画面A/単体テスト設計書.md" "本文のみで見出しなし")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ]; then
-    echo "  [PASS] 系2: 見出しが無い単体テスト設計書は拒否される（${msg}）"
+    echo "  [PASS] 系2: 見出しが無い単体テスト設計書は拒否される: ${msg}"
   else
     echo "  [FAIL] 系2: 見出しが無いのに許可された（exit=${code}）" >&2
     rc=1
@@ -899,6 +899,7 @@ EOF
   mkdir -p "$tmp7/docs/design/画面A/基本設計"
   printf '# 画面A基本設計書\n' > "$tmp7/docs/design/画面A/基本設計/画面A基本設計書.md"
   if msg="$(judge_unit_test_doc_exists "$tmp7/docs/design/画面A/基本設計/画面A詳細設計書.md" "$tmp7")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp7/<tmp>}"
   rm -rf "$tmp7"
   if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '拒否[単体テスト設計書は基本設計フェーズで作る]'; then
     echo "  [PASS] 系7: 基本設計フォルダに単体テスト設計書が無ければ拒否される（${msg}）"
@@ -934,6 +935,7 @@ EOF
   printf '# batchA単体テスト設計書
 ' > "$tmp7b/docs/design/batches/batch-a/基本設計/batchA単体テスト設計書.md"
   if msg="$(judge_unit_test_doc_exists "$tmp7b/docs/design/batches/batch-a/基本設計/batchA詳細設計書.md" "$tmp7b")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp7b/<tmp>}"
   rm -rf "$tmp7b"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '許可[単体テスト設計書は基本設計フェーズで作る]'; then
     echo "  [PASS] 系7b: 無関係な基本設計フォルダの欠落で block されない（${msg}）"
@@ -960,9 +962,10 @@ EOF
 EOF
   mkdir -p "$tmp7c/docs/design/features/feature-a/基本設計"
   if msg="$(judge_unit_test_doc_exists "$tmp7c/docs/design/features/feature-a/詳細設計/featureA詳細設計書.md" "$tmp7c")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp7c/<tmp>}"
   rm -rf "$tmp7c"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '対象外[単体テスト設計書は基本設計フェーズで作る]'; then
-    echo "  [PASS] 系7c: 基本設計フォルダの外への書き込みは対象外になる（${msg}）"
+    echo "  [PASS] 系7c: 基本設計フォルダの外への書き込みは対象外になる: ${msg}"
   else
     echo "  [FAIL] 系7c: 基本設計フォルダの外なのに判定された（exit=${code}, ${msg}）" >&2
     rc=1
@@ -988,6 +991,7 @@ EOF
   printf '# 画面A基本設計書\n' > "$tmp8/docs/design/画面A/基本設計/画面A基本設計書.md"
   printf '# 画面A単体テスト設計書\n' > "$tmp8/docs/design/画面A/基本設計/画面A単体テスト設計書.md"
   if msg="$(judge_unit_test_doc_exists "$tmp8/docs/design/画面A/基本設計/画面A詳細設計書.md" "$tmp8")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp8/<tmp>}"
   rm -rf "$tmp8"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '許可[単体テスト設計書は基本設計フェーズで作る]'; then
     echo "  [PASS] 系8: 基本設計フォルダのすべてに単体テスト設計書があれば許可される（${msg}）"
@@ -999,7 +1003,7 @@ EOF
   # 系9: 規約が求めるテストを観点へ取り込む - 単体テスト設計書ではない → 対象外
   if msg="$(judge_test_viewpoint_coverage "" "docs/design/screens/画面A/README.md" "本文")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '対象外[規約が求めるテストを観点へ取り込む]'; then
-    echo "  [PASS] 系9: 単体テスト設計書でなければ対象外になる（${msg}）"
+    echo "  [PASS] 系9: 単体テスト設計書でなければ対象外になる: ${msg}"
   else
     echo "  [FAIL] 系9: 対象外のはずが判定された、または規則名が含まれない（exit=${code}, ${msg}）" >&2
     rc=1
@@ -1066,7 +1070,7 @@ EOF
   if msg="$(judge_test_viewpoint_coverage "$tmp12" "docs/design/screens/画面A/単体テスト設計書.md" "$full_with_rule")"; then code=0; else code=$?; fi
   rm -rf "$tmp12"
   if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '許可[規約が求めるテストを観点へ取り込む]'; then
-    echo "  [PASS] 系12: 規則名がテスト観点に現れれば許可される（${msg}）"
+    echo "  [PASS] 系12: 規則名がテスト観点に現れれば許可される: ${msg}"
   else
     echo "  [FAIL] 系12: 現れるのに拒否された、または規則名が含まれない（exit=${code}, ${msg}）" >&2
     rc=1

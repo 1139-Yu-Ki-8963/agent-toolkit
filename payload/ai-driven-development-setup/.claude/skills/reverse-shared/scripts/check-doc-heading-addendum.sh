@@ -256,7 +256,7 @@ self_test() {
 後から足した内容。'
   if msg="$(judge "docs/設計書.md" "$t1")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ]; then
-    echo "  [PASS] 系1: 「追記」見出しは拒否される（${msg}）"
+    echo "  [PASS] 系1: 「追記」見出しは拒否される: ${msg}"
   else
     echo "  [FAIL] 系1: 「追記」見出しがあるのに許可された（exit=${code}）" >&2
     rc=1
@@ -272,7 +272,7 @@ self_test() {
 書き足した注記。'
   if msg="$(judge "docs/設計書.md" "$t2")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ]; then
-    echo "  [PASS] 系2: 「補足事項」見出しは拒否される（${msg}）"
+    echo "  [PASS] 系2: 「補足事項」見出しは拒否される: ${msg}"
   else
     echo "  [FAIL] 系2: 「補足事項」見出しがあるのに許可された（exit=${code}）" >&2
     rc=1
@@ -314,7 +314,7 @@ self_test() {
 氏名、住所、電話番号…'
   if msg="$(judge "docs/設計書.md" "$t5")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ] && contains "$msg" '任意記載と省略記載をしない'; then
-    echo "  [PASS] 系5: 「…」で打ち切る記述は拒否される（${msg}）"
+    echo "  [PASS] 系5: 「…」で打ち切る記述は拒否される: ${msg}"
   else
     echo "  [FAIL] 系5: 省略記載があるのに許可、または規則名が含まれない（exit=${code}, ${msg}）" >&2
     rc=1
@@ -327,7 +327,7 @@ self_test() {
 氏名、住所、電話番号、以下略'
   if msg="$(judge "docs/設計書.md" "$t6")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ] && contains "$msg" '任意記載と省略記載をしない'; then
-    echo "  [PASS] 系6: 「以下略」で打ち切る記述は拒否される（${msg}）"
+    echo "  [PASS] 系6: 「以下略」で打ち切る記述は拒否される: ${msg}"
   else
     echo "  [FAIL] 系6: 省略記載があるのに許可、または規則名が含まれない（exit=${code}, ${msg}）" >&2
     rc=1
@@ -356,7 +356,7 @@ self_test() {
 最優先。'
   if msg="$(judge "docs/注文機能要件定義書.md" "$t8")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ] && contains "$msg" '要件定義書は合意した範囲を確定させる'; then
-    echo "  [PASS] 系8: 受入条件の見出しが欠けた要件定義書は拒否される（${msg}）"
+    echo "  [PASS] 系8: 受入条件の見出しが欠けた要件定義書は拒否される: ${msg}"
   else
     echo "  [FAIL] 系8: 見出しが欠けているのに許可、または規則名が含まれない（exit=${code}, ${msg}）" >&2
     rc=1

@@ -111,6 +111,7 @@ self_test() {
   # 系1: 新規作成（未存在） → 許可
   local new_file="$tmp/new.html"
   if msg="$(judge "$new_file")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp/<tmp>}"
   if [ "$code" -eq 0 ]; then
     echo "  [PASS] 系1: 新規作成は許可される（${msg}）"
   else
@@ -122,6 +123,7 @@ self_test() {
   local generated="$tmp/list.html"
   printf '<html><body><script type="application/json" id="unit-manifest">{}</script></body></html>\n' > "$generated"
   if msg="$(judge "$generated")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp/<tmp>}"
   if [ "$code" -eq 2 ]; then
     echo "  [PASS] 系2: unit-manifestマーカーありは拒否される（${msg}）"
   else
@@ -133,6 +135,7 @@ self_test() {
   local generated2="$tmp/detail.html"
   printf '<html><body><script id="page-data">{}</script></body></html>\n' > "$generated2"
   if msg="$(judge "$generated2")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp/<tmp>}"
   if [ "$code" -eq 2 ]; then
     echo "  [PASS] 系3: page-dataマーカーありは拒否される（${msg}）"
   else

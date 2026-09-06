@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
-# check-delegation-completion-criteria.sh — 「完了条件を渡す」規則と「外への公開は人がする」規則の linter
+# check-delegation-completion-criteria.sh — 「完了条件を渡す」規則と「外への公開まで AI が行う」規則の linter
 #
 # timing: PreToolUse(Agent|Bash)
-# 対象規約: 人とAIの分担の決まり「完了条件を渡す」「外への公開は人がする」
+# 対象規約: 人とAIの分担の決まり「完了条件を渡す」「外への公開まで AI が行う」
 #
 # 判定の設計:
 #   完了条件を渡す — 既存の check-evidence-checklist.sh（PreToolUse(Agent)）が、
@@ -10,23 +10,22 @@
 #   本checkerは検査対象の見出し・語彙を「完了条件」に差し替えたものであり、機構は
 #   既存実例とほぼ同一である。
 #
-#   外への公開は人がする — 実行しようとしている Bash コマンドが、外部の複製先へ
-#   変更を送る操作かどうかを走査する。tool_name が Bash のときにこの判定だけを行い、
-#   Agent の判定とは独立して扱う。
+#   外への公開まで AI が行う — 実行しようとしている Bash コマンドが、履歴を
+#   書き換える強制の送信かどうかを走査する。tool_name が Bash のときにこの判定
+#   だけを行い、Agent の判定とは独立して扱う（2026-09-06 改訂。旧規則「外への
+#   公開は人がする」は人の指示に無い AI の記述だったため廃止した）。
 #
 # 判定:
 #   完了条件を渡す — Agent への委任 prompt に、完了条件を示す見出し（## 完了条件）
 #   または完了条件を明示する語彙（「完了条件」を含む一文）が無ければ違反として
 #   block（exit 2）する。
 #
-#   外への公開は人がする — 外部の複製先へ変更を送る操作（後述）であれば違反として
-#   block（exit 2）する。
+#   外への公開まで AI が行う — 強制の送信（--force・-f・--force-with-lease・
+#   参照の先頭の +）であれば違反として block（exit 2）する。通常の送信・
+#   npm publish 等は止めない。
 #
-# 検査が見る操作の具体（外への公開は人がする）:
-#   git push・npm publish・yarn publish・pnpm publish・docker push・
-#   gh release create を止める対象とした。これらを代表として選んだ理由は、
-#   具体のコマンドは対象プロジェクトによって変わるためであり、外部の複製先へ
-#   変更を送るという性質を共有する代表的なものに絞った。
+# 検査が見る操作の具体（外への公開まで AI が行う）:
+#   git push に強制の指定が付く形だけを止める。
 #
 # 除外条件（誤検知回避）:
 #   - tool_name が Agent・Bash のいずれでもない → 対象外
@@ -36,11 +35,11 @@
 #   - （完了条件を渡す）prompt 冒頭 500 文字に [DELEGATION-EXEMPT] 明示 → 対象外
 #     （緊急口）
 #   - （完了条件を渡す）prompt が空 → 対象外（他 hook の検査対象）
-#   - （外への公開は人がする）command が空 → 対象外（他 hook の検査対象）
+#   - （外への公開まで AI が行う）command が空 → 対象外（他 hook の検査対象）
 #
 # 止めるか知らせるか:
 #   完了条件を渡す: 止める（完了条件を欠いた委任がそのまま実行されると、何を確認すれば完了かを後から復元できなくなるため）
-#   外への公開は人がする: 止める（外部へ出た変更は取り消せないため）
+#   外への公開まで AI が行う: 強制の送信だけ止める（書き換えた履歴は取り戻せないため）
 #
 # 逃げ道:
 #   DELEGATION_COMPLETION_CRITERIA_SKIP_REASON に理由を書けば「完了条件を渡す」の
@@ -98,17 +97,24 @@ judge() {
 judge_external_publish() {
   # $1: cmd
   # 標準出力: 判定理由。戻り値: 0=許可・2=拒否
-  local cmd="$1"
-
-  if { printf '%s' "$cmd" | grep -qF 'git' && printf '%s' "$cmd" | grep -qE '(^|[^a-zA-Z])push([^a-zA-Z]|$)'; } \
-    || printf '%s' "$cmd" | grep -qE '(npm|yarn|pnpm)[[:space:]]+publish' \
-    || printf '%s' "$cmd" | grep -qE 'docker[[:space:]]+push' \
-    || printf '%s' "$cmd" | grep -qE 'gh[[:space:]]+release[[:space:]]+create'; then
-    echo "拒否[外への公開は人がする]: 外部の複製先へ変更を送る操作です。この操作は人が行う決まりです。AI は記録（コミット）までを済ませて人へ渡してください"
-    return 2
-  fi
-
-  echo "許可[外への公開は人がする]: 外部の複製先へ変更を送る操作は見当たりません"
+  # 2026-09-06 改訂: 規則「外への公開は人がする」を廃止し、統合先へ送る操作は
+  # AI が行う。止めるのは履歴を書き換える強制の送信（--force・-f・
+  # --force-with-lease・参照の先頭の +）だけ。
+  local cmd="$1" seg
+  while IFS= read -r seg; do
+    [ -z "$seg" ] && continue
+    printf '%s' "$seg" | grep -qE '(^|[[:space:]/])git([[:space:]]|$)' || continue
+    printf '%s' "$seg" | grep -qE '[[:space:]]push([[:space:]]|$)' || continue
+    if printf '%s' "$seg" | grep -qE '[[:space:]](--force|-f|--force-with-lease)([[:space:]=]|$)' \
+      || printf '%s' "$seg" | grep -qE '[[:space:]]\+[^[:space:]]+'; then
+      echo "拒否[外への公開まで AI が行う]: 強制の送信は履歴を書き換えるため行わない。新しい記録を重ねる形に直してから送る"
+      return 2
+    fi
+  done <<EOF
+$(printf '%s' "$cmd" | sed -E 's/&&|\|\||;|\|/\
+/g')
+EOF
+  echo "許可[外への公開まで AI が行う]: 強制の送信は見当たらない"
   return 0
 }
 
@@ -117,25 +123,6 @@ should_skip_with_reason() {
   # 標準出力: skip の記録。戻り値: 0=skip する・1=skip しない
   if [ -n "${DELEGATION_COMPLETION_CRITERIA_SKIP_REASON:-}" ]; then
     echo "[DELEGATION-COMPLETION-CRITERIA-SKIP] 理由: ${DELEGATION_COMPLETION_CRITERIA_SKIP_REASON}"
-    return 0
-  fi
-  return 1
-}
-
-# 「外への公開は人がする」専用の緊急口。理由を hook 自身の環境変数ではなく
-# コマンド文字列の先頭から読む（修正2026-08-31。上の「逃げ道」節を参照）。
-# 理由が空、または割り当てが先頭に無ければ skip しない
-should_skip_external_publish_with_reason() {
-  # $1: command
-  # 標準出力: skip の記録。戻り値: 0=skip する・1=skip しない
-  local cmd="$1" reason=""
-  if [[ "$cmd" =~ ^DELEGATION_COMPLETION_CRITERIA_SKIP_REASON=\"([^\"]+)\" ]]; then
-    reason="${BASH_REMATCH[1]}"
-  elif [[ "$cmd" =~ ^DELEGATION_COMPLETION_CRITERIA_SKIP_REASON=\'([^\']+)\' ]]; then
-    reason="${BASH_REMATCH[1]}"
-  fi
-  if [ -n "$reason" ]; then
-    echo "[DELEGATION-COMPLETION-CRITERIA-SKIP] 理由: ${reason}"
     return 0
   fi
   return 1
@@ -154,17 +141,11 @@ run_hook() {
     cmd=$(printf '%s' "$input" | jq -r '.tool_input.command // empty' 2>/dev/null)
     [ -z "$cmd" ] && exit 0
 
-    local pub_skip_msg
-    if pub_skip_msg="$(should_skip_external_publish_with_reason "$cmd")"; then
-      printf '%s\n' "$pub_skip_msg" >&2
-      exit 0
-    fi
-
     if msg="$(judge_external_publish "$cmd")"; then code=0; else code=$?; fi
 
     [ "$code" -eq 0 ] && exit 0
 
-    ctx="[EXTERNAL-PUBLISH-BLOCK] ${msg}。人が実行するまで、この操作は AI からは行いません。"
+    ctx="[FORCE-PUSH-BLOCK] ${msg}"
     jq -n --arg ctx "$ctx" '{"systemMessage":$ctx,"hookSpecificOutput":{"hookEventName":"PreToolUse","additionalContext":$ctx}}'
     printf '%s\n' "$ctx" >&2
     exit 2
@@ -264,78 +245,78 @@ self_test() {
     rc=1
   fi
 
-  # 系7: git push origin main → 外への公開は人がする で拒否
+  # 系7: git push origin main → 外への公開まで AI が行う で許可
   if msg="$(judge_external_publish "git push origin main")"; then code=0; else code=$?; fi
-  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '外への公開は人がする'; then
-    echo "  [PASS] 系7: git push origin main は拒否される（${msg}）"
+  if [ "$code" -eq 0 ] && printf '%s' "$msg" | grep -qF '外への公開まで AI が行う'; then
+    echo "  [PASS] 系7: git push origin main は許可される（${msg}）"
   else
-    echo "  [FAIL] 系7: 拒否されなかった、または規則名が含まれない（exit=${code}, ${msg}）" >&2
+    echo "  [FAIL] 系7: 通常の送信が拒否された、または規則名が含まれない（exit=${code}, ${msg}）" >&2
     rc=1
   fi
 
-  # 系8: npm publish → 外への公開は人がする で拒否
+  # 系8: npm publish → 公開の拒否は廃止したため許可
   if msg="$(judge_external_publish "npm publish")"; then code=0; else code=$?; fi
-  if [ "$code" -eq 2 ]; then
-    echo "  [PASS] 系8: npm publish は拒否される（${msg}）"
+  if [ "$code" -eq 0 ]; then
+    echo "  [PASS] 系8: npm publish は許可される（${msg}）"
   else
-    echo "  [FAIL] 系8: npm publish なのに拒否されなかった（exit=${code}）" >&2
+    echo "  [FAIL] 系8: npm publish が拒否された（exit=${code}）" >&2
     rc=1
   fi
 
-  # 系9: git commit -m "test" → 公開の操作ではないため許可
+  # 系9: git commit -m "test" → 許可
   if msg="$(judge_external_publish 'git commit -m "test"')"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ]; then
-    echo "  [PASS] 系9: git commit は公開の操作ではないため許可される（${msg}）"
+    echo "  [PASS] 系9: git commit は許可される（${msg}）"
   else
-    echo "  [FAIL] 系9: 公開の操作ではないのに拒否された（exit=${code}）" >&2
+    echo "  [FAIL] 系9: git commit が拒否された（exit=${code}）" >&2
     rc=1
   fi
 
-  # 系10: ls -la → 公開の操作ではないため許可
+  # 系10: ls -la → 許可
   if msg="$(judge_external_publish "ls -la")"; then code=0; else code=$?; fi
   if [ "$code" -eq 0 ]; then
-    echo "  [PASS] 系10: ls -la は公開の操作ではないため許可される（${msg}）"
+    echo "  [PASS] 系10: ls -la は許可される（${msg}）"
   else
-    echo "  [FAIL] 系10: 公開の操作ではないのに拒否された（exit=${code}）" >&2
+    echo "  [FAIL] 系10: ls -la が拒否された（exit=${code}）" >&2
     rc=1
   fi
 
-  # 系11: 逃げ道の環境変数に理由を設定していても、外への公開は人がする の判定は拒否のまま
-  if msg="$(DELEGATION_COMPLETION_CRITERIA_SKIP_REASON="テスト理由" judge_external_publish "git push origin main")"; then code=0; else code=$?; fi
+  # 系11: git push --force → 強制の送信は拒否
+  if msg="$(judge_external_publish "git push --force origin main")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 2 ] && printf '%s' "$msg" | grep -qF '強制の送信'; then
+    echo "  [PASS] 系11: git push --force は拒否される（${msg}）"
+  else
+    echo "  [FAIL] 系11: 強制の送信が拒否されなかった（exit=${code}, ${msg}）" >&2
+    rc=1
+  fi
+
+  # 系12: git push -f origin main → 拒否
+  if msg="$(judge_external_publish "git push -f origin main")"; then code=0; else code=$?; fi
   if [ "$code" -eq 2 ]; then
-    echo "  [PASS] 系11: 逃げ道の環境変数を設定していても外への公開は人がする は拒否のまま（${msg}）"
+    echo "  [PASS] 系12: git push -f は拒否される"
   else
-    echo "  [FAIL] 系11: 逃げ道の環境変数で公開の判定まで通ってしまった（exit=${code}, ${msg}）" >&2
+    echo "  [FAIL] 系12: git push -f が拒否されなかった（exit=${code}）" >&2
     rc=1
   fi
 
-  # 系12: コマンド文字列の先頭に理由付きの割り当てがあれば skip する
-  local pub_skip_out pub_skip_code
-  if pub_skip_out="$(should_skip_external_publish_with_reason 'DELEGATION_COMPLETION_CRITERIA_SKIP_REASON="正当な理由" git push origin main')"; then pub_skip_code=0; else pub_skip_code=$?; fi
-  if [ "$pub_skip_code" -eq 0 ] && printf '%s' "$pub_skip_out" | grep -qF 'DELEGATION-COMPLETION-CRITERIA-SKIP' && printf '%s' "$pub_skip_out" | grep -qF '正当な理由'; then
-    echo "  [PASS] 系12: コマンド文字列先頭の理由付き割り当てで should_skip_external_publish_with_reason は skip する（${pub_skip_out}）"
+  # 系13: git push origin +main → 参照の先頭の + は強制のため拒否
+  if msg="$(judge_external_publish "git push origin +main")"; then code=0; else code=$?; fi
+  if [ "$code" -eq 2 ]; then
+    echo "  [PASS] 系13: git push origin +main は拒否される"
   else
-    echo "  [FAIL] 系12: 理由があるのに skip しない、またはタグ・理由が含まれない（exit=${pub_skip_code}, ${pub_skip_out}）" >&2
+    echo "  [FAIL] 系13: +refspec が拒否されなかった（exit=${code}）" >&2
     rc=1
   fi
 
-  # 系13: 割り当てが無ければ should_skip_external_publish_with_reason は skip しない
-  local pub_skip_code2
-  if should_skip_external_publish_with_reason "git push origin main" >/dev/null 2>&1; then pub_skip_code2=0; else pub_skip_code2=$?; fi
-  if [ "$pub_skip_code2" -eq 1 ]; then
-    echo "  [PASS] 系13: 割り当てが無ければ should_skip_external_publish_with_reason は skip しない"
+  # 系14: --force-with-lease は拒否。区切り後の通常の送信と、push の語だけの検索は許可
+  if msg="$(judge_external_publish "git push --force-with-lease origin main")"; then code=0; else code=$?; fi
+  local code_b code_c
+  if judge_external_publish "cd x && git push origin main" >/dev/null; then code_b=0; else code_b=$?; fi
+  if judge_external_publish "git log --grep push" >/dev/null; then code_c=0; else code_c=$?; fi
+  if [ "$code" -eq 2 ] && [ "$code_b" -eq 0 ] && [ "$code_c" -eq 0 ]; then
+    echo "  [PASS] 系14: --force-with-lease は拒否、区切り後の通常の送信と push の語だけの検索は許可"
   else
-    echo "  [FAIL] 系13: 割り当てが無いのに skip した（exit=${pub_skip_code2}）" >&2
-    rc=1
-  fi
-
-  # 系14: 理由が空文字であれば should_skip_external_publish_with_reason は skip しない
-  local pub_skip_code3
-  if should_skip_external_publish_with_reason 'DELEGATION_COMPLETION_CRITERIA_SKIP_REASON="" git push origin main' >/dev/null 2>&1; then pub_skip_code3=0; else pub_skip_code3=$?; fi
-  if [ "$pub_skip_code3" -eq 1 ]; then
-    echo "  [PASS] 系14: 理由が空文字なら should_skip_external_publish_with_reason は skip しない"
-  else
-    echo "  [FAIL] 系14: 理由が空文字なのに skip した（exit=${pub_skip_code3}）" >&2
+    echo "  [FAIL] 系14: 期待と異なる（force-with-lease=${code}, 区切り後=${code_b}, 検索=${code_c}）" >&2
     rc=1
   fi
 

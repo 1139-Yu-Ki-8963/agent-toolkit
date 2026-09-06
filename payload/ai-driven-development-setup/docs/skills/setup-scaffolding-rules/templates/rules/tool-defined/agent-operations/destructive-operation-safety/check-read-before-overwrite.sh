@@ -124,6 +124,7 @@ self_test() {
   local new_file="$tmp/new-file.txt"
   local msg code
   if msg="$(judge "$new_file" "$tmp/no-transcript.jsonl")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp/<tmp>}"
   if [ "$code" -eq 0 ]; then
     echo "  [PASS] 系1: 新規作成は対象外として許可される（${msg})"
   else
@@ -139,6 +140,7 @@ self_test() {
 {"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"file_path":"${existing}"}}]}}
 EOF
   if msg="$(judge "$existing" "$tp_with_read")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp/<tmp>}"
   if [ "$code" -eq 0 ]; then
     echo "  [PASS] 系2: 既存ファイル + Read記録ありは許可される（${msg}）"
   else
@@ -152,6 +154,7 @@ EOF
 {"type":"assistant","message":{"content":[{"type":"tool_use","name":"Read","input":{"file_path":"${tmp}/unrelated.txt"}}]}}
 EOF
   if msg="$(judge "$existing" "$tp_without_read")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp/<tmp>}"
   if [ "$code" -eq 2 ]; then
     echo "  [PASS] 系3: 既存ファイル + Read記録なしは拒否される（${msg}）"
   else

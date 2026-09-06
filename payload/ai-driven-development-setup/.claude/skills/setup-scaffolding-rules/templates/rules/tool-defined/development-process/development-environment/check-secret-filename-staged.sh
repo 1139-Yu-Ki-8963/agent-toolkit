@@ -455,6 +455,7 @@ self_test() {
   printf '.env\n' > "$tmp/.gitignore"
   printf 'KEY=\n' > "$tmp/.env.example"
   if msg="$(judge_env_template_present "$tmp")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp/<tmp>}"
   if [ "$code" -eq 0 ]; then
     echo "  [PASS] 系11: 雛形があれば許可される（${msg}）"
   else
@@ -501,6 +502,7 @@ self_test() {
   mkdir -p "$tmp/docs"
   printf '<html><body>手順です</body></html>\n' > "$tmp/docs/環境構築手順.html"
   if msg="$(judge_env_difference_documented "$tmp")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp/<tmp>}"
   if [ "$code" -eq 0 ]; then
     echo "  [PASS] 系14: 動作環境の記述が無ければ通知される（${msg}）"
   else
@@ -517,6 +519,7 @@ self_test() {
   mkdir -p "$tmp/docs"
   printf '<html><body>対応OS: Windows WSL2環境</body></html>\n' > "$tmp/docs/環境構築手順.html"
   if msg="$(judge_env_difference_documented "$tmp")"; then code=0; else code=$?; fi
+  msg="${msg//$tmp/<tmp>}"
   if [ "$code" -eq 0 ]; then
     echo "  [PASS] 系15: 対応OSの記述があれば許可される（${msg}）"
   else
