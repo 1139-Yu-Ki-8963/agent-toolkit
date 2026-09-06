@@ -389,6 +389,79 @@ resolve_belongs_files() {
   done | awk 'NF' | awk '!seen[$0]++'
 }
 
+# --- フォルダ名の重複判定にperl（Unicode::Normalize・fc。fcはperl 5.16
+#     以降の機能）を使うための前提を確かめる。使えなければ0以外を返す
+#     （呼び出し側が検査キー付きの理由を標準エラーへ出し終了コード2で
+#     止める。第1回改善指示書1-30・第2版反証）。perlが無い、または
+#     Unicode::Normalizeもしくはfcが使えない環境でclassify_dirname()を
+#     呼ぶと、判定できないまま空・想定外の出力を返し、フォルダ名-空/
+#     フォルダ名-不正/フォルダ名-重複の検査を素通りしてしまう
+#     （fail-open）ため、単位を処理する前に呼び出し側で確かめる。
+#     classify_dirname()が実際に使う1行（fc(NFC("A"))が"a"を返すか）と
+#     同じ形で確かめる。`perl -MUnicode::Normalize -e 1`だけの確認では
+#     Unicode::Normalizeの読み込み可否しか分からず、fcが無い環境（perl
+#     5.16未満）でも前提検査を誤って通過してしまう
+#     （第1回改善指示書1-30・第3版反証）。 ---
+check_dirname_classifier_prerequisite() {
+  [ "$(perl -CSDA -MUnicode::Normalize -Mfeature=fc,unicode_strings -e 'print fc(NFC("A"))' 2>/dev/null)" = "a" ]
+}
+
+# --- フォルダ名（list-units-of.shの5列目）を検査する。標準出力に
+#     "EMPTY"（空白・不可視文字を除いて空）、"INVALID"（書き込み先として
+#     使えない値）、または "OK\t<正規化した名前>" のいずれかを1行返す
+#     （第1回改善指示書1-30・反証）。呼び出し側は
+#     check_dirname_classifier_prerequisite() で前提を確かめてから呼ぶ。
+#     空白・不可視文字は半角空白・全角空白U+3000・タブ・改行・ゼロ幅空白
+#     U+200B・BOM U+FEFFとする（list-units-of.shの表示名の空白判定と同じ
+#     集合）。これを除いて空ならEMPTY。EMPTYでなければ、/ を含む・"." また
+#     は".."・\ を含む・制御文字0x00-0x1F/0x7Fを含む・先頭が"."のいずれか
+#     でINVALIDとする（出力先の外へ書く・不可視のファイルになる等を防ぐ）。
+#     どちらでもなければUnicodeのNFCへ揃えたうえで大文字小文字を畳み込んだ
+#     （`fc`。perl 5.16以降）値を返す（大文字小文字だけ・NFC/NFDの合成分解
+#     だけ・ß と ss のような畳み込みだけが違う名前を同じフォルダ名として
+#     重複検査で捉えるため）。 ---
+classify_dirname() {
+  local name="$1"
+  perl -CSDA -MUnicode::Normalize -Mfeature=fc,unicode_strings -e '
+    my $name = shift;
+    my $trimmed = $name;
+    $trimmed =~ s/[\s\x{3000}\x{200B}\x{FEFF}]//g;
+    if ($trimmed eq "") {
+      print "EMPTY\n";
+      exit 0;
+    }
+    if ($name =~ m{/} || $name eq "." || $name eq ".." || $name =~ /\\/ || $name =~ /[\x00-\x1F\x7F]/ || $name =~ /^\./) {
+      print "INVALID\n";
+      exit 0;
+    }
+    print "OK\t" . fc(NFC($name)) . "\n";
+  ' "$name"
+}
+
+# --- classify_dirname() の1件分の結果を \037 区切りの1行レコードへ
+#     変換する。EMPTY/INVALIDはそのまま、"OK\t<正規化した名前>"は
+#     OKとして扱う。それ以外（前提の確認漏れ・classify_dirname自体が
+#     想定外の値を返す異常）はOKとして扱わずINVALIDへ倒す
+#     （fail-closed。第1回改善指示書1-30・第2版反証）。この判定を
+#     $( ) の直下に置くとbash 3.2の既知のパーサ不具合（case文の中の
+#     ")"を$( )の終端と誤認する）で構文エラーになるため、独立した
+#     関数へ切り出す。 ---
+classify_dirname_row() {
+  local cid="$1" cdn="$2" ccls
+  ccls="$(classify_dirname "$cdn")"
+  case "$ccls" in
+    EMPTY)
+      printf 'EMPTY\037%s\n' "$cid"
+      ;;
+    OK$'\t'*)
+      printf 'OK\037%s\037%s\037%s\n' "$cid" "$cdn" "${ccls#OK$'\t'}"
+      ;;
+    *)
+      printf 'INVALID\037%s\037%s\n' "$cdn" "$cid"
+      ;;
+  esac
+}
+
 # --- 範囲「単位の定義」の終端を、開始行以降で最初に開く括弧（丸・角・波
 #     の3種をまとめて1つの残高）から数えて求める。文字ごとに残高を更新し
 #     （開き+1・閉じ-1）、減算で残高が0に戻った直後、空白を除く次の文字が
@@ -568,6 +641,88 @@ do_extract() {
   units_rc=$?
   if [ "$units_rc" -ne 0 ]; then
     echo "$units" >&2
+    return 2
+  fi
+
+  # 出力先はフォルダ名（list-units-of.shの5列目）ごとに1ファイルへ落ちる。
+  # フォルダ名が空・書き込み先として使えない値、または正規化して同じ値に
+  # なる（大文字小文字だけ・NFC/NFDの合成分解だけ・ß と ss のような畳み
+  # 込みだけの違いを含む）と、単位を取り違えたまま黙って上書き・欠落する、
+  # または出力先の外へ書く（第1回改善指示書1-30・反証）。単位を処理する
+  # 前にフォルダ名の空・不正・重複を検査し、あれば止める。この検査は
+  # classify_dirname() がperl（Unicode::Normalize・fc）を前提とするため、
+  # 前提が満たせない環境では判定できないまま検査を素通りする
+  # （fail-open）。何も書く前に前提を確かめ、満たせなければ検査キー
+  # 「前提-perl不在」で終了コード2として止める（第1回改善指示書1-30・
+  # 第2版反証）。前提不成立の原因はperl本体・Unicode::Normalize・fc
+  # （perl 5.16未満）のいずれかを区別しないため、メッセージも3つの
+  # いずれかが原因でありうることを示す（第1回改善指示書1-30・
+  # 第4版反証所見1）。
+  if ! check_dirname_classifier_prerequisite; then
+    echo "[FAIL] 前提-perl不在: ${kind}: perl 5.16以降・Unicode::Normalize・fcのいずれかが使えないためフォルダ名の検査ができません" >&2
+    return 2
+  fi
+
+  local classify_rows
+  classify_rows="$(printf '%s' "$units" | awk -F'\t' '{print $1 "\037" $5}' | while IFS=$'\037' read -r cid cdn; do
+    [ -n "$cid" ] || continue
+    classify_dirname_row "$cid" "$cdn"
+  done)"
+
+  local dup_issues
+  dup_issues="$(printf '%s\n' "$classify_rows" | awk -F'\037' '
+    $1 == "OK" {
+      id = $2; dn = $3; norm = $4
+      if (!(norm in seen)) {
+        order[++oc] = norm
+        seen[norm] = 1
+      }
+      count[norm]++
+      ids[norm] = (ids[norm] == "") ? id : ids[norm] ";" id
+      dnkey = norm "\037" dn
+      if (!(dnkey in dnseen)) {
+        dnseen[dnkey] = 1
+        dnlist[norm] = (dnlist[norm] == "") ? dn : dnlist[norm] ";" dn
+      }
+    }
+    END {
+      for (i = 1; i <= oc; i++) {
+        n = order[i]
+        if (count[n] > 1) {
+          print "DUP\037" dnlist[n] "\037" ids[n]
+        }
+      }
+    }
+  ')"
+
+  local issue_type issue_a issue_b had_dirname_issue=0
+  while IFS=$'\037' read -r issue_type issue_a issue_b; do
+    [ -n "$issue_type" ] || continue
+    case "$issue_type" in
+      EMPTY)
+        had_dirname_issue=1
+        echo "[FAIL] フォルダ名-空: ${kind}: 識別子=${issue_a}" >&2
+        ;;
+      INVALID)
+        had_dirname_issue=1
+        echo "[FAIL] フォルダ名-不正: ${kind}: フォルダ名=${issue_a} 識別子=${issue_b}" >&2
+        ;;
+    esac
+  done <<CLASSIFYROWS
+$classify_rows
+CLASSIFYROWS
+
+  if [ -n "$dup_issues" ]; then
+    while IFS=$'\037' read -r issue_type issue_a issue_b; do
+      [ -n "$issue_type" ] || continue
+      had_dirname_issue=1
+      echo "[FAIL] フォルダ名-重複: ${kind}: フォルダ名=${issue_a} 識別子=${issue_b}" >&2
+    done <<DUPISSUES
+$dup_issues
+DUPISSUES
+  fi
+
+  if [ "$had_dirname_issue" -eq 1 ]; then
     return 2
   fi
 
@@ -765,6 +920,17 @@ UNITSLIST
     > "${out}/${kind}/集計.json"
 
   rm -rf "$work"
+
+  # 単位数の報告と実ファイルの数が食い違わないことを確かめる（第1回改善
+  # 指示書1-30）。フォルダ名の空・重複は既に上で止めているが、それ以外の
+  # 理由（書き込み自体の失敗で実ファイルが欠ける、または単位が減った後も
+  # 同じ--outへ出し続け前回の実行のファイルが残って余る）も見落とさない。
+  local actual_file_count
+  actual_file_count="$(find "${out}/${kind}" -maxdepth 1 -type f -name '*.json' ! -name '集計.json' | wc -l | tr -d ' ')"
+  if [ "$actual_file_count" -ne "$unit_count" ]; then
+    echo "[FAIL] 出力-件数不一致: ${kind}: 単位数=${unit_count} 実ファイル数=${actual_file_count}（出力先フォルダに前回実行の古いファイルが残っていないか確認する）" >&2
+    return 2
+  fi
 
   echo "単位数=${unit_count} 機械で埋まった項目数=${machine_filled} 未の項目数=${mi_total} 属するファイル不在=${missing_total}"
 
@@ -985,7 +1151,7 @@ FIXEOF
   agg_units="$(jq -r '.["単位数"]' "$agg_json" 2>/dev/null)"
   agg_rule_free="$(jq -c '.["規則の無い項目"]' "$agg_json" 2>/dev/null)"
   check "集計の単位数が2" "$([ "$agg_units" = "2" ] && echo 0 || echo 1)"
-  check "集計の規則の無い項目に呼ぶ接続窓口を含む" "$(case "$agg_rule_free" in *呼ぶ接続窓口*) echo 0 ;; *) echo 1 ;; esac)"
+  check "集計の規則の無い項目に呼ぶ接続窓口を含む" "$(printf '%s' "$agg_rule_free" | grep -q '呼ぶ接続窓口' && echo 0 || echo 1)"
 
   # --- 不合格-属するファイル不在（場所そのものが実在しない） ---
   local d2="$base/case2" r2="$base/run2"
@@ -2223,6 +2389,178 @@ FIXEOF27
   local v_def27
   v_def27="$(jq -c '.["読み取り結果"]["戻り値-単位の定義"]["値"]' "$foo27_json" 2>/dev/null)"
   check "単位の定義: CRLFの空行に\\rが2個続いても先読みが続き除外定義を取り込まない" "$([ "$rc27" -eq 0 ] && [ "$v_def27" = '["id"]' ] && echo 0 || echo 1)"
+
+  # --- 不合格-フォルダ名が空（表示名がフォルダ名に使えない文字だけで空に潰れる） ---
+  local d28="$base/case28" r28="$base/run28"
+  make_fixture "$d28"
+  make_run "$r28"
+  cat > "$d28/docs/design/lists/screen.json" <<'FIXEOF'
+[
+  {"種別":"screen","識別子":"src/pages/Slash.tsx","表示名":"/","場所":"src/pages/Slash.tsx","根拠":"src/pages/Slash.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d28" --run "$r28" --kind screen --out "$r28/code-readings" > "$base/case28.out" 2>"$base/case28.err"
+  local rc28=$?
+  check "不合格-フォルダ名が空: 終了コード2" "$([ "$rc28" -eq 2 ] && echo 0 || echo 1)"
+  check "不合格-フォルダ名が空: [FAIL]フォルダ名-空を識別子付きで出す" "$(grep -q '\[FAIL\] フォルダ名-空: screen: 識別子=src/pages/Slash.tsx' "$base/case28.err" && echo 0 || echo 1)"
+
+  # --- 不合格-フォルダ名が重複（別の識別子が同じフォルダ名に落ちる） ---
+  local d29="$base/case29" r29="$base/run29"
+  make_fixture "$d29"
+  make_run "$r29"
+  cat > "$d29/docs/design/lists/screen.json" <<'FIXEOF'
+[
+  {"種別":"screen","識別子":"src/pages/OrderList.tsx","表示名":"注文","場所":"src/pages/OrderList.tsx","根拠":"src/pages/OrderList.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[],"フォルダ名":"dup"},
+  {"種別":"screen","識別子":"src/pages/OrderDetail.tsx","表示名":"注文詳細","場所":"src/pages/OrderDetail.tsx","根拠":"src/pages/OrderDetail.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[],"フォルダ名":"dup"}
+]
+FIXEOF
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d29" --run "$r29" --kind screen --out "$r29/code-readings" > "$base/case29.out" 2>"$base/case29.err"
+  local rc29=$?
+  check "不合格-フォルダ名が重複: 終了コード2" "$([ "$rc29" -eq 2 ] && echo 0 || echo 1)"
+  check "不合格-フォルダ名が重複: [FAIL]フォルダ名-重複を識別子の列挙付きで出す" "$(grep -q '\[FAIL\] フォルダ名-重複: screen: フォルダ名=dup 識別子=src/pages/OrderList.tsx;src/pages/OrderDetail.tsx' "$base/case29.err" && echo 0 || echo 1)"
+
+  # --- 不合格-出力件数不一致（単位を減らしても古い出力ファイルが残る） ---
+  local d30="$base/case30" r30="$base/run30"
+  make_fixture "$d30"
+  make_run "$r30"
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d30" --run "$r30" --kind screen --out "$r30/code-readings" > "$base/case30a.out" 2>"$base/case30a.err"
+  local rc30a=$?
+  cat > "$d30/docs/design/lists/screen.json" <<'FIXEOF'
+[
+  {"種別":"screen","識別子":"src/pages/OrderList.tsx","名前":"OrderList","場所":"src/pages/OrderList.tsx","根拠":"src/pages/OrderList.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[]}
+]
+FIXEOF
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d30" --run "$r30" --kind screen --out "$r30/code-readings" > "$base/case30b.out" 2>"$base/case30b.err"
+  local rc30b=$?
+  check "不合格-出力件数不一致: 初回は終了コード0" "$([ "$rc30a" -eq 0 ] && echo 0 || echo 1)"
+  check "不合格-出力件数不一致: 単位を減らすと終了コード2" "$([ "$rc30b" -eq 2 ] && echo 0 || echo 1)"
+  check "不合格-出力件数不一致: [FAIL]出力-件数不一致を出す" "$(grep -q '\[FAIL\] 出力-件数不一致: screen: 単位数=1 実ファイル数=2' "$base/case30b.err" && echo 0 || echo 1)"
+
+  # --- 不合格-フォルダ名が重複（大文字小文字だけの違いは正規化して重複扱いにする） ---
+  local d31="$base/case31" r31="$base/run31"
+  make_fixture "$d31"
+  make_run "$r31"
+  cat > "$d31/docs/design/lists/screen.json" <<'FIXEOF'
+[
+  {"種別":"screen","識別子":"src/pages/Order.tsx","表示名":"注文","場所":"src/pages/Order.tsx","根拠":"src/pages/Order.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[],"フォルダ名":"Order"},
+  {"種別":"screen","識別子":"src/pages/order.tsx","表示名":"注文詳細","場所":"src/pages/order.tsx","根拠":"src/pages/order.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[],"フォルダ名":"order"}
+]
+FIXEOF
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d31" --run "$r31" --kind screen --out "$r31/code-readings" > "$base/case31.out" 2>"$base/case31.err"
+  local rc31=$?
+  check "不合格-フォルダ名が重複-正規化: 大文字小文字だけの違いは書き込み前に終了コード2で止める（出力先が空のまま）" "$([ "$rc31" -eq 2 ] && [ ! -d "$r31/code-readings/screen" ] && grep -q '\[FAIL\] フォルダ名-重複: screen: フォルダ名=Order;order' "$base/case31.err" && echo 0 || echo 1)"
+
+  # --- 不合格-フォルダ名が重複（NFC/NFDの合成分解だけの違いは正規化して重複扱いにする） ---
+  local d32="$base/case32" r32="$base/run32" nfc_po nfd_po
+  nfc_po="$(printf '\xe3\x83\x9d')"
+  nfd_po="$(printf '\xe3\x83\x9b\xe3\x82\x9a')"
+  make_fixture "$d32"
+  make_run "$r32"
+  cat > "$d32/docs/design/lists/screen.json" <<FIXEOF32
+[
+  {"種別":"screen","識別子":"src/pages/PoNfc.tsx","表示名":"NFC","場所":"src/pages/PoNfc.tsx","根拠":"src/pages/PoNfc.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[],"フォルダ名":"${nfc_po}"},
+  {"種別":"screen","識別子":"src/pages/PoNfd.tsx","表示名":"NFD","場所":"src/pages/PoNfd.tsx","根拠":"src/pages/PoNfd.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[],"フォルダ名":"${nfd_po}"}
+]
+FIXEOF32
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d32" --run "$r32" --kind screen --out "$r32/code-readings" > "$base/case32.out" 2>"$base/case32.err"
+  local rc32=$?
+  check "不合格-フォルダ名が重複-正規化: NFC_NFDの合成分解だけの違いは書き込み前に終了コード2で止める（出力先が空のまま）" "$([ "$rc32" -eq 2 ] && [ ! -d "$r32/code-readings/screen" ] && grep -q '\[FAIL\] フォルダ名-重複: screen:' "$base/case32.err" && echo 0 || echo 1)"
+
+  # --- 不合格-フォルダ名が不正（相対パスの上位参照は出力先の外へ書く前に止める） ---
+  local d33="$base/case33" r33="$base/run33"
+  make_fixture "$d33"
+  make_run "$r33"
+  cat > "$d33/docs/design/lists/screen.json" <<'FIXEOF'
+[
+  {"種別":"screen","識別子":"src/pages/Escaped.tsx","表示名":"脱出","場所":"src/pages/Escaped.tsx","根拠":"src/pages/Escaped.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[],"フォルダ名":"../escaped"}
+]
+FIXEOF
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d33" --run "$r33" --kind screen --out "$r33/code-readings" > "$base/case33.out" 2>"$base/case33.err"
+  local rc33=$?
+  check "不合格-フォルダ名が不正: 相対パスの上位参照は書き込み前に終了コード2で止め出力先の外へ書かない" "$([ "$rc33" -eq 2 ] && [ -z "$(ls -A "$r33/code-readings" 2>/dev/null)" ] && grep -q '\[FAIL\] フォルダ名-不正: screen: フォルダ名=../escaped 識別子=src/pages/Escaped.tsx' "$base/case33.err" && echo 0 || echo 1)"
+
+  # --- 不合格-フォルダ名が空（空白1文字は不可視文字を除いて空と判定する） ---
+  local d34="$base/case34" r34="$base/run34"
+  make_fixture "$d34"
+  make_run "$r34"
+  cat > "$d34/docs/design/lists/screen.json" <<'FIXEOF'
+[
+  {"種別":"screen","識別子":"src/pages/Blank.tsx","表示名":"空白","場所":"src/pages/Blank.tsx","根拠":"src/pages/Blank.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[],"フォルダ名":" "}
+]
+FIXEOF
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d34" --run "$r34" --kind screen --out "$r34/code-readings" > "$base/case34.out" 2>"$base/case34.err"
+  local rc34=$?
+  check "不合格-フォルダ名が空: 空白1文字は不可視文字を除いて空と判定し終了コード2で止める" "$([ "$rc34" -eq 2 ] && [ -z "$(ls -A "$r34/code-readings" 2>/dev/null)" ] && grep -q '\[FAIL\] フォルダ名-空: screen: 識別子=src/pages/Blank.tsx' "$base/case34.err" && echo 0 || echo 1)"
+
+  # --- 不合格-フォルダ名が不正（先頭がドットの値は隠しファイルになるため止める） ---
+  local d35="$base/case35" r35="$base/run35"
+  make_fixture "$d35"
+  make_run "$r35"
+  cat > "$d35/docs/design/lists/screen.json" <<'FIXEOF'
+[
+  {"種別":"screen","識別子":"src/pages/Hidden.tsx","表示名":"隠し","場所":"src/pages/Hidden.tsx","根拠":"src/pages/Hidden.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[],"フォルダ名":".hidden"}
+]
+FIXEOF
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d35" --run "$r35" --kind screen --out "$r35/code-readings" > "$base/case35.out" 2>"$base/case35.err"
+  local rc35=$?
+  check "不合格-フォルダ名が不正: 先頭がドットの値は書き込み前に終了コード2で止める" "$([ "$rc35" -eq 2 ] && [ -z "$(ls -A "$r35/code-readings" 2>/dev/null)" ] && grep -q '\[FAIL\] フォルダ名-不正: screen: フォルダ名=.hidden 識別子=src/pages/Hidden.tsx' "$base/case35.err" && echo 0 || echo 1)"
+
+  # --- 不合格-前提-perl不在（perlが使えない環境ではフォルダ名の検査が
+  #     できず、判定不能として何も書かずに止める。第1回改善指示書1-30・
+  #     第2版反証） ---
+  local d36="$base/case36" r36="$base/run36"
+  make_fixture "$d36"
+  make_run "$r36"
+  mkdir -p "$base/noperl"
+  cat > "$base/noperl/perl" <<'FIXEOF'
+#!/bin/sh
+exit 127
+FIXEOF
+  chmod +x "$base/noperl/perl"
+  PATH="$base/noperl:$PATH" bash "$SCRIPT_DIR/extract-code-readings.sh" "$d36" --run "$r36" --kind screen --out "$r36/code-readings" > "$base/case36.out" 2>"$base/case36.err"
+  local rc36=$?
+  check "不合格-前提-perl不在: perlが使えないと終了コード2で止め出力先が空のまま" "$([ "$rc36" -eq 2 ] && [ ! -d "$r36/code-readings/screen" ] && grep -q '\[FAIL\] 前提-perl不在: screen:' "$base/case36.err" && echo 0 || echo 1)"
+
+  # --- 不合格-フォルダ名が重複（大文字小文字の畳み込みでßとssが重複する。
+  #     第1回改善指示書1-30・第2版反証） ---
+  local d37="$base/case37" r37="$base/run37" eszett
+  eszett="$(printf '\xc3\x9f')"
+  make_fixture "$d37"
+  make_run "$r37"
+  cat > "$d37/docs/design/lists/screen.json" <<FIXEOF37
+[
+  {"種別":"screen","識別子":"src/pages/Strasse.tsx","表示名":"通り(エスツェット)","場所":"src/pages/Strasse.tsx","根拠":"src/pages/Strasse.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[],"フォルダ名":"${eszett}"},
+  {"種別":"screen","識別子":"src/pages/StrasseSs.tsx","表示名":"通り(ss)","場所":"src/pages/StrasseSs.tsx","根拠":"src/pages/StrasseSs.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[],"フォルダ名":"ss"}
+]
+FIXEOF37
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d37" --run "$r37" --kind screen --out "$r37/code-readings" > "$base/case37.out" 2>"$base/case37.err"
+  local rc37=$?
+  check "不合格-フォルダ名が重複-畳み込み: ßとssは大文字小文字の畳み込みで重複扱いになり書き込み前に終了コード2で止める（出力先が空のまま）" "$([ "$rc37" -eq 2 ] && [ ! -d "$r37/code-readings/screen" ] && grep -q '\[FAIL\] フォルダ名-重複: screen:' "$base/case37.err" && echo 0 || echo 1)"
+
+  # --- 不合格-前提-fc不在（-Mfeature=fcを含む呼び出しだけ失敗させ、
+  #     含まない呼び出しは本物のperlへ委譲する偽perl。委譲することで
+  #     Unicode::Normalizeが実際に読み込めることも検証しつつ、fc
+  #     （perl 5.16以降の機能）だけが使えない環境を再現する。すべての
+  #     呼び出しを一律exit 0にする粗いスタブでは、この検証を伴わない
+  #     （第1回改善指示書1-30・第4版反証所見2）。「perl -MUnicode::
+  #     Normalize -e 1」だけの前提確認では通過してしまうことの再発防止。
+  #     第1回改善指示書1-30・第3版反証） ---
+  local d38="$base/case38" r38="$base/run38" real_perl38
+  real_perl38="$(command -v perl)"
+  make_fixture "$d38"
+  make_run "$r38"
+  mkdir -p "$base/nofc"
+  cat > "$base/nofc/perl" <<'FIXEOF'
+#!/bin/sh
+case "$*" in
+  *-Mfeature=fc*) exit 1 ;;
+esac
+exec "$REAL_PERL" "$@"
+FIXEOF
+  chmod +x "$base/nofc/perl"
+  REAL_PERL="$real_perl38" PATH="$base/nofc:$PATH" bash "$SCRIPT_DIR/extract-code-readings.sh" "$d38" --run "$r38" --kind screen --out "$r38/code-readings" > "$base/case38.out" 2>"$base/case38.err"
+  local rc38=$?
+  check "不合格-前提-fc不在: fcが使えないと終了コード2で止め出力先が空のまま" "$([ "$rc38" -eq 2 ] && [ ! -d "$r38/code-readings/screen" ] && grep -q '\[FAIL\] 前提-perl不在: screen:' "$base/case38.err" && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then
