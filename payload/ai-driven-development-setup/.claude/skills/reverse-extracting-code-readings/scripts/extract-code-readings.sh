@@ -1151,7 +1151,11 @@ FIXEOF
   agg_units="$(jq -r '.["単位数"]' "$agg_json" 2>/dev/null)"
   agg_rule_free="$(jq -c '.["規則の無い項目"]' "$agg_json" 2>/dev/null)"
   check "集計の単位数が2" "$([ "$agg_units" = "2" ] && echo 0 || echo 1)"
-  check "集計の規則の無い項目に呼ぶ接続窓口を含む" "$(printf '%s' "$agg_rule_free" | grep -q '呼ぶ接続窓口' && echo 0 || echo 1)"
+  # macOS標準のbash3.2では、$( )の中に1行のcase ... esacを書くとパーサが
+  # 誤ってesac以降を未解析のまま外へ漏らす既知の不具合があるため（実測:
+  # 単発でも多バイトの有無を問わず再現）、caseではなく[[ ]]のワイルド
+  # カード一致で判定する。
+  check "集計の規則の無い項目に呼ぶ接続窓口を含む" "$([[ "$agg_rule_free" == *呼ぶ接続窓口* ]] && echo 0 || echo 1)"
 
   # --- 不合格-属するファイル不在（場所そのものが実在しない） ---
   local d2="$base/case2" r2="$base/run2"

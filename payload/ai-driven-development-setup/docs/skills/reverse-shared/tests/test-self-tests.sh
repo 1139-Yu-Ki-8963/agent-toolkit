@@ -124,7 +124,7 @@ process_one_section() {
     outputs_line="${outputs_line%\]}"
     local elems=() elem base stem matched=0
     IFS=',' read -r -a elems <<< "$outputs_line"
-    for elem in "${elems[@]}"; do
+    for elem in ${elems[@]+"${elems[@]}"}; do
       elem="$(printf '%s' "$elem" | sed -e 's/^ *//' -e 's/ *$//')"
       base="${elem##*/}"
       stem="${base%.*}"

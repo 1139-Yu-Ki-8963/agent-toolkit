@@ -155,6 +155,13 @@ _mk_tmp() {
 # taxonomy が checker 本体を漏れなく宣言していることを検査する。
 # $1: docs/rules のルート  $2: 分類定義ファイルのパス（--taxonomy。空なら検査を飛ばす）
 # parents[].children[] が配布する規約すべての宣言である。
+#
+# 「実在しない」（検査-実在）の判定は、docs/rules/<親>/<子> が実在する
+# （＝配置済みの）子カテゴリの宣言だけを対象にする。規約は分類定義の32件を
+# 選んで docs/rules へ配置する運用であり、未配置の子は「実在しない」の
+# 不具合ではなく単に「まだ配置していない」だけであるため、対象から外し
+# [SKIP] 件数として報告する。「宣言欠落」（実在するのに宣言が無い）は
+# 配置の有無に関わらず従来どおり検査する。
 validate_checker_declarations() {
   local root="$1" taxonomy="${2:-}"
   local actual declared duplicates undeclared missing rc=0 _ta _tb mktemp_ok=1
@@ -195,14 +202,16 @@ validate_checker_declarations() {
 $(find "$root" -mindepth 3 -maxdepth 3 -type f -name 'check-*.sh' ! -name '*.test.sh')
 FINDEOF
   local actual_lines="" base
-  for f in "${raw_paths[@]}"; do
-    base="$(basename "$f")"
-    if is_deployed_tool_name "$base" && is_deployed_tool_dir "$(dirname "$f")"; then
-      continue
-    fi
-    actual_lines="${actual_lines}${base}
+  if [ ${#raw_paths[@]} -gt 0 ]; then
+    for f in "${raw_paths[@]}"; do
+      base="$(basename "$f")"
+      if is_deployed_tool_name "$base" && is_deployed_tool_dir "$(dirname "$f")"; then
+        continue
+      fi
+      actual_lines="${actual_lines}${base}
 "
-  done
+    done
+  fi
   actual="$(printf '%s' "$actual_lines" | LC_ALL=C sort -u)"
   declared="$(jq -r '.parents[].children[] | .checker // empty' "$taxonomy" | LC_ALL=C sort)"
   duplicates="$(printf '%s\n' "$declared" | LC_ALL=C uniq -d)"
@@ -226,6 +235,27 @@ $(find "$root" -mindepth 3 -maxdepth 3 -type f -name 'rule.md')
 FINDEOF
   declared="$(printf '%s\n%s' "$declared" "$fm_declared" | LC_ALL=C sort -u)"
 
+  # 「実在しない」（検査-実在）の判定材料は、taxonomy 全体ではなく配置済みの
+  # 子カテゴリだけに絞る。docs/rules/<親>/<子> が実在しない子は、まだ選んで
+  # 配置していないだけであり、「宣言したcheckerが実在しない」の不合格には
+  # しない。件数だけ [SKIP] で報告する。
+  local declared_placed="" skip_count=0 p_key c_key c_checker
+  while IFS=$'\t' read -r p_key c_key c_checker; do
+    [ -n "$c_checker" ] || continue
+    if [ -d "${root}/${p_key}/${c_key}" ]; then
+      declared_placed="${declared_placed}${c_checker}
+"
+    else
+      skip_count=$((skip_count + 1))
+    fi
+  done <<FINDEOF
+$(jq -r '.parents[] | .key as $p | .children[] | select(.checker) | [$p, .key, .checker] | @tsv' "$taxonomy")
+FINDEOF
+  declared_placed="$(printf '%s\n%s' "$declared_placed" "$fm_declared" | LC_ALL=C sort -u)"
+  if [ "$skip_count" -gt 0 ]; then
+    echo "[SKIP] 配置していないため実在の判定から除外したchecker宣言: ${skip_count} 件"
+  fi
+
   if [ -n "$duplicates" ]; then
     echo "$taxonomy: [検査-宣言重複] 同じcheckerが複数回宣言されている: $(printf '%s' "$duplicates" | tr '\n' ' ')" >&2
     rc=1
@@ -248,6 +278,7 @@ FINDEOF
     printf '%s\n' "$actual" > "$_ta"
     printf '%s\n' "$declared" > "$_tb"
     undeclared="$(LC_ALL=C comm -23 "$_ta" "$_tb")"
+    printf '%s\n' "$declared_placed" > "$_tb"
     missing="$(LC_ALL=C comm -13 "$_ta" "$_tb")"
     rm -f "$_ta" "$_tb"
 
@@ -1254,6 +1285,91 @@ EOF
   else
     echo "  [FAIL] fm-checker-declared: 分類定義に無い自身の規約がfront matterで宣言しても宣言欠落として検出された (rc=${fm_rc})" >&2
     printf '%s\n' "$fm_out" | sed 's/^/    /' >&2
+    rc=1
+  fi
+
+  # 分類定義に3件の子カテゴリの宣言があり、docs/rules へ実際に配置したのは
+  # 1件だけの一時リポジトリで、--taxonomy 付きの検査が終了コード0になり、
+  # [SKIP] に2件と出ることを確認する（未配置は「実在しない」ではない）。
+  local skp_root skp_taxonomy skp_out skp_rc=0
+  if ! skp_root="$(mktemp -d "${TMPDIR:-/tmp}/validate-rule-definitions-self-test-skp.XXXXXX" 2>/dev/null)" || [ -z "$skp_root" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  st_write_valid_pair "$skp_root"
+  if ! skp_taxonomy="$(mktemp "${TMPDIR:-/tmp}/validate-rule-definitions-self-test-skp-taxonomy.XXXXXX" 2>/dev/null)" || [ -z "$skp_taxonomy" ]; then
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  cat > "$skp_taxonomy" <<'EOF'
+{"parents": [{"key":"code-standards","children":[
+  {"key":"naming","checker":"check-naming.sh"},
+  {"key":"unplaced-one","checker":"check-unplaced-one.sh"},
+  {"key":"unplaced-two","checker":"check-unplaced-two.sh"}
+]}]}
+EOF
+  skp_out="$(validate_checker_declarations "$skp_root" "$skp_taxonomy" 2>&1)" || skp_rc=$?
+  rm -rf "$skp_root"
+  rm -f "$skp_taxonomy"
+  if [ "$skp_rc" -eq 0 ] \
+    && printf '%s' "$skp_out" | grep -q '^\[SKIP\] 配置していないため実在の判定から除外したchecker宣言: 2 件$' \
+    && printf '%s' "$skp_out" | grep -q '検査宣言合格'; then
+    echo "  [PASS] taxonomy-unplaced-skip: 未配置の子カテゴリの宣言は実在しない扱いにせず[SKIP]2件で合格する"
+  else
+    echo "  [FAIL] taxonomy-unplaced-skip: 期待どおり[SKIP]2件で合格しない (rc=${skp_rc})" >&2
+    printf '%s\n' "$skp_out" | sed 's/^/    /' >&2
+    rc=1
+  fi
+
+  # 深さ3（<親>/<子>/check-*.sh）にcheckerが1件も無いルート（宣言対象の
+  # 子カテゴリがcheckable:falseのみ）で、raw_pathsが0件になっても
+  # bash 3.2のset -u下で"${raw_paths[@]}"展開がunbound variableに
+  # ならず、rc=0・「検査宣言合格: 0 件」で終わることを確認する。
+  local nockr_root nockr_taxonomy nockr_out nockr_rc=0
+  if ! nockr_root="$(mktemp -d "${TMPDIR:-/tmp}/validate-rule-definitions-self-test-nockr.XXXXXX" 2>/dev/null)" || [ -z "$nockr_root" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  mkdir -p "${nockr_root}/agent-operations/ai-behavior"
+  cat > "${nockr_root}/agent-operations/parent.yml" <<'EOF'
+key: agent-operations
+title: AIエージェント運用
+EOF
+  cat > "${nockr_root}/agent-operations/ai-behavior/rule.md" <<'EOF'
+---
+key: ai-behavior
+title: AIエージェント行動規約
+parent: agent-operations
+summary: テスト用の概要。
+scope: always
+paths: ["**/*"]
+enforcement: advisory
+checkable: false
+checker: null
+uncheckableReason: 行動の是非は静的解析では判定できない。
+formatter: none
+status: approved
+origin: proposal
+workUnit: file
+---
+
+# t
+EOF
+  if ! nockr_taxonomy="$(mktemp "${TMPDIR:-/tmp}/validate-rule-definitions-self-test-nockr-taxonomy.XXXXXX" 2>/dev/null)" || [ -z "$nockr_taxonomy" ]; then
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  cat > "$nockr_taxonomy" <<'EOF'
+{"parents": [{"key":"agent-operations","children":[{"key":"ai-behavior"}]}]}
+EOF
+  nockr_out="$(validate_checker_declarations "$nockr_root" "$nockr_taxonomy" 2>&1)" || nockr_rc=$?
+  rm -rf "$nockr_root"
+  rm -f "$nockr_taxonomy"
+  if [ "$nockr_rc" -eq 0 ] && printf '%s' "$nockr_out" | grep -q '^検査宣言合格: 0 件のchecker本体を宣言済み$'; then
+    echo "  [PASS] checker-zero-root: 深さ3にcheckerが0件のルートでも空配列展開で落ちず検査宣言合格になる"
+  else
+    echo "  [FAIL] checker-zero-root: checkerが0件のルートで想定どおりに合格しない (rc=${nockr_rc})" >&2
+    printf '%s\n' "$nockr_out" | sed 's/^/    /' >&2
     rc=1
   fi
 

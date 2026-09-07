@@ -201,14 +201,16 @@ validate_checker_declarations() {
 $(find "$root" -mindepth 3 -maxdepth 3 -type f -name 'check-*.sh' ! -name '*.test.sh')
 FINDEOF
   local actual_lines="" base
-  for f in "${raw_paths[@]}"; do
-    base="$(basename "$f")"
-    if is_deployed_tool_name "$base" && is_deployed_tool_dir "$(dirname "$f")"; then
-      continue
-    fi
-    actual_lines="${actual_lines}${base}
+  if [ ${#raw_paths[@]} -gt 0 ]; then
+    for f in "${raw_paths[@]}"; do
+      base="$(basename "$f")"
+      if is_deployed_tool_name "$base" && is_deployed_tool_dir "$(dirname "$f")"; then
+        continue
+      fi
+      actual_lines="${actual_lines}${base}
 "
-  done
+    done
+  fi
   actual="$(printf '%s' "$actual_lines" | LC_ALL=C sort -u)"
   declared="$(jq -r '.parents[].children[] | .checker // empty' "$taxonomy" | LC_ALL=C sort)"
   duplicates="$(printf '%s\n' "$declared" | LC_ALL=C uniq -d)"
@@ -1315,6 +1317,58 @@ EOF
   else
     echo "  [FAIL] taxonomy-unplaced-skip: 期待どおり[SKIP]2件で合格しない (rc=${skp_rc})" >&2
     printf '%s\n' "$skp_out" | sed 's/^/    /' >&2
+    rc=1
+  fi
+
+  # 深さ3（<親>/<子>/check-*.sh）にcheckerが1件も無いルート（宣言対象の
+  # 子カテゴリがcheckable:falseのみ）で、raw_pathsが0件になっても
+  # bash 3.2のset -u下で"${raw_paths[@]}"展開がunbound variableに
+  # ならず、rc=0・「検査宣言合格: 0 件」で終わることを確認する。
+  local nockr_root nockr_taxonomy nockr_out nockr_rc=0
+  if ! nockr_root="$(mktemp -d "${TMPDIR:-/tmp}/validate-rule-definitions-self-test-nockr.XXXXXX" 2>/dev/null)" || [ -z "$nockr_root" ]; then
+    echo "[UNKNOWN] 一時ディレクトリの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  mkdir -p "${nockr_root}/agent-operations/ai-behavior"
+  cat > "${nockr_root}/agent-operations/parent.yml" <<'EOF'
+key: agent-operations
+title: AIエージェント運用
+EOF
+  cat > "${nockr_root}/agent-operations/ai-behavior/rule.md" <<'EOF'
+---
+key: ai-behavior
+title: AIエージェント行動規約
+parent: agent-operations
+summary: テスト用の概要。
+scope: always
+paths: ["**/*"]
+enforcement: advisory
+checkable: false
+checker: null
+uncheckableReason: 行動の是非は静的解析では判定できない。
+formatter: none
+status: approved
+origin: proposal
+workUnit: file
+---
+
+# t
+EOF
+  if ! nockr_taxonomy="$(mktemp "${TMPDIR:-/tmp}/validate-rule-definitions-self-test-nockr-taxonomy.XXXXXX" 2>/dev/null)" || [ -z "$nockr_taxonomy" ]; then
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
+  cat > "$nockr_taxonomy" <<'EOF'
+{"parents": [{"key":"agent-operations","children":[{"key":"ai-behavior"}]}]}
+EOF
+  nockr_out="$(validate_checker_declarations "$nockr_root" "$nockr_taxonomy" 2>&1)" || nockr_rc=$?
+  rm -rf "$nockr_root"
+  rm -f "$nockr_taxonomy"
+  if [ "$nockr_rc" -eq 0 ] && printf '%s' "$nockr_out" | grep -q '^検査宣言合格: 0 件のchecker本体を宣言済み$'; then
+    echo "  [PASS] checker-zero-root: 深さ3にcheckerが0件のルートでも空配列展開で落ちず検査宣言合格になる"
+  else
+    echo "  [FAIL] checker-zero-root: checkerが0件のルートで想定どおりに合格しない (rc=${nockr_rc})" >&2
+    printf '%s\n' "$nockr_out" | sed 's/^/    /' >&2
     rc=1
   fi
 

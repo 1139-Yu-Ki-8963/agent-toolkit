@@ -154,7 +154,7 @@ SELF_TEST_DIRS=()
 
 cleanup_self_test_dirs() {
   local dir
-  for dir in "${SELF_TEST_DIRS[@]}"; do
+  for dir in ${SELF_TEST_DIRS[@]+"${SELF_TEST_DIRS[@]}"}; do
     [ -n "$dir" ] || continue
     case "$dir" in
       "${TMPDIR:-/tmp}"/customer-facing-adequacy-self-test.*)

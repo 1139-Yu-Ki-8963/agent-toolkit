@@ -170,6 +170,12 @@ contains_japanese() {
 # （無ければ空文字）。$3に用語表由来の追加除外語（空白区切り）を渡せる。
 # python3には頼らずbashだけで判定する（python3が要るのはNFC正規化だけ） ---
 identifier_form_reasons() {
+  # macOS標準のbash3.2では、LC_COLLATEがen_US.UTF-8等のロケールのとき、
+  # caseパターンの文字クラス（[a-z]・[A-Z]）が大文字・小文字を区別せず
+  # 一致してしまう既知の不具合がある（規則5の遷移判定[a-z][A-Z]が実測で
+  # 誤判定していた）。本関数内だけCロケールに固定し、ASCIIの範囲どおりに
+  # 判定させる。
+  local LC_ALL=C
   local name="$1" id="$2" extra="${3:-}"
   local out=""
 
@@ -457,9 +463,11 @@ parse_args() {
       if [ ${#p_rest[@]} -ne 3 ]; then
         local joined=""
         local t
-        for t in "${p_rest[@]}"; do
-          joined="${joined:+$joined }$t"
-        done
+        if [ ${#p_rest[@]} -gt 0 ]; then
+          for t in "${p_rest[@]}"; do
+            joined="${joined:+$joined }$t"
+          done
+        fi
         arg_error "propose-引数不正" "$joined"
       fi
       propose_kind="${p_rest[0]}"
@@ -856,7 +864,11 @@ EOF
   r6="$(identifier_form_reasons "ID発行API" "/ids")"
   check "一覧-業務名-識別子形不可: orders一覧は不合格(規則4)" "$([ -n "$r1" ] && echo 0 || echo 1)"
   check "一覧-業務名-識別子形不可: getOrderList画面は不合格(規則5)" "$([ -n "$r2" ] && echo 0 || echo 1)"
-  check "一覧-業務名-識別子形不可: OrderListは不合格(規則2と規則4)" "$(case ",$r3," in *,2,*) case ",$r3," in *,4,*) echo 0 ;; *) echo 1 ;; esac ;; *) echo 1 ;; esac)"
+  # macOS標準のbash3.2では、$( )の中に1行のcase ... esacを書くとパーサが
+  # 誤ってesac以降を未解析のまま外へ漏らす既知の不具合があるため（実測:
+  # 入れ子の有無・多バイトの有無を問わず単発でも再現）、caseではなく
+  # [[ ]]のワイルドカード一致で判定する。
+  check "一覧-業務名-識別子形不可: OrderListは不合格(規則2と規則4)" "$([[ ",$r3," == *,2,* && ",$r3," == *,4,* ]] && echo 0 || echo 1)"
   check "一覧-業務名-識別子形不可(日本語判定): Web注文一覧は合格(日本語を含み識別子形でない)" "$([ -z "$r4" ] && echo 0 || echo 1)"
   check "一覧-業務名-識別子形不可: PayPay決済画面は合格" "$([ -z "$r5" ] && echo 0 || echo 1)"
   check "一覧-業務名-識別子形不可(日本語判定): ID発行APIは合格(日本語を含み略語は対象外)" "$([ -z "$r6" ] && echo 0 || echo 1)"
@@ -1214,6 +1226,19 @@ EOF
   bash "$0" "$w27d" --propose bogus 存在しない識別子 テスト > "$base/case27f.out" 2>"$base/case27f.err"
   local rc27f=$?
   check "入力不在-対象外の種別-試算-未知種別: 終了コード2でpropose-引数不正" "$([ "$rc27f" -eq 2 ] && grep -q 'propose-引数不正' "$base/case27f.err" && echo 0 || echo 1)"
+
+  # ============================================================
+  # ケース28: 一覧-業務名訂正-試算エラー-引数無し-検証
+  #   --propose の後に引数が1つも無い（p_restが0件）ときに、bash 3.2の
+  #   空配列展開の不具合（set -u下でunbound variable）で落ちず、
+  #   終了コード2・propose-引数不正（値は空）で止まることを検証する
+  # ============================================================
+  local w28="$base/case28"
+  build_fixture_ab "$w28"
+  bash "$0" "$w28" --propose > "$base/case28.out" 2>"$base/case28.err"
+  local rc28=$?
+  check "一覧-業務名訂正-試算エラー(引数無し): 終了コード2" "$([ "$rc28" -eq 2 ] && echo 0 || echo 1)"
+  check "一覧-業務名訂正-試算エラー(引数無し): 標準エラー出力" "$(grep -qF 'propose-引数不正:' "$base/case28.err" && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then

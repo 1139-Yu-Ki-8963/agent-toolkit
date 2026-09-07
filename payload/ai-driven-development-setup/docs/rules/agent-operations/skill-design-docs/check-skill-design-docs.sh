@@ -122,6 +122,19 @@ check_repo() {
     return 2
   fi
 
+  # macOS標準のbash3.2は連想配列（declare -A/local -A）を持たないため、
+  # 集合の判定はワークディレクトリ内のファイル（1行1キー）とgrep -Fxqの
+  # 完全一致検索で行う（check-business-names.shのfold_containsと同じ流儀）。
+  local work
+  work="$(mktemp -d "${TMPDIR:-/tmp}/check-skill-design-docs.XXXXXX")" || {
+    echo "[FAIL] 作業領域を作れません" >&2
+    return 2
+  }
+  # trap ... RETURNはbashの仕様上、check_repo自身の返りだけでなく以後に
+  # 呼ばれる他関数の返りにも残り続けるため使わない（自己テストのself_test内で
+  # 後続の関数呼び出しのたびに本trapが再実行され、スコープ外の$workを参照して
+  # unbound variableになった実測に基づく）。関数末尾で明示的に掃除する。
+
   local name bd dd ud
   while IFS= read -r name; do
     [ -n "$name" ] || continue
@@ -157,14 +170,14 @@ check_repo() {
       done
 
       # §1 テスト観点の観点キー一覧（1列目）を集める
-      local -A viewpoint_keys=()
+      : > "$work/viewpoint_keys.txt"
       local vrow
       while IFS= read -r vrow; do
         [ -n "$vrow" ] || continue
         split_cols "$vrow"
         local vk
         vk="$(trim "${__cols[0]:-}")"
-        [ -n "$vk" ] && viewpoint_keys["$vk"]=1
+        [ -n "$vk" ] && printf '%s\n' "$vk" >> "$work/viewpoint_keys.txt"
       done < <(extract_table_rows "$ud" "## §1 テスト観点")
 
       # 自己テストの表: スクリプト | 件数 の2列。「## §7 網羅基準」節の内側
@@ -186,7 +199,7 @@ check_repo() {
       # するため、先に本節で実行できるスクリプトの一覧と実物の出力を集めて
       # おく（2026-09-06追加: 件数という集計値の一致だけでは、自己テストに
       # ケースを足しても§2へ足さない抜け道を検出できなかった）。
-      local -A actual_case_set=()
+      : > "$work/actual_case_set.txt"
       local resolvable_count=0
       local srow script expect actual
       while IFS= read -r srow; do
@@ -263,9 +276,9 @@ check_repo() {
             | sed -E 's/^[[:space:]]*\[(PASS|FAIL)\][[:space:]]*//; s/^(PASS|FAIL): ?//; s/（期待終了コード[^）]*）$//')"
           [ -n "$case_name" ] || continue
           if [ "$resolvable_count" -gt 1 ]; then
-            actual_case_set["$script $case_name"]=1
+            printf '%s\n' "$script $case_name" >> "$work/actual_case_set.txt"
           else
-            actual_case_set["$case_name"]=1
+            printf '%s\n' "$case_name" >> "$work/actual_case_set.txt"
           fi
         done < <(
           if [[ "$actual" == [0-9]* ]]; then
@@ -284,7 +297,7 @@ check_repo() {
       # 表記は`scripts/a.sh`のようにサブディレクトリ接頭辞を伴う実物と、
       # `a.sh`のように伴わない実物の両方があるため、文字列同士ではなく
       # resolve_script_pathで解決した実ファイルパス同士で突き合わせる。
-      local -A registered_paths=()
+      : > "$work/registered_paths.txt"
       local rrow rscript rcleaned rpath
       while IFS= read -r rrow; do
         [ -n "$rrow" ] || continue
@@ -293,7 +306,7 @@ check_repo() {
         [ -n "$rscript" ] || continue
         rcleaned="$(clean_script_ref "$rscript")"
         rpath="$(resolve_script_path "$root" "$name" "$rcleaned")"
-        [ -n "$rpath" ] && registered_paths["$rpath"]=1
+        [ -n "$rpath" ] && printf '%s\n' "$rpath" >> "$work/registered_paths.txt"
       done < <(extract_table_rows "$ud" "## §7 網羅基準")
 
       local func_dir="$root/docs/skills/$name"
@@ -302,7 +315,7 @@ check_repo() {
         for sfile in "$func_dir"/scripts/*.sh; do
           [ -f "$sfile" ] || continue
           grep -q -- '--self-test' "$sfile" 2>/dev/null || continue
-          if [ -z "${registered_paths[$sfile]:-}" ]; then
+          if ! grep -Fxq -- "$sfile" "$work/registered_paths.txt" 2>/dev/null; then
             fail "自己テスト-未登録: $name scripts/$(basename "$sfile")"
           fi
         done
@@ -316,14 +329,14 @@ check_repo() {
       if [ -f "$func_dir/tests/test-self-tests.sh" ]; then
         local fn_count
         fn_count="$(grep -cE '^[a-zA-Z_][a-zA-Z0-9_]*\(\)[[:space:]]*\{' "$func_dir/tests/test-self-tests.sh" 2>/dev/null)"
-        if [ "${fn_count:-0}" -gt 1 ] && [ -z "${registered_paths[$func_dir/tests/test-self-tests.sh]:-}" ]; then
+        if [ "${fn_count:-0}" -gt 1 ] && ! grep -Fxq -- "$func_dir/tests/test-self-tests.sh" "$work/registered_paths.txt" 2>/dev/null; then
           fail "自己テスト-未登録: $name tests/test-self-tests.sh"
         fi
       fi
 
       # §2 テストケース一覧: 10列（キー・番号・機能・ケースの名前・対応する
       # 観点のキー・区分・前提・操作・期待結果・自己テストのケース名）
-      local -A expected_case_set=()
+      : > "$work/expected_case_set.txt"
       local crow
       while IFS= read -r crow; do
         [ -n "$crow" ] || continue
@@ -338,7 +351,7 @@ check_repo() {
         if [ -z "$col_pre" ] || [ -z "$col_op" ] || [ -z "$col_exp" ]; then
           fail "単体テスト設計書の§2に前提・操作・期待結果が無い行がある: $name / ${col_key:-(キー不明)}"
         fi
-        if [ -n "$col_vp" ] && [ -z "${viewpoint_keys[$col_vp]:-}" ]; then
+        if [ -n "$col_vp" ] && ! grep -Fxq -- "$col_vp" "$work/viewpoint_keys.txt" 2>/dev/null; then
           fail "単体テスト設計書の§2の観点キーが§1に無い: $name / ${col_key:-(キー不明)} -> $col_vp"
         fi
         if [ -z "$col_case" ]; then
@@ -346,19 +359,20 @@ check_repo() {
         elif [ "$col_case" = "（レビュー）" ]; then
           :
         else
-          expected_case_set["$col_case"]=1
-          if [ -z "${actual_case_set[$col_case]:-}" ]; then
+          printf '%s\n' "$col_case" >> "$work/expected_case_set.txt"
+          if ! grep -Fxq -- "$col_case" "$work/actual_case_set.txt" 2>/dev/null; then
             fail "単体テスト設計書の§2のケースが自己テストに無い: $name / ${col_key:-(キー不明)} -> $col_case"
           fi
         fi
       done < <(extract_table_rows "$ud" "## §2 テストケース一覧")
 
       local actual_name
-      for actual_name in "${!actual_case_set[@]}"; do
-        if [ -z "${expected_case_set[$actual_name]:-}" ]; then
+      while IFS= read -r actual_name; do
+        [ -n "$actual_name" ] || continue
+        if ! grep -Fxq -- "$actual_name" "$work/expected_case_set.txt" 2>/dev/null; then
           fail "単体テスト設計書の自己テストのケースが§2に無い: $name / $actual_name"
         fi
-      done
+      done < <(LC_ALL=C sort -u "$work/actual_case_set.txt" 2>/dev/null)
     fi
   done <<< "$names"
 
@@ -377,6 +391,7 @@ check_repo() {
     fi
   fi
 
+  rm -rf "$work"
   return 0
 }
 

@@ -413,7 +413,7 @@ pillar_missing_required() {
   local required_unit_array=($required_csv)
   IFS="$saved_ifs"
   local one_unit
-  for one_unit in "${required_unit_array[@]}"; do
+  for one_unit in ${required_unit_array[@]+"${required_unit_array[@]}"}; do
     [ -n "$one_unit" ] || continue
     if [ "$(unit_skill_count "$one_unit")" -eq 0 ]; then
       missing_list="${missing_list}${one_unit} "
@@ -432,7 +432,7 @@ pillar_status_of() {
     local combined_unit_array=($required_csv $optional_csv)
     IFS="$saved_ifs"
     local combined_unit
-    for combined_unit in "${combined_unit_array[@]}"; do
+    for combined_unit in ${combined_unit_array[@]+"${combined_unit_array[@]}"}; do
       [ -n "$combined_unit" ] || continue
       if [ "$combined_unit" != "$unit_filter" ]; then
         printf '対象外'
@@ -470,7 +470,7 @@ pillar_status_of() {
   local optional_unit_array=($optional_csv)
   IFS="$saved_ifs2"
   local optional_unit
-  for optional_unit in "${optional_unit_array[@]}"; do
+  for optional_unit in ${optional_unit_array[@]+"${optional_unit_array[@]}"}; do
     [ -n "$optional_unit" ] || continue
     if [ "$(unit_skill_count "$optional_unit")" -gt 0 ]; then
       for ((index_position = 0; index_position < ${#SKILL_NAMES[@]}; index_position++)); do
@@ -554,7 +554,7 @@ missing_two_unit_skills() {
 
 missing_orchestration_literal() {
   local skills_root="$1" outer_index inner_index collected_lines="" this_skill_name this_skill_body requires_line_list one_other_name
-  local all_skill_names=("${SKILL_NAMES[@]}")
+  local all_skill_names=(${SKILL_NAMES[@]+"${SKILL_NAMES[@]}"})
   for ((outer_index = 0; outer_index < ${#SKILL_NAMES[@]}; outer_index++)); do
     [ "${SKILL_TYPES[$outer_index]}" = "orchestration" ] || continue
     this_skill_name="${SKILL_NAMES[$outer_index]}"
@@ -728,7 +728,7 @@ ${validate_output}
       local optional_display_array=($optional_csv)
       IFS="$saved_ifs3"
       local one_optional_unit
-      for one_optional_unit in "${optional_display_array[@]}"; do
+      for one_optional_unit in ${optional_display_array[@]+"${optional_display_array[@]}"}; do
         [ -n "$one_optional_unit" ] || continue
         if [ "$(unit_skill_count "$one_optional_unit")" -eq 0 ]; then
           optional_display="${optional_display}${one_optional_unit}(任意・未着手) "
@@ -1139,6 +1139,29 @@ INNER_SHARED_NG_EOF
     printf '%s\n' "$output_14" | sed 's/^/    /' >&2
   fi
   rm -rf "${temp_root:?}/docs/skills/setup-alpha" "${temp_root:?}/docs/skills/setup-beta" "${temp_root:?}/docs/skills/setup-gamma"
+
+  # ケース15: docs/skillsが「*-shared」だけ（SKILL.mdを持つ機能が0件）でも、
+  # bash 3.2のset -u下で"${SKILL_NAMES[@]}"の空配列展開（機能0件の分岐で
+  # missing_orchestration_literalへ到達する経路）がunbound variableで
+  # 落ちないことを確認する（第3版の判定役の指摘）。
+  rm -rf "${temp_root:?}"/docs/skills
+  mkdir -p "${temp_root}/docs/skills/reverse-shared/tests"
+  cat > "${temp_root}/docs/skills/reverse-shared/tests/test-dummy.sh" <<'INNER_SHARED_ONLY_EOF'
+#!/usr/bin/env bash
+exit 0
+INNER_SHARED_ONLY_EOF
+  chmod +x "${temp_root}/docs/skills/reverse-shared/tests/test-dummy.sh"
+  st_reset_pillars "$temp_root"
+  local output_15 exit_code_15=0
+  output_15="$("$0" "$temp_root" 2>&1)" || exit_code_15=$?
+  if ! printf '%s' "$output_15" | grep -q 'unbound variable' \
+    && printf '%s' "$output_15" | grep -q '統括直書きの機能名 | 0'; then
+    pass_count=$((pass_count+1)); echo "  [PASS] ケース15: 機能0件（sharedだけ）でも空配列展開で落ちない"
+  else
+    fail_count=$((fail_count+1)); echo "  [FAIL] ケース15: 機能0件（sharedだけ）で空配列展開が落ちる (exit ${exit_code_15})" >&2
+    printf '%s\n' "$output_15" | sed 's/^/    /' >&2
+  fi
+  rm -rf "${temp_root:?}/docs/skills/reverse-shared"
 
   rm -rf "$temp_root"
 
