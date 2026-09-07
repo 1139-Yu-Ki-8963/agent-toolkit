@@ -310,6 +310,9 @@ run_case "plan-units.sh --self-test" bash "${SHARED_DIR}/scripts/plan-units.sh" 
 run_case "check-basic-phase.sh --self-test" bash "${SHARED_DIR}/scripts/check-basic-phase.sh" --self-test
 run_case "record-acceptance.sh --self-test" bash "${SHARED_DIR}/scripts/record-acceptance.sh" --self-test
 run_case "check-acceptance-record.sh --self-test" bash "${SHARED_DIR}/scripts/check-acceptance-record.sh" --self-test
+# 第1回改善指示書1-35追記: 全機能のSKILL.mdが書くコマンドを実際に走らせ、
+# 使い方の誤り・要確認-判定不能・異常終了のいずれにも該当しないことを確かめる。
+run_case "全機能の手順書のコマンドに引数不足が無い" bash "${SCRIPT_DIR}/test-skill-commands.sh" "${SHARED_DIR}/.."
 if [ -n "$DESIGN_DIR" ]; then
   run_case "定義と複製が一致する: unit-kinds.json" cmp -s "${DESIGN_DIR}/unit-kinds.json" "${SHARED_DIR}/references/unit-kinds.json"
   run_case "定義と複製が一致する: output-layout.json" cmp -s "${DESIGN_DIR}/output-layout.json" "${SHARED_DIR}/references/output-layout.json"

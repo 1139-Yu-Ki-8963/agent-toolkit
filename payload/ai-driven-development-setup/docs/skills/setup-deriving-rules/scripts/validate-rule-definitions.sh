@@ -319,16 +319,26 @@ body_extract() {
 # スカラー値（"key: value" 形式）を取り出す。無ければ空文字。
 fm_get_scalar() {
   local body="$1" key="$2"
+  # awk が途中で exit すると本文が長いとき printf が SIGPIPE を受け、
+  # set -o pipefail 下で rc=141 になる（第1回改善指示書1-35追記の検査で実測）。
+  # 最後まで読み切ってから最初の一致だけを出す。
   printf '%s\n' "$body" | awk -v k="$key" '
-    index($0, k ": ") == 1 { sub("^" k ": ", ""); print; exit }
-    $0 == k ":" { print ""; exit }
+    done { next }
+    index($0, k ": ") == 1 { sub("^" k ": ", ""); print; done = 1; next }
+    $0 == k ":" { print ""; done = 1; next }
   '
 }
 
 # key が front matter 本体に行として存在するかどうか（値が空でも存在扱い）。
 fm_has_key() {
   local body="$1" key="$2"
-  printf '%s\n' "$body" | grep -qE "^${key}:( |$)"
+  # grep -q は一致した時点で読むのを止めるため、本文が長いとき printf が
+  # SIGPIPE を受け set -o pipefail 下で rc=141 になる（実測）。awk で最後まで
+  # 読み切ってから判定する。
+  printf '%s\n' "$body" | awk -v k="$key" '
+    index($0, k ":") == 1 && (length($0) == length(k) + 1 || substr($0, length(k) + 2, 1) == " ") { f = 1 }
+    END { exit f ? 0 : 1 }
+  '
 }
 
 # 配列値（"key: [...]" の1行表記のみ対応）を取り出す。
@@ -597,9 +607,12 @@ CHKEOF
   if [ "$v_doc_type" != "context" ]; then
     # 規則-検査列（根拠を別資料へ分ける3列と、従来の4列を受理する）
     local rule_table_header
+    # exit すると本文が長いとき printf が SIGPIPE を受け rc=141 になる（実測）。
+    # フラグで以降を読み飛ばし、最後まで読み切ってから最初の一致だけを出す。
     rule_table_header="$(printf '%s\n' "$doc_body" | awk '
+      done { next }
       /^## 規則/{found=1; next}
-      found && /^\|/{print; exit}
+      found && /^\|/{print; done=1; next}
     ')"
     if [ "$rule_table_header" != "| 規則 | 内容 | 検査 |" ] \
       && [ "$rule_table_header" != "| 規則 | 内容 | 根拠 | 検査 |" ]; then
@@ -616,31 +629,40 @@ CHKEOF
     # 比較が常に真になる不具合があるため、バイト単位の比較へ固定して回避する
     # （コミット eae9816d6f4a735a8881a592dab58db993b4f566 で本行を含む5箇所の
     # LC_ALL=C指定漏れが実際に発見・修正された。手元で問題が再現しないことを理由に外すな）。
+    # exit すると本文が長いとき printf が SIGPIPE を受け rc=141 になる（実測）。
+    # フラグで以降を読み飛ばし、最後まで読み切ってから同じ結果を出す。
     local unlabeled_cells
     unlabeled_cells="$(printf '%s\n' "$doc_body" | LC_ALL=C awk -F'|' '
+      done { next }
       /^## 規則$/{in_rule=1; next}
-      in_rule && /^## /{exit}
+      in_rule && /^## /{done=1; next}
       in_rule && /^\|/{
         seen_table=1
         if ($0 ~ /^\|[-| ]+$/) next
         head=$2; gsub(/^[ \t]+|[ \t]+$/, "", head)
         if (head == "規則") {
           header_count++
-          if (header_count >= 2) exit
+          if (header_count >= 2) { done=1; next }
           next
         }
         cell=$(NF-1); gsub(/^[ \t]+|[ \t]+$/, "", cell)
         if (cell !~ /^(静的解析|テスト|レビュー|判定不能):/) print cell
         next
       }
-      in_rule && seen_table && NF && $0 !~ /^[ \t]*$/{exit}
+      in_rule && seen_table && NF && $0 !~ /^[ \t]*$/{done=1; next}
     ')"
     if [ -n "$unlabeled_cells" ]; then
       add_failure "$rule_file" "検査-手段明示" "'## 規則' の表に検査の手段が明示されていない行がある。検査列は 静的解析: / テスト: / レビュー: / 判定不能: のいずれかで始める"
     fi
 
     # このプロジェクトの規則-存在（警告のみ。生成を止めない）
-    if ! printf '%s\n' "$doc_body" | grep -q '^## このプロジェクトの規則$'; then
+    # grep -q は一致した時点で読むのを止めるため、本文が長いとき printf が
+    # SIGPIPE を受け rc=141 になりうる（実測）。awk で最後まで読み切って判定する。
+    # LC_ALL=C: デフォルトロケールのmacOS標準awk（BSD awk）は多バイト文字列の
+    # 等値比較を誤判定し、両辺が日本語だと比較が常に真になる不具合があるため、
+    # バイト単位の比較へ固定して回避する（本ファイルの他のLC_ALL=C指定と同じ理由。
+    # 実測: LC_ALL=C を付け忘れて自己テストの project-section-missing が偽陰性になった）。
+    if ! printf '%s\n' "$doc_body" | LC_ALL=C awk '$0 == "## このプロジェクトの規則" { f = 1 } END { exit f ? 0 : 1 }'; then
       add_warning "$rule_file" "このプロジェクトの規則-存在" "'## このプロジェクトの規則' の節が無い。リバース解析が起こした規則の置き場が存在しない"
     fi
   fi
@@ -1400,6 +1422,96 @@ EOF
   st_case "derived-path-duplicate" 1 "派生先-重複" || rc=1
   st_case "checker-exclusive" 1 "checker-専有" || rc=1
   st_case "checker-duplicate" 1 "checker-一意" || rc=1
+
+  # 本文が長い（パイプの緩衝域 64KB を超える）front matter でも、鍵の判定が
+  # SIGPIPE で落ちない（第1回改善指示書1-35追記: 実物の docs/rules で rc=141）
+  local long_body long_val long_rc=0
+  long_body="$(printf 'name: long-case\n'; awk 'BEGIN { for (i = 0; i < 4000; i++) printf "line %d: %s\n", i, "abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789" }')"
+  set +e
+  (
+    set -euo pipefail
+    fm_has_key "$long_body" "name"
+    long_val="$(fm_get_scalar "$long_body" "name")"
+    [ "$long_val" = "long-case" ]
+    if fm_has_key "$long_body" "missing"; then exit 1; fi
+  )
+  long_rc=$?
+  set -e
+  if [ "$long_rc" -eq 0 ]; then
+    echo "  [PASS] frontmatter-長い本文: 本文が64KBを超えても鍵の判定がSIGPIPEで落ちず終了コード0"
+  else
+    echo "  [FAIL] frontmatter-長い本文: 鍵の判定が終了コード${long_rc}で落ちる（SIGPIPEなら141）" >&2
+    rc=1
+  fi
+
+  # $doc_body 経由の3箇所（規則-検査列・検査-手段明示・このプロジェクトの規則-存在。
+  # L610・L630・L653）も、64KBを超える本文でSIGPIPEにより落ちないことを確かめる。
+  # 実物のwork-records/rule.mdは配備先ごとにvalidate-rule-definitions.sh自身からの
+  # 相対位置が変わり自己完結しないため、この3箇所を含むvalidate_one_ruleを直接、
+  # 合成した長い本文（実物と同じく64KBを超える）で呼ぶ形を取る。
+  local docbody_root docbody_rc=0 docbody_out=""
+  if ! docbody_root="$(mktemp -d "${TMPDIR:-/tmp}/validate-rule-definitions-self-test-docbody.XXXXXX" 2>/dev/null)" || [ -z "$docbody_root" ]; then
+    echo "  [FAIL] 規約本文-長い本文: 一時ディレクトリの作成に失敗した" >&2
+    rc=1
+  else
+    mkdir -p "${docbody_root}/agent-operations/work-records"
+    {
+      cat <<'DOCBODY_HEAD'
+---
+key: work-records
+title: 長い本文の自己テスト用規約
+parent: agent-operations
+summary: 自己テスト用の合成本文。
+scope: always
+paths: []
+enforcement: advisory
+checkable: false
+checker: null
+uncheckableReason: 自己テスト用のため判定不能。
+formatter: none
+status: approved
+origin: manual
+workUnit: process
+---
+# 長い本文の自己テスト用規約
+
+## 概要
+
+自己テスト用の概要。
+
+## 規則
+
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 例 | 例 | 静的解析: 例 |
+
+DOCBODY_HEAD
+      awk 'BEGIN { for (i = 0; i < 4000; i++) printf "line %d: %s\n", i, "abcdefghijklmnopqrstuvwxyz0123456789abcdefghijklmnopqrstuvwxyz0123456789" }'
+      cat <<'DOCBODY_TAIL'
+
+## このプロジェクトの規則
+
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 観測なし | 例 | 例 |
+
+## 違反時の手順
+
+1. 例
+DOCBODY_TAIL
+    } > "${docbody_root}/agent-operations/work-records/rule.md"
+    docbody_out="$( ( set -euo pipefail
+      validate_one_rule "${docbody_root}/agent-operations/work-records/rule.md"
+    ) 2>&1 )" || docbody_rc=$?
+    rm -rf "$docbody_root"
+  fi
+  if [ "$docbody_rc" -eq 0 ]; then
+    echo "  [PASS] 規約本文-長い本文: 64KBを超える rule.md でも検査が SIGPIPE で落ちず終了コード0"
+  else
+    echo "  [FAIL] 規約本文-長い本文: 64KBを超える rule.md の検査が終了コード${docbody_rc}で落ちる（SIGPIPEなら141）" >&2
+    printf '%s\n' "$docbody_out" | sed 's/^/    /' >&2
+    rc=1
+  fi
 
   if [ "$rc" -eq 0 ]; then
     echo "self-test 全項目 PASS"
