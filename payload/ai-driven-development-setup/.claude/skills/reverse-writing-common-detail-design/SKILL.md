@@ -40,7 +40,7 @@ requires: [reverse-writing-basic-design]
 5. 本文に実装の位置（file:line）を書かない。仕様か現行実装かを決められない節は、既定を付けて要確認事項一覧に書き、確認事項に登録する
 6. 検査する
    ```bash
-   bash scripts/check-common-detail-design.sh <対象リポジトリのルート>
+   bash scripts/check-common-detail-design.sh <対象リポジトリのルート> --run <実行フォルダ>
    ```
 7. 不合格の項目を手順4からやり直す（工程内-やり直し）。不合格の理由が名指しする項目を、共通方式の実装を再度読んで書き出す。理由に無い箇所は変えない。欠けが無くなるまで回数の上限なく戻る
 

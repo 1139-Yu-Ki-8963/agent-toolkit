@@ -39,7 +39,7 @@ requires: [reverse-writing-common-detail-design]
 1. `bash ../reverse-shared/scripts/design-root.sh <実行フォルダ>` で設計書の置き場を読む
 2. 次を実行し、終了コードが0であることを確かめる。0でなければ止まり、工程2-7へ差し戻す
    ```bash
-   bash ../reverse-writing-common-detail-design/scripts/check-common-detail-design.sh <対象リポジトリのルート> --design-root <設計書の置き場>
+   bash ../reverse-writing-common-detail-design/scripts/check-common-detail-design.sh <対象リポジトリのルート> --design-root <設計書の置き場> --run <実行フォルダ>
    ```
 3. 種別ごとに、`bash ../reverse-shared/scripts/list-units-of.sh <対象リポジトリのルート> <種別>` で一覧を得る
 4. 単位ごとに次を実行する。終了コードが0でなければ止まり、工程2-5・2-6（読み取り結果の不足なら工程2-4も）へ差し戻す

@@ -68,7 +68,7 @@ passck() {
 }
 
 usage_error() {
-  echo "使い方: check-common-detail-design.sh <対象リポジトリのルート> [--design-root <設計書のルート>] [--map <調査と検出条件の定義書のパス>]" >&2
+  echo "使い方: check-common-detail-design.sh <対象リポジトリのルート> [--design-root <設計書のルート>] [--map <調査と検出条件の定義書のパス>] [--run <実行フォルダ>]" >&2
   echo "        check-common-detail-design.sh --self-test" >&2
   exit 2
 }
