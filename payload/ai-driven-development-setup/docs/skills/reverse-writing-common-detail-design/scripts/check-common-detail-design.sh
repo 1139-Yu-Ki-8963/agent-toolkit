@@ -5,10 +5,10 @@ set -u
 #
 # 目的:
 #   共通処理の詳細設計書は、調査と検出条件の定義書の節7「共通方式の場所」で場所が「なし」でない
-#   方式ごとに `## §N <方式>` の節を持ち、各節に位置づけの行と6つの`###`小節
+#   方式ごとに `## §N <方式>` の節を持ち、各節に6つの`###`小節
 #   （クラス設計・メソッド設計・ロジック設計・戻り値と引数・エラー処理・
-#   データ定義）を持つ。工程2-7の完了条件（file:lineが無い・各節に位置づけが
-#   ある・未記入が無い）を機械で確かめる。
+#   データ定義）を持つ。工程2-7の完了条件（file:lineが無い・未記入が無い）を
+#   機械で確かめる。
 #
 # 使い方:
 #   check-common-detail-design.sh <対象リポジトリのルート> [--design-root <設計書のルート>] [--map <調査と検出条件の定義書のパス>] [--run <実行フォルダ>]
@@ -34,7 +34,6 @@ set -u
 #   調査と検出条件の定義書-不在        調査と検出条件の定義書（--map）が存在しない
 #   文書-不在        共通処理の詳細設計書.md が存在しない
 #   節-欠落          場所が「なし」でない方式の「## §N <方式>」見出しが無い
-#   位置づけ-欠落    上記見出しの直後に位置づけの行が無い
 #   小節-欠落        節の中に6つの`###`小節のいずれかが無い
 #   未記入-残存      `<...>` 形式のプレースホルダーが残っている
 #   位置-禁止        file:line形式の実装位置の記述がある
@@ -127,14 +126,6 @@ check_doc() {
       continue
     fi
     passck
-
-    local next_nonblank
-    next_nonblank="$(awk -v start="$heading_line" 'NR>start && NF>0 {print; exit}' "$doc")"
-    if [[ "$next_nonblank" != "**この節の位置づけ: "* ]]; then
-      fail "位置づけ-欠落" "${doc}: 「${houshiki}」の直後に位置づけの行がありません"
-    else
-      passck
-    fi
 
     local next_h2 span
     next_h2="$(awk -v start="$heading_line" 'NR>start && /^## /{print NR; exit}' "$doc")"
@@ -251,8 +242,6 @@ MAPEOF
 
 ## §1 認証
 
-**この節の位置づけ: 現行実装**
-
 ### クラス設計
 記入済み
 
@@ -272,8 +261,6 @@ MAPEOF
 記入済み
 
 ## §2 権限
-
-**この節の位置づけ: 現行実装**
 
 ### クラス設計
 記入済み
@@ -333,6 +320,7 @@ DOCEOF
   write_doc_good
   write_record_stub 0
   assert_exit "合格" 0 bash "$under_test" "$target"
+  assert_exit "位置づけ-不要: 位置づけの行が無い文書が合格する" 0 bash "$under_test" "$target"
 
   # 判定不能-検査基盤不在（スタブそのものを消す）
   rm -f "${record_dir}/check-acceptance-record.sh"
@@ -344,13 +332,11 @@ DOCEOF
   assert_contains "不合格-合格記録なし: 合格記録-不在が出る" "合格記録-不在"
   write_record_stub 0
 
-  # 不合格（複合）: 節の欠落・位置づけの欠落・小節の欠落・未記入・位置・追記章
+  # 不合格（複合）: 節の欠落・小節の欠落・未記入・位置・追記章
   cat > "${target}/docs/design/common/共通処理の詳細設計書.md" <<'BADEOF'
 # 共通処理の詳細設計書
 
 ## §1 認証
-
-位置づけの行がありません
 
 ### クラス設計
 記入済み
@@ -385,7 +371,6 @@ src/app/auth.ts:42 を参照する。
 BADEOF
   assert_exit "不合格-複合" 1 bash "$under_test" "$target"
   assert_contains "不合格-複合: 節-欠落（権限）が出る" "節-欠落"
-  assert_contains "不合格-複合: 位置づけ-欠落が出る" "位置づけ-欠落"
   assert_contains "不合格-複合: 小節-欠落（データ定義）が出る" "小節-欠落"
   assert_contains "不合格-複合: 未記入-残存が出る" "未記入-残存"
   assert_contains "不合格-複合: 位置-禁止が出る" "位置-禁止"

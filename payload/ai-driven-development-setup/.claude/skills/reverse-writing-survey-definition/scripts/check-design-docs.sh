@@ -5,7 +5,7 @@ set -u
 #
 # 目的:
 #   要件定義書・共通設計文書は規約「設計書の書き方の決まり」の内容を節に
-#   1対1で持つ。見出しの欠落・追記章・省略記載・位置づけの行の欠落・未記入
+#   1対1で持つ。見出しの欠落・追記章・省略記載・未記入
 #   プレースホルダーの残存・実装位置(file:line)の記述を機械で検出する。
 #
 # 使い方:
@@ -18,8 +18,6 @@ set -u
 # 検査キー（内容を要約した意味語。連番禁止）:
 #   節-欠落        sectionsの各見出しが「## <節名>」として順にある
 #   見出し-欠落    requiredHeadingsの各語を含む見出しがある
-#   位置づけ-欠落  placementLineがtrue（または要件定義書）の文書で、各§節見出しの
-#                  直後に「**この節の位置づけ: 」で始まる行がある
 #   追記章-禁止    forbiddenChapterPrefixesで始まる見出しが無い
 #   省略-禁止      forbiddenPhrasesが本文に無い
 #   末尾-欠落      requiredTailSectionsの見出しがある
@@ -110,29 +108,6 @@ check_doc() {
     fi
   done
   [ "$n_req" -gt 0 ] 2>/dev/null && [ "$ok_req" -eq 1 ] && passck
-
-  # 位置づけ-欠落
-  local placement_line
-  placement_line="$(jq -r --arg k "$base" '.[$k].placementLine' "$json")"
-  if [ "$placement_line" = "true" ] || [ "$base" = "要件定義書" ]; then
-    local ok_place=1
-    for ((i=0; i<n_sections; i++)); do
-      local s
-      s="$(jq -r --arg k "$base" --argjson i "$i" '.[$k].sections[$i]' "$json")"
-      local heading_line_no
-      heading_line_no="$(grep -n -F "## ${s}" "$file" | head -1 | cut -d: -f1)"
-      if [ -z "$heading_line_no" ]; then
-        continue
-      fi
-      local next_nonblank
-      next_nonblank="$(awk -v start="$heading_line_no" 'NR>start && NF>0 {print; exit}' "$file")"
-      if [[ "$next_nonblank" != "**この節の位置づけ: "* ]]; then
-        fail "位置づけ-欠落" "${file}: 「## ${s}」の直後に位置づけの行がありません"
-        ok_place=0
-      fi
-    done
-    [ "$ok_place" -eq 1 ] && passck
-  fi
 
   # 追記章-禁止
   local n_forbid
@@ -269,6 +244,7 @@ run_self_test() {
     filled_paths+=("${filled_dir}/${name}.md")
   done
   assert_exit "合格-完成形" 0 bash "$0" "${filled_paths[@]}"
+  assert_exit "位置づけ-不要: 位置づけの行が無い文書が合格する" 0 bash "$0" "${filled_paths[@]}"
 
   # 不合格-様式のまま
   assert_exit "不合格-様式のまま" 1 bash "$0" "${doc_paths[0]}"

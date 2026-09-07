@@ -26,8 +26,6 @@ set -u
 #                  （場所がフォルダなら配下のファイルを走査する）
 #   節-欠落        環境構築手順書の見出しが規定の9個・順序と一致しない
 #                  （§1〜§7 ＋ 要確認事項一覧 ＋ 関連資料）
-#   位置づけ-欠落  環境構築手順書の§1〜§7の直後に「**この節の位置づけ: 」で
-#                  始まり「**」で終わる行が無い（理由を添えた形も合格）
 #   未記入-残存    環境構築手順書に「<...>」形式のプレースホルダーが残っている
 #   位置-禁止      環境構築手順書にfile:line形式の実装位置の記述がある
 #   秘密-混入      環境構築手順書に「=」の右へ20字以上の英数字が続く記述がある
@@ -220,27 +218,6 @@ check_foundation_guides() {
     fail "節-欠落" "見出しが規定の9個・順序と一致しません（実際: $(printf '%s' "$actual_joined" | tr '\n' '/')）"
   fi
 
-  # 位置づけ-欠落 (§1〜§7)
-  local ok_place=1
-  local h
-  for h in "## §1 前提" "## §2 取得" "## §3 依存の導入" "## §4 環境の値" "## §5 起動" "## §6 テスト" "## §7 よくある失敗"; do
-    local heading_line_no
-    heading_line_no="$(grep -n -F "$h" "$env_file" | head -1 | cut -d: -f1)"
-    if [ -z "$heading_line_no" ]; then
-      continue
-    fi
-    local next_nonblank
-    next_nonblank="$(awk -v start="$heading_line_no" 'NR>start && NF>0 {print; exit}' "$env_file")"
-    case "$next_nonblank" in
-      "**この節の位置づけ: "*"**") ;;
-      *)
-        fail "位置づけ-欠落" "「${h}」の直後に位置づけの行がありません"
-        ok_place=0
-        ;;
-    esac
-  done
-  [ "$ok_place" -eq 1 ] && passck
-
   # 未記入-残存（二重引用符で囲まれた範囲は除く。第1回改善指示書1-36）
   local placeholder_lines
   placeholder_lines="$(awk '
@@ -327,43 +304,29 @@ TECHEOF
 
 ## §1 前提
 
-**この節の位置づけ: 現行実装**
-
 Node 20を前提とする。
 
 ## §2 取得
-
-**この節の位置づけ: 現行実装**
 
 git cloneで取得する。
 
 ## §3 依存の導入
 
-**この節の位置づけ: 現行実装**
-
 npm installを実行する。
 
 ## §4 環境の値
-
-**この節の位置づけ: 現行実装**
 
 環境変数の一覧は確認事項へ登録する。
 
 ## §5 起動
 
-**この節の位置づけ: 現行実装**
-
 npm run devを実行する。
 
 ## §6 テスト
 
-**この節の位置づけ: 現行実装**
-
 npm testを実行する。
 
 ## §7 よくある失敗
-
-**この節の位置づけ: 現行実装**
 
 依存の導入漏れに注意する。
 
@@ -442,18 +405,10 @@ ENVEOF
   assert_exit "不合格-節の欠落" 1 bash "$0" "$root_sec"
   assert_contains "不合格-節の欠落: 節-欠落が出る" "節-欠落"
 
-  # 不合格-位置づけ欠落
-  local root_place="${tmp}/target-place"
-  build_target "$root_place"
-  perl -i -pe 'BEGIN{$done=0} if (!$done && /^\*\*この節の位置づけ: 現行実装\*\*$/) { $_ = "位置づけの行を書き忘れた\n"; $done=1 }' "${root_place}/docs/design/common/環境構築手順書.md"
-  assert_exit "不合格-位置づけ欠落" 1 bash "$0" "$root_place"
-  assert_contains "不合格-位置づけ欠落: 位置づけ-欠落が出る" "位置づけ-欠落"
-
-  # 合格-位置づけに理由を添えた形
-  local root_reason="${tmp}/target-reason"
-  build_target "$root_reason"
-  perl -i -pe 'BEGIN{$done=0} if (!$done && /^\*\*この節の位置づけ: 現行実装\*\*$/) { $_ = "**この節の位置づけ: 現行実装。今の作りを記録している**\n"; $done=1 }' "${root_reason}/docs/design/common/環境構築手順書.md"
-  assert_exit "合格-位置づけに理由を添えた形" 0 bash "$0" "$root_reason"
+  # 位置づけ-不要: 位置づけの行が無い文書が合格する
+  local root_noplace="${tmp}/target-noplace"
+  build_target "$root_noplace"
+  assert_exit "位置づけ-不要: 位置づけの行が無い文書が合格する" 0 bash "$0" "$root_noplace"
 
   # 不合格-未記入残存
   local root_blank="${tmp}/target-blank"

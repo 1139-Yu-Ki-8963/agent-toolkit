@@ -8,7 +8,7 @@ set -u
 # 目的:
 #   基本設計書はAIが読み取り結果を業務の言葉に写して書くため文面は毎回変わる。
 #   詳細設計へ進んでよいかを判定するために機械で読める部分（必須節の順序・
-#   位置づけの行・未記入の不在・実装位置の不在・読み取り結果の転記・確認事項の
+#   未記入の不在・実装位置の不在・読み取り結果の転記・確認事項の
 #   登録）を検査する。文面の当否は問わない。
 #
 # 使い方:
@@ -30,7 +30,6 @@ set -u
 #   一覧-不在            対象の一覧（docs/design/lists/<種別>.json）が読めない
 #   文書-不在            種別ごとの基本設計書・単体テスト設計書（機能は機能設計書・機能単体テスト設計書）が実在しない
 #   節-欠落              必須見出しが順に揃っていない
-#   位置づけ-欠落        必須見出しの直後に位置づけの行が無い
 #   未記入-残存          山括弧のプレースホルダーが残っている
 #   位置-禁止            file:line形式の実装位置の記述がある
 #   見出し-表示名不一致  基本設計書のh1が一覧の表示名と一致しない
@@ -62,14 +61,14 @@ set -u
 #     文字列を含まないため、設計書の書き方の決まり（reverse-sharedの
 #     check-doc-heading-addendum.sh）のファイル名一致による検査は
 #     table・feature種別には効かない（no-op）。この2種別の様式検査は本
-#     スクリプト自身のcheck_headings_order/check_placement_linesが担う
+#     スクリプト自身のcheck_headings_orderが担う
 #   - 画面基本設計書.mdはファイル名に「基本設計書」を含み、上記の共有
 #     チェッカーが持つ完了状態見出し（外部仕様・業務仕様・方式設計・データ
 #     仕様・エラーと例外）と、実際の画面の様式（画面の目的・画面構成・
 #     機能仕様・業務ルール・入出力の業務的意味・画面遷移の業務文脈・関連
 #     資料）が一致しない。そのためscreen種別ではこの共有チェッカーの呼び
 #     出しを行わず、様式の妥当性は本スクリプト自身の
-#     check_headings_order/check_placement_linesに委ねる（章構成の正は
+#     check_headings_orderに委ねる（章構成の正は
 #     テンプレートという規約に従う）
 #   - table種別の読み取り結果-未転記は、論理データモデルの様式（型・制約を書かない）
 #     に合わせて「列」「関係」だけを対象にする。「型」「制約」の転記確認は
@@ -167,24 +166,6 @@ check_headings_order() {
   n="$(printf '%s\n' "$expected" | grep -c .)"
   actual="$(grep -E '^## ' "$file" | head -n "$n")"
   [ "$actual" = "$expected" ]
-}
-
-# --- 各見出しの直後に位置づけの行があるか ---
-check_placement_lines() {
-  local file="$1" headings="$2" h lineno next
-  while IFS= read -r h; do
-    [ -n "$h" ] || continue
-    lineno="$(grep -n -F "## ${h}" "$file" | head -1 | cut -d: -f1)"
-    [ -n "$lineno" ] || continue
-    next="$(awk -v start="$lineno" 'NR>start && NF>0 {print; exit}' "$file")"
-    case "$next" in
-      "**この節の位置づけ: "*) ;;
-      *) return 1 ;;
-    esac
-  done <<HLIST
-$headings
-HLIST
-  return 0
 }
 
 # --- 対象の設計書の書き方の検査をhook入力のJSONで呼ぶ（--check-fileを
@@ -495,11 +476,6 @@ check_regular_unit() {
     ok=0
   fi
 
-  if ! check_placement_lines "$doc" "$headings"; then
-    echo "[FAIL] 位置づけ-欠落: ${doc} に位置づけの行が無い見出しがあります" >&2
-    ok=0
-  fi
-
   check_placeholder_and_position "$doc" || ok=0
 
   local impl_pattern
@@ -514,7 +490,7 @@ check_regular_unit() {
   # 既知の限界: 画面基本設計書の様式（画面の目的・画面構成…）は、設計書の書き方の
   # 決まりが定める共通の完了状態見出し（外部仕様・業務仕様・方式設計・データ仕様・
   # エラーと例外）と一致しない。screen種別ではこの共有チェッカーを呼ばず、様式の
-  # 妥当性は本スクリプト自身のcheck_headings_order/check_placement_linesに委ねる
+  # 妥当性は本スクリプト自身のcheck_headings_orderに委ねる
   if [ "$kind" != "screen" ]; then
     if ! run_heading_addendum_check "$heading_script" "$doc" "$tests_output"; then
       echo "[FAIL] 規約-見出し: ${doc} が設計書の書き方の検査に不合格です" >&2
@@ -710,27 +686,22 @@ FACTEOF
 - 対応する機能: 受注一覧
 
 ## §1 画面の目的
-**この節の位置づけ: 現行実装**
 
 受注の一覧を確認する。
 
 ## §2 画面構成
-**この節の位置づけ: 現行実装**
 
 一覧表とページ送りで構成する。
 
 ## §3 機能仕様（業務機能の一覧）
-**この節の位置づけ: 現行実装**
 
 一覧の検索・表示を行う。
 
 ## §4 業務ルール
-**この節の位置づけ: 現行実装**
 
 取消は行わない。
 
 ## §5 入出力の業務的意味
-**この節の位置づけ: 現行実装**
 
 ### 入力項目
 受注番号を入力する。
@@ -748,12 +719,10 @@ FACTEOF
 一覧取得の接続窓口を呼ぶ。
 
 ## §6 画面遷移の業務文脈
-**この節の位置づけ: 現行実装**
 
 一覧から詳細へ遷移する。
 
 ## §7 関連資料
-**この節の位置づけ: 現行実装**
 
 - なし
 
@@ -837,7 +806,9 @@ CONFEOF
     write_confirmations "$run1"
     write_valid_docs "$d1/docs/design/screens/src_pages_OrderList.tsx"
     bash "$SCRIPT_DIR/check-basic-design.sh" "$d1" --run "$run1" --kind screen > "$base/case1.out" 2>"$base/case1.err"
-    check "合格-見本: 終了コード0" "$([ $? -eq 0 ] && echo 0 || echo 1)"
+    local rc1="$?"
+    check "合格-見本: 終了コード0" "$([ "$rc1" -eq 0 ] && echo 0 || echo 1)"
+    check "位置づけ-不要: 位置づけの行が無い文書が合格する" "$([ "$rc1" -eq 0 ] && echo 0 || echo 1)"
 
     # --- テスト設計書の出力-出力しない: 単体テスト設計書が無くても合格 ---
     local d1n="$base/case1-tests-off" run1n="$base/run1-tests-off"
@@ -874,32 +845,26 @@ APIFACTEOF
 # orders API基本設計書
 
 ## §1 外部仕様
-**この節の位置づけ: 現行実装**
 
 注文の一覧を返す。
 
 ## §2 業務仕様
-**この節の位置づけ: 現行実装**
 
 受注済みの注文だけを返す。
 
 ## §3 方式設計
-**この節の位置づけ: 現行実装**
 
 共通設計文書に従う。
 
 ## §4 データ仕様
-**この節の位置づけ: 現行実装**
 
 注文の論理データモデルを参照する。
 
 ## §5 エラーと例外
-**この節の位置づけ: 現行実装**
 
 認証エラーは401を返す。
 
 ## §6 関連資料
-**この節の位置づけ: 現行実装**
 
 - なし
 APIDOCEOF
@@ -1036,12 +1001,10 @@ FEATFACTEOF
 # 受注 機能設計書
 
 ## §1 機能概要
-**この節の位置づけ: 現行実装**
 
 受注業務をまとめる。
 
 ## §2 機能の範囲
-**この節の位置づけ: 現行実装**
 
 ### 2.1 構成要素一覧
 
@@ -1050,47 +1013,38 @@ FEATFACTEOF
 | order-list画面 | screen | src/pages/OrderList.tsx | 画面基本設計書 |
 
 ## §3 業務フロー
-**この節の位置づけ: 現行実装**
 
 受注一覧から詳細へ遷移する。
 
 ## §4 業務ルール
-**この節の位置づけ: 現行実装**
 
 取消は行わない。
 
 ## §5 データ
-**この節の位置づけ: 現行実装**
 
 受注を扱う。
 
 ## §6 構成要素間の状態受け渡し
-**この節の位置づけ: 現行実装**
 
 一覧から詳細へ識別子を渡す。
 
 ## §7 呼び出し仕様
-**この節の位置づけ: 現行実装**
 
 一覧取得の接続窓口を呼ぶ。
 
 ## §8 エラーと業務メッセージ
-**この節の位置づけ: 現行実装**
 
 通信失敗は再試行しない。
 
 ## §9 非機能
-**この節の位置づけ: 現行実装**
 
 性能要件は無し。
 
 ## §10 共通仕様への準拠
-**この節の位置づけ: 現行実装**
 
 共通部品を利用する。
 
 ## §11 関連資料
-**この節の位置づけ: 現行実装**
 
 - なし
 
@@ -1184,12 +1138,10 @@ FEATTESTDOCEOF
   local docA="$base/impl-term-a.md"
   cat > "$docA" <<'DOCAEOF'
 ## §1 外部仕様
-**この節の位置づけ: 現行実装**
 
 利用者から見える契約を定める。
 
 ## §6 関連資料
-**この節の位置づけ: 現行実装**
 
 ### 6.1 観測の出どころ
 
@@ -1203,12 +1155,10 @@ DOCAEOF
   local docB="$base/impl-term-b.md"
   cat > "$docB" <<'DOCBEOF'
 ## §1 外部仕様
-**この節の位置づけ: 現行実装**
 
 src/handlers/orders.py の処理を読み取った。
 
 ## §6 関連資料
-**この節の位置づけ: 現行実装**
 
 ### 6.1 観測の出どころ
 
@@ -1224,7 +1174,6 @@ DOCBEOF
   local docC="$base/impl-term-c.md"
   cat > "$docC" <<'DOCCEOF'
 ## §6 関連資料
-**この節の位置づけ: 現行実装**
 
 ### 6.1 観測の出どころ
 
@@ -1233,7 +1182,6 @@ DOCBEOF
 | §1 外部仕様 | src/handlers/orders.py | 73 |
 
 ## §7 別の節
-**この節の位置づけ: 現行実装**
 
 src/handlers/orders.py をここにも書いてしまう。
 DOCCEOF
@@ -1244,7 +1192,6 @@ DOCCEOF
   local docD="$base/impl-term-d.md"
   cat > "$docD" <<'DOCDEOF'
 ## §2 機能の範囲
-**この節の位置づけ: 現行実装**
 
 ### 2.1 構成要素一覧
 
@@ -1264,7 +1211,6 @@ status: draft
 ---
 
 ## §1 外部仕様
-**この節の位置づけ: 現行実装**
 
 利用者から見える契約を定める。
 DOCEEOF
@@ -1280,7 +1226,6 @@ status: draft
 ---
 
 ## §1 外部仕様
-**この節の位置づけ: 現行実装**
 
 src/api/order_create.py の処理を読み取った。
 DOCFEOF
@@ -1291,7 +1236,6 @@ DOCFEOF
   local docG="$base/impl-term-g.md"
   cat > "$docG" <<'DOCGEOF'
 ## §1 外部仕様
-**この節の位置づけ: 現行実装**
 
 source_ref: src/api/order_create.py
 DOCGEOF
@@ -1307,7 +1251,6 @@ source_ref: src/api/order_create.py
 status: draft
 
 ## §1 外部仕様
-**この節の位置づけ: 現行実装**
 
 src/api/order_create.py の処理を読み取った。
 DOCHEOF
