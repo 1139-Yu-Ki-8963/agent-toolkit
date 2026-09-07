@@ -208,9 +208,17 @@ $expected_list
 HLIST
   [ "$ok_place" -eq 1 ] && passck
 
-  # 未記入-残存
+  # 未記入-残存（二重引用符で囲まれた範囲は除く。第1回改善指示書1-36）
   local placeholder_lines
-  placeholder_lines="$(grep -nE '<[^<>]+>' "$doc" || true)"
+  placeholder_lines="$(awk '
+    {
+      line = $0
+      gsub(/\\"/, "\x01", line)
+      gsub(/"[^"]*"/, "", line)
+      gsub(/\x01/, "\"", line)
+      if (line ~ /<[^<>]+>/) print NR ":" $0
+    }
+  ' "$doc" || true)"
   if [ -n "$placeholder_lines" ]; then
     fail "未記入-残存" "${doc}: 未記入のプレースホルダーがあります（例: $(printf '%s\n' "$placeholder_lines" | head -1)）"
   else
@@ -474,10 +482,23 @@ DOCEOF
     fi
   }
 
+  refute_contains() {
+    local desc="$1" key="$2"
+    total=$((total + 1))
+    if grep -qF "[FAIL] ${key}" "${tmp}/err.log"; then
+      echo "FAIL: ${desc}（${key} の不合格が出ています）"
+      sed -n '1,20p' "${tmp}/err.log"
+      fail=$((fail + 1))
+    else
+      echo "PASS: ${desc}"
+    fi
+  }
+
   # 合格
   write_doc_good
   echo 0 > "$record_rc_file"
   assert_exit "合格" 0 bash "$under_test" "$target" --run "$run_dir" --kind table
+  refute_contains "合格-未記入も様式の残骸もない: 未記入-残存が出ない" "未記入-残存"
 
   # 合格-表の列ごとの型と制約が§4に書かれている
   cat > "${run_dir}/code-readings/table/${folder}.json" <<'FACTSCOLEOF'
@@ -607,6 +628,165 @@ BADEOF
   assert_contains "不合格-複合: 未記入-残存が出る" "未記入-残存"
   assert_contains "不合格-複合: 位置-禁止が出る" "位置-禁止"
   assert_contains "不合格-複合: 読み取り結果-未網羅が出る" "読み取り結果-未網羅"
+  write_doc_good
+
+  # 合格-引用の中の山括弧は未記入と見なさない（第1回改善指示書1-36）
+  echo 0 > "$record_rc_file"
+  cat > "${doc_dir}/テーブル定義書.md" <<'QUOTEOKEOF'
+# 受注テーブル テーブル定義書
+
+## §1 構成要素
+
+**この節の位置づけ: 現行実装**
+
+| 要素名 | 種別 | 可視性 | 所在 |
+|---|---|---|---|
+| orders | table | public | db/schema.sql |
+
+## §2 処理の定義
+
+**この節の位置づけ: 現行実装**
+
+記入済み。採番の形式は "EM<連番>" である。
+
+## §3 ロジック
+
+**この節の位置づけ: 現行実装**
+
+記入済み
+
+## §4 入出力の値
+
+**この節の位置づけ: 現行実装**
+
+記入済み。受注番号を扱う。
+
+## §5 エラー処理
+
+**この節の位置づけ: 現行実装**
+
+記入済み（理由（観測）: 既存の実装を踏まえる）
+
+## §6 関連資料
+
+**この節の位置づけ: 現行実装**
+
+顧客テーブルを参照する。
+
+## 要確認事項一覧
+
+**この節の位置づけ: 現行実装**
+
+なし
+QUOTEOKEOF
+  assert_exit "合格-引用の中の山括弧" 0 bash "$under_test" "$target" --run "$run_dir" --kind table
+  refute_contains "合格-引用の中の山括弧: 未記入-残存が出ない" "未記入-残存"
+  write_doc_good
+
+  # 不合格-引用の外の様式の残骸は未記入として検出する（第1回改善指示書1-36）
+  echo 0 > "$record_rc_file"
+  cat > "${doc_dir}/テーブル定義書.md" <<'QUOTENGEOF'
+# 受注テーブル テーブル定義書
+
+## §1 構成要素
+
+**この節の位置づけ: 現行実装**
+
+| 要素名 | 種別 | 可視性 | 所在 |
+|---|---|---|---|
+| orders | table | public | db/schema.sql |
+
+## §2 処理の定義
+
+**この節の位置づけ: 現行実装**
+
+記入済み。採番の形式は <ここを埋める> である。
+
+## §3 ロジック
+
+**この節の位置づけ: 現行実装**
+
+記入済み
+
+## §4 入出力の値
+
+**この節の位置づけ: 現行実装**
+
+記入済み。受注番号を扱う。
+
+## §5 エラー処理
+
+**この節の位置づけ: 現行実装**
+
+記入済み（理由（観測）: 既存の実装を踏まえる）
+
+## §6 関連資料
+
+**この節の位置づけ: 現行実装**
+
+顧客テーブルを参照する。
+
+## 要確認事項一覧
+
+**この節の位置づけ: 現行実装**
+
+なし
+QUOTENGEOF
+  assert_exit "不合格-様式の残骸(引用の外)" 1 bash "$under_test" "$target" --run "$run_dir" --kind table
+  assert_contains "不合格-様式の残骸(引用の外): 未記入-残存が出る" "未記入-残存"
+  write_doc_good
+
+  # 合格-引用の中にエスケープされた引用符（\"）がある行も未記入と見なさない（第1回改善指示書1-36）
+  echo 0 > "$record_rc_file"
+  cat > "${doc_dir}/テーブル定義書.md" <<'QUOTEESCEOF'
+# 受注テーブル テーブル定義書
+
+## §1 構成要素
+
+**この節の位置づけ: 現行実装**
+
+| 要素名 | 種別 | 可視性 | 所在 |
+|---|---|---|---|
+| orders | table | public | db/schema.sql |
+
+## §2 処理の定義
+
+**この節の位置づけ: 現行実装**
+
+記入済み。識別子の例は "採番は\"EM<連番>\"の形式" である。
+
+## §3 ロジック
+
+**この節の位置づけ: 現行実装**
+
+記入済み
+
+## §4 入出力の値
+
+**この節の位置づけ: 現行実装**
+
+記入済み。受注番号を扱う。
+
+## §5 エラー処理
+
+**この節の位置づけ: 現行実装**
+
+記入済み（理由（観測）: 既存の実装を踏まえる）
+
+## §6 関連資料
+
+**この節の位置づけ: 現行実装**
+
+顧客テーブルを参照する。
+
+## 要確認事項一覧
+
+**この節の位置づけ: 現行実装**
+
+なし
+QUOTEESCEOF
+  assert_exit "合格-引用の中のエスケープされた引用符" 0 bash "$under_test" "$target" --run "$run_dir" --kind table
+  refute_contains "合格-引用の中のエスケープされた引用符: 未記入-残存が出ない" "未記入-残存"
   write_doc_good
 
   # 判定不能-文書不在

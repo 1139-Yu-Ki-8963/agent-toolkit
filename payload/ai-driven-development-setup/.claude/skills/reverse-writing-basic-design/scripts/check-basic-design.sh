@@ -236,7 +236,18 @@ KEYS
 check_placeholder_and_position() {
   # $1: file  戻り値: 0=両方問題なし
   local file="$1" ok=0
-  if grep -qE '<[^<>]+>' "$file"; then
+  # 未記入-残存（二重引用符で囲まれた範囲は除く。第1回改善指示書1-36）
+  local placeholder_lines
+  placeholder_lines="$(awk '
+    {
+      line = $0
+      gsub(/\\"/, "\x01", line)
+      gsub(/"[^"]*"/, "", line)
+      gsub(/\x01/, "\"", line)
+      if (line ~ /<[^<>]+>/) print NR ":" $0
+    }
+  ' "$file" || true)"
+  if [ -n "$placeholder_lines" ]; then
     echo "[FAIL] 未記入-残存: ${file} に未記入のプレースホルダーがあります" >&2
     ok=1
   fi

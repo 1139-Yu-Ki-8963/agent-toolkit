@@ -241,9 +241,17 @@ check_foundation_guides() {
   done
   [ "$ok_place" -eq 1 ] && passck
 
-  # 未記入-残存
+  # 未記入-残存（二重引用符で囲まれた範囲は除く。第1回改善指示書1-36）
   local placeholder_lines
-  placeholder_lines="$(grep -nE '<[^<>]+>' "$env_file" || true)"
+  placeholder_lines="$(awk '
+    {
+      line = $0
+      gsub(/\\"/, "\x01", line)
+      gsub(/"[^"]*"/, "", line)
+      gsub(/\x01/, "\"", line)
+      if (line ~ /<[^<>]+>/) print NR ":" $0
+    }
+  ' "$env_file" || true)"
   if [ -n "$placeholder_lines" ]; then
     local cnt
     cnt="$(printf '%s\n' "$placeholder_lines" | grep -c '.')"
