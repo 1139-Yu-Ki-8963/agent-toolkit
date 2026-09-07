@@ -10,13 +10,14 @@ set -u
 #   検査し、文面の良し悪しは検査しない。
 #
 # 使い方:
-#   check-survey-definition.sh <調査と検出条件の定義書.md> [--target <対象リポジトリのルート>] [--max-lines <N>]
+#   check-survey-definition.sh <調査と検出条件の定義書.md> [--target <対象リポジトリのルート>] [--design-root <設計書の置き場>] [--max-lines <N>]
 #   check-survey-definition.sh --self-test
 #
 # --max-lines は調査と検出条件の定義書には課さない。互換のため受けるだけで検査には使わない。
 # --target を省略した場合、ファイル実在確認を伴う検査（検出条件-例不在・
 # 領域-欠落の一部・共通方式-欠落の一部・調査-欠落の一部）は実在確認を行わず、
 # 値が埋まっているかどうかだけを検査する。
+# --design-root を省略した場合、種別-未複製・種別-不一致は検査しない（互換のため）。
 #
 # 検査キー（内容を要約した意味語。連番禁止）:
 #   節-構成          見出しが「## 0. 対象と時点」〜「## 10. 読みの記録」の11個、この順
@@ -34,19 +35,34 @@ set -u
 #   共通方式-欠落    節7に10行があり場所が埋まっている（--target指定時は実在も見る）
 #   到達範囲-欠落    節9に7種別の行があり4列が規定の値、理由が埋まっている
 #   読み-欠落        節10に節2の全領域の行があり、読み方が規定の値
+#   種別-未複製      --design-root指定時、共有部品の参照は実在するが<設計書の置き場>/docs/design/common/unit-kinds.jsonが実在しない
+#   種別-不正        --design-root指定時、複製先が種別の定義の形でない（最上位が配列でない。構文が壊れている場合を含む）
+#   種別-不一致      --design-root指定時、同ファイルの内容がJSONの意味で共有部品の参照（../../reverse-shared/references/unit-kinds.json）と一致しない
+#   前提-複製元不在  --design-root指定時、共有部品の参照（../../reverse-shared/references/unit-kinds.json）自体が実在しない（判定不能）
+#   前提-複製元不正  --design-root指定時、共有部品の参照は実在するが種別の定義の形でない（最上位が配列でない。構文が壊れている場合を含む。判定不能）
+#   前提-jq不在      jqが使えず、いずれの検査も判定できない（判定不能。全検査の前提であり、スクリプトの入口で判定する）
+#
+# JSONの意味での一致とは、jq -S -c . による正規化後の文字列が一致することを指す。
+# キー順・空白・改行・BOM・Unicodeエスケープの差は無視する。数値の表記の差（1.0と1等）は
+# jqの版に依存し、一致を保証しない。複製元・複製先のいずれかが種別の定義の形（最上位が配列）で
+# ない場合は一致の判定を行わず、種別-不正または前提-複製元不正として扱う（構文が壊れている場合・
+# 最上位がnull/falseなど配列でない場合のいずれも含む。空文字同士の比較を一致にしない）。
 #
 # 終了コード:
 #   0 = 全件合格
 #   1 = 1件以上不合格（[FAIL]行を標準エラーへ列挙）
-#   2 = 使い方の誤り・ファイル不在（判定不能）
+#   2 = 使い方の誤り・ファイル不在・前提-jq不在・前提-複製元不在・前提-複製元不正（判定不能）
 #
 # 保守責任者: 人手（ユーザー）。様式（templates/調査と検出条件の定義書.md）の節・検出条件の形を
 #   変えるときは、本スクリプトと自己テストを同時に更新する。
 #
 # macOS bash 3.2 互換（連想配列は不使用）。
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 FAIL_COUNT=0
 PASS_COUNT=0
+JUDGE_IMPOSSIBLE=0
 
 fail() {
   echo "[FAIL] $1: $2" >&2
@@ -55,6 +71,12 @@ fail() {
 
 passck() {
   PASS_COUNT=$((PASS_COUNT + 1))
+}
+
+judge_impossible() {
+  # 使い方の誤り・ファイル不在と同格の前提欠如。件数には数えず、全体の終了コードを2にする
+  echo "[判定不能] $1: $2" >&2
+  JUDGE_IMPOSSIBLE=1
 }
 
 trim() {
@@ -159,7 +181,7 @@ has_jq() {
 # ---------------------------------------------------------------------------
 
 check_map() {
-  local file="$1" target="$2"
+  local file="$1" target="$2" design_root="${3:-}"
   local content
   content="$(cat "$file")"
 
@@ -382,108 +404,107 @@ check_map() {
         fail "見つけ方-欠落" "${heading}: json 検出条件 の囲みがありません"
         ok4=0
       fi
-      if has_jq; then
-        local bk
-        for bk in $(seq 1 "${block_count:-0}" 2>/dev/null); do
-          local b
-          b="$(json_block_at "$subtext" "$bk")"
-          if ! jq empty <<< "$b" > /dev/null 2>&1; then
-            fail "検出条件-形式" "${heading}: JSONとして読めません"
-            continue
+      # jq不在はスクリプト入口で全検査の前提として判定不能にしているため、ここではjqが使える前提で判定する。
+      local bk
+      for bk in $(seq 1 "${block_count:-0}" 2>/dev/null); do
+        local b
+        b="$(json_block_at "$subtext" "$bk")"
+        if ! jq empty <<< "$b" > /dev/null 2>&1; then
+          fail "検出条件-形式" "${heading}: JSONとして読めません"
+          continue
+        fi
+        local jtype jsplit jid
+        jtype="$(jq -r '.["種別"] // empty' <<< "$b")"
+        jsplit="$(jq -r '.["分割"] // empty' <<< "$b")"
+        jid="$(jq -r '.["識別子"]["元"] // empty' <<< "$b")"
+        local jscan jmatch jexamples
+        jscan="$(jq '(.["走査"]["含む"] // []) | length' <<< "$b")"
+        jmatch="$(jq '(.["一致"] // []) | length' <<< "$b")"
+        jexamples="$(jq '(.["例"] // []) | length' <<< "$b")"
+        if [ "$jtype" != "$type" ]; then
+          fail "検出条件-形式" "${heading}: 種別が${type}ではありません（実際: ${jtype}）"
+        fi
+        if [ "${jscan:-0}" -lt 1 ] 2>/dev/null; then
+          fail "検出条件-形式" "${heading}: 走査.含む が空です"
+        fi
+        if [ "${jmatch:-0}" -lt 1 ] 2>/dev/null; then
+          fail "検出条件-形式" "${heading}: 一致 が空です"
+        fi
+        if [ "$jsplit" != "ファイル" ] && [ "$jsplit" != "一致" ]; then
+          fail "検出条件-形式" "${heading}: 分割 が ファイル/一致 のいずれでもありません（実際: ${jsplit}）"
+        fi
+        if [ -z "$jid" ]; then
+          fail "検出条件-形式" "${heading}: 識別子.元 が空です"
+        fi
+        if [ "$jid" = "一致の捕捉" ]; then
+          local jid_regex
+          jid_regex="$(jq -r ".[\"識別子\"][\"正規表現\"] // empty" <<< "$b")"
+          if [ -z "$jid_regex" ]; then
+            fail "検出条件-識別子の正規表現なし" "${heading}: 識別子.元が一致の捕捉なのに識別子.正規表現がありません"
           fi
-          local jtype jsplit jid
-          jtype="$(jq -r '.["種別"] // empty' <<< "$b")"
-          jsplit="$(jq -r '.["分割"] // empty' <<< "$b")"
-          jid="$(jq -r '.["識別子"]["元"] // empty' <<< "$b")"
-          local jscan jmatch jexamples
-          jscan="$(jq '(.["走査"]["含む"] // []) | length' <<< "$b")"
-          jmatch="$(jq '(.["一致"] // []) | length' <<< "$b")"
-          jexamples="$(jq '(.["例"] // []) | length' <<< "$b")"
-          if [ "$jtype" != "$type" ]; then
-            fail "検出条件-形式" "${heading}: 種別が${type}ではありません（実際: ${jtype}）"
+        fi
+        if [ "${jexamples:-0}" -lt 1 ] 2>/dev/null; then
+          fail "検出条件-形式" "${heading}: 例 が空です"
+        fi
+        if [ "$jsplit" = "一致" ]; then
+          local unit_true
+          unit_true="$(jq '[.["一致"][]? | select(.["単位"]==true)] | length' <<< "$b")"
+          if [ "${unit_true:-0}" -lt 1 ] 2>/dev/null; then
+            fail "検出条件-形式" "${heading}: 分割が一致なのに単位:trueの要素がありません"
           fi
-          if [ "${jscan:-0}" -lt 1 ] 2>/dev/null; then
-            fail "検出条件-形式" "${heading}: 走査.含む が空です"
-          fi
-          if [ "${jmatch:-0}" -lt 1 ] 2>/dev/null; then
-            fail "検出条件-形式" "${heading}: 一致 が空です"
-          fi
-          if [ "$jsplit" != "ファイル" ] && [ "$jsplit" != "一致" ]; then
-            fail "検出条件-形式" "${heading}: 分割 が ファイル/一致 のいずれでもありません（実際: ${jsplit}）"
-          fi
-          if [ -z "$jid" ]; then
-            fail "検出条件-形式" "${heading}: 識別子.元 が空です"
-          fi
-          if [ "$jid" = "一致の捕捉" ]; then
-            local jid_regex
-            jid_regex="$(jq -r ".[\"識別子\"][\"正規表現\"] // empty" <<< "$b")"
-            if [ -z "$jid_regex" ]; then
-              fail "検出条件-識別子の正規表現なし" "${heading}: 識別子.元が一致の捕捉なのに識別子.正規表現がありません"
-            fi
-          fi
-          if [ "${jexamples:-0}" -lt 1 ] 2>/dev/null; then
-            fail "検出条件-形式" "${heading}: 例 が空です"
-          fi
-          if [ "$jsplit" = "一致" ]; then
-            local unit_true
-            unit_true="$(jq '[.["一致"][]? | select(.["単位"]==true)] | length' <<< "$b")"
-            if [ "${unit_true:-0}" -lt 1 ] 2>/dev/null; then
-              fail "検出条件-形式" "${heading}: 分割が一致なのに単位:trueの要素がありません"
-            fi
-          fi
+        fi
 
-          # 補完（真偽値、省略可）
-          if jq -e 'has("補完")' <<< "$b" > /dev/null 2>&1; then
-            local jsupp_type
-            jsupp_type="$(jq -r '.["補完"] | type' <<< "$b")"
-            if [ "$jsupp_type" != "boolean" ]; then
-              fail "検出条件-形式" "${heading}: 補完 が真偽値ではありません"
+        # 補完（真偽値、省略可）
+        if jq -e 'has("補完")' <<< "$b" > /dev/null 2>&1; then
+          local jsupp_type
+          jsupp_type="$(jq -r '.["補完"] | type' <<< "$b")"
+          if [ "$jsupp_type" != "boolean" ]; then
+            fail "検出条件-形式" "${heading}: 補完 が真偽値ではありません"
+          fi
+        fi
+
+        # 除外の一致（配列、省略可。各要素は対象・正規表現・捕捉を持つ）
+        if jq -e 'has("除外の一致")' <<< "$b" > /dev/null 2>&1; then
+          local jexcl_type jexcl_len
+          jexcl_type="$(jq -r '.["除外の一致"] | type' <<< "$b")"
+          if [ "$jexcl_type" != "array" ]; then
+            fail "検出条件-形式" "${heading}: 除外の一致 が配列ではありません"
+          else
+            jexcl_len="$(jq '.["除外の一致"] | length' <<< "$b")"
+            if [ "${jexcl_len:-0}" -gt 0 ] 2>/dev/null; then
+              local ei
+              for ei in $(seq 0 $((jexcl_len - 1))); do
+                local etarget eregex ecapture
+                etarget="$(jq -r ".[\"除外の一致\"][$ei][\"対象\"] // empty" <<< "$b")"
+                eregex="$(jq -r ".[\"除外の一致\"][$ei][\"正規表現\"] // empty" <<< "$b")"
+                ecapture="$(jq -r ".[\"除外の一致\"][$ei][\"捕捉\"] // 1" <<< "$b")"
+                if [ -z "$etarget" ] || [ -z "$eregex" ]; then
+                  fail "検出条件-形式" "${heading}: 除外の一致 の対象または正規表現が空です"
+                fi
+                if ! [[ "$ecapture" =~ ^[0-9]+$ ]]; then
+                  fail "検出条件-形式" "${heading}: 除外の一致 の捕捉が整数ではありません"
+                fi
+              done
             fi
           fi
+        fi
 
-          # 除外の一致（配列、省略可。各要素は対象・正規表現・捕捉を持つ）
-          if jq -e 'has("除外の一致")' <<< "$b" > /dev/null 2>&1; then
-            local jexcl_type jexcl_len
-            jexcl_type="$(jq -r '.["除外の一致"] | type' <<< "$b")"
-            if [ "$jexcl_type" != "array" ]; then
-              fail "検出条件-形式" "${heading}: 除外の一致 が配列ではありません"
-            else
-              jexcl_len="$(jq '.["除外の一致"] | length' <<< "$b")"
-              if [ "${jexcl_len:-0}" -gt 0 ] 2>/dev/null; then
-                local ei
-                for ei in $(seq 0 $((jexcl_len - 1))); do
-                  local etarget eregex ecapture
-                  etarget="$(jq -r ".[\"除外の一致\"][$ei][\"対象\"] // empty" <<< "$b")"
-                  eregex="$(jq -r ".[\"除外の一致\"][$ei][\"正規表現\"] // empty" <<< "$b")"
-                  ecapture="$(jq -r ".[\"除外の一致\"][$ei][\"捕捉\"] // 1" <<< "$b")"
-                  if [ -z "$etarget" ] || [ -z "$eregex" ]; then
-                    fail "検出条件-形式" "${heading}: 除外の一致 の対象または正規表現が空です"
-                  fi
-                  if ! [[ "$ecapture" =~ ^[0-9]+$ ]]; then
-                    fail "検出条件-形式" "${heading}: 除外の一致 の捕捉が整数ではありません"
-                  fi
-                done
-              fi
+        if [ -n "$target" ]; then
+          local ex
+          while IFS= read -r ex; do
+            [ -z "$ex" ] && continue
+            if [ ! -e "${target}/${ex}" ]; then
+              fail "検出条件-例不在" "${heading}: 例が対象配下に実在しません: ${ex}"
             fi
-          fi
-
-          if [ -n "$target" ]; then
-            local ex
-            while IFS= read -r ex; do
-              [ -z "$ex" ] && continue
-              if [ ! -e "${target}/${ex}" ]; then
-                fail "検出条件-例不在" "${heading}: 例が対象配下に実在しません: ${ex}"
-              fi
-            done < <(jq -r '.["例"][]? // empty' <<< "$b")
-            while IFS= read -r ex; do
-              [ -z "$ex" ] && continue
-              if [ ! -d "${target}/${ex}" ]; then
-                fail "検出条件-例不在" "${heading}: 走査.含む が対象配下に実在しません: ${ex}"
-              fi
-            done < <(jq -r '.["走査"]["含む"][]? // empty' <<< "$b")
-          fi
-        done
-      fi
+          done < <(jq -r '.["例"][]? // empty' <<< "$b")
+          while IFS= read -r ex; do
+            [ -z "$ex" ] && continue
+            if [ ! -d "${target}/${ex}" ]; then
+              fail "検出条件-例不在" "${heading}: 走査.含む が対象配下に実在しません: ${ex}"
+            fi
+          done < <(jq -r '.["走査"]["含む"][]? // empty' <<< "$b")
+        fi
+      done
     fi
 
     # 取り出しの規則（読み取り結果の項目）
@@ -680,6 +701,31 @@ check_map() {
     done <<< "$rows2"
   fi
   [ "$ok10" -eq 1 ] && passck
+
+  # 種別-未複製・種別-不正・種別-不一致・前提-複製元不在・前提-複製元不正 (--design-root指定時のみ)
+  # jq不在はスクリプト入口で全検査の前提として判定不能にしているため、ここでは判定しない。
+  if [ -n "$design_root" ]; then
+    local kinds_ref="${SCRIPT_DIR}/../../reverse-shared/references/unit-kinds.json"
+    local kinds_copy="${design_root%/}/docs/design/common/unit-kinds.json"
+    if [ ! -f "$kinds_ref" ]; then
+      judge_impossible "前提-複製元不在" "共有部品の参照 ${kinds_ref} が実在しません"
+    elif [ ! -f "$kinds_copy" ]; then
+      fail "種別-未複製" "${kinds_copy} が実在しません"
+    elif ! jq -e 'type == "array"' "$kinds_ref" > /dev/null 2>&1; then
+      judge_impossible "前提-複製元不正" "共有部品の参照 ${kinds_ref} が種別の定義の形（最上位が配列）でありません"
+    elif ! jq -e 'type == "array"' "$kinds_copy" > /dev/null 2>&1; then
+      fail "種別-不正" "${kinds_copy} が種別の定義の形（最上位が配列）でありません"
+    else
+      local norm_copy norm_ref
+      norm_copy="$(jq -S -c . "$kinds_copy" 2>/dev/null)"
+      norm_ref="$(jq -S -c . "$kinds_ref" 2>/dev/null)"
+      if [ "$norm_copy" != "$norm_ref" ]; then
+        fail "種別-不一致" "${kinds_copy} の内容が ${kinds_ref} とJSONの意味で一致しません"
+      else
+        passck
+      fi
+    fi
+  fi
 }
 
 run_self_test() {
@@ -687,8 +733,13 @@ run_self_test() {
   tmp="$(mktemp -d "${TMPDIR:-/tmp}/check-survey-definition-self-test.XXXXXX")" || { echo "一時領域を作成できません" >&2; return 2; }
   trap 'rm -rf "$tmp"' RETURN
 
+  local jq_available=1
+  has_jq || jq_available=0
+
   local self_fail=0
   local self_total=0
+  local self_skip=0
+  local last_needs_jq_skipped=0
 
   # 見本の対象を作る
   local target="${tmp}/target"
@@ -1128,12 +1179,52 @@ MAPEOF2
   }
 
   assert_contains() {
-    local desc="$1" key="$2"
+    local desc="$1" key="$2" prefix="${3:-[FAIL]}"
     self_total=$((self_total + 1))
-    if grep -qF "[FAIL] ${key}" "${tmp}/err.log"; then
+    if grep -qF "${prefix} ${key}" "${tmp}/err.log"; then
       echo "PASS: ${desc}"
     else
-      echo "FAIL: ${desc} （${key} の不合格が出ていません）"
+      echo "FAIL: ${desc} （${key} の${prefix}が出ていません）"
+      sed -n '1,20p' "${tmp}/err.log"
+      self_fail=$((self_fail + 1))
+    fi
+  }
+
+  # jqを要するケース専用。jqが使えない実行環境では、失敗にせずskipとして数える
+  # （前提-jq不在そのものはPATHを操作した専用ケースで別途検査するため対象外）。
+  assert_exit_needs_jq() {
+    local desc="$1" expected="$2"; shift 2
+    self_total=$((self_total + 1))
+    if [ "$jq_available" -eq 0 ]; then
+      last_needs_jq_skipped=1
+      self_skip=$((self_skip + 1))
+      echo "SKIP: ${desc} (jqが使えないため)"
+      return
+    fi
+    last_needs_jq_skipped=0
+    "$@" > "${tmp}/out.log" 2>"${tmp}/err.log"
+    local actual=$?
+    if [ "$actual" = "$expected" ]; then
+      echo "PASS: ${desc}"
+    else
+      echo "FAIL: ${desc} (期待終了コード ${expected} / 実際 ${actual})"
+      sed -n '1,20p' "${tmp}/err.log"
+      self_fail=$((self_fail + 1))
+    fi
+  }
+
+  assert_contains_needs_jq() {
+    local desc="$1" key="$2" prefix="${3:-[FAIL]}"
+    self_total=$((self_total + 1))
+    if [ "$last_needs_jq_skipped" -eq 1 ]; then
+      self_skip=$((self_skip + 1))
+      echo "SKIP: ${desc} (jqが使えないため)"
+      return
+    fi
+    if grep -qF "${prefix} ${key}" "${tmp}/err.log"; then
+      echo "PASS: ${desc}"
+    else
+      echo "FAIL: ${desc} （${key} の${prefix}が出ていません）"
       sed -n '1,20p' "${tmp}/err.log"
       self_fail=$((self_fail + 1))
     fi
@@ -1142,117 +1233,205 @@ MAPEOF2
   # 合格-完成形
   local map_ok="${tmp}/map-ok.md"
   build_map "$map_ok" "1"
-  assert_exit "合格-完成形" 0 bash "$0" "$map_ok" --target "$target"
+  assert_exit_needs_jq "合格-完成形" 0 bash "$0" "$map_ok" --target "$target"
 
   # 合格-AI の読み取り
   local map_ai="${tmp}/map-ai.md"
   build_map "$map_ai" "0"
-  assert_exit "合格-AI の読み取り" 0 bash "$0" "$map_ai" --target "$target"
+  assert_exit_needs_jq "合格-AI の読み取り" 0 bash "$0" "$map_ai" --target "$target"
 
   # 不合格-様式のまま
   local tmpl="${tmp}/../../../templates/調査と検出条件の定義書.md"
   local self_dir
   self_dir="$(cd "$(dirname "$0")" && pwd)"
   local template_file="${self_dir}/../templates/調査と検出条件の定義書.md"
-  assert_exit "不合格-様式のまま" 1 bash "$0" "$template_file"
-  assert_contains "不合格-様式のまま: 対象-欠落が出る" "対象-欠落"
-  assert_contains "不合格-様式のまま: 調査-欠落が出る" "調査-欠落"
+  assert_exit_needs_jq "不合格-様式のまま" 1 bash "$0" "$template_file"
+  assert_contains_needs_jq "不合格-様式のまま: 対象-欠落が出る" "対象-欠落"
+  assert_contains_needs_jq "不合格-様式のまま: 調査-欠落が出る" "調査-欠落"
 
   # 不合格-節の欠落
   local map_missing_section="${tmp}/map-missing-section.md"
   build_map "$map_missing_section" "1"
   awk '/^## 10\. 読みの記録$/{skip=1} !skip{print}' "$map_missing_section" > "${map_missing_section}.tmp"
   mv "${map_missing_section}.tmp" "$map_missing_section"
-  assert_exit "不合格-節の欠落" 1 bash "$0" "$map_missing_section" --target "$target"
-  assert_contains "不合格-節の欠落: 節-構成が出る" "節-構成"
+  assert_exit_needs_jq "不合格-節の欠落" 1 bash "$0" "$map_missing_section" --target "$target"
+  assert_contains_needs_jq "不合格-節の欠落: 節-構成が出る" "節-構成"
 
   # 不合格-検出条件の形式
   local map_bad_json="${tmp}/map-bad-json.md"
   build_map "$map_bad_json" "1"
   sed -i.bak 's/"分割": "ファイル",/"分割": "そのた",/' "$map_bad_json"
-  assert_exit "不合格-検出条件の形式" 1 bash "$0" "$map_bad_json" --target "$target"
-  assert_contains "不合格-検出条件の形式: 検出条件-形式が出る" "検出条件-形式"
+  assert_exit_needs_jq "不合格-検出条件の形式" 1 bash "$0" "$map_bad_json" --target "$target"
+  assert_contains_needs_jq "不合格-検出条件の形式: 検出条件-形式が出る" "検出条件-形式"
 
   # 不合格-例の不在
   local map_bad_example="${tmp}/map-bad-example.md"
   build_map "$map_bad_example" "1"
   sed -i.bak 's#"例": \["src/screens/order-list.tsx"\]#"例": ["src/screens/does-not-exist.tsx"]#' "$map_bad_example"
-  assert_exit "不合格-例の不在" 1 bash "$0" "$map_bad_example" --target "$target"
-  assert_contains "不合格-例の不在: 検出条件-例不在が出る" "検出条件-例不在"
+  assert_exit_needs_jq "不合格-例の不在" 1 bash "$0" "$map_bad_example" --target "$target"
+  assert_contains_needs_jq "不合格-例の不在: 検出条件-例不在が出る" "検出条件-例不在"
 
   # 不合格-到達範囲の値
   local map_bad_reach="${tmp}/map-bad-reach.md"
   build_map "$map_bad_reach" "1"
   sed -i.bak 's/| 画面 | 機械 | 機械 | 機械 | AI の読み取り | 詳細設計は文言が多く機械化していない |/| 画面 | 機械 | 機械 | 機械 | 未定 | 詳細設計は文言が多く機械化していない |/' "$map_bad_reach"
-  assert_exit "不合格-到達範囲の値" 1 bash "$0" "$map_bad_reach" --target "$target"
-  assert_contains "不合格-到達範囲の値: 到達範囲-欠落が出る" "到達範囲-欠落"
+  assert_exit_needs_jq "不合格-到達範囲の値" 1 bash "$0" "$map_bad_reach" --target "$target"
+  assert_contains_needs_jq "不合格-到達範囲の値: 到達範囲-欠落が出る" "到達範囲-欠落"
 
   # 合格-複数パス
   local map_multi="${tmp}/map-multi-path.md"
   build_map "$map_multi" "1"
   sed -i.bak 's#| 認証 | lib/auth.ts |#| 認証 | lib/auth.ts;README.md |#' "$map_multi"
-  assert_exit "合格-複数パス" 0 bash "$0" "$map_multi" --target "$target"
+  assert_exit_needs_jq "合格-複数パス" 0 bash "$0" "$map_multi" --target "$target"
 
   # 合格-補完と除外の一致
   local map_supplement="${tmp}/map-supplement.md"
   awk '{print} /"種別": "screen",/{print "  \"補完\": false,"; print "  \"除外の一致\": [{ \"対象\": \"内容\", \"正規表現\": \"DROP TABLE ([a-z_]+)\", \"捕捉\": 1 }],"}' "$map_ok" > "$map_supplement"
-  assert_exit "合格-補完と除外の一致" 0 bash "$0" "$map_supplement" --target "$target"
+  assert_exit_needs_jq "合格-補完と除外の一致" 0 bash "$0" "$map_supplement" --target "$target"
 
   # 不合格-除外の一致の形式
   local map_bad_exclude="${tmp}/map-bad-exclude.md"
   awk '{print} /"種別": "screen",/{print "  \"除外の一致\": [{ \"対象\": \"内容\", \"捕捉\": \"abc\" }],"}' "$map_ok" > "$map_bad_exclude"
-  assert_exit "不合格-除外の一致の形式" 1 bash "$0" "$map_bad_exclude" --target "$target"
-  assert_contains "不合格-除外の一致の形式: 検出条件-形式が出る" "検出条件-形式"
+  assert_exit_needs_jq "不合格-除外の一致の形式" 1 bash "$0" "$map_bad_exclude" --target "$target"
+  assert_contains_needs_jq "不合格-除外の一致の形式: 検出条件-形式が出る" "検出条件-形式"
 
   # 合格-文字コード種別
   local map_sjis="${tmp}/map-sjis.md"
   build_map "$map_sjis" "1"
   sed -i.bak 's/| 文字コード | UTF-8 |/| 文字コード | Shift_JIS |/' "$map_sjis"
-  assert_exit "合格-文字コード種別" 0 bash "$0" "$map_sjis" --target "$target"
+  assert_exit_needs_jq "合格-文字コード種別" 0 bash "$0" "$map_sjis" --target "$target"
 
   # 不合格-文字コード種別
   local map_bad_charset="${tmp}/map-bad-charset.md"
   build_map "$map_bad_charset" "1"
   sed -i.bak 's/| 文字コード | UTF-8 |/| 文字コード | 謎の文字コード |/' "$map_bad_charset"
-  assert_exit "不合格-文字コード種別" 1 bash "$0" "$map_bad_charset" --target "$target"
-  assert_contains "不合格-文字コード種別: 文字コード-形式が出る" "文字コード-形式"
+  assert_exit_needs_jq "不合格-文字コード種別" 1 bash "$0" "$map_bad_charset" --target "$target"
+  assert_contains_needs_jq "不合格-文字コード種別: 文字コード-形式が出る" "文字コード-形式"
 
   # 合格-識別子の正規表現あり
   local map_id_regex_ok="${tmp}/map-id-regex-ok.md"
   build_map "$map_id_regex_ok" "1"
   sed -i.bak 's/"識別子": { "元": "テーブル名" },/"識別子": { "元": "一致の捕捉", "正規表現": "CREATE TABLE ([a-z_]+)" },/' "$map_id_regex_ok"
-  assert_exit "合格-識別子の正規表現あり" 0 bash "$0" "$map_id_regex_ok" --target "$target"
+  assert_exit_needs_jq "合格-識別子の正規表現あり" 0 bash "$0" "$map_id_regex_ok" --target "$target"
 
   # 不合格-識別子の正規表現なし
   local map_id_regex_missing="${tmp}/map-id-regex-missing.md"
   build_map "$map_id_regex_missing" "1"
   sed -i.bak 's/"識別子": { "元": "テーブル名" },/"識別子": { "元": "一致の捕捉" },/' "$map_id_regex_missing"
-  assert_exit "不合格-識別子の正規表現なし" 1 bash "$0" "$map_id_regex_missing" --target "$target"
-  assert_contains "不合格-識別子の正規表現なし: 検出条件-識別子の正規表現なしが出る" "検出条件-識別子の正規表現なし"
+  assert_exit_needs_jq "不合格-識別子の正規表現なし" 1 bash "$0" "$map_id_regex_missing" --target "$target"
+  assert_contains_needs_jq "不合格-識別子の正規表現なし: 検出条件-識別子の正規表現なしが出る" "検出条件-識別子の正規表現なし"
 
   # 合格-候補数の様式どおり（整数）
   local map_candidate_ok="${tmp}/map-candidate-ok.md"
   build_map "$map_candidate_ok" "0"
   sed -i.bak 's/| 帳票 | 帳票領域 | 1 | ファイル数 |/| 帳票 | 帳票領域 | 15 | ファイル数（幅12〜20の中央値） |/' "$map_candidate_ok"
-  assert_exit "合格-候補数の様式どおり（整数）" 0 bash "$0" "$map_candidate_ok" --target "$target"
+  assert_exit_needs_jq "合格-候補数の様式どおり（整数）" 0 bash "$0" "$map_candidate_ok" --target "$target"
 
   # 合格-見つけ方が対象外
   local map_out_of_scope="${tmp}/map-out-of-scope.md"
   build_map "$map_out_of_scope" "0"
   sed -i.bak 's/| 目印 | AI の読み取り |/| 目印 | 対象外 |/' "$map_out_of_scope"
-  assert_exit "合格-見つけ方が対象外" 0 bash "$0" "$map_out_of_scope" --target "$target"
+  assert_exit_needs_jq "合格-見つけ方が対象外" 0 bash "$0" "$map_out_of_scope" --target "$target"
 
   # 不合格-見つけ方が対象外でもAIの読み取りでもない
   local map_scope_unclear="${tmp}/map-scope-unclear.md"
   build_map "$map_scope_unclear" "0"
   sed -i.bak 's/| 目印 | AI の読み取り |/| 目印 | 不明 |/' "$map_scope_unclear"
-  assert_exit "不合格-見つけ方が対象外でもAIの読み取りでもない" 1 bash "$0" "$map_scope_unclear" --target "$target"
-  assert_contains "不合格-見つけ方が対象外でもAIの読み取りでもない: 見つけ方-欠落が出る" "見つけ方-欠落"
+  assert_exit_needs_jq "不合格-見つけ方が対象外でもAIの読み取りでもない" 1 bash "$0" "$map_scope_unclear" --target "$target"
+  assert_contains_needs_jq "不合格-見つけ方が対象外でもAIの読み取りでもない: 見つけ方-欠落が出る" "見つけ方-欠落"
+
+  # 合格-工程1で複製した種別の定義が一致（--design-root指定時）
+  local design_root_ok="${tmp}/design-root-ok"
+  mkdir -p "${design_root_ok}/docs/design/common"
+  cp "${SCRIPT_DIR}/../../reverse-shared/references/unit-kinds.json" "${design_root_ok}/docs/design/common/unit-kinds.json"
+  assert_exit_needs_jq "合格-工程1で複製した種別の定義が一致" 0 bash "$0" "$map_ok" --target "$target" --design-root "$design_root_ok"
+
+  # 合格-種別複製のキー順が違っても一致（正規化。jqが使えるときだけキー順を入れ替えた見本を作る）
+  local design_root_keyorder="${tmp}/design-root-keyorder"
+  mkdir -p "${design_root_keyorder}/docs/design/common"
+  if [ "$jq_available" -eq 1 ]; then
+    jq '[.[] | {"フォルダ": .["フォルダ"], "名前": .["名前"], "key": .key}]' "${SCRIPT_DIR}/../../reverse-shared/references/unit-kinds.json" > "${design_root_keyorder}/docs/design/common/unit-kinds.json"
+  fi
+  assert_exit_needs_jq "合格-種別複製のキー順が違っても一致" 0 bash "$0" "$map_ok" --target "$target" --design-root "$design_root_keyorder"
+
+  # 合格-種別複製がCRLFでも一致（正規化。空白・改行の差は無視する。
+  # sedの\rの扱いは実装依存のため、確実にCRを挿入できるawkで作る）
+  local design_root_crlf="${tmp}/design-root-crlf"
+  mkdir -p "${design_root_crlf}/docs/design/common"
+  awk '{printf "%s\r\n", $0}' "${SCRIPT_DIR}/../../reverse-shared/references/unit-kinds.json" > "${design_root_crlf}/docs/design/common/unit-kinds.json"
+  assert_exit_needs_jq "合格-種別複製がCRLFでも一致" 0 bash "$0" "$map_ok" --target "$target" --design-root "$design_root_crlf"
+
+  # 不合格-工程1で種別の定義を複製していない（--design-root指定時。jqの前に判定するためjq不要）
+  local design_root_missing="${tmp}/design-root-missing"
+  mkdir -p "${design_root_missing}/docs/design/common"
+  assert_exit_needs_jq "不合格-工程1で種別の定義を複製していない" 1 bash "$0" "$map_ok" --target "$target" --design-root "$design_root_missing"
+  assert_contains_needs_jq "不合格-工程1で種別の定義を複製していない: 種別-未複製が出る" "種別-未複製"
+
+  # 不合格-工程1で複製した種別が不一致（--design-root指定時、内容が異なる）
+  local design_root_mismatch="${tmp}/design-root-mismatch"
+  mkdir -p "${design_root_mismatch}/docs/design/common"
+  echo '[{"extra":"kind"}]' > "${design_root_mismatch}/docs/design/common/unit-kinds.json"
+  assert_exit_needs_jq "不合格-工程1で複製した種別が不一致" 1 bash "$0" "$map_ok" --target "$target" --design-root "$design_root_mismatch"
+  assert_contains_needs_jq "不合格-工程1で複製した種別が不一致: 種別-不一致が出る" "種別-不一致"
+
+  # 不合格-複製先がJSONとして壊れている（複製元・複製先が両方壊れて空文字同士で一致することを防ぐ）
+  local design_root_broken_copy="${tmp}/design-root-broken-copy"
+  mkdir -p "${design_root_broken_copy}/docs/design/common"
+  printf '{ 壊れたJSON' > "${design_root_broken_copy}/docs/design/common/unit-kinds.json"
+  assert_exit_needs_jq "不合格-複製先がJSONとして壊れている" 1 bash "$0" "$map_ok" --target "$target" --design-root "$design_root_broken_copy"
+  assert_contains_needs_jq "不合格-複製先がJSONとして壊れている: 種別-不正が出る" "種別-不正"
+
+  # 不合格-複製先の最上位がnull（構文は正しいJSONだが種別の定義の形（配列）でない）
+  local design_root_null_copy="${tmp}/design-root-null-copy"
+  mkdir -p "${design_root_null_copy}/docs/design/common"
+  printf 'null' > "${design_root_null_copy}/docs/design/common/unit-kinds.json"
+  assert_exit_needs_jq "不合格-複製先の最上位がnull" 1 bash "$0" "$map_ok" --target "$target" --design-root "$design_root_null_copy"
+  assert_contains_needs_jq "不合格-複製先の最上位がnull: 種別-不正が出る" "種別-不正"
+
+  # 判定不能-工程1複製元不在（共有部品の参照自体が実在しない状態を再現するため、
+  # スクリプトを../../reverse-shared/が実在しない別ディレクトリへ複製して実行する）
+  local standalone_scripts="${tmp}/standalone/scripts"
+  mkdir -p "$standalone_scripts"
+  cp "$0" "${standalone_scripts}/check-survey-definition.sh"
+  assert_exit_needs_jq "判定不能-工程1複製元不在" 2 bash "${standalone_scripts}/check-survey-definition.sh" "$map_ok" --target "$target" --design-root "$design_root_ok"
+
+  # 判定不能-複製元がJSONとして壊れている（共有部品の参照自体は実在するが読めない状態を再現する）
+  local standalone_broken_ref_scripts="${tmp}/standalone-broken-ref/level/scripts"
+  mkdir -p "$standalone_broken_ref_scripts" "${tmp}/standalone-broken-ref/reverse-shared/references"
+  printf '{ 壊れたJSON' > "${tmp}/standalone-broken-ref/reverse-shared/references/unit-kinds.json"
+  cp "$0" "${standalone_broken_ref_scripts}/check-survey-definition.sh"
+  assert_exit_needs_jq "判定不能-複製元がJSONとして壊れている" 2 bash "${standalone_broken_ref_scripts}/check-survey-definition.sh" "$map_ok" --target "$target" --design-root "$design_root_ok"
+  assert_contains_needs_jq "判定不能-複製元がJSONとして壊れている: 前提-複製元不正が出る" "前提-複製元不正" "[判定不能]"
+
+  # 判定不能-複製元と複製先の両方がJSONとして壊れている（空文字同士の比較で誤って一致にならないことを確かめる）
+  assert_exit_needs_jq "判定不能-複製元と複製先の両方がJSONとして壊れている" 2 bash "${standalone_broken_ref_scripts}/check-survey-definition.sh" "$map_ok" --target "$target" --design-root "$design_root_broken_copy"
+  assert_contains_needs_jq "判定不能-複製元と複製先の両方がJSONとして壊れている: 前提-複製元不正が出る" "前提-複製元不正" "[判定不能]"
+
+  # 判定不能-複製元の最上位がnull（構文は正しいJSONだが種別の定義の形（配列）でない）
+  local standalone_null_ref_scripts="${tmp}/standalone-null-ref/level/scripts"
+  mkdir -p "$standalone_null_ref_scripts" "${tmp}/standalone-null-ref/reverse-shared/references"
+  printf 'null' > "${tmp}/standalone-null-ref/reverse-shared/references/unit-kinds.json"
+  cp "$0" "${standalone_null_ref_scripts}/check-survey-definition.sh"
+  assert_exit_needs_jq "判定不能-複製元の最上位がnull" 2 bash "${standalone_null_ref_scripts}/check-survey-definition.sh" "$map_ok" --target "$target" --design-root "$design_root_ok"
+  assert_contains_needs_jq "判定不能-複製元の最上位がnull: 前提-複製元不正が出る" "前提-複製元不正" "[判定不能]"
+
+  # 判定不能-前提-jq不在（PATHからjqを外した環境で本体を呼ぶ。bashとcoreutilsはsymlinkで用意する。
+  # host環境のjq有無によらず常に検査する）
+  local nobin="${tmp}/nobin"
+  mkdir -p "$nobin"
+  ln -s "${BASH:-$(command -v bash)}" "${nobin}/bash"
+  local nobin_cmd nobin_src
+  for nobin_cmd in awk cat grep tr dirname; do
+    nobin_src="$(command -v "$nobin_cmd" 2>/dev/null)"
+    [ -n "$nobin_src" ] && ln -s "$nobin_src" "${nobin}/${nobin_cmd}"
+  done
+  assert_exit "判定不能-前提-jq不在" 2 env "PATH=${nobin}" "${nobin}/bash" "$0" "$map_ok" --target "$target" --design-root "$design_root_ok"
+  assert_contains "判定不能-前提-jq不在: 前提-jq不在が出る" "前提-jq不在" "[判定不能]"
 
   # 使い方-ファイル不在
   assert_exit "使い方-ファイル不在" 2 bash "$0" "${tmp}/no-such-file.md"
 
-  echo "実行 ${self_total} 件 / 失敗 ${self_fail} 件"
+  echo "実行 ${self_total} 件 / 失敗 ${self_fail} 件 / スキップ ${self_skip} 件"
   if [ "$self_fail" -gt 0 ]; then
     return 1
   fi
@@ -1270,6 +1449,7 @@ fi
 
 FILE=""
 TARGET=""
+DESIGN_ROOT=""
 MAXLINES=200
 
 while [ $# -gt 0 ]; do
@@ -1278,12 +1458,16 @@ while [ $# -gt 0 ]; do
       TARGET="${2:-}"
       shift 2
       ;;
+    --design-root)
+      DESIGN_ROOT="${2:-}"
+      shift 2
+      ;;
     --max-lines)
       MAXLINES="${2:-200}"
       shift 2
       ;;
     -*)
-      echo "使い方: check-survey-definition.sh <調査と検出条件の定義書.md> [--target <対象リポジトリのルート>] [--max-lines <N>]" >&2
+      echo "使い方: check-survey-definition.sh <調査と検出条件の定義書.md> [--target <対象リポジトリのルート>] [--design-root <設計書の置き場>] [--max-lines <N>]" >&2
       exit 2
       ;;
     *)
@@ -1308,9 +1492,17 @@ if [ ! -f "$FILE" ]; then
   exit 2
 fi
 
-check_map "$FILE" "$TARGET"
+if ! has_jq; then
+  echo "[判定不能] 前提-jq不在: jq が使えないため検査できません" >&2
+  exit 2
+fi
+
+check_map "$FILE" "$TARGET" "$DESIGN_ROOT"
 
 echo "合格 ${PASS_COUNT} 件 / 不合格 ${FAIL_COUNT} 件"
+if [ "$JUDGE_IMPOSSIBLE" -eq 1 ]; then
+  exit 2
+fi
 if [ "$FAIL_COUNT" -gt 0 ]; then
   exit 1
 fi

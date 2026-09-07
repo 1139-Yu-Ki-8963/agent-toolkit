@@ -29,6 +29,7 @@ requires: []
   - 調査と検出条件の定義書: 設計書の置き場の `docs/design/common/調査と検出条件の定義書.md`
   - 要件定義書: 設計書の置き場の `docs/design/requirements/要件定義書.md`
   - 共通設計文書 6 つ: 設計書の置き場の `docs/design/common/`
+  - 種別の定義（unit-kinds.json）: 設計書の置き場の `docs/design/common/unit-kinds.json`（共有部品の参照の置き場からの複製）
   - 承認用の要約・承認の記録・確認事項の記録: 出力の置き場の `confirmations/`
 - コードの調査と分析は AI が読んで行う。既製の検索パターンを対象に当てない。スクリプトを使うのは手順 5 の検査だけである
 - 確認事項は調査と検出条件の定義書に持たない。各手順で見つけた確認事項は、出力の置き場の `confirmations/確認事項の記録.md` に 1 行 1 事項（キー・単位・種類・事項・既定・反映先・回答・状態の 8 列）で追記する
@@ -50,6 +51,7 @@ requires: []
 2. フォルダ構成とビルドの定義と README を読む。依存の定義（package.json・pom.xml・Gemfile・requirements.txt・go.mod・composer.json・Makefile など）も読む
 3. 節 2「領域」に、読む領域を切り出す。1 領域は一度に読める量（目安はファイル 200 本まで）に収め、収まらない領域はフォルダで再分割する。領域は対象の全フォルダを覆い、除外と重ならない。ファイル数は `find <フォルダ> -type f -not -path '*/.git/*' | wc -l` のように一括で数える。完了条件: 全フォルダと直下のファイルが領域か除外に属する
 4. 節 3「除外」に、生成コード・廃止コード・ベンダー・試験用・開発の道具・資産（画像・データ）・既存文書・その他の除外フォルダを、種類と理由付きで書く。迷うフォルダは確認事項に登録する
+5. 共有部品の参照の置き場は `../reverse-shared/references/unit-kinds.json` である。この `unit-kinds.json` を設計書の置き場の `docs/design/common/unit-kinds.json` へ複製する。複製元が無いときは判定不能として止める
 
 ### 手順 2: 領域ごとの調査（全領域が終わるまで繰り返す）
 
@@ -98,7 +100,8 @@ requires: []
    ```
 2. 調査と検出条件の定義書を検査する
    ```bash
-   bash scripts/check-survey-definition.sh docs/design/common/調査と検出条件の定義書.md --target <対象リポジトリのルート>
+   bash scripts/check-survey-definition.sh docs/design/common/調査と検出条件の定義書.md \
+     --target <対象リポジトリのルート> --design-root <設計書の置き場>
    ```
 3. 要件定義書と共通設計文書 6 つを検査する
    ```bash
