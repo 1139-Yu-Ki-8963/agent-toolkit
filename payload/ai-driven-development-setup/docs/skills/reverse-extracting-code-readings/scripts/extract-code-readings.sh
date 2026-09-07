@@ -8,12 +8,15 @@ set -u
 #   （取り出しの規則）を解釈し、一覧の元データが持つ単位ごとに、コードから
 #   読み取り結果（入力項目・表示項目 等、種別ごとに定めた項目）を機械で取り出して
 #   固定する。取り出しの規則が「AIの読み取り」の項目は機械では取り出さず、
-#   値を空のまま「未」へ載せ、AIが後で埋める対象として残す。
+#   値を空のまま「未」へ載せ、AIが後で埋める対象として残す。取り直し（再実行）
+#   のとき、AIの読み取りの項目は既存の読み取り結果ファイルの値・根拠を引き継ぐ
+#   （出所がAIの場合のみ）。機械で埋める項目は取り直しのたびに毎回コードから
+#   取り直し、既存の値を引き継がない（第1回改善指示書1-37）。
 #
 # 使い方:
 #   extract-code-readings.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別> [--design-root <設計書の置き場>]
 #     [--map <調査と検出条件の定義書のパス>] [--lists <一覧の元データの場所>]
-#     [--out <code-readings の親>] [--verify] [--no-units-status]
+#     [--out <code-readings の親>] [--unit <識別子>] [--verify] [--no-units-status]
 #   extract-code-readings.sh --self-test
 #
 # --no-units-status を付けると単位の状態のファイルへ書き込まない。
@@ -23,6 +26,10 @@ set -u
 # --map の既定は <対象>/docs/design/common/調査と検出条件の定義書.md。
 # --lists の既定は <対象>/docs/design/lists。
 # --out の既定は <実行フォルダ>/code-readings。
+# --unit を付けると、一覧の識別子（list-units-of.shの1列目）が一致する単位1件
+#   だけを取り直す。他の単位の読み取り結果ファイルには触れない（中身も更新
+#   時刻も変わらない）。一覧に無い識別子を渡すと、何も書かずに検査キー
+#   「単位-不在」で終了コード2を返す（第1回改善指示書1-37）。
 # --verify を付けると、既存の <out>/<種別>/ ともう一度取り出した結果を
 #   compare-code-readings.sh で比べる。差分が0件なら「検証: 一致」に続けて
 #   「未の項目: N」（Nは未の項目の総数）を出し終了コード0で返す。未の項目が
@@ -103,7 +110,8 @@ set -u
 #       2列目が規定の形（正規表現|AIの読み取り）のどちらでもなく解釈できない項目がある
 #       （--verifyでは差分が1件以上、または再取り出しが1を返した）（差し戻し: 検出条件-見直し）
 #       （解釈できない項目は集計.jsonの「規則の無い項目」へ列挙し警告を出す）
-#   2 = 使い方の誤り・調査と検出条件の定義書や一覧の不在（判定不能）
+#   2 = 使い方の誤り・調査と検出条件の定義書や一覧の不在（判定不能）。--unitで
+#       指定した識別子が一覧に無い場合も含む（検査キー「単位-不在」）
 #
 # 保守責任者: 人手（ユーザー）。取り出しの規則の書式を変えるときは、調査と検出条件の定義書の
 #   様式（reverse-writing-survey-definition）と本スクリプトと自己テストを同時に直す。
@@ -116,7 +124,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SHARED_SCRIPTS="$(cd "${SCRIPT_DIR}/../../reverse-shared/scripts" && pwd)"
 
 usage_error() {
-  echo "使い方: extract-code-readings.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別> [--design-root <設計書の置き場>] [--map <調査と検出条件の定義書のパス>] [--lists <一覧の元データの場所>] [--out <code-readings の親>] [--verify] [--no-units-status]" >&2
+  echo "使い方: extract-code-readings.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別> [--design-root <設計書の置き場>] [--map <調査と検出条件の定義書のパス>] [--lists <一覧の元データの場所>] [--out <code-readings の親>] [--unit <識別子>] [--verify] [--no-units-status]" >&2
   echo "        extract-code-readings.sh --self-test" >&2
   exit 2
 }
@@ -625,7 +633,7 @@ scan_regex_source() {
 # ============================================================
 
 do_extract() {
-  local target="$1" kind="$2" map="$3" lists="$4" out="$5" exec_id="$6" run_dir="$7" no_status="${8:-0}"
+  local target="$1" kind="$2" map="$3" lists="$4" out="$5" exec_id="$6" run_dir="$7" no_status="${8:-0}" unit="${9:-}"
 
   if kind_is_out_of_scope "$map" "$kind"; then
     echo "対象外: ${kind} は調査と検出条件の定義書の目印が対象外のため取り出しを飛ばします"
@@ -660,7 +668,11 @@ do_extract() {
   # 第2版反証）。前提不成立の原因はperl本体・Unicode::Normalize・fc
   # （perl 5.16未満）のいずれかを区別しないため、メッセージも3つの
   # いずれかが原因でありうることを示す（第1回改善指示書1-30・
-  # 第4版反証所見1）。
+  # 第4版反証所見1）。フォルダ名の検査は --unit による絞り込みより前に、
+  # 一覧の全単位に対して行う。絞り込んだ後の1件だけを見ると、一覧の他の
+  # 部分に重複フォルダ名があっても検知できず、異なる識別子への --unit
+  # 呼び出しが同じ出力ファイルへ黙って重ね書きする（第1回改善指示書
+  # 1-37）。
   if ! check_dirname_classifier_prerequisite; then
     echo "[FAIL] 前提-perl不在: ${kind}: perl 5.16以降・Unicode::Normalize・fcのいずれかが使えないためフォルダ名の検査ができません" >&2
     return 2
@@ -729,6 +741,22 @@ DUPISSUES
     return 2
   fi
 
+  # --unit は一覧の識別子（1列目）が一致する単位1件だけに絞る。他の単位は
+  # 一切処理しないため、その読み取り結果ファイルへは触れない（中身も更新
+  # 時刻も変わらない）。一覧に無い識別子は何も書かずに検査キー「単位-不在」
+  # で終了コード2にする（第1回改善指示書1-37）。フォルダ名の空・不正・
+  # 重複の検査は、この絞り込みより前に一覧の全単位に対して済ませてある。
+  if [ -n "$unit" ]; then
+    local filtered_units unit_found
+    filtered_units="$(printf '%s\n' "$units" | awk -F'\t' -v u="$unit" '$1==u{print; found=1} END{if(!found) exit 1}')"
+    unit_found=$?
+    if [ "$unit_found" -ne 0 ] || [ -z "$filtered_units" ]; then
+      echo "[FAIL] 単位-不在: ${kind}/${unit} は一覧にありません" >&2
+      return 2
+    fi
+    units="$filtered_units"
+  fi
+
   mkdir -p "${out}/${kind}"
   local work
   work="$(mktemp -d "${TMPDIR:-/tmp}/extract-code-readings-work.XXXXXX")" || { echo "[FAIL] 一時領域-作成不能" >&2; return 2; }
@@ -741,7 +769,7 @@ DUPISSUES
   local ranges_file="${work}/unit-ranges.tsv"
   compute_unit_ranges "$lists_file" > "$ranges_file"
 
-  local unit_count=0 machine_filled=0 mi_total=0 missing_total=0 ai_items="" invalid_items=""
+  local unit_count=0 machine_filled=0 mi_total=0 missing_total=0 ai_items="" invalid_items="" write_ok_count=0
 
   local item rule_cell parsed rtype
   while IFS=$'\t' read -r item rule_cell; do
@@ -800,8 +828,29 @@ RULESLIST
       rtype2="${parsed2%%$'\t'*}"
 
       if [ "$rtype2" = "AI" ]; then
-        jq -n --arg item "$item2" '{"項目": $item, "値": [], "出所": "AI", "根拠": []}' >> "$items_jsonl"
-        echo "$item2" >> "$mi_list"
+        # 取り直し（再実行）でAIが埋めた値を失わないよう、既存の読み取り
+        # 結果ファイル（今回の書き込みで上書きされる前の内容）から、出所が
+        # AIの同じ項目の値・根拠を引き継ぐ。機械で埋める項目はこの分岐を
+        # 通らず、下のscopeの走査で毎回コードから取り直す（第1回改善指示書
+        # 1-37）。
+        local existing_file="${out}/${kind}/${dirname}.json"
+        local prev_source prev_ai_v prev_ai_e
+        prev_ai_v="[]"; prev_ai_e="[]"
+        if [ -f "$existing_file" ]; then
+          prev_source="$(jq -r --arg item "$item2" '.["読み取り結果"][$item]["出所"] // empty' "$existing_file" 2>/dev/null)"
+          if [ "$prev_source" = "AI" ]; then
+            local cand
+            cand="$(jq -c --arg item "$item2" '.["読み取り結果"][$item]["値"] // []' "$existing_file" 2>/dev/null)"
+            [ -n "$cand" ] && [ "$cand" != "null" ] && prev_ai_v="$cand"
+            cand="$(jq -c --arg item "$item2" '.["読み取り結果"][$item]["根拠"] // []' "$existing_file" 2>/dev/null)"
+            [ -n "$cand" ] && [ "$cand" != "null" ] && prev_ai_e="$cand"
+          fi
+        fi
+        jq -n --arg item "$item2" --argjson v "$prev_ai_v" --argjson e "$prev_ai_e" \
+          '{"項目": $item, "値": $v, "出所": "AI", "根拠": $e}' >> "$items_jsonl"
+        if [ "$prev_ai_v" = "[]" ]; then
+          echo "$item2" >> "$mi_list"
+        fi
         continue
       fi
 
@@ -903,6 +952,8 @@ RULESLIST2
         "属するファイル": $v_belongs, "読み取り結果": $v_readings, "未": $v_mi,
         "取り出した実行": $v_exec}' > "${out}/${kind}/${dirname}.json"
 
+    [ -s "${out}/${kind}/${dirname}.json" ] && write_ok_count=$((write_ok_count + 1))
+
     if [ "$no_status" != "1" ]; then
       if [ "$mi_count" -gt 0 ]; then
         "$SHARED_SCRIPTS/units-status.sh" "$run_dir" set "$kind" "$id" 読み取り結果 未 > /dev/null 2>&1
@@ -930,8 +981,16 @@ UNITSLIST
   # 指示書1-30）。フォルダ名の空・重複は既に上で止めているが、それ以外の
   # 理由（書き込み自体の失敗で実ファイルが欠ける、または単位が減った後も
   # 同じ--outへ出し続け前回の実行のファイルが残って余る）も見落とさない。
+  # --unitで絞ったときは、出力先フォルダ全体には他の単位の既存ファイルが
+  # 残っているのが正常な状態であり、フォルダ内の全ファイル数と比べると
+  # 常に食い違う。この場合は絞った単位数（今回書き込んだファイル数）と
+  # 比べる（第1回改善指示書1-37。1-30の検査とは対象を分ける）。
   local actual_file_count
-  actual_file_count="$(find "${out}/${kind}" -maxdepth 1 -type f -name '*.json' ! -name '集計.json' | wc -l | tr -d ' ')"
+  if [ -n "$unit" ]; then
+    actual_file_count="$write_ok_count"
+  else
+    actual_file_count="$(find "${out}/${kind}" -maxdepth 1 -type f -name '*.json' ! -name '集計.json' | wc -l | tr -d ' ')"
+  fi
   if [ "$actual_file_count" -ne "$unit_count" ]; then
     echo "[FAIL] 出力-件数不一致: ${kind}: 単位数=${unit_count} 実ファイル数=${actual_file_count}（出力先フォルダに前回実行の古いファイルが残っていないか確認する）" >&2
     return 2
@@ -954,7 +1013,7 @@ run_main() {
   target="${target%/}"
   [ -d "$target" ] || usage_error
 
-  local run_dir="" kind="" map="" lists="" out="" verify=0 design_root="" no_status=0
+  local run_dir="" kind="" map="" lists="" out="" verify=0 design_root="" no_status=0 unit=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --run) run_dir="$2"; shift 2 ;;
@@ -963,6 +1022,7 @@ run_main() {
       --lists) lists="$2"; shift 2 ;;
       --out) out="$2"; shift 2 ;;
       --design-root) design_root="$2"; shift 2 ;;
+      --unit) unit="$2"; shift 2 ;;
       --verify) verify=1; shift ;;
       --no-units-status) no_status=1; shift ;;
       *) usage_error ;;
@@ -1025,7 +1085,7 @@ run_main() {
     exit 0
   fi
 
-  do_extract "$target" "$kind" "$map" "$lists" "$out" "$exec_id" "$run_dir" "$no_status"
+  do_extract "$target" "$kind" "$map" "$lists" "$out" "$exec_id" "$run_dir" "$no_status" "$unit"
   exit $?
 }
 
@@ -2618,6 +2678,80 @@ FIXEOF
   REAL_PERL="$real_perl38" PATH="$base/nofc:$PATH" bash "$SCRIPT_DIR/extract-code-readings.sh" "$d38" --run "$r38" --kind screen --out "$r38/code-readings" > "$base/case38.out" 2>"$base/case38.err"
   local rc38=$?
   check "不合格-前提-fc不在: fcが使えないと終了コード2で止め出力先が空のまま" "$([ "$rc38" -eq 2 ] && [ ! -d "$r38/code-readings/screen" ] && grep -q '\[FAIL\] 前提-perl不在: screen:' "$base/case38.err" && echo 0 || echo 1)"
+
+  # --- AI値引き継ぎ（取り直しでAIが埋めた値・全単位が処理されること） ---
+  local d39="$base/case39" r39="$base/run39"
+  make_fixture "$d39"
+  make_run "$r39"
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d39" --run "$r39" --kind screen --out "$r39/code-readings" > "$base/case39a.out" 2>"$base/case39a.err"
+  local orderlist39="$r39/code-readings/screen/src_pages_OrderList.tsx.json"
+  local orderdetail39="$r39/code-readings/screen/src_pages_OrderDetail.tsx.json"
+  local tmp39
+  tmp39="$(mktemp "${base}/case39.tmp.XXXXXX")"
+  jq '.["読み取り結果"]["呼ぶ接続窓口"]["値"] = ["OrdersService"] | .["読み取り結果"]["呼ぶ接続窓口"]["根拠"] = ["manual"]' \
+    "$orderlist39" > "$tmp39" && mv "$tmp39" "$orderlist39"
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d39" --run "$r39" --kind screen --out "$r39/code-readings" > "$base/case39b.out" 2>"$base/case39b.err"
+  local rc39b=$?
+  local ai_kept39
+  ai_kept39="$(jq -c '.["読み取り結果"]["呼ぶ接続窓口"]["値"]' "$orderlist39" 2>/dev/null)"
+  check "AI値引き継ぎ: 取り直し後もAIが埋めた値が残る" "$([ "$rc39b" -eq 0 ] && [ "$ai_kept39" = '["OrdersService"]' ] && echo 0 || echo 1)"
+  check "AI値引き継ぎ: --unit無しでは全単位を処理する" "$(grep -q '単位数=2' "$base/case39b.out" && echo 0 || echo 1)"
+
+  # --- 単位絞り込み（--unit）は指定した単位以外に触れない ---
+  touch -t 202001010000 "$orderdetail39"
+  local before_hash40 before_mtime40
+  before_hash40="$(shasum "$orderdetail39" | awk '{print $1}')"
+  before_mtime40="$(stat -f %m "$orderdetail39")"
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d39" --run "$r39" --kind screen --out "$r39/code-readings" --unit src/pages/OrderList.tsx > "$base/case40.out" 2>"$base/case40.err"
+  local rc40=$?
+  local after_hash40 after_mtime40
+  after_hash40="$(shasum "$orderdetail39" | awk '{print $1}')"
+  after_mtime40="$(stat -f %m "$orderdetail39")"
+  check "単位絞り込み: --unitを指定した実行は終了コード0" "$([ "$rc40" -eq 0 ] && echo 0 || echo 1)"
+  check "単位絞り込み: 他の単位のファイルの中身が変わらない" "$([ "$before_hash40" = "$after_hash40" ] && echo 0 || echo 1)"
+  check "単位絞り込み: 他の単位のファイルの更新時刻が変わらない" "$([ "$before_mtime40" = "$after_mtime40" ] && echo 0 || echo 1)"
+  local ai_kept40
+  ai_kept40="$(jq -c '.["読み取り結果"]["呼ぶ接続窓口"]["値"]' "$orderlist39" 2>/dev/null)"
+  check "単位絞り込み: 絞った単位のAI値も引き継がれる" "$([ "$ai_kept40" = '["OrdersService"]' ] && echo 0 || echo 1)"
+
+  # --- 単位絞り込み（--unit）で一覧に無い識別子を渡す ---
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d39" --run "$r39" --kind screen --out "$r39/code-readings" --unit does-not-exist > "$base/case41.out" 2>"$base/case41.err"
+  local rc41=$?
+  check "単位絞り込み: 一覧に無い識別子は終了コード2" "$([ "$rc41" -eq 2 ] && echo 0 || echo 1)"
+  check "単位絞り込み: [FAIL]単位-不在のメッセージが出る" "$(grep -q '\[FAIL\] 単位-不在: screen/does-not-exist は一覧にありません' "$base/case41.err" && echo 0 || echo 1)"
+
+  # --- 機械の項目は取り直しのたびに毎回コードから取り直す（引き継がない） ---
+  local d42="$base/case42" r42="$base/run42"
+  make_fixture "$d42"
+  make_run "$r42"
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d42" --run "$r42" --kind screen --out "$r42/code-readings" > "$base/case42a.out" 2>"$base/case42a.err"
+  local orderlist42="$r42/code-readings/screen/src_pages_OrderList.tsx.json"
+  local tmp42
+  tmp42="$(mktemp "${base}/case42.tmp.XXXXXX")"
+  jq '.["読み取り結果"]["入力項目"]["値"] = ["STALE"]' "$orderlist42" > "$tmp42" && mv "$tmp42" "$orderlist42"
+  cat >> "$d42/src/pages/OrderList.tsx" <<'FIXEOF'
+<input name="newField" />
+FIXEOF
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d42" --run "$r42" --kind screen --out "$r42/code-readings" > "$base/case42b.out" 2>"$base/case42b.err"
+  local machine_refreshed42
+  machine_refreshed42="$(jq -c '.["読み取り結果"]["入力項目"]["値"]' "$orderlist42" 2>/dev/null)"
+  check "機械項目再取得: 手で書き換えた値を引き継がずコードから取り直す" "$([ "$machine_refreshed42" = '["orderId","newField"]' ] && echo 0 || echo 1)"
+
+  # --- 単位絞り込み（--unit）でも重複フォルダ名は絞り込み前の全単位で検査する ---
+  local d43="$base/case43" r43="$base/run43"
+  make_fixture "$d43"
+  make_run "$r43"
+  cat > "$d43/docs/design/lists/screen.json" <<'FIXEOF'
+[
+  {"種別":"screen","識別子":"src/pages/OrderList.tsx","表示名":"注文","場所":"src/pages/OrderList.tsx","根拠":"src/pages/OrderList.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[],"フォルダ名":"dup"},
+  {"種別":"screen","識別子":"src/pages/OrderDetail.tsx","表示名":"注文詳細","場所":"src/pages/OrderDetail.tsx","根拠":"src/pages/OrderDetail.tsx:1","単位の定義":"","属するファイル":[],"分類軸":[],"フォルダ名":"dup"}
+]
+FIXEOF
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d43" --run "$r43" --kind screen --out "$r43/code-readings" --unit src/pages/OrderList.tsx > "$base/case43.out" 2>"$base/case43.err"
+  local rc43=$?
+  check "単位絞り込み-フォルダ名重複: --unit指定でも全単位で検査し終了コード2" "$([ "$rc43" -eq 2 ] && echo 0 || echo 1)"
+  check "単位絞り込み-フォルダ名重複: [FAIL]フォルダ名-重複を識別子の列挙付きで出す" "$(grep -q '\[FAIL\] フォルダ名-重複: screen: フォルダ名=dup 識別子=src/pages/OrderList.tsx;src/pages/OrderDetail.tsx' "$base/case43.err" && echo 0 || echo 1)"
+  check "単位絞り込み-フォルダ名重複: 出力先へ書き込まない" "$([ ! -d "$r43/code-readings/screen" ] && echo 0 || echo 1)"
 
   echo "実行 ${total} 件 / 失敗 ${fail} 件"
   if [ "$fail" -gt 0 ]; then
