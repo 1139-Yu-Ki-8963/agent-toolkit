@@ -404,6 +404,7 @@ run_build() {
   local current_parent=""
   local pre_hook_entries_json="[]"
   local stop_hook_entries_json="[]"
+  local session_start_hook_entries_json="[]"
   local cursor_hook_entries_json="[]"
   local toml_block="${TOML_BEGIN_MARK}
 "
@@ -546,6 +547,10 @@ command = \"${checker_ref}\"
             stop_hook_entries_json="$(jq -c --argjson e "$matcher_json" '. + [$e]' <<<"$stop_hook_entries_json")"
             plan_add "Stop登録: ${v_parent}/${v_key}（${checker_ref}）"
             plan_add "cursor/codex(afterFileEdit)登録なし（この環境では対象外・Stopは編集契機を持たない）: ${v_parent}/${v_key}"
+          elif [ "$timing_when" = "SessionStart" ]; then
+            session_start_hook_entries_json="$(jq -c --argjson e "$matcher_json" '. + [$e]' <<<"$session_start_hook_entries_json")"
+            plan_add "SessionStart登録: ${v_parent}/${v_key}（${checker_ref}）"
+            plan_add "cursor/codex(afterFileEdit)登録なし（この環境では対象外・SessionStartは編集契機を持たない）: ${v_parent}/${v_key}"
           else
             plan_add "hooks登録なし（未知のtiming: ${timing_when}）: ${v_parent}/${v_key}（${checker_ref}）"
           fi
@@ -608,7 +613,7 @@ ${agents_block}"
   # 引数長上限へ抵触しうる（改善課題1-52・extract-table-metadata.shのmainColumns回帰と
   # 同じ形）。一時ファイル経由の--slurpfileへ渡す（check-argjson-unbounded-value.shの
   # 対処法。extract-table-metadata.shのmainColumnsを参考実装とする）。
-  local pre_hooks_file stop_hooks_file
+  local pre_hooks_file stop_hooks_file session_start_hooks_file
   if ! pre_hooks_file="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-pre-hooks.XXXXXX" 2>/dev/null)" || [ -z "$pre_hooks_file" ]; then
     echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
@@ -617,17 +622,23 @@ ${agents_block}"
     echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
     exit 2
   fi
+  if ! session_start_hooks_file="$(mktemp "${TMPDIR:-/tmp}/build-derived-rules-session-start-hooks.XXXXXX" 2>/dev/null)" || [ -z "$session_start_hooks_file" ]; then
+    echo "[UNKNOWN] 一時ファイルの作成に失敗したため判定できません（mktempが一時領域へ書き込めませんでした。実行環境の制約が原因である可能性があります）" >&2
+    exit 2
+  fi
   printf '%s' "$pre_hook_entries_json" > "$pre_hooks_file"
   printf '%s' "$stop_hook_entries_json" > "$stop_hooks_file"
-  settings_final="$(jq --slurpfile newPreArr "$pre_hooks_file" --slurpfile newStopArr "$stop_hooks_file" --arg notice "$GENERATED_NOTICE" '
+  printf '%s' "$session_start_hook_entries_json" > "$session_start_hooks_file"
+  settings_final="$(jq --slurpfile newPreArr "$pre_hooks_file" --slurpfile newStopArr "$stop_hooks_file" --slurpfile newSessionStartArr "$session_start_hooks_file" --arg notice "$GENERATED_NOTICE" '
     def strip_generated: map(select(((.hooks[0].command // "") | startswith("docs/rules/")) | not));
     ._generatedNotice = $notice
     | .hooks = (.hooks // {})
     | .hooks.PreToolUse = ((.hooks.PreToolUse // []) | strip_generated) + $newPreArr[0]
     | .hooks.Stop = ((.hooks.Stop // []) | strip_generated) + $newStopArr[0]
+    | .hooks.SessionStart = ((.hooks.SessionStart // []) | strip_generated) + $newSessionStartArr[0]
     | .hooks.PostToolUse = ((.hooks.PostToolUse // []) | strip_generated)
   ' <<<"$settings_base")"
-  rm -f "$pre_hooks_file" "$stop_hooks_file"
+  rm -f "$pre_hooks_file" "$stop_hooks_file" "$session_start_hooks_file"
   plan_add "${settings_out}"
   write_file_if_apply "$settings_out" "$settings_final"
 
@@ -748,6 +759,7 @@ bst_write_fixture() {
   mkdir -p "${root}/code-standards/naming"
   mkdir -p "${root}/code-standards/bash-hook"
   mkdir -p "${root}/code-standards/stop-hook"
+  mkdir -p "${root}/code-standards/session-start-hook"
   mkdir -p "${root}/code-standards/no-timing-hook"
   mkdir -p "${root}/code-standards/multi-timing"
   mkdir -p "${root}/docs-quality/review-notes"
@@ -942,6 +954,53 @@ EOF
 exit 0
 EOF
   chmod +x "${root}/code-standards/stop-hook/check-stop-timing.sh" "${root}/code-standards/stop-hook/check-stop-timing.test.sh"
+
+  # session-start-hook: timing宣言が SessionStart（丸括弧なし・ツール指定なし）の検査。
+  # hooks.SessionStartへmatcherなしで登録され、cursor/codexへは登録されないことを確認する材料。
+  cat > "${root}/code-standards/session-start-hook/rule.md" <<'EOF'
+---
+key: session-start-hook
+title: セッション開始検査規約（テスト用）
+parent: code-standards
+summary: timing宣言(SessionStart)どおりの登録先分岐を確認するための規約。
+scope: scoped
+paths: ["**/*"]
+enforcement: advisory
+checkable: true
+checker: check-session-start-timing.sh
+uncheckableReason: null
+formatter: none
+status: approved
+origin: proposal
+workUnit: file
+---
+
+# セッション開始検査規約（テスト用）
+
+## 概要
+
+テスト用の概要。
+
+## 規則
+
+| 規則 | 内容 | 検査 |
+|---|---|---|
+| 例 | 例 | 静的解析: 例 |
+
+## 違反時の手順
+
+1. 例
+EOF
+  cat > "${root}/code-standards/session-start-hook/check-session-start-timing.sh" <<'EOF'
+#!/usr/bin/env bash
+# timing: SessionStart
+exit 0
+EOF
+  cat > "${root}/code-standards/session-start-hook/check-session-start-timing.test.sh" <<'EOF'
+#!/usr/bin/env bash
+exit 0
+EOF
+  chmod +x "${root}/code-standards/session-start-hook/check-session-start-timing.sh" "${root}/code-standards/session-start-hook/check-session-start-timing.test.sh"
 
   # no-timing-hook: timing宣言そのものを持たない検査。
   # どのhooks登録先にも登録されないことを確認する材料。
@@ -1351,6 +1410,27 @@ self_test() {
     echo "  [PASS] ケース15: Stop宣言の検査はhooks.Stopへmatcherなしで登録され、cursor/codexへは登録されない"
   else
     echo "  [FAIL] ケース15: Stop宣言の検査の登録先が不正" >&2
+    rc=1
+  fi
+
+  # ケース15b: SessionStart宣言の検査は hooks.SessionStart へmatcherなしで登録され、cursor/codexには登録されない
+  ok15b=1
+  if [ -f "${out1}/.claude/settings.json" ]; then
+    jq -e '.hooks.SessionStart[]? | select(.hooks[0].command == "docs/rules/code-standards/session-start-hook/check-session-start-timing.sh")' "${out1}/.claude/settings.json" >/dev/null 2>&1 || ok15b=0
+    jq -e '.hooks.SessionStart[]? | select(.hooks[0].command == "docs/rules/code-standards/session-start-hook/check-session-start-timing.sh") | has("matcher")' "${out1}/.claude/settings.json" >/dev/null 2>&1 && ok15b=0
+  else
+    ok15b=0
+  fi
+  if [ -f "${out1}/.cursor/hooks.json" ] && grep -q 'check-session-start-timing.sh' "${out1}/.cursor/hooks.json" 2>/dev/null; then
+    ok15b=0
+  fi
+  if [ -f "${out1}/.codex/config.toml" ] && grep -q 'check-session-start-timing.sh' "${out1}/.codex/config.toml" 2>/dev/null; then
+    ok15b=0
+  fi
+  if [ "$ok15b" -eq 1 ]; then
+    echo "  [PASS] ケース15b: SessionStart宣言の検査はhooks.SessionStartへmatcherなしで登録され、cursor/codexへは登録されない"
+  else
+    echo "  [FAIL] ケース15b: SessionStart宣言の検査の登録先が不正" >&2
     rc=1
   fi
 
