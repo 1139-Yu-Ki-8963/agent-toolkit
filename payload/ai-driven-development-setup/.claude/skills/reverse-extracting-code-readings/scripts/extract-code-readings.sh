@@ -121,6 +121,11 @@ set -u
 # macOS bash 3.2 互換（連想配列・mapfileは不使用）。
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# ファイルの更新時刻を秒で返す。系を判定して分岐する（第1回改善指示書1-39）。
+# stat の -f は macOS では更新時刻、GNU coreutils ではファイルシステムの情報を
+# 指す。-c は macOS に無い。先に -c を試し、失敗したら -f を使う。
+mtime_of() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null; }
 SHARED_SCRIPTS="$(cd "${SCRIPT_DIR}/../../reverse-shared/scripts" && pwd)"
 
 usage_error() {
@@ -1267,25 +1272,59 @@ FIXEOF
   status_before_verify="$(cat "$status_file_r1" 2>/dev/null)"
   touch -t 202001010000 "$status_file_r1"
   local status_mtime_before_verify
-  status_mtime_before_verify="$(stat -f %m "$status_file_r1" 2>/dev/null)"
+  status_mtime_before_verify="$(mtime_of "$status_file_r1")"
   bash "$SCRIPT_DIR/extract-code-readings.sh" "$d1" --run "$r1" --kind screen --out "$r1/code-readings" --verify > "$base/verify_status.out" 2>"$base/verify_status.err"
   local status_after_verify status_mtime_after_verify
   status_after_verify="$(cat "$status_file_r1" 2>/dev/null)"
-  status_mtime_after_verify="$(stat -f %m "$status_file_r1" 2>/dev/null)"
+  status_mtime_after_verify="$(mtime_of "$status_file_r1")"
   check "no-units-status-検証: --verifyは状態のファイルの中身を書き換えない" "$([ "$status_before_verify" = "$status_after_verify" ] && echo 0 || echo 1)"
   check "no-units-status-検証: --verifyは状態のファイルの更新時刻を書き換えない" "$([ "$status_mtime_before_verify" = "$status_mtime_after_verify" ] && echo 0 || echo 1)"
+
+  # --- 更新時刻の取得が系によらない（第1回改善指示書1-39） ---
+  # 数字を返すだけでなく、更新時刻の変化を実際に追うことを確かめる。
+  # 値を固定で返す実装や空を返す実装は、後段の2つの判定で落ちる。
+  local mt_probe="$base/mtime-probe.txt"
+  : > "$mt_probe"
+  touch -t 202001010000 "$mt_probe"
+  local mt_old
+  mt_old="$(mtime_of "$mt_probe")"
+  touch "$mt_probe"
+  local mt_new
+  mt_new="$(mtime_of "$mt_probe")"
+  check "更新時刻: mtime_of が数字だけの値を返す" "$(printf '%s' "$mt_old" | grep -qE '^[0-9]+$' && echo 0 || echo 1)"
+  check "更新時刻: mtime_of が更新の前後で違う値を返す" "$([ -n "$mt_old" ] && [ -n "$mt_new" ] && [ "$mt_old" != "$mt_new" ] && echo 0 || echo 1)"
+  check "更新時刻: mtime_of が新しいほど大きい値を返す" "$([ -n "$mt_old" ] && [ -n "$mt_new" ] && [ "$mt_new" -gt "$mt_old" ] && echo 0 || echo 1)"
+
+  # GNU を模した系でも同じ値を返す（第1回改善指示書1-39）。
+  # 偽の stat を PATH の先頭へ置く。書式指定のオプションだけが成功し、
+  # ファイルシステム側のオプションは数値でない文字列を返す系を作る。
+  # 書式指定の分岐を消した実装は、この系で数値を得られず落ちる。
+  local gnu_bin="$base/gnu-stat-sim/bin"
+  mkdir -p "$gnu_bin"
+  cat > "$gnu_bin/stat" <<'GNUSTATSIM'
+#!/bin/bash
+case "$1" in
+  -c) [ "$2" = "%Y" ] && { /usr/bin/stat -f %m "$3"; exit 0; }; exit 1 ;;  # stat-sim-fixture: 偽stat内の実体呼び出し（本検査の対象外）
+  -f) echo "filesystem-info"; exit 0 ;;
+  *) exec /usr/bin/stat "$@" ;;
+esac
+GNUSTATSIM
+  chmod +x "$gnu_bin/stat"
+  local mt_gnu
+  mt_gnu="$(PATH="$gnu_bin:$PATH" mtime_of "$mt_probe")"
+  check "更新時刻: GNU を模した系でも同じ値を返す" "$([ -n "$mt_gnu" ] && [ "$mt_gnu" = "$mt_new" ] && echo 0 || echo 1)"
 
   # --- --no-units-status: 既存の状態のファイルは中身も更新時刻も変わらない ---
   local status_before_flag
   status_before_flag="$(cat "$status_file_r1" 2>/dev/null)"
   touch -t 202001010000 "$status_file_r1"
   local status_mtime_before_flag
-  status_mtime_before_flag="$(stat -f %m "$status_file_r1" 2>/dev/null)"
+  status_mtime_before_flag="$(mtime_of "$status_file_r1")"
   bash "$SCRIPT_DIR/extract-code-readings.sh" "$d1" --run "$r1" --kind screen --out "$r1/code-readings" --no-units-status > "$base/no_status_existing.out" 2>"$base/no_status_existing.err"
   local rc_no_status_existing=$?
   local status_after_flag status_mtime_after_flag
   status_after_flag="$(cat "$status_file_r1" 2>/dev/null)"
-  status_mtime_after_flag="$(stat -f %m "$status_file_r1" 2>/dev/null)"
+  status_mtime_after_flag="$(mtime_of "$status_file_r1")"
   check "no-units-status-既存有り: 終了コード0" "$([ "$rc_no_status_existing" -eq 0 ] && echo 0 || echo 1)"
   check "no-units-status-既存有り: 状態のファイルの中身が変わらない" "$([ "$status_before_flag" = "$status_after_flag" ] && echo 0 || echo 1)"
   check "no-units-status-既存有り: 状態のファイルの更新時刻が変わらない" "$([ "$status_mtime_before_flag" = "$status_mtime_after_flag" ] && echo 0 || echo 1)"
@@ -2701,12 +2740,12 @@ FIXEOF
   touch -t 202001010000 "$orderdetail39"
   local before_hash40 before_mtime40
   before_hash40="$(shasum "$orderdetail39" | awk '{print $1}')"
-  before_mtime40="$(stat -f %m "$orderdetail39")"
+  before_mtime40="$(mtime_of "$orderdetail39")"
   bash "$SCRIPT_DIR/extract-code-readings.sh" "$d39" --run "$r39" --kind screen --out "$r39/code-readings" --unit src/pages/OrderList.tsx > "$base/case40.out" 2>"$base/case40.err"
   local rc40=$?
   local after_hash40 after_mtime40
   after_hash40="$(shasum "$orderdetail39" | awk '{print $1}')"
-  after_mtime40="$(stat -f %m "$orderdetail39")"
+  after_mtime40="$(mtime_of "$orderdetail39")"
   check "単位絞り込み: --unitを指定した実行は終了コード0" "$([ "$rc40" -eq 0 ] && echo 0 || echo 1)"
   check "単位絞り込み: 他の単位のファイルの中身が変わらない" "$([ "$before_hash40" = "$after_hash40" ] && echo 0 || echo 1)"
   check "単位絞り込み: 他の単位のファイルの更新時刻が変わらない" "$([ "$before_mtime40" = "$after_mtime40" ] && echo 0 || echo 1)"

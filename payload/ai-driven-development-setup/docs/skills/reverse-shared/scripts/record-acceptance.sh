@@ -80,6 +80,11 @@ set -u
 # macOS bash 3.2 互換。jqを使用する。
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# ファイルの更新時刻を秒で返す。系を判定して分岐する（第1回改善指示書1-39）。
+# stat の -f は macOS では更新時刻、GNU coreutils ではファイルシステムの情報を
+# 指す。-c は macOS に無い。先に -c を試し、失敗したら -f を使う。
+mtime_of() { stat -c %Y "$1" 2>/dev/null || stat -f %m "$1" 2>/dev/null; }
 UNIT_DIR_NAME_SH="${SCRIPT_DIR}/unit-dir-name.sh"
 LIST_UNITS_OF_SH="${SCRIPT_DIR}/list-units-of.sh"
 DESIGN_DOC_NAME_SH="${SCRIPT_DIR}/design-doc-name.sh"
@@ -667,6 +672,40 @@ RUNBASEJSON
   status1="$(bash "${SCRIPT_DIR}/units-status.sh" "$run" get screen "src/pages/OrderList.tsx" 完了判定 2>/dev/null)"
   check "単位の記録: units-status.shの完了判定が更新される" "$([ "$status1" = "合格" ] && echo 0 || echo 1)"
 
+  # --- 更新時刻の取得が系によらない（第1回改善指示書1-39） ---
+  # 数字を返すだけでなく、更新時刻の変化を実際に追うことを確かめる。
+  # 値を固定で返す実装や空を返す実装は、後段の2つの判定で落ちる。
+  local mt_probe="$base/mtime-probe.txt"
+  : > "$mt_probe"
+  touch -t 202001010000 "$mt_probe"
+  local mt_old
+  mt_old="$(mtime_of "$mt_probe")"
+  touch "$mt_probe"
+  local mt_new
+  mt_new="$(mtime_of "$mt_probe")"
+  check "更新時刻: mtime_of が数字だけの値を返す" "$(printf '%s' "$mt_old" | grep -qE '^[0-9]+$' && echo 0 || echo 1)"
+  check "更新時刻: mtime_of が更新の前後で違う値を返す" "$([ -n "$mt_old" ] && [ -n "$mt_new" ] && [ "$mt_old" != "$mt_new" ] && echo 0 || echo 1)"
+  check "更新時刻: mtime_of が新しいほど大きい値を返す" "$([ -n "$mt_old" ] && [ -n "$mt_new" ] && [ "$mt_new" -gt "$mt_old" ] && echo 0 || echo 1)"
+
+  # GNU を模した系でも同じ値を返す（第1回改善指示書1-39）。
+  # 偽の stat を PATH の先頭へ置く。書式指定のオプションだけが成功し、
+  # ファイルシステム側のオプションは数値でない文字列を返す系を作る。
+  # 書式指定の分岐を消した実装は、この系で数値を得られず落ちる。
+  local gnu_bin="$base/gnu-stat-sim/bin"
+  mkdir -p "$gnu_bin"
+  cat > "$gnu_bin/stat" <<'GNUSTATSIM'
+#!/bin/bash
+case "$1" in
+  -c) [ "$2" = "%Y" ] && { /usr/bin/stat -f %m "$3"; exit 0; }; exit 1 ;;  # stat-sim-fixture: 偽stat内の実体呼び出し（本検査の対象外）
+  -f) echo "filesystem-info"; exit 0 ;;
+  *) exec /usr/bin/stat "$@" ;;
+esac
+GNUSTATSIM
+  chmod +x "$gnu_bin/stat"
+  local mt_gnu
+  mt_gnu="$(PATH="$gnu_bin:$PATH" mtime_of "$mt_probe")"
+  check "更新時刻: GNU を模した系でも同じ値を返す" "$([ -n "$mt_gnu" ] && [ "$mt_gnu" = "$mt_new" ] && echo 0 || echo 1)"
+
   # --- --no-units-status: 既存の状態のファイルは中身も更新時刻も変わらない
   #     （第1回改善指示書1-38）。更新時刻を大きく過去へ戻してから実行し、
   #     書き込みが起きれば時刻が今に変わることで検知する。 ---
@@ -675,14 +714,14 @@ RUNBASEJSON
   status_before_flag="$(cat "$status_file_run" 2>/dev/null)"
   touch -t 202001010000 "$status_file_run"
   local status_mtime_before_flag
-  status_mtime_before_flag="$(stat -f %m "$status_file_run" 2>/dev/null)"
+  status_mtime_before_flag="$(mtime_of "$status_file_run")"
   bash "$SCRIPT_DIR/record-acceptance.sh" "$d" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" \
     --verdict 不合格 --viewpoints "外部仕様の確定=否;単体テスト設計書の実在=合" --judged "$judged1" --reason "確認のため" \
     --no-units-status > "$base/nostatus1.out" 2>"$base/nostatus1.err"
   local rc_nostatus1=$?
   local status_after_flag status_mtime_after_flag
   status_after_flag="$(cat "$status_file_run" 2>/dev/null)"
-  status_mtime_after_flag="$(stat -f %m "$status_file_run" 2>/dev/null)"
+  status_mtime_after_flag="$(mtime_of "$status_file_run")"
   check "no-units-status-既存有り: 終了コード0" "$([ "$rc_nostatus1" -eq 0 ] && echo 0 || echo 1)"
   check "no-units-status-既存有り: 状態のファイルの中身が変わらない" "$([ "$status_before_flag" = "$status_after_flag" ] && echo 0 || echo 1)"
   check "no-units-status-既存有り: 状態のファイルの更新時刻が変わらない" "$([ "$status_mtime_before_flag" = "$status_mtime_after_flag" ] && echo 0 || echo 1)"
