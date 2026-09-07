@@ -8,14 +8,14 @@ allowed-tools: [Bash, Read, Glob, Grep]
 unit: reverse
 category: setup
 kind: none
-inputs: [confirmations/確認事項の記録.md, docs/design/requirements/要件定義書.md, docs/design/common/*.md, docs/design/screens/*/画面/基本設計/画面基本設計書.md, docs/design/apis/*/API基本設計書.md, docs/design/tables/*/論理データモデル.md, docs/design/batches/*/バッチ基本設計書.md, docs/design/reports/*/帳票基本設計書.md, docs/design/externals/*/外部連携基本設計書.md, docs/design/features/*/機能設計書.md, confirmations/規約提案.md]
+inputs: [confirmations/確認事項の記録.md, docs/design/requirements/要件定義書.md, docs/design/common/*.md, docs/design/screens/*/画面/基本設計/画面基本設計書.md, docs/design/apis/*/API基本設計書.md, docs/design/tables/*/論理データモデル.md, docs/design/batches/*/バッチ基本設計書.md, docs/design/reports/*/帳票基本設計書.md, docs/design/externals/*/外部連携基本設計書.md, docs/design/features/*/機能設計書.md]
 outputs: [confirmations/確認事項一覧.md]
-requires: [reverse-proposing-rules]
+requires: [reverse-writing-detail-design]
 ---
 
 ## いつ使うか
 
-工程2-10（規約提案）が完了条件を満たした後。各工程が確認事項の記録へ書いた事項と、各設計書の「要確認事項一覧」節を1枚の確認事項一覧へまとめるとき。
+工程2-8（単位の詳細設計）が完了条件を満たした後（テスト設計書を出力するときは2-9の後）。各工程が確認事項の記録へ書いた事項と、各設計書の「要確認事項一覧」節を1枚の確認事項一覧へまとめるとき。
 
 ## いつ使わないか
 

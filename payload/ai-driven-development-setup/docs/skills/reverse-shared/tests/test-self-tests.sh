@@ -154,6 +154,21 @@ cmp_ignoring_notice() {
   return $result
 }
 
+# 出力配置-規約提案なし: 規約提案の廃止（工程2-10廃止）に伴い、references/の複製と
+# docs/design/common/の原本のどちらもoutput-layout.jsonに規約提案の項を持たないことを見る。
+output_layout_no_rule_proposal() {
+  local ref_count design_count
+  ref_count="$(grep -c "規約提案" "${SHARED_DIR}/references/output-layout.json" 2>/dev/null)"
+  ref_count="${ref_count:-0}"
+  [ "$ref_count" -eq 0 ] || return 1
+  if [ -n "$DESIGN_DIR" ] && [ -f "${DESIGN_DIR}/output-layout.json" ]; then
+    design_count="$(grep -c "規約提案" "${DESIGN_DIR}/output-layout.json" 2>/dev/null)"
+    design_count="${design_count:-0}"
+    [ "$design_count" -eq 0 ] || return 1
+  fi
+  return 0
+}
+
 # 様式-他種別名(全文走査)で使う定型文パターン。種別名（画面・機能・API・テーブル・
 # バッチ・帳票・外部連携）を`・`・`と`・`/`で2つ以上並べた列挙を検出する
 # （第1回改善指示書1-20・再検証。check-basic-design.shの同名パターンの写し。
@@ -304,6 +319,7 @@ else
   echo "SKIP: 定義と複製が一致する: output-layout.json（原本のdocs/design/commonが無い）"
   echo "SKIP: 定義と複製が一致する: code-reading-items.json（原本のdocs/design/commonが無い）"
 fi
+run_case "出力配置-規約提案なし: output-layout.jsonに規約提案の項が無い" output_layout_no_rule_proposal
 if [ -n "$SETUP_REFERENCES_DIR" ] && [ -f "${SETUP_REFERENCES_DIR}/rule-taxonomy.json" ]; then
   run_case "定義と複製が一致する: rule-taxonomy.json" cmp -s "${SETUP_REFERENCES_DIR}/rule-taxonomy.json" "${SHARED_DIR}/references/rule-taxonomy.json"
 else
