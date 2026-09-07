@@ -12,12 +12,16 @@ set -u
 #   record-acceptance.sh <対象リポジトリのルート> --run <実行フォルダ> \
 #     --kind <種別> --unit <識別子> --verdict <合格|不合格> \
 #     --viewpoints "<観点=合|否|要確認;...>" --judged "<文書名>=<sha256>;..." \
-#     [--reason "<理由>"] [--design-root <設計書のルート>]
+#     [--reason "<理由>"] [--design-root <設計書のルート>] [--no-units-status]
 #   record-acceptance.sh <対象リポジトリのルート> --run <実行フォルダ> \
 #     --common <文書名> --verdict <合格|不合格> \
 #     --viewpoints "<観点=合|否|要確認;...>" --judged "<文書名>=<sha256>" \
 #     [--reason "<理由>"] [--design-root <設計書のルート>]
 #   record-acceptance.sh --self-test
+#
+# --no-units-status を付けると単位の状態のファイルへ書き込まない（単位の
+# 記録--kind/--unitのときだけ有効。共通設計文書の記録--commonは元々
+# 単位の状態のファイルを触らないため対象外）。
 #
 # 単位・共通設計文書の保留は廃止（2026-09-05）。判定は合格・不合格の2値。
 #
@@ -242,7 +246,7 @@ unit_folder_name() {
 }
 
 usage_error() {
-  echo "使い方: record-acceptance.sh <対象> --run <実行フォルダ> --kind <種別> --unit <識別子> --verdict <合格|不合格> --viewpoints \"<観点=合|否|要確認;...>\" --judged \"<文書名>=<sha256>;...\" [--reason \"...\"] [--design-root <設計書のルート>]" >&2
+  echo "使い方: record-acceptance.sh <対象> --run <実行フォルダ> --kind <種別> --unit <識別子> --verdict <合格|不合格> --viewpoints \"<観点=合|否|要確認;...>\" --judged \"<文書名>=<sha256>;...\" [--reason \"...\"] [--design-root <設計書のルート>] [--no-units-status]" >&2
   echo "        record-acceptance.sh <対象> --run <実行フォルダ> --common <文書名> --verdict <合格|不合格> --viewpoints \"...\" --judged \"<文書名>=<sha256>\" [--reason \"...\"] [--design-root <設計書のルート>]" >&2
   echo "        record-acceptance.sh --self-test" >&2
   exit 2
@@ -373,7 +377,7 @@ execution_id_of() {
 }
 
 record_unit() {
-  local target="$1" run_dir="$2" kind="$3" unit="$4" verdict="$5" viewpoints="$6" reason="$7" design_root="$8" judged_json="$9"
+  local target="$1" run_dir="$2" kind="$3" unit="$4" verdict="$5" viewpoints="$6" reason="$7" design_root="$8" judged_json="$9" no_status="${10:-0}"
   local folder
   folder="$(species_folder "$kind")"
   if [ -z "$folder" ]; then
@@ -447,7 +451,7 @@ record_unit() {
     '{"種別":$kind,"識別子":$id,"文書":$docs,"コミット":$commit,"判定":$verdict,"観点":$vp,"理由":$reason,"判定した実行":$exec}' \
     > "$out_file"
 
-  if [ -f "$UNITS_STATUS_SH" ]; then
+  if [ "$no_status" != "1" ] && [ -f "$UNITS_STATUS_SH" ]; then
     bash "$UNITS_STATUS_SH" "$run_dir" set "$kind" "$unit" 完了判定 "$verdict" > /dev/null 2>&1
   fi
 
@@ -494,7 +498,7 @@ run_main() {
   target="${target%/}"
   [ -d "$target" ] || usage_error
 
-  local run_dir="" kind="" unit="" common="" verdict="" viewpoints="" reason="" design_root="$target" judged=""
+  local run_dir="" kind="" unit="" common="" verdict="" viewpoints="" reason="" design_root="$target" judged="" no_status=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --run) run_dir="$2"; shift 2 ;;
@@ -506,6 +510,7 @@ run_main() {
       --judged) judged="$2"; shift 2 ;;
       --reason) reason="$2"; shift 2 ;;
       --design-root) design_root="$2"; shift 2 ;;
+      --no-units-status) no_status=1; shift ;;
       *) usage_error ;;
     esac
   done
@@ -560,7 +565,7 @@ run_main() {
     record_common "$target" "$run_dir" "$common" "$verdict" "$viewpoints" "$reason" "$design_root" "$judged_json"
     rc=$?
   elif [ -n "$kind" ] && [ -n "$unit" ]; then
-    record_unit "$target" "$run_dir" "$kind" "$unit" "$verdict" "$viewpoints" "$reason" "$design_root" "$judged_json"
+    record_unit "$target" "$run_dir" "$kind" "$unit" "$verdict" "$viewpoints" "$reason" "$design_root" "$judged_json" "$no_status"
     rc=$?
   else
     usage_error
@@ -661,6 +666,50 @@ RUNBASEJSON
   local status1
   status1="$(bash "${SCRIPT_DIR}/units-status.sh" "$run" get screen "src/pages/OrderList.tsx" 完了判定 2>/dev/null)"
   check "単位の記録: units-status.shの完了判定が更新される" "$([ "$status1" = "合格" ] && echo 0 || echo 1)"
+
+  # --- --no-units-status: 既存の状態のファイルは中身も更新時刻も変わらない
+  #     （第1回改善指示書1-38）。更新時刻を大きく過去へ戻してから実行し、
+  #     書き込みが起きれば時刻が今に変わることで検知する。 ---
+  local status_file_run="$run/logs/units-status.json"
+  local status_before_flag
+  status_before_flag="$(cat "$status_file_run" 2>/dev/null)"
+  touch -t 202001010000 "$status_file_run"
+  local status_mtime_before_flag
+  status_mtime_before_flag="$(stat -f %m "$status_file_run" 2>/dev/null)"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d" --run "$run" --kind screen --unit "src/pages/OrderList.tsx" \
+    --verdict 不合格 --viewpoints "外部仕様の確定=否;単体テスト設計書の実在=合" --judged "$judged1" --reason "確認のため" \
+    --no-units-status > "$base/nostatus1.out" 2>"$base/nostatus1.err"
+  local rc_nostatus1=$?
+  local status_after_flag status_mtime_after_flag
+  status_after_flag="$(cat "$status_file_run" 2>/dev/null)"
+  status_mtime_after_flag="$(stat -f %m "$status_file_run" 2>/dev/null)"
+  check "no-units-status-既存有り: 終了コード0" "$([ "$rc_nostatus1" -eq 0 ] && echo 0 || echo 1)"
+  check "no-units-status-既存有り: 状態のファイルの中身が変わらない" "$([ "$status_before_flag" = "$status_after_flag" ] && echo 0 || echo 1)"
+  check "no-units-status-既存有り: 状態のファイルの更新時刻が変わらない" "$([ "$status_mtime_before_flag" = "$status_mtime_after_flag" ] && echo 0 || echo 1)"
+
+  # --- --no-units-status: 状態のファイルが無い状態では作られない・終了コード0 ---
+  local d9="$base/target9" run9="$base/run9"
+  mkdir -p "$d9/docs/design/screens/src_pages_OrderList.tsx" "$run9"
+  cat > "$run9/run.json" <<'RUN9JSON'
+{
+  "実行の識別子": "2026-09-03-abc1234",
+  "テスト設計書の出力": "出力しない"
+}
+RUN9JSON
+  echo "# 画面基本設計書" > "$d9/docs/design/screens/src_pages_OrderList.tsx/画面基本設計書.md"
+  local judged9
+  judged9="画面基本設計書.md=$(sha_of "$d9/docs/design/screens/src_pages_OrderList.tsx/画面基本設計書.md")"
+  bash "$SCRIPT_DIR/record-acceptance.sh" "$d9" --run "$run9" --kind screen --unit "src/pages/OrderList.tsx" \
+    --verdict 合格 --viewpoints "外部仕様の確定=合" --judged "$judged9" --reason "" \
+    --no-units-status > "$base/nostatus2.out" 2>"$base/nostatus2.err"
+  local rc_nostatus2=$?
+  check "no-units-status-無い状態: 終了コード0" "$([ "$rc_nostatus2" -eq 0 ] && echo 0 || echo 1)"
+  check "no-units-status-無い状態: 状態のファイルが作られない" "$([ ! -f "$run9/logs/units-status.json" ] && echo 0 || echo 1)"
+
+  # --- 指定なしはこれまでどおり状態のファイルへ書き込む（単位の記録:
+  #     units-status.shの完了判定が更新されるで既に確認済みだが、無い状態
+  #     からの新規作成も併せて確かめる） ---
+  check "指定なし: 状態のファイルへ書き込む（これまでどおり）" "$([ -f "$run/logs/units-status.json" ] && echo 0 || echo 1)"
 
   # --- 共通設計文書の記録 ---
   mkdir -p "$d/docs/design/common"

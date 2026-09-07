@@ -13,8 +13,11 @@ set -u
 # 使い方:
 #   extract-code-readings.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別> [--design-root <設計書の置き場>]
 #     [--map <調査と検出条件の定義書のパス>] [--lists <一覧の元データの場所>]
-#     [--out <code-readings の親>] [--verify]
+#     [--out <code-readings の親>] [--verify] [--no-units-status]
 #   extract-code-readings.sh --self-test
+#
+# --no-units-status を付けると単位の状態のファイルへ書き込まない。
+# --verify は --no-units-status の指定に関わらず常に書き込みを行わない。
 #
 # --design-root の既定は <対象リポジトリのルート>。--map・--lists の既定はこの値の配下。
 # --map の既定は <対象>/docs/design/common/調査と検出条件の定義書.md。
@@ -113,7 +116,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SHARED_SCRIPTS="$(cd "${SCRIPT_DIR}/../../reverse-shared/scripts" && pwd)"
 
 usage_error() {
-  echo "使い方: extract-code-readings.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別> [--design-root <設計書の置き場>] [--map <調査と検出条件の定義書のパス>] [--lists <一覧の元データの場所>] [--out <code-readings の親>] [--verify]" >&2
+  echo "使い方: extract-code-readings.sh <対象リポジトリのルート> --run <実行フォルダ> --kind <種別> [--design-root <設計書の置き場>] [--map <調査と検出条件の定義書のパス>] [--lists <一覧の元データの場所>] [--out <code-readings の親>] [--verify] [--no-units-status]" >&2
   echo "        extract-code-readings.sh --self-test" >&2
   exit 2
 }
@@ -622,7 +625,7 @@ scan_regex_source() {
 # ============================================================
 
 do_extract() {
-  local target="$1" kind="$2" map="$3" lists="$4" out="$5" exec_id="$6" run_dir="$7"
+  local target="$1" kind="$2" map="$3" lists="$4" out="$5" exec_id="$6" run_dir="$7" no_status="${8:-0}"
 
   if kind_is_out_of_scope "$map" "$kind"; then
     echo "対象外: ${kind} は調査と検出条件の定義書の目印が対象外のため取り出しを飛ばします"
@@ -900,10 +903,12 @@ RULESLIST2
         "属するファイル": $v_belongs, "読み取り結果": $v_readings, "未": $v_mi,
         "取り出した実行": $v_exec}' > "${out}/${kind}/${dirname}.json"
 
-    if [ "$mi_count" -gt 0 ]; then
-      "$SHARED_SCRIPTS/units-status.sh" "$run_dir" set "$kind" "$id" 読み取り結果 未 > /dev/null 2>&1
-    else
-      "$SHARED_SCRIPTS/units-status.sh" "$run_dir" set "$kind" "$id" 読み取り結果 済 > /dev/null 2>&1
+    if [ "$no_status" != "1" ]; then
+      if [ "$mi_count" -gt 0 ]; then
+        "$SHARED_SCRIPTS/units-status.sh" "$run_dir" set "$kind" "$id" 読み取り結果 未 > /dev/null 2>&1
+      else
+        "$SHARED_SCRIPTS/units-status.sh" "$run_dir" set "$kind" "$id" 読み取り結果 済 > /dev/null 2>&1
+      fi
     fi
   done <<UNITSLIST
 $(printf '%s' "$units" | tr '\t' '\037')
@@ -949,7 +954,7 @@ run_main() {
   target="${target%/}"
   [ -d "$target" ] || usage_error
 
-  local run_dir="" kind="" map="" lists="" out="" verify=0 design_root=""
+  local run_dir="" kind="" map="" lists="" out="" verify=0 design_root="" no_status=0
   while [ $# -gt 0 ]; do
     case "$1" in
       --run) run_dir="$2"; shift 2 ;;
@@ -959,6 +964,7 @@ run_main() {
       --out) out="$2"; shift 2 ;;
       --design-root) design_root="$2"; shift 2 ;;
       --verify) verify=1; shift ;;
+      --no-units-status) no_status=1; shift ;;
       *) usage_error ;;
     esac
   done
@@ -993,7 +999,7 @@ run_main() {
     fi
     local verify_work
     verify_work="$(mktemp -d "${TMPDIR:-/tmp}/extract-code-readings-verify.XXXXXX")" || { echo "[FAIL] 一時領域-作成不能" >&2; exit 2; }
-    do_extract "$target" "$kind" "$map" "$lists" "$verify_work" "$exec_id" "$run_dir"
+    do_extract "$target" "$kind" "$map" "$lists" "$verify_work" "$exec_id" "$run_dir" 1
     local extract_rc=$?
     if [ "$extract_rc" -eq 2 ]; then
       rm -rf "$verify_work"
@@ -1019,7 +1025,7 @@ run_main() {
     exit 0
   fi
 
-  do_extract "$target" "$kind" "$map" "$lists" "$out" "$exec_id" "$run_dir"
+  do_extract "$target" "$kind" "$map" "$lists" "$out" "$exec_id" "$run_dir" "$no_status"
   exit $?
 }
 
@@ -1192,6 +1198,53 @@ FIXEOF
   rc_verify_ng=$?
   check "検証-不一致: 終了コード1" "$([ "$rc_verify_ng" -eq 1 ] && echo 0 || echo 1)"
   mv "${tampered}.bak" "$tampered"
+
+  # --- 検証: --verifyは状態のファイルを書き換えない（第1回改善指示書1-38） ---
+  # 更新時刻を大きく過去へ戻してから実行し、書き込みが起きれば時刻が今に
+  # 変わることで検知できるようにする（同一秒内の実行では変化が見えないため）。
+  local status_file_r1="$r1/logs/units-status.json"
+  local status_before_verify
+  status_before_verify="$(cat "$status_file_r1" 2>/dev/null)"
+  touch -t 202001010000 "$status_file_r1"
+  local status_mtime_before_verify
+  status_mtime_before_verify="$(stat -f %m "$status_file_r1" 2>/dev/null)"
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d1" --run "$r1" --kind screen --out "$r1/code-readings" --verify > "$base/verify_status.out" 2>"$base/verify_status.err"
+  local status_after_verify status_mtime_after_verify
+  status_after_verify="$(cat "$status_file_r1" 2>/dev/null)"
+  status_mtime_after_verify="$(stat -f %m "$status_file_r1" 2>/dev/null)"
+  check "no-units-status-検証: --verifyは状態のファイルの中身を書き換えない" "$([ "$status_before_verify" = "$status_after_verify" ] && echo 0 || echo 1)"
+  check "no-units-status-検証: --verifyは状態のファイルの更新時刻を書き換えない" "$([ "$status_mtime_before_verify" = "$status_mtime_after_verify" ] && echo 0 || echo 1)"
+
+  # --- --no-units-status: 既存の状態のファイルは中身も更新時刻も変わらない ---
+  local status_before_flag
+  status_before_flag="$(cat "$status_file_r1" 2>/dev/null)"
+  touch -t 202001010000 "$status_file_r1"
+  local status_mtime_before_flag
+  status_mtime_before_flag="$(stat -f %m "$status_file_r1" 2>/dev/null)"
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d1" --run "$r1" --kind screen --out "$r1/code-readings" --no-units-status > "$base/no_status_existing.out" 2>"$base/no_status_existing.err"
+  local rc_no_status_existing=$?
+  local status_after_flag status_mtime_after_flag
+  status_after_flag="$(cat "$status_file_r1" 2>/dev/null)"
+  status_mtime_after_flag="$(stat -f %m "$status_file_r1" 2>/dev/null)"
+  check "no-units-status-既存有り: 終了コード0" "$([ "$rc_no_status_existing" -eq 0 ] && echo 0 || echo 1)"
+  check "no-units-status-既存有り: 状態のファイルの中身が変わらない" "$([ "$status_before_flag" = "$status_after_flag" ] && echo 0 || echo 1)"
+  check "no-units-status-既存有り: 状態のファイルの更新時刻が変わらない" "$([ "$status_mtime_before_flag" = "$status_mtime_after_flag" ] && echo 0 || echo 1)"
+
+  # --- --no-units-status: 状態のファイルが無い状態では作られない・終了コード0 ---
+  local d9="$base/case9" r9="$base/run9"
+  make_fixture "$d9"
+  make_run "$r9"
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d9" --run "$r9" --kind screen --out "$r9/code-readings" --no-units-status > "$base/no_status_absent.out" 2>"$base/no_status_absent.err"
+  local rc_no_status_absent=$?
+  check "no-units-status-無い状態: 終了コード0" "$([ "$rc_no_status_absent" -eq 0 ] && echo 0 || echo 1)"
+  check "no-units-status-無い状態: 状態のファイルが作られない" "$([ ! -f "$r9/logs/units-status.json" ] && echo 0 || echo 1)"
+
+  # --- 指定なしはこれまでどおり状態のファイルへ書き込む ---
+  local d10="$base/case10" r10="$base/run10"
+  make_fixture "$d10"
+  make_run "$r10"
+  bash "$SCRIPT_DIR/extract-code-readings.sh" "$d10" --run "$r10" --kind screen --out "$r10/code-readings" > "$base/no_status_default.out" 2>"$base/no_status_default.err"
+  check "指定なし: 状態のファイルへ書き込む（これまでどおり）" "$([ -f "$r10/logs/units-status.json" ] && echo 0 || echo 1)"
 
   # --- 使い方誤り ---
   local d3="$base/case3" r3="$base/run3"
