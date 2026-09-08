@@ -9,7 +9,7 @@ unit: reverse
 category: setup
 kind: none
 inputs: [confirmations/確認事項の記録.md, docs/design/requirements/要件定義書.md, docs/design/common/*.md, docs/design/screens/*/画面/基本設計/画面基本設計書.md, docs/design/apis/*/API基本設計書.md, docs/design/tables/*/論理データモデル.md, docs/design/batches/*/バッチ基本設計書.md, docs/design/reports/*/帳票基本設計書.md, docs/design/externals/*/外部連携基本設計書.md, docs/design/features/*/機能設計書.md]
-outputs: [confirmations/確認事項一覧.md]
+outputs: [confirmations/確認事項一覧.md, confirmations/確認事項の提示の記録.md]
 requires: [reverse-writing-detail-design]
 ---
 
@@ -33,6 +33,7 @@ requires: [reverse-writing-detail-design]
 2. `bash scripts/build-confirmation-items.sh <実行フォルダ> --design-root <設計書の置き場>` を実行する。設計書の置き場配下の全「要確認事項一覧」節を走査し、確認事項の記録と突き合わせて `confirmations/確認事項一覧.md` を書く
 3. 終了コード1（既定・反映先の空欄）なら、名指しされたキーの既定・反映先を確認事項の記録または該当する設計書の「要確認事項一覧」節へ書き足し、手順2へ戻る
 4. 出力の完備性を確かめる。`bash scripts/build-confirmation-items.sh --verify <確認事項一覧.md> --design-root <置き場>` を使う。終了コード1なら手順2へ戻る
+5. `confirmations/確認事項の提示の記録.md` が書かれたことを確かめる。持つのは提示した日・確認事項の件数・未回答の件数・提示した相手の4つである。回答欄は開発チームが確認事項一覧へ書くため、この記録は回答を持たない
 
 ## 要確認事項一覧の列見出しの3通り
 
@@ -61,6 +62,7 @@ requires: [reverse-writing-detail-design]
 - 出力の全行に既定と反映先がある
 - 設計書の要確認事項一覧の全キーが出力に載っている（`--verify`で確認）
 - `scripts/build-confirmation-items.sh`が終了コード0
+- `confirmations/確認事項の提示の記録.md` があり、提示した日・確認事項の件数・未回答の件数・提示した相手の4項目を持つ
 
 ## 設計判断
 

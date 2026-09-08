@@ -290,6 +290,29 @@ run_build() {
   }
 }
 
+# 確認事項一覧を書いた後に提示の記録を書く。回答は確認事項一覧の回答欄へ
+# 開発チームが直接書くため、この記録は回答を持たない
+# （詳細設計書§3「提示の記録が回答を持たない理由」）。
+write_presentation_record() {
+  local run_dir="$1" list_body="$2"
+  local out_file="${run_dir%/}/confirmations/確認事項の提示の記録.md"
+  local total_count unanswered_count
+  total_count="$(printf '%s\n' "$list_body" | awk '/^\|---/{s=1;next} s&&/^\| /{c++} END{print c+0}')"
+  unanswered_count="$(printf '%s\n' "$list_body" | awk -F'|' '/^\|---/{s=1;next} s&&/^\| /{v=$(NF-1); gsub(/^[ \t]+|[ \t]+$/,"",v); if(v=="未回答")c++} END{print c+0}')"
+  {
+    echo "# 確認事項の提示の記録"
+    echo
+    echo "| 項目 | 値 |"
+    echo "|---|---|"
+    echo "| 提示した日 | $(date +%Y-%m-%d) |"
+    echo "| 確認事項の件数 | ${total_count} |"
+    echo "| 未回答の件数 | ${unanswered_count} |"
+    echo "| 提示した相手 | 開発チーム |"
+    echo
+    echo "回答は確認事項一覧の回答欄へ開発チームが書く。この記録は回答を持たない。"
+  } > "$out_file"
+}
+
 # ------------------------------------------------------------------
 # --verify（既存の出力を設計書と突き合わせる）
 # ------------------------------------------------------------------
@@ -492,6 +515,52 @@ EOF
     pass=$((pass + 1)); echo "  [PASS扱い-省略] ケース9: /bin/bashが3.2系でないため省略（現在: ${bash32_version:-不明}）"
   fi
 
+  # ケース10: 確認事項一覧を書いた後に提示の記録が書かれ、件数が一覧と一致する
+  local run10="${tmp}/run10" design10="${tmp}/design10" presentation_out10 list10
+  local rows10="" unans10="" rec_rows10="" rec_unans10=""
+  mkdir -p "${run10}/confirmations" "${design10}/docs/design/requirements"
+  cp "${run}/confirmations/確認事項の記録.md" "${run10}/confirmations/確認事項の記録.md"
+  cp "${design_root}/docs/design/requirements/要件定義書.md" "${design10}/docs/design/requirements/要件定義書.md"
+  bash "${BASH_SOURCE[0]}" "$run10" --design-root "$design10" >/dev/null 2>&1
+  list10="${run10}/confirmations/確認事項一覧.md"
+  presentation_out10="${run10}/confirmations/確認事項の提示の記録.md"
+  if [ -f "$list10" ] && [ -f "$presentation_out10" ]; then
+    rows10="$(awk '/^\|---/{s=1;next} s&&/^\| /{c++} END{print c+0}' "$list10")"
+    unans10="$(awk -F'|' '/^\|---/{s=1;next} s&&/^\| /{v=$(NF-1); gsub(/^[ \t]+|[ \t]+$/,"",v); if(v=="未回答")c++} END{print c+0}' "$list10")"
+    rec_rows10="$(awk -F'|' '/^\| 確認事項の件数 /{v=$3; gsub(/^[ \t]+|[ \t]+$/,"",v); print v}' "$presentation_out10")"
+    rec_unans10="$(awk -F'|' '/^\| 未回答の件数 /{v=$3; gsub(/^[ \t]+|[ \t]+$/,"",v); print v}' "$presentation_out10")"
+  fi
+  if [ -n "$rows10" ] && [ "$rows10" -gt 0 ] \
+    && [ "$rows10" = "$rec_rows10" ] && [ "$unans10" = "$rec_unans10" ] \
+    && grep -q '提示した日' "$presentation_out10" \
+    && grep -q '提示した相手' "$presentation_out10"; then
+    pass=$((pass + 1)); echo "  [PASS] ケース10: 確認事項一覧とあわせて提示の記録が書かれる"
+  else
+    fail=$((fail + 1)); echo "  [FAIL] ケース10: 記録の件数が一覧と一致しない（一覧 ${rows10}／${unans10}、記録 ${rec_rows10}／${rec_unans10}）" >&2
+  fi
+
+  # ケース11: 終了コード1のとき一覧も記録も作られない（詳細設計書§5「失敗したときの出力の扱い」）
+  local run11="${tmp}/run11" design11="${tmp}/design11" rc11=0
+  mkdir -p "${run11}/confirmations" "${design11}/docs/design/requirements"
+  cat > "${run11}/confirmations/確認事項の記録.md" << 'EOF'
+# 確認事項の記録
+
+| キー | 単位 | 種類 | 事項 | 既定 | 反映先 | 回答 | 状態 |
+|---|---|---|---|---|---|---|---|
+| 金額-丸め | 全体 | 業務ルール | 端数の扱い |  | 業務仕様書 全体 |  | 未回答 |
+EOF
+  cat > "${design11}/docs/design/requirements/要件定義書.md" << 'EOF'
+# 要件定義書
+EOF
+  bash "${BASH_SOURCE[0]}" "$run11" --design-root "$design11" >/dev/null 2>&1 || rc11=$?
+  if [ "$rc11" -eq 1 ] \
+    && [ ! -f "${run11}/confirmations/確認事項一覧.md" ] \
+    && [ ! -f "${run11}/confirmations/確認事項の提示の記録.md" ]; then
+    pass=$((pass + 1)); echo "  [PASS] ケース11: 終了コード1のとき一覧も記録も作られない"
+  else
+    fail=$((fail + 1)); echo "  [FAIL] ケース11: 失敗時に出力が作られている (exit ${rc11})" >&2
+  fi
+
   echo "実行 $((pass + fail)) 件 / 合格 ${pass} 件（失敗 ${fail} 件）"
   if [ "$fail" -eq 0 ]; then
     return 0
@@ -548,6 +617,7 @@ main() {
     exit "$rc"
   fi
   printf '%s\n' "$out" > "${run_dir%/}/confirmations/確認事項一覧.md"
+  write_presentation_record "$run_dir" "$out"
   echo "確認事項一覧を書きました: ${run_dir%/}/confirmations/確認事項一覧.md"
   exit 0
 }
