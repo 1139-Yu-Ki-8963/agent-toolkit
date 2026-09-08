@@ -9,7 +9,7 @@ unit: reverse
 category: setup
 kind: none
 inputs: [docs/skills/reverse-*/SKILL.md]
-outputs: [ai-output/*/*/run.json, ai-output/*/*/reports/reverse-plan.md]
+outputs: [ai-output/*/*/run.json, ai-output/*/*/reports/reverse-plan.md, ai-output/*/*/reports/完了報告.md, ai-output/*/*/reports/納品物一覧.md, docs/design/lists/納品物一覧.md]
 requires: []
 ---
 <!-- 生成物: 定義は支援ツールの正本リポジトリの docs/skills/reverse-orchestrating-flow/ にある（この配布物には含まれない）。直接編集しないこと -->
@@ -61,12 +61,15 @@ setupと合わせて実行するとき（セットアップの統括を使う。
 
    終了コード0でなければ止まり、基本設計書を書く機能へ戻す旨を報告する。
 5. 全STEPが終わったら、計画の表と各機能の結果を実行フォルダの`reports/reverse-plan.md`へ書く
+6. 工程2-13（完了報告と受け入れ）として、`scripts/build-completion-report.sh <実行フォルダ> --design-root <設計書の置き場>`を実行する。納品物一覧を`docs/design/lists/納品物一覧.md`へ、写しと完了報告を実行フォルダの`reports/`へ書く。終了コード1（納品物の不在）なら、名指しされた文書を作る工程へ戻す。終了コード3（業務名.jsonが読めない、または単位のフォルダ名が未確定）なら、一覧を作る工程へ戻す。終了コード0なら完了報告を人へ提示し、受け入れの欄への記入を待つ。この手順は末尾に固定で置き、工程を足しても位置を変えない
 
 ## 完了条件
 
 - `../reverse-shared/scripts/start-run.sh` が終了コード 0 で実行フォルダを作る
 - `scripts/plan-reverse.sh` が終了コード 0 で計画を返す（循環や未解決の入力があれば終了コード 1 で止まる。`--until`の対象不在は終了コード2）
 - 全 STEP の機能がそれぞれの完了条件を満たす
+- `scripts/build-completion-report.sh` が終了コード 0 で納品物一覧と完了報告を書く
+- 納品物一覧の各行の文書が実在し、単位が表示名と識別子の両方で書かれている
 
 検収の集計はセットアップ単位の統括の完了時の処理が担い、本機能はそれを持たない。
 
