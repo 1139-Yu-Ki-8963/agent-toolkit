@@ -71,10 +71,26 @@ run_case() {
   fi
 }
 
-process_function_mapping_ok() {
+# process_mapping_compute の結果を保持するキャッシュ。同じ (doc, skills_root) の
+# 組で3つの独立したケース（process_function_mapping_ok・process_all_covered_ok・
+# process_count_matches_ok）から呼ばれても、走査と個々の不合格メッセージの出力を
+# 1回だけにするための状態である（第1回改善指示書1-47・判定役の指摘: 網羅の判定と
+# 件数一致の判定を run_case の独立ケースとして登録すると、新しいケース名が
+# 自己テストの出力へ現れる）。
+_PM_COMPUTED=0
+_PM_ALL_OK=1
+_PM_SECTIONS_VISITED=0
+_PM_SECTIONS_TOTAL=0
+_PM_SEEN=0
+_PM_TANTO_TOTAL=0
+
+process_mapping_compute() {
   # 流れの設計の各工程の「担当」欄がバッククォートで名指しする機能名について、
   # docs/skills に実在し、そのSKILL.mdのoutputsが「出力」欄の語と対応することを見る。
-  # バッククォートの名指しが無い工程（人が担当・機能名を書かない慣行の工程）は対象外。
+  # バッククォートの名指しが無い工程は、担当欄に「機能を持たない」の明示が
+  # あるときだけ対象外とする（第1回改善指示書1-47）。工程の総数を数え、
+  # 流れの設計の担当欄の総数（観点の説明表の行を含む凡例を除く）と突き合わせる。
+  [ "$_PM_COMPUTED" = "1" ] && return 0
   local doc="$1" skills_root="$2"
   local blocks
   blocks="$(awk '
@@ -82,18 +98,58 @@ process_function_mapping_ok() {
     started { print }
     END { if (started) print "===SECTION===" }
   ' "$doc")"
-  local block="" line all_ok=1
+  local block="" line
   while IFS= read -r line; do
     if [ "$line" = "===SECTION===" ]; then
       if [ -n "$block" ]; then
-        process_one_section "$block" "$skills_root" || all_ok=0
+        _PM_SECTIONS_VISITED=$((_PM_SECTIONS_VISITED + 1))
+        # 「検査した工程」の件数は、担当欄の総数（凡例を除く）と同じ基準で
+        # 数える。担当欄そのものが無い工程（欠番）はこの件数に含めない。
+        # ただし process_one_section 自体はこの工程にも呼び、欠番の明示を
+        # 確かめる（第1回改善指示書1-47・反証の指摘）。
+        if printf '%s\n' "$block" | grep -q '^| 担当 '; then
+          _PM_SEEN=$((_PM_SEEN + 1))
+        fi
+        process_one_section "$block" "$skills_root" || _PM_ALL_OK=0
       fi
       block=""
       continue
     fi
     block="${block}${line}"$'\n'
   done <<< "$blocks"
-  [ "$all_ok" -eq 1 ]
+  echo "  工程の担当と出力の対応: 検査した工程 ${_PM_SEEN} 件"
+  # 文書冒頭の観点の説明表にも「| 担当 |」の行（凡例）があり、単純な
+  # grep -c '^| 担当 ' はこれを含めて数えてしまう。工程の見出し以降に
+  # 限って数える（第1回改善指示書1-47・反証の指摘）。
+  _PM_TANTO_TOTAL="$(awk '/^### 工程 /{f=1} f && /^\| 担当 /{n++} END{print n+0}' "$doc")"
+  _PM_SECTIONS_TOTAL="$(grep -c '^### 工程 ' "$doc")"
+  if [ "$_PM_SEEN" -ne "$_PM_TANTO_TOTAL" ]; then
+    echo "NG: 工程-検査の網羅: 検査した工程 ${_PM_SEEN} 件が担当欄の総数 ${_PM_TANTO_TOTAL} 件と一致しません" >&2
+    _PM_ALL_OK=0
+  fi
+  _PM_COMPUTED=1
+}
+
+process_function_mapping_ok() {
+  process_mapping_compute "$1" "$2"
+  [ "$_PM_ALL_OK" -eq 1 ]
+}
+
+# 独立ケース1: 流れの設計の担当欄を持つ工程（凡例・欠番を除く18件）が
+# 1件も素通りせず検査の対象に入ったことを見る。検査が実際に見るのは
+# 担当欄を持つ工程だけであり、担当欄そのものを持たない工程2-10（欠番）は
+# 検査の対象ではないため、分母は工程の見出しの総数（19件）ではなく担当欄の
+# 総数（18件）にする（第1回改善指示書1-47・判定役の指摘）。
+process_all_covered_ok() {
+  process_mapping_compute "$1" "$2"
+  [ "$_PM_TANTO_TOTAL" -gt 0 ] && [ "$_PM_SEEN" -eq "$_PM_TANTO_TOTAL" ]
+}
+
+# 独立ケース2: 担当欄を持つ工程として検査した件数が、流れの設計の担当欄の
+# 総数（凡例を除く）と一致することを見る。
+process_count_matches_ok() {
+  process_mapping_compute "$1" "$2"
+  [ "$_PM_SEEN" -eq "$_PM_TANTO_TOTAL" ]
 }
 
 process_one_section() {
@@ -101,10 +157,26 @@ process_one_section() {
   local tanto shukka
   tanto="$(printf '%s\n' "$block" | grep -m1 '^| 担当 ' || true)"
   shukka="$(printf '%s\n' "$block" | grep -m1 '^| 出力 ' || true)"
-  [ -n "$tanto" ] || return 0
+  if [ -z "$tanto" ]; then
+    case "$block" in
+      *'欠番'*) return 0 ;;
+      *)
+        echo "NG: 工程-担当欄なし: 担当の行がありません" >&2
+        return 1
+        ;;
+    esac
+  fi
   local names
   names="$(printf '%s' "$tanto" | grep -o '`[a-zA-Z0-9-]\+`' | tr -d '`')"
-  [ -n "$names" ] || return 0
+  if [ -z "$names" ]; then
+    case "$tanto" in
+      *'機能を持たない'*) return 0 ;;
+      *)
+        echo "NG: 工程-担当欄の機能名なし: 担当欄にバッククォートで囲んだ機能名が無く、「機能を持たない」の明示もありません" >&2
+        return 1
+        ;;
+    esac
+  fi
   [ -n "$shukka" ] || return 0
   case "$shukka" in
     *'無し'*) return 0 ;;
@@ -114,7 +186,7 @@ process_one_section() {
     [ -n "$name" ] || continue
     local skill_file="${skills_root}/${name}/SKILL.md"
     if [ ! -f "$skill_file" ]; then
-      echo "[FAIL] 工程-機能不在: ${name}" >&2
+      echo "NG: 工程-機能不在: ${name}" >&2
       section_ok=0
       continue
     fi
@@ -134,7 +206,7 @@ process_one_section() {
       esac
     done
     if [ "$matched" -ne 1 ]; then
-      echo "[FAIL] 工程-出力不一致: ${name} の outputs が出力欄と対応しない (${shukka})" >&2
+      echo "NG: 工程-出力不一致: ${name} の outputs が出力欄と対応しない (${shukka})" >&2
       section_ok=0
     fi
   done <<< "$names"
@@ -346,8 +418,12 @@ else
 fi
 if [ -n "$DESIGN_DIR" ] && [ -f "${DESIGN_DIR}/リバースの流れの設計.md" ]; then
   run_case "工程の担当欄の機能が実在しoutputsが出力欄と対応する" process_function_mapping_ok "${DESIGN_DIR}/リバースの流れの設計.md" "${SHARED_DIR}/.."
+  run_case "工程の担当と出力の対応: 担当欄18件すべてを検査の対象にする" process_all_covered_ok "${DESIGN_DIR}/リバースの流れの設計.md" "${SHARED_DIR}/.."
+  run_case "工程の担当と出力の対応: 検査した件数が担当欄の総数と一致する" process_count_matches_ok "${DESIGN_DIR}/リバースの流れの設計.md" "${SHARED_DIR}/.."
 else
   echo "SKIP: 工程の担当欄の機能が実在しoutputsが出力欄と対応する（原本のdocs/design/commonが無い）"
+  echo "SKIP: 工程の担当と出力の対応: 担当欄18件すべてを検査の対象にする（原本のdocs/design/commonが無い）"
+  echo "SKIP: 工程の担当と出力の対応: 検査した件数が担当欄の総数と一致する（原本のdocs/design/commonが無い）"
 fi
 if [ -n "$SETUP_COPY_DIR" ]; then
   run_case "写しの全ファイルに自分の種別以外の名前を含む列挙が無い" setup_copy_enumeration_ok "$SETUP_COPY_DIR"
