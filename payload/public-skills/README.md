@@ -12,4 +12,4 @@ cp -R skills/<スキル名> ~/.claude/skills/
 
 | スキル | 役割 | 前提 |
 |---|---|---|
-| `reporting-textlint-findings` | md を textlint で機械検査し、指摘箇所に赤ペンを入れた HTML を出す | node。textlint と 5 パッケージはスキルが導入先を聞いて入れる |
+| `reporting-textlint-findings` | md を textlint で機械検査し、指摘箇所に波線を引いた HTML を出す | node。textlint と 5 パッケージはスキルが導入先を聞いて入れる |

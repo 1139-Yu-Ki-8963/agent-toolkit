@@ -1,29 +1,65 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{{TITLE}}</title>
 <style>
-:root{--paper:#fbfaf7;--ink:#26231e;--muted:#6b665c;--rule:#d9d4c9;--red:#b42318;--red-soft:#fbe9e6;--pend:#8a6d00;--pend-soft:#fff4cc;color-scheme:light dark}
-@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#1c1b18;--ink:#ece8df;--muted:#a49e92;--rule:#3a3730;--red:#ff7a66;--red-soft:#3a1f1b;--pend:#e0b23a;--pend-soft:#3a3010}}
-:root[data-theme="dark"]{--paper:#1c1b18;--ink:#ece8df;--muted:#a49e92;--rule:#3a3730;--red:#ff7a66;--red-soft:#3a1f1b;--pend:#e0b23a;--pend-soft:#3a3010}
-body{background:var(--paper);color:var(--ink);font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;padding:24px 20px 48px;margin:0;line-height:1.7}
-main{max-width:880px;margin:0 auto}
-h1{font-size:1.35rem;margin:0 0 4px;font-weight:600}
-.lead{color:var(--muted);font-size:.9rem;margin:0 0 20px;display:flex;gap:18px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
-h2{font-size:.85rem;letter-spacing:.06em;color:var(--muted);font-weight:600;margin:28px 0 8px;border-bottom:1px solid var(--rule);padding-bottom:4px}
-.spot{display:grid;grid-template-columns:5.5em 1fr;gap:0 14px;padding:12px 0;border-bottom:1px solid var(--rule)}
-.loc{color:var(--muted);font-size:.8rem;font-variant-numeric:tabular-nums;padding-top:3px}
-.text{font-size:1rem;word-break:break-all}
-del{color:var(--red);text-decoration:line-through;text-decoration-thickness:2px;background:var(--red-soft)}
-ins{color:var(--red);text-decoration:none;font-weight:600;margin-left:2px}
-mark{background:transparent;color:inherit;text-decoration:underline wavy var(--red);text-decoration-thickness:1.5px;text-underline-offset:3px}
-.why{color:var(--muted);font-size:.8rem;margin-top:4px}
+:root{--paper:#fbfaf7;--ink:#26231e;--muted:#3e4348;--faint:#3e4348;--rule:#d9d4c9;--rule-soft:#ece8e0;--red:#b42318;--green:#3b7d4e;--gray:#c9cdd1;--tag:#8a6d00;--tag-soft:#fff4cc;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#1c1b18;--ink:#ece8df;--muted:#c9c4b8;--faint:#c9c4b8;--rule:#3a3730;--rule-soft:#2c2a25;--red:#ff7a66;--green:#6fbf83;--gray:#55524b;--tag:#e0b23a;--tag-soft:#3a3010}}
+:root[data-theme="dark"]{--paper:#1c1b18;--ink:#ece8df;--muted:#c9c4b8;--faint:#c9c4b8;--rule:#3a3730;--rule-soft:#2c2a25;--red:#ff7a66;--green:#6fbf83;--gray:#55524b;--tag:#e0b23a;--tag-soft:#3a3010}
+body{background:var(--paper);color:var(--ink);font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;font-size:15px;line-height:1.7;margin:0;padding:28px 20px 40px}
+main{max-width:1100px;margin:0 auto}
+.head{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:8px}
+h1{font-size:22px;font-weight:600;margin:0}
+.meta{font-size:14px;color:var(--muted)}
+.tabs{margin-top:14px;display:flex;border-bottom:1px solid var(--rule)}
+.tabs label{padding:8px 18px;font-size:15px;color:var(--muted);cursor:pointer;margin-bottom:-1px;border-bottom:3px solid transparent}
+.tabs label span{color:var(--faint)}
+input[name="tab"]{position:absolute;opacity:0;pointer-events:none}
+#tab-findings:checked ~ .tabs label[for="tab-findings"],#tab-rules:checked ~ .tabs label[for="tab-rules"]{color:var(--ink);font-weight:600;border-bottom-color:var(--red)}
+#tab-findings:checked ~ .tabs label[for="tab-findings"] span,#tab-rules:checked ~ .tabs label[for="tab-rules"] span{color:var(--muted);font-weight:400}
+.pane{display:none}
+#tab-findings:checked ~ #pane-findings,#tab-rules:checked ~ #pane-rules{display:block}
+.counts{margin-top:16px;display:flex;gap:18px;font-size:14px;color:var(--muted);flex-wrap:wrap}
+.counts b{color:var(--ink)}
+.sw{display:inline-block;width:10px;height:10px;margin-right:6px;vertical-align:-1px}
+h2{font-size:14px;font-weight:600;color:var(--muted);letter-spacing:.05em;margin:18px 0 4px}
+.spot{display:grid;grid-template-columns:76px minmax(0,1fr);gap:0 14px;padding:12px 0;border-bottom:1px solid var(--rule)}
+.loc{color:var(--muted);font-size:14px;padding-top:3px}
+.text{font-size:16px;word-break:break-all}
+mark{background:transparent;color:inherit;text-decoration:underline wavy var(--red);text-underline-offset:3px}
+.why{font-size:14px;color:var(--muted);margin-top:4px}
+.why b{color:var(--ink);font-weight:600}
 .why div+div{margin-top:4px}
-.why b{font-weight:600;color:var(--ink)}
-.tag{display:inline-block;font-size:.7rem;padding:0 6px;border-radius:3px;margin-right:6px;vertical-align:1px}
-.tag.rep{background:var(--red-soft);color:var(--red)}
-.tag.pt{background:var(--pend-soft);color:var(--pend)}
-@media (max-width:480px){.spot{grid-template-columns:1fr}}
+.tag{display:inline-block;font-size:14px;padding:0 6px;background:var(--tag-soft);color:var(--tag);margin-right:6px}
+.rules{display:grid;grid-template-columns:12px 250px minmax(0,1fr) 170px 70px;gap:0 12px;align-items:center}
+.rules.hd{font-size:14px;color:var(--muted);padding:0 0 6px;border-bottom:1px solid var(--rule);margin-top:18px}
+.rules.row{padding:7px 0;border-bottom:1px solid var(--rule-soft)}
+.rules .id{font-family:ui-monospace,Menlo,monospace;font-size:14px}
+.rules .n{text-align:right}
+.rules .n.hit{font-weight:600}
+.rules.off{color:var(--faint)}
+.dot{width:10px;height:10px}
+.dot.hit{background:var(--red)}.dot.ok{background:var(--green)}.dot.off{background:var(--gray)}
+@media (max-width:640px){.spot{grid-template-columns:1fr}.rules{grid-template-columns:12px minmax(0,1fr) 60px}.rules .what,.rules .cfg{display:none}}
 </style>
+</head>
+<body>
 <main>
-<h1>赤ペン</h1>
-<p class="lead">{{SUMMARY}}</p>
-{{BODY}}
+<div class="head"><h1>{{TITLE}}</h1><div class="meta">{{META}}</div></div>
+<input type="radio" name="tab" id="tab-findings" checked>
+<input type="radio" name="tab" id="tab-rules">
+<div class="tabs"><label for="tab-findings">指摘 <span>{{FINDINGS_COUNT}} か所</span></label><label for="tab-rules">規則 <span>{{RULES_SUMMARY}}</span></label></div>
+<section class="pane" id="pane-findings">
+<div class="counts">{{FINDINGS_COUNTS}}</div>
+{{FINDINGS}}
+</section>
+<section class="pane" id="pane-rules">
+<div class="counts"><span><span class="sw" style="background:var(--red)"></span>指摘あり {{RULES_HIT}}</span><span><span class="sw" style="background:var(--green)"></span>指摘なし {{RULES_OK}}</span><span><span class="sw" style="background:var(--gray)"></span>無効 {{RULES_OFF}}</span></div>
+<div class="rules hd"><div></div><div>ルール</div><div>何を見るか</div><div>設定</div><div class="n">指摘</div></div>
+{{RULES}}
+</section>
 </main>
+</body>
+</html>

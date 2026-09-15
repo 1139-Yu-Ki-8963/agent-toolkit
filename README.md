@@ -100,6 +100,18 @@ payload/
 
 ---
 
+### public-skills（単体で動く公開スキル集）
+
+`payload/public-skills/skills/` にある各スキルは、他のスキル・規約・hook を参照せず単体で動く。使いたいスキルのフォルダを、グローバルなら `~/.claude/skills/`、プロジェクトなら `<repo>/.claude/skills/` へ複製するだけで使える。settings.json への追加は不要である。
+
+| スキル | 何をするか | 前提 |
+|---|---|---|
+| reporting-textlint-findings | md を textlint で検査し、指摘箇所に波線を引いた HTML（指摘タブ・規則タブ）を書き出す | node と textlint 6 パッケージ（一覧はスキルの SKILL.md） |
+
+導入手順と各スキルの説明は `payload/public-skills/README.md` にある。
+
+---
+
 ## 設計仕様（人間用）
 
 `payload/claudecode-global-setup/agent-home/ai-management-portal/` に、同梱スキルと設計ガイドを俯瞰できるポータルを同梱しています。設置後は `node payload/claudecode-global-setup/agent-home/skills/managing-agent-configs/scripts/manage-portal.mjs serve` でローカルサーバーを起動するか、`payload/claudecode-global-setup/agent-home/ai-management-portal/index.html` をブラウザで直接開いてください。
