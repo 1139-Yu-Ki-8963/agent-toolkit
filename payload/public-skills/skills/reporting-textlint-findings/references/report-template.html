@@ -1,0 +1,29 @@
+<title>{{TITLE}}</title>
+<style>
+:root{--paper:#fbfaf7;--ink:#26231e;--muted:#6b665c;--rule:#d9d4c9;--red:#b42318;--red-soft:#fbe9e6;--pend:#8a6d00;--pend-soft:#fff4cc;color-scheme:light dark}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#1c1b18;--ink:#ece8df;--muted:#a49e92;--rule:#3a3730;--red:#ff7a66;--red-soft:#3a1f1b;--pend:#e0b23a;--pend-soft:#3a3010}}
+:root[data-theme="dark"]{--paper:#1c1b18;--ink:#ece8df;--muted:#a49e92;--rule:#3a3730;--red:#ff7a66;--red-soft:#3a1f1b;--pend:#e0b23a;--pend-soft:#3a3010}
+body{background:var(--paper);color:var(--ink);font-family:"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;padding:24px 20px 48px;margin:0;line-height:1.7}
+main{max-width:880px;margin:0 auto}
+h1{font-size:1.35rem;margin:0 0 4px;font-weight:600}
+.lead{color:var(--muted);font-size:.9rem;margin:0 0 20px;display:flex;gap:18px;flex-wrap:wrap;font-variant-numeric:tabular-nums}
+h2{font-size:.85rem;letter-spacing:.06em;color:var(--muted);font-weight:600;margin:28px 0 8px;border-bottom:1px solid var(--rule);padding-bottom:4px}
+.spot{display:grid;grid-template-columns:5.5em 1fr;gap:0 14px;padding:12px 0;border-bottom:1px solid var(--rule)}
+.loc{color:var(--muted);font-size:.8rem;font-variant-numeric:tabular-nums;padding-top:3px}
+.text{font-size:1rem;word-break:break-all}
+del{color:var(--red);text-decoration:line-through;text-decoration-thickness:2px;background:var(--red-soft)}
+ins{color:var(--red);text-decoration:none;font-weight:600;margin-left:2px}
+mark{background:transparent;color:inherit;text-decoration:underline wavy var(--red);text-decoration-thickness:1.5px;text-underline-offset:3px}
+.why{color:var(--muted);font-size:.8rem;margin-top:4px}
+.why div+div{margin-top:4px}
+.why b{font-weight:600;color:var(--ink)}
+.tag{display:inline-block;font-size:.7rem;padding:0 6px;border-radius:3px;margin-right:6px;vertical-align:1px}
+.tag.rep{background:var(--red-soft);color:var(--red)}
+.tag.pt{background:var(--pend-soft);color:var(--pend)}
+@media (max-width:480px){.spot{grid-template-columns:1fr}}
+</style>
+<main>
+<h1>赤ペン</h1>
+<p class="lead">{{SUMMARY}}</p>
+{{BODY}}
+</main>

@@ -1,0 +1,29 @@
+{
+  "filters": {
+    "comments": true,
+    "allowlist": {
+      "allow": [
+        "/^(参考|題名|出典|引用|例|図[0-9]*|表[0-9]*|キャプション|注|注釈|備考|補足)[:：].*$/m"
+      ]
+    }
+  },
+  "rules": {
+    "prh": { "rulePaths": ["./prh.yml"] },
+    "@textlint-ja/textlint-rule-preset-ai-writing": {
+      "no-ai-hype-expressions": { "allows": ["大幅に"] },
+      "ai-tech-writing-guideline": { "disableClarityGuidance": true }
+    },
+    "preset-ja-technical-writing": {
+      "sentence-length": {
+        "max": 100,
+        "skipPatterns": ["/```[\\s\\S]*?```/m", "/\\|[^\\|]*\\|/", "/^>\\s.*$/m", "/^[-\\*\\+]\\s.*$/m", "/^\\d+\\.\\s.*$/m", "/^---+$/m"]
+      },
+      "max-ten": { "max": 3 },
+      "max-kanji-continuous-len": { "max": 8 },
+      "no-mix-dearu-desumasu": false,
+      "ja-no-mixed-period": false,
+      "no-exclamation-question-mark": false,
+      "no-doubled-joshi": { "strict": false, "allow": ["は", "に", "で", "と", "を", "が"] }
+    }
+  }
+}
