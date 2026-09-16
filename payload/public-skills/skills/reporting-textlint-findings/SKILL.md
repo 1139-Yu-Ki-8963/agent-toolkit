@@ -83,7 +83,7 @@ Step 6: 報告        出力先と件数を返す
 ## Step 2: 入力受付
 
 入力: なし（利用者に聞く）
-出力: 検査対象の md の一覧、出力先のフォルダ `<出力先>/textlint-report-<YYYYMMDD-HHMMSS>/`
+出力: 検査対象の md の一覧、レポートのパス `<出力先>/<対象名>-textlint-<YYYYMMDD-HHMM>.html`
 
 AskUserQuestion で 1 問ずつ聞く。
 
@@ -92,7 +92,17 @@ AskUserQuestion で 1 問ずつ聞く。
 | 検査対象 | md ファイルまたはフォルダのパス | 存在しない、または md を 1 つも含まない |
 | 出力先 | 3 択。デスクトップ（`~/Desktop`） / ダウンロード（`~/Downloads`） / 場所を指定する（絶対パス。無ければ作る） | 書き込めない |
 
-対象がフォルダなら配下の `*.md` を列挙する（`node_modules` を除く）。出力先に `textlint-report-<YYYYMMDD-HHMMSS>/` を作る。
+対象がフォルダなら配下の `*.md` を列挙する（`node_modules` を除く）。
+
+レポートのパスは次の決まりで組む。フォルダは作らない。
+
+| 部分 | 決め方 |
+|---|---|
+| 対象名 | md 1 ファイルなら拡張子を外したファイル名。フォルダなら末尾のフォルダ名 |
+| 種別 | 固定で `textlint` |
+| 日時 | 検査を始めた時刻を `YYYYMMDD-HHMM` で。同じ分に同名があれば `YYYYMMDD-HHMMSS` にする |
+
+例: `onboarding.md` を 2026-09-16 10:42 に検査 → `~/Downloads/onboarding-textlint-20260916-1042.html`
 
 ## Step 3: 検査
 
@@ -204,9 +214,9 @@ Step 1 で決めた起動方法が `node <パス>` なら、そのパスから�
 ## Step 5: レポート
 
 入力: Step 4 の一覧と規則の一覧、`references/report-template.html`
-出力: `<出力先>/textlint-report-<YYYYMMDD-HHMMSS>/report.html`
+出力: Step 2 で決めたレポートのパス（`<出力先>/<対象名>-textlint-<YYYYMMDD-HHMM>.html`）
 
-雛形は変更しない。Read で内容を取り、次の差し込み位置を埋めたものを出力先に `report.html` として Write する。雛形はタブ 2 つ（指摘・規則）を持ち、切り替えは CSS だけで動く。
+雛形は変更しない。Read で内容を取り、次の差し込み位置を埋めたものを Step 2 で決めたパスに Write する。雛形はタブ 2 つ（指摘・規則）を持ち、切り替えは CSS だけで動く。
 
 | 差し込み位置 | 内容 |
 |---|---|
@@ -244,7 +254,7 @@ Step 1 で決めた起動方法が `node <パス>` なら、そのパスから�
 出力: 次の 3 行
 
 ```
-- 出力: <出力先>/report.html
+- 出力: <レポートのパス>
 - 指摘: N か所（AI が使いがちな語 N ／ 文の規則 N ／ 癖の規則 N）
 - 規則: <全数> のうち指摘あり N、指摘なし N、無効 N
 ```
