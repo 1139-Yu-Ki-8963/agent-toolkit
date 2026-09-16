@@ -55,17 +55,19 @@ Step 6: 報告        出力先と件数を返す
 入力: なし
 出力: 起動方法（`node <パス>` または `textlint`）。決まらなければ終了
 
-1. textlint の起動方法を 2 段で確かめる
+1. 調べる前に、利用者へ次の案内を一度だけ出す（この文のまま）
+   「このスキルは node と textlint（本体 1 つ・ルール群 3 つ・フィルタ 2 つ）を使います。導入済みかをこれから調べます。見つからなければ、導入するかどうかをお聞きします。」
+2. textlint の起動方法を 2 段で確かめる
    - cwd で `node -e "console.log(require.resolve('textlint/bin/textlint.js'))"` を実行する。通れば、表示されたパスを起動方法（`node <そのパス>`）とし、Step 2 へ
    - 通らなければ `command -v textlint` を実行する。通れば起動方法を `textlint` とし、Step 2 へ
-2. どちらも通らなければ `node --version` を実行する。通らなければ「node が無いため検査できません。node の導入が必要です」と報告して終了する
-3. AskUserQuestion で導入先を聞く
+3. どちらも通らなければ `node --version` を実行する。通らなければ「node が無いため検査できません。node の導入が必要です」と報告して終了する
+4. AskUserQuestion で導入先を聞く
    - 質問: textlint が見つかりません。導入しますか？
    - 選択肢:
      1. このリポジトリに導入する。cwd のロックファイルで道具を決める（pnpm-lock.yaml → `pnpm add -D`、yarn.lock → `yarn add -D`、bun.lockb → `bun add -d`、それ以外 → `npm install -D`）。package.json が無ければ `npm init -y` で作る
      2. グローバルに導入する（`npm install -g`）
      3. 導入しない（終了する）
-4. 導入後、手順 1 を再実行して通ることを確認してから Step 2 へ
+5. 導入後、手順 2 を再実行して通ることを確認してから Step 2 へ
 
 導入するパッケージは次の 6 つである。
 
@@ -73,7 +75,7 @@ Step 6: 報告        出力先と件数を返す
 |---|---|---|
 | `textlint` | 本体 | 文書の読み込み、ルールの実行、結果の集約 |
 | `textlint-rule-preset-ai-words-ja` | ルール群 | AI が使いがちな語（約 55 語）を形態素解析で指摘する |
-| `textlint-rule-preset-ja-technical-writing` | ルール群 | 文の長さ・読点・助詞・ら抜きなど文の規則 20 個 |
+| `textlint-rule-preset-ja-technical-writing` | ルール群 | 文の長さ・読点・助詞・ら抜きなど文の規則 23 個 |
 | `@textlint-ja/textlint-rule-preset-ai-writing` | ルール群 | 誇張語・太字ラベルなど癖の規則 5 個 |
 | `textlint-filter-rule-allowlist` | フィルタ | 設定に書いた行頭パターンに一致する行の指摘を捨てる |
 | `textlint-filter-rule-comments` | フィルタ | 文書内の `<!-- textlint-disable -->` から `<!-- textlint-enable -->` までの指摘を捨てる |
