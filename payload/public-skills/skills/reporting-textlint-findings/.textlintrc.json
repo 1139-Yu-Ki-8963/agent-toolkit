@@ -8,7 +8,10 @@
     }
   },
   "rules": {
-    "preset-ai-words-ja": true,
+    "preset-ai-words-ja": {
+      "no-ai-words": true,
+      "no-short-topic-comma": {}
+    },
     "@textlint-ja/textlint-rule-preset-ai-writing": true,
     "preset-ja-technical-writing": true
   }
