@@ -33,16 +33,17 @@ mark{background:transparent;color:inherit;text-decoration:underline wavy var(--r
 .why b{color:var(--ink);font-weight:600}
 .why div+div{margin-top:4px}
 .tag{display:inline-block;font-size:14px;padding:0 6px;background:var(--tag-soft);color:var(--tag);margin-right:6px}
-.rules{display:grid;grid-template-columns:12px 250px minmax(0,1fr) 170px 70px;gap:0 12px;align-items:center}
+.rules{display:grid;grid-template-columns:12px 52px 250px minmax(0,1fr) 110px 70px;gap:0 12px;align-items:center}
 .rules.hd{font-size:14px;color:var(--muted);padding:0 0 6px;border-bottom:1px solid var(--rule);margin-top:18px}
 .rules.row{padding:7px 0;border-bottom:1px solid var(--rule-soft)}
+.rules .no{font-weight:600}
 .rules .id{font-family:ui-monospace,Menlo,monospace;font-size:14px}
 .rules .n{text-align:right}
 .rules .n.hit{font-weight:600}
 .rules.off{color:var(--faint)}
 .dot{width:10px;height:10px}
 .dot.hit{background:var(--red)}.dot.ok{background:var(--green)}.dot.off{background:var(--gray)}
-@media (max-width:640px){.spot{grid-template-columns:1fr}.rules{grid-template-columns:12px minmax(0,1fr) 60px}.rules .what,.rules .cfg{display:none}}
+@media (max-width:640px){.spot{grid-template-columns:1fr}.rules{grid-template-columns:12px 52px minmax(0,1fr) 60px}.rules .what,.rules .cfg{display:none}}
 </style>
 </head>
 <body>
@@ -57,7 +58,7 @@ mark{background:transparent;color:inherit;text-decoration:underline wavy var(--r
 </section>
 <section class="pane" id="pane-rules">
 <div class="counts"><span><span class="sw" style="background:var(--red)"></span>指摘あり {{RULES_HIT}}</span><span><span class="sw" style="background:var(--green)"></span>指摘なし {{RULES_OK}}</span><span><span class="sw" style="background:var(--gray)"></span>無効 {{RULES_OFF}}</span></div>
-<div class="rules hd"><div></div><div>ルール</div><div>何を見るか</div><div>設定</div><div class="n">指摘</div></div>
+<div class="rules hd"><div></div><div>番号</div><div>ルール</div><div>何を見るか</div><div>状態</div><div class="n">指摘</div></div>
 {{RULES}}
 </section>
 </main>

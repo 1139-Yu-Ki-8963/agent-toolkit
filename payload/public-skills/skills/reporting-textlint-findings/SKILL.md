@@ -32,8 +32,8 @@ Claude の設定ファイルへの追加は不要である。hook を持たな�
 | 区分 | 規則 | 値 |
 |---|---|---|
 | AI が使いがちな語（ai-words-ja） | 効く・道具・踏み込む・照合・実測など約 55 語と、短い主題直後の読点 | 2 ルールとも有効。読点の規則はプリセットの既定が無効で、textlint 15.8 では true 指定が既定に負けるため `{}` で有効化している |
-| 文の規則（ja-technical-writing） | 23 ルールすべて | 既定（1 文 100 字以内、読点 3 個まで、漢字の連続 6 文字まで） |
-| 癖の規則（ai-writing） | 5 ルールすべて | 既定 |
+| 文の規則（ja-technical-writing） | 23 ルールすべて | すべて有効（しきい値はプリセットの既定: 1 文 100 字以内、読点 3 個まで、漢字の連続 6 文字まで） |
+| 癖の規則（ai-writing） | 5 ルールすべて | すべて有効 |
 | 除外 | 行頭が「参考:」「題名:」「出典:」「引用:」「例:」「図N:」「表N:」「キャプション:」「注:」「注釈:」「備考:」「補足:」の行 | 検査しない |
 | 除外 | `<!-- textlint-disable -->` から `<!-- textlint-enable -->` の範囲 | 検査しない |
 
@@ -154,7 +154,11 @@ textlint の返り値は、ファイルごとに 1 要素の配列である。�
 
     node -e "for (const p of ['textlint-rule-preset-ai-words-ja','textlint-rule-preset-ja-technical-writing','@textlint-ja/textlint-rule-preset-ai-writing']) console.log(p, Object.keys(require(p).rules).join(' '))"
 
-Step 1 で決めた起動方法が `node <パス>` なら、そのパスから見える node_modules で実行する。各ルールを次の 3 状態に分ける。
+Step 1 で決めた起動方法が `node <パス>` なら、そのパスから見える node_modules で実行する。
+
+各ルールに番号を付ける。区分記号は A＝AI が使いがちな語、B＝文の規則、C＝癖の規則。番号は上のコマンドが出す並び順で 1 始まり（例: A-1 no-ai-words、B-2 max-comma、C-5 ai-tech-writing-guideline）。同じ番号を「指摘」タブの各指摘にも付け、どのルールの指摘かを引けるようにする。
+
+各ルールを次の 3 状態に分ける。
 
 | 状態 | 条件 |
 |---|---|
@@ -162,7 +166,7 @@ Step 1 で決めた起動方法が `node <パス>` なら、そのパスから�
 | 指摘あり | Step 3 の返り値にそのルール ID の指摘が 1 件以上ある |
 | 指摘なし | 上記のどちらでもない |
 
-「設定」列は `.textlintrc.json` の値から書く。同梱の設定はすべて既定のため「既定」と書く。利用者が値を変えていれば、数値はそのまま（例: 100 字以内）、`allows` は「『語』は許可」、`false` は「無効」と書く。「何を見るか」列は次の表から引く。表に無いルールはルール ID をそのまま書く。
+「状態」列は「有効」か「無効」の 2 択で書く。利用者が `.textlintrc.json` で値を変えていれば「有効（100 字以内）」「有効（『大幅に』は許可）」のように括弧で添える。「何を見るか」列は次の表から引く。表に無いルールはルール ID をそのまま書く。
 
 | ルール ID | 何を見るか |
 |---|---|
@@ -220,7 +224,7 @@ Step 1 で決めた起動方法が `node <パス>` なら、そのパスから�
 ```html
 <div class="spot"><div class="loc">N 行</div><div>
 <div class="text">前 <mark>印の範囲</mark> 後</div>
-<div class="why"><div><span class="tag">指摘</span><b>区分 › ルール ID</b><br>説明文</div></div>
+<div class="why"><div><span class="tag">指摘</span><b>番号　区分 › ルール ID</b><br>説明文</div></div>
 </div></div>
 ```
 
@@ -229,9 +233,9 @@ Step 1 で決めた起動方法が `node <パス>` なら、そのパスから�
 1 ルール分の型（状態で `dot` と `n` のクラスを変える）:
 
 ```html
-<div class="rules row"><div class="dot hit"></div><div class="id">ルール ID</div><div class="what">何を見るか</div><div class="cfg">設定</div><div class="n hit">件数</div></div>
-<div class="rules row"><div class="dot ok"></div><div class="id">ルール ID</div><div class="what">何を見るか</div><div class="cfg">設定</div><div class="n">なし</div></div>
-<div class="rules row off"><div class="dot off"></div><div class="id">ルール ID</div><div class="what">何を見るか</div><div class="cfg">無効</div><div class="n">—</div></div>
+<div class="rules row"><div class="dot hit"></div><div class="no">番号</div><div class="id">ルール ID</div><div class="what">何を見るか</div><div class="cfg">有効</div><div class="n hit">件数</div></div>
+<div class="rules row"><div class="dot ok"></div><div class="no">番号</div><div class="id">ルール ID</div><div class="what">何を見るか</div><div class="cfg">有効</div><div class="n">なし</div></div>
+<div class="rules row off"><div class="dot off"></div><div class="no">番号</div><div class="id">ルール ID</div><div class="what">何を見るか</div><div class="cfg">無効</div><div class="n">—</div></div>
 ```
 
 ## Step 6: 報告
