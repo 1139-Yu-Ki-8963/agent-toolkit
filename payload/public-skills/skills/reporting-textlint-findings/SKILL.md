@@ -9,7 +9,7 @@ type: action
 allowed-tools: ["Read", "Write", "Bash", "Glob", "AskUserQuestion"]
 ---
 
-# textlint の指摘に赤ペンを入れる
+# textlint 指摘レポート
 
 md ファイルを textlint にかけ、指摘箇所に波線を引いた HTML にする。直すかどうかは読む人が決める。
 
@@ -220,7 +220,7 @@ Step 1 で決めた起動方法が `node <パス>` なら、そのパスから�
 
 | 差し込み位置 | 内容 |
 |---|---|
-| `{{TITLE}}` | 「赤ペン <対象名>」 |
+| `{{TITLE}}` | 「textlint 指摘 <対象名>」 |
 | `{{META}}` | 検査日時と textlint の版（例: 2026-09-16 10:42　textlint 15.1） |
 | `{{FINDINGS_COUNT}}` | 指摘の箇所数 |
 | `{{RULES_SUMMARY}}` | 「<全ルール数> のうち <指摘ありの数> に指摘」 |
