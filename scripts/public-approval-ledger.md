@@ -112,3 +112,12 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 | agent-home/config/codex/hook-command-adapter.test.sh | 承認済み | adapter 回帰テストとして再レビュー | 配布後の自己診断に利用可能。source: agent-home@532d7102520022ba81e04ee9e7f96eb9b1254fbe |
 | agent-home/config/codex/hooks-registry.json | 承認済み | 公開対象 hook の最小集合として再レビュー | `$HOME` 基準のポータブル registry。source: agent-home@532d7102520022ba81e04ee9e7f96eb9b1254fbe |
 | codex-config/hooks.json | 承認済み | Codex hook 形状・既存設定 merge をレビュー | opt-in、既存設定を backup して merge。source: agent-home@532d7102520022ba81e04ee9e7f96eb9b1254fbe |
+
+## public-skills（~/Projects/public-skills/skills/ を mirror）
+
+| スキル名 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| reporting-textlint-findings | 承認済み | 初期同期対象（2026-09-15） | |
+| creating-agent-skills | 承認済み | ユーザーの公開指示（2026-09-29）。環境固有のパスなし。実行者の検証 6 回で必須要件すべて ○ | source: agent-home@8a3313c、public-skills@68984d1 |
+| testing-agent-skills | 承認済み | ユーザーの公開指示（2026-09-29）。成果物は一時フォルダに書き終了時に消す。環境固有のパスなし | source: agent-home@8a3313c、public-skills@68984d1 |
+
