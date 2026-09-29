@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
 # PreToolUse(Bash) — payload/ が正本（~/agent-home・~/.claude）と乖離した状態での
 # git commit を block する。乖離検知は scripts/sync-payload.mjs --check に委譲する。
-# staged に payload/ 配下のファイルがある場合は、その payload/<name> prefix に対応する
-# mapping だけを --only で検査する（無関係な mapping の乖離に巻き込まれない）。
-# staged に payload/ 配下がなければ従来どおり全 mapping を検査する。
+# staged に payload/<name> 配下のファイルがある場合は、その prefix の mapping だけを --only で検査し、
+# staged に payload/ 配下がなければ全 mapping を検査する。
 set -euo pipefail
 
 input=$(cat)
@@ -32,10 +31,7 @@ command -v node >/dev/null 2>&1 || exit 0
 # 検査スコープの決定: staged の payload/<name> prefix ごとに --only 検査。
 # staged に payload/ 配下がなければ空 prefix 1 件（= 全 mapping 検査）とする。
 staged=$(git -C "$cwd" diff --cached --name-only 2>/dev/null || true)
-prefixes=$(printf '%s\n' "$staged" | grep '^payload/' | awk -F/ '{
-  if ($2=="claudecode-global-setup") { if (NF>=4) print $1"/"$2"/"$3 }
-  else print $1"/"$2
-}' | sort -u || true)
+prefixes=$(printf '%s\n' "$staged" | grep '^payload/' | awk -F/ '{ print $1"/"$2 }' | sort -u || true)
 
 run_check() {
   # $1: --only に渡す prefix（空なら全体検査）

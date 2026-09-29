@@ -5,11 +5,15 @@ sync-manifest.json への mapping 追加は本台帳での承認を前提とす�
 
 ## 運用規則
 
-1. sync-manifest.json に mirror / file mapping を追加する前に、当該資産の公開可否レビュー（reviewing-public-readiness）を実施し、本台帳に承認記録を追加する
+1. sync-manifest.json に mirror / file mapping を追加する前に、当該資産に環境固有のパス・秘密情報・プロジェクト固有の名前が含まれないことを確かめ、本台帳に承認記録を追加する
 2. 承認なしの mapping 追加を禁止する
 3. 除外判定された資産は manifest から mapping を削除し、payload からも除去する
 
-## スキル（agent-home/skills/）
+## 閉鎖した bundle: claudecode-global-setup（2026-09-29）
+
+正本 `~/agent-home` の 2026-09-20 の全面解体で、スキル・規約・サブエージェント・hook の正本がなくなり、配布物だけが残っていたため、bundle 全体（payload、deploy-manifest.json、install.mjs、ポータル生成、公開安全テスト）を閉じた。ユーザーの決定。以下の「スキル（agent-home/skills/）」「ルール」「エージェント」「Codex ポータブル設定」の節は、閉鎖前の承認の履歴として残す。現在の同期対象は、この後の「支援ツール」と「public-skills」の節、および reverse-docs-skills・ai-consulting-toolkit・claude-code-template・explanation-slides-kit である。
+
+## スキル（agent-home/skills/）（閉鎖済み。履歴）
 
 | スキル名 | 承認状況 | 承認根拠 | manifest 追加コミット | 備考 |
 |---|---|---|---|---|
