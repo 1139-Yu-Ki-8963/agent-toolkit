@@ -4,14 +4,14 @@
 # する入口。
 #
 # 背景: docs/scripts/ 配下は第1層の集約の走査対象に入らない。走査対象は
-# generation-engine/scripts/ と delivery-payload/templates/rules/checkers/ の
-# 2箇所だけである。本体(docs/scripts/build-deliverable-list.sh)は
+# generation-engine/scripts/ の
+# 1箇所だけである。本体(docs/scripts/build-deliverable-list.sh)は
 # --self-test を持つが、置き場所が集約の走査対象外のため、このままでは
 # 第1層から一度も実行されない。本体の --self-test を呼び、終了コードを
 # そのまま返すだけのラッパーをここへ置くことで集約に載せる。判定の中身を
 # 写して持たないのは、本体の --self-test を唯一の正とし、両者がずれたとき
 # にどちらが正しいか分からなくなる事態を避けるためである
-# （delivery-payload/templates/rules/checkers/ の回帰テスト群と同じ形）。
+# （生成物 checkers 配下の回帰テスト群を撤去済みの現在は該当なし）。
 #
 # 使い方: bash check-deliverable-list-build.sh --self-test
 set -euo pipefail

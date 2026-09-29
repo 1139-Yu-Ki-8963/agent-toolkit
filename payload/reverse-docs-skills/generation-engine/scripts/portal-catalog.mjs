@@ -356,12 +356,22 @@ function bytewise(a, b) {
   return Buffer.from(a).compare(Buffer.from(b));
 }
 
+// .claude・.cursor・.codex はAI設定資産の派生物置き場であり、docs/ へのシンボリック
+// リンク（ディレクトリ・ファイルの両方）を含む（.claude/rules/scoped/agent-operations/
+// ai-config-asset-management/rule.md 準拠）。discovery.glob はこの3ディレクトリ配下を
+// 一切対象にしないため（portal-catalog.json の全 glob は project-portal/ 配下のみを指す）、
+// walkFiles の走査からトップレベルで除外する。除外しないと、これらのシンボリックリンクに
+// 遭遇した時点で symbolic link is not allowed のエラーになり、discovery.root が
+// "output-dir" のカタログ生成全体が失敗する。
+const SKIP_TOP_LEVEL_DIRS = new Set([".claude", ".cursor", ".codex"]);
+
 function walkFiles(root) {
   const files = [];
   function walk(current, relative) {
     for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
       const absolute = path.join(current, entry.name);
       const childRelative = relative ? `${relative}/${entry.name}` : entry.name;
+      if (relative === "" && SKIP_TOP_LEVEL_DIRS.has(entry.name)) continue;
       if (entry.isSymbolicLink()) fail(`symbolic link is not allowed: ${childRelative}`);
       if (entry.isDirectory()) walk(absolute, childRelative);
       else if (entry.isFile()) files.push(childRelative);

@@ -34,7 +34,7 @@
 
 検証記録（facts・往復検証の証跡）は納品物ではないため `output_dir` の外に配置する。`output_dir` と同階層の `verification/` フォルダに移動した（詳細は [納品物フォルダ体系.md](delivery-payload/references/納品物フォルダ体系.md) を参照）。
 
-規約定義も `output_dir` の外に置く。対象リポジトリ直下の `docs/rules/` に親 7・子 27 の 2 階層で配置する。雛形は `scaffold-rule-definitions.sh` が配る。`delivery-payload/references/rule-taxonomy.json` が宣言する子 27 は、すべてツール側が本文を定めて納品する。本文が持つのは役割と方針の水準であり、対象リポジトリ固有の規則は各 rule.md の「このプロジェクトの規則」の節が規約提案の取り込みから受ける。提案 HTML の生成・取り込み・派生生成の 3 段構成による。
+規約定義も `output_dir` の外に置く。対象リポジトリ直下の `docs/rules/` に親 7・子 27 の 2 階層で配置する。雛形は `delivery-payload/templates/rules/docs-rules/` を `cp -Rn` するだけで配る。子 27 はすべてツール側が本文を定めて納品する。本文が持つのは役割と方針の水準であり、対象リポジトリ固有の規則は各 rule.md の「このプロジェクトの規則」の節が規約提案の取り込みから受ける。`.claude/rules`・`.claude/skills` は `docs/rules`・`docs/skills` へのシンボリックリンク、`.cursor/rules/*.mdc` は各 `rule.md` へのシンボリックリンクであり、複製・変換の仕組みは持たない。提案 HTML の生成・取り込み・派生生成の 3 段構成による。
 
 スキルを 1 つ実行するごとに増える成果物の対応（標準の実行順）:
 

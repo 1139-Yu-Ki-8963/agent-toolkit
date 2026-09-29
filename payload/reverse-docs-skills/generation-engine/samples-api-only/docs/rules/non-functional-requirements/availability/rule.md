@@ -1,18 +1,8 @@
 ---
-key: availability
-title: 稼働を続けることと復旧の決まり
-parent: non-functional-requirements
-summary: システムの稼働継続性と障害時の復旧に関する要件。
-scope: scoped
+description: "システムの稼働継続性と障害時の復旧に関する要件。"
+globs: "docs/**/basic-design/**"
+alwaysApply: false
 paths: ["docs/**/basic-design/**"]
-enforcement: advisory
-checkable: true
-checker: check-outbound-call-missing-timeout.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: file
 ---
 
 # 稼働を続けることと復旧の決まり

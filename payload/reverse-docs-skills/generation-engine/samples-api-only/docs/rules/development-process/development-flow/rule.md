@@ -1,18 +1,6 @@
 ---
-key: development-flow
-title: 実装から統合までの順序の決まり
-parent: development-process
-summary: 設計から実装・レビュー・統合までの開発工程の順序と各段階の完了条件。
-scope: always
-paths: []
-enforcement: advisory
-checkable: true
-checker: check-direct-commit-to-integration-branch.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: process
+description: "設計から実装・レビュー・統合までの開発工程の順序と各段階の完了条件。"
+alwaysApply: true
 ---
 
 # 実装から統合までの順序の決まり

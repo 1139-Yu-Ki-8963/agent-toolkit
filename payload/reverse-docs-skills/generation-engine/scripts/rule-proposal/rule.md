@@ -24,7 +24,7 @@ ADR（設計判断）の記載場所として、スクリプトと同じディ�
 - 既存 Makefile ターゲット拡張: このリポジトリに Makefile は存在せず、新規導入は
   本チェック専用の依存を増やすだけになる
 - package.json scripts 追加: 同様に、このリポジトリはビルド設定を持たない
-- `generation-engine/scripts/rules/build-derived-rules.sh` への統合: あちらは
+- 派生物生成スクリプト（本リファクタで廃止済み）への統合: あちらは
   `docs/rules/` から `.claude/`・`.cursor/`・`AGENTS.md` 等の派生物を生成する
   「取り込み後」の変換であり、本スクリプトが担う「取り込み前の提案文書生成」
   とは入力・出力・関心がいずれも異なる

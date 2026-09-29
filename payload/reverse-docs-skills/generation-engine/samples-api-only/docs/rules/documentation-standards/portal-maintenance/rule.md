@@ -1,18 +1,8 @@
 ---
-key: portal-maintenance
-title: 生成した文書を直接編集しない決まり
-parent: documentation-standards
-summary: ポータルと一覧のHTMLを保守するときの取り決め。
-scope: scoped
-paths: ["project-portal/**","docs/**/*.html"]
-enforcement: advisory
-checkable: true
-checker: check-generated-html-manual-edit.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: artifact
+description: "ポータルと一覧のHTMLを保守するときの取り決め。"
+globs: "project-portal/**,docs/**/*.html"
+alwaysApply: false
+paths: ["project-portal/**", "docs/**/*.html"]
 ---
 
 # 生成した文書を直接編集しない決まり
@@ -30,9 +20,9 @@ workUnit: artifact
 | 規則 | 内容 | 検査 |
 |---|---|---|
 | HTML を直接編集しない | `project-portal/` 配下の HTML と一覧ページは生成物である。表示を見て気付いた誤りも HTML 側では直さない | 静的解析: 生成物 HTML の内容ハッシュを台帳と突合し、一致しないファイルを検出する |
-| 対象コードの行番号を書かない | ポータルの生成物・設計文書・規約定義の本文には、対象コードの `<ファイル名>:<行番号>` を書かない。参照が必要な場合はファイルのパスと関数名までとする | 静的解析: `check-code-line-number-reference.sh` が書き込み内容の拡張子付きファイル名と行番号の組を検出して停止する |
-| 保守できない参照を載せない | ポータルと設計書には、対象コードへの参照、レビュー記録、社内資料の出典を載せない。検証の証跡はポータル保守設計が定める検証記録へ分離する | 静的解析: `check-portal-unmaintainable-content.sh --strict` が廃止した「根拠」「根拠パス」の列見出しを検出して停止する |
-| 対象コードの中身を写さない | ポータルと設計書には、長さや記載形式を問わず対象コードの中身を写さない。日本語の分岐と繰り返しだけで書く疑似コードは対象外とする | 静的解析: `check-portal-unmaintainable-content.sh --strict` がコード柵、HTML の `pre code`、演算子を含むインラインまたは表セル内の断片を検出して停止する。実装識別子だけの断片はレビューでも確認する |
+| 対象コードの行番号を書かない | ポータルの生成物・設計文書・規約定義の本文には、対象コードの `<ファイル名>:<行番号>` を書かない。参照が必要な場合はファイルのパスと関数名までとする | 静的解析: 書き込み内容の拡張子付きファイル名と行番号の組を走査する |
+| 保守できない参照を載せない | ポータルと設計書には、対象コードへの参照、レビュー記録、社内資料の出典を載せない。検証の証跡はポータル保守設計が定める検証記録へ分離する | 静的解析: 廃止した「根拠」「根拠パス」の列見出しの出現を走査する |
+| 対象コードの中身を写さない | ポータルと設計書には、長さや記載形式を問わず対象コードの中身を写さない。日本語の分岐と繰り返しだけで書く疑似コードは対象外とする | 静的解析: コード柵、HTML の `pre code`、演算子を含むインラインまたは表セル内の断片を走査する。実装識別子だけの断片はレビューでも確認する |
 
 ## このプロジェクトの規則
 

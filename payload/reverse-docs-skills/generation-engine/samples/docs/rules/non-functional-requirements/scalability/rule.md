@@ -1,18 +1,8 @@
 ---
-key: scalability
-title: 利用が増えたときの決まり
-parent: non-functional-requirements
-summary: 利用量の増加に対応するための拡張方針に関する要件。
-scope: scoped
+description: "利用量の増加に対応するための拡張方針に関する要件。"
+globs: "docs/**/basic-design/**"
+alwaysApply: false
 paths: ["docs/**/basic-design/**"]
-enforcement: advisory
-checkable: true
-checker: check-full-scan-then-filter.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: file
 ---
 
 # 利用が増えたときの決まり

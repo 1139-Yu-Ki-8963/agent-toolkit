@@ -1,18 +1,8 @@
 ---
-key: component-architecture
-title: 部品の分け方と依存の決まり
-parent: code-standards
-summary: コンポーネントの分割方針・責務分担・依存関係の設計指針。
-scope: scoped
-paths: ["docs/**/detailed-design/**","src/**"]
-enforcement: advisory
-checkable: true
-checker: check-direct-circular-import.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: file
+description: "コンポーネントの分割方針・責務分担・依存関係の設計指針。"
+globs: "docs/**/detailed-design/**,src/**"
+alwaysApply: false
+paths: ["docs/**/detailed-design/**", "src/**"]
 ---
 
 # 部品の分け方と依存の決まり

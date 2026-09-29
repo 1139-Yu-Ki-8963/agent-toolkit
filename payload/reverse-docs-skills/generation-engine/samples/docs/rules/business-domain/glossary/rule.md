@@ -1,18 +1,8 @@
 ---
-key: glossary
-title: 業務の言葉の決まり
-parent: business-domain
-summary: 業務用語とコード上の識別子の対応関係の定義。
-scope: scoped
+description: "業務用語とコード上の識別子の対応関係の定義。"
+globs: "docs/**/*.md"
+alwaysApply: false
 paths: ["docs/**/*.md"]
-enforcement: advisory
-checkable: true
-checker: check-glossary-missing-forbidden-terms.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: file
 ---
 
 # 業務の言葉の決まり

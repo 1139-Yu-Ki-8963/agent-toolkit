@@ -173,7 +173,7 @@ hooks は初期 0 で提供する。ただし配管は最初から敷く。後�
 | 規約-整合検査 | 完了 | `generation-engine/scripts/rules/validate-rule-definitions.sh`がfront matterの必須と値域、checkableとcheckerの対応、linterとテストの同伴、親宣言の実在を検査する |
 | 一覧-画面0件の対称化 | 完了 | `generating-screen-list-for-reverse-docs`に「0件時の分岐」節とstatus=NONEを追加済み |
 | コミット値-単一化 | 完了 | `build-portal.sh`が設計書frontmatterの`source_ref`集計で表示し、ページ個別値にも対応する。自己テストのケース34で固定済み |
-| 保守-派生値ずれ検知 | 完了 | 規約の派生物は`generation-engine/scripts/rules/check-rule-drift.sh`が定義から一時ディレクトリへ生成し直し、内容を`diff`で突合する。対象は`.claude/rules`のrule.mdと`.cursor/rules`のmdcに限る。HTML向けの`generation-engine/scripts/check-derived-drift.sh`は従来どおり。画面名と表示コミットの値レベル突合は `generation-engine/scripts/check-derived-values.sh` が担う。台帳を持たず、定義から毎回導出して現在の表示値と突き合わせる |
+| 保守-派生値ずれ検知 | 完了 | 規約の派生物は`generation-engine/scripts/rules/check-rule-drift.sh`が定義から一時ディレクトリへ生成し直し、内容を`diff`で突合する。対象は`.claude/rules`のrule.mdと`.cursor/rules`のmdcに限る。HTML向けの`generation-engine/scripts/check-derived-drift.sh`は従来どおり。画面名と表示コミットの値レベル突合は旧・値レベルずれ検知スクリプトが担っていた（廃止済み）。手順で更新時に確かめる方式へ置き換えた。台帳を持たず、定義から毎回導出して表示値と突き合わせていた |
 | 品質-スキルテスト文書 | 完了 | 全スキルに`references/test-cases.md`を整備済み。スキル数は追加に伴って変わるため本文に固定値を書かず、`.claude/skills/`配下のディレクトリ数で確認する |
 | 用語集の仕組み | 完了 | `docs/guides/用語集.md`（15語）。`generation-engine/scripts/check-glossary-sync.sh` が用語集とガイドの用語パネルを突き合わせ、ずれを検知する |
 | このリポジトリの再編 | 完了 | `docs/`（説明と設計と台帳）と`generation-engine/scripts/tests/`（自己テスト22本）へ集約済み |
@@ -346,8 +346,8 @@ rules 階層は親 7 と子 27 の 2 階層で構成する。単体で意味の�
 **現在は `source_ref` へ統一済みである。** ポータル全体の表示コミットは設計書frontmatterの`source_ref`を集計し、画面ページは画面固有の値を表示する。生成時の HEAD を直接読む経路は廃止済みである。
 
 **比較の相手が実装されていない。** 基準タグを作る `git tag -af` は `syncing-reverse-env/SKILL.md:193` の手順記述だけで、スクリプト実装がない。同スキルの `scripts/audit-doc-consistency.sh`（349 行）にもタグ発行とコミット値の埋め込みはない。さらに、`SKILL.md:193` の例文にはコミット値が含まれていないのに、同スキルの guide HTML は「基準タグメッセージには検証時の `source_ref` を記録する」と説明している。記述の食い違いである。
-
-**調査時点では表示コミットの値ずれ検知が未実装であった。** `validate-page-data.sh` の 515〜574 行（検査 7）が見る `sourceRef` は証跡のパスと行番号であり、コミット値ではない。`audit-consistency.sh` と `test-portal-conventions.sh` にも、表示コミットと`source_ref`の値レベル突合はなかった。現在は `generation-engine/scripts/check-derived-values.sh` が画面名と表示コミットの 2 つを検査する。
+<!-- 段落区切り -->
+**調査時点では表示コミットの値ずれ検知が未実装であった。** `validate-page-data.sh` の検査 7 が見る `sourceRef` は証跡のパスと行番号であり、コミット値ではない。`audit-consistency.sh` と `test-portal-conventions.sh` にも値レベル突合はなかった。当時は旧・値レベルずれ検知スクリプト（廃止済み）が画面名と表示コミットを検査していた。
 
 したがって次の作業は、統一済みの`source_ref`と表示値のずれを検知することである。判定には agents-sync と同じフィンガープリント方式を使い、ファイルの更新時刻は使わない。
 

@@ -1,18 +1,8 @@
 ---
-key: state-transitions
-title: 状態の移り変わりの決まり
-parent: business-domain
-summary: 業務エンティティが取りうる状態と許可される遷移の取り決め。
-scope: scoped
-paths: ["docs/**/basic-design/**","src/**"]
-enforcement: advisory
-checkable: true
-checker: check-state-literal-comparison.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: file
+description: "業務エンティティが取りうる状態と許可される遷移の取り決め。"
+globs: "docs/**/basic-design/**,src/**"
+alwaysApply: false
+paths: ["docs/**/basic-design/**", "src/**"]
 ---
 
 # 状態の移り変わりの決まり

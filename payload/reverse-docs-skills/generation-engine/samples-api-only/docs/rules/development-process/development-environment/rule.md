@@ -1,18 +1,8 @@
 ---
-key: development-environment
-title: 開発環境の組み立て方の決まり
-parent: development-process
-summary: ローカル開発環境の構築手順・依存関係・環境変数の管理方法。
-scope: scoped
-paths: ["package.json","*.lock",".env.example","docs/**/*.md"]
-enforcement: advisory
-checkable: true
-checker: check-secret-filename-staged.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: process
+description: "ローカル開発環境の構築手順・依存関係・環境変数の管理方法。"
+globs: "package.json,*.lock,.env.example,docs/**/*.md"
+alwaysApply: false
+paths: ["package.json", "*.lock", ".env.example", "docs/**/*.md"]
 ---
 
 # 開発環境の組み立て方の決まり

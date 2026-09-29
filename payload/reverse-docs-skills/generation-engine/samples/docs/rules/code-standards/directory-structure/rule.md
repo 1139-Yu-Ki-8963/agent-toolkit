@@ -1,18 +1,8 @@
 ---
-key: directory-structure
-title: どこに何を置くかの決まり
-parent: code-standards
-summary: リポジトリのディレクトリ配置とレイヤー構成の取り決め。
-scope: scoped
-paths: ["docs/**","src/**"]
-enforcement: advisory
-checkable: true
-checker: check-temp-file-tracked.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: file
+description: "リポジトリのディレクトリ配置とレイヤー構成の取り決め。"
+globs: "docs/**,src/**"
+alwaysApply: false
+paths: ["docs/**", "src/**"]
 ---
 
 # どこに何を置くかの決まり

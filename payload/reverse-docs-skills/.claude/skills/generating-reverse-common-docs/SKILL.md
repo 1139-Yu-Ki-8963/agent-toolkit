@@ -34,7 +34,7 @@ allowed-tools: [Bash, Read, Write, Edit]
 |---|---|---|
 | target_repo_path | 必須 | 対象リポジトリの絶対パス |
 | output_dir | 必須 | 出力先ルート。共通6文書は `<output_dir>/<commonRoot>/`（output-layout の物理配置キー）へ出力する |
-| template_root | 必須 | テンプレ一式のルート。`<template_root>/プロジェクト共通/` の共通6種を雛形に使う。規約定義は `docs/rules/` の親子構造で別管理する（`generation-engine/scripts/rules/scaffold-rule-definitions.sh` が担う。本スキルの対象外） |
+| template_root | 必須 | テンプレ一式のルート。`<template_root>/プロジェクト共通/` の共通6種を雛形に使う。規約定義は `docs/rules/` の親子構造で別管理する（`delivery-payload/templates/rules/docs-rules/` を `cp -Rn` する手順が担う。本スキルの対象外） |
 | survey_doc_path | 必須 | アーキテクチャ調査書のパス（ディレクトリ責務マップを層化サンプリングの層定義に使う） |
 | mode | 任意（既定 `v0`） | `v0`（新規）／`append`（NG帰着(c)の追記。`append_findings` を受け取り該当文書へ追記して全ゲート再実行） |
 | append_findings | `mode=append` 時のみ必須 | 差し戻し元が指摘した欠落挙動・欠落文書の一覧 |
@@ -196,7 +196,7 @@ allowed-tools: [Bash, Read, Write, Edit]
 - `<reverse_docs_root>/.claude/skills/orchestrating-ai-development-setup/references/contract.md` — 返却ブロック契約・args仕様の正本
 - `references/sampling-rules.md`（本スキル同梱） — 層化サンプリングの層定義・k値の決め方・決定的選択手順・サンプル記録.mdの記載様式
 - `delivery-payload/templates/リバース検証/プロジェクト共通/`（本スキル同梱ではなくリポジトリ共有テンプレ） — 共通6文書の雛形
-- `generation-engine/scripts/rules/scaffold-rule-definitions.sh` — 規約定義（`docs/rules/`）の雛形配布。本スキルの対象外
+- `delivery-payload/templates/rules/docs-rules/` の `cp -Rn` — 規約定義（`docs/rules/`）の雛形配布。本スキルの対象外
 - `delivery-payload/references/リバース工程設計.md` — Phase/Step×スキル対応の正本（本スキルの位置づけ: Phase 4 共通書き起こし / Step 12-16）。NG帰着3系統の(c)共通文書欠落からの差し戻し先でもある
 - `.claude/skills/surveying-architecture-for-reverse-docs/SKILL.md` — 本スキルが前提とするアーキテクチャ調査書を確定する上流スキル
 ## テンプレート記入規則の実行

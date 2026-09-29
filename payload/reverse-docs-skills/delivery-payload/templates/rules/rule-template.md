@@ -1,17 +1,8 @@
 ---
-key: （未記入） # ケバブケース。フォルダ名と一致させる
-title: （未記入） # 日本語の表示名
-parent: （未記入） # 親カテゴリのケバブケースキー
-summary: （未記入） # 規約の要約を1文で
-scope: （未記入） # always または scoped
-paths: [] # scope: scoped のとき必須。適用対象のglobパターンの配列
-enforcement: （未記入） # advisory または none
-checkable: （未記入） # true または false
-checker: （未記入） # checkable: true のとき必須。linterのファイル名
-uncheckableReason: （未記入） # checkable: false のとき必須。検査できない理由を1文以上で
-formatter: （未記入） # prettier または biome または editorconfig または none
-status: draft # 派生生成の対象になるのは approved のみ
-origin: template # 空雛形のまま未記入の状態を表す
+description: "（未記入）規約の要約を1文で。"
+globs: "（未記入）# alwaysApply: true のときは globs 自体を書かない。カンマ区切りのglobパターン文字列"
+alwaysApply: false # true にする場合は globs・paths を両方省く
+paths: [] # alwaysApply: false のとき必須。適用対象のglobパターンの配列（globsと同じ内容を配列で持つ）
 ---
 
 # <title>
@@ -25,7 +16,7 @@ origin: template # 空雛形のまま未記入の状態を表す
 | 規則 | 内容 | 検査 |
 |---|---|---|
 | （未記入） | （未記入） | （未記入） |
-<!-- 検査列には、その規則の違反を静的解析で見つける方法を書く。検査できない規則は「不可: <理由>」と書き、その理由を front matter の uncheckableReason へ写す。 -->
+<!-- 検査列には、その規則の違反を見つける手段を書く。「静的解析: <方法>」「テスト: <方法>」「レビュー: <観点>」「判定不能: <理由>」のいずれかで始める。機械化できない規則は「判定不能: <理由>」と書く。 -->
 
 ## このプロジェクトの規則
 
@@ -36,7 +27,5 @@ origin: template # 空雛形のまま未記入の状態を表す
 | （未記入） | （未記入） | （未記入） |
 
 ## 違反時の手順
-
-<!-- enforcement: advisory のとき必須のセクション。enforcement: none に変えるならこの節ごと削除する。 -->
 
 1. （未記入）

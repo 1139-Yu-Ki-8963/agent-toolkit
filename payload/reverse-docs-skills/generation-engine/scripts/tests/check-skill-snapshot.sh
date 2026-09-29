@@ -3,14 +3,14 @@
 # 第1層の機械検証(run-layer-machine-checks.sh)から拾えるようにする入口。
 #
 # 背景: docs/scripts/ 配下は第1層の集約の走査対象に入らない。走査対象は
-# generation-engine/scripts/ と delivery-payload/templates/rules/checkers/ の
-# 2箇所だけである。本体(docs/scripts/snapshot-skills.sh)は --self-test を
+# generation-engine/scripts/ の
+# 1箇所だけである。本体(docs/scripts/snapshot-skills.sh)は --self-test を
 # 持つが、置き場所が集約の走査対象外のため、このままでは第1層から一度も
 # 実行されない。本体の --self-test を呼び、終了コードをそのまま返すだけの
 # ラッパーをここへ置くことで集約に載せる。判定の中身を写して持たないのは、
 # 本体の --self-test を唯一の正とし、両者がずれたときにどちらが正しいか
 # 分からなくなる事態を避けるためである
-# （delivery-payload/templates/rules/checkers/ の回帰テスト群と同じ形）。
+# （生成物 checkers 配下の回帰テスト群を撤去済みの現在は該当なし）。
 #
 # 使い方: bash check-skill-snapshot.sh --self-test
 set -euo pipefail

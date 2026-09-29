@@ -2,7 +2,7 @@
 # 第1層の集約へ載せるための入口。
 # 本体（.claude/rules/always/session/delegation-worktree/check-delegation-worktree.sh）の自己テストを呼び、終了コードをそのまま返す。
 # 判定の中身はここへ写さない。
-# 集約は generation-engine/scripts/ と delivery-payload/templates/rules/checkers/ だけを
+# 集約は generation-engine/scripts/ だけを
 # 走査するため、.claude/rules/ に置いた本体はこの入口が無いと一度も実行されない。
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"

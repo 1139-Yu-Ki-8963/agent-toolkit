@@ -2660,49 +2660,6 @@ TEST17DCATALOG
   fi
   rm -rf "$test17d_dir"
 
-  echo "--- ケース18: docs/rules（規約定義）の正規配置をstandardsカテゴリへ反映する ---"
-  test18_dir="$(create_physical_tmpdir)"
-  test18_repo="$test18_dir/repo"
-  test18_docs="$test18_dir/docs"
-  test18_portal="$test18_dir/portal"
-  mkdir -p "$test18_repo" "$test18_portal"
-  bash "$SCRIPT_DIR/rules/scaffold-rule-definitions.sh" "$test18_dir" --apply >/dev/null 2>&1
-  if [ ! -d "$test18_docs/rules" ]; then
-    echo "FAIL: --self-test ケース18（scaffold-rule-definitions.shがdocs/rulesを生成しない）" >&2
-    rm -rf "$test18_dir"
-    record_self_test_case_failure
-  fi
-  "$SCRIPT_DIR/build-portal.sh" "$test18_repo" "$test18_dir" "$test18_portal" --generated-at 2026-07-29T00:00:00Z 2>/dev/null
-  test18_expected_approved="$(jq '[.parents[].children[] | select(.toolDefined == true)] | length' "$SCRIPT_DIR/../../delivery-payload/references/rule-taxonomy.json")"
-  test18_total_children="$(jq '[.parents[].children[]] | length' "$SCRIPT_DIR/../../delivery-payload/references/rule-taxonomy.json")"
-  test18_expected_draft=$((test18_total_children - test18_expected_approved))
-  if ! node - "$test18_docs" "$test18_portal/index.html" "$test18_expected_approved" "$test18_expected_draft" <<'NODE'
-const fs = require("fs");
-const path = require("path");
-const [docsRoot, portalHtml, expectedApprovedArg, expectedDraftArg] = process.argv.slice(2);
-const expectedApproved = Number(expectedApprovedArg);
-const expectedDraft = Number(expectedDraftArg);
-const source = fs.readFileSync(portalHtml, "utf8");
-const match = source.match(/<script type="application\/json" id="portal-categories">([\s\S]*?)<\/script>/);
-if (!match) process.exit(1);
-const categories = JSON.parse(match[1]);
-const standards = categories.find((category) => category.id === "standards");
-if (!standards || standards.tools.length !== expectedApproved + expectedDraft) process.exit(1);
-if (standards.tools.some((tool) => !tool.href.startsWith("../docs/rules/"))) process.exit(1);
-// status: draft の子カテゴリはタイトルへ「（下書き）」が付き、approvedの子カテゴリ（ツール定義）には付かない
-const draftTools = standards.tools.filter((tool) => tool.title.includes("（下書き）"));
-const approvedTools = standards.tools.filter((tool) => !tool.title.includes("（下書き）"));
-if (draftTools.length !== expectedDraft) process.exit(1);
-if (approvedTools.length !== expectedApproved) process.exit(1);
-NODE
-  then
-    echo "FAIL: --self-test ケース18（docs/rules経由の規約（approved${test18_expected_approved}件・draft${test18_expected_draft}件）がstandardsカテゴリへ反映されない、またはdraft表示が不正）" >&2
-    rm -rf "$test18_dir"
-    record_self_test_case_failure
-  fi
-  echo "PASS: --self-test ケース18（docs/rules経由の規約（approved${test18_expected_approved}件・draft${test18_expected_draft}件）・draft表示・standards件数一致）"
-  rm -rf "$test18_dir"
-
   echo "--- ケース16: ポータル規約検査 ---"
   CONVENTIONS_TEST="$SCRIPT_DIR/tests/test-portal-conventions.sh"
   if [ -f "$CONVENTIONS_TEST" ]; then

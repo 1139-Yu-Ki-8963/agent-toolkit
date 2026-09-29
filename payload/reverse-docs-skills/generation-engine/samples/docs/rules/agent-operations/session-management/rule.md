@@ -1,18 +1,6 @@
 ---
-key: session-management
-title: 完了報告に実行結果を添える決まり
-parent: agent-operations
-summary: 作業セッションの開始・終了・記録・引き継ぎに関する取り決め。
-scope: always
-paths: []
-enforcement: advisory
-checkable: true
-checker: check-completion-evidence.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: process
+description: "作業セッションの開始・終了・記録・引き継ぎに関する取り決め。"
+alwaysApply: true
 ---
 
 # 完了報告に実行結果を添える決まり

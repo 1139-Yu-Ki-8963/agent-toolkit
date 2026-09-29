@@ -9,8 +9,8 @@ set -uo pipefail
 #   （delivery-payload/references/rule-banned-terms.json の scope に "skills"
 #   を含む語）が残っていないかを機械的に検査する。
 #
-#   規約定義（rule.md・rule.html）向けの既存の走査（scaffold-rule-definitions.sh
-#   の scan_banned_terms、scope="rule-definitions"）とは対象ファイル・scope が
+#   規約定義（rule.md・rule.html）向けの走査（本リファクタで廃止済みのスクリプトが
+#   持っていた scan_banned_terms、scope="rule-definitions"）とは対象ファイル・scope が
 #   異なるため独立したスクリプトとした（.claude/rules/scoped/portal/
 #   page-conventions/rule.md の「設計判断」節を参照）。
 #

@@ -29,7 +29,6 @@ payload/
 │   ├── .claude/skills/
 │   └── shared/                  6 スキル共通の共有資産
 ├── ai-consulting-toolkit/       AI コンサルティング用スキル集
-├── ai-driven-development-setup/ AI 駆動開発の初期設定(docs と README)
 ├── claude-code-template/        プロジェクト用 CLAUDE.md の雛形と初期化スクリプト
 └── explanation-slides-kit/      解説スライドの生成キット
 ```

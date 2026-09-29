@@ -1,18 +1,8 @@
 ---
-key: performance
-title: 応答の速さと処理の量の決まり
-parent: non-functional-requirements
-summary: 応答時間・処理件数などパフォーマンスに関する要件。
-scope: scoped
-paths: ["docs/**/basic-design/**","src/**"]
-enforcement: advisory
-checkable: true
-checker: check-loop-query-call.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: file
+description: "応答時間・処理件数などパフォーマンスに関する要件。"
+globs: "docs/**/basic-design/**,src/**"
+alwaysApply: false
+paths: ["docs/**/basic-design/**", "src/**"]
 ---
 
 # 応答の速さと処理の量の決まり

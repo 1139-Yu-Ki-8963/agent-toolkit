@@ -1,18 +1,8 @@
 ---
-key: security
-title: 認証と入力と秘密の値の決まり
-parent: non-functional-requirements
-summary: 認証・認可・入力検証など安全性に関する要件。
-scope: scoped
-paths: ["docs/**/basic-design/**","src/**"]
-enforcement: advisory
-checkable: true
-checker: check-secret-literal-in-code.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: file
+description: "認証・認可・入力検証など安全性に関する要件。"
+globs: "docs/**/basic-design/**,src/**"
+alwaysApply: false
+paths: ["docs/**/basic-design/**", "src/**"]
 ---
 
 # 認証と入力と秘密の値の決まり

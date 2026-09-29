@@ -5,8 +5,7 @@
 #
 # 判定: >/dev/null 2>&1 で出力を捨てる行の直後3行以内に [FAIL] を含む行が
 #   あるものを違反とする（検証側と同じ検出方法）。
-# 対象: generation-engine/scripts・delivery-payload/templates/rules/checkers・
-#   docs/scripts 配下の .sh（自分自身は除く）。
+# 対象: generation-engine/scripts・docs/scripts 配下の .sh（自分自身は除く）。
 # 使い方:
 #   check-self-test-output-capture.sh             実データを走査する（違反1件以上で終了コード1）
 #   check-self-test-output-capture.sh --self-test 判定の妥当性を検査する
@@ -28,7 +27,7 @@ scan() {
       /> *\/dev\/null 2>&1/ { mark = NR }
       /\[FAIL\]/ && mark && NR - mark <= 3 && NR > mark { print mark; mark = 0 }
     ' "$f")
-  done < <(find "$base/generation-engine/scripts" "$base/delivery-payload/templates/rules/checkers" "$base/docs/scripts" -type f -name '*.sh' 2>/dev/null | LC_ALL=C sort)
+  done < <(find "$base/generation-engine/scripts" "$base/docs/scripts" -type f -name '*.sh' 2>/dev/null | LC_ALL=C sort)
   if [ "$violations" -eq 0 ]; then
     echo "[PASS] 出力捨て: 違反なし"
   fi

@@ -57,7 +57,7 @@ DEFAULT_TARGET="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # 許可リスト: <相対パス(target基点)>\t<jq側の引数名>\t<渡している値の生テキスト>
 # 2026-08-16時点でgeneration-engine/scripts/配下に存在する全`--argjson`使用箇所を
-# 洗い出して登録した(104件。2026-08-18時点でrules/build-derived-rules.shの
+# 洗い出して登録した(104件。2026-08-18時点で旧・派生生成スクリプト（本リファクタで廃止済み）の
 # newPre/newStop/newを--slurpfile化し、旧登録の誤記3件をmatcher_json 1件へ整理した)。
 # 新しい`--argjson`が増えた場合、この一覧に
 # 該当する行が無ければ本検査はFAILする。安全な固定長の値だと判断した
@@ -131,8 +131,6 @@ portal-input/build-manifests-from-docs.sh	u	$unit_obj
 portal-input/build-manifests-from-docs.sh	unitCount	$unit_count
 portal-input/build-manifests-from-docs.sh	units	$units_json
 portal-input/build-manifests-from-docs.sh	unresolvedCount	$unresolved_count
-rules/build-derived-rules.sh	e	$matcher_json
-rules/build-rule-flow-map.sh	known	$known_json
 shell-injection.sh	counts	$shell_counts_json
 unit-axes.sh	detectAxes	$detect_axes
 unit-list/build-screen-list.sh	declared	$split_declared_keys_json

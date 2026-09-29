@@ -1,18 +1,8 @@
 ---
-key: ai-config-asset-management
-title: 定義と生成物の分け方の決まり
-parent: agent-operations
-summary: スキル・規約・フックなどAI設定資産の作成・変更・配置・レビューの手順。
-scope: scoped
-paths: ["docs/rules/**",".claude/**",".cursor/**",".codex/**","AGENTS.md"]
-enforcement: advisory
-checkable: true
-checker: check-ai-config-derivative-manual-edit.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: process
+description: "スキル・規約・フックなどAI設定資産の作成・変更・配置・レビューの手順。"
+globs: "docs/rules/**,.claude/**,.cursor/**,.codex/**,AGENTS.md"
+alwaysApply: false
+paths: ["docs/rules/**", ".claude/**", ".cursor/**", ".codex/**", "AGENTS.md"]
 ---
 
 # 定義と生成物の分け方の決まり
@@ -31,9 +21,8 @@ workUnit: process
 
 | 規則 | 内容 | 検査 |
 |---|---|---|
-| 定義は docs に置く | AI エージェントが読む規約・手順・用語の定義は `docs/` 配下にだけ置く。ツール別のフォルダに定義の実体を作らない | 静的解析: `.claude/rules/`・`.cursor/rules/`・`.codex/` の配下に、`docs/rules/` に対応する定義を持たないファイルが無いかを検査する |
-| 派生は生成物として扱う | `.claude/` と `.cursor/` と `.codex/` の内容は `docs/` から生成する。直接編集しない | 静的解析: 派生物の内容ハッシュを台帳と突合し、一致しないファイルを検出する |
-| ずれは台帳で検知する | 各派生物の内容ハッシュを台帳へ記録し、突合で手作業の編集を検知する。判定に更新時刻は使わない | 静的解析: 台帳に登録された派生物の件数と、実在する派生物の件数が一致するかを検査する ／ 静的解析: 台帳に記録された内容ハッシュと各派生物の現在の内容ハッシュを突合し、一致しない項目が無いかを検査する |
+| 定義は docs に置く | AI エージェントが読む規約・手順の定義は `docs/rules/` と `docs/skills/` にだけ置く | 静的解析: `.claude/rules` と `.claude/skills` がシンボリックリンクであり、実ファイルを含まないことを確かめる |
+| 派生は参照で置く | `.claude/rules` と `.claude/skills` は `docs/` へのシンボリックリンク、`.cursor/rules/*.mdc` は同じファイルへのシンボリックリンクとする。複製・変換・ずれ検知の仕組みを持たない | 静的解析: `readlink` で各リンクの参照先が `docs/` 配下を指すことを確かめる |
 
 ## このプロジェクトの規則
 
@@ -45,4 +34,4 @@ workUnit: process
 
 ## 違反時の手順
 
-`.claude/rules/`・`.cursor/rules/`・`.codex/` の配下へ直接書き込もうとして止められた場合、書き込み先を `docs/` 配下の対応する定義ファイルへ切り替える。定義側を変更したうえで、派生物は生成し直す。派生物へ直接書き込む必要がある例外的な事情がある場合も、まず定義側の変更で対応できないかを確認してから判断する。
+`.claude/rules` または `.claude/skills` が実ディレクトリのまま見つかった場合、中身を対応する `docs/rules`・`docs/skills` 側へ移してから実ディレクトリを削除し、`ln -s ../docs/rules .claude/rules`・`ln -s ../docs/skills .claude/skills` でシンボリックリンクに置き換える。`.cursor/rules/*.mdc` が実ファイルのまま見つかった場合も同様に、内容を対応する `docs/rules/<親>/<子>/rule.md` へ移してから `ln -s "../../docs/rules/<親>/<子>/rule.md" .cursor/rules/<親>-<子>.mdc` でシンボリックリンクに置き換える。定義を変更する場合は必ず `docs/` 側を直接編集する。派生（`.claude/rules`・`.claude/skills`・`.cursor/rules/*.mdc`）は参照であり、複製・変換の手順を経ないため、`docs/` 側の変更がそのまま反映される。

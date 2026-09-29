@@ -87,6 +87,30 @@
     {
       "reference": ".claude/agents/rule-reviewer.md",
       "reason": "配布対象外の資産への参照。payload の同期対象は .claude/skills と規約2件のみでエージェント定義は配られない。正本には実在し、配布先での不在は参照切れではない"
+    },
+    {
+      "reference": "delivery-payload/references/rule-taxonomy.json",
+      "reason": "規約定義の派生生成をシンボリックリンク方式へ切り替える改修（rules-symlink-derivation）で廃止したスクリプト・定義ファイルを指す歴史的記述。docs/design/ の設計経緯記録として残す"
+    },
+    {
+      "reference": "delivery-payload/templates/delivered-skills/syncing-derived-artifacts/SKILL.md",
+      "reason": "規約定義の派生生成をシンボリックリンク方式へ切り替える改修（rules-symlink-derivation）で廃止したスクリプト・定義ファイルを指す歴史的記述。docs/design/ の設計経緯記録として残す"
+    },
+    {
+      "reference": "generation-engine/scripts/rules/build-derived-rules.sh",
+      "reason": "規約定義の派生生成をシンボリックリンク方式へ切り替える改修（rules-symlink-derivation）で廃止したスクリプト・定義ファイルを指す歴史的記述。docs/design/ の設計経緯記録として残す"
+    },
+    {
+      "reference": "generation-engine/scripts/rules/check-rule-drift.sh",
+      "reason": "規約定義の派生生成をシンボリックリンク方式へ切り替える改修（rules-symlink-derivation）で廃止したスクリプト・定義ファイルを指す歴史的記述。docs/design/ の設計経緯記録として残す"
+    },
+    {
+      "reference": "generation-engine/scripts/rules/scaffold-rule-definitions.sh",
+      "reason": "規約定義の派生生成をシンボリックリンク方式へ切り替える改修（rules-symlink-derivation）で廃止したスクリプト・定義ファイルを指す歴史的記述。docs/design/ の設計経緯記録として残す"
+    },
+    {
+      "reference": "generation-engine/scripts/rules/validate-rule-definitions.sh",
+      "reason": "規約定義の派生生成をシンボリックリンク方式へ切り替える改修（rules-symlink-derivation）で廃止したスクリプト・定義ファイルを指す歴史的記述。docs/design/ の設計経緯記録として残す"
     }
   ]
 }

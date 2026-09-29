@@ -1,18 +1,8 @@
 ---
-key: tools-and-commands
-title: 使うツールとコマンドの決まり
-parent: development-process
-summary: 開発で使うツールとコマンドの実行方法・権限・実行前確認の取り決め。
-scope: scoped
-paths: ["package.json","scripts/**","Makefile",".github/**"]
-enforcement: advisory
-checkable: true
-checker: check-secret-in-command-args.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: process
+description: "開発で使うツールとコマンドの実行方法・権限・実行前確認の取り決め。"
+globs: "package.json,scripts/**,Makefile,.github/**"
+alwaysApply: false
+paths: ["package.json", "scripts/**", "Makefile", ".github/**"]
 ---
 
 # 使うツールとコマンドの決まり

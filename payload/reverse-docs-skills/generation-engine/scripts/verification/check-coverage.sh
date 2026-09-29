@@ -3,18 +3,22 @@
 #
 # 目的:
 #   このリポジトリ自身の検証設計文書（配布対象外）「網羅の分母」節が定める成果物一式が、
-#   生成物のディレクトリにすべて存在するかを突き合わせる。分母は次の3ファイルから
+#   生成物のディレクトリにすべて存在するかを突き合わせる。分母は次から
 #   実行時に動的に読み取り、本スクリプトへ数値をハードコードしない。
 #     - delivery-payload/references/portal-catalog.json   （一覧・マトリクス・デザインツールの glob）
 #     - delivery-payload/references/output-layout.json     （画面マニフェスト2件・画面一覧htmlの配置）
-#     - delivery-payload/references/rule-taxonomy.json      （規約の親7・子27の階層）
+#     - delivery-payload/templates/rules/docs-rules/       （規約の親7・子27の階層。ディレクトリ
+#       構造そのものが定義であり、専用の定義ファイルは持たない。規約定義派生生成の
+#       シンボリックリンク化（.claude/rules/scoped/agent-operations/
+#       ai-config-asset-management/rule.md 準拠）に伴い、規約の親子階層専用の定義ファイル（従来の taxonomy 定義）を廃止したため）
 #
 # 既知の乖離（未対応事項として報告する）:
-#   verification-loop/設計.md の「網羅の分母」節は規約の階層を55件（親7+子27+子27=61の
-#   誤算、または子24件だった当時の値の取り残し）、総分母を76件と記す。本スクリプトは
-#   その場しのぎで55/76に合わせるのではなく、rule-taxonomy.json の実データ（本稿時点
-#   で子27件）から動的に61件（現在は合計83件）を導出する。設計文書側の数値更新は本スクリプト
-#   の担当外（Read専用ファイル）のため、乖離はそのまま報告する。
+#   verification-loop/設計.md の「網羅の分母」節は規約の階層を61件（親7+子27+子27の
+#   design-notes.md込み）と記すが、docs-rules テンプレートは rule.md のみを持ち
+#   design-notes.md を含まない（規約定義一式の複製は `cp -Rn` のみで、per-child の
+#   追加生成物は生成しない）。本スクリプトは規約の階層を親7+子27=34件として動的に
+#   導出する。設計文書側の数値更新は本スクリプトの担当外（Read専用ファイル）のため、
+#   乖離はそのまま報告する。
 #
 # Usage:
 #   check-coverage.sh --output <生成物のディレクトリ> [--repo <リポジトリのパス>]
@@ -86,18 +90,18 @@ dropped_kinds_json() {
 # 1行1件、"<成果物の名前>\t<output_dirからの相対パス>" 形式で標準出力へ返す。
 build_denominator() {
   local repo="$1" output_dir="$2"
-  local catalog_json taxonomy_json layout_sh layout_json
+  local catalog_json docs_rules_dir layout_sh layout_json
 
   catalog_json="${repo}/delivery-payload/references/portal-catalog.json"
-  taxonomy_json="${repo}/delivery-payload/references/rule-taxonomy.json"
+  docs_rules_dir="${repo}/delivery-payload/templates/rules/docs-rules"
   layout_sh="${repo}/generation-engine/scripts/output-layout.sh"
 
   if [ ! -f "$catalog_json" ]; then
     echo "ERROR: portal-catalog.json が見つかりません: ${catalog_json}" >&2
     return 1
   fi
-  if [ ! -f "$taxonomy_json" ]; then
-    echo "ERROR: rule-taxonomy.json が見つかりません: ${taxonomy_json}" >&2
+  if [ ! -d "$docs_rules_dir" ]; then
+    echo "ERROR: docs-rules テンプレートが見つかりません: ${docs_rules_dir}" >&2
     return 1
   fi
   if [ ! -f "$layout_sh" ]; then
@@ -146,31 +150,34 @@ build_denominator() {
     | .label + "\t" + .discovery.glob
   ' "$catalog_json"
 
-  # --- 4) 規約の階層（親7×parent.yml + 子27×rule.md + 子27×design-notes.md） ---
-  local parent_lines pline
-  parent_lines="$(jq -c '.parents[]' "$taxonomy_json")"
-  while IFS= read -r pline; do
-    [ -n "$pline" ] || continue
-    local pkey ptitle
-    pkey="$(printf '%s' "$pline" | jq -r '.key')"
-    ptitle="$(printf '%s' "$pline" | jq -r '.title')"
+  # --- 4) 規約の階層（親7×parent.yml + 子27×rule.md）。docs-rules テンプレートの
+  # ディレクトリ構造そのものが定義であり、専用の定義ファイル（旧 taxonomy 定義）
+  # は持たない。design-notes.md は docs-rules テンプレートに含まれないため分母から外す。
+  local pdir pkey ptitle
+  for pdir in "$docs_rules_dir"/*/; do
+    [ -d "$pdir" ] || continue
+    pkey="$(basename "$pdir")"
+    if [ -f "${pdir}parent.yml" ]; then
+      ptitle="$(grep -m1 '^title:' "${pdir}parent.yml" | sed 's/^title: *//')"
+    else
+      ptitle="$pkey"
+    fi
+    [ -n "$ptitle" ] || ptitle="$pkey"
     printf '規約-%s（親定義）\t%s/%s/parent.yml\n' "$ptitle" "$rules_root" "$pkey"
 
-    local child_lines cline
-    child_lines="$(printf '%s' "$pline" | jq -c '.children[]')"
-    while IFS= read -r cline; do
-      [ -n "$cline" ] || continue
-      local ckey ctitle
-      ckey="$(printf '%s' "$cline" | jq -r '.key')"
-      ctitle="$(printf '%s' "$cline" | jq -r '.title')"
+    local cdir ckey ctitle
+    for cdir in "${pdir}"*/; do
+      [ -d "$cdir" ] || continue
+      ckey="$(basename "$cdir")"
+      if [ -f "${cdir}rule.md" ]; then
+        ctitle="$(grep -m1 '^# ' "${cdir}rule.md" | sed 's/^# *//')"
+      else
+        ctitle="$ckey"
+      fi
+      [ -n "$ctitle" ] || ctitle="$ckey"
       printf '規約-%s（本文）\t%s/%s/%s/rule.md\n' "$ctitle" "$rules_root" "$pkey" "$ckey"
-      printf '規約-%s（設計判断）\t%s/%s/%s/design-notes.md\n' "$ctitle" "$rules_root" "$pkey" "$ckey"
-    done <<EOF
-$child_lines
-EOF
-  done <<EOF
-$parent_lines
-EOF
+    done
+  done
 
   # --- 5) デザインシステムと棚卸しとアイコン（3。画面だけに依存するため画面が対象外なら0） ---
   jq -r --argjson dropped "$dropped_json" '
@@ -242,30 +249,31 @@ _self_test() {
   }
   trap 'rm -rf "$tmp"' EXIT
 
-  # 規約-親子読取
+  # 規約-親子読取（docs-rules テンプレートのディレクトリ構造から親・子の件数を数える）
+  local docs_rules_dir="${repo}/delivery-payload/templates/rules/docs-rules"
   local parent_count child_count
-  parent_count="$(jq '.parents | length' "${repo}/delivery-payload/references/rule-taxonomy.json")"
-  child_count="$(jq '[.parents[].children[]] | length' "${repo}/delivery-payload/references/rule-taxonomy.json")"
+  parent_count="$(find "$docs_rules_dir" -mindepth 1 -maxdepth 1 -type d | wc -l | tr -d ' ')"
+  child_count="$(find "$docs_rules_dir" -mindepth 2 -maxdepth 2 -type d | wc -l | tr -d ' ')"
   if [ "$parent_count" -gt 0 ] && [ "$child_count" -gt 0 ]; then
-    _case_pass "規約-親子読取" "rule-taxonomy.json から親${parent_count}・子${child_count}を読み取った（子の数は固定しない。改善課題1-286）"
+    _case_pass "規約-親子読取" "docs-rules テンプレートから親${parent_count}・子${child_count}を読み取った（子の数は固定しない。改善課題1-286）"
   else
     _case_fail "規約-親子読取" "親${parent_count}件・子${child_count}件（親・子とも1件以上が必要）"
   fi
 
   # 分母-件数（動的導出との内部整合性を検査する。verification-loop/設計.md記載の
-  # 55/76は現行のrule-taxonomy.json（子27件）とは整合しない既知の乖離であり、
-  # 本テストは「今のrule-taxonomy.jsonから導いた総数」と「build_denominatorの
-  # 出力件数」が一致することを検査する）
+  # 61件（design-notes.md込み）は、docs-rules テンプレートが rule.md のみを持つ
+  # 現行構成とは整合しない既知の乖離であり、本テストは「今のdocs-rulesから
+  # 導いた総数」と「build_denominatorの出力件数」が一致することを検査する）
   local dummy_out="${tmp}/dummy-output"
   local denom_all total_actual rules_total expected_total
   denom_all="$(build_denominator "$repo" "$dummy_out")"
   total_actual="$(printf '%s\n' "$denom_all" | grep -c .)"
-  rules_total=$((parent_count + child_count * 2))
+  rules_total=$((parent_count + child_count))
   local list_total
   list_total="$(jq --argjson exclude "$LIST_EXCLUDE_JSON" '[.categories[] | select(.key=="list") | .blueprints[] | select(.kind as $k | ($exclude | index($k) | not))] | length' "${repo}/delivery-payload/references/portal-catalog.json")"
   expected_total=$((3 + list_total + 5 + rules_total + 3 + 1))
   if [ "$total_actual" -eq "$expected_total" ]; then
-    _case_pass "分母-件数" "分母の総件数が ${expected_total} 件（3+${list_total}+5+${rules_total}+3+1。設計文書記載の76とは既知の乖離があり本ケースは動的導出の内部整合性を検査する）"
+    _case_pass "分母-件数" "分母の総件数が ${expected_total} 件（3+${list_total}+5+${rules_total}+3+1。設計文書記載の61件（design-notes.md込み）とは既知の乖離があり本ケースは動的導出の内部整合性を検査する）"
   else
     _case_fail "分母-件数" "分母の総件数が ${total_actual} 件（期待 ${expected_total} 件）"
   fi

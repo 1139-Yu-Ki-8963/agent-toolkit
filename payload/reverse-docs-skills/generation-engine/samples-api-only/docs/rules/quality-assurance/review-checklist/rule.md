@@ -1,18 +1,6 @@
 ---
-key: review-checklist
-title: レビューの観点の決まり
-parent: quality-assurance
-summary: レビューをいつ・誰が・何を基準に行い、どの条件で通すかの取り決め。
-scope: always
-paths: []
-enforcement: advisory
-checkable: true
-checker: check-review-viewpoints-list.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: process
+description: "レビューをいつ・誰が・何を基準に行い、どの条件で通すかの取り決め。"
+alwaysApply: true
 ---
 
 # レビューの観点の決まり

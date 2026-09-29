@@ -1,18 +1,8 @@
 ---
-key: coding-style
-title: コードの書き方と分割の決まり
-parent: code-standards
-summary: コードの書き方・関数分割・ファイル行数など実装スタイルの取り決め。
-scope: scoped
+description: "コードの書き方・関数分割・ファイル行数など実装スタイルの取り決め。"
+globs: "src/**"
+alwaysApply: false
 paths: ["src/**"]
-enforcement: advisory
-checkable: true
-checker: check-any-type-escape-hatch.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: file
 ---
 
 # コードの書き方と分割の決まり

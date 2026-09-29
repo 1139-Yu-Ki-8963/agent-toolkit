@@ -1,18 +1,8 @@
 ---
-key: release-and-delivery
-title: 版付けと公開の決まり
-parent: development-process
-summary: リリース手順・デプロイ方法・バージョン管理の取り決め。
-scope: scoped
-paths: [".github/**","CHANGELOG.md","package.json"]
-enforcement: advisory
-checkable: true
-checker: check-release-changelog-entry.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: process
+description: "リリース手順・デプロイ方法・バージョン管理の取り決め。"
+globs: ".github/**,CHANGELOG.md,package.json"
+alwaysApply: false
+paths: [".github/**", "CHANGELOG.md", "package.json"]
 ---
 
 # 版付けと公開の決まり

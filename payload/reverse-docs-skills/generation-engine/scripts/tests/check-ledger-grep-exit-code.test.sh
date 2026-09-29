@@ -2,8 +2,7 @@
 # 第1層の集約へ載せるための入口。
 # 本体（docs/scripts/check-ledger-grep-exit-code.sh）の自己テストを呼び、
 # 終了コードをそのまま返す。判定の中身はここへ写さない。
-# 集約が走査するのは generation-engine/scripts/ と
-# delivery-payload/templates/rules/checkers/ だけである。
+# 集約が走査するのは generation-engine/scripts/ だけである。
 # 本体は docs/scripts/ に置くため、この入口が無いと一度も実行されない。
 set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"

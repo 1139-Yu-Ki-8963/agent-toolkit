@@ -131,7 +131,7 @@ run_integrity_check() {
 
 self_test() {
   local temporary_dir
-  local expected_check_count=23
+  local expected_check_count=20
   if [ "$(jq '.checks | length' "$DEFAULT_CONTRACT" 2>/dev/null)" != "$expected_check_count" ]; then
     echo "[FAIL] 自己テスト0: 対応が ${expected_check_count} 件ではありません" >&2
     printf '%s\n' "$_cap" | sed 's/^/    /' >&2
@@ -143,7 +143,7 @@ self_test() {
   fi
   trap 'rm -rf "$temporary_dir"' RETURN
   mkdir -p "$temporary_dir/references"
-  if ! cp "$REPO_ROOT"/delivery-payload/references/{portal-catalog,output-layout,deliverable-inventory,unit-axes,doc-extraction,design-unit-layout,rule-taxonomy}.json "$temporary_dir/references/"; then
+  if ! cp "$REPO_ROOT"/delivery-payload/references/{portal-catalog,output-layout,deliverable-inventory,unit-axes,doc-extraction,design-unit-layout}.json "$temporary_dir/references/"; then
     unknown "自己テスト用の参照JSONを複製できません"
     return 2
   fi

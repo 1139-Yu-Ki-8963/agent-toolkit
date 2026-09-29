@@ -1,18 +1,8 @@
 ---
-key: test-policy
-title: 単体テスト設計書の決まり
-parent: quality-assurance
-summary: テストの種類・カバレッジ目標・実行タイミングの取り決め。
-scope: scoped
-paths: ["docs/**/detailed-design/**","src/**"]
-enforcement: advisory
-checkable: true
-checker: check-unit-test-design-doc-sections.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: artifact
+description: "テストの種類・カバレッジ目標・実行タイミングの取り決め。"
+globs: "docs/**/detailed-design/**,src/**"
+alwaysApply: false
+paths: ["docs/**/detailed-design/**", "src/**"]
 ---
 
 # 単体テスト設計書の決まり

@@ -289,7 +289,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
       <td>サンプルプロジェクトで動作確認済み</td></tr>
     <tr>
       <td>依存</td>
-      <td>find / sort / head / grep 等の決定的コマンド、機械ゲート実行に scripts/check-common-docs.sh を使用。許可ツール: Bash、Read、Write、Edit。SKILL.md本文で参照する実行用スクリプト: generation-engine/scripts/rules/scaffold-rule-definitions.sh、scripts/check-common-docs.sh</td></tr>
+      <td>find / sort / head / grep 等の決定的コマンド、機械ゲート実行に scripts/check-common-docs.sh を使用。許可ツール: Bash、Read、Write、Edit。SKILL.md本文で参照する実行用スクリプト: scripts/check-common-docs.sh</td></tr>
     <tr>
       <td>関連資料</td>
       <td><code>SKILL.md</code>, <code>scripts/check-common-docs.sh</code>, <code>references/sampling-rules.md</code></td></tr>
@@ -314,7 +314,7 @@ pre code, .flow code { background: transparent; color: inherit; padding: 0; }
 <section id="s1">
   <h2><span class="sec-num">§1</span>概要</h2>
   <p>対象リポジトリを層化サンプリングで走査し、その結果を<strong>プロジェクト共通6文書・サンプル記録の計7ファイル</strong>として確定する。共通文書にも別資料にも対象コードのファイルパスや行番号を記録せず、参照先は文書内の節番号に限定する。</p>
-  <p class="note">規約定義（<code>docs/rules/</code>の親子構造）は本スキルの対象外である。<code>generation-engine/scripts/rules/scaffold-rule-definitions.sh</code>が別に配布する。納品物の機械ゲートでは永続する共通6文書を検査する。</p>
+  <p class="note">規約定義（<code>docs/rules/</code>の親子構造）は本スキルの対象外である。<code>delivery-payload/templates/rules/docs-rules/</code>を<code>cp -Rn</code>する手順が別に配布する。納品物の機械ゲートでは永続する共通6文書を検査する。</p>
   <div class="constraint">
     <strong>単独動作</strong>: 他スキルへの依存を持たない。起動引数を渡せば単独で動く。工程全体は orchestrating-ai-development-setup が案内する。後続工程（facts抽出・詳細設計執筆）はこのプロジェクト共通文書を前提として動く。
   </div>

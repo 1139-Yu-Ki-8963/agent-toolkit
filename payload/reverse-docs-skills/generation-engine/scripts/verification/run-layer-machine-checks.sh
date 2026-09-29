@@ -2,7 +2,7 @@
 # run-layer-machine-checks.sh — 第1層（機械検証）の自己テストを横断実行する集約スクリプト
 #
 # 目的:
-#   generation-engine/scripts/ 配下と delivery-payload/templates/rules/checkers/ 配下で
+#   generation-engine/scripts/ 配下で
 #   --self-test を持つ .sh を動的に列挙し、順に
 #   `bash <path> --self-test` で実行して結果を集計する。個々の自己テストが
 #   ケースを1件も実行しないまま終了コード0を返し、全件合格と誤認される
@@ -87,12 +87,9 @@ SCRIPT_PATH="$SCRIPT_DIR/$(basename "${BASH_SOURCE[0]}")"
 # 対象スクリプトを列挙する（絶対パス・ソート済み・1行1件）。
 # repo: リポジトリルート / self: 除外する絶対パス（通常は本スクリプト自身の SCRIPT_PATH）
 list_targets() {
-  local repo="$1" self="$2" dir checkers
+  local repo="$1" self="$2" dir
   dir="$repo/generation-engine/scripts"
-  # 納品先へ配る検査も対象に含める。配る先で規約の違反を見つける道具であり、
-  # 壊れたまま配られないよう、このリポジトリの機械検証で動かす。
-  checkers="$repo/delivery-payload/templates/rules/checkers"
-  [ -d "$dir" ] || [ -d "$checkers" ] || return 0
+  [ -d "$dir" ] || return 0
   {
     if [ -d "$dir" ]; then
       grep -rlE --include='*.sh' -e '--self-test\)' -e '= "--self-test"' "$dir" 2>/dev/null
@@ -106,9 +103,6 @@ list_targets() {
       # 上限を超えるものだけを declared_long_running_known() へ登録して別枠にする。
       # --self-test を持つ .sh と重複しうるため、末尾の並べ替えで重複を除く。
       find "$dir" \( -name 'test-*.cjs' -o -name 'test-*.mjs' -o -name 'test-*.sh' \) -type f 2>/dev/null
-    fi
-    if [ -d "$checkers" ]; then
-      grep -rlE --include='*.sh' -e '--self-test\)' -e '= "--self-test"' "$checkers" 2>/dev/null
     fi
   } | while IFS= read -r f; do
     [ -z "$f" ] && continue
@@ -283,20 +277,8 @@ count_cases() {
 #   generation-engine/scripts/unit-list/detect-screens.sh           実測209s → 260s
 #   generation-engine/scripts/unit-list/build-screen-list.sh        実測155s → 200s
 #   generation-engine/scripts/unit-list/build-unit-list.sh          実測189s → 240s
-#   generation-engine/scripts/rules/scaffold-rule-definitions.sh    実測212s（規約27件・checker27件の時点）→ 300s
-#     （2026-08-14再実測: 当初の隔離実測では既定90秒以内に収まっていたが、
-#      同一worktree内の並行作業による負荷変動で90秒を超える揺れを観測した
-#      ため、再実測値に安全率を掛けて追加登録した。
-#      2026-08-18再実測: 独自語彙検査の新設・適用範囲の上書き受け口等、
-#      コミット5ebabbb3（実測110s時点）以降に積み重なった変更により212sへ
-#      増加した。self-testは規約27件それぞれの生成・検証・rule.html化を
-#      行うため、規約・検査ケースの件数増加に対しほぼ線形に所要時間が伸びる
-#      構造である。実測212sに約40%の余裕を持たせ300sへ引き上げた）
-#   generation-engine/scripts/rules/build-derived-rules.sh          実測115s → 150s
-#     （2026-08-18実測: `time bash <script> --self-test`で1:55(115s)。
-#      既定90秒を超え[TIMEOUT]として打ち切られていたが、全17ケースPASSで
-#      exit 0の正常完走であることを確認済み。ケース数が多い決定的生成の
-#      自己テストであり、機能・実行時間の是正は範囲外として宣言する）
+#   （旧 rules/ 配下の変換スクリプト2本の宣言はスクリプト自体の廃止に伴い削除した。
+#    規約定義一式の複製は cp -Rn のみであり、長時間を要する処理を持たない）
 # 引数: repo・abs（対象スクリプトの絶対パス）。戻り値: 宣言された上限秒数を
 # echo する。該当が無ければ何も出力しない（呼び出し側は既定値を使う）。
 declared_long_running_timeout() {
@@ -319,8 +301,6 @@ declared_long_running_timeout() {
     generation-engine/scripts/unit-list/detect-screens.sh) echo 260 ;;
     generation-engine/scripts/unit-list/build-screen-list.sh) echo 200 ;;
     generation-engine/scripts/unit-list/build-unit-list.sh) echo 240 ;;
-    generation-engine/scripts/rules/scaffold-rule-definitions.sh) echo 300 ;;
-    generation-engine/scripts/rules/build-derived-rules.sh) echo 150 ;;
     *) ;;
   esac
 }
@@ -634,7 +614,7 @@ EOS
     assert_true "列挙-引数処理のみ" 0
   fi
 
-  # 列挙-納品する検査（delivery-payload の検査も対象に入る）
+  # 列挙-旧checkers配下は対象外（機械検査プログラムの配布を撤去したため走査しない）
   local deliveredDir="$tmp/repoA/delivery-payload/templates/rules/checkers"
   mkdir -p "$deliveredDir"
   printf '%s\n' '#!/usr/bin/env bash' 'case "${1:-}" in --self-test) echo "実行 1 件"; exit 0 ;; esac' > "$deliveredDir/check-delivered.sh"
@@ -642,9 +622,9 @@ EOS
   local listedDelivered
   listedDelivered="$(list_targets "$tmp/repoA" "/dev/null/no-such-self")"
   if printf '%s' "$listedDelivered" | grep -qF "$deliveredDir/check-delivered.sh"; then
-    assert_true "列挙-納品する検査" 0
+    assert_true "列挙-旧checkers配下は対象外" 1
   else
-    assert_true "列挙-納品する検査" 1
+    assert_true "列挙-旧checkers配下は対象外" 0
   fi
 
   # 除外-自身（自身は消え、他は残る）

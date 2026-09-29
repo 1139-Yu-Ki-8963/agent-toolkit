@@ -1,18 +1,6 @@
 ---
-key: git-operations
-title: コミットと枝の決まり
-parent: development-process
-summary: コミット・ブランチ・マージ・プルリクエストの運用ルール。
-scope: always
-paths: []
-enforcement: advisory
-checkable: true
-checker: check-generated-artifact-staged.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: process
+description: "コミット・ブランチ・マージ・プルリクエストの運用ルール。"
+alwaysApply: true
 ---
 
 # コミットと枝の決まり

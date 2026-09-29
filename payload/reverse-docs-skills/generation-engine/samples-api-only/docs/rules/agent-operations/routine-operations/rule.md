@@ -1,18 +1,8 @@
 ---
-key: routine-operations
-title: 繰り返す作業の手順書の決まり
-parent: agent-operations
-summary: 定期的に繰り返す定型作業の手順と実行タイミングの取り決め。
-scope: scoped
+description: "定期的に繰り返す定型作業の手順と実行タイミングの取り決め。"
+globs: "docs/**/*.md"
+alwaysApply: false
 paths: ["docs/**/*.md"]
-enforcement: advisory
-checkable: true
-checker: check-routine-procedure-doc.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: process
 ---
 
 # 繰り返す作業の手順書の決まり

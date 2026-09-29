@@ -1,18 +1,8 @@
 ---
-key: naming
-title: 名前の付け方の決まり
-parent: code-standards
-summary: 変数・関数・ファイル・ディレクトリなど識別子の命名パターン。
-scope: scoped
-paths: ["docs/**/detailed-design/**","src/**"]
-enforcement: advisory
-checkable: true
-checker: check-sequential-identifier-naming.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: file
+description: "変数・関数・ファイル・ディレクトリなど識別子の命名パターン。"
+globs: "docs/**/detailed-design/**,src/**"
+alwaysApply: false
+paths: ["docs/**/detailed-design/**", "src/**"]
 ---
 
 # 名前の付け方の決まり

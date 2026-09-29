@@ -76,30 +76,6 @@
       "dst": "payload/ai-consulting-toolkit/portal"
     },
     {
-      "mode": "manual",
-      "src": "~/Projects/ai-driven-development-setup/.claude/skills",
-      "dst": "payload/ai-driven-development-setup/.claude/skills",
-      "note": "正本 ~/Projects/ai-driven-development-setup が存在しない(2026-09-29 に確認)。配布物だけを残す。復元するか閉じるかは未決定。自動同期禁止"
-    },
-    {
-      "mode": "manual",
-      "src": "~/Projects/ai-driven-development-setup/README.md",
-      "dst": "payload/ai-driven-development-setup/README.md",
-      "note": "正本 ~/Projects/ai-driven-development-setup が存在しない(2026-09-29 に確認)。配布物だけを残す。復元するか閉じるかは未決定。自動同期禁止"
-    },
-    {
-      "mode": "manual",
-      "src": "~/Projects/ai-driven-development-setup/docs",
-      "dst": "payload/ai-driven-development-setup/docs",
-      "note": "正本 ~/Projects/ai-driven-development-setup が存在しない(2026-09-29 に確認)。配布物だけを残す。復元するか閉じるかは未決定。自動同期禁止"
-    },
-    {
-      "mode": "manual",
-      "src": "~/Projects/ai-driven-development-setup/.claude/rules",
-      "dst": "payload/ai-driven-development-setup/.claude/rules",
-      "note": "正本 ~/Projects/ai-driven-development-setup が存在しない(2026-09-29 に確認)。配布物だけを残す。復元するか閉じるかは未決定。自動同期禁止"
-    },
-    {
       "mode": "mirror",
       "src": "~/Projects/public-skills/skills",
       "dst": "payload/public-skills/skills"

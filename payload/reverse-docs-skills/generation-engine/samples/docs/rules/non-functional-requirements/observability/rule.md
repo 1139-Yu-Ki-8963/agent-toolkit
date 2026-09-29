@@ -1,18 +1,8 @@
 ---
-key: observability
-title: 記録と監視の決まり
-parent: non-functional-requirements
-summary: ログ出力・監視・アラートに関する要件。
-scope: scoped
-paths: ["docs/**/basic-design/**","src/**"]
-enforcement: advisory
-checkable: true
-checker: check-secret-value-logging.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: file
+description: "ログ出力・監視・アラートに関する要件。"
+globs: "docs/**/basic-design/**,src/**"
+alwaysApply: false
+paths: ["docs/**/basic-design/**", "src/**"]
 ---
 
 # 記録と監視の決まり

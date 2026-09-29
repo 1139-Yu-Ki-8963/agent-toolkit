@@ -28,10 +28,6 @@
       "evidenceSource": "none"
     },
     {
-      "kind": "rule-flow-map",
-      "evidenceSource": "none"
-    },
-    {
       "kind": "ai-behavior-standard",
       "evidenceSource": "none"
     },

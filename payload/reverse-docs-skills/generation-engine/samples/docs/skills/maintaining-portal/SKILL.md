@@ -3,7 +3,7 @@ name: maintaining-portal
 description: |
   ポータルの生成HTMLへの手編集を検知し、版管理から元へ戻す。
   TRIGGER when: ポータルのHTMLを直接編集してしまった時、「ポータルのずれを確認して」「ポータルを元へ戻して」と言われた時。
-  SKIP: 定義そのものの編集（→importing-rule-proposals）、AIツール向け設定の生成（→syncing-derived-artifacts）。
+  SKIP: 定義そのものの編集（→importing-rule-proposals）。
 invocation: maintaining-portal
 type: transform
 allowed-tools: [Bash, Read, Write]
@@ -84,4 +84,3 @@ allowed-tools: [Bash, Read, Write]
 ## 関連
 
 - `docs/rules/documentation-standards/portal-maintenance/rule.md` — 本スキルが守らせる規約
-- `.claude/skills/syncing-derived-artifacts/SKILL.md` — AIツール向け設定の側を担う同型のスキル

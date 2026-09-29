@@ -176,7 +176,7 @@ if re.search(r"(?m)^## .*規約.*(一覧|読み込み)", claude_text):
 if re.search(r"(?m)^##\s*(規則|違反時の手順)\b", claude_text):
     raise SystemExit("FAIL: CLAUDE.md contains a rule-loading section")
 
-# AGENTS.md の規約読み込み節は、build-derived-rules.sh が生成する RULES-INDEX マーカー、
+# AGENTS.md の規約読み込み節は、テンプレートが固定文言として持つ RULES-INDEX マーカー、
 # または（自己テスト等の）明示的な参照パス記載のいずれかを持てば有効とみなす。
 agents_has_marker = (
     "<!-- RULES-INDEX:START -->" in agents_text and "<!-- RULES-INDEX:END -->" in agents_text

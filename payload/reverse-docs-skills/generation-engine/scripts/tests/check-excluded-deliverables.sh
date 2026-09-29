@@ -4,8 +4,8 @@
 # 入口。
 #
 # 背景: docs/scripts/ 配下は第1層の集約の走査対象に入らない。走査対象は
-# generation-engine/scripts/ と delivery-payload/templates/rules/checkers/ の
-# 2箇所だけである。本体(docs/scripts/check-excluded-deliverables.sh)は
+# generation-engine/scripts/ の
+# 1箇所だけである。本体(docs/scripts/check-excluded-deliverables.sh)は
 # --self-test を持つが、置き場所が集約の走査対象外のため、このままでは
 # 第1層から一度も実行されない。本体の --self-test を呼び、終了コードを
 # そのまま返すだけのラッパーをここへ置くことで集約に載せる。判定の中身を

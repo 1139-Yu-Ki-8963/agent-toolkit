@@ -11,7 +11,7 @@ sync-manifest.json への mapping 追加は本台帳での承認を前提とす�
 
 ## 閉鎖した bundle: claudecode-global-setup（2026-09-29）
 
-正本 `~/agent-home` の 2026-09-20 の全面解体で、スキル・規約・サブエージェント・hook の正本がなくなり、配布物だけが残っていたため、bundle 全体（payload、deploy-manifest.json、install.mjs、ポータル生成、公開安全テスト）を閉じた。ユーザーの決定。以下の「スキル（agent-home/skills/）」「ルール」「エージェント」「Codex ポータブル設定」の節は、閉鎖前の承認の履歴として残す。現在の同期対象は、この後の「支援ツール」と「public-skills」の節、および reverse-docs-skills・ai-consulting-toolkit・claude-code-template・explanation-slides-kit である。
+正本 `~/agent-home` の 2026-09-20 の全面解体で、スキル・規約・サブエージェント・hook の正本がなくなり、配布物だけが残っていたため、bundle 全体（payload、deploy-manifest.json、install.mjs、ポータル生成、公開安全テスト）を閉じた。ユーザーの決定。以下の「スキル（agent-home/skills/）」「ルール」「エージェント」「Codex ポータブル設定」の節は、閉鎖前の承認の履歴として残す。現在の同期対象は、「public-skills」の節、および reverse-docs-skills・ai-consulting-toolkit である（claude-code-template と explanation-slides-kit は manifest に mapping がなく、payload に置いたままの配布物）。
 
 ## スキル（agent-home/skills/）（閉鎖済み。履歴）
 
@@ -101,7 +101,7 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 | business-content-reviewer | 承認済み（mirror 一括） | 判定系 | 顧客資料照合 |
 | report-reviewer | 承認済み（mirror 一括） | 判定系 | 調査報告検証 |
 
-## 支援ツール（ai-driven-development-setup）
+## 支援ツール（ai-driven-development-setup）（閉鎖済み 2026-09-29。履歴。正本 ~/Projects/ai-driven-development-setup が存在しないため、ユーザーの決定で payload と manifest から除いた）
 
 | 資産 | 承認状況 | 承認根拠 | manifest 追加コミット | 備考 |
 |---|---|---|---|---|

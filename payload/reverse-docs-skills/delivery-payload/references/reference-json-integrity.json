@@ -1,6 +1,6 @@
 {
   "specVersion": 1,
-  "expectedCheckCount": 23,
+  "expectedCheckCount": 20,
   "checks": [
     {
       "id": "portal-inventory-kind-one-to-one",
@@ -10,8 +10,14 @@
       "minimumTargetCount": 1,
       "uniqueSource": true,
       "uniqueTarget": true,
-      "source": { "file": "portal-catalog.json", "query": ".categories[].blueprints[].kind" },
-      "target": { "file": "deliverable-inventory.json", "query": ".items[].kind" }
+      "source": {
+        "file": "portal-catalog.json",
+        "query": ".categories[].blueprints[].kind"
+      },
+      "target": {
+        "file": "deliverable-inventory.json",
+        "query": ".items[].kind"
+      }
     },
     {
       "id": "portal-default-root-key-to-layout-key",
@@ -19,8 +25,14 @@
       "relation": "subset",
       "minimumSourceCount": 1,
       "minimumTargetCount": 1,
-      "source": { "file": "portal-catalog.json", "query": ".defaultRoots | keys[]" },
-      "target": { "file": "output-layout.json", "query": ".layout | keys[]" }
+      "source": {
+        "file": "portal-catalog.json",
+        "query": ".defaultRoots | keys[]"
+      },
+      "target": {
+        "file": "output-layout.json",
+        "query": ".layout | keys[]"
+      }
     },
     {
       "id": "portal-default-root-value-to-layout-value",
@@ -28,8 +40,14 @@
       "relation": "subset",
       "minimumSourceCount": 1,
       "minimumTargetCount": 1,
-      "source": { "file": "portal-catalog.json", "query": ".defaultRoots | to_entries[] | \"\\(.key)\\t\\(.value)\"" },
-      "target": { "file": "output-layout.json", "query": ".layout | to_entries[] | \"\\(.key)\\t\\(.value)\"" }
+      "source": {
+        "file": "portal-catalog.json",
+        "query": ".defaultRoots | to_entries[] | \"\\(.key)\\t\\(.value)\""
+      },
+      "target": {
+        "file": "output-layout.json",
+        "query": ".layout | to_entries[] | \"\\(.key)\\t\\(.value)\""
+      }
     },
     {
       "id": "portal-discovery-root",
@@ -37,8 +55,14 @@
       "relation": "subset",
       "minimumSourceCount": 1,
       "minimumTargetCount": 1,
-      "source": { "file": "portal-catalog.json", "query": "[.categories[].blueprints[].discovery | .root?, .roots[]?] | .[] | select(. != null)" },
-      "target": { "file": "portal-catalog.json", "query": ".discoveryRoots[]" }
+      "source": {
+        "file": "portal-catalog.json",
+        "query": "[.categories[].blueprints[].discovery | .root?, .roots[]?] | .[] | select(. != null)"
+      },
+      "target": {
+        "file": "portal-catalog.json",
+        "query": ".discoveryRoots[]"
+      }
     },
     {
       "id": "inventory-dependency-kind",
@@ -46,8 +70,14 @@
       "relation": "subset",
       "minimumSourceCount": 1,
       "minimumTargetCount": 1,
-      "source": { "file": "deliverable-inventory.json", "query": ".items[] | ((.requiresAllOf // []) + (.requiresAnyOf // []) + (if .dependsOnKind then [.dependsOnKind] else [] end))[]" },
-      "target": { "file": "portal-catalog.json", "query": ".categories[].blueprints[].kind" }
+      "source": {
+        "file": "deliverable-inventory.json",
+        "query": ".items[] | ((.requiresAllOf // []) + (.requiresAnyOf // []) + (if .dependsOnKind then [.dependsOnKind] else [] end))[]"
+      },
+      "target": {
+        "file": "portal-catalog.json",
+        "query": ".categories[].blueprints[].kind"
+      }
     },
     {
       "id": "output-kind-directory-name",
@@ -57,8 +87,14 @@
       "minimumTargetCount": 1,
       "uniqueSource": true,
       "uniqueTarget": true,
-      "source": { "file": "output-layout.json", "query": ".kindLabels | keys[]" },
-      "target": { "file": "output-layout.json", "query": ".kindDirNames | keys[]" }
+      "source": {
+        "file": "output-layout.json",
+        "query": ".kindLabels | keys[]"
+      },
+      "target": {
+        "file": "output-layout.json",
+        "query": ".kindDirNames | keys[]"
+      }
     },
     {
       "id": "design-kind-label",
@@ -66,8 +102,14 @@
       "relation": "subset",
       "minimumSourceCount": 1,
       "minimumTargetCount": 1,
-      "source": { "file": "design-unit-layout.json", "query": ".kinds | keys[]" },
-      "target": { "file": "output-layout.json", "query": ".kindLabels | keys[]" }
+      "source": {
+        "file": "design-unit-layout.json",
+        "query": ".kinds | keys[]"
+      },
+      "target": {
+        "file": "output-layout.json",
+        "query": ".kindLabels | keys[]"
+      }
     },
     {
       "id": "design-kind-label-pair",
@@ -75,8 +117,14 @@
       "relation": "subset",
       "minimumSourceCount": 1,
       "minimumTargetCount": 1,
-      "source": { "file": "design-unit-layout.json", "query": ".kinds | to_entries[] | \"\\(.key)\\t\\(.value.label)\"" },
-      "target": { "file": "output-layout.json", "query": ".kindLabels | to_entries[] | \"\\(.key)\\t\\(.value)\"" }
+      "source": {
+        "file": "design-unit-layout.json",
+        "query": ".kinds | to_entries[] | \"\\(.key)\\t\\(.value.label)\""
+      },
+      "target": {
+        "file": "output-layout.json",
+        "query": ".kindLabels | to_entries[] | \"\\(.key)\\t\\(.value)\""
+      }
     },
     {
       "id": "doc-extraction-kind",
@@ -84,8 +132,14 @@
       "relation": "subset",
       "minimumSourceCount": 1,
       "minimumTargetCount": 1,
-      "source": { "file": "doc-extraction.json", "query": ".kinds | keys[]" },
-      "target": { "file": "design-unit-layout.json", "query": ".kinds | keys[]" }
+      "source": {
+        "file": "doc-extraction.json",
+        "query": ".kinds | keys[]"
+      },
+      "target": {
+        "file": "design-unit-layout.json",
+        "query": ".kinds | keys[]"
+      }
     },
     {
       "id": "doc-extraction-separated-kind",
@@ -93,8 +147,14 @@
       "relation": "subset",
       "minimumSourceCount": 1,
       "minimumTargetCount": 1,
-      "source": { "file": "doc-extraction.json", "query": "[.excluded, .separateKindContracts] | map(keys) | add | .[]" },
-      "target": { "file": "design-unit-layout.json", "query": ".kinds | keys[]" }
+      "source": {
+        "file": "doc-extraction.json",
+        "query": "[.excluded, .separateKindContracts] | map(keys) | add | .[]"
+      },
+      "target": {
+        "file": "design-unit-layout.json",
+        "query": ".kinds | keys[]"
+      }
     },
     {
       "id": "doc-extraction-layout-key",
@@ -102,8 +162,14 @@
       "relation": "subset",
       "minimumSourceCount": 1,
       "minimumTargetCount": 1,
-      "source": { "file": "doc-extraction.json", "query": "(.kinds[], .separateKindContracts[]) | .unitRootKey, .testDocuments.directoryKey" },
-      "target": { "file": "output-layout.json", "query": ".layout | keys[]" }
+      "source": {
+        "file": "doc-extraction.json",
+        "query": "(.kinds[], .separateKindContracts[]) | .unitRootKey, .testDocuments.directoryKey"
+      },
+      "target": {
+        "file": "output-layout.json",
+        "query": ".layout | keys[]"
+      }
     },
     {
       "id": "doc-extraction-test-document-alias",
@@ -113,8 +179,14 @@
       "minimumTargetCount": 1,
       "uniqueSource": true,
       "uniqueTarget": true,
-      "source": { "file": "doc-extraction.json", "query": "(.kinds + .separateKindContracts) | to_entries[] | .key as $kind | .value.testDocuments | to_entries[] | select(.key == \"externalBehavior\" or .key == \"functionUnit\") | \"\\($kind)\\t\\(.key)\\t\\(.value)\"" },
-      "target": { "file": "doc-extraction.json", "query": "(.kinds + .separateKindContracts) | to_entries[] | .key as $kind | .value.documents[] | select(.role == \"externalBehavior\" or .role == \"functionUnit\") | \"\\($kind)\\t\\(.role)\\t\\(.fileName)\"" }
+      "source": {
+        "file": "doc-extraction.json",
+        "query": "(.kinds + .separateKindContracts) | to_entries[] | .key as $kind | .value.testDocuments | to_entries[] | select(.key == \"externalBehavior\" or .key == \"functionUnit\") | \"\\($kind)\\t\\(.key)\\t\\(.value)\""
+      },
+      "target": {
+        "file": "doc-extraction.json",
+        "query": "(.kinds + .separateKindContracts) | to_entries[] | .key as $kind | .value.documents[] | select(.role == \"externalBehavior\" or .role == \"functionUnit\") | \"\\($kind)\\t\\(.role)\\t\\(.fileName)\""
+      }
     },
     {
       "id": "doc-extraction-screen-only-test-document",
@@ -124,8 +196,14 @@
       "minimumTargetCount": 1,
       "uniqueSource": true,
       "uniqueTarget": true,
-      "source": { "file": "doc-extraction.json", "query": ".separateKindContracts.screen.testDocuments.screenOnly[]" },
-      "target": { "file": "design-unit-layout.json", "query": ".kinds.screen.screenOnlyTestDocuments[]" }
+      "source": {
+        "file": "doc-extraction.json",
+        "query": ".separateKindContracts.screen.testDocuments.screenOnly[]"
+      },
+      "target": {
+        "file": "design-unit-layout.json",
+        "query": ".kinds.screen.screenOnlyTestDocuments[]"
+      }
     },
     {
       "id": "design-generation-phase",
@@ -133,8 +211,14 @@
       "relation": "subset",
       "minimumSourceCount": 1,
       "minimumTargetCount": 1,
-      "source": { "file": "design-unit-layout.json", "query": ".generationRules[] as $rule | .kinds | keys[] as $kind | select(($rule.excludedKinds | index($kind)) == null) | \"\\($kind)\\t\\($rule.sourcePhase)\", \"\\($kind)\\t\\($rule.targetPhase)\"" },
-      "target": { "file": "design-unit-layout.json", "query": ".kinds | to_entries[] | .key as $kind | .value.phases | keys[] | \"\\($kind)\\t\\(.)\"" }
+      "source": {
+        "file": "design-unit-layout.json",
+        "query": ".generationRules[] as $rule | .kinds | keys[] as $kind | select(($rule.excludedKinds | index($kind)) == null) | \"\\($kind)\\t\\($rule.sourcePhase)\", \"\\($kind)\\t\\($rule.targetPhase)\""
+      },
+      "target": {
+        "file": "design-unit-layout.json",
+        "query": ".kinds | to_entries[] | .key as $kind | .value.phases | keys[] | \"\\($kind)\\t\\(.)\""
+      }
     },
     {
       "id": "design-generation-excluded-kind",
@@ -142,8 +226,14 @@
       "relation": "subset",
       "minimumSourceCount": 1,
       "minimumTargetCount": 1,
-      "source": { "file": "design-unit-layout.json", "query": ".generationRules[].excludedKinds[]" },
-      "target": { "file": "design-unit-layout.json", "query": ".kinds | keys[]" }
+      "source": {
+        "file": "design-unit-layout.json",
+        "query": ".generationRules[].excludedKinds[]"
+      },
+      "target": {
+        "file": "design-unit-layout.json",
+        "query": ".kinds | keys[]"
+      }
     },
     {
       "id": "unit-axis-source-kind",
@@ -153,8 +243,14 @@
       "minimumTargetCount": 1,
       "uniqueSource": true,
       "uniqueTarget": true,
-      "source": { "file": "unit-axes.json", "query": ".columns[] | select(.key == \"sourceKind\") | .values[].key" },
-      "target": { "file": "design-unit-layout.json", "query": ".kinds | keys[]" }
+      "source": {
+        "file": "unit-axes.json",
+        "query": ".columns[] | select(.key == \"sourceKind\") | .values[].key"
+      },
+      "target": {
+        "file": "design-unit-layout.json",
+        "query": ".kinds | keys[]"
+      }
     },
     {
       "id": "inventory-manifest-layout-key",
@@ -162,8 +258,14 @@
       "relation": "subset",
       "minimumSourceCount": 1,
       "minimumTargetCount": 1,
-      "source": { "file": "deliverable-inventory.json", "query": ".items[] | select(.evidenceSource == \"manifest\") | .manifestKey" },
-      "target": { "file": "output-layout.json", "query": ".layout | keys[]" }
+      "source": {
+        "file": "deliverable-inventory.json",
+        "query": ".items[] | select(.evidenceSource == \"manifest\") | .manifestKey"
+      },
+      "target": {
+        "file": "output-layout.json",
+        "query": ".layout | keys[]"
+      }
     },
     {
       "id": "inventory-unit-test-document",
@@ -171,8 +273,14 @@
       "relation": "subset",
       "minimumSourceCount": 1,
       "minimumTargetCount": 1,
-      "source": { "file": "deliverable-inventory.json", "query": ".items[] | select(.unitTestDocuments != null) | .kind as $kind | .unitTestDocuments[] | \"\\($kind)\\t\\(.)\"" },
-      "target": { "file": "design-unit-layout.json", "query": ".kinds | to_entries[] | .key as $kind | .value.phases.test[] | \"\\($kind)\\t\\(.)\"" }
+      "source": {
+        "file": "deliverable-inventory.json",
+        "query": ".items[] | select(.unitTestDocuments != null) | .kind as $kind | .unitTestDocuments[] | \"\\($kind)\\t\\(.)\""
+      },
+      "target": {
+        "file": "design-unit-layout.json",
+        "query": ".kinds | to_entries[] | .key as $kind | .value.phases.test[] | \"\\($kind)\\t\\(.)\""
+      }
     },
     {
       "id": "inventory-screen-only-test-document",
@@ -182,8 +290,14 @@
       "minimumTargetCount": 1,
       "uniqueSource": true,
       "uniqueTarget": true,
-      "source": { "file": "deliverable-inventory.json", "query": ".items[] | select(.screenOnlyTestDocuments != null) | .screenOnlyTestDocuments[]" },
-      "target": { "file": "design-unit-layout.json", "query": ".kinds.screen.screenOnlyTestDocuments[]" }
+      "source": {
+        "file": "deliverable-inventory.json",
+        "query": ".items[] | select(.screenOnlyTestDocuments != null) | .screenOnlyTestDocuments[]"
+      },
+      "target": {
+        "file": "design-unit-layout.json",
+        "query": ".kinds.screen.screenOnlyTestDocuments[]"
+      }
     },
     {
       "id": "doc-extraction-document-file",
@@ -191,41 +305,14 @@
       "relation": "subset",
       "minimumSourceCount": 1,
       "minimumTargetCount": 1,
-      "source": { "file": "doc-extraction.json", "query": "def phase: if . == \"basic\" or . == \"design\" then \"basic\" elif . == \"detail\" then \"detail\" elif . == \"externalBehavior\" or . == \"functionUnit\" then \"test\" else empty end; (.kinds + .separateKindContracts) | to_entries[] | .key as $kind | .value.documents[] | (.role | phase) as $phase | \"\\($kind)\\t\\($phase)\\t\\(.fileName)\"" },
-      "target": { "file": "design-unit-layout.json", "query": ".kinds | to_entries[] | .key as $kind | .value.phases | to_entries[] | .key as $phase | .value[] | \"\\($kind)\\t\\($phase)\\t\\(.)\"" }
-    },
-    {
-      "id": "rule-taxonomy-standard-kind",
-      "description": "rule-taxonomy の子キーへ standard 接尾辞を加え、portal-catalog の規約 blueprint kind と1対1で対応させる",
-      "relation": "equal",
-      "minimumSourceCount": 1,
-      "minimumTargetCount": 1,
-      "uniqueSource": true,
-      "uniqueTarget": true,
-      "source": { "file": "rule-taxonomy.json", "query": ".parents[].children[].key + \"-standard\"" },
-      "target": { "file": "portal-catalog.json", "query": ".categories[] | select(.key == \"standards\") | .blueprints[].kind" }
-    },
-    {
-      "id": "rule-taxonomy-standard-directory",
-      "description": "rule-taxonomy の親子キーから作る規約ディレクトリを portal-catalog の規約 blueprint dir と1対1で対応させる",
-      "relation": "equal",
-      "minimumSourceCount": 1,
-      "minimumTargetCount": 1,
-      "uniqueSource": true,
-      "uniqueTarget": true,
-      "source": { "file": "rule-taxonomy.json", "query": ".parents[] | .key as $parent | .children[] | \"docs/rules/\\($parent)/\\(.key)\"" },
-      "target": { "file": "portal-catalog.json", "query": ".categories[] | select(.key == \"standards\") | .blueprints[].dir" }
-    },
-    {
-      "id": "rule-taxonomy-standard-discovery-glob",
-      "description": "rule-taxonomy の親子キーから作る規約HTMLパスを portal-catalog の規約 discovery glob と1対1で対応させる",
-      "relation": "equal",
-      "minimumSourceCount": 1,
-      "minimumTargetCount": 1,
-      "uniqueSource": true,
-      "uniqueTarget": true,
-      "source": { "file": "rule-taxonomy.json", "query": ".parents[] | .key as $parent | .children[] | \"docs/rules/\\($parent)/\\(.key)/rule.html\"" },
-      "target": { "file": "portal-catalog.json", "query": ".categories[] | select(.key == \"standards\") | .blueprints[].discovery.glob" }
+      "source": {
+        "file": "doc-extraction.json",
+        "query": "def phase: if . == \"basic\" or . == \"design\" then \"basic\" elif . == \"detail\" then \"detail\" elif . == \"externalBehavior\" or . == \"functionUnit\" then \"test\" else empty end; (.kinds + .separateKindContracts) | to_entries[] | .key as $kind | .value.documents[] | (.role | phase) as $phase | \"\\($kind)\\t\\($phase)\\t\\(.fileName)\""
+      },
+      "target": {
+        "file": "design-unit-layout.json",
+        "query": ".kinds | to_entries[] | .key as $kind | .value.phases | to_entries[] | .key as $phase | .value[] | \"\\($kind)\\t\\($phase)\\t\\(.)\""
+      }
     }
   ]
 }

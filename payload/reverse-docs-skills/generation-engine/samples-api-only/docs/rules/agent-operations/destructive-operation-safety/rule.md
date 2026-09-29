@@ -1,18 +1,6 @@
 ---
-key: destructive-operation-safety
-title: 上書きの前に読む決まり
-parent: agent-operations
-summary: rm -rf・force push・reset --hard 等の破壊的操作を実行する前の確認と検査の取り決め。
-scope: always
-paths: []
-enforcement: advisory
-checkable: true
-checker: check-read-before-overwrite.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: process
+description: "rm -rf・force push・reset --hard 等の破壊的操作を実行する前の確認と検査の取り決め。"
+alwaysApply: true
 ---
 
 # 上書きの前に読む決まり

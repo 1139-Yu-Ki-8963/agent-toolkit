@@ -1,18 +1,8 @@
 ---
-key: business-rules
-title: 業務の判定の書き方の決まり
-parent: business-domain
-summary: 業務上守るべき判定ロジックと制約の取り決め。
-scope: scoped
+description: "業務上守るべき判定ロジックと制約の取り決め。"
+globs: "docs/**/*.md"
+alwaysApply: false
 paths: ["docs/**/*.md"]
-enforcement: advisory
-checkable: true
-checker: check-business-rule-table-missing-exception.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: file
 ---
 
 # 業務の判定の書き方の決まり

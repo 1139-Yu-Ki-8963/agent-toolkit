@@ -67,7 +67,7 @@ allowed-tools: [Bash, Read, Write, Grep, Glob]
 
 **使用ツール**: Read / Grep / Glob
 
-- **Step 1** 親7・子27の構成を対象リポジトリへ当てる。この構成は `delivery-payload/references/rule-taxonomy.json` を定義とする。章の `slug` は親の `key`、カテゴリの `key` は子の `key` をそのまま使う。表示名も同宣言の `title` を使う。**この文書に構成の表を複製しない。** 複製すると宣言との食い違いが起き、取り込み時に既存の空雛形を埋めずに新しいフォルダが増える事故になる。完了条件: 27カテゴリ全件に対応する行を用意済み
+- **Step 1** 親7・子27の構成を対象リポジトリへ当てる。この構成は `delivery-payload/templates/rules/docs-rules/` の親フォルダ（`parent.yml`）・子フォルダ（`rule.md`）を定義とする。章の `slug` は親フォルダ名、カテゴリの `key` は子フォルダ名をそのまま使う。表示名は `parent.yml` の `title` および各 `rule.md` の front matter `title` を使う。**この文書に構成の表を複製しない。** 複製すると宣言との食い違いが起き、取り込み時に既存の空雛形を埋めずに新しいフォルダが増える事故になる。完了条件: 27カテゴリ全件に対応する行を用意済み
 - **Step 2** 各カテゴリについて、対象リポジトリに観測できる材料があるかを判定し `state` を決める。値域は次の4つ。完了条件: 27カテゴリ全件に `state` が確定済み
 
 | state | 意味 |
@@ -81,13 +81,18 @@ allowed-tools: [Bash, Read, Write, Grep, Glob]
 
 ### 親7・子27の構成の確認手順
 
-構成を確認するときは次のコマンドで `delivery-payload/references/rule-taxonomy.json` を直接読む。
+構成を確認するときは次のコマンドで `delivery-payload/templates/rules/docs-rules/` を直接読む。
 
 ```
-jq -r '.parents[] | "\(.key) / \(.title)", (.children[] | "  \(.key) / \(.title)")' delivery-payload/references/rule-taxonomy.json
+for p in delivery-payload/templates/rules/docs-rules/*/; do
+  echo "$(basename "$p") / $(sed -n 's/^title: *//p' "${p}parent.yml")"
+  for c in "$p"*/; do
+    echo "  $(basename "$c") / $(sed -n 's/^title: "\(.*\)"$/\1/p' "${c}rule.md" | head -1)"
+  done
+done
 ```
 
-`rule-taxonomy.json` で `toolDefined: true` を持つ子カテゴリは提案の対象外である。ツール側が本文を書いて納品するため、提案して採否を問う対象ではない。
+現行の27カテゴリはいずれもツール側が本文を確定済みであり、提案の対象外である。対象リポジトリ固有の観測は各 `rule.md` の「このプロジェクトの規則」節への追記として別途行う。
 
 **完了**: 27カテゴリ全件に `state` が確定済み
 
@@ -184,5 +189,4 @@ jq -r '.parents[] | "\(.key) / \(.title)", (.children[] | "  \(.key) / \(.title)
 
 - `orchestrating-ai-development-setup`: 工程全体の案内役
 - `surveying-architecture-for-reverse-docs`: 本スキルのデータ源（アーキテクチャ調査書）を確定する前工程
-- `importing-rule-proposals`: 判定結果JSONを読み `docs/rules/<親>/<子>/` へ書き込む取り込みスキル。実体は `delivery-payload/templates/delivered-skills/importing-rule-proposals/` にある。`scaffold-rule-definitions.sh --with-skills` が対象リポジトリへ配る
-- `syncing-derived-artifacts`: `docs/rules/` から各ツール向け派生物を生成する適用スキル。実体は `delivery-payload/templates/delivered-skills/syncing-derived-artifacts/` にある。同じ経路で配る
+- `importing-rule-proposals`: 判定結果JSONを読み `docs/rules/<親>/<子>/` へ書き込む取り込みスキル。実体は `delivery-payload/templates/delivered-skills/importing-rule-proposals/` にある。同じ経路で配る

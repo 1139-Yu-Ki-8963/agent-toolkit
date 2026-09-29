@@ -18,14 +18,16 @@
 
 ## 後半: 規約の読み込み
 
-規約の索引は `docs/rules/` から機械が生成する。下のマーカーに挟まれた範囲が生成物であり、直接編集しない。承認済み（`status: approved`）の規約だけが載る。
+下のマーカーに挟まれた範囲が規約索引であり、直接編集しない。
 
 <!-- RULES-INDEX:START -->
-<!-- ここは build-derived-rules.sh が生成する。直接編集しない -->
+## 規約
+規約は `docs/rules/<分類>/<規約>/rule.md` にある。適用範囲は各ファイルの front matter（`paths` / `alwaysApply`）が示す。
+`.claude/rules` は `docs/rules` へのシンボリックリンク、`.cursor/rules/*.mdc` は同じファイルの拡張子違いのコピーであり、どちらも直接編集しない。
 <!-- RULES-INDEX:END -->
 
 ### 未確定事項
 
-規約ルートが見つからない・パスが解決できないといった構造的な未確定だけを書く。承認件数など後から変わる数は書かない。
+規約ルートが見つからない・パスが解決できないといった構造的な未確定だけを書く。
 
 - {{UNCONFIRMED_RULE_OR_MISSING_EVIDENCE}}

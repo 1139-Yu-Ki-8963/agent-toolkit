@@ -14,7 +14,7 @@
 # り、別ファイルへ写すと正本が2つになるため）。
 #
 # 第3（同じ語の多義）・第4（文書間の断定と未確定の併存）は機械化しない。
-# delivery-payload/templates/rules/tool-defined/document-writing.md の
+# delivery-payload/templates/rules/docs-rules/documentation-standards/document-writing/rule.md の
 # 「文書間の参照」節が機械化の範囲を明記する。
 #
 # 使い方:
@@ -507,7 +507,7 @@ DOC
 
   # 追加回帰4: document-writing.md に「文書間の参照」節と機械化の範囲がある。
   local dw_file section_present scope_present
-  dw_file="$REPO_ROOT/delivery-payload/templates/rules/tool-defined/document-writing.md"
+  dw_file="$REPO_ROOT/delivery-payload/templates/rules/docs-rules/documentation-standards/document-writing/rule.md"
   section_present="$(grep -c '^### 文書間の参照$' "$dw_file")"
   scope_present="$(grep -c '機械化しない' "$dw_file")"
   assert_eq "追加回帰4-文書間の参照節が1件" 1 "$section_present"

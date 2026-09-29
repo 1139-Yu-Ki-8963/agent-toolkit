@@ -33,7 +33,8 @@
 #      detail-pages/build-detail-page.sh)。関連図3種(状態遷移図・ER図・画面遷移図)の
 #      抽出(portal-input/extract-entity-state-page-data.sh 等)もこの段で行う
 #      (一覧の生成が終わり詳細ページを作る段という位置づけが同じため)
-#   8. rules/scaffold-rule-definitions.sh --apply
+#   8. delivery-payload/templates/rules/docs-rules/ を cp -Rn で複製し、画面非依存の
+#      基盤情報3件（技術スタック・環境構築手順・リリースノート）を生成する
 #   9. build-portal.sh
 #   10. 結果の集計
 #
@@ -123,8 +124,6 @@ ${repo}/generation-engine/scripts/detail-pages/build-detail-page.sh
 ${repo}/generation-engine/scripts/portal-input/extract-entity-state-page-data.sh
 ${repo}/generation-engine/scripts/portal-input/extract-er-page-data.sh
 ${repo}/generation-engine/scripts/portal-input/extract-transition-page-data.sh
-${repo}/generation-engine/scripts/rules/scaffold-rule-definitions.sh
-${repo}/generation-engine/scripts/rules/build-rule-flow-map.sh
 ${repo}/generation-engine/scripts/build-portal.sh
 ${repo}/generation-engine/scripts/extract/extract-screen-metadata.sh
 ${repo}/generation-engine/scripts/extract/convert-message-doc-to-manifest.sh
@@ -983,22 +982,20 @@ stage_design_pages() {
 }
 
 stage_rules_scaffold() {
-  local script="${REPO_SELF}/generation-engine/scripts/rules/scaffold-rule-definitions.sh"
-  if [ ! -f "${script}" ]; then
-    record_result rules-scaffold FAIL "スクリプトが存在しない: ${script}"
+  # 規約定義一式（親7・子27）の対象出力先への複製は、変換スクリプトではなく
+  # `cp -Rn` だけで足りる（.claude/rules/scoped/agent-operations/
+  # ai-config-asset-management/rule.md 準拠。派生は生成物として扱わず、
+  # シンボリックリンクで作る現行方式のため、旧来の変換スクリプトは廃止した）。
+  local docs_rules_src="${REPO_SELF}/delivery-payload/templates/rules/docs-rules"
+  local docs_rules_dst="${OUTPUT_DIR}/docs/rules"
+  if [ ! -d "${docs_rules_src}" ]; then
+    record_result rules-scaffold FAIL "規約定義一式のテンプレートが存在しない: ${docs_rules_src}"
     return 0
   fi
-  # --apply を条件分岐なしで常に付ける理由: scaffold-rule-definitions.sh は --apply を
-  # 付け忘れると規約が0件のまま試行実行(dry-run)で終わる。この事故は
-  # .claude/rules/scoped/portal/page-conventions/rule.md の設計判断節に既知の事故パターン
-  # として記録済みだが、本スクリプト自身には理由が無かった。本スクリプトは第3層(一気通貫)を
-  # 無人で繰り返し実行する経路であり、呼び出し側が毎回フラグを判断する余地を残すと
-  # 同じ事故を再現しうるため、この段の呼び出しからは選択の余地を無くしてある。
-  # 環境依存: しない(呼び出し手順の問題であり実行環境には依存しない)。
-  # 過去に消えて再発した経緯: 記録なし(この段自体が新設時から --apply 固定で書かれている)。
-  run_cmd bash "${script}" "${OUTPUT_DIR}" --apply
+  mkdir -p "${docs_rules_dst}"
+  run_cmd cp -Rn "${docs_rules_src}/." "${docs_rules_dst}/"
   if [ "${LAST_RC}" -ne 0 ]; then
-    record_result rules-scaffold FAIL "規約定義の展開=終了コード ${LAST_RC}"
+    record_result rules-scaffold FAIL "規約定義の複製=終了コード ${LAST_RC}"
     return 0
   fi
 
@@ -1078,16 +1075,10 @@ EOF
     [ "${LAST_RC}" -eq 0 ] || any_fail=1
   done
 
-  local rule_map_script="${REPO_SELF}/generation-engine/scripts/rules/build-rule-flow-map.sh"
-  run_cmd bash "${rule_map_script}" "${REPO_SELF}/delivery-payload/references/rule-taxonomy.json" \
-    "${foundation_dir}/規約とフローの対応.html" --generated-at "${generated_at}" \
-    --target-root "${OUTPUT_DIR}/docs/rules"
-  [ "${LAST_RC}" -eq 0 ] || any_fail=1
-
   if [ "${any_fail}" -eq 0 ]; then
-    record_result rules-scaffold OK "規約定義を展開し、画面非依存の基盤情報5件を生成した"
+    record_result rules-scaffold OK "規約定義を複製し、画面非依存の基盤情報3件を生成した"
   else
-    record_result rules-scaffold FAIL "規約定義は展開したが、画面非依存の基盤情報生成に失敗した"
+    record_result rules-scaffold FAIL "規約定義は複製したが、画面非依存の基盤情報生成に失敗した"
   fi
 }
 
@@ -1257,14 +1248,14 @@ self_test() {
     _case_fail "段-定義数" "10段ではない(実測 ${n})"
   fi
 
-  # 段-規約適用フラグ
+  # 段-規約複製方式
   local block
   block="$(sed -n '/^stage_rules_scaffold()/,/^}/p' "${SELF_PATH}")"
-  if printf '%s' "${block}" | grep -q 'scaffold-rule-definitions.sh' \
-    && printf '%s' "${block}" | grep -q -- '--apply'; then
-    _case_pass "段-規約適用フラグ" "規約段の呼び出しに --apply を含む"
+  if printf '%s' "${block}" | grep -q 'docs-rules' \
+    && printf '%s' "${block}" | grep -q -- 'cp -Rn'; then
+    _case_pass "段-規約複製方式" "規約段の呼び出しが docs-rules テンプレートを cp -Rn で複製する"
   else
-    _case_fail "段-規約適用フラグ" "--apply が見つからない"
+    _case_fail "段-規約複製方式" "docs-rules への cp -Rn が見つからない"
   fi
 
   # 版-記録

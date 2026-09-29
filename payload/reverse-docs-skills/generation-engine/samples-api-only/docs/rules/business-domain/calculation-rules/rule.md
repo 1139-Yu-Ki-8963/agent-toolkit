@@ -1,18 +1,8 @@
 ---
-key: calculation-rules
-title: 金額と数量の計算の決まり
-parent: business-domain
-summary: 金額・数量などの計算ロジックとその根拠の取り決め。
-scope: scoped
-paths: ["docs/**/basic-design/**","src/**"]
-enforcement: advisory
-checkable: true
-checker: check-currency-float-type.sh
-uncheckableReason: null
-formatter: none
-status: approved
-origin: manual
-workUnit: file
+description: "金額・数量などの計算ロジックとその根拠の取り決め。"
+globs: "docs/**/basic-design/**,src/**"
+alwaysApply: false
+paths: ["docs/**/basic-design/**", "src/**"]
 ---
 
 # 金額と数量の計算の決まり
