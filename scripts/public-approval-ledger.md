@@ -11,7 +11,7 @@ sync-manifest.json への mapping 追加は本台帳での承認を前提とす�
 
 ## 閉鎖した bundle: claudecode-global-setup（2026-09-29）
 
-正本 `~/agent-home` の 2026-09-20 の全面解体で、スキル・規約・サブエージェント・hook の正本がなくなり、配布物だけが残っていたため、bundle 全体（payload、deploy-manifest.json、install.mjs、ポータル生成、公開安全テスト）を閉じた。ユーザーの決定。以下の「スキル（agent-home/skills/）」「ルール」「エージェント」「Codex ポータブル設定」の節は、閉鎖前の承認の履歴として残す。現在の同期対象は、「public-skills」の節、および reverse-docs-skills・ai-consulting-toolkit である（claude-code-template と explanation-slides-kit は manifest に mapping がなく、payload に置いたままの配布物）。
+正本 `~/agent-home` の 2026-09-20 の全面解体で、スキル・規約・サブエージェント・hook の正本がなくなり、配布物だけが残っていたため、bundle 全体（payload、deploy-manifest.json、install.mjs、ポータル生成、公開安全テスト）を閉じた。ユーザーの決定。以下の「スキル（agent-home/skills/）」「ルール」「エージェント」「Codex ポータブル設定」の節は、閉鎖前の承認の履歴として残す。現在の同期対象は、「public-skills」の節と ai-consulting-toolkit だけである。reverse-docs-skills、claude-code-template、explanation-slides-kit は 2026-09-29 にユーザーの決定で公開をやめ、payload と manifest から除いた。
 
 ## スキル（agent-home/skills/）（閉鎖済み。履歴）
 

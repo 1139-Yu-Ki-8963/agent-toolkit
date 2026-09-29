@@ -3,7 +3,7 @@
 // ゼロ依存。node:fs/path/os/process のみ使用。
 // 使い方: node scripts/sync-payload.mjs [--list|--check|--check-artifacts|--apply] [--only <dst-prefix>]
 //   --only <dst-prefix>: dst が指定 prefix で始まる mapping だけを対象に絞り込む
-//   （例: --only payload/reverse-docs-skills）
+//   （例: --only payload/public-skills）
 
 import fs from "node:fs";
 import path from "node:path";
@@ -24,7 +24,7 @@ let onlyPrefix = null;
 if (onlyIndex !== -1) {
   onlyPrefix = args[onlyIndex + 1];
   if (!onlyPrefix || onlyPrefix.startsWith("--")) {
-    console.error("--only には dst prefix を指定してください（例: --only payload/reverse-docs-skills）");
+    console.error("--only には dst prefix を指定してください（例: --only payload/public-skills）");
     process.exit(1);
   }
 }

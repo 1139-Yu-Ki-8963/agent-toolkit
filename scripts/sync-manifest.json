@@ -2,66 +2,6 @@
   "mappings": [
     {
       "mode": "mirror",
-      "src": "~/Projects/reverse-docs-skills/.claude/skills",
-      "dst": "payload/reverse-docs-skills/.claude/skills"
-    },
-    {
-      "mode": "mirror",
-      "src": "~/Projects/reverse-docs-skills/delivery-payload",
-      "dst": "payload/reverse-docs-skills/delivery-payload"
-    },
-    {
-      "mode": "mirror",
-      "src": "~/Projects/reverse-docs-skills/generation-engine",
-      "dst": "payload/reverse-docs-skills/generation-engine"
-    },
-    {
-      "mode": "file",
-      "src": "~/Projects/reverse-docs-skills/README.md",
-      "dst": "payload/reverse-docs-skills/README.md"
-    },
-    {
-      "mode": "file",
-      "src": "~/Projects/reverse-docs-skills/.claude/rules/scoped/portal/page-conventions/rule.md",
-      "dst": "payload/reverse-docs-skills/.claude/rules/scoped/portal/page-conventions/rule.md"
-    },
-    {
-      "mode": "file",
-      "src": "~/Projects/reverse-docs-skills/.claude/rules/always/verification/reverse-verification/rule.md",
-      "dst": "payload/reverse-docs-skills/.claude/rules/always/verification/reverse-verification/rule.md"
-    },
-    {
-      "mode": "file",
-      "src": "~/Projects/reverse-docs-skills/.claude/rules/always/tasks/instruction-format/rule.md",
-      "dst": "payload/reverse-docs-skills/.claude/rules/always/tasks/instruction-format/rule.md"
-    },
-    {
-      "mode": "file",
-      "src": "~/Projects/reverse-docs-skills/.claude/rules/always/tasks/instruction-format/check-instruction-format.sh",
-      "dst": "payload/reverse-docs-skills/.claude/rules/always/tasks/instruction-format/check-instruction-format.sh"
-    },
-    {
-      "mode": "file",
-      "src": "~/Projects/reverse-docs-skills/RUNBOOK.md",
-      "dst": "payload/reverse-docs-skills/RUNBOOK.md"
-    },
-    {
-      "mode": "mirror",
-      "src": "~/Projects/reverse-docs-skills/docs",
-      "dst": "payload/reverse-docs-skills/docs"
-    },
-    {
-      "mode": "file",
-      "src": "~/Projects/reverse-docs-skills/AGENTS.md",
-      "dst": "payload/reverse-docs-skills/AGENTS.md"
-    },
-    {
-      "mode": "file",
-      "src": "~/Projects/reverse-docs-skills/CLAUDE.md",
-      "dst": "payload/reverse-docs-skills/CLAUDE.md"
-    },
-    {
-      "mode": "mirror",
       "src": "~/Projects/ai-consulting-toolkit/.claude/skills",
       "dst": "payload/ai-consulting-toolkit/.claude/skills"
     },
