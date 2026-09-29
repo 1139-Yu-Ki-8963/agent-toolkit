@@ -16,12 +16,12 @@ sync-manifest.json への mapping 追加は本台帳での承認を前提とす�
 | managing-agent-configs | 承認済み | 初期同期対象 | beeebf1 以前 | |
 | parallel-dev-worktree | 承認済み | beeebf1 で追加 | beeebf1 (2026-07-13) | |
 | grouping-commits | 承認済み | beeebf1 で追加 | beeebf1 (2026-07-13) | |
-| adding-textlint-dictionary-terms | 承認済み | beeebf1 で追加 | beeebf1 (2026-07-13) | |
-| subagent-investigation-checklist | 承認済み | beeebf1 で追加 | beeebf1 (2026-07-13) | |
+| adding-textlint-dictionary-terms | 除外（未承認） | 正本 ~/agent-home の 2026-09-20 の全面解体で削除。payload と manifest から除去 | beeebf1 (2026-07-13) | 2026-09-29 に除外 |
+| subagent-investigation-checklist | 除外（未承認） | 正本 ~/agent-home の 2026-09-20 の全面解体で削除。payload と manifest から除去 | beeebf1 (2026-07-13) | 2026-09-29 に除外 |
 | eliciting-plan-tacit-knowledge | 承認済み | beeebf1 で追加 | beeebf1 (2026-07-13) | |
 | generating-explanation-html-slides | 承認済み | 815d818 で追加 | 815d818 (2026-07-14) | manifest に重複エントリあり（修正済み） |
 | managing-session-workflow | 承認済み | セッション契約・ランタイム分岐・完了証拠を公開再レビュー | 本公開変更 | Codex/Claude 共通のルーティング責務。source: agent-home@532d7102520022ba81e04ee9e7f96eb9b1254fbe |
-| transcribing-images | 承認済み | 構造化 handoff と責務境界を公開再レビュー | 本公開変更 | 実装は行わずセッション管理へ返す。source: agent-home@532d7102520022ba81e04ee9e7f96eb9b1254fbe |
+| transcribing-images | 除外（未承認） | 正本 ~/agent-home の 2026-09-20 の全面解体で削除。payload と manifest から除去 | 本公開変更 | 2026-09-29 に除外。旧 source: agent-home@532d7102520022ba81e04ee9e7f96eb9b1254fbe |
 | orchestrating-dev-flow | 承認済み | 指摘対応表・回帰・公開完了ゲートを公開再レビュー | 本公開変更 | 既存実装フローの補強。source: agent-home@532d7102520022ba81e04ee9e7f96eb9b1254fbe |
 | creating-new-project | 除外（未承認） | 公開可否レビュー未実施 | 3c44814 (2026-07-15) | 未収載補完として無断追加。manifest・payload から除去済み |
 | frontend-design | 除外（未承認） | 公開可否レビュー未実施 | 3c44814 (2026-07-15) | 同上 |

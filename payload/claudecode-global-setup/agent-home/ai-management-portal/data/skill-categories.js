@@ -35,11 +35,8 @@ export const SKILL_CATEGORY = {
   "orchestrating-dev-flow": { cat: "build", sub: "pr" },
   "parallel-dev-worktree": { cat: "build", sub: "pr" },
   "grouping-commits": { cat: "build", sub: "pr" },
-  "adding-textlint-dictionary-terms": "write",
   "managing-agent-configs": { cat: "manage", sub: "skill" },
   "managing-session-workflow": "manage",
   "eliciting-plan-tacit-knowledge": "meta",
-  "subagent-investigation-checklist": "meta",
   "generating-explanation-html-slides": "content",
-  "transcribing-images": "content",
 };
