@@ -2,21 +2,6 @@
   "mappings": [
     {
       "mode": "mirror",
-      "src": "~/Projects/ai-consulting-toolkit/.claude/skills",
-      "dst": "payload/ai-consulting-toolkit/.claude/skills"
-    },
-    {
-      "mode": "mirror",
-      "src": "~/Projects/ai-consulting-toolkit/docs",
-      "dst": "payload/ai-consulting-toolkit/docs"
-    },
-    {
-      "mode": "mirror",
-      "src": "~/Projects/ai-consulting-toolkit/portal",
-      "dst": "payload/ai-consulting-toolkit/portal"
-    },
-    {
-      "mode": "mirror",
       "src": "~/Projects/public-skills/skills",
       "dst": "payload/public-skills/skills"
     },

@@ -25,10 +25,9 @@ payload/
 │       ├── creating-agent-skills/
 │       ├── testing-agent-skills/
 │       └── reporting-textlint-findings/
-└── ai-consulting-toolkit/       AI コンサルティング用スキル集(16 スキル、docs、portal)
 ```
 
-2026-09-29 に、reverse-docs-skills、claude-code-template、explanation-slides-kit、ai-driven-development-setup の公開をやめた。
+2026-09-29 に、reverse-docs-skills、claude-code-template、explanation-slides-kit、ai-driven-development-setup、ai-consulting-toolkit の公開をやめた。
 
 ## public-skills(単体で動く公開スキル集)
 
@@ -41,10 +40,6 @@ payload/
 | [`reporting-textlint-findings`](payload/public-skills/skills/reporting-textlint-findings/SKILL.md) | md を textlint で検査し、指摘箇所に波線を引いた HTML を書き出す | node と textlint 6 パッケージ(一覧はスキルの SKILL.md) |
 
 `creating-agent-skills` と `testing-agent-skills` は対で使う。前者の完了の報告が、動作を確かめるときに後者を案内する。
-
-## ai-consulting-toolkit(AI コンサルティング用スキル集)
-
-`payload/ai-consulting-toolkit/` は、正本 `~/Projects/ai-consulting-toolkit` を mirror したスキル集で、`.claude/skills/`(16 スキル)、`docs/`、`portal/` からなる。使うときは `.claude/skills/` の中の必要なフォルダを複製する。
 
 ## 更新(payload の同期)
 
