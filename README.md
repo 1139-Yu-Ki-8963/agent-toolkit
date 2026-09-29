@@ -25,7 +25,7 @@ payload/
 │       ├── creating-agent-skills/
 │       ├── testing-agent-skills/
 │       └── reporting-textlint-findings/
-├── reverse-docs-skills/         リバース設計書の往復検証フロー(35 スキル)
+├── reverse-docs-skills/         リバース設計書の往復検証フロー(52 スキル)
 │   ├── .claude/skills/
 │   └── shared/                  6 スキル共通の共有資産
 ├── ai-consulting-toolkit/       AI コンサルティング用スキル集
@@ -47,12 +47,12 @@ payload/
 
 ## reverse-docs-skills(リバース設計書の往復検証フロー)
 
-`payload/reverse-docs-skills/` は独立したスキル集で、各スキルは他スキルのフォルダに依存せず単独で起動できる。共有資産(テンプレート、章対応表、監査スクリプト)は `shared/` に同梱済みである。全 35 スキルのうち主要 6 スキルを挙げる。
+`payload/reverse-docs-skills/` は独立したスキル集で、各スキルは他スキルのフォルダに依存せず単独で起動できる。共有資産(テンプレート、章対応表、監査スクリプト)は `shared/` に同梱済みである。全 52 スキルのうち主要 6 スキルを挙げる。全体の一覧と工程は [`payload/reverse-docs-skills/README.md`](payload/reverse-docs-skills/README.md) にある。
 
 | スキル | 担当 |
 |---|---|
 | [`generating-screen-list-for-reverse-docs`](payload/reverse-docs-skills/.claude/skills/generating-screen-list-for-reverse-docs/SKILL.md) | レガシーコードベースを 4 phase(スタック調査、検出戦略の宣言、抽出、整合の検証)で画面単位にグルーピングし、画面一覧の HTML を生成する。validate と build は jq に依存する |
-| [`orchestrating-reverse-docs-flow`](payload/reverse-docs-skills/.claude/skills/orchestrating-reverse-docs-flow/SKILL.md) | 画面の状態(未開通、開通済み、基準確立済み)を判定し、他 5 スキルの引数を事前に解決して呼び出す統括役 |
+| [`orchestrating-ai-development-setup`](payload/reverse-docs-skills/.claude/skills/orchestrating-ai-development-setup/SKILL.md) | 指揮役。成果物の実在から現在の状態を判定し、次工程の子スキルを機械的に起動する |
 | [`unlocking-reverse-target-screens`](payload/reverse-docs-skills/.claude/skills/unlocking-reverse-target-screens/SKILL.md) | 設計書のない画面をモック API でログイン後まで開通させ、動作確認できる状態にする |
 | [`syncing-reverse-env`](payload/reverse-docs-skills/.claude/skills/syncing-reverse-env/SKILL.md) | ポート番号だけが違う 2 つの検証環境を用意して同期し、完全一致の証明を基準タグとして確立する |
 | [`rebuilding-screen-unit-from-docs`](payload/reverse-docs-skills/.claude/skills/rebuilding-screen-unit-from-docs/SKILL.md) | 画面詳細設計書だけから単体テスト観点で 1 ファイルを再生成し、原本と 5 つの計測で突合する |
