@@ -122,6 +122,8 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 | スキル名 | 承認状況 | 承認根拠 | 備考 |
 |---|---|---|---|
 | reporting-textlint-findings | 承認済み | 初期同期対象（2026-09-15） | |
-| creating-agent-skills | 承認済み | ユーザーの公開指示（2026-09-29）。環境固有のパスなし。実行者の検証 6 回で必須要件すべて ○ | source: agent-home@8a3313c、public-skills@68984d1 |
+| creating-agent-skills | 承認済み | ユーザーの公開指示（2026-09-29）。環境固有のパスなし。実行者の検証 8 回で必須要件すべて ○。2026-09-30 に新規作成だけへ縮小 | source: agent-home@09baffc、public-skills@bee2543 |
 | testing-agent-skills | 承認済み | ユーザーの公開指示（2026-09-29）。成果物は一時フォルダに書き終了時に消す。環境固有のパスなし | source: agent-home@8a3313c、public-skills@68984d1 |
 
+| reviewing-agent-skills | 承認済み | 3 分割で新設（2026-09-30）。環境固有のパスなし。実行者の検証 2 シナリオで必須要件すべて ○、結果を変える点 0 件 | source: agent-home@09baffc、public-skills@bee2543 |
+| agent-skill-templates（規程、雛形 2 つ、手引き、記入例。スキルではない） | 承認済み | 3 分割で新設（2026-09-30）。creating と reviewing の references の正本。環境固有のパスなし | mirror ~/Projects/public-skills/agent-skill-templates。source: agent-home@09baffc、public-skills@bee2543 |

@@ -9,6 +9,11 @@
       "mode": "file",
       "src": "~/Projects/public-skills/README.md",
       "dst": "payload/public-skills/README.md"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/public-skills/agent-skill-templates",
+      "dst": "payload/public-skills/agent-skill-templates"
     }
   ]
 }

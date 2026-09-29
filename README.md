@@ -19,12 +19,14 @@ cp -R agent-toolkit/payload/public-skills/skills/<スキル名> ~/.claude/skills
 
 ```
 payload/
-├── public-skills/               単体で動く公開スキル集
-│   ├── README.md
-│   └── skills/
-│       ├── creating-agent-skills/
-│       ├── testing-agent-skills/
-│       └── reporting-textlint-findings/
+└── public-skills/               単体で動く公開スキル集
+    ├── README.md
+    ├── agent-skill-templates/   規程、雛形 2 つ、手引き、記入例(スキルの references の正本)
+    └── skills/
+        ├── creating-agent-skills/
+        ├── reviewing-agent-skills/
+        ├── testing-agent-skills/
+        └── reporting-textlint-findings/
 ```
 
 2026-09-29 に、reverse-docs-skills、claude-code-template、explanation-slides-kit、ai-driven-development-setup、ai-consulting-toolkit の公開をやめた。
@@ -35,11 +37,12 @@ payload/
 
 | スキル | 何をするか | 前提 |
 |---|---|---|
-| [`creating-agent-skills`](payload/public-skills/skills/creating-agent-skills/SKILL.md) | スキル運用規程(3 原則 20 規則)と雛形をもとに、スキルを新規に作る、または規程に合わせて書き直す。依頼がスキルの定義に合わなければ中止して案内する | なし |
+| [`creating-agent-skills`](payload/public-skills/skills/creating-agent-skills/SKILL.md) | スキル運用規程(3 原則 20 規則)と雛形の組をもとに、スキルを新規に作る。依頼がスキルの定義に合わなければ中止して案内する | なし |
+| [`reviewing-agent-skills`](payload/public-skills/skills/reviewing-agent-skills/SKILL.md) | 既存のスキルを規程の 20 規則と 1 つずつ照らし、規則の番号、箇所、根拠、直し方の案を一覧にする。ファイルは変更しない | なし |
 | [`testing-agent-skills`](payload/public-skills/skills/testing-agent-skills/SKILL.md) | 作ったスキルを、何も知らない実行者(サブエージェント)に実行させ、不明瞭な点を洗い出して直す。成果物は一時フォルダに書き、終了時に消す | サブエージェントを起動できる環境 |
 | [`reporting-textlint-findings`](payload/public-skills/skills/reporting-textlint-findings/SKILL.md) | md を textlint で検査し、指摘箇所に波線を引いた HTML を書き出す | node と textlint 6 パッケージ(一覧はスキルの SKILL.md) |
 
-`creating-agent-skills` と `testing-agent-skills` は対で使う。前者の完了の報告が、動作を確かめるときに後者を案内する。
+3 つは、作る(creating)、規程と照らす(reviewing)、動かして直す(testing)の順で使い、前のスキルの完了の報告が次を案内する。規程、雛形、手引き、記入例の正本は [`payload/public-skills/agent-skill-templates/`](payload/public-skills/agent-skill-templates/) にあり、スキルの `references/` はその写しである。
 
 ## 更新(payload の同期)
 
