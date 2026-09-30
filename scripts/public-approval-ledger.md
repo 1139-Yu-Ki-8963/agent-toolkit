@@ -127,3 +127,4 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 
 | reviewing-agent-skills | 承認済み | 3 分割で新設（2026-09-30）。環境固有のパスなし。実行者の検証 2 シナリオで必須要件すべて ○、結果を変える点 0 件 | source: agent-home@09baffc、public-skills@bee2543 |
 | agent-skill-templates（規程、雛形 2 つ、手引き、記入例。スキルではない） | 承認済み | 3 分割で新設（2026-09-30）。creating と reviewing の references の正本。環境固有のパスなし | mirror ~/Projects/public-skills/agent-skill-templates。source: agent-home@09baffc、public-skills@bee2543 |
+| rules/writing-placement（規約。スキルではない） | 承認済み | 解体後の最初の規約（2026-09-30）。文の置き場の判定。環境固有のパスなし | mirror ~/Projects/public-skills/rules。source: agent-home@fb20022 |

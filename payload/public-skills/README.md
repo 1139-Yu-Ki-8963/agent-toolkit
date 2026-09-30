@@ -30,3 +30,15 @@ drafting-agent-skill-from-template と reviewing-agent-skills が `references/` 
 | `雛形-構成の案.md` | 作る前に承認を得る構成の案の骨格 |
 | `手引き-雛形の書き方.md` | 依頼の読み取り、聞き取り、構成の案と雛形の埋め方、付属のファイルの書き方 |
 | `記入例-SKILL.md` | 規程に合う最も短い SKILL.md の完成例 |
+
+## 規約(rules/)
+
+`rules/` には、`~/.claude/rules/` に複製して使う規約を置く。規約は Claude Code が場面に応じて自動で読み込む方針で、スキルとは別に働く。
+
+```bash
+cp rules/<規約名>.md ~/.claude/rules/
+```
+
+| 規約 | 内容 | 読み込まれる場面 |
+|---|---|---|
+| `writing-placement` | 規約、手引き、雛形、記入例に文を足すときの置き場を、「文か形か」「できあがったものについてか、書く人の作業についてか」の 2 つの問いで決める | 規約、雛形の組、スキルの references を読むか書くとき(`paths` で限定) |
