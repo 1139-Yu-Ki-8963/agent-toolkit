@@ -8,7 +8,7 @@ paths:
 
 ## 適用する場面
 
-`SKILL.md` を新しく書くとき。埋め方は `template/skill-template-writing/skill-template.md` にある。
+`SKILL.md` を新しく書くとき。書き方は `template/skill-template-writing/skill-template.md` にある。
 
 ## 形
 
