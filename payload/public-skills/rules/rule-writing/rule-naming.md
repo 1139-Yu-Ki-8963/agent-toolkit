@@ -12,8 +12,8 @@ paths:
 
 ## 守ること
 
-規則 1: 規約を置くフォルダ
-- 規約は、何を書くときの規約かを表す箱(`skill-writing/`、`rule-writing/`)に置く。箱の下の分類フォルダ(`structure/`、`writing/`、`template/`)は 1 段。分類フォルダの下は、ファイルか、文書の種類ごとのフォルダ 1 段。
+規則 1: rules/ の中のどこに置くか
+- 規約は、`rules/` の直下に、何を書くときの規約かを表す箱(`skill-writing/`、`rule-writing/`)に置く。箱の下の分類フォルダ(`structure/`、`writing/`、`template/`)は 1 段。分類フォルダの下は、ファイルか、文書の種類ごとのフォルダ 1 段。
 
 規則 2: 主語
 - ファイル名と、種類ごとのフォルダ名は、何についての文書かを表す主語で始める(`skill-sections`、`skill-template-writing`、`rule-format`)。入口の規約は「A-or-B」の形(`skill-or-rule`)。

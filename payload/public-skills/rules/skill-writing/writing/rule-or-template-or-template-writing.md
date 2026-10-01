@@ -25,14 +25,15 @@ paths:
 - 雛形の書き方は、埋めるときに読む。読むのは作る側だけ。
 - 完成例は、作る側が手本として、照らす側が合格の側の例として読む。
 
-規則 3: 文書を置くフォルダ
-- 規約は、規約のフォルダ(`rules/skill-writing/`)の `skill-or-rule.md`、`structure/`、`writing/`。
+規則 3: rules/skill-writing/ の中のどこに置くか
+- 4 種類とも、規約の箱 `rules/skill-writing/` の中に置く。スキルの側には置かない。
+- 規約は `skill-or-rule.md`、`structure/`、`writing/`。
 - 雛形は `template/skill-template/`。
-- 雛形の書き方は `template/skill-template-writing/` に、対になる雛形と同じファイル名で置く。
+- 雛形の書き方は `template/skill-template-writing/` に、対になる雛形と同じファイル名で。
 - 完成例は `template/skill-template-completed-example/`。
 
-規則 4: 規約と雛形の書き方の重なり
-- 同じ定めは、規約と雛形の書き方の片方にだけある。雛形の書き方が規約の定めを使うときは、規約の名前で指す(「skill-limits の上限に収める」)。
+規則 4: 同じ内容は 1 か所にだけ書く
+- 同じ内容を、規約と雛形の書き方の両方に書かない。片方にだけ書く。雛形の書き方が規約の定めを使うときは、規約の名前で指す(「skill-limits の上限に収める」)。
 - 規約の理由は、規約の「理由」の節にだけある。
 
 規則 5: 例
