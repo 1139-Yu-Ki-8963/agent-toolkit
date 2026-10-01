@@ -18,7 +18,7 @@ drafting-agent-skill-from-template と reviewing-agent-skills は、`~/.claude/r
 |---|---|---|
 | `reporting-textlint-findings` | md を textlint で機械検査し、指摘箇所に波線を引いた HTML を出す | node。textlint と 5 パッケージはスキルが導入先を聞いて入れる |
 | `drafting-agent-skill-from-template` | 規約 skill-writing の雛形に沿って、スキルの下書きを新規に作る。規約との照合と動作の確認は行わず、次のスキルを案内する。依頼がスキルの定義に合わなければ中止して案内する | `rules/skill-writing` |
-| `reviewing-agent-skills` | 既存のスキルを規約 skill-writing の 9 本(50 規則)と 1 つずつ照らし、規約と項目の番号、箇所、根拠、直し方の案を一覧にする。ファイルは変更しない | `rules/skill-writing` |
+| `reviewing-agent-skills` | 既存のスキルを規約 skill-writing の 10 本(51 規則)と 1 つずつ照らし、規約と項目の番号、箇所、根拠、直し方の案を一覧にする。ファイルは変更しない | `rules/skill-writing` |
 | `testing-agent-skills` | 作ったスキルを、何も知らない実行者(サブエージェント)に実際に実行させ、不明瞭な点を洗い出して直す。成果物は一時フォルダに書き、終了時に消す | サブエージェントを起動できる環境 |
 
 3 つは、下書きを作る(drafting)、規約と照らす(reviewing)、動かして直す(testing)の順で使う。前のスキルの完了の報告が、次のスキルを案内する。規約との照合は、作ったのと同じセッションでは行わず、新しいセッションで reviewing-agent-skills を使う。
@@ -42,6 +42,7 @@ rules/
 ```
 rules/skill-writing/
 ├── skill-or-rule.md                 スキルか規約か、その場で頼むか(入口)
+├── skill-terms.md                   スキルの用語。最終出力、受け渡し値、step など 19 語の意味
 ├── structure/                       構成。SKILL.md に何を置くか
 │   ├── skill-sections.md            必ず持つ節と、step が必ず持つ項目
 │   ├── skill-limits.md              本文の行数、phase と step の数、リファレンスとスクリプトの数の上限
