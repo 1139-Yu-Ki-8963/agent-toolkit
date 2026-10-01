@@ -21,7 +21,7 @@ cp -R agent-toolkit/payload/public-skills/skills/<スキル名> ~/.claude/skills
 payload/
 └── public-skills/               単体で動く公開スキル集
     ├── README.md
-    ├── rules/agent-skill/       ~/.claude/rules/ に複製して使うスキルの規約。rule/(規約 8 本)と template/(雛形 2 本、記入例)
+    ├── rules/skill-writing/     ~/.claude/rules/ に複製して使うスキルの書き方の規約。skill-or-rule、structure/、writing/、templates/
     └── skills/
         ├── drafting-agent-skill-from-template/
         ├── reviewing-agent-skills/
@@ -37,12 +37,12 @@ payload/
 
 | スキル | 何をするか | 前提 |
 |---|---|---|
-| [`drafting-agent-skill-from-template`](payload/public-skills/skills/drafting-agent-skill-from-template/SKILL.md) | 雛形の組の型に沿って、スキルの下書きを新規に作る。規程との照合と動作の確認は行わず、次のスキルを案内する。依頼がスキルの定義に合わなければ中止して案内する | なし |
-| [`reviewing-agent-skills`](payload/public-skills/skills/reviewing-agent-skills/SKILL.md) | 既存のスキルを規程の 20 規則と 1 つずつ照らし、規則の番号、箇所、根拠、直し方の案を一覧にする。ファイルは変更しない | なし |
+| [`drafting-agent-skill-from-template`](payload/public-skills/skills/drafting-agent-skill-from-template/SKILL.md) | 規約 skill-writing の雛形に沿って、スキルの下書きを新規に作る。規約との照合と動作の確認は行わず、次のスキルを案内する。依頼がスキルの定義に合わなければ中止して案内する | `rules/skill-writing` |
+| [`reviewing-agent-skills`](payload/public-skills/skills/reviewing-agent-skills/SKILL.md) | 既存のスキルを規約 skill-writing の 9 本(49 項目)と 1 つずつ照らし、規約と項目の番号、箇所、根拠、直し方の案を一覧にする。ファイルは変更しない | `rules/skill-writing` |
 | [`testing-agent-skills`](payload/public-skills/skills/testing-agent-skills/SKILL.md) | 作ったスキルを、何も知らない実行者(サブエージェント)に実行させ、不明瞭な点を洗い出して直す。成果物は一時フォルダに書き、終了時に消す | サブエージェントを起動できる環境 |
 | [`reporting-textlint-findings`](payload/public-skills/skills/reporting-textlint-findings/SKILL.md) | md を textlint で検査し、指摘箇所に波線を引いた HTML を書き出す | node と textlint 6 パッケージ(一覧はスキルの SKILL.md) |
 
-3 つは、下書きを作る(drafting)、規約と照らす(reviewing)、動かして直す(testing)の順で使い、前のスキルの完了の報告が次を案内する。drafting と reviewing は、[`payload/public-skills/rules/agent-skill/`](payload/public-skills/rules/agent-skill/) の規約と雛形を `~/.claude/rules/agent-skill/` に複製して読む。スキルは規約と雛形の写しを持たない。
+3 つは、下書きを作る(drafting)、規約と照らす(reviewing)、動かして直す(testing)の順で使い、前のスキルの完了の報告が次を案内する。drafting と reviewing は、[`payload/public-skills/rules/skill-writing/`](payload/public-skills/rules/skill-writing/) の規約と雛形を `~/.claude/rules/skill-writing/` に複製して読む。スキルは規約と雛形の写しを持たない。
 
 ## 更新(payload の同期)
 

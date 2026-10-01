@@ -127,4 +127,4 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 
 | reviewing-agent-skills | 承認済み | 3 分割で新設（2026-09-30）。環境固有のパスなし。実行者の検証 2 シナリオで必須要件すべて ○、結果を変える点 0 件 | source: agent-home@09baffc、public-skills@bee2543 |
 | agent-skill-templates | 除外（廃止） | 2026-10-01 に rules/agent-skill へ移して廃止。payload と manifest から除去 | |
-| rules/agent-skill（規約 11 本。スキルではない） | 承認済み | 2026-10-01。スキルの規約 7 本、雛形 2 本、記入例、線引き（旧 writing-placement を rule-or-guide に改名）。環境固有のパスなし | mirror ~/Projects/public-skills/rules。source: agent-home@25f6364、public-skills@1c49a8a |
+| rules/skill-writing（規約 9 本、雛形 2 本、記入例 1 本。スキルではない） | 承認済み | 2026-10-01。旧 agent-skill を改名し、構成（structure）・書き方（writing）・雛形（templates）で分ける。環境固有のパスなし | mirror ~/Projects/public-skills/rules。source: agent-home@e45a7b7 |
