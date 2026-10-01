@@ -30,8 +30,8 @@ drafting-agent-skill-from-template と reviewing-agent-skills は、`~/.claude/r
 ```
 rules/
 ├── rule-writing/                    規約を書くときの規約。rules/ の下を触るときに読み込まれる
-│   ├── rule-format.md               規約の形。4 つの節、「規則 N: 観点」、対の形と例の表、判定できる文、7 規則 50 行以内
-│   └── rule-naming.md               規約の名前と置き場。箱と分類は 1 段、主語で始める日常の語、1 フォルダ 1 種類、対は同じファイル名
+│   ├── rule-format.md               規約の形。4 つの節、「規則 N: 観点」、対の形と例の表、判定できる文、7 規則 50 行以内、規則の重なりなし
+│   └── rule-naming.md               規約の名前とフォルダ。箱と分類は 1 段、主語で始める日常の語、1 フォルダ 1 種類、対は同じファイル名
 └── skill-writing/                   スキルを書くときの規約(下の木)
 ```
 
@@ -52,7 +52,7 @@ rules/skill-writing/
 ├── writing/                         書き方。文と流れをどう書くか
 │   ├── skill-sentences.md           文の書き方。「step 2-1」の番号、1 文 1 動作、使えない語、山かっこ、機能の名前
 │   ├── skill-flow.md                流れの書き方。分岐、繰り返し、やり直し、ユーザー確認、中止
-│   └── rule-or-template-or-template-writing.md 規約か雛形か雛形の書き方か。文の置き場の線引き
+│   └── rule-or-template-or-template-writing.md 規約か雛形か雛形の書き方か。文をどの文書に置くかの線引き
 └── template/                        雛形関連。1 フォルダ 1 種類
     ├── skill-template/              スキルの雛形。形だけ
     │   ├── skill-template.md        SKILL.md の形
