@@ -50,7 +50,7 @@ rules/skill-writing/
 │   ├── skill-input-output.md        入力と出力の種類、対象の範囲と 0 件、ファイルの一致、チャットへの表示
 │   ├── skill-references.md          リファレンスの置き場、何を出すか、読む時点
 │   ├── skill-scripts.md             スクリプトの置き場、終了コード、説明書とテスト
-│   ├── skill-prerequisite-tool.md               前提ツール。表に挙げるコマンド
+│   ├── skill-needed-tool.md               前提ツール。表に挙げるコマンド
 │   ├── skill-phase.md               phase の書き方。番号と見出し、先頭と最後の固定の phase、本作業の分け方
 │   └── skill-exception-handling.md  例外処理。想定外は中止、中止後に残すもの、失敗し得る step が手順に書くこと
 ├── writing/                         書き方。文と流れをどう書くか
