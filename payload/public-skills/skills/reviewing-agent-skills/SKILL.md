@@ -7,7 +7,7 @@ description: 既存のエージェントスキルを、規約 skill-writing の 
 
 ## 全体像
 
-- 目的: 対象のスキルのすべてのファイルを、規約 `skill-writing`(`~/.claude/rules/skill-writing/`)の 9 本の守ること(計 49 項目)と 1 つずつ照らし、指摘の一覧をチャットに表示する。読むだけで、書くファイルはない。
+- 目的: 対象のスキルのすべてのファイルを、規約 `skill-writing`(`~/.claude/rules/skill-writing/`)の 9 本の守ること(計 50 規則)と 1 つずつ照らし、指摘の一覧をチャットに表示する。読むだけで、書くファイルはない。
 - 全体の決まり: リファレンスを読むときは、必ず全文を読む。この実行は、この `SKILL.md` を読み終えた直後の開始の表示から始まる。リファレンスと規約は、step に到達したときに全文読む(この実行の開始より前に読んだものも、ここで読む)。照合は 1 回だけ行う。このスキルは、対象のスキルを作ったのとは別のセッションで使う(作った直後の本人は記憶で照らすため。使う人が守る決まりで、確かめる step は置かない)。中止したときの表示は、中止の表示だけとする。「スキルの置き場」とは、このスキルの `SKILL.md` があるフォルダの親をいう。「規約のフォルダ」とは `~/.claude/rules/skill-writing/` をいい、照らす規約は skill-or-rule、structure/ の 6 本、writing/ の skill-sentences と skill-flow の 9 本で、template/skill-template-completed-example/skill-completed-example.md(完成例)を合格の側の例として使う。
 
 ### 開始時の入力
@@ -77,7 +77,7 @@ description: 既存のエージェントスキルを、規約 skill-writing の 
 - 入力: 受け渡し値「対象の内容」
 - 出力: 受け渡し値「照合の結果」(規約の項目ごとの、結果、対象、根拠)
 - 表示: phase の表示。方法はチャットへの文の表示。文面は「phase 2 照合」
-- 手順: `<規約のフォルダ>` の skill-or-rule.md、structure/ の skill-sections.md、skill-limits.md、skill-input-output.md、skill-references.md、skill-scripts.md、skill-tools-and-subagents.md、writing/ の skill-sentences.md、skill-flow.md の 9 ファイルと、template/skill-template-completed-example/skill-completed-example.md を、ファイルを読む機能で全文読む。9 本の規約の「守ること」の項目(計 49)を、規約の順、項目の順に 1 つずつ、受け渡し値「対象の内容」のすべてのファイルと照らす(項目の数は決まっているので、0 件はない)。項目 1 つごとに、結果を「合格」「違反」「該当なし」のどれかに決め、違反なら対象(ファイルのパスと、step の番号または節の名前)と根拠(守っていない内容を 1 文で)を書く。判断の観点は、項目の文に反する箇所があるかどうかとし、完成例を合格の側の例として見る。合格の基準は、項目の文に反する箇所が 1 つもないこととする。項目が対象とする構造(繰り返し、やり直し、委任、スクリプト、リファレンスなど)が対象のスキルに 1 つもないときは「該当なし」とする。その構造がないことを「なし」と書くことを求める項目(skill-sections 3、skill-references 5、skill-scripts 4 の一覧)は、合格か違反かを決める。1 つの記述漏れが複数の項目に反するときは、反するすべての項目に計上する。違反か合格か迷うときは「違反(要確認)」とし、根拠に迷った理由を書く(誤検知は直せるが、漏れは見つからないため)。49 の項目をすべて照らしたら、項目ごとの結果と、合格、違反、該当なしの数を、受け渡し値「照合の結果」にして終わる。
+- 手順: `<規約のフォルダ>` の skill-or-rule.md、structure/ の skill-sections.md、skill-limits.md、skill-input-output.md、skill-references.md、skill-scripts.md、skill-tools-and-subagents.md、writing/ の skill-sentences.md、skill-flow.md の 9 ファイルと、template/skill-template-completed-example/skill-completed-example.md を、ファイルを読む機能で全文読む。9 本の規約の「守ること」の規則(計 50)を、規約の順、項目の順に 1 つずつ、受け渡し値「対象の内容」のすべてのファイルと照らす(項目の数は決まっているので、0 件はない)。項目 1 つごとに、結果を「合格」「違反」「該当なし」のどれかに決め、違反なら対象(ファイルのパスと、step の番号または節の名前)と根拠(守っていない内容を 1 文で)を書く。判断の観点は、項目の文に反する箇所があるかどうかとし、完成例を合格の側の例として見る。合格の基準は、項目の文に反する箇所が 1 つもないこととする。項目が対象とする構造(繰り返し、やり直し、委任、スクリプト、リファレンスなど)が対象のスキルに 1 つもないときは「該当なし」とする。その構造がないことを「なし」と書くことを求める項目(skill-sections 3、skill-references 5、skill-scripts 4 の一覧)は、合格か違反かを決める。1 つの記述漏れが複数の項目に反するときは、反するすべての項目に計上する。違反か合格か迷うときは「違反(要確認)」とし、根拠に迷った理由を書く(誤検知は直せるが、漏れは見つからないため)。49 の項目をすべて照らしたら、項目ごとの結果と、合格、違反、該当なしの数を、受け渡し値「照合の結果」にして終わる。
 
 ### step 2-2 違反に直し方の案を付ける
 - 種別: AI による推論

@@ -7,6 +7,7 @@ Claude Code で使うスキルと規約を公開する置き場。スキルは 1
 ```bash
 cp -R skills/<スキル名> ~/.claude/skills/
 cp -R rules/skill-writing ~/.claude/rules/
+cp -R rules/rule-writing ~/.claude/rules/   # 規約を書くときだけ要る
 ```
 
 drafting-agent-skill-from-template と reviewing-agent-skills は、`~/.claude/rules/skill-writing/` の規約と雛形を読んで動くので、規約も一緒に置く。
@@ -17,14 +18,26 @@ drafting-agent-skill-from-template と reviewing-agent-skills は、`~/.claude/r
 |---|---|---|
 | `reporting-textlint-findings` | md を textlint で機械検査し、指摘箇所に波線を引いた HTML を出す | node。textlint と 5 パッケージはスキルが導入先を聞いて入れる |
 | `drafting-agent-skill-from-template` | 規約 skill-writing の雛形に沿って、スキルの下書きを新規に作る。規約との照合と動作の確認は行わず、次のスキルを案内する。依頼がスキルの定義に合わなければ中止して案内する | `rules/skill-writing` |
-| `reviewing-agent-skills` | 既存のスキルを規約 skill-writing の 9 本(49 項目)と 1 つずつ照らし、規約と項目の番号、箇所、根拠、直し方の案を一覧にする。ファイルは変更しない | `rules/skill-writing` |
+| `reviewing-agent-skills` | 既存のスキルを規約 skill-writing の 9 本(50 規則)と 1 つずつ照らし、規約と項目の番号、箇所、根拠、直し方の案を一覧にする。ファイルは変更しない | `rules/skill-writing` |
 | `testing-agent-skills` | 作ったスキルを、何も知らない実行者(サブエージェント)に実際に実行させ、不明瞭な点を洗い出して直す。成果物は一時フォルダに書き、終了時に消す | サブエージェントを起動できる環境 |
 
 3 つは、下書きを作る(drafting)、規約と照らす(reviewing)、動かして直す(testing)の順で使う。前のスキルの完了の報告が、次のスキルを案内する。規約との照合は、作ったのと同じセッションでは行わず、新しいセッションで reviewing-agent-skills を使う。
 
-## 規約(rules/skill-writing/)
+## 規約(rules/)
 
-スキルの書き方の規約。`paths` で、`skills/*/SKILL.md` と `skills/*/references/` を読むか書くときだけ読み込まれる。常時読み込まれるものはない。
+規約はどれも「適用する場面、守ること、理由」の節を持ち、守ることは「規則 N: 観点」の行と箇条書きの組で書く。`paths` で該当するファイルを読むか書くときだけ読み込まれ、常時読み込まれるものはない。
+
+```
+rules/
+├── rule-writing/                    規約を書くときの規約。rules/ の下を触るときに読み込まれる
+│   ├── rule-format.md               規約の形。4 つの節、「規則 N: 観点」、対の形と例の表、判定できる文、7 規則 50 行以内
+│   └── rule-naming.md               規約の名前と置き場。箱と分類は 1 段、主語で始める日常の語、1 フォルダ 1 種類、対は同じファイル名
+└── skill-writing/                   スキルを書くときの規約(下の木)
+```
+
+### skill-writing/
+
+スキルの書き方の規約。`skills/*/SKILL.md` と `skills/*/references/` を読むか書くときだけ読み込まれる。
 
 ```
 rules/skill-writing/
