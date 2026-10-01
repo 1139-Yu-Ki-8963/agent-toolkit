@@ -8,7 +8,7 @@ description: 規約 skill-writing の雛形の形に沿って、エージェン�
 ## 全体像
 
 - 目的: 規約 `skill-writing`(`~/.claude/rules/skill-writing/`)の雛形、雛形の書き方、完成例をもとに、スキルの本体と付属のファイルを新規に作成する。規約との照合と動作の確認は別のスキルが担い、完了の報告でそれを案内する。
-- 全体の決まり: リファレンスを読むときは、必ず全文を読む。この実行は、この `SKILL.md` を読み終えた直後の開始の表示から始まる。リファレンスと規約は、step に到達したときに全文読む(この実行の開始より前に読んだものも、ここで読む)。中止したときの表示は、中止の表示だけとする。フォルダは、その中にファイルを書くときに、なければ作る。「スキルの置き場」とは、このスキルの `SKILL.md` があるフォルダの親をいう。「規約のフォルダ」とは `~/.claude/rules/skill-writing/` をいい、`skill-or-rule.md`、`skill-dictionary.md` と `structure/`、`writing/` に規約、`template/` の `skill-template/` に雛形、`skill-template-writing/` に雛形の書き方(雛形と同じファイル名)、`skill-template-completed-example/` に完成例がある。どちらも自動で文脈に入るが、このスキルは使う step で明示的に全文読む。
+- 全体の決まり: リファレンスを読むときは、必ず全文を読む。この実行は、この `SKILL.md` を読み終えた直後の開始の表示から始まる。リファレンスと規約は、step に到達したときに全文読む(この実行の開始より前に読んだものも、ここで読む)。中止したときの表示は、中止の表示だけとする。フォルダは、その中にファイルを書くときに、なければ作る。「スキルの置き場」とは、このスキルの `SKILL.md` があるフォルダの親をいう。「規約のフォルダ」とは `~/.claude/rules/skill-writing/` をいい、`skill-or-rule.md`、`skill-writing-dictionary.md` と `structure/`、`writing/` に規約、`template/` の `skill-template/` に雛形、`skill-template-writing/` に雛形の書き方(雛形と同じファイル名)、`skill-template-completed-example/` に完成例がある。どちらも自動で文脈に入るが、このスキルは使う step で明示的に全文読む。
 
 ### 開始時の入力
 
