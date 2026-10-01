@@ -10,14 +10,14 @@ cp -R rules/skill-writing ~/.claude/rules/
 cp -R rules/rule-writing ~/.claude/rules/   # 規約を書くときだけ要る
 ```
 
-drafting-agent-skill-from-template と reviewing-agent-skills は、`~/.claude/rules/skill-writing/` の規約と雛形を読んで動くので、規約も一緒に置く。
+drafting-skill-with-template と reviewing-agent-skills は、`~/.claude/rules/skill-writing/` の規約と雛形を読んで動くので、規約も一緒に置く。
 
 ## 収録スキル
 
 | スキル | 役割 | 前提 |
 |---|---|---|
 | `reporting-textlint-findings` | md を textlint で機械検査し、指摘箇所に波線を引いた HTML を出す | node。textlint と 5 パッケージはスキルが導入先を聞いて入れる |
-| `drafting-agent-skill-from-template` | 規約 skill-writing の雛形に沿って、スキルの下書きを新規に作る。規約との照合と動作の確認は行わず、次のスキルを案内する。依頼がスキルの定義に合わなければ中止して案内する | `rules/skill-writing` |
+| `drafting-skill-with-template` | 規約 skill-writing の雛形に沿って、スキルの下書きを新規に作る。規約との照合と動作の確認は行わず、次のスキルを案内する。依頼がスキルの定義に合わなければ中止して案内する | `rules/skill-writing` |
 | `reviewing-agent-skills` | 既存のスキルを規約 skill-writing の 12 本(54 規則)と 1 つずつ照らし、規約と項目の番号、箇所、根拠、直し方の案を一覧にする。ファイルは変更しない | `rules/skill-writing` |
 | `testing-agent-skills` | 作ったスキルを、何も知らない実行者(サブエージェント)に実際に実行させ、不明瞭な点を洗い出して直す。成果物は一時フォルダに書き、終了時に消す | サブエージェントを起動できる環境 |
 

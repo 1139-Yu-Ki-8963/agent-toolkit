@@ -23,7 +23,7 @@ payload/
     ├── README.md
     ├── rules/skill-writing/     ~/.claude/rules/ に複製して使うスキルの書き方の規約。skill-or-rule、structure/、writing/、templates/
     └── skills/
-        ├── drafting-agent-skill-from-template/
+        ├── drafting-skill-with-template/
         ├── reviewing-agent-skills/
         ├── testing-agent-skills/
         └── reporting-textlint-findings/
@@ -37,7 +37,7 @@ payload/
 
 | スキル | 何をするか | 前提 |
 |---|---|---|
-| [`drafting-agent-skill-from-template`](payload/public-skills/skills/drafting-agent-skill-from-template/SKILL.md) | 規約 skill-writing の雛形に沿って、スキルの下書きを新規に作る。規約との照合と動作の確認は行わず、次のスキルを案内する。依頼がスキルの定義に合わなければ中止して案内する | `rules/skill-writing` |
+| [`drafting-skill-with-template`](payload/public-skills/skills/drafting-skill-with-template/SKILL.md) | 規約 skill-writing の雛形に沿って、スキルの下書きを新規に作る。規約との照合と動作の確認は行わず、次のスキルを案内する。依頼がスキルの定義に合わなければ中止して案内する | `rules/skill-writing` |
 | [`reviewing-agent-skills`](payload/public-skills/skills/reviewing-agent-skills/SKILL.md) | 既存のスキルを規約 skill-writing の 9 本(49 項目)と 1 つずつ照らし、規約と項目の番号、箇所、根拠、直し方の案を一覧にする。ファイルは変更しない | `rules/skill-writing` |
 | [`testing-agent-skills`](payload/public-skills/skills/testing-agent-skills/SKILL.md) | 作ったスキルを、何も知らない実行者(サブエージェント)に実行させ、不明瞭な点を洗い出して直す。成果物は一時フォルダに書き、終了時に消す | サブエージェントを起動できる環境 |
 | [`reporting-textlint-findings`](payload/public-skills/skills/reporting-textlint-findings/SKILL.md) | md を textlint で検査し、指摘箇所に波線を引いた HTML を書き出す | node と textlint 6 パッケージ(一覧はスキルの SKILL.md) |
