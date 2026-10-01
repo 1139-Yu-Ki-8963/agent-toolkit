@@ -42,7 +42,7 @@ rules/
 ```
 rules/skill-writing/
 ├── skill-or-rule.md                 スキルか規約か、その場で頼むか(入口)
-├── skill-terms.md                   スキルの用語。最終出力、受け渡し値、step など 19 語の意味
+├── skill-dictionary.md                   スキルの辞書。最終出力、受け渡し値、step など 19 語の意味
 ├── structure/                       構成。SKILL.md に何を置くか
 │   ├── skill-sections.md            必ず持つ節と、step が必ず持つ項目
 │   ├── skill-limits.md              本文の行数、phase と step の数、リファレンスとスクリプトの数の上限
