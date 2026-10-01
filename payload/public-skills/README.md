@@ -31,7 +31,7 @@ drafting-agent-skill-from-template と reviewing-agent-skills は、`~/.claude/r
 rules/
 ├── rule-writing/                    規約を書くときの規約。rules/ の下を触るときに読み込まれる
 │   ├── rule-format.md               規約の形。4 つの節、「規則 N: 観点」、対の形と例の表、判定できる文、7 規則 50 行以内、同じ内容は 1 か所にだけ
-│   └── rule-naming.md               規約の名前とフォルダ。rules/ の直下に箱、箱の下に分類 1 段、主語で始める日常の語、1 フォルダ 1 種類、対は同じファイル名
+│   └── rule-naming.md               規約の名前とフォルダ。rules/ の直下に箱、箱の下に分類 1 段、主語で始める日常の語、1 フォルダ 1 種類、対は同じファイル名、規則の見出しの付け方
 └── skill-writing/                   スキルを書くときの規約(下の木)
 ```
 
