@@ -12,11 +12,6 @@
     },
     {
       "mode": "mirror",
-      "src": "~/Projects/public-skills/agent-skill-templates",
-      "dst": "payload/public-skills/agent-skill-templates"
-    },
-    {
-      "mode": "mirror",
       "src": "~/Projects/public-skills/rules",
       "dst": "payload/public-skills/rules"
     }

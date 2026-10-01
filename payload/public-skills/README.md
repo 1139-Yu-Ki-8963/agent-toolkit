@@ -1,44 +1,41 @@
 # public-skills
 
-Claude Code で使うスキルを、1 スキル 1 フォルダで公開する置き場。各スキルは自己完結し、フォルダを `~/.claude/skills/` に置くだけで動く。
+Claude Code で使うスキルと規約を公開する置き場。スキルは 1 スキル 1 フォルダで、`~/.claude/skills/` に置くと動く。規約は `~/.claude/rules/` に置くと、該当するファイルを触るときに自動で読み込まれる。
 
 ## 導入
 
 ```bash
 cp -R skills/<スキル名> ~/.claude/skills/
+cp -R rules/agent-skill ~/.claude/rules/
 ```
+
+drafting-agent-skill-from-template と reviewing-agent-skills は、`~/.claude/rules/agent-skill/` の規約と雛形を読んで動くので、規約も一緒に置く。
 
 ## 収録スキル
 
 | スキル | 役割 | 前提 |
 |---|---|---|
 | `reporting-textlint-findings` | md を textlint で機械検査し、指摘箇所に波線を引いた HTML を出す | node。textlint と 5 パッケージはスキルが導入先を聞いて入れる |
-| `drafting-agent-skill-from-template` | 雛形の組の型に沿って、スキルの下書きを新規に作る。規程との照合と動作の確認は行わず、次のスキルを案内する。依頼がスキルの定義に合わなければ中止して案内する | なし |
-| `reviewing-agent-skills` | 既存のスキルを規程の 20 規則と 1 つずつ照らし、規則の番号、箇所、根拠、直し方の案を一覧にする。ファイルは変更しない | なし |
+| `drafting-agent-skill-from-template` | 規約 agent-skill の雛形に沿って、スキルの下書きを新規に作る。規約との照合と動作の確認は行わず、次のスキルを案内する。依頼がスキルの定義に合わなければ中止して案内する | `rules/agent-skill` |
+| `reviewing-agent-skills` | 既存のスキルを規約 agent-skill の 7 本(41 項目)と 1 つずつ照らし、規約と項目の番号、箇所、根拠、直し方の案を一覧にする。ファイルは変更しない | `rules/agent-skill` |
 | `testing-agent-skills` | 作ったスキルを、何も知らない実行者(サブエージェント)に実際に実行させ、不明瞭な点を洗い出して直す。成果物は一時フォルダに書き、終了時に消す | サブエージェントを起動できる環境 |
 
-3 つは、下書きを作る(drafting)、規程と照らす(reviewing)、動かして直す(testing)の順で使う。前のスキルの完了の報告が、次のスキルを案内する。規程との照合は、作ったのと同じセッションでは行わず、新しいセッションで reviewing-agent-skills を使う。
+3 つは、下書きを作る(drafting)、規約と照らす(reviewing)、動かして直す(testing)の順で使う。前のスキルの完了の報告が、次のスキルを案内する。規約との照合は、作ったのと同じセッションでは行わず、新しいセッションで reviewing-agent-skills を使う。
 
-## 雛形の組(agent-skill-templates/)
+## 規約(rules/agent-skill/)
 
-drafting-agent-skill-from-template と reviewing-agent-skills が `references/` に写しとして持つ、規程、雛形 2 つ、手引き、記入例の正本。スキルを手で書くときや、規程だけを読みたいときに、この 5 ファイルを直接読む。
+スキルに関する規約の箱。`paths` で、`skills/*/SKILL.md` と `skills/*/references/` を読むか書くときだけ読み込まれる。常時読み込まれるものはない。
 
 | ファイル | 内容 |
 |---|---|
-| `規程.md` | スキル運用規程。3 つの原則と、完成した SKILL.md を見て合格か違反かを決められる 20 の規則 |
-| `雛形-SKILL.md` | SKILL.md の骨格。注記はない |
-| `雛形-構成の案.md` | 作る前に承認を得る構成の案の骨格 |
-| `手引き-雛形の書き方.md` | 依頼の読み取り、聞き取り、構成の案と雛形の埋め方、付属のファイルの書き方 |
-| `記入例-SKILL.md` | 規程に合う最も短い SKILL.md の完成例 |
-
-## 規約(rules/)
-
-`rules/` には、`~/.claude/rules/` に複製して使う規約を置く。規約は Claude Code が場面に応じて自動で読み込む方針で、スキルとは別に働く。
-
-```bash
-cp rules/<規約名>.md ~/.claude/rules/
-```
-
-| 規約 | 内容 | 読み込まれる場面 |
-|---|---|---|
-| `writing-placement` | 規約、手引き、雛形、記入例に文を足すときの置き場を、「文か形か」「できあがったものについてか、書く人の作業についてか」の 2 つの問いで決める | 規約、雛形の組、スキルの references を読むか書くとき(`paths` で限定) |
+| `scope.md` | スキルにするか。スキル、規約、その場の依頼の見分け。1 場面 1 目的 |
+| `required.md` | 必須の事項。SKILL.md が持つ節と順、description の 3 文、step が持つ項目 |
+| `limit.md` | 数の上限。本文 200 行、phase 5、step 5、リファレンス 5 個 200 行、スクリプト 3 本 50 行、委任 |
+| `notation.md` | 書き方の記法。「step 2-1」の形、1 文 1 動作、禁止語、山かっこ、7 つの機能の名前 |
+| `flow.md` | 流れ。7 つのパターンと持つ項目、やり直し、ユーザー確認 |
+| `io.md` | 入出力と表示。入力と出力の種類、対象の範囲と 0 件、ファイルの一致、表示の 8 種類 |
+| `attachment.md` | 付属物。リファレンス、スクリプトと説明書とテスト、前提ツール、委任 |
+| `rule-or-guide.md` | 規約か手引きか。規約、手引き、雛形、記入例に文を置くときの線引き |
+| `template.md` | 雛形。SKILL.md の形 |
+| `plan-template.md` | 雛形。構成の案の形 |
+| `example.md` | 記入例。最も短い SKILL.md の完成例 |

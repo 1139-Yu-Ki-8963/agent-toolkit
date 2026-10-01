@@ -21,8 +21,7 @@ cp -R agent-toolkit/payload/public-skills/skills/<スキル名> ~/.claude/skills
 payload/
 └── public-skills/               単体で動く公開スキル集
     ├── README.md
-    ├── agent-skill-templates/   規程、雛形 2 つ、手引き、記入例(スキルの references の正本)
-    ├── rules/                   ~/.claude/rules/ に複製して使う規約(writing-placement)
+    ├── rules/agent-skill/       ~/.claude/rules/ に複製して使うスキルの規約 11 本(規約 7、雛形 2、記入例 1、線引き 1)
     └── skills/
         ├── drafting-agent-skill-from-template/
         ├── reviewing-agent-skills/
@@ -43,7 +42,7 @@ payload/
 | [`testing-agent-skills`](payload/public-skills/skills/testing-agent-skills/SKILL.md) | 作ったスキルを、何も知らない実行者(サブエージェント)に実行させ、不明瞭な点を洗い出して直す。成果物は一時フォルダに書き、終了時に消す | サブエージェントを起動できる環境 |
 | [`reporting-textlint-findings`](payload/public-skills/skills/reporting-textlint-findings/SKILL.md) | md を textlint で検査し、指摘箇所に波線を引いた HTML を書き出す | node と textlint 6 パッケージ(一覧はスキルの SKILL.md) |
 
-3 つは、下書きを作る(drafting)、規程と照らす(reviewing)、動かして直す(testing)の順で使い、前のスキルの完了の報告が次を案内する。規程、雛形、手引き、記入例の正本は [`payload/public-skills/agent-skill-templates/`](payload/public-skills/agent-skill-templates/) にあり、スキルの `references/` はその写しである。文の置き場を決める規約 [`writing-placement`](payload/public-skills/rules/writing-placement.md) は `~/.claude/rules/` に複製して使う。
+3 つは、下書きを作る(drafting)、規約と照らす(reviewing)、動かして直す(testing)の順で使い、前のスキルの完了の報告が次を案内する。drafting と reviewing は、[`payload/public-skills/rules/agent-skill/`](payload/public-skills/rules/agent-skill/) の規約と雛形を `~/.claude/rules/agent-skill/` に複製して読む。スキルは規約と雛形の写しを持たない。
 
 ## 更新(payload の同期)
 
