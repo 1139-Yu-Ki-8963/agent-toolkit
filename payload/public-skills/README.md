@@ -24,18 +24,18 @@ drafting-agent-skill-from-template と reviewing-agent-skills は、`~/.claude/r
 
 ## 規約(rules/agent-skill/)
 
-スキルに関する規約の箱。`paths` で、`skills/*/SKILL.md` と `skills/*/references/` を読むか書くときだけ読み込まれる。常時読み込まれるものはない。
+スキルに関する規約の箱。`paths` で、`skills/*/SKILL.md` と `skills/*/references/` を読むか書くときだけ読み込まれる。常時読み込まれるものはない。規約は `rule/`、雛形と記入例は `template/` に分けてある。
 
 | ファイル | 内容 |
 |---|---|
-| `scope.md` | スキルにするか。スキル、規約、その場の依頼の見分け。1 場面 1 目的 |
-| `required.md` | 必須の事項。SKILL.md が持つ節と順、description の 3 文、step が持つ項目 |
-| `limit.md` | 数の上限。本文 200 行、phase 5、step 5、リファレンス 5 個 200 行、スクリプト 3 本 50 行、委任 |
-| `notation.md` | 書き方の記法。「step 2-1」の形、1 文 1 動作、禁止語、山かっこ、7 つの機能の名前 |
-| `flow.md` | 流れ。7 つのパターンと持つ項目、やり直し、ユーザー確認 |
-| `io.md` | 入出力と表示。入力と出力の種類、対象の範囲と 0 件、ファイルの一致、表示の 8 種類 |
-| `attachment.md` | 付属物。リファレンス、スクリプトと説明書とテスト、前提ツール、委任 |
-| `rule-or-guide.md` | 規約か手引きか。規約、手引き、雛形、記入例に文を置くときの線引き |
-| `template.md` | 雛形。SKILL.md の形 |
-| `plan-template.md` | 雛形。構成の案の形 |
-| `example.md` | 記入例。最も短い SKILL.md の完成例 |
+| `rule/scope.md` | スキルにするか。スキル、規約、その場の依頼の見分け。1 場面 1 目的 |
+| `rule/required.md` | 必須の事項。SKILL.md が持つ節と順、description の 3 文、step が持つ項目 |
+| `rule/limit.md` | 数の上限。本文 200 行、phase 5、step 5、リファレンス 5 個 200 行、スクリプト 3 本 50 行、委任 |
+| `rule/notation.md` | 書き方の記法。「step 2-1」の形、1 文 1 動作、禁止語、山かっこ、7 つの機能の名前 |
+| `rule/flow.md` | 流れ。7 つのパターンと持つ項目、やり直し、ユーザー確認 |
+| `rule/io.md` | 入出力と表示。入力と出力の種類、対象の範囲と 0 件、ファイルの一致、表示の 8 種類 |
+| `rule/attachment.md` | 付属物。リファレンス、スクリプトと説明書とテスト、前提ツール、委任 |
+| `rule/rule-or-guide.md` | 規約か手引きか。規約、手引き、雛形、記入例に文を置くときの線引き |
+| `template/skill.md` | 雛形。SKILL.md の形 |
+| `template/plan.md` | 雛形。構成の案の形 |
+| `template/example.md` | 記入例。最も短い SKILL.md の完成例 |

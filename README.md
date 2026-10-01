@@ -21,7 +21,7 @@ cp -R agent-toolkit/payload/public-skills/skills/<スキル名> ~/.claude/skills
 payload/
 └── public-skills/               単体で動く公開スキル集
     ├── README.md
-    ├── rules/agent-skill/       ~/.claude/rules/ に複製して使うスキルの規約 11 本(規約 7、雛形 2、記入例 1、線引き 1)
+    ├── rules/agent-skill/       ~/.claude/rules/ に複製して使うスキルの規約。rule/(規約 8 本)と template/(雛形 2 本、記入例)
     └── skills/
         ├── drafting-agent-skill-from-template/
         ├── reviewing-agent-skills/
