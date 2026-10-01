@@ -39,13 +39,13 @@ rules/skill-writing/
 ├── writing/                         書き方。文と流れをどう書くか
 │   ├── skill-sentences.md           文の書き方。「step 2-1」の番号、1 文 1 動作、使えない語、山かっこ、機能の名前
 │   ├── skill-flow.md                流れの書き方。分岐、繰り返し、やり直し、ユーザー確認、中止
-│   └── rule-or-guide.md             規約かガイドか。文の置き場の線引き
+│   └── rule-or-template-or-how-to-fill.md 規約か雛形か雛形の書き方か。文の置き場の線引き
 └── templates/                       雛形と記入例
     ├── skill-template.md            SKILL.md の形
     ├── skill-plan-template.md       構成の案の形
     └── skill-example.md             最も短い SKILL.md の完成例
 ```
 
-## 規約とガイド
+## 規約と雛形と雛形の書き方
 
-規約は、できあがったもの(SKILL.md、リファレンス)が満たしていることを書く。`rules/` に置き、該当するファイルを触るときに自動で読み込まれる。ガイドは、書く人が行う作業(何を、どの順で、どう選んで書くか)を書く。作るスキルの `references/ガイド-<作業>.md` に置き、スキルの step が読む。見分ける問いは「その文は、できあがったものについて言っているか、書く人の作業について言っているか」である。drafting-agent-skill-from-template の `references/ガイド-スキルの下書き.md` がガイドの例。
+規約は、できあがったもの(SKILL.md、リファレンス)が満たしていることを書く。`rules/` に置き、該当するファイルを触るときに自動で読み込まれる。雛形は、成果物の形(節の並び、表の列、山かっこ)だけを持ち、記入例はその完成した見本で、どちらも `rules/skill-writing/templates/` に置く。雛形の書き方は、雛形の山かっこをどう埋めるか(順序、選び方、省く条件)だけを書き、雛形を埋めるスキルの `references/雛形の書き方.md` に置いて、その step が読む。drafting-agent-skill-from-template の `references/雛形の書き方.md` がその例。
