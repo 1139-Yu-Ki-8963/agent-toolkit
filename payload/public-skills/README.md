@@ -17,7 +17,7 @@ drafting-skill-with-template と reviewing-agent-skills は、`~/.claude/rules/s
 | スキル | 役割 | 前提 |
 |---|---|---|
 | `reporting-textlint-findings` | md を textlint で機械検査し、指摘箇所に波線を引いた HTML を出す | node。textlint と 5 パッケージはスキルが導入先を聞いて入れる |
-| `drafting-skill-with-template` | 規約 skill-writing の雛形に沿って、スキルの下書きを新規に作る。規約との照合と動作の確認は行わず、次のスキルを案内する。依頼がスキルの定義に合わなければ中止して案内する | `rules/skill-writing` |
+| `drafting-skill-with-template` | 雛形の形で、スキルの下書きを新規に作る。構成の案の承認を得てから SKILL.md を書く。雛形は `~/.claude/rules/` の下から探すので、skill-writing と skill-writing-compact のどちらの箱でも動く。依頼がスキルの定義に合わなければ中止して案内する | `rules/skill-writing` か `rules/skill-writing-compact` |
 | `reviewing-agent-skills` | 既存のスキルを規約 skill-writing の 12 本(53 規則)と 1 つずつ照らし、規約と項目の番号、箇所、根拠、直し方の案を一覧にする。ファイルは変更しない | `rules/skill-writing` |
 | `testing-agent-skills` | 作ったスキルを、何も知らない実行者(サブエージェント)に実際に実行させ、不明瞭な点を洗い出して直す。成果物は一時フォルダに書き、終了時に消す | サブエージェントを起動できる環境 |
 
@@ -75,13 +75,13 @@ rules/skill-writing/
 
 ### skill-writing-compact/
 
-同じ規約を 1 ファイルにまとめた版。構成の案は持たず、SKILL.md の雛形 1 本。数の上限や選択肢の値は雛形の「変数」の節が持ち、規約は変数の名前で指す。
+同じ規約を 1 ファイルにまとめた版。数の上限や選択肢の値は雛形の「変数」の節が持ち、規約は変数の名前で指す。
 
 ```
 rules/skill-writing-compact/
-├── skill-template/skill-template.md                      雛形。省ける部分の印、変数(数の上限、選択肢、表示の種類、機能の名前)、形
-├── skill-writing-rule/skill-writing-rule.md              規約 1 ファイル。42 規則の通し番号
-└── skill-template-completed-example/skill-completed-example.md  完成例
+├── skill-template/                   雛形。SKILL.md(省ける部分の印、変数、形)と構成の案
+├── skill-writing-rule/skill-writing-rule.md  規約 1 ファイル。44 規則の通し番号
+└── skill-template-completed-example/ 完成例。SKILL.md と構成の案
 ```
 
 ## 規約と雛形と雛形の書き方と完成例
