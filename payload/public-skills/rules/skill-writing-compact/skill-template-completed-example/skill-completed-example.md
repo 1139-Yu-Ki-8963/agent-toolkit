@@ -1,14 +1,13 @@
 ---
 paths:
-  - "**/skills/*/SKILL.md"
-  - "**/skills/*/references/**"
+  - "**/skill-writing-compact/**"
 ---
 
 # 完成例: 最も短い SKILL.md
 
 ## 適用する場面
 
-雛形 `template/skill-template/skill-template.md` の形で書いた `SKILL.md` の全文。作る側は手本として、照らす側は合格の側の例として読む。前提ツールなし、phase 2 つ、最終出力はチャットへの表示だけ。
+雛形 `skill-template/skill-template.md` の形で書いた `SKILL.md` の全文。作る側は手本として、照らす側は合格の側の例として読む。前提ツールなし、phase 2 つ、最終出力はチャットへの表示だけ。
 
 ## 完成例
 
