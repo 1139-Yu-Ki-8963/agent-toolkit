@@ -1,7 +1,6 @@
 ---
 paths:
-  - "**/skills/*/SKILL.md"
-  - "**/skills/*/references/**"
+  - "**/skill-writing/**"
 ---
 
 # 入力と出力と表示

@@ -1,7 +1,6 @@
 ---
 paths:
-  - "**/skills/*/SKILL.md"
-  - "**/skills/*/references/**"
+  - "**/skill-writing/**"
 ---
 
 # スキルの書き方で使う語の定義

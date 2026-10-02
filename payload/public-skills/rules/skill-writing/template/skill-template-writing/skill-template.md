@@ -1,7 +1,6 @@
 ---
 paths:
-  - "**/skills/*/SKILL.md"
-  - "**/skills/*/references/**"
+  - "**/skill-writing/**"
 ---
 
 # スキルの雛形の書き方: SKILL.md

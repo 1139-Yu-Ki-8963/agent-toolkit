@@ -1,7 +1,6 @@
 ---
 paths:
-  - "**/skills/*/SKILL.md"
-  - "**/skills/*/references/**"
+  - "**/skill-writing/**"
 ---
 
 # 例外処理

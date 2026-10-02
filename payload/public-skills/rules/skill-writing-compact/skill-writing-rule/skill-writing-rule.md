@@ -1,6 +1,7 @@
 ---
 paths:
-  - "**/skill-writing-compact/**"
+  - "**/skills/*/SKILL.md"
+  - "**/skills/*/references/**"
 ---
 
 # スキルの書き方の規約(1 ファイル版)

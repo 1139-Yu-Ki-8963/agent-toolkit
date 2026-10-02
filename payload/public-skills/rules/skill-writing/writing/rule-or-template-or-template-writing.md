@@ -1,8 +1,6 @@
 ---
 paths:
-  - "**/rules/**"
-  - "**/rules-design/**"
-  - "**/skills/*/references/**"
+  - "**/skill-writing/**"
 ---
 
 # 規約か雛形か雛形の書き方か

@@ -1,6 +1,7 @@
 ---
 paths:
-  - "**/skill-writing-compact/**"
+  - "**/skills/*/SKILL.md"
+  - "**/skills/*/references/**"
 ---
 
 # 完成例: 最も短いスキルの構成の案
