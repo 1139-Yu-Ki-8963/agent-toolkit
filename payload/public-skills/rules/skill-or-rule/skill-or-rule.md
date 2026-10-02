@@ -2,6 +2,7 @@
 paths:
   - "**/skills/*/SKILL.md"
   - "**/skills/*/references/**"
+  - "**/rules/**"
 ---
 
 # スキルか規約か

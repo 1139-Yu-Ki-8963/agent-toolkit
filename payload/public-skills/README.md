@@ -29,6 +29,8 @@ drafting-skill-with-template と reviewing-agent-skills は、`~/.claude/rules/s
 
 ```
 rules/
+├── skill-or-rule/                   スキルにするか、規約にするか。スキルと規約の両方を書くときに読み込まれる
+│   └── skill-or-rule.md
 ├── rule-writing/                    規約を書くときの規約。rules/ の下を触るときに読み込まれる
 │   ├── rule-format.md               規約の形。4 つの節、「規則 N: 観点」、対の形と例の表、判定できる文、7 規則 50 行以内、同じ内容は 1 か所にだけ
 │   └── rule-naming.md               規約の名前とフォルダ。rules/ の直下に箱、箱の下に分類 1 段、主語で始める日常の語、1 フォルダ 1 種類、対は同じファイル名、規則の見出しの付け方
@@ -42,7 +44,6 @@ rules/
 
 ```
 rules/skill-writing/
-├── skill-or-rule.md                 スキルか規約か、その場で頼むか(入口)
 ├── skill-writing-word-dictionary.md                   スキルの書き方で使う語の辞書。最終出力、受け渡し値、step など 19 語
 ├── structure/                       構成。SKILL.md に何を置くか
 │   ├── skill-sections.md            必ず持つ節と、step が必ず持つ項目
@@ -70,4 +71,4 @@ rules/skill-writing/
 
 ## 規約と雛形と雛形の書き方と完成例
 
-規約は、できあがったもの(SKILL.md、リファレンス)が満たしていることを書く。`skill-or-rule.md`、`structure/`、`writing/` に置く。雛形は、成果物の形(節の並び、表の列、山かっこ)だけを持ち、`template/skill-template/` に置く。雛形の書き方は、雛形の山かっこをどう埋めるか(順序、選び方、省く条件)だけを書き、`template/skill-template-writing/` に雛形と同じファイル名で置く。完成例は、雛形を埋めてできあがった SKILL.md の全文で、`template/skill-template-completed-example/` に置く。4 種類とも規約の箱にあり、`paths` で該当するファイルを触るときに自動で読み込まれる。スキルはどれも持たず、step で読む。
+規約は、できあがったもの(SKILL.md、リファレンス)が満たしていることを書く。`skill-writing-word-dictionary.md`、`structure/`、`writing/` に置く(スキルにするか規約にするかの入口は箱の外の `skill-or-rule/`)。雛形は、成果物の形(節の並び、表の列、山かっこ)だけを持ち、`template/skill-template/` に置く。雛形の書き方は、雛形の山かっこをどう埋めるか(順序、選び方、省く条件)だけを書き、`template/skill-template-writing/` に雛形と同じファイル名で置く。完成例は、雛形を埋めてできあがった SKILL.md の全文で、`template/skill-template-completed-example/` に置く。4 種類とも規約の箱にあり、`paths` で該当するファイルを触るときに自動で読み込まれる。スキルはどれも持たず、step で読む。

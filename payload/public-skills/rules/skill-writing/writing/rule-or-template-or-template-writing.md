@@ -27,7 +27,7 @@ paths:
 
 規則 3: rules/skill-writing/ の中のどこに置くか
 - 4 種類とも、規約の箱 `rules/skill-writing/` の中に置く。スキルの側には置かない。
-- 規約は `skill-or-rule.md`、`structure/`、`writing/`。
+- 規約は `skill-writing-word-dictionary.md`、`structure/`、`writing/`。スキルにするか規約にするかの入口は、箱の外の `rules/skill-or-rule/`。
 - 雛形は `template/skill-template/`。
 - 雛形の書き方は `template/skill-template-writing/` に、対になる雛形と同じファイル名で。
 - 完成例は `template/skill-template-completed-example/`。
