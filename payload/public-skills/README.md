@@ -20,6 +20,7 @@ drafting-skill-with-template と reviewing-agent-skills は、`~/.claude/rules/s
 | `drafting-skill-with-template` | 雛形の形で、スキルの下書きを新規に作る。構成の案の承認を得てから SKILL.md を書く。雛形は `~/.claude/rules/` の下から探すので、skill-writing と skill-writing-compact のどちらの箱でも動く。依頼がスキルの定義に合わなければ中止して案内する | `rules/skill-writing` か `rules/skill-writing-compact` |
 | `reviewing-agent-skills` | 既存のスキルを規約 skill-writing の 12 本(53 規則)と 1 つずつ照らし、規約と項目の番号、箇所、根拠、直し方の案を一覧にする。ファイルは変更しない | `rules/skill-writing` |
 | `testing-agent-skills` | 作ったスキルを、何も知らない実行者(サブエージェント)に実際に実行させ、不明瞭な点を洗い出して直す。成果物は一時フォルダに書き、終了時に消す | サブエージェントを起動できる環境 |
+| `converting-mermaid-md-to-html` | Mermaid の図を含む md 1 本を、図の拡大・移動と目次ボタンを持つ 1 ページの HTML に変換する。Hugo と Relearn の公式のコマンドと設定だけで行い、md の中身は変更しない | hugo(extended)。無ければスキルが入れ方を案内する |
 
 3 つは、下書きを作る(drafting)、規約と照らす(reviewing)、動かして直す(testing)の順で使う。前のスキルの完了の報告が、次のスキルを案内する。規約との照合は、作ったのと同じセッションでは行わず、新しいセッションで reviewing-agent-skills を使う。
 
