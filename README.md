@@ -6,43 +6,45 @@ Claude Code で使うスキル集を、公開できると判断した範囲だ�
 
 ## 導入
 
-使いたいスキルのフォルダを、Claude Code のスキルの置き場へ複製する。settings.json への追加は要らない。
+`payload/public-skills/.claude/` の中身を、使うプロジェクトの直下の `.claude/` に置く。settings.json への追加は要らない。
 
 ```bash
 git clone https://github.com/1139-Yu-Ki-8963/agent-toolkit.git
-cp -R agent-toolkit/payload/public-skills/skills/<スキル名> ~/.claude/skills/
+cp -R agent-toolkit/payload/public-skills/.claude/rules/skill-writing-compact <プロジェクト>/.claude/rules/
+cp -R agent-toolkit/payload/public-skills/.claude/skills/<スキル名> <プロジェクト>/.claude/skills/
 ```
 
-プロジェクトだけで使うなら `<repo>/.claude/skills/` へ複製する。
+`~/.claude/skills/` や `~/.claude/rules/` には置かない。規約は作業中のプロジェクトの中のファイルにしか効かないため、`~/.claude/` の下に置いたスキルを読んでも規約が読み込まれず、スキルが最初の step で中止する。
 
 ## payload 構成
 
 ```
 payload/
-└── public-skills/               単体で動く公開スキル集
+└── public-skills/                        プロジェクトの .claude/ に置いて動く公開スキル集
     ├── README.md
-    ├── rules/skill-writing/     ~/.claude/rules/ に複製して使うスキルの書き方の規約。skill-or-rule、structure/、writing/、templates/
-    └── skills/
-        ├── drafting-skill-with-template/
-        ├── reviewing-agent-skills/
-        ├── testing-agent-skills/
-        └── reporting-textlint-findings/
+    └── .claude/
+        ├── rules/skill-writing-compact/  スキルの書き方の規約(1 ファイル版)、雛形、完成例
+        └── skills/
+            ├── drafting-skill-with-template/
+            ├── checking-skill-against-rules/
+            ├── designing-skill-tests/
+            └── testing-agent-skills/
 ```
 
-2026-09-29 に、reverse-docs-skills、claude-code-template、explanation-slides-kit、ai-driven-development-setup、ai-consulting-toolkit の公開をやめた。
+2026-09-29 に、reverse-docs-skills、claude-code-template、explanation-slides-kit、ai-driven-development-setup、ai-consulting-toolkit の公開をやめた。2026-10-05 に、`.claude/` 配下の構成に改め、規約を 1 ファイル版に一本化し、reviewing-agent-skills(checking-skill-against-rules に置き換え)、reporting-textlint-findings、converting-mermaid-md-to-html の公開をやめた。
 
-## public-skills(単体で動く公開スキル集)
+## public-skills(プロジェクトに置いて動く公開スキル集)
 
-`payload/public-skills/skills/` の各スキルは、他のスキル、規約、hook を参照せず単体で動く。導入手順と一覧は [`payload/public-skills/README.md`](payload/public-skills/README.md) にある。
+各スキルは、他のスキルを参照せず単体で動く。導入手順と一覧は [`payload/public-skills/README.md`](payload/public-skills/README.md) にある。
 
 | スキル | 何をするか | 前提 |
 |---|---|---|
-| [`drafting-skill-with-template`](payload/public-skills/skills/drafting-skill-with-template/SKILL.md) | 規約 skill-writing の雛形に沿って、スキルの下書きを新規に作る。規約との照合と動作の確認は行わず、次のスキルを案内する。依頼がスキルの定義に合わなければ中止して案内する | `rules/skill-writing` |
-| [`reviewing-agent-skills`](payload/public-skills/skills/reviewing-agent-skills/SKILL.md) | 既存のスキルを規約 skill-writing の 9 本(49 項目)と 1 つずつ照らし、規約と項目の番号、箇所、根拠、直し方の案を一覧にする。ファイルは変更しない | `rules/skill-writing` |
-| [`testing-agent-skills`](payload/public-skills/skills/testing-agent-skills/SKILL.md) | 作ったスキルを、何も知らない実行者(サブエージェント)に実行させ、不明瞭な点を洗い出して直す。成果物は一時フォルダに書き、終了時に消す | サブエージェントを起動できる環境 |
-| [`reporting-textlint-findings`](payload/public-skills/skills/reporting-textlint-findings/SKILL.md) | md を textlint で検査し、指摘箇所に波線を引いた HTML を書き出す | node と textlint 6 パッケージ(一覧はスキルの SKILL.md) |
+| [`drafting-skill-with-template`](payload/public-skills/.claude/skills/drafting-skill-with-template/SKILL.md) | 依頼にある作業を、規約と雛形に従ったスキルとして新しく書き、何も知らないサブエージェントに規約と照らさせて、違反がなくなるまで直す | `.claude/rules/skill-writing-compact`、サブエージェントを起動できる環境 |
+| [`checking-skill-against-rules`](payload/public-skills/.claude/skills/checking-skill-against-rules/SKILL.md) | 既存のスキルの全ファイルを規約の規則と 1 つずつ照らし、違反を規則の番号、ファイルと行、内容、直し方の案とともに一覧にする。ファイルは変更しない | 同上 |
+| [`designing-skill-tests`](payload/public-skills/.claude/skills/designing-skill-tests/SKILL.md) | 既存のスキルから、対象の説明、仕様、機能の一覧、シナリオ、経路の網羅の表、既知の限界からなるテスト設計の文書を書き出す | サブエージェントを起動できる環境 |
+| [`testing-agent-skills`](payload/public-skills/.claude/skills/testing-agent-skills/SKILL.md) | テスト設計の文書のシナリオを実行者に実行させ、記録を照らし、評価者の評価と合わせて検証の結果を表示する。対象は変更しない | 同上 |
 
-3 つは、下書きを作る(drafting)、規約と照らす(reviewing)、動かして直す(testing)の順で使い、前のスキルの完了の報告が次を案内する。drafting と reviewing は、[`payload/public-skills/rules/skill-writing/`](payload/public-skills/rules/skill-writing/) の規約と雛形を `~/.claude/rules/skill-writing/` に複製して読む。スキルは規約と雛形の写しを持たない。
+4 つは、作る(drafting)、規約と照らす(checking)、テストを設計する(designing)、実行して検証する(testing)の順で使う。規約は、プロジェクトの `.claude/skills/` の下のファイルを読むか書くときに自動で読み込まれる。
 
 ## 更新(payload の同期)
 

@@ -2,18 +2,18 @@
   "mappings": [
     {
       "mode": "mirror",
-      "src": "~/Projects/public-skills/skills",
-      "dst": "payload/public-skills/skills"
+      "src": "~/Projects/public-skills/.claude/skills",
+      "dst": "payload/public-skills/.claude/skills"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/public-skills/.claude/rules",
+      "dst": "payload/public-skills/.claude/rules"
     },
     {
       "mode": "file",
       "src": "~/Projects/public-skills/README.md",
       "dst": "payload/public-skills/README.md"
-    },
-    {
-      "mode": "mirror",
-      "src": "~/Projects/public-skills/rules",
-      "dst": "payload/public-skills/rules"
     }
   ]
 }

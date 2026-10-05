@@ -117,7 +117,7 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 | agent-home/config/codex/hooks-registry.json | 承認済み | 公開対象 hook の最小集合として再レビュー | `$HOME` 基準のポータブル registry。source: agent-home@532d7102520022ba81e04ee9e7f96eb9b1254fbe |
 | codex-config/hooks.json | 承認済み | Codex hook 形状・既存設定 merge をレビュー | opt-in、既存設定を backup して merge。source: agent-home@532d7102520022ba81e04ee9e7f96eb9b1254fbe |
 
-## public-skills（~/Projects/public-skills/skills/ を mirror）
+## public-skills（~/Projects/public-skills/.claude/ を mirror）
 
 | スキル名 | 承認状況 | 承認根拠 | 備考 |
 |---|---|---|---|
@@ -128,3 +128,15 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 | reviewing-agent-skills | 承認済み | 3 分割で新設（2026-09-30）。環境固有のパスなし。実行者の検証 2 シナリオで必須要件すべて ○、結果を変える点 0 件 | source: agent-home@09baffc、public-skills@bee2543 |
 | agent-skill-templates | 除外（廃止） | 2026-10-01 に rules/agent-skill へ移して廃止。payload と manifest から除去 | |
 | rules/skill-writing（規約 9 本、雛形 2 本、記入例 1 本。スキルではない） | 承認済み | 2026-10-01。旧 agent-skill を改名し、構成（structure）・書き方（writing）・雛形（templates）で分ける。環境固有のパスなし | mirror ~/Projects/public-skills/rules。source: agent-home@e45a7b7 |
+
+### 2026-10-05 の構成変更
+
+| 対象 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| .claude/ 配下の構成 | 承認済み | ユーザーの指示（2026-10-05）。規約の paths はプロジェクト内のファイルにしか効かないため、~/.claude/ への複製をやめ、プロジェクトの .claude/ に置く形に改めた | 旧 rules/ と skills/ は削除 |
+| rules/skill-writing-compact（規約 1 ファイル版 42 規則、雛形、完成例） | 承認済み | zip 版を正とし、paths を .claude/skills/**/* と .claude/rules/skill-writing-compact/**/* に書き換え。環境固有のパスなし | source: agent-home、public-skills@33dfb31 |
+| drafting-skill-with-template（zip 版 + step 1-1 の realpath） | 承認済み | 検証者で規約と照合し違反 0 件。環境固有のパスなし | 同上 |
+| checking-skill-against-rules（旧 reviewing-agent-skills の置き換え） | 承認済み | 検証者で規約と照合し違反 0 件。環境固有のパスなし | 同上 |
+| designing-skill-tests | 承認済み | 検証者で規約と照合し違反 0 件。環境固有のパスなし（作業フォルダ基準） | 同上 |
+| testing-agent-skills（作り直し） | 承認済み | 検証者で規約と照合し違反 0 件。環境固有のパスなし | 同上 |
+| reviewing-agent-skills、reporting-textlint-findings、converting-mermaid-md-to-html、rules/skill-writing（12 本版） | 除外 | 2026-10-05 にユーザーの指示で公開をやめた | payload と manifest から除去 |
