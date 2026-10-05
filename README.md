@@ -28,10 +28,11 @@ payload/
             ├── drafting-skill-with-template/
             ├── checking-skill-against-rules/
             ├── designing-skill-tests/
-            └── testing-agent-skills/
+            ├── testing-agent-skills/
+            └── converting-mermaid-md-to-html/
 ```
 
-2026-09-29 に、reverse-docs-skills、claude-code-template、explanation-slides-kit、ai-driven-development-setup、ai-consulting-toolkit の公開をやめた。2026-10-05 に、`.claude/` 配下の構成に改め、規約を 1 ファイル版に一本化し、reviewing-agent-skills(checking-skill-against-rules に置き換え)、reporting-textlint-findings、converting-mermaid-md-to-html の公開をやめた。
+2026-09-29 に、reverse-docs-skills、claude-code-template、explanation-slides-kit、ai-driven-development-setup、ai-consulting-toolkit の公開をやめた。2026-10-05 に、`.claude/` 配下の構成に改め、規約を 1 ファイル版に一本化し、reviewing-agent-skills(checking-skill-against-rules に置き換え)と reporting-textlint-findings の公開をやめた。
 
 ## public-skills(プロジェクトに置いて動く公開スキル集)
 
@@ -43,6 +44,7 @@ payload/
 | [`checking-skill-against-rules`](payload/public-skills/.claude/skills/checking-skill-against-rules/SKILL.md) | 既存のスキルの全ファイルを雛形の形と機械的に突き合わせ、規約の規則と 1 つずつ照らし、違反を一覧にする。ファイルは変更しない | 同上 |
 | [`designing-skill-tests`](payload/public-skills/.claude/skills/designing-skill-tests/SKILL.md) | 既存のスキルから、対象の説明、仕様、機能の一覧、シナリオ、経路の網羅の表、既知の限界からなるテスト設計の文書を書き出す | サブエージェントを起動できる環境 |
 | [`testing-agent-skills`](payload/public-skills/.claude/skills/testing-agent-skills/SKILL.md) | テスト設計の文書のシナリオを実行者に実行させ、記録を照らし、評価者の評価と合わせて検証の結果を表示する。対象は変更しない | 同上 |
+| [`converting-mermaid-md-to-html`](payload/public-skills/.claude/skills/converting-mermaid-md-to-html/SKILL.md) | Mermaid の図を含む md 1 本を、図を描画した 1 ページの HTML に変換する | hugo(extended)。無ければスキルが入れ方を案内する |
 
 4 つは、作る(drafting)、規約と照らす(checking)、テストを設計する(designing)、実行して検証する(testing)の順で使う。規約は、プロジェクトの `.claude/skills/` の下のファイルを読むか書くときに自動で読み込まれる。
 

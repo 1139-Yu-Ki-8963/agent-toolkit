@@ -139,4 +139,4 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 | checking-skill-against-rules（旧 reviewing-agent-skills の置き換え） | 承認済み | 検証者で規約と照合し違反 0 件。環境固有のパスなし | 同上 |
 | designing-skill-tests | 承認済み | 検証者で規約と照合し違反 0 件。環境固有のパスなし（作業フォルダ基準） | 同上 |
 | testing-agent-skills（作り直し） | 承認済み | 検証者で規約と照合し違反 0 件。環境固有のパスなし | 同上 |
-| reviewing-agent-skills、reporting-textlint-findings、converting-mermaid-md-to-html、rules/skill-writing（12 本版） | 除外 | 2026-10-05 にユーザーの指示で公開をやめた | payload と manifest から除去 |
+| reviewing-agent-skills、reporting-textlint-findings、rules/skill-writing（12 本版） | 除外 | 2026-10-05 にユーザーの指示で公開をやめた | payload と manifest から除去 |
