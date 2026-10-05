@@ -55,7 +55,7 @@ invocation: converting-mermaid-md-to-html
 
 | ツール | 確認に使うコマンド | そのツールのコマンドを実行する step |
 |---|---|---|
-| hugo(extended) | `hugo version \| grep -q extended` | 3-1、3-5 |
+| hugo(extended) | `(hugo version 2>/dev/null || ~/.local/bin/hugo version) | grep -q extended` | 3-1、3-5 |
 
 ## 使用するスクリプト
 
@@ -147,7 +147,7 @@ invocation: converting-mermaid-md-to-html
 - 入力: 受け渡し値「決まった値」
 - 出力: 最終出力「変換のフォルダ一式」
 - 表示: phase の表示。方法はチャットへの文の表示。文面は「phase 3 HTML の生成」
-- 手順: コマンドの実行の機能で `hugo new site "<出力先のフォルダ>"` を実行する。終了コードが 0 でないときは中止する。中止の表示の文面は「hugo new site が失敗したため、step 3-1 で中止しました。<コマンドの出力の最後の行>。原因を取り除いてから、もう一度実行してください。残したファイル: <出力先のフォルダ>(あれば)」。<コマンドの出力の最後の行> は、この step で実行したコマンドの出力から得る。終了コードが 0 なら終わる。
+- 手順: コマンドの実行の機能で `H=$(command -v hugo || echo ~/.local/bin/hugo) && "$H" new site "<出力先のフォルダ>"` を実行する。終了コードが 0 でないときは中止する。中止の表示の文面は「hugo new site が失敗したため、step 3-1 で中止しました。<コマンドの出力の最後の行>。原因を取り除いてから、もう一度実行してください。残したファイル: <出力先のフォルダ>(あれば)」。<コマンドの出力の最後の行> は、この step で実行したコマンドの出力から得る。終了コードが 0 なら終わる。
 
 ### step 3-2 Relearn を取得して展開する
 - step の種別: 固定の手順
@@ -171,7 +171,7 @@ invocation: converting-mermaid-md-to-html
 - step の種別: 固定の手順
 - 入力: 受け渡し値「決まった値」
 - 出力: 最終出力「HTML」
-- 手順: コマンドの実行の機能で `hugo --source "<出力先のフォルダ>" --cleanDestinationDir` を実行する。出力の `WARN` の行と、出力の表の言語の欄の表示(`EN` と出る)は、中止の理由にしない(`languageCode` の非推奨の警告は毎回出る)。中止するかは、次の 2 つだけで決める。終了コードが 0 でないとき、または `<出力先のフォルダ>/public/index.html` がないときは中止する。`public/index.html` の有無は、コマンドの実行の機能で `test -f "<出力先のフォルダ>/public/index.html"` を実行して見る。中止の表示の文面は「HTML の生成が失敗したため、step 3-5 で中止しました。<コマンドの出力の ERROR の行>。md 側を直し、<出力先のフォルダ> を消してから、もう一度実行してください。残したファイル: <出力先のフォルダ>」。<コマンドの出力の ERROR の行> は、この step で実行したコマンドの出力から得る。ERROR の行がないときは「public/index.html が作られませんでした」とする。どちらでもなければ終わる。
+- 手順: コマンドの実行の機能で `H=$(command -v hugo || echo ~/.local/bin/hugo) && "$H" --source "<出力先のフォルダ>" --cleanDestinationDir` を実行する。出力の `WARN` の行と、出力の表の言語の欄の表示(`EN` と出る)は、中止の理由にしない(`languageCode` の非推奨の警告は毎回出る)。中止するかは、次の 2 つだけで決める。終了コードが 0 でないとき、または `<出力先のフォルダ>/public/index.html` がないときは中止する。`public/index.html` の有無は、コマンドの実行の機能で `test -f "<出力先のフォルダ>/public/index.html"` を実行して見る。中止の表示の文面は「HTML の生成が失敗したため、step 3-5 で中止しました。<コマンドの出力の ERROR の行>。md 側を直し、<出力先のフォルダ> を消してから、もう一度実行してください。残したファイル: <出力先のフォルダ>」。<コマンドの出力の ERROR の行> は、この step で実行したコマンドの出力から得る。ERROR の行がないときは「public/index.html が作られませんでした」とする。どちらでもなければ終わる。
 
 ## phase 4 完了の確認
 
