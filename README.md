@@ -40,7 +40,7 @@ payload/
 | スキル | 何をするか | 前提 |
 |---|---|---|
 | [`drafting-skill-with-template`](payload/public-skills/.claude/skills/drafting-skill-with-template/SKILL.md) | 依頼にある作業を、規約と雛形に従ったスキルとして新しく書き、何も知らないサブエージェントに規約と照らさせて、違反がなくなるまで直す | `.claude/rules/skill-writing-compact`、サブエージェントを起動できる環境 |
-| [`checking-skill-against-rules`](payload/public-skills/.claude/skills/checking-skill-against-rules/SKILL.md) | 既存のスキルの全ファイルを規約の規則と 1 つずつ照らし、違反を規則の番号、ファイルと行、内容、直し方の案とともに一覧にする。ファイルは変更しない | 同上 |
+| [`checking-skill-against-rules`](payload/public-skills/.claude/skills/checking-skill-against-rules/SKILL.md) | 既存のスキルの全ファイルを雛形の形と機械的に突き合わせ、規約の規則と 1 つずつ照らし、違反を一覧にする。ファイルは変更しない | 同上 |
 | [`designing-skill-tests`](payload/public-skills/.claude/skills/designing-skill-tests/SKILL.md) | 既存のスキルから、対象の説明、仕様、機能の一覧、シナリオ、経路の網羅の表、既知の限界からなるテスト設計の文書を書き出す | サブエージェントを起動できる環境 |
 | [`testing-agent-skills`](payload/public-skills/.claude/skills/testing-agent-skills/SKILL.md) | テスト設計の文書のシナリオを実行者に実行させ、記録を照らし、評価者の評価と合わせて検証の結果を表示する。対象は変更しない | 同上 |
 
