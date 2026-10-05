@@ -1,7 +1,7 @@
 ---
 paths:
   - ".claude/skills/**/*"
-  - ".claude/rules/skill-writing-compact/**/*"
+  - ".claude/rules/skill-writing/**/*"
 ---
 
 # 完成例: 最も短い SKILL.md

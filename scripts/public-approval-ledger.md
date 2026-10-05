@@ -134,7 +134,7 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 | 対象 | 承認状況 | 承認根拠 | 備考 |
 |---|---|---|---|
 | .claude/ 配下の構成 | 承認済み | ユーザーの指示（2026-10-05）。規約の paths はプロジェクト内のファイルにしか効かないため、~/.claude/ への複製をやめ、プロジェクトの .claude/ に置く形に改めた | 旧 rules/ と skills/ は削除 |
-| rules/skill-writing-compact（規約 1 ファイル版 42 規則、雛形、完成例） | 承認済み | zip 版を正とし、paths を .claude/skills/**/* と .claude/rules/skill-writing-compact/**/* に書き換え。環境固有のパスなし | source: agent-home、public-skills@33dfb31 |
+| rules/skill-writing（旧 skill-writing-compact。規約 1 ファイル版 42 規則、雛形、完成例。2026-10-05 に改名） | 承認済み | zip 版を正とし、paths を .claude/skills/**/* と .claude/rules/skill-writing-compact/**/* に書き換え。環境固有のパスなし | source: agent-home、public-skills@33dfb31 |
 | drafting-skill-with-template（zip 版 + step 1-1 の realpath） | 承認済み | 検証者で規約と照合し違反 0 件。環境固有のパスなし | 同上 |
 | checking-skill-against-rules（旧 reviewing-agent-skills の置き換え） | 承認済み | 検証者で規約と照合し違反 0 件。環境固有のパスなし | 同上 |
 | designing-skill-tests | 承認済み | 検証者で規約と照合し違反 0 件。環境固有のパスなし（作業フォルダ基準） | 同上 |

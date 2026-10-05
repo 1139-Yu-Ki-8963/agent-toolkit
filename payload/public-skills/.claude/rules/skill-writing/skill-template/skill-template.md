@@ -1,7 +1,7 @@
 ---
 paths:
   - ".claude/skills/**/*"
-  - ".claude/rules/skill-writing-compact/**/*"
+  - ".claude/rules/skill-writing/**/*"
 ---
 
 # 雛形: SKILL.md の形(標準の版)

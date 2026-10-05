@@ -8,7 +8,7 @@ Claude Code で使うスキルと、スキルの書き方の規約を公開す�
 
 ```bash
 git clone <このリポジトリ>
-cp -R public-skills/.claude/rules/skill-writing-compact <プロジェクト>/.claude/rules/
+cp -R public-skills/.claude/rules/skill-writing <プロジェクト>/.claude/rules/
 cp -R public-skills/.claude/skills/<スキル名> <プロジェクト>/.claude/skills/
 ```
 
@@ -24,9 +24,9 @@ settings.json への追加は要らない。規約は、プロジェクトの中
 - `testing-agent-skills`: テスト設計の文書を入力に取り、シナリオごとに、そのスキルについて何も知らない実行者(新しく起動したサブエージェント)に対象のスキルを実行させ、記録を機械的に照らし、全シナリオの記録を評価者(新しく起動したサブエージェント)に評価させて、成否、不明瞭な点、独自の判断で補った点、仕様と手順のずれ、直し方の提案、実際に通った機能による経路の網羅率を検証の結果として表示する。
 - `converting-mermaid-md-to-html`: Mermaid の図を含む md ファイル 1 本を、図を描画した 1 ページの HTML に変換する。
 
-## 規約(`.claude/rules/skill-writing-compact/`)
+## 規約(`.claude/rules/skill-writing/`)
 
-スキルの書き方の規約の 1 ファイル版(42 規則)と、`SKILL.md` の雛形、完成例の 3 本。規約は「適用する場面、守ること、理由」の節を持ち、守ることは「規則 N: 観点」の行と箇条書きの組で書く。数の上限や選択肢の値は雛形の「変数」の節が持ち、規約は変数の名前で指す。先頭の `paths` が `.claude/skills/**/*` と `.claude/rules/skill-writing-compact/**/*` を指すので、このプロジェクトの中のスキルと規約自身を触るときだけ読み込まれる。
+スキルの書き方の規約の 1 ファイル版(42 規則)と、`SKILL.md` の雛形、完成例の 3 本。規約は「適用する場面、守ること、理由」の節を持ち、守ることは「規則 N: 観点」の行と箇条書きの組で書く。数の上限や選択肢の値は雛形の「変数」の節が持ち、規約は変数の名前で指す。先頭の `paths` が `.claude/skills/**/*` と `.claude/rules/skill-writing/**/*` を指すので、このプロジェクトの中のスキルと規約自身を触るときだけ読み込まれる。
 
 ## 使い方の流れ
 

@@ -10,7 +10,7 @@ Claude Code で使うスキル集を、公開できると判断した範囲だ�
 
 ```bash
 git clone https://github.com/1139-Yu-Ki-8963/agent-toolkit.git
-cp -R agent-toolkit/payload/public-skills/.claude/rules/skill-writing-compact <プロジェクト>/.claude/rules/
+cp -R agent-toolkit/payload/public-skills/.claude/rules/skill-writing <プロジェクト>/.claude/rules/
 cp -R agent-toolkit/payload/public-skills/.claude/skills/<スキル名> <プロジェクト>/.claude/skills/
 ```
 
@@ -23,7 +23,7 @@ payload/
 └── public-skills/                        プロジェクトの .claude/ に置いて動く公開スキル集
     ├── README.md
     └── .claude/
-        ├── rules/skill-writing-compact/  スキルの書き方の規約(1 ファイル版)、雛形、完成例
+        ├── rules/skill-writing/  スキルの書き方の規約(1 ファイル版)、雛形、完成例
         └── skills/
             ├── drafting-skill-with-template/
             ├── checking-skill-against-rules/
@@ -40,7 +40,7 @@ payload/
 
 | スキル | 何をするか | 前提 |
 |---|---|---|
-| [`drafting-skill-with-template`](payload/public-skills/.claude/skills/drafting-skill-with-template/SKILL.md) | 依頼にある作業を、規約と雛形に従ったスキルとして新しく書き、何も知らないサブエージェントに規約と照らさせて、違反がなくなるまで直す | `.claude/rules/skill-writing-compact`、サブエージェントを起動できる環境 |
+| [`drafting-skill-with-template`](payload/public-skills/.claude/skills/drafting-skill-with-template/SKILL.md) | 依頼にある作業を、規約と雛形に従ったスキルとして新しく書き、何も知らないサブエージェントに規約と照らさせて、違反がなくなるまで直す | `.claude/rules/skill-writing`、サブエージェントを起動できる環境 |
 | [`checking-skill-against-rules`](payload/public-skills/.claude/skills/checking-skill-against-rules/SKILL.md) | 既存のスキルの全ファイルを雛形の形と機械的に突き合わせ、規約の規則と 1 つずつ照らし、違反を一覧にする。ファイルは変更しない | 同上 |
 | [`designing-skill-tests`](payload/public-skills/.claude/skills/designing-skill-tests/SKILL.md) | 既存のスキルから、対象の説明、仕様、機能の一覧、シナリオ、経路の網羅の表、既知の限界からなるテスト設計の文書を書き出す | サブエージェントを起動できる環境 |
 | [`testing-agent-skills`](payload/public-skills/.claude/skills/testing-agent-skills/SKILL.md) | テスト設計の文書のシナリオを実行者に実行させ、記録を照らし、評価者の評価と合わせて検証の結果を表示する。対象は変更しない | 同上 |
