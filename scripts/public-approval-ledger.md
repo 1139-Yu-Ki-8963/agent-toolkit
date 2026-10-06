@@ -140,3 +140,16 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 | designing-skill-tests | 承認済み | 検証者で規約と照合し違反 0 件。環境固有のパスなし（作業フォルダ基準） | 同上 |
 | testing-agent-skills（作り直し） | 承認済み | 検証者で規約と照合し違反 0 件。環境固有のパスなし | 同上 |
 | reviewing-agent-skills、rules/skill-writing（12 本版） | 除外 | 2026-10-05 にユーザーの指示で公開をやめた | payload と manifest から除去 |
+
+## ai-consulting-toolkit（公開の再開 2026-10-05）
+
+2026-09-29 に公開をやめた ai-consulting-toolkit を、ユーザーの決定（2026-10-05）で再び公開する。正本は `~/Projects/ai-consulting-toolkit`（ローカルのみ、リモートなし）。公開前の検査（2026-10-05）: 秘密情報・メールアドレス・`/Users/` のパスなし。ポータルのデータは A 社〜J 社の架空のプロトタイプ。`clients/` は空で、settings.json の hook も対象外。`~/agent-home` への言及が consult-ai-config-doctor の参照資料（解体済みスキルへの古いリンク 5 行）と解説スライド 1 本の図にあるが、秘密ではなく前回の公開版にも含まれていたため、そのまま公開する。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| .claude/skills（consult-* 14 本、shared、setup-claude-multi-auth） | 承認済み | 前回公開済み（7f37fd98 以前）の範囲を再承認。上記の検査 | mirror |
+| docs（01〜14） | 承認済み | 同上。14_案件フォルダ設計 は 2026-10-05 に新設。特定の案件の名前・資料を含まない | mirror |
+| portal | 承認済み | 同上。データは架空のプロトタイプ | mirror |
+| templates/案件雛形 | 承認済み | 2026-10-05 に新設。置き換え用の名前（<課題名> など）だけで、案件固有の情報なし | mirror。新規 |
+| README.md | 承認済み | 道具箱の入口。固有パスなし | file。新規 |
+| CLAUDE.md、.claude/rules、.claude/settings.json | 除外 | `~/agent-home` の規約への参照と、ローカルの hook を含むため公開しない | |

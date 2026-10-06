@@ -14,6 +14,31 @@
       "mode": "file",
       "src": "~/Projects/public-skills/README.md",
       "dst": "payload/public-skills/README.md"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/ai-consulting-toolkit/.claude/skills",
+      "dst": "payload/ai-consulting-toolkit/.claude/skills"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/ai-consulting-toolkit/docs",
+      "dst": "payload/ai-consulting-toolkit/docs"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/ai-consulting-toolkit/portal",
+      "dst": "payload/ai-consulting-toolkit/portal"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/ai-consulting-toolkit/templates",
+      "dst": "payload/ai-consulting-toolkit/templates"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/ai-consulting-toolkit/README.md",
+      "dst": "payload/ai-consulting-toolkit/README.md"
     }
   ]
 }

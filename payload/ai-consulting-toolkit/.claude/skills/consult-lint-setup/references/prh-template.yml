@@ -1,0 +1,35 @@
+# 置き換え辞書（prh）雛形
+# 分類: katakana-business（カタカナビジネス用語） / notation（表記ゆれ） / official-names（正式名称） / project-terms（プロジェクト固有語彙。導入後にヒアリングで追加）
+version: 1
+rules:
+  # --- katakana-business ---
+  - expected: 推奨手順
+    pattern: ベストプラクティス
+  - expected: 関係者
+    pattern: ステークホルダー
+  - expected: 導入
+    pattern: オンボーディング
+  - expected: 制約箇所
+    pattern: ボトルネック
+  - expected: 節目
+    pattern: マイルストーン
+  - expected: 議題
+    pattern: アジェンダ
+  - expected: 根拠
+    pattern: エビデンス
+  - expected: 確定
+    pattern: フィックス
+  - expected: 日程変更
+    pattern: リスケ
+  - expected: 知見
+    pattern: ナレッジ
+
+  # --- notation ---
+  - expected: サーバー
+    pattern: /サーバ(?!ー)/
+
+  # --- official-names ---
+  # 例: 略称を正式名称へ統一する場合はここに追加する
+
+  # --- project-terms ---
+  # 空。導入後に顧客固有語彙（社名の表記ゆれ・製品名・禁止語）をヒアリングして追加する

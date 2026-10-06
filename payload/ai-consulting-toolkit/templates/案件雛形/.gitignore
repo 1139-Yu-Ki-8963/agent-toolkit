@@ -1,0 +1,17 @@
+# 先方の原本は git に入れない(台帳だけ残す)
+受領資料/**
+!受領資料/README.md
+
+# 大容量の拡張子
+*.zip
+*.xlsx
+*.pptx
+*.pdf
+*.mp4
+*.csv
+
+# OS とエディタ
+.DS_Store
+
+# Claude の個人設定
+.claude/settings.local.json
