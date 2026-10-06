@@ -16,6 +16,11 @@
       "dst": "payload/public-skills/README.md"
     },
     {
+      "mode": "file",
+      "src": "~/Projects/public-skills/変更履歴.md",
+      "dst": "payload/public-skills/変更履歴.md"
+    },
+    {
       "mode": "mirror",
       "src": "~/Projects/ai-consulting-toolkit/.claude/skills",
       "dst": "payload/ai-consulting-toolkit/.claude/skills"
