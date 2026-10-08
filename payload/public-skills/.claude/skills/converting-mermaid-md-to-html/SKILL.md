@@ -261,7 +261,6 @@ md ファイルのパスも「ユーザーのチャット入力にない」の�
 
 1 件以上なら、「ユーザーに見せる文面」の質問を 1 回だけ行い、回答を待つ。
 回答から step 2-1 と同じ切り出し方で値を取り出して、その項目の値にする。
-質問の対象は、必須の 2 項目に限る。
 
 <取り出せなかった項目の名前の一覧> は、回答から値を取り出せなかった必須の項目の名前(1 件以上、読点で区切る)で、「依頼の内容」と回答から得る。
 取り出せない項目があるときは、中止する。
@@ -375,7 +374,7 @@ mkdir -p "<出力先のフォルダ>/content" "<出力先のフォルダ>/themes
 <コマンドの出力の最後の行> は、この step で実行したコマンドの出力から得る。
 終了コードが 0 でないときは、中止する。
 理由: 作業フォルダを作れなかった。<コマンドの出力の最後の行>。
-ユーザーが次にすること: フォルダの権限を確かめてから、もう一度実行する。
+ユーザーが次にすること: フォルダの権限を確かめ、<出力先のフォルダ> があれば消してから、もう一度実行する。
 中止までの成果物: <出力先のフォルダ>(あれば)
 
 
@@ -393,7 +392,7 @@ mkdir -p "<出力先のフォルダ>/content" "<出力先のフォルダ>/themes
 
 終了コードが 0 でないときは、中止する。
 理由: 一時フォルダの場所を得られない。
-ユーザーが次にすること: もう一度実行する。
+ユーザーが次にすること: <出力先のフォルダ> を消してから、もう一度実行する。
 中止までの成果物: <出力先のフォルダ>
 
 出力のパスを「一時フォルダのパス」にして終わる。
@@ -412,7 +411,7 @@ mkdir -p "<出力先のフォルダ>/content" "<出力先のフォルダ>/themes
 
 終了コードが 0 でないときは、中止する。
 理由: 一時フォルダに取得先を作れない。
-ユーザーが次にすること: 一時フォルダの権限を確かめてから、もう一度実行する。
+ユーザーが次にすること: 一時フォルダの権限を確かめ、<出力先のフォルダ> を消してから、もう一度実行する。
 中止までの成果物: <出力先のフォルダ>
 
 出力のパスを「取得先のパス」にして終わる。
@@ -429,11 +428,11 @@ mkdir -p "<出力先のフォルダ>/content" "<出力先のフォルダ>/themes
 
 リファレンス `references/サイトの変換.md` の「使うツールの役割」の章を、ファイルを読むツールで全文読む。
 
+<Relearn の版> は、「使うツールの役割」の章の表の、Relearn の行の「版」の列から得る。
 コマンドを実行するツールで、次の 1 行を実行する。
-取得先は一時フォルダの中にこの実行のために作ったものなので、終わりに消す。
 
 ```sh
-mkdir -p "<出力先のフォルダ>/themes/hugo-theme-relearn" && git -c advice.detachedHead=false clone --quiet --depth 1 --branch 9.1.0 https://github.com/McShelby/hugo-theme-relearn.git "<取得先のパス>" && (cd "<取得先のパス>" && find . \( -path ./.git -o -path ./.claude \) -prune -o -type f ! -name CLAUDE.md -print | tar -cf - -T -) | tar -xf - -C "<出力先のフォルダ>/themes/hugo-theme-relearn" && rm -rf "<取得先のパス>"
+mkdir -p "<出力先のフォルダ>/themes/hugo-theme-relearn" && git -c advice.detachedHead=false clone --quiet --depth 1 --branch <Relearn の版> https://github.com/McShelby/hugo-theme-relearn.git "<取得先のパス>" && (cd "<取得先のパス>" && find . \( -path ./.git -o -path ./.claude \) -prune -o -type f ! -name CLAUDE.md -print | tar -cf - -T -) | tar -xf - -C "<出力先のフォルダ>/themes/hugo-theme-relearn" && rm -rf "<取得先のパス>"
 ```
 
 終了コードが 0 でないときは、コマンドを実行するツールで `rm -rf "<取得先のパス>"` を実行してから、中止する。
@@ -460,11 +459,7 @@ mkdir -p "<出力先のフォルダ>/themes/hugo-theme-relearn" && git -c advice
 
 空の 2 本(`layouts/partials/menu-footer.html` と `layouts/partials/heading.html`)を、コマンドを実行するツールで `: > "<パス>"` を実行して作る。
 
-`layouts/partials/topbar/area/start.html` を、コマンドを実行するツールで次の 1 行を実行して書く。
-
-```sh
-printf '{{- partial "topbar/button/toc.html" (dict\n\t"page" .\n)}}\n' > "<出力先のフォルダ>/layouts/partials/topbar/area/start.html"
-```
+`layouts/partials/topbar/area/start.html` を、章のとおりの 3 行で、2 行目の行頭のタブを残して、ファイルを書くツールで新しく書く。
 
 <書けなかったファイルのパス> は、この step で書こうとしたパスのうち書けなかったもの(1 件以上、読点で区切る)から得る。
 書けないファイルが 1 つでもあるときは、中止する。
@@ -503,8 +498,6 @@ printf '{{- partial "topbar/button/toc.html" (dict\n\t"page" .\n)}}\n' > "<出�
 #### 手順
 
 コマンドを実行するツールで `hugo --source "<出力先のフォルダ>" --cleanDestinationDir` を実行する。
-
-中止するかは、この step の終了コードと、`public/index.html` の有無の 2 つだけで決める。
 
 <コマンドの出力の ERROR の行> は、この step で実行したコマンドの出力から得る(1 行以上。複数あるときは、すべてを読点で区切って並べる)。
 ERROR の行がないときは「public/index.html が作られませんでした」とする。
