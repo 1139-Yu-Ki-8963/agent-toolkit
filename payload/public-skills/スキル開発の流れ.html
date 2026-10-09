@@ -74,6 +74,18 @@ ul.steps li{display:grid;grid-template-columns:44px 1fr;gap:6px}
 ul.steps .num{padding-top:2px}
 .tag{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 5px;margin-left:4px;white-space:nowrap}
 .note{font-size:13px;color:var(--muted)}
+.whole{margin-top:18px}
+.whole h2{font-family:var(--display);font-size:16px;margin:0 0 6px}
+.whole h4,.fr h4{font-size:13px;letter-spacing:.06em;color:var(--muted);margin:8px 0 2px;font-weight:700}
+.whole ul{margin:0;padding-left:1.2em;font-size:14px}
+.wg{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px}
+@media (max-width:700px){.wg{grid-template-columns:1fr}}
+h3.ph{font-family:var(--display);font-size:18px;margin:0 0 6px}
+p.goal{margin:0 0 10px}
+p.goal b{display:inline-block;font-size:12px;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:0 6px;margin-right:8px}
+.fr{display:grid;grid-template-columns:1fr;gap:6px;margin-bottom:8px}
+.fr h4{font-size:13px;letter-spacing:.06em;color:var(--muted);margin:0 0 2px;font-weight:700}
+.fr ul{margin:0;padding-left:1.2em;font-size:14px}
 .tw{overflow-x:auto;margin:6px 0 4px}
 table.t{border-collapse:collapse;font-size:13px;min-width:100%}
 table.t th,table.t td{border-bottom:1px solid var(--line);padding:5px 8px;text-align:left;vertical-align:top}
@@ -94,6 +106,15 @@ table.t td code,table.t td{overflow-wrap:anywhere}
     <p>フェーズを選ぶと、そのフェーズで使うスキルが出ます。スキルを選ぶと、入手の仕方と、スキルの中の phase と step が出ます。</p>
     <div class="legend"><span class="chip have">あるスキル</span><span class="chip new">新規スキル(まだない)</span><span>流れ全体は <button type="button" class="btn" id="orch">スキル開発の統括(新規スキル)</button> が受け持ちます。</span></div>
   </header>
+  <section class="card whole" aria-label="流れ全体">
+    <h2>流れ全体</h2>
+    <p class="goal"><b>目的</b>ユーザーの依頼から、要件を満たし、規約に沿い、初めて読む実行者が動かせるスキルを作る。</p>
+    <div class="wg">
+      <div><h4>最初の入力</h4><ul><li>ユーザーの依頼(スキルにしたい作業)</li></ul>
+        <h4>最終出力</h4><ul><li>受け入れたスキルのフォルダ(SKILL.md、references、scripts)</li><li>要件定義書</li><li>テストケース、テストシナリオ、テスト結果</li><li>ユーザーの受け入れの承認</li></ul></div>
+      <div><h4>要件(終わりの条件)</h4><ul><li>要件定義書の受け入れの基準を、すべて満たす</li><li>規約と雛形に照らして、致命的な誤りと機械的な不一致が 0 件</li><li>テスト結果が「受け入れ: 可」</li><li>要件定義、設計のレビュー、受け入れの 3 か所で、ユーザーが承認している</li><li>前のフェーズへ戻ったときは、戻り先と理由が記録されている</li></ul></div>
+    </div>
+  </section>
   <div class="grid">
     <nav class="pane" aria-label="フェーズ"><h2>フェーズ</h2><ol class="phases" id="phases"></ol></nav>
     <div class="pane"><h2>このフェーズで使うスキル</h2><div class="card" id="phaseCard"></div></div>
@@ -129,6 +150,41 @@ const PHASES = [
   {name:"受け入れの判断",in:"テスト結果、要件定義書",out:"ユーザーの承認か、戻るフェーズ",skills:["new-accept"]},
   {name:"保守",in:"変更の依頼",out:"変わる動きと合わせて直すものの一覧",skills:["new-impact","revising-skill-writing-rule","new-retro"]}
 ];
+const PHASE_INFO = [
+  {goal:"何を作るかをユーザーと合意し、後のすべてのフェーズが判断に使う元を作る。",
+   func:["依頼を読み、関係する規約と既にあるスキルを調べる","足りない情報をユーザーに質問する","案を出して、ユーザーの承認を得る","要件定義書を書く"],
+   req:["目的、使う場面、入力、最終出力、受け入れの基準が書かれている","既にあるスキルと受け持ちが重ならない","ユーザーが承認している"]},
+  {goal:"スキルの形を決め、構成の設計と雛形の照合の基準を 1 つに固定する。",
+   func:["要件定義書を、各雛形の適用する場面と照らす","雛形を 1 つ選び、選んだ理由を書く"],
+   req:["雛形が 1 つに決まっている","選んだ理由が、要件定義書の語にたどれる","合う雛形がないときは、止めてユーザーに相談している"]},
+  {goal:"要件を、実行できる phase と step の並びに落とす。",
+   func:["終わりの状態が変わるところで phase に分ける","1 つの作業を 1 つの step にする","step ごとに、固定の手順か AI の推論かを決める","AI の推論の step に、判断の観点と合格の基準を決める","雛形の数の上限に収まるかを見る"],
+   req:["すべての要件が、どれかの step にたどれる","すべての step に、種別、入力、出力がある","AI の推論の step のすべてに、判断の基準がある"]},
+  {goal:"下書きの前に、設計の漏れと誤りを見つける。",
+   func:["要件定義書と構成の設計を 1 つずつ照らす","構成の設計を批判的に読む","指摘を致命的なものと好みに分け、採るかを決める"],
+   req:["step のない要件と、要件にたどれない step が 0 件","採った指摘が設計に入り、ユーザーが承認している"]},
+  {goal:"承認された設計を、雛形の形のファイルにする。",
+   func:["雛形の本文を写し、設計の値で埋める","全スキル共通の決まりを写す","機械的な判定のスクリプトで、番号と名前と見出しの並びを見る"],
+   req:["ファイルの中身が、設計と 1 対 1 で対応する","設計にない判断を足していない"]},
+  {goal:"動かす前に、規約と雛形との食い違いをなくす。",
+   func:["スキルを規約の規則に照らす","スキルを雛形に照らす","致命的な誤りと機械的な不一致だけを、決めた直し方で直す"],
+   req:["致命的な誤りと機械的な不一致の指摘が 0 件","AI の推論で出た好みの指摘は、残してよい"]},
+  {goal:"何を確かめれば要件を満たしたと言えるかを、テストを作る前に決める。",
+   func:["受け入れの基準を、確かめる観点に分ける","壊れると困る所を挙げる","観点ごとに、確かめる深さを決める"],
+   req:["受け入れの基準のすべてに、確かめ方がある","壊れると困る所のすべてに、確かめる深さがある"]},
+  {goal:"テストの方針を、実行できるテストケースとテストシナリオにする。",
+   func:["観点ごとにテストケースと期待する結果を作る","依頼の文、回答、見本のファイルを持つシナリオにまとめる","分岐を網羅しているかを数える"],
+   req:["方針の観点のすべてに、テストケースがある","期待する結果が、要件定義書から作られている"]},
+  {goal:"初めて読む実行者に動かして、要件どおりに動くかを確かめる。",
+   func:["実行者のサブエージェントにスキルを実行させる","ケースごとに、合格、不合格、判定できない、の 3 つで判定する","不合格の原因を仕分け、スキルの誤りだけを直して、もう一度テストする"],
+   req:["テスト結果が「受け入れ: 可」","直してもう一度テストするのは 2 回まで"]},
+  {goal:"作ったスキルが、ユーザーの依頼を満たすかを決める。",
+   func:["受け入れの基準とテスト結果を照らす","満たさないときに、戻るフェーズと理由を決める","ユーザーの承認を得る"],
+   req:["受け入れの基準をすべて満たし、ユーザーが承認している","満たさないときは、戻るフェーズと理由が決まっている"]},
+  {goal:"変えてもほかを壊さず、使う中で起きた失敗を次の改善に回す。",
+   func:["変える前に、変わる動きと合わせて直すものを洗い出す","規約を変えるときは、規約の改訂の手順で変える","起きた失敗を集め、どの役割の穴かを仕分ける"],
+   req:["変える前に、影響の一覧とユーザーの承認がある","変更は、要件定義のフェーズから流れに戻す"]}
+];
 const NOTES = {"checking-skill-with-template":"雛形だけに照らす受け持ちに直す予定。","fixing-skill-with-template":"規約だけに照らすスキルの指摘も受け取れるように直す予定。","designing-skill-test-cases":"期待を、テストの方針と要件定義書から作るように直す予定。"};
 
 const $ = s => document.querySelector(s);
@@ -151,7 +207,12 @@ function sec(title, rows, inner, open){ const n = !rows ? 0 : (Array.isArray(row
 function skillJp(id){ return id.startsWith("new-") ? NEW[id].jp : SKILLS[id].title; }
 function renderPhase(){
   const p = PHASES[curPhase];
+  const pi = PHASE_INFO[curPhase];
   $("#phaseCard").innerHTML = `
+    <h3 class="ph">${String(curPhase+1).padStart(2,"0")} ${p.name}</h3>
+    <p class="goal"><b>目的</b>${pi.goal}</p>
+    <div class="fr"><div><h4>機能</h4><ul>${pi.func.map(x=>`<li>${x}</li>`).join("")}</ul></div>
+    <div><h4>要件(終わりの条件)</h4><ul>${pi.req.map(x=>`<li>${x}</li>`).join("")}</ul></div></div>
     <dl class="io"><dt>入力</dt><dd>${p.in}</dd><dt>出力</dt><dd>${p.out}</dd></dl>
     <div class="skills">${p.skills.map(id=>`
       <button type="button" class="skill" data-id="${id}" aria-pressed="${id===curSkill}">
