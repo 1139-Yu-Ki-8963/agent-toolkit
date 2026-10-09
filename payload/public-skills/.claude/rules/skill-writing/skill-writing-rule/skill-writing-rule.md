@@ -1,7 +1,7 @@
 ---
 paths:
-  - ".claude/skills/**/*"
-  - ".claude/rules/skill-writing/**/*"
+  - .claude/skills/**/*
+  - .claude/rules/skill-writing/**/*
 ---
 
 # スキルの書き方の規約

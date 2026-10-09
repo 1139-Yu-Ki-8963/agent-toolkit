@@ -1,7 +1,7 @@
 ---
 paths:
-  - ".claude/skills/**/*"
-  - ".claude/rules/skill-writing/**/*"
+  - .claude/skills/**/*
+  - .claude/rules/skill-writing/**/*
 ---
 
 # スキルの雛形(phase と step)の完成例
