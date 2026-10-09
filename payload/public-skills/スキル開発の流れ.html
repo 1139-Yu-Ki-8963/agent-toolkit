@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>*,*::before,*::after{box-sizing:border-box}body{margin:0}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>スキル開発の流れ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Kaku+Gothic+New:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* layout: 3 panes — phases rail | skills of phase | skill detail; stacks on phones */
+:root{
+  --bg:#f3f4f1; --surface:#ffffff; --ink:#1d2421; --muted:#5c6a64; --line:#d6dcd8;
+  --accent:#2f6f5e; --accent-soft:#e1efe9; --new:#a4561b; --new-soft:#f7e9dc;
+  --display:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",sans-serif;
+  --body:"BIZ UDPGothic","Hiragino Sans","Yu Gothic",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141917; --surface:#1c2320; --ink:#e4ebe7; --muted:#9aa9a2; --line:#2e3833;
+  --accent:#7cc4ad; --accent-soft:#21362f; --new:#e5a06a; --new-soft:#3a2a1d; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141917; --surface:#1c2320; --ink:#e4ebe7; --muted:#9aa9a2; --line:#2e3833;
+  --accent:#7cc4ad; --accent-soft:#21362f; --new:#e5a06a; --new-soft:#3a2a1d; color-scheme:dark}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.7}
+.wrap{max-width:1180px;margin:0 auto;padding-inline:16px;padding-block:28px 48px}
+header h1{font-family:var(--display);font-weight:700;font-size:clamp(22px,3vw,30px);margin:0;text-wrap:balance}
+header p{color:var(--muted);margin:.3em 0 0;max-width:62ch}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:13px;color:var(--muted)}
+.chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:1px 9px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+.chip.have{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.chip.new{background:var(--new-soft);color:var(--new);border-color:transparent}
+.grid{display:grid;grid-template-columns:260px 1fr 1.35fr;gap:18px;margin-top:22px;align-items:start}
+@media (max-width:900px){.grid{grid-template-columns:1fr}}
+.pane{min-width:0}
+.pane h2{font-family:var(--display);font-size:13px;letter-spacing:.08em;color:var(--muted);margin:0 0 8px;font-weight:500}
+ol.phases{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;position:relative}
+ol.phases button{all:unset;box-sizing:border-box;display:grid;grid-template-columns:28px 1fr;gap:8px;width:100%;padding:8px 10px;border-radius:8px;cursor:pointer;align-items:center}
+ol.phases button:hover{background:var(--surface)}
+ol.phases button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+ol.phases button[aria-current="true"]{background:var(--surface);box-shadow:inset 3px 0 0 var(--accent)}
+.num{font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.pname{font-weight:700}
+.pmeta{grid-column:2;font-size:12px;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px}
+.io{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:14px;margin:6px 0 14px}
+.io dt{color:var(--muted)}
+.io dd{margin:0;min-width:0}
+.skills{display:flex;flex-direction:column;gap:8px}
+.skill{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:2px;padding:10px 12px;border:1px solid var(--line);border-radius:8px;cursor:pointer}
+.skill:hover{border-color:var(--accent)}
+.skill:focus-visible{outline:2px solid var(--accent)}
+.skill[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.skill .jp{font-weight:700}
+.skill .id{font-family:var(--mono);font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.skill .row{display:flex;justify-content:space-between;gap:8px;align-items:center}
+.detail h3{font-family:var(--display);font-size:20px;margin:0}
+.detail .id{font-family:var(--mono);font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.detail section{margin-top:16px}
+.detail h4{font-size:13px;letter-spacing:.06em;color:var(--muted);margin:0 0 6px;font-weight:700}
+pre.cmd{font-family:var(--mono);font-size:12.5px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:10px;overflow-x:auto;margin:6px 0;white-space:pre}
+.btn{all:unset;cursor:pointer;font-size:12px;padding:3px 10px;border:1px solid var(--line);border-radius:6px;color:var(--ink)}
+.btn:hover{border-color:var(--accent)}
+.btn:focus-visible{outline:2px solid var(--accent)}
+a{color:var(--accent)}
+details{border-top:1px solid var(--line);padding:6px 0}
+details:last-child{border-bottom:1px solid var(--line)}
+summary{cursor:pointer;font-weight:700;list-style-position:outside}
+summary .num{margin-right:6px}
+ul.steps{list-style:none;margin:6px 0 4px;padding:0 0 0 4px;display:flex;flex-direction:column;gap:2px;font-size:14px}
+ul.steps li{display:grid;grid-template-columns:44px 1fr;gap:6px}
+ul.steps .num{padding-top:2px}
+.tag{font-size:11px;color:var(--muted);border:1px solid var(--line);border-radius:4px;padding:0 5px;margin-left:4px;white-space:nowrap}
+.note{font-size:13px;color:var(--muted)}
+.empty{color:var(--muted);font-size:14px}
+@media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}}
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>スキル開発の流れ</h1>
+    <p>フェーズを選ぶと、そのフェーズで使うスキルが出ます。スキルを選ぶと、入手の仕方と、スキルの中の phase と step が出ます。</p>
+    <div class="legend"><span class="chip have">あるスキル</span><span class="chip new">新規スキル(まだない)</span><span>流れ全体は <button type="button" class="btn" id="orch">スキル開発の統括(新規スキル)</button> が受け持ちます。</span></div>
+  </header>
+  <div class="grid">
+    <nav class="pane" aria-label="フェーズ"><h2>フェーズ</h2><ol class="phases" id="phases"></ol></nav>
+    <div class="pane"><h2>このフェーズで使うスキル</h2><div class="card" id="phaseCard"></div></div>
+    <div class="pane"><h2>スキルの中身</h2><div class="card detail" id="detail"></div></div>
+  </div>
+</div>
+
+<script>
+const SKILLS = {"drafting-skill-with-template":{"title":"スキルの作成","desc":"依頼にある作業を、雛形「スキルの雛形(phase と step)」と規約に従ったエージェントスキルとして新しく書き、何も知らないサブエージェントに規約と比べさせて、違反がなくなるまで直す。","purpose":"依頼された作業を、規約と雛形に合ったスキルとして新しく書き、規約との違反がなくなるまで直す。","phases":[{"n":1,"name":"全スキル共通の決まりの読み込み","steps":[["1-1","全スキル共通の決まりを読む"]]},{"n":2,"name":"依頼の把握","steps":[["2-1","このスキルの SKILL.md のパスを実体のパスにする"],["2-2","このスキルの SKILL.md を読む"],["2-3","規約の一式が文脈にあるかを見る"],["2-4","依頼を読み取る"],["2-5","依頼から読み取れなかった開始時の入力をユーザーに聞く"],["2-6","スキルにする作業かを確かめる"],["2-7","出力先の SKILL.md の有無を確かめる"]]},{"n":3,"name":"構成の案","steps":[["3-1","構成の案を作る"],["3-2","構成の案の承認を得る [ユーザー確認]"]]},{"n":4,"name":"執筆と検証","steps":[["4-1","雛形から書く"],["4-2","全スキル共通の決まりを写す"],["4-3","スクリプトとコマンドで機械的な不一致を判定する"],["4-4","サブエージェントへの指示を作る"],["4-5","検証者に規約と比べさせる [委任]"],["4-6","違反を直す [やり直し]"]]},{"n":5,"name":"最終出力の確認とユーザーへの完了の報告","steps":[["5-1","最終出力が最終出力の表と合うかを確かめる"],["5-2","ユーザーに完了を報告する"]]}]},"checking-skill-with-template":{"title":"スキルの規約チェック","desc":"雛形「スキルの雛形(phase と step)」で作った既存のスキルの全ファイルを、雛形の本文と機械的に突き合わせ、規約の規則と 1 つずつ比べ、反する箇所を雛形の該当行または規則、ファイル:行、違反の内容、直し方の案とともに一覧にしてチャットに表示する。","purpose":"対象のスキルが規約と雛形に合っているかを、何も知らないサブエージェントに確かめさせ、違反を一覧にして示す。","phases":[{"n":1,"name":"全スキル共通の決まりの読み込み","steps":[["1-1","全スキル共通の決まりを読む"]]},{"n":2,"name":"入力の確定","steps":[["2-1","このスキルの SKILL.md のパスを実体のパスにする"],["2-2","このスキルの SKILL.md を読む"],["2-3","規約の一式が文脈にあるかを見る"],["2-4","依頼を読み取る"],["2-5","依頼から読み取れなかった開始時の入力をユーザーに聞く"]]},{"n":3,"name":"照合","steps":[["3-1","対象のパスを実体のパスにする"],["3-2","対象の SKILL.md を探す"],["3-3","対象のファイルの一覧を作る"],["3-4","スクリプトとコマンドで機械的な不一致を判定する"],["3-5","サブエージェントへの指示を作る"],["3-6","検証者に規約と比べさせる [委任]"],["3-7","指摘の一覧を表示する"]]},{"n":4,"name":"最終出力の確認とユーザーへの完了の報告","steps":[["4-1","最終出力が最終出力の表と合うかを確かめる"],["4-2","ユーザーに完了を報告する"]]}]},"fixing-skill-with-template":{"title":"雛形で作ったスキルの指摘の修正","desc":"雛形「スキルの雛形(phase と step)」で作った既存のスキルを、checking-skill-with-template が出した指摘の一覧に沿って、指摘を 4 つの種類に仕分け、決めた直し方で直し、修正の結果をチャットに表示する。","purpose":"checking-skill-with-template が出した指摘を 4 つの種類に仕分け、致命的な誤りと機械的な不一致だけを、決めた直し方で直す。推論の好みは直さずに残し、照らしては直す周を回さない。","phases":[{"n":1,"name":"全スキル共通の決まりの読み込み","steps":[["1-1","全スキル共通の決まりを読む"]]},{"n":2,"name":"入力の確定","steps":[["2-1","依頼を読み取る"],["2-2","依頼から読み取れなかった開始時の入力をユーザーに聞く"],["2-3","対象のスキルの SKILL.md を読む"],["2-4","規約の一式が文脈にあるかを見る"]]},{"n":3,"name":"指摘の仕分け","steps":[["3-1","指摘に引用された文を探す"],["3-2","指摘を 4 つの種類に仕分ける"],["3-3","仕分けの結果の承認を得る [ユーザー確認]"]]},{"n":4,"name":"修正","steps":[["4-1","直す前の写しを作る"],["4-2","直す指摘を直す"],["4-3","直す前の写しとの差分を取る"],["4-4","戻す直しを決める"],["4-5","戻す直しを戻す"],["4-6","修正の結果を表示する"],["4-7","直す前の写しを消す"]]},{"n":5,"name":"最終出力の確認とユーザーへの完了の報告","steps":[["5-1","最終出力が最終出力の表と合うかを確かめる"],["5-2","ユーザーに完了を報告する"]]}]},"designing-skill-test-cases":{"title":"テストケースの設計","desc":"雛形「スキルの雛形(phase と step)」で作った既存のスキルの `SKILL.md` と付属のファイルから、機能の一覧、機能ごとの確かめる深さと観点、機能ごとのテストケースと「最終出力の中身」のケース、手順の分岐の一覧、期待結果の種類ごとの判定の表からなるテストケースの文書を 1 つ、指定の出力先に書き出す。","purpose":"対象のスキルの SKILL.md から機能と観点を決め、機能ごとのテストケースと分岐の一覧をテストケースの文書にまとめる。","phases":[{"n":1,"name":"全スキル共通の決まりの読み込み","steps":[["1-1","全スキル共通の決まりを読む"]]},{"n":2,"name":"入力の確定","steps":[["2-1","依頼を読み取る"],["2-2","依頼から読み取れなかった開始時の入力をユーザーに聞く"],["2-3","パスを確定する"],["2-4","SKILL.md があるかを確かめる"],["2-5","対象のファイルの一覧を作る"],["2-6","対象のファイルを読む"]]},{"n":3,"name":"設計","steps":[["3-1","分岐の一覧を作る"],["3-2","機能の一覧を作る"],["3-3","対象のスキルの表示と判定の一覧を写す"],["3-4","対象の版と作成日を得る"],["3-5","機能ごとに観点を選び、テストケースを作って文書の案にする"],["3-6","文書の案を SKILL.md と突き合わせる"],["3-7","テストケースの承認を得る [ユーザー確認]"]]},{"n":4,"name":"書き出し","steps":[["4-1","既存の文書があるかを見る [分岐]"],["4-2","上書きの意思を聞く [ユーザー確認]"],["4-3","文書を書く"]]},{"n":5,"name":"最終出力の確認とユーザーへの完了の報告","steps":[["5-1","最終出力が最終出力の表と合うかを確かめる"],["5-2","ユーザーに完了を報告する"]]}]},"designing-skill-test-scenarios":{"title":"テストシナリオの作成","desc":"雛形「スキルの雛形(phase と step)」で作ったスキルのテストケースの文書(`テストケース.md`)を読み、同じ依頼と見本のファイルで確かめられるケースを 1 つのシナリオにまとめ、シナリオごとの依頼の文、回答、選ぶ選択肢、見本のファイル、委任の返事、実行の回数、通る step と、分岐の網羅を決めて、テストシナリオの文書を 1 つ書き出す。","purpose":"テストケースの文書のケースを同じ依頼ごとにシナリオにまとめ、テストシナリオの文書を 1 つ書き出す。シナリオごとに依頼の文と見本のファイルと委任の返事と実行の回数を決め、通る step と分岐の網羅を確かめる。","phases":[{"n":1,"name":"全スキル共通の決まりの読み込み","steps":[["1-1","全スキル共通の決まりを読む"]]},{"n":2,"name":"入力の確定","steps":[["2-1","依頼を読み取る"],["2-2","依頼から読み取れなかった開始時の入力をユーザーに聞く"],["2-3","テストケースの文書を読む"],["2-4","本作業の入力をまとめる"],["2-5","対象のスキルのファイルを読む"]]},{"n":3,"name":"設計","steps":[["3-1","ケースを同じ依頼でまとめてシナリオの候補にする"],["3-2","シナリオごとに依頼の文と回答と選択肢と見本のファイルと委任の返事と実行の回数を決める"],["3-3","通る step と通る分岐の側を分岐の一覧からたどる"],["3-4","分岐の網羅を作り、覆えない側と足すとよいケースを決める"],["3-5","文書の材料を集める"],["3-6","シナリオの案を組む"],["3-7","シナリオの案を SKILL.md とテストケースの文書と突き合わせる"],["3-8","シナリオの承認を得る [ユーザー確認]"]]},{"n":4,"name":"書き出し","steps":[["4-1","既存の文書があるかを見る [分岐]"],["4-2","上書きの意思を聞く [ユーザー確認]"],["4-3","文書を書く"]]},{"n":5,"name":"最終出力の確認とユーザーへの完了の報告","steps":[["5-1","最終出力が最終出力の表と合うかを確かめる"],["5-2","ユーザーに完了を報告する"]]}]},"testing-skill-with-template":{"title":"エージェントスキルの実行検証","desc":"雛形「スキルの雛形(phase と step)」で作ったスキルのテストシナリオの文書のシナリオごとに、そのスキルについて何も知らない実行者のサブエージェントに対象のスキルを実行させ、テストケースごとに「合格」「不合格」「判定できない」の 3 値で判定して、実行者と判定者の返り値の全文と実行後の成果物の写しとテスト結果の文書を、指定の出力先の実行日時のフォルダに書く。","purpose":"何も知らない実行者にテストシナリオどおりに対象のスキルを実行させ、テストケースごとに 3 値で判定して結果を書く。要件を満たす語句の差は「期待との差」に残し、最終出力の中身のはい/いいえの列挙式の項目は、別の判定者のサブエージェントに判定させる。","phases":[{"n":1,"name":"全スキル共通の決まりの読み込み","steps":[["1-1","全スキル共通の決まりを読む"]]},{"n":2,"name":"入力の確定","steps":[["2-1","依頼を読み取る"],["2-2","依頼から読み取れなかった開始時の入力をユーザーに聞く"],["2-3","テストシナリオの文書を読む"],["2-4","テストシナリオの文書から値とシナリオの一覧を写す"],["2-5","テストケースの文書を読む"],["2-6","テストケースの文書から判定の表と最終出力の表とテストケースの一覧を写す"],["2-7","実行の単位の一覧を作る"],["2-8","対象のスキルがあるかを確かめる"]]},{"n":3,"name":"実行と機械的な判定","steps":[["3-1","一時フォルダを作る"],["3-2","実行の単位を 1 件ずつ処理する [繰り返し]"],["3-3","見本のファイルを置く"],["3-4","見本の控えの一覧を作る"],["3-5","実行者への指示を作る"],["3-6","実行者に実行させる [委任]"],["3-7","実行結果を取る"],["3-8","テストケースごとに機械的に判定する"]]},{"n":4,"name":"推論の判定と結果の書き出し","steps":[["4-1","判定者への指示を作る"],["4-2","最終出力の中身を判定者に判定させる [委任]"],["4-3","判定者の返り値をケースの結果に反映する"],["4-4","結果のフォルダを作る"],["4-5","実行者と判定者の記録を書く"],["4-6","実行後の成果物の写しを書く"],["4-7","テスト結果の文書を書く"],["4-8","一時フォルダを消す"]]},{"n":5,"name":"最終出力の確認とユーザーへの完了の報告","steps":[["5-1","最終出力が最終出力の表と合うかを確かめる"],["5-2","ユーザーに完了を報告する"]]}]},"fixing-skill-from-test-results":{"title":"テストの不合格によるスキルの修正","desc":"雛形「スキルの雛形(phase と step)」で作ったスキルを、testing-skill-with-template が書いたテスト結果の文書に沿って、不合格と判定できないのケースの原因を 5 つの種類に仕分け、スキルの誤りだけを直し、もう一度テストする依頼の文を含む修正の結果をチャットに表示する。","purpose":"テストの不合格と判定できないのケースの原因を 5 つの種類に仕分け、対象のスキルの誤りだけを直し、もう一度テストする依頼の文を出す。テストの実行は testing-skill-with-template に任せる。","phases":[{"n":1,"name":"全スキル共通の決まりの読み込み","steps":[["1-1","全スキル共通の決まりを読む"]]},{"n":2,"name":"入力の確定","steps":[["2-1","依頼を読み取る"],["2-2","依頼から読み取れなかった開始時の入力をユーザーに聞く"],["2-3","テスト結果の文書を読む"],["2-4","テストの文書と対象のスキルの SKILL.md を読む"],["2-5","規約の一式が文脈にあるかを見る"],["2-6","不合格のケースと実行の記録を集める"]]},{"n":3,"name":"原因の仕分け","steps":[["3-1","不合格の原因を 5 つの種類に仕分ける"],["3-2","仕分けの結果の承認を得る [ユーザー確認]"]]},{"n":4,"name":"修正","steps":[["4-1","直す前の写しを作る"],["4-2","スキルの誤りを直す"],["4-3","直す前の写しとの差分を取る"],["4-4","戻す直しを決める"],["4-5","戻す直しを戻す"],["4-6","直す前の文をテストの文書から探す"],["4-7","修正の結果を表示する"],["4-8","直す前の写しを消す"]]},{"n":5,"name":"最終出力の確認とユーザーへの完了の報告","steps":[["5-1","最終出力が最終出力の表と合うかを確かめる"],["5-2","ユーザーに完了を報告する"]]}]},"revising-skill-writing-rule":{"title":"スキル作成の規約の改訂","desc":"スキル作成の規約の一式(規約、雛形、完成例)に決まりを足す、直す、消す依頼を、規約の規則、雛形、規約の冒頭の章、設計書、規約にも雛形にもしないものに仕分けて既にある決まりと照らし、置く位置の決定、置き場の形の文、節の中の番号の振り直しと参照の修正、ピンクの象を除く書き直し、承認、反映、全スキルと完成例との照合までを規約の改訂の規則の手順で行う。","purpose":"スキル作成の規約の一式に決まりを足す、直す、消す依頼を、置き場ごとに仕分けて既にある決まりと照らしてから、規約の改訂の規則のとおりの手順で書き換え、書き換え後の規約の一式と、書き換え後のスキルのファイルを残す。","phases":[{"n":1,"name":"全スキル共通の決まりの読み込み","steps":[["1-1","全スキル共通の決まりを読む"]]},{"n":2,"name":"入力の確定","steps":[["2-1","依頼を読み取る"],["2-2","依頼から読み取れなかった開始時の入力をユーザーに聞く"],["2-3","作業フォルダを求める"],["2-4","規約の一式と規約 rule-writing-rule があるかを確かめる"],["2-5","スキルの一式のファイルの一覧を作る"]]},{"n":3,"name":"案の作成","steps":[["3-1","規約の一式を読む"],["3-2","依頼を仕分けて既にある決まりと照らす"],["3-3","置く位置と番号を決める"],["3-4","置き場の形で文を書く"],["3-5","参照の修正が要るかを見る [分岐]"],["3-6","参照のある行を検索して一覧にする"],["3-7","ピンクの象を除いて書き直す"],["3-8","変更の案の承認を得る [ユーザー確認]"]]},{"n":4,"name":"反映と照合","steps":[["4-1","参照のあるファイルの参照を 1 件ずつ直す"],["4-2","規約の一式の置き場を書き換える"],["4-3","設計書に決定の記録を足す"],["4-4","スキルのフォルダごとと完成例に委任の指示文を作る"],["4-5","サブエージェントに規約の一式とスキルを比べさせる [委任]"],["4-6","参照の違反を直す [やり直し]"],["4-7","規約の変更で生じた違反があるかを見る [分岐]"],["4-8","規約の変更で生じた違反の扱いを聞く [ユーザー確認]"]]},{"n":5,"name":"最終出力の確認とユーザーへの完了の報告","steps":[["5-1","最終出力が最終出力の表と合うかを確かめる"],["5-2","ユーザーに完了を報告する"]]}]}};
+const REPO = "https://github.com/1139-Yu-Ki-8963/agent-toolkit";
+const NEW = {
+  "new-orchestrate":{id:"orchestrating-skill-development",jp:"スキル開発の統括",what:"流れ全体を受け持つ。次のフェーズと使うスキルを決め、スキルごとの状態と残りの問題を記録し、各フェーズの終わりの条件を満たしたかを見る。",state:"スキルも設計もない。統括するスキルが各スキルを起動してよいかを、先に決める必要がある。"},
+  "new-requirements":{id:"defining-skill-requirements",jp:"スキルの要件の定義",what:"依頼を受け、関係する規約と既にあるスキルを調べ、足りない情報を質問し、案を出して承認を得て、要件定義書を書く。",state:"スキルはない。古い設計書「要件の質問による具体化」があり、今の流れに合わせて設計し直す。"},
+  "new-template":{id:"selecting-skill-template",jp:"雛形の選択",what:"要件定義書から、使う雛形を選び、選んだ理由を書く。",state:"スキルも設計もない。雛形を選ぶ基準の規約もない。"},
+  "new-structure":{id:"designing-skill-structure",jp:"スキルの構成の設計",what:"要件定義書と選んだ雛形から、phase と step の分け方、各 step の種別、AI の推論の step の判断の基準を決める。",state:"スキルも設計もない。設計の規約もない。"},
+  "new-review":{id:"reviewing-skill-design",jp:"スキルの設計のレビュー",what:"構成の設計に漏れや誤りがないかを批判的に見て、採る指摘と採らない指摘を選ぶ。",state:"スキルも設計もない。"},
+  "new-rulecheck":{id:"checking-skill-against-rules",jp:"スキルと規約の照合",what:"雛形を前提にせず、規約の「守ること」の規則だけにスキルを照らす。",state:"スキルも設計もない。checking は雛形だけに照らす受け持ちに直す。"},
+  "new-testpolicy":{id:"deciding-skill-test-policy",jp:"テストの方針の決定",what:"要件定義書の受け入れの基準と、壊れると困る所から、何をどの深さで確かめるかを決める。",state:"スキルも設計もない。"},
+  "new-accept":{id:"judging-skill-acceptance",jp:"スキルの受け入れの判断",what:"テスト結果が要件を満たすかを見て、満たさないときに戻るフェーズを決める。",state:"スキルも設計もない。"},
+  "new-impact":{id:"analyzing-skill-change-impact",jp:"変更の影響の洗い出し",what:"変える前に、変わる動きと、合わせて直すもの(テスト、要件定義書、ほかのスキル)の一覧を作る。",state:"スキルも設計もない。"},
+  "new-retro":{id:"collecting-skill-failures",jp:"失敗の振り返り",what:"使う中で起きた失敗を集め、どの役割の穴だったかを仕分けて、直しの候補にする。",state:"スキルも設計もない。"}
+};
+const PHASES = [
+  {name:"要件定義",in:"ユーザーの依頼",out:"要件定義書",skills:["new-requirements"]},
+  {name:"雛形の選択",in:"要件定義書、雛形の一覧",out:"選んだ雛形と、選んだ理由",skills:["new-template"]},
+  {name:"構成の設計",in:"要件定義書、選んだ雛形",out:"構成の設計",skills:["new-structure"]},
+  {name:"設計のレビュー",in:"構成の設計、要件定義書",out:"承認された構成の設計",skills:["new-review"]},
+  {name:"下書き",in:"承認された構成の設計",out:"スキルのフォルダ",skills:["drafting-skill-with-template"]},
+  {name:"静的検証",in:"スキルのフォルダ",out:"照合を通ったスキル",skills:["new-rulecheck","checking-skill-with-template","fixing-skill-with-template"]},
+  {name:"テストの方針",in:"要件定義書",out:"テストの方針",skills:["new-testpolicy"]},
+  {name:"テスト設計",in:"テストの方針、スキルのフォルダ",out:"テストケース、テストシナリオ",skills:["designing-skill-test-cases","designing-skill-test-scenarios"]},
+  {name:"テスト実行",in:"テストシナリオ",out:"テスト結果",skills:["testing-skill-with-template","fixing-skill-from-test-results"]},
+  {name:"受け入れの判断",in:"テスト結果、要件定義書",out:"ユーザーの承認か、戻るフェーズ",skills:["new-accept"]},
+  {name:"保守",in:"変更の依頼",out:"変わる動きと合わせて直すものの一覧",skills:["new-impact","revising-skill-writing-rule","new-retro"]}
+];
+const NOTES = {"checking-skill-with-template":"雛形だけに照らす受け持ちに直す予定。","fixing-skill-with-template":"規約だけに照らすスキルの指摘も受け取れるように直す予定。","designing-skill-test-cases":"期待を、テストの方針と要件定義書から作るように直す予定。"};
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let curPhase = 0, curSkill = null;
+
+function renderPhases(){
+  $("#phases").innerHTML = PHASES.map((p,i)=>{
+    const n = p.skills.filter(s=>s.startsWith("new-")).length;
+    const meta = n===p.skills.length ? `新規スキル ${n}(まだない)` : (n ? `あるスキル ${p.skills.length-n}、新規スキル ${n}` : `あるスキル ${p.skills.length}`);
+    return `<li><button type="button" data-i="${i}" aria-current="${i===curPhase}"><span class="num">${String(i+1).padStart(2,"0")}</span><span class="pname">${p.name}</span><span class="pmeta">${meta}</span></button></li>`;
+  }).join("");
+}
+function skillJp(id){ return id.startsWith("new-") ? NEW[id].jp : SKILLS[id].title; }
+function renderPhase(){
+  const p = PHASES[curPhase];
+  $("#phaseCard").innerHTML = `
+    <dl class="io"><dt>入力</dt><dd>${p.in}</dd><dt>出力</dt><dd>${p.out}</dd></dl>
+    <div class="skills">${p.skills.map(id=>`
+      <button type="button" class="skill" data-id="${id}" aria-pressed="${id===curSkill}">
+        <span class="row"><span class="jp">${esc(skillJp(id))}${id.startsWith("new-")?"(新規スキル)":""}</span><span class="chip ${id.startsWith("new-")?"new":"have"}">${id.startsWith("new-")?"新規スキル":"ある"}</span></span>
+        <span class="id">${id.startsWith("new-")?`仮の名前: ${NEW[id].id}`:id}</span>
+      </button>`).join("")}</div>`;
+}
+function renderDetail(){
+  const el = $("#detail");
+  if(!curSkill){ el.innerHTML = `<p class="empty">真ん中の一覧からスキルを選んでください。</p>`; return; }
+  if(curSkill.startsWith("new-")){
+    const s = NEW[curSkill];
+    el.innerHTML = `<h3>${s.jp}(新規スキル)</h3><div class="id">仮の名前: ${s.id}</div><span class="chip new" style="margin-top:6px">新規スキル(まだない)</span>
+      <section><h4>受け持つこと</h4><p>${s.what}</p></section>
+      <section><h4>今の状態</h4><p>${s.state}</p></section>`;
+    return;
+  }
+  const s = SKILLS[curSkill];
+  const cmd = `git clone ${REPO}.git\ncp -R agent-toolkit/payload/public-skills/.claude/rules/skill-writing <プロジェクト>/.claude/rules/\ncp -R agent-toolkit/payload/public-skills/.claude/skills/${curSkill} <プロジェクト>/.claude/skills/`;
+  el.innerHTML = `<h3>${esc(s.title)}</h3><div class="id">${curSkill}</div>
+    <section><h4>目的</h4><p>${esc(s.purpose)}</p>${NOTES[curSkill]?`<p class="note">${NOTES[curSkill]}</p>`:""}</section>
+    <section><h4>入手</h4>
+      <p class="note">プロジェクトの <code>.claude/</code> に、規約とスキルを置きます。規約はプロジェクトの中のファイルにしか効かないため、<code>~/.claude/</code> には置きません。</p>
+      <pre class="cmd" id="cmd">${esc(cmd)}</pre>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button type="button" class="btn" id="copy">コマンドをコピー</button>
+      <a href="${REPO}/tree/main/payload/public-skills/.claude/skills/${curSkill}" target="_blank" rel="noopener">GitHub で開く</a></div>
+    </section>
+    <section><h4>スキルの中の流れ</h4>
+      ${s.phases.map((p,i)=>`<details ${i===1?"open":""}><summary><span class="num">phase ${p.n}</span>${esc(p.name)}<span class="tag">${p.steps.length} step</span></summary>
+        <ul class="steps">${p.steps.map(([n,name])=>`<li><span class="num">${n}</span><span>${esc(name.replace(/ \[(.+)\]$/,""))}${/\[(.+)\]$/.test(name)?`<span class="tag">${name.match(/\[(.+)\]$/)[1]}</span>`:""}</span></li>`).join("")}</ul></details>`).join("")}
+    </section>`;
+  $("#copy").addEventListener("click", async e=>{
+    try{ await navigator.clipboard.writeText(cmd); e.target.textContent="コピーしました"; }
+    catch{ const r=document.createRange(); r.selectNodeContents($("#cmd")); const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r); e.target.textContent="選択しました。コピーしてください"; }
+  });
+}
+function render(){ renderPhases(); renderPhase(); renderDetail(); }
+$("#phases").addEventListener("click", e=>{ const b=e.target.closest("button"); if(!b) return; curPhase=+b.dataset.i; curSkill=PHASES[curPhase].skills.find(id=>!id.startsWith("new-"))||PHASES[curPhase].skills[0]; render(); });
+$("#phaseCard").addEventListener("click", e=>{ const b=e.target.closest(".skill"); if(!b) return; curSkill=b.dataset.id; renderPhase(); renderDetail(); });
+$("#orch").addEventListener("click", ()=>{ curSkill="new-orchestrate"; renderPhase(); renderDetail(); $("#detail").scrollIntoView({block:"nearest"}); });
+curPhase=4; curSkill="drafting-skill-with-template";
+render();
+</script>
+
+</body>
+</html>

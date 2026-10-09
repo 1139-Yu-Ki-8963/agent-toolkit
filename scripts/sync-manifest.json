@@ -22,6 +22,11 @@
     },
     {
       "mode": "file",
+      "src": "~/Projects/public-skills/スキル開発の流れ.html",
+      "dst": "payload/public-skills/スキル開発の流れ.html"
+    },
+    {
+      "mode": "file",
       "src": "~/Projects/public-skills/変更履歴.md",
       "dst": "payload/public-skills/変更履歴.md"
     },
