@@ -11,6 +11,11 @@
       "dst": "payload/public-skills/.claude/rules"
     },
     {
+      "mode": "mirror",
+      "src": "~/Projects/public-skills/提案",
+      "dst": "payload/public-skills/提案"
+    },
+    {
       "mode": "file",
       "src": "~/Projects/public-skills/README.md",
       "dst": "payload/public-skills/README.md"
