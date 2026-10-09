@@ -124,6 +124,7 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 | reporting-textlint-findings | 承認済み | 初期同期対象（2026-09-15） | |
 | drafting-skill-with-template（旧 creating-agent-skills） | 承認済み | ユーザーの公開指示（2026-09-29）。環境固有のパスなし。実行者の検証 8 回で必須要件すべて ○。2026-09-30 に新規作成だけへ縮小し、drafting-skill-with-template に改名 | source: agent-home@09baffc、public-skills@bee2543 |
 | testing-agent-skills | 承認済み | ユーザーの公開指示（2026-09-29）。成果物は一時フォルダに書き終了時に消す。環境固有のパスなし | source: agent-home@8a3313c、public-skills@68984d1 |
+| managing-textlint-banned-words | 承認済み | ユーザーの公開の承認(2026-10-09)。混入の照合(step 3-8)で 0 件 | source: public-skills |
 
 | reviewing-agent-skills | 承認済み | 3 分割で新設（2026-09-30）。環境固有のパスなし。実行者の検証 2 シナリオで必須要件すべて ○、結果を変える点 0 件 | source: agent-home@09baffc、public-skills@bee2543 |
 | agent-skill-templates | 除外（廃止） | 2026-10-01 に rules/agent-skill へ移して廃止。payload と manifest から除去 | |

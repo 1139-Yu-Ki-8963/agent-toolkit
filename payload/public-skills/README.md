@@ -28,6 +28,7 @@ settings.json への追加は要らない。規約は、プロジェクトの中
 - `fixing-skill-from-test-results`: 雛形「スキルの雛形(phase と step)」で作ったスキルを、testing-skill-with-template が書いたテスト結果の文書に沿って、不合格と判定できないのケースの原因を 5 つの種類に仕分け、スキルの誤りだけを直し、もう一度テストする依頼の文を含む修正の結果をチャットに表示する。
 - `converting-mermaid-md-to-html`: Mermaid の図を含む md ファイル 1 本を、md の中身を変えずに、図をホイールで拡大、ドラッグで移動、右上のボタンで元に戻せて、上のバーに目次ボタンを持ち、ブラウザで直接開ける 1 ページの HTML に変換する。
 - `reporting-textlint-findings`: md を textlint で機械検査し、指摘箇所に波線を引いた HTML を出す。規約ができる前に書いた古い形のスキルで、`references/step共通の決まり.md` を持たず、`.textlintrc.json` をスキルの直下に置く。規約との照合の対象にはならない。古い形のまま収録している。
+- `managing-textlint-banned-words`: textlint の禁止語の辞書と設定と hooks を依頼どおりの状態にし、辞書を一覧で表示する。
 
 ## 規約(`.claude/rules/skill-writing/`)
 
