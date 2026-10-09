@@ -147,6 +147,7 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 |---|---|---|---|
 | スキル開発の流れ.md(スキルではない。流れの解説の文書) | 承認済み | ユーザーの公開指示(2026-10-09「公開までして」)。環境固有のパスなし(grep で /Users/、MacPro、agent-home が 0 件) | file。source: public-skills@8e3b8a1 |
 | スキル開発の流れ.html(スキルではない。流れの解説図。フェーズを選ぶと使うスキルと中身が出る) | 承認済み | ユーザーの公開指示(2026-10-09「公開してよ」)。環境固有のパスなし(grep で /Users/、MacPro、agent-home が 0 件)。外から読むのは Google Fonts だけ | file。source: public-skills@e592f4a |
+| スキル開発の流れ-ver2.html(スキルではない。11 の工程を 1 列に並べ、スキルを押すと中身が開く図) | 承認済み | ユーザーの公開指示(2026-10-09「ver2として、新規作成して公開して」)。github、アカウント名、/Users/、MacPro、agent-home が 0 件 | file。source: public-skills@cbca5be |
 
 ## ai-consulting-toolkit（公開の再開 2026-10-05）
 
