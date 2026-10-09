@@ -141,6 +141,12 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 | testing-agent-skills（作り直し） | 承認済み | 検証者で規約と照合し違反 0 件。環境固有のパスなし | 同上 |
 | reviewing-agent-skills、rules/skill-writing（12 本版） | 除外 | 2026-10-05 にユーザーの指示で公開をやめた | payload と manifest から除去 |
 
+### 2026-10-09 の追加
+
+| 対象 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| スキル開発の流れ.md(スキルではない。流れの解説の文書) | 承認済み | ユーザーの公開指示(2026-10-09「公開までして」)。環境固有のパスなし(grep で /Users/、MacPro、agent-home が 0 件) | file。source: public-skills@8e3b8a1 |
+
 ## ai-consulting-toolkit（公開の再開 2026-10-05）
 
 2026-09-29 に公開をやめた ai-consulting-toolkit を、ユーザーの決定（2026-10-05）で再び公開する。正本は `~/Projects/ai-consulting-toolkit`（ローカルのみ、リモートなし）。公開前の検査（2026-10-05）: 秘密情報・メールアドレス・`/Users/` のパスなし。ポータルのデータは A 社〜J 社の架空のプロトタイプ。`clients/` は空で、settings.json の hook も対象外。`~/agent-home` への言及が consult-ai-config-doctor の参照資料（解体済みスキルへの古いリンク 5 行）と解説スライド 1 本の図にあるが、秘密ではなく前回の公開版にも含まれていたため、そのまま公開する。
