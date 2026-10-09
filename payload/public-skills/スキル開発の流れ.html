@@ -80,6 +80,7 @@ ul.steps .num{padding-top:2px}
 .whole ul{margin:0;padding-left:1.2em;font-size:14px}
 .wg{display:grid;grid-template-columns:1fr 1fr;gap:4px 24px}
 @media (max-width:700px){.wg{grid-template-columns:1fr}}
+h4.sk{font-size:13px;letter-spacing:.06em;color:var(--muted);margin:14px 0 6px;font-weight:700;border-top:1px solid var(--line);padding-top:12px}
 h3.ph{font-family:var(--display);font-size:18px;margin:0 0 6px}
 p.goal{margin:0 0 10px}
 p.goal b{display:inline-block;font-size:12px;color:var(--accent);border:1px solid var(--accent);border-radius:4px;padding:0 6px;margin-right:8px}
@@ -117,7 +118,7 @@ table.t td code,table.t td{overflow-wrap:anywhere}
   </section>
   <div class="grid">
     <nav class="pane" aria-label="フェーズ"><h2>フェーズ</h2><ol class="phases" id="phases"></ol></nav>
-    <div class="pane"><h2>このフェーズで使うスキル</h2><div class="card" id="phaseCard"></div></div>
+    <div class="pane"><h2>フェーズの中身</h2><div class="card" id="phaseCard"></div></div>
     <div class="pane"><h2>スキルの中身</h2><div class="card detail" id="detail"></div></div>
   </div>
 </div>
@@ -214,6 +215,7 @@ function renderPhase(){
     <div class="fr"><div><h4>機能</h4><ul>${pi.func.map(x=>`<li>${x}</li>`).join("")}</ul></div>
     <div><h4>要件(終わりの条件)</h4><ul>${pi.req.map(x=>`<li>${x}</li>`).join("")}</ul></div></div>
     <dl class="io"><dt>入力</dt><dd>${p.in}</dd><dt>出力</dt><dd>${p.out}</dd></dl>
+    <h4 class="sk">使うスキル</h4>
     <div class="skills">${p.skills.map(id=>`
       <button type="button" class="skill" data-id="${id}" aria-pressed="${id===curSkill}">
         <span class="row"><span class="jp">${esc(skillJp(id))}${id.startsWith("new-")?"(新規スキル)":""}</span><span class="chip ${id.startsWith("new-")?"new":"have"}">${id.startsWith("new-")?"新規スキル":"ある"}</span></span>
