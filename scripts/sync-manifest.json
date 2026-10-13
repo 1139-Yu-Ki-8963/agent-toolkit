@@ -27,6 +27,16 @@
     },
     {
       "mode": "file",
+      "src": "~/Projects/public-skills/スキル開発の流れの各スキルの要件.md",
+      "dst": "payload/public-skills/スキル開発の流れの各スキルの要件.md"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/public-skills/テストの前提の状態に関する問題.md",
+      "dst": "payload/public-skills/テストの前提の状態に関する問題.md"
+    },
+    {
+      "mode": "file",
       "src": "~/Projects/public-skills/スキル開発の流れ.html",
       "dst": "payload/public-skills/スキル開発の流れ.html"
     },
