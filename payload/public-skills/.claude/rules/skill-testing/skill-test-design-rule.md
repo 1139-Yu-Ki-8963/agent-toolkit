@@ -1,7 +1,7 @@
 ---
 paths:
   - .claude/skills/**/*
-  - .claude/rules/test-design/**/*
+  - .claude/rules/skill-testing/**/*
 ---
 
 # スキルのテスト設計の規約
