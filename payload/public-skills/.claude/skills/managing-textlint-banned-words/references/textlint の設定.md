@@ -9,16 +9,19 @@ step 1-5 で、不足している前提ツールを入れるときに読む。
 ### OS の見分け方
 
 ```bash
-uname -s
+node -p process.platform
 ```
 
-出力が `Darwin` なら macOS とする。
+出力が `darwin` なら macOS、`linux` なら Linux、`win32` なら Windows とする。
+node がないときは、実行している OS を、ユーザーの環境の見た目(シェルの名前、パスの区切り)から決める。
 
 ### OS ごとの入れ方
 
 | OS | ツール | コマンド |
 |---|---|---|
 | macOS | node | `brew install node` |
+| Linux | node | `brew install node` |
+| Windows | node | `winget install OpenJS.NodeJS.LTS` |
 | すべての OS | textlint | `npm install -g textlint` |
 | すべての OS | textlint-rule-preset-ai-words-ja | `npm install -g textlint-rule-preset-ai-words-ja` |
 | すべての OS | textlint-filter-rule-allowlist | `npm install -g textlint-filter-rule-allowlist` |
@@ -75,10 +78,10 @@ tokens は、形態素解析で分けた語の並びに、前から順に当て�
 
 使い方と例文から tokens を書く手順は、次のとおりとする。
 当てる例文と当てない例文を、次のコマンドで形態素に分ける。
-コマンドは、グローバルに入れた kuromojin を `NODE_PATH` で探す。
+コマンドは、グローバルに入れた kuromojin を、`npm root -g` の出力のフォルダから読み込む。
 
 ```bash
-NODE_PATH=$(npm root -g) node -e "require('kuromojin').tokenize('<例文>').then(t=>console.log(t.map(x=>[x.surface_form,x.pos,x.pos_detail_1,x.basic_form].join('/')).join(' | ')))"
+node -e "const r=require('child_process').execSync('npm root -g').toString().trim();require(require('path').join(r,'kuromojin')).tokenize('<例文>').then(t=>console.log(t.map(x=>[x.surface_form,x.pos,x.pos_detail_1,x.basic_form].join('/')).join(' | ')))"
 ```
 
 当てる例文のすべてにあり、当てない例文のどれにもない形態素の並びを探し、その並びを条件にする。
@@ -200,7 +203,7 @@ settings.json の `hooks.PostToolUse` の配列に、次の項目を 1 つ足す
   "hooks": [
     {
       "type": "command",
-      "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in *.md) textlint --config <設定のフォルダ>/.textlintrc.json \"$f\" >&2 || exit 2;; esac"
+      "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{let f='';try{f=JSON.parse(d).tool_input.file_path||''}catch(e){}if(!f.endsWith('.md'))process.exit(0);const r=require('child_process').spawnSync('textlint',['--config',process.argv[1],f],{encoding:'utf8',shell:true});if(r.status!==0){process.stderr.write(r.stdout+r.stderr);process.exit(2)}})\" <設定のフォルダ>/.textlintrc.json"
     }
   ]
 }
@@ -208,15 +211,16 @@ settings.json の `hooks.PostToolUse` の配列に、次の項目を 1 つ足す
 
 ### hooks の項目の動き
 
-ファイルを書くツール(matcher の Write と Edit)が動いたあとに、書いたファイルのパスを受け取る。
+ファイルを書くツール(matcher の Write と Edit)が動いたあとに、書いたファイルのパスを、標準入力の JSON の `tool_input.file_path` で受け取る。
 
 パスが `.md` で終わるときだけ textlint で検査する。
 
 指摘があると textlint は終了コード 1 を返し、この項目は指摘の文を標準エラーに出して終了コード 2 を返す。
 終了コード 2 の標準エラーは、Claude に指摘として渡る。
 
-この項目は、Claude Code を起動した環境の PATH から textlint を探し、書いたファイルのパスを jq で取り出す。
-jq は macOS 15 以降に標準で入っている。
+この項目は、node の 1 つのコマンドで、標準入力の読み取り、パスの判定、textlint の起動を行う。
+node は、Claude Code を起動した環境の PATH から textlint を探す。
+command はシェルの構文を持たないので、macOS と Linux の sh、Windows の Git Bash と PowerShell のどれで起動されても同じに動く。
 
 ### 登録済みかの見分け方
 
@@ -224,7 +228,7 @@ jq は macOS 15 以降に標準で入っている。
 
 ## 一覧の書式
 
-step 4-2 で辞書を一覧で表示するときに読む。
+step 4-4 で辞書を一覧で表示するときに読む。
 
 ### 登録内容を示すとき
 
