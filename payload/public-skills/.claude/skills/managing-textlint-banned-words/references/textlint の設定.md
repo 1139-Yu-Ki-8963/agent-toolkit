@@ -13,7 +13,6 @@ node -p process.platform
 ```
 
 出力が `darwin` なら macOS、`linux` なら Linux、`win32` なら Windows とする。
-node がないときは、実行している OS を、ユーザーの環境の見た目(シェルの名前、パスの区切り)から決める。
 
 ### OS ごとの入れ方
 
@@ -36,7 +35,7 @@ npm は node と一緒に入る。
 
 ## 辞書の雛形
 
-step 3-3 で、辞書の案を作るときに読む。
+step 3-2 で、辞書の案を作るときに読む。
 
 ### 責務の分担
 
@@ -161,13 +160,13 @@ node -e "const r=require('child_process').execSync('npm root -g').toString().tri
 
 ## 設定の雛形
 
-step 3-4 で、設定の案を作るときに読む。
+step 3-3 で、設定の案を作るときに読む。
 
 ### .textlintrc.json の全文
 
 `ai-words-dict.json` の語だけで指摘する(`dictionaryMode` を `override` にする)。
 短い主題の直後の読点の規則は切る。
-フィルタは、行頭が「参考:」「例:」などの行と、`<!-- textlint-disable -->` から `<!-- textlint-enable -->` までの範囲を検査から外す。
+フィルタは、行頭が、下の `allow` の正規表現に挙げた語と「:」で始まる行と、`<!-- textlint-disable -->` から `<!-- textlint-enable -->` までの範囲を検査から外す。
 
 ```json
 {
@@ -190,7 +189,7 @@ step 3-4 で、設定の案を作るときに読む。
 
 ## hooks の雛形
 
-step 3-1 で登録済みかを見るときと、step 3-4 で hooks の案を作るときに読む。
+step 2-3 で登録済みかを見るときと、step 3-3 で hooks の案を作るときに読む。
 
 ### hooks の項目の全文
 
