@@ -1,0 +1,252 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>スキル開発の流れ(現状)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Zen+Kaku+Gothic+New:wght@500;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* layout: one column of 11 phases read top to bottom; same tokens as スキル開発の流れ-ver2.html */
+:root{
+  --bg:#f3f4f1; --surface:#ffffff; --ink:#1d2421; --muted:#5c6a64; --line:#d6dcd8;
+  --have:#2f6f5e; --have-soft:#e1efe9; --new:#a4561b; --new-soft:#f7e9dc; --human:#4a5a9a; --human-soft:#e6e9f6;
+  --display:"Zen Kaku Gothic New","Hiragino Sans","Yu Gothic",sans-serif;
+  --body:"BIZ UDPGothic","Hiragino Sans","Yu Gothic",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141917; --surface:#1c2320; --ink:#e4ebe7; --muted:#9aa9a2; --line:#2e3833;
+  --have:#7cc4ad; --have-soft:#21362f; --new:#e5a06a; --new-soft:#3a2a1d; --human:#a9b4e6; --human-soft:#262c45; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141917; --surface:#1c2320; --ink:#e4ebe7; --muted:#9aa9a2; --line:#2e3833;
+  --have:#7cc4ad; --have-soft:#21362f; --new:#e5a06a; --new-soft:#3a2a1d; --human:#a9b4e6; --human-soft:#262c45; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15px;line-height:1.7}
+.wrap{max-width:880px;margin:0 auto;padding-inline:16px;padding-block:28px 64px}
+h1{font-family:var(--display);font-weight:700;font-size:clamp(24px,3.4vw,32px);margin:0;text-wrap:balance}
+.lead{font-size:16px;margin:.4em 0 0}
+.how{margin-top:14px;display:grid;gap:6px;font-size:14px}
+.how div{display:grid;grid-template-columns:7em 1fr;gap:8px;align-items:baseline}
+.how b{color:var(--muted);font-weight:700}
+.chip{display:inline-flex;align-items:center;font-size:12px;padding:1px 9px;border-radius:999px;white-space:nowrap}
+.chip.have{background:var(--have-soft);color:var(--have)}
+.chip.new{background:var(--new-soft);color:var(--new)}
+.chip.human{background:var(--human-soft);color:var(--human)}
+.stats{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:6px 12px;font-size:13px}
+.stat b{font-family:var(--mono);font-size:16px;margin-right:4px;font-variant-numeric:tabular-nums}
+.goal{margin-top:16px;padding:12px 14px;border-left:3px solid var(--new);background:var(--surface);border-radius:0 8px 8px 0;font-size:14px}
+.goal b{display:block;font-size:12px;color:var(--muted);letter-spacing:.06em}
+.goal ul{margin:4px 0 0;padding-left:1.2em}
+ol.flow{list-style:none;margin:26px 0 0;padding:0;position:relative}
+ol.flow::before{content:"";position:absolute;left:17px;top:8px;bottom:8px;width:2px;background:var(--line)}
+li.ph{position:relative;display:grid;grid-template-columns:36px 1fr;gap:12px;margin-bottom:14px}
+.no{width:36px;height:36px;border-radius:50%;background:var(--surface);border:2px solid var(--line);display:grid;place-items:center;font-family:var(--mono);font-size:13px;font-weight:600;position:relative;z-index:1}
+li.ph.gap .no{border-color:var(--new);color:var(--new)}
+.box{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;min-width:0}
+.box h2{font-family:var(--display);font-size:18px;margin:0;font-weight:700}
+.io{font-size:13px;color:var(--muted);margin-top:2px}
+.io span{color:var(--ink)}
+.skills{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.sk{border-radius:8px;padding:6px 12px;display:flex;flex-direction:column;max-width:100%}
+.sk.have{background:var(--have-soft)}
+.sk.new{background:var(--new-soft)}
+.sk.human{background:var(--human-soft)}
+.sk .jp{font-weight:700;font-size:14px}
+.sk.have .jp{color:var(--have)}
+.sk.new .jp{color:var(--new)}
+.sk.human .jp{color:var(--human)}
+.sk .id{font-family:var(--mono);font-size:11.5px;color:var(--muted);overflow-wrap:anywhere}
+.box h4{font-size:12px;color:var(--muted);margin:10px 0 0;letter-spacing:.04em}
+.box p{margin:2px 0 0;font-size:14px}
+.box ul{margin:2px 0 0;padding-left:1.2em;font-size:14px}
+section.tail{margin-top:26px;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+section.tail h2{font-family:var(--display);font-size:17px;margin:0 0 6px}
+section.tail ul{margin:0;padding-left:1.2em;font-size:14px}
+.rb{border-top:1px solid var(--line);padding:8px 0;font-size:14px}
+.rb:first-of-type{border-top:0}
+.rb b{display:block}
+.rb .kv{display:flex;flex-wrap:wrap;gap:2px 16px;color:var(--muted)}
+.rb .kv i{font-style:normal;margin-right:4px}
+.rb .kv span{color:var(--ink)}
+code{font-family:var(--mono);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <h1>スキル開発の流れ(現状)</h1>
+  <p class="lead">最終ゴールの 11 工程のうち、2026-10-11 の時点にあるスキルだけで回すときに、どの工程をスキルが埋め、どの工程を人が埋め、何が欠けるかを示す。工程の番号と名前は、最終ゴールの文書「スキル開発の流れ」と同じ。</p>
+  <div class="how">
+    <div><b>読み方</b><span><span class="chip have">既存スキル</span> がその工程を受け持つ。<span class="chip human">人が埋める</span> はスキルがなく、ユーザーが依頼の文や承認で埋める。<span class="chip new">スキルなし</span> は最終ゴールの新規スキルが要る工程。</span></div>
+    <div><b>段のつなぎ</b><span>段をつなぐのは、すべてユーザーの依頼の文。統括のスキルがないため、依頼の文 1 回で全工程は通らない。</span></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><b>11</b>工程</div>
+    <div class="stat"><b>6</b>工程にスキルあり</div>
+    <div class="stat"><b>5</b>工程を人が埋める</div>
+  </div>
+  <div class="goal"><b>現状の「合格」が意味すること</b>
+    <ul>
+      <li>工程 6 の合格は、「規約と雛形の機械的な判定を通り、その回の検証者が違反を見つけなかった」を意味する。検証者の指摘は回ごとに変わる。</li>
+      <li>工程 9 の合格は、「SKILL.md に書いた手順どおりに、初めて読む実行者が動いた」を意味する。要件定義書がないので、「要件を満たした」は判定できない。</li>
+      <li>両方に合格しても、最終ゴールの終わりの条件のうち、要件定義書に関わる 2 つ(受け入れの基準、受け入れ: 可)は満たしたと言えない。</li>
+    </ul>
+  </div>
+</header>
+
+<ol class="flow">
+  <li class="ph gap"><div class="no">1</div><div class="box">
+    <h2>要件定義</h2>
+    <div class="io">最終ゴールの出力 <span>要件定義書</span></div>
+    <div class="skills"><div class="sk human"><span class="jp">人が埋める</span><span class="id">ユーザーが依頼の文に、使う場面、目的、最終出力を書く</span></div><div class="sk new"><span class="jp">スキルなし</span><span class="id">defining-skill-requirements</span></div></div>
+    <h4>現状の埋め方</h4><p>drafting-skill-with-template の step 2-5 が、足りない項目を 1 回聞く。</p>
+    <h4>欠けるもの</h4><ul><li>入力、受け入れの基準、既にあるスキルとの重なりの確認。</li><li>後の工程の判断の元がないので、工程 7 から 10 は要件に対する判定ができない。</li></ul>
+  </div></li>
+
+  <li class="ph gap"><div class="no">2</div><div class="box">
+    <h2>雛形の選択</h2>
+    <div class="io">最終ゴールの出力 <span>選んだ雛形と、選んだ理由</span></div>
+    <div class="skills"><div class="sk new"><span class="jp">スキルなし</span><span class="id">selecting-skill-template</span></div></div>
+    <h4>現状の埋め方</h4><p>雛形は「スキルの雛形(phase と step)」の 1 つだけなので、選択は起きない。</p>
+    <h4>欠けるもの</h4><ul><li>雛形が増えたときの基準。</li></ul>
+  </div></li>
+
+  <li class="ph"><div class="no">3</div><div class="box">
+    <h2>構成の設計</h2>
+    <div class="io">最終ゴールの出力 <span>構成の設計</span></div>
+    <div class="skills"><div class="sk have"><span class="jp">スキルの作成</span><span class="id">drafting-skill-with-template の step 3-1</span></div></div>
+    <h4>現状の埋め方</h4><p>drafting が依頼の文から構成の案を推論で作る。</p>
+    <h4>欠けるもの</h4><ul><li>要件定義書がないため、「すべての要件がどれかの step にたどれる」ことを確かめられない。</li></ul>
+  </div></li>
+
+  <li class="ph"><div class="no">4</div><div class="box">
+    <h2>設計のレビュー</h2>
+    <div class="io">最終ゴールの出力 <span>承認された構成の設計</span></div>
+    <div class="skills"><div class="sk have"><span class="jp">スキルの作成</span><span class="id">drafting-skill-with-template の step 3-2</span></div><div class="sk human"><span class="jp">人が埋める</span><span class="id">ユーザーが構成の案を読んで承認する</span></div></div>
+    <h4>現状の埋め方</h4><p>批判的に読むのはユーザー。</p>
+    <h4>欠けるもの</h4><ul><li>要件と step の突き合わせ、指摘の仕分け。</li></ul>
+  </div></li>
+
+  <li class="ph"><div class="no">5</div><div class="box">
+    <h2>下書き</h2>
+    <div class="io">最終ゴールの出力 <span>スキルのフォルダ</span></div>
+    <div class="skills"><div class="sk have"><span class="jp">スキルの作成</span><span class="id">drafting-skill-with-template の step 4-1 と 4-2</span></div></div>
+    <h4>現状の埋め方</h4><p>構成の案から雛形どおりに書く。</p>
+    <h4>欠けるもの</h4><ul><li>なし。</li></ul>
+  </div></li>
+
+  <li class="ph"><div class="no">6</div><div class="box">
+    <h2>静的検証</h2>
+    <div class="io">最終ゴールの出力 <span>照合を通ったスキル</span></div>
+    <div class="skills">
+      <div class="sk have"><span class="jp">スキルの作成</span><span class="id">drafting-skill-with-template の step 4-3 から 4-6</span></div>
+      <div class="sk have"><span class="jp">スキルの規約チェック</span><span class="id">checking-skill-with-template</span></div>
+      <div class="sk have"><span class="jp">雛形で作ったスキルの指摘の修正</span><span class="id">fixing-skill-with-template</span></div>
+      <div class="sk new"><span class="jp">スキルなし</span><span class="id">checking-skill-with-rules</span></div>
+    </div>
+    <h4>現状の埋め方</h4><p>drafting が作成の中で照合と修正を回す。既存のスキルを直したあとは、checking と fixing-skill-with-template を同じ会話で続けて呼ぶ(指摘の一覧がチャットの表示だけで、ファイルに残らない)。</p>
+    <h4>欠けるもの</h4><ul>
+      <li>checking は規約と雛形の両方に照らす。最終ゴールでは雛形だけに照らす受け持ちで、規約との照合は checking-skill-with-rules が持つ。</li>
+      <li>drafting の step 4-3 から 4-6 と checking の step 3-4 から 3-7 は、同じ照合の手順を 2 か所に持つ。片方を直したらもう片方も直す必要がある。</li>
+      <li>検証者のサブエージェントは、流すたびに違う指摘を出す。毎回同じ結果になるのは、機械的な判定のスクリプト 3 本と 4 つのコマンドの部分だけ。</li>
+    </ul>
+  </div></li>
+
+  <li class="ph gap"><div class="no">7</div><div class="box">
+    <h2>テストの方針</h2>
+    <div class="io">最終ゴールの出力 <span>テストの方針(何をどの深さで確かめるか)</span></div>
+    <div class="skills"><div class="sk new"><span class="jp">スキルなし</span><span class="id">deciding-skill-test-policy</span></div></div>
+    <h4>現状の埋め方</h4><p>designing-skill-test-cases の雛形の規則が、機能ごとの深さ(徹底か標準)を SKILL.md の語(上書き、削除、インストール、ファイルを書く step)から機械的に決める。「要件の文」は任意の入力で、既定は「なし」。</p>
+    <h4>欠けるもの</h4><ul><li>受け入れの基準から観点を作ること。深さは要件ではなく SKILL.md の語で決まる。</li></ul>
+  </div></li>
+
+  <li class="ph"><div class="no">8</div><div class="box">
+    <h2>テスト設計</h2>
+    <div class="io">最終ゴールの出力 <span>テストケース、テストシナリオ</span></div>
+    <div class="skills">
+      <div class="sk have"><span class="jp">テストケースの設計</span><span class="id">designing-skill-test-cases</span></div>
+      <div class="sk have"><span class="jp">テストシナリオの作成</span><span class="id">designing-skill-test-scenarios</span></div>
+    </div>
+    <h4>現状の埋め方</h4><p>cases が SKILL.md と全スキル共通の決まりから期待する結果を写し、scenarios がケースをシナリオにまとめて分岐の網羅を数える。</p>
+    <h4>欠けるもの</h4><ul><li>期待する結果は要件定義書からではなく、対象の SKILL.md 自身から写す。したがって工程 9 の合格は「SKILL.md に書いたとおりに動いた」を意味し、「要件を満たした」を意味しない。</li></ul>
+  </div></li>
+
+  <li class="ph"><div class="no">9</div><div class="box">
+    <h2>テスト実行</h2>
+    <div class="io">最終ゴールの出力 <span>テスト結果</span></div>
+    <div class="skills">
+      <div class="sk have"><span class="jp">テストシナリオの実行</span><span class="id">testing-skill-with-template</span></div>
+      <div class="sk have"><span class="jp">テストの不合格によるスキルの修正</span><span class="id">fixing-skill-from-test-results</span></div>
+    </div>
+    <h4>現状の埋め方</h4><p>testing が初めて読む実行者にシナリオを実行させて記録を残し、fixing が記録と期待を照合して合格、不合格、判定できないに分け、スキルの誤りだけを直す。もう一度テストする依頼の文はチャットに出るので、ユーザーが写して依頼する。</p>
+    <h4>欠けるもの</h4><ul>
+      <li>「受け入れ: 可」の形がない。ケースごとの判定.md の件数を人が読む。</li>
+      <li>「直してもう一度テストするのは 2 回まで」の歯止めが、スキルにない。2026-10-10 から 11 の検証では、道具の 5 本を 7 回まわした。</li>
+    </ul>
+  </div></li>
+
+  <li class="ph gap"><div class="no">10</div><div class="box">
+    <h2>受け入れの判断</h2>
+    <div class="io">最終ゴールの出力 <span>ユーザーの承認か、戻るフェーズ</span></div>
+    <div class="skills"><div class="sk human"><span class="jp">人が埋める</span><span class="id">ユーザーが修正の結果とケースごとの判定.md を読んで決める</span></div><div class="sk new"><span class="jp">スキルなし</span><span class="id">judging-skill-acceptance</span></div></div>
+    <h4>現状の埋め方</h4><p>fixing-skill-from-test-results の修正の結果の表示と、ケースごとの判定.md を人が読む。</p>
+    <h4>欠けるもの</h4><ul><li>受け入れの基準(工程 1 の出力)と、戻る工程と理由の記録。</li></ul>
+  </div></li>
+
+  <li class="ph gap"><div class="no">11</div><div class="box">
+    <h2>保守</h2>
+    <div class="io">最終ゴールの出力 <span>変わる動きと合わせて直すものの一覧</span></div>
+    <div class="skills">
+      <div class="sk have"><span class="jp">スキル作成の規約の改訂</span><span class="id">revising-skill-writing-rule</span></div>
+      <div class="sk human"><span class="jp">人が埋める</span><span class="id">スキルの変更の影響の洗い出しと、失敗の振り返り</span></div>
+      <div class="sk new"><span class="jp">スキルなし</span><span class="id">analyzing-skill-change-impact、collecting-skill-failures</span></div>
+    </div>
+    <h4>現状の埋め方</h4><p>規約と雛形の変更は revising が行い、全スキルと完成例との照合までする。</p>
+    <h4>欠けるもの</h4><ul><li>analyzing-skill-change-impact、collecting-skill-failures。</li></ul>
+  </div></li>
+</ol>
+
+<section class="tail">
+  <h2>段の間の受け渡し</h2>
+  <div class="rb"><b>ユーザー → drafting-skill-with-template</b><div class="kv"><span><i>渡すもの:</i>使う場面、目的、最終出力、出力先のフォルダ</span><span><i>渡し方:</i>依頼の文</span></div></div>
+  <div class="rb"><b>drafting-skill-with-template → checking-skill-with-template</b><div class="kv"><span><i>渡すもの:</i>スキルのフォルダ</span><span><i>渡し方:</i>ユーザーが依頼の文にパスを書く</span></div></div>
+  <div class="rb"><b>checking-skill-with-template → fixing-skill-with-template</b><div class="kv"><span><i>渡すもの:</i>指摘の一覧</span><span><i>渡し方:</i>チャットの表示。同じ会話の中で続けて呼ぶ</span></div></div>
+  <div class="rb"><b>fixing-skill-with-template → designing-skill-test-cases</b><div class="kv"><span><i>渡すもの:</i>直したスキルのフォルダ</span><span><i>渡し方:</i>ユーザーが依頼の文にパスを書く</span></div></div>
+  <div class="rb"><b>designing-skill-test-cases → designing-skill-test-scenarios</b><div class="kv"><span><i>渡すもの:</i>テストケース.md</span><span><i>渡し方:</i>ファイル。ユーザーが依頼の文にパスを書く</span></div></div>
+  <div class="rb"><b>designing-skill-test-scenarios → testing-skill-with-template</b><div class="kv"><span><i>渡すもの:</i>テストシナリオ.md</span><span><i>渡し方:</i>ファイル。ユーザーが依頼の文にパスを書く</span></div></div>
+  <div class="rb"><b>testing-skill-with-template → fixing-skill-from-test-results</b><div class="kv"><span><i>渡すもの:</i>結果のフォルダ</span><span><i>渡し方:</i>フォルダ。ユーザーが依頼の文にパスを書く</span></div></div>
+  <div class="rb"><b>fixing-skill-from-test-results → testing-skill-with-template</b><div class="kv"><span><i>渡すもの:</i>もう一度テストする依頼の文</span><span><i>渡し方:</i>チャットの表示。ユーザーが写して依頼する</span></div></div>
+</section>
+
+<section class="tail">
+  <h2>最終ゴールの終わりの条件のうち、現状で確かめられないもの</h2>
+  <ul>
+    <li>要件定義書の受け入れの基準をすべて満たす。要件定義書がない。</li>
+    <li>テスト結果が「受け入れ: 可」。受け入れの判断をするスキルがなく、ユーザーが判定の記録を読んで決める。</li>
+    <li>3 か所の承認のうち、要件定義の承認と受け入れの承認は、スキルの外でユーザーが行う。設計のレビューの承認は、drafting の step 3-2 の構成の案の承認がその代わりになる。</li>
+    <li>前の工程へ戻ったときの戻り先と理由の記録。記録する場所がない。</li>
+  </ul>
+</section>
+
+<section class="tail">
+  <h2>2026-10-10 から 11 の検証で得たもののうち、この流れに残すもの</h2>
+  <ul>
+    <li>結果のフォルダと skills/tests の下のファイルから、ホームのフォルダの絶対パスとユーザー名を消す決まりとコマンド。</li>
+    <li>実行者の記録の形(通った step、表示の記録、手順から外れた点の 3 つの見出し)と、記録の形を機械的に確かめる決まり。</li>
+    <li>実行の回数が 2 のシナリオで、再現性と冪等性を同じ回の中で確かめる形。</li>
+    <li>fixing の判定を、記録と期待の照合で行い、推論で決めない決まり。</li>
+  </ul>
+</section>
+
+<section class="tail">
+  <h2>最初に埋めるべき穴</h2>
+  <ul>
+    <li>defining-skill-requirements(工程 1)と、要件定義書と構成の設計が持つものを決める設計の規約。これがないと、工程 3、4、7、8、10 の判定の元がない。</li>
+    <li>段をつなぐ決まり。checking の指摘の一覧と fixing の修正の結果がチャットの表示だけで、ファイルに残らない。統括のスキルを作るには、段の間をファイルで渡す形が要る。</li>
+  </ul>
+</section>
+</div>
+</body>
+</html>

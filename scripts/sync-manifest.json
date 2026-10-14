@@ -12,43 +12,13 @@
     },
     {
       "mode": "mirror",
-      "src": "~/Projects/public-skills/提案",
-      "dst": "payload/public-skills/提案"
+      "src": "~/Projects/public-skills/docs",
+      "dst": "payload/public-skills/docs"
     },
     {
       "mode": "file",
       "src": "~/Projects/public-skills/README.md",
       "dst": "payload/public-skills/README.md"
-    },
-    {
-      "mode": "file",
-      "src": "~/Projects/public-skills/スキル開発の流れ.md",
-      "dst": "payload/public-skills/スキル開発の流れ.md"
-    },
-    {
-      "mode": "file",
-      "src": "~/Projects/public-skills/スキル開発の流れの各スキルの要件.md",
-      "dst": "payload/public-skills/スキル開発の流れの各スキルの要件.md"
-    },
-    {
-      "mode": "file",
-      "src": "~/Projects/public-skills/テストの前提の状態に関する問題.md",
-      "dst": "payload/public-skills/テストの前提の状態に関する問題.md"
-    },
-    {
-      "mode": "file",
-      "src": "~/Projects/public-skills/スキル開発の流れ.html",
-      "dst": "payload/public-skills/スキル開発の流れ.html"
-    },
-    {
-      "mode": "file",
-      "src": "~/Projects/public-skills/スキル開発の流れ-ver2.html",
-      "dst": "payload/public-skills/スキル開発の流れ-ver2.html"
-    },
-    {
-      "mode": "file",
-      "src": "~/Projects/public-skills/変更履歴.md",
-      "dst": "payload/public-skills/変更履歴.md"
     },
     {
       "mode": "mirror",

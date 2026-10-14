@@ -157,6 +157,12 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 | スキル開発の流れ.html(スキルではない。流れの解説図。フェーズを選ぶと使うスキルと中身が出る) | 承認済み | ユーザーの公開指示(2026-10-09「公開してよ」)。環境固有のパスなし(grep で /Users/、MacPro、agent-home が 0 件)。外から読むのは Google Fonts だけ | file。source: public-skills@e592f4a |
 | スキル開発の流れ-ver2.html(スキルではない。11 の工程を 1 列に並べ、スキルを押すと中身が開く図) | 承認済み | ユーザーの公開指示(2026-10-09「ver2として、新規作成して公開して」)。github、アカウント名、/Users/、MacPro、agent-home が 0 件 | file。source: public-skills@cbca5be |
 
+### 2026-10-14 の変更
+
+| 対象 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| docs/(流れ、提案、履歴の 3 フォルダ。上の 2026-10-09 に承認した流れの md と html 2 本、提案/、各スキルの要件、テストの前提の状態に関する問題、フィードバックへの修正対応の履歴、新しい「消した規則の記録.md」を収める) | 承認済み | ユーザーの指示(2026-10-14「案 A(推奨): docs/で進めて」)。ルートの個別の file mapping 6 行と 提案/ の mirror を、docs の mirror 1 行に置き換えた。実体のない 変更履歴.md の行は消した | mirror。source: public-skills(2026-10-14 の整理) |
+
 ## ai-consulting-toolkit（公開の再開 2026-10-05）
 
 2026-09-29 に公開をやめた ai-consulting-toolkit を、ユーザーの決定（2026-10-05）で再び公開する。正本は `~/Projects/ai-consulting-toolkit`（ローカルのみ、リモートなし）。公開前の検査（2026-10-05）: 秘密情報・メールアドレス・`/Users/` のパスなし。ポータルのデータは A 社〜J 社の架空のプロトタイプ。`clients/` は空で、settings.json の hook も対象外。`~/agent-home` への言及が consult-ai-config-doctor の参照資料（解体済みスキルへの古いリンク 5 行）と解説スライド 1 本の図にあるが、秘密ではなく前回の公開版にも含まれていたため、そのまま公開する。
