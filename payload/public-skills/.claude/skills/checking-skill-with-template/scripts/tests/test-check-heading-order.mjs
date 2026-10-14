@@ -1,11 +1,15 @@
-#!/bin/sh
-S="$(cd "$(dirname "$0")/.." && pwd)/check-heading-order.sh"
-D=$(mktemp -d "${TMPDIR:-/tmp}/test-check-heading-order.XXXXXX") || exit 2
-trap 'rm -rf "$D"' EXIT
-f=0
-t() { if [ -n "$2" ]; then "$S" "$2"; else "$S"; fi > "$D/out" 2>&1; c=$?; if [ "$c" -ne "$1" ] || { [ -n "$3" ] && ! grep -q -- "$3" "$D/out"; }; then echo "失敗: $4(終了コード $c)"; f=1; else echo "成功: $4"; fi; }
-cat > "$D/ok.md" <<'X'
----
+#!/usr/bin/env node
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+const S = join(dirname(fileURLToPath(import.meta.url)), "..", "check-heading-order.mjs");
+const D = mkdtempSync(join(process.env.TMPDIR || "/tmp", "test-check-heading-order-"));
+process.on("exit", () => rmSync(D, { recursive: true, force: true }));
+let f = 0;
+const t = (code, args, want, name) => { const r = spawnSync(process.execPath, [S, ...args], { encoding: "utf8" }); const out = r.stdout + r.stderr; if (r.status !== code || (want && !out.includes(want))) { console.log(`失敗: ${name}(終了コード ${r.status})`); f = 1; } else console.log(`成功: ${name}`); };
+const w = (name, body) => { const p = join(D, name); writeFileSync(p, body); return p; };
+const ok = `---
 name: trying-fixture
 description: 試しの SKILL.md。
 ---
@@ -65,11 +69,11 @@ description: 試しの SKILL.md。
 
 #### 手順
 
-````markdown
-```text
+\`\`\`\`markdown
+\`\`\`text
 ### step 9-9 コードブロックの中の見出し
-```
-````
+\`\`\`
+\`\`\`\`
 
 #### ── step 1-1 の情報 ──
 
@@ -116,11 +120,12 @@ description: 試しの SKILL.md。
 
 - 入力: step 2-1 で作った読んだパスを受け取る
 - 出力: ユーザーへの完了の報告をチャットに表示する
-X
-t 0 "$D/ok.md" "" "正しい SKILL.md は指摘なし"
-sed "s/^### 受け渡す値$/### 受け渡し/" "$D/ok.md" > "$D/fixed.md"; t 1 "$D/fixed.md" "| ### 受け渡す値 | .*「### 受け渡し」がある" "固定の見出しの違い"
-awk "!/^#### 手順\$/ || ++k != 3" "$D/ok.md" > "$D/proc.md"; t 1 "$D/proc.md" "「#### ── step 2-2 の情報 ──」がある" "手順の見出しの抜け"
-sed "s/^#### ── step 2-1 の情報 ──$/#### ── step 2-2 の情報 ──/" "$D/ok.md" > "$D/info.md"; t 1 "$D/info.md" "| #### ── step 2-1 の情報 ── |" "情報の見出しの番号の違い"
-t 2 "$D/none.md" "使い方" "ないファイルは呼び出しの誤り"
-t 2 "" "使い方" "引数なしは呼び出しの誤り"
-exit $f
+`;
+let k = 0;
+t(0, [w("ok.md", ok)], "", "正しい SKILL.md は指摘なし");
+t(1, [w("fixed.md", ok.replace(/^### 受け渡す値$/m, "### 受け渡し"))], "| ### 受け渡す値 | ", "固定の見出しの違い");
+t(1, [w("proc.md", ok.split("\n").filter((l) => l !== "#### 手順" || ++k !== 3).join("\n"))], "「#### ── step 2-2 の情報 ──」がある", "手順の見出しの抜け");
+t(1, [w("info.md", ok.replace(/^#### ── step 2-1 の情報 ──$/m, "#### ── step 2-2 の情報 ──"))], "| #### ── step 2-1 の情報 ── |", "情報の見出しの番号の違い");
+t(2, [join(D, "none.md")], "使い方", "ないファイルは呼び出しの誤り");
+t(2, [], "使い方", "引数なしは呼び出しの誤り");
+process.exit(f);

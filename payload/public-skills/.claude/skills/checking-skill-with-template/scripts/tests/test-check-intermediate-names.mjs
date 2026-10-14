@@ -1,11 +1,15 @@
-#!/bin/sh
-S="$(cd "$(dirname "$0")/.." && pwd)/check-flow-step-numbers.sh"
-D=$(mktemp -d "${TMPDIR:-/tmp}/test-check-flow-step-numbers.XXXXXX") || exit 2
-trap 'rm -rf "$D"' EXIT
-f=0
-t() { if [ -n "$2" ]; then "$S" "$2"; else "$S"; fi > "$D/out" 2>&1; c=$?; if [ "$c" -ne "$1" ] || { [ -n "$3" ] && ! grep -q -- "$3" "$D/out"; }; then echo "失敗: $4(終了コード $c)"; f=1; else echo "成功: $4"; fi; }
-cat > "$D/ok.md" <<'X'
----
+#!/usr/bin/env node
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+const S = join(dirname(fileURLToPath(import.meta.url)), "..", "check-intermediate-names.mjs");
+const D = mkdtempSync(join(process.env.TMPDIR || "/tmp", "test-check-intermediate-names-"));
+process.on("exit", () => rmSync(D, { recursive: true, force: true }));
+let f = 0;
+const t = (code, args, want, name) => { const r = spawnSync(process.execPath, [S, ...args], { encoding: "utf8" }); const out = r.stdout + r.stderr; if (r.status !== code || (want && !out.includes(want))) { console.log(`失敗: ${name}(終了コード ${r.status})`); f = 1; } else console.log(`成功: ${name}`); };
+const w = (name, body) => { const p = join(D, name); writeFileSync(p, body); return p; };
+const ok = `---
 name: trying-fixture
 description: 試しの SKILL.md。
 ---
@@ -65,11 +69,11 @@ description: 試しの SKILL.md。
 
 #### 手順
 
-````markdown
-```text
+\`\`\`\`markdown
+\`\`\`text
 ### step 9-9 コードブロックの中の見出し
-```
-````
+\`\`\`
+\`\`\`\`
 
 #### ── step 1-1 の情報 ──
 
@@ -116,11 +120,11 @@ description: 試しの SKILL.md。
 
 - 入力: step 2-1 で作った読んだパスを受け取る
 - 出力: ユーザーへの完了の報告をチャットに表示する
-X
-t 0 "$D/ok.md" "" "正しい SKILL.md は指摘なし"
-sed "s/^### step 2-2 /### step 2-3 /" "$D/ok.md" > "$D/gap.md"; t 1 "$D/gap.md" "並びでは step 2-2 の位置" "step の番号の空き"
-sed "s/^## phase 3 /## phase 4 /" "$D/ok.md" > "$D/phase.md"; t 1 "$D/phase.md" "phase 4 の前の phase が 2" "phase の番号の空き"
-sed "s/^| 2 | 入力の確定 | 2-1 から 2-2 |/| 2 | 入力の確定 | 2-1 から 2-3 |/" "$D/ok.md" > "$D/range.md"; t 1 "$D/range.md" "流れの表の step は 2-1 から 2-3、見出しの step は 2-1 から 2-2" "流れの表の範囲と見出しの違い"
-t 2 "$D/none.md" "使い方" "ないファイルは呼び出しの誤り"
-t 2 "" "使い方" "引数なしは呼び出しの誤り"
-exit $f
+`;
+t(0, [w("ok.md", ok)], "", "正しい SKILL.md は指摘なし");
+t(1, [w("use.md", ok.replace("| 読んだパス | 2-1 | 2-2、3-1 |", "| 読んだパス | 2-1 | 2-2 |"))], "step 3-1 の入力の文に「読んだパス」があるが、受け渡す値の表の使う step に 3-1 がない", "表の使う step にない入力");
+t(1, [w("to.md", ok.replace("- 出力: 読んだパスを step 2-2 と 3-1 へ渡す", "- 出力: 読んだパスを step 2-2 と 3-2 へ渡す"))], "「読んだパス」の step 3-2 が、受け渡す値の表の使う step にない", "出力の文の step の番号の違い");
+t(1, [w("miss.md", ok.replace("- 入力: 読んだパスを step 2-1 から受け取る", "- 入力: なし"))], "「読んだパス」の使う step 2-2 の入力の文に、この名前がない", "入力の文にない名前");
+t(2, [join(D, "none.md")], "使い方", "ないファイルは呼び出しの誤り");
+t(2, [], "使い方", "引数なしは呼び出しの誤り");
+process.exit(f);

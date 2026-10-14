@@ -77,6 +77,7 @@ description: Mermaid の図を含む md ファイル 1 本を、md の中身を�
 |---|---|---|
 | hugo(extended) | `hugo version \| grep -q extended` | 3-8 |
 | git | `git --version` | 3-5 |
+| node | `node --version` | 3-2、3-4、3-5、3-7 |
 
 ## 使用するスクリプト
 
@@ -87,7 +88,7 @@ description: Mermaid の図を含む md ファイル 1 本を、md の中身を�
 | パス | 章 | 章の種類 | 内容 | 使う step |
 |---|---|---|---|---|
 | `references/全スキル共通の決まり.md` | なし(ファイル全体) | 全スキル共通の決まり | どの step でも使う決まりと、最終出力の確認とユーザーへの完了の報告の手順 | すべて |
-| `references/サイトの変換.md` | インストールの方法 | 対応表 | OS の見分け方と、OS ごとに hugo と git を入れるコマンド | 1-5 |
+| `references/サイトの変換.md` | インストールの方法 | 対応表 | OS の見分け方と、OS ごとに hugo と git と node を入れるコマンド | 1-5 |
 | `references/サイトの変換.md` | サイトの設定一式 | 雛形 | 設定ファイル 5 本の全文と、題名の書き方 | 3-6 |
 
 ## phase 1 全スキル共通の決まりの読み込みと前提ツールの準備
@@ -168,7 +169,7 @@ description: Mermaid の図を含む md ファイル 1 本を、md の中身を�
 | インストールする(推奨) | 不足しているツールをインストールして、次の step へ進む。 | step 1-5 |
 | やめる | 変更を加える前に、スキルを中止する。 | 中止 |
 
-推奨する理由: step 3-5 と 3-8 の実行に、このツールが要るため。
+推奨する理由: 3-2、3-4、3-5、3-7、3-8 の実行に、このツールが要るため。
 
 #### 手順
 
@@ -313,9 +314,9 @@ HTML を書き出すフォルダを教えてください。
 「聞き取り後の依頼」の md ファイルのパスと出力先のフォルダを、絶対パスに整える。
 整え方は、`~` をホームのフォルダに展開し、末尾の `/` を除く。
 
-`~` を含むパスがあるときだけ、コマンドを実行するツールで `echo "$HOME"` を実行し、その出力のフォルダをホームのフォルダにする。
+`~` を含むパスがあるときだけ、コマンドを実行するツールで `node -p "require('os').homedir()"` を実行し、その出力のフォルダをホームのフォルダにする。
 
-`echo "$HOME"` の終了コードが 0 でないときは、中止する。
+`node -p "require('os').homedir()"` の終了コードが 0 でないときは、中止する。
 理由: ホームのフォルダを得られない。
 ユーザーが次にすること: 絶対パスで指定してから、もう一度実行する。
 中止までの成果物: なし
@@ -411,7 +412,7 @@ md ファイルのパス、題名、出力先のフォルダを、「確定し�
 コマンドを実行するツールで、次の 1 行を実行する。
 
 ```sh
-mkdir -p "<出力先のフォルダ>/content" "<出力先のフォルダ>/themes" "<出力先のフォルダ>/assets/css" "<出力先のフォルダ>/layouts/partials/topbar/area"
+node -e "for(const p of process.argv.slice(1))require('fs').mkdirSync(p,{recursive:true})" "<出力先のフォルダ>/content" "<出力先のフォルダ>/themes" "<出力先のフォルダ>/assets/css" "<出力先のフォルダ>/layouts/partials/topbar/area"
 ```
 
 <コマンドの出力の最後の行> は、この step で実行したコマンドの出力から得る。
@@ -430,7 +431,7 @@ mkdir -p "<出力先のフォルダ>/content" "<出力先のフォルダ>/themes
 
 #### 手順
 
-コマンドを実行するツールで `echo "${TMPDIR:-/tmp}"` を実行する。
+コマンドを実行するツールで `node -p "process.env.TMPDIR||'/tmp'"` を実行する。
 
 終了コードが 0 でないときは、中止する。
 理由: 一時フォルダの場所を得られない。
@@ -449,7 +450,7 @@ mkdir -p "<出力先のフォルダ>/content" "<出力先のフォルダ>/themes
 
 #### 手順
 
-コマンドを実行するツールで `mktemp -d "<一時フォルダのパス>/converting-mermaid-md-to-html.XXXXXX"` を実行する。
+コマンドを実行するツールで `node -e 'console.log(require("fs").mkdtempSync(require("path").join(process.argv[1],"converting-mermaid-md-to-html-")))' "<一時フォルダのパス>"` を実行する。
 
 終了コードが 0 でないときは、中止する。
 理由: 一時フォルダに取得先を作れない。
@@ -471,10 +472,10 @@ mkdir -p "<出力先のフォルダ>/content" "<出力先のフォルダ>/themes
 コマンドを実行するツールで、次の 1 行を実行する。
 
 ```sh
-mkdir -p "<出力先のフォルダ>/themes/hugo-theme-relearn" && git -c advice.detachedHead=false clone --quiet --depth 1 --branch 9.1.0 https://github.com/McShelby/hugo-theme-relearn.git "<取得先のパス>" && (cd "<取得先のパス>" && find . \( -path ./.git -o -path ./.claude \) -prune -o -type f ! -name CLAUDE.md -print | tar -cf - -T -) | tar -xf - -C "<出力先のフォルダ>/themes/hugo-theme-relearn" && rm -rf "<取得先のパス>"
+git -c advice.detachedHead=false clone --quiet --depth 1 --branch 9.1.0 https://github.com/McShelby/hugo-theme-relearn.git "<取得先のパス>" && node -e "const fs=require('fs'),p=require('path');const[s,d]=process.argv.slice(1);fs.mkdirSync(d,{recursive:true});(function w(r){for(const e of fs.readdirSync(p.join(s,r),{withFileTypes:true})){const q=p.join(r,e.name);if(q==='.git'||q==='.claude'||e.name==='CLAUDE.md')continue;if(e.isDirectory())w(q);else{fs.mkdirSync(p.dirname(p.join(d,q)),{recursive:true});fs.copyFileSync(p.join(s,q),p.join(d,q))}}})('');fs.rmSync(s,{recursive:true,force:true})" "<取得先のパス>" "<出力先のフォルダ>/themes/hugo-theme-relearn"
 ```
 
-終了コードが 0 でないときは、コマンドを実行するツールで `rm -rf "<取得先のパス>"` を実行してから、中止する。
+終了コードが 0 でないときは、コマンドを実行するツールで `node -e "require('fs').rmSync(process.argv[1],{recursive:true,force:true})" "<取得先のパス>"` を実行してから、中止する。
 理由: Relearn の取得か展開が失敗した。
 ユーザーが次にすること: github.com に接続できるかを確かめ、<出力先のフォルダ> を消してから、もう一度実行する。
 中止までの成果物: <出力先のフォルダ>
@@ -511,7 +512,7 @@ mkdir -p "<出力先のフォルダ>/themes/hugo-theme-relearn" && git -c advice
 
 #### 手順
 
-コマンドを実行するツールで `cp "<md ファイルのパス>" "<出力先のフォルダ>/content/_index.md"` を実行する。
+コマンドを実行するツールで `node -e 'require("fs").copyFileSync(process.argv[1],process.argv[2])' "<md ファイルのパス>" "<出力先のフォルダ>/content/_index.md"` を実行する。
 
 <コマンドの出力> は、この step で実行したコマンドの出力から得る。
 終了コードが 0 でないときは、中止する。
