@@ -132,6 +132,7 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 | fixing-skill-from-test-results | 承認済み | ユーザーの公開の承認(2026-10-14)。混入の照合(step 3-8)で 0 件 | source: public-skills |
 | fixing-skill-with-template | 承認済み | ユーザーの公開の承認(2026-10-14)。混入の照合(step 3-8)で 0 件 | source: public-skills |
 | revising-skill-writing-rule | 承認済み | ユーザーの公開の承認(2026-10-14)。混入の照合(step 3-8)で 0 件 | source: public-skills |
+| testing-skill-with-template | 承認済み | ユーザーの公開の承認(2026-10-14)。混入の照合(step 3-8)で 0 件 | source: public-skills |
 
 | reviewing-agent-skills | 承認済み | 3 分割で新設（2026-09-30）。環境固有のパスなし。実行者の検証 2 シナリオで必須要件すべて ○、結果を変える点 0 件 | source: agent-home@09baffc、public-skills@bee2543 |
 | agent-skill-templates | 除外（廃止） | 2026-10-01 に rules/agent-skill へ移して廃止。payload と manifest から除去 | |
