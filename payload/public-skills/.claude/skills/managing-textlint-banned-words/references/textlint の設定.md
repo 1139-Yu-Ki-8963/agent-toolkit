@@ -8,30 +8,34 @@ step 1-5 で、不足している前提ツールを入れるときに読む。
 
 ### OS の見分け方
 
-```bash
-node -p process.platform
-```
+セッションの環境の情報の Platform の値を、次の表で OS に対応させる。
 
-出力が `darwin` なら macOS、`linux` なら Linux、`win32` なら Windows とする。
+| Platform の値 | OS |
+|---|---|
+| `darwin` | macOS |
+| `linux` | Linux(WSL を含む) |
+| `win32` | Windows |
 
 ### OS ごとの入れ方
 
-| OS | ツール | コマンド |
-|---|---|---|
-| macOS | node | `brew install node` |
-| Linux | node | `brew install node` |
-| Windows | node | `winget install OpenJS.NodeJS.LTS` |
-| すべての OS | textlint | `npm install -g textlint` |
-| すべての OS | textlint-rule-preset-ai-words-ja | `npm install -g textlint-rule-preset-ai-words-ja` |
-| すべての OS | textlint-filter-rule-allowlist | `npm install -g textlint-filter-rule-allowlist` |
-| すべての OS | textlint-filter-rule-comments | `npm install -g textlint-filter-rule-comments` |
-| すべての OS | kuromojin | `npm install -g kuromojin` |
+| OS | ツール | インストールのコマンド | 先に書くファイル |
+|---|---|---|---|
+| macOS | node | `brew install node` | なし |
+| Linux | node | `brew install node` | なし |
+| Windows | node | `winget install OpenJS.NodeJS.LTS` | なし |
+| macOS | npm | `brew install node` | なし |
+| Linux | npm | `brew install node` | なし |
+| Windows | npm | `winget install OpenJS.NodeJS.LTS` | なし |
+| すべての OS | textlint | `npm install --prefix "<ツールのフォルダのパス>" textlint@15.8.0` | なし |
+| すべての OS | textlint-rule-preset-ai-words-ja | `npm install --prefix "<ツールのフォルダのパス>" textlint-rule-preset-ai-words-ja@1.2.1` | なし |
+| すべての OS | textlint-filter-rule-allowlist | `npm install --prefix "<ツールのフォルダのパス>" textlint-filter-rule-allowlist@4.0.0` | なし |
+| すべての OS | textlint-filter-rule-comments | `npm install --prefix "<ツールのフォルダのパス>" textlint-filter-rule-comments@1.3.0` | なし |
+| すべての OS | kuromojin | `npm install --prefix "<ツールのフォルダのパス>" kuromojin@3.0.1` | なし |
 
-textlint とルール群とフィルタは、同じ場所に入れる。
+textlint とルール群とフィルタは、同じツールのフォルダに入れる。
 textlint は、自分と同じ場所に入ったルール群とフィルタだけを読み込む。
 
-node を textlint より先に入れる。
-npm は node と一緒に入る。
+Windows の node と npm の MSI は、管理者の権限を求める。
 
 ## 辞書の雛形
 
@@ -77,10 +81,10 @@ tokens は、形態素解析で分けた語の並びに、前から順に当て�
 
 使い方と例文から tokens を書く手順は、次のとおりとする。
 当てる例文と当てない例文を、次のコマンドで形態素に分ける。
-コマンドは、グローバルに入れた kuromojin を、`npm root -g` の出力のフォルダから読み込む。
+コマンドは、ツールのフォルダに入れた kuromojin を読み込む。
 
 ```bash
-node -e "const r=require('child_process').execSync('npm root -g').toString().trim();require(require('path').join(r,'kuromojin')).tokenize('<例文>').then(t=>console.log(t.map(x=>[x.surface_form,x.pos,x.pos_detail_1,x.basic_form].join('/')).join(' | ')))"
+node -e "require('<ツールのフォルダのパス>/node_modules/kuromojin').tokenize('<例文>').then(t=>console.log(t.map(x=>[x.surface_form,x.pos,x.pos_detail_1,x.basic_form].join('/')).join(' | ')))"
 ```
 
 当てる例文のすべてにあり、当てない例文のどれにもない形態素の並びを探し、その並びを条件にする。
@@ -194,7 +198,7 @@ step 2-3 で登録済みかを見るときと、step 3-3 で hooks の案を作�
 ### hooks の項目の全文
 
 settings.json の `hooks.PostToolUse` の配列に、次の項目を 1 つ足す。
-山かっこには、設定のフォルダの絶対パスを入れる。
+山かっこには、設定のフォルダの絶対パスとツールのフォルダのパスを、区切りを `/` にして入れる。
 
 ```json
 {
@@ -202,7 +206,7 @@ settings.json の `hooks.PostToolUse` の配列に、次の項目を 1 つ足す
   "hooks": [
     {
       "type": "command",
-      "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{let f='';try{f=JSON.parse(d).tool_input.file_path||''}catch(e){}if(!f.endsWith('.md'))process.exit(0);const r=require('child_process').spawnSync('textlint',['--config',process.argv[1],f],{encoding:'utf8',shell:true});if(r.status!==0){process.stderr.write(r.stdout+r.stderr);process.exit(2)}})\" <設定のフォルダ>/.textlintrc.json"
+      "command": "node -e \"let d='';process.stdin.on('data',c=>d+=c).on('end',()=>{let f='';try{f=JSON.parse(d).tool_input.file_path||''}catch(e){}if(!f.endsWith('.md'))process.exit(0);const t=process.argv[2];if(!require('fs').existsSync(t)){process.stderr.write('textlint が '+t+' にない。managing-textlint-banned-words を実行して入れる。');process.exit(2)}const r=require('child_process').spawnSync('node',[t,'--config',process.argv[1],f],{encoding:'utf8'});if(r.status!==0){process.stderr.write(r.stdout+r.stderr);process.exit(2)}})\" <設定のフォルダ>/.textlintrc.json <ツールのフォルダのパス>/node_modules/textlint/bin/textlint.js"
     }
   ]
 }
@@ -218,12 +222,12 @@ settings.json の `hooks.PostToolUse` の配列に、次の項目を 1 つ足す
 終了コード 2 の標準エラーは、Claude に指摘として渡る。
 
 この項目は、node の 1 つのコマンドで、標準入力の読み取り、パスの判定、textlint の起動を行う。
-node は、Claude Code を起動した環境の PATH から textlint を探す。
+textlint は、ツールのフォルダの `node_modules/textlint/bin/textlint.js` を node で起動する。そのファイルがないときは、入れ方の案内を標準エラーに出して終了コード 2 で終える。
 command はシェルの構文を持たないので、macOS と Linux の sh、Windows の Git Bash と PowerShell のどれで起動されても同じに動く。
 
 ### 登録済みかの見分け方
 
-`hooks.PostToolUse` のどれかの `command` が `<設定のフォルダ>/.textlintrc.json` を含めば、登録済みとする。
+`hooks.PostToolUse` のどれかの `command` が `<設定のフォルダ>/.textlintrc.json` と `<ツールのフォルダのパス>/node_modules/textlint/bin/textlint.js` の両方を含めば、登録済みとする。`<設定のフォルダ>/.textlintrc.json` を含み、`<ツールのフォルダのパス>/node_modules/textlint/bin/textlint.js` を含まない項目は、古い形の登録とし、step 3-3 で新しい項目に置き換える。
 
 ## 一覧の書式
 
