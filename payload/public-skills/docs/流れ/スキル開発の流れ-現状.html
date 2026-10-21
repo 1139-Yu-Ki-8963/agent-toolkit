@@ -143,10 +143,10 @@ code{font-family:var(--mono);font-size:12.5px}
     <div class="skills">
       <div class="sk have"><span class="jp">スキルの作成</span><span class="id">drafting-skill-with-template の step 4-3 から 4-6</span></div>
       <div class="sk have"><span class="jp">スキルの規約チェック</span><span class="id">checking-skill-with-template</span></div>
-      <div class="sk have"><span class="jp">雛形で作ったスキルの指摘の修正</span><span class="id">fixing-skill-with-template</span></div>
+      <div class="sk have"><span class="jp">雛形で作ったスキルの指摘の修正</span><span class="id">fixing-skill</span></div>
       <div class="sk new"><span class="jp">スキルなし</span><span class="id">checking-skill-with-rules</span></div>
     </div>
-    <h4>現状の埋め方</h4><p>drafting が作成の中で照合と修正を回す。既存のスキルを直したあとは、checking と fixing-skill-with-template を同じ会話で続けて呼ぶ(指摘の一覧がチャットの表示だけで、ファイルに残らない)。</p>
+    <h4>現状の埋め方</h4><p>drafting が作成の中で照合と修正を回す。既存のスキルを直したあとは、checking と fixing-skill を同じ会話で続けて呼ぶ(指摘の一覧がチャットの表示だけで、ファイルに残らない)。</p>
     <h4>欠けるもの</h4><ul>
       <li>checking は規約と雛形の両方に照らす。最終ゴールでは雛形だけに照らす受け持ちで、規約との照合は checking-skill-with-rules が持つ。</li>
       <li>drafting の step 4-3 から 4-6 と checking の step 3-4 から 3-7 は、同じ照合の手順を 2 か所に持つ。片方を直したらもう片方も直す必要がある。</li>
@@ -178,7 +178,7 @@ code{font-family:var(--mono);font-size:12.5px}
     <div class="io">最終ゴールの出力 <span>テスト結果</span></div>
     <div class="skills">
       <div class="sk have"><span class="jp">テストシナリオの実行</span><span class="id">testing-skill-with-template</span></div>
-      <div class="sk have"><span class="jp">テストの不合格によるスキルの修正</span><span class="id">fixing-skill-from-test-results</span></div>
+      <div class="sk have"><span class="jp">テストの不合格によるスキルの修正</span><span class="id">fixing-skill</span></div>
     </div>
     <h4>現状の埋め方</h4><p>testing が初めて読む実行者にシナリオを実行させて記録を残し、fixing が記録と期待を照合して合格、不合格、判定できないに分け、スキルの誤りだけを直す。もう一度テストする依頼の文はチャットに出るので、ユーザーが写して依頼する。</p>
     <h4>欠けるもの</h4><ul>
@@ -191,7 +191,7 @@ code{font-family:var(--mono);font-size:12.5px}
     <h2>受け入れの判断</h2>
     <div class="io">最終ゴールの出力 <span>ユーザーの承認か、戻るフェーズ</span></div>
     <div class="skills"><div class="sk human"><span class="jp">人が埋める</span><span class="id">ユーザーが修正の結果とケースごとの判定.md を読んで決める</span></div><div class="sk new"><span class="jp">スキルなし</span><span class="id">judging-skill-acceptance</span></div></div>
-    <h4>現状の埋め方</h4><p>fixing-skill-from-test-results の修正の結果の表示と、ケースごとの判定.md を人が読む。</p>
+    <h4>現状の埋め方</h4><p>fixing-skill の修正の結果の表示と、ケースごとの判定.md を人が読む。</p>
     <h4>欠けるもの</h4><ul><li>受け入れの基準(工程 1 の出力)と、戻る工程と理由の記録。</li></ul>
   </div></li>
 
@@ -212,12 +212,12 @@ code{font-family:var(--mono);font-size:12.5px}
   <h2>段の間の受け渡し</h2>
   <div class="rb"><b>ユーザー → drafting-skill-with-template</b><div class="kv"><span><i>渡すもの:</i>使う場面、目的、最終出力、出力先のフォルダ</span><span><i>渡し方:</i>依頼の文</span></div></div>
   <div class="rb"><b>drafting-skill-with-template → checking-skill-with-template</b><div class="kv"><span><i>渡すもの:</i>スキルのフォルダ</span><span><i>渡し方:</i>ユーザーが依頼の文にパスを書く</span></div></div>
-  <div class="rb"><b>checking-skill-with-template → fixing-skill-with-template</b><div class="kv"><span><i>渡すもの:</i>指摘の一覧</span><span><i>渡し方:</i>チャットの表示。同じ会話の中で続けて呼ぶ</span></div></div>
-  <div class="rb"><b>fixing-skill-with-template → designing-skill-test-cases</b><div class="kv"><span><i>渡すもの:</i>直したスキルのフォルダ</span><span><i>渡し方:</i>ユーザーが依頼の文にパスを書く</span></div></div>
+  <div class="rb"><b>checking-skill-with-template → fixing-skill</b><div class="kv"><span><i>渡すもの:</i>指摘の一覧</span><span><i>渡し方:</i>チャットの表示。同じ会話の中で続けて呼ぶ</span></div></div>
+  <div class="rb"><b>fixing-skill → designing-skill-test-cases</b><div class="kv"><span><i>渡すもの:</i>直したスキルのフォルダ</span><span><i>渡し方:</i>ユーザーが依頼の文にパスを書く</span></div></div>
   <div class="rb"><b>designing-skill-test-cases → designing-skill-test-scenarios</b><div class="kv"><span><i>渡すもの:</i>テストケース.md</span><span><i>渡し方:</i>ファイル。ユーザーが依頼の文にパスを書く</span></div></div>
   <div class="rb"><b>designing-skill-test-scenarios → testing-skill-with-template</b><div class="kv"><span><i>渡すもの:</i>テストシナリオ.md</span><span><i>渡し方:</i>ファイル。ユーザーが依頼の文にパスを書く</span></div></div>
-  <div class="rb"><b>testing-skill-with-template → fixing-skill-from-test-results</b><div class="kv"><span><i>渡すもの:</i>結果のフォルダ</span><span><i>渡し方:</i>フォルダ。ユーザーが依頼の文にパスを書く</span></div></div>
-  <div class="rb"><b>fixing-skill-from-test-results → testing-skill-with-template</b><div class="kv"><span><i>渡すもの:</i>もう一度テストする依頼の文</span><span><i>渡し方:</i>チャットの表示。ユーザーが写して依頼する</span></div></div>
+  <div class="rb"><b>testing-skill-with-template → fixing-skill</b><div class="kv"><span><i>渡すもの:</i>結果のフォルダ</span><span><i>渡し方:</i>フォルダ。ユーザーが依頼の文にパスを書く</span></div></div>
+  <div class="rb"><b>fixing-skill → testing-skill-with-template</b><div class="kv"><span><i>渡すもの:</i>もう一度テストする依頼の文</span><span><i>渡し方:</i>チャットの表示。ユーザーが写して依頼する</span></div></div>
 </section>
 
 <section class="tail">

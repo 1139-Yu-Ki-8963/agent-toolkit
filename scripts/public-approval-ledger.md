@@ -33,6 +33,10 @@ sync-manifest.json への mapping 追加は本台帳での承認を前提とす�
 | reviewing-against-rules | 除外（未承認） | 公開可否レビュー未実施 | 3c44814 (2026-07-15) | 同上 |
 | reviewing-public-readiness | 除外（未承認） | 公開可否レビュー未実施 | 3c44814 (2026-07-15) | 同上 |
 | reviewing-single-pr-with-inline-comments | 除外（未承認） | 公開可否レビュー未実施 | 3c44814 (2026-07-15) | 同上 |
+| drafting-skill-with-template | 承認済み | ユーザーの公開の承認(2026-10-21)。混入の照合(step 4-1)で 0 件 | source: public-skills |
+| fixing-skill | 承認済み | ユーザーの公開の承認(2026-10-21)。混入の照合(step 4-1)で 0 件 | source: public-skills |
+| fixing-test-plan | 承認済み | ユーザーの公開の承認(2026-10-21)。混入の照合(step 4-1)で 0 件 | source: public-skills |
+| fixing-markdown-document | 承認済み | ユーザーの公開の承認(2026-10-21)。混入の照合(step 4-1)で 0 件 | source: public-skills |
 
 ## ルール（agent-home/rules/）
 
