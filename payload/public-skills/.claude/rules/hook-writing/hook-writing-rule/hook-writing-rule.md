@@ -162,8 +162,12 @@ hooks/
 | 鍵 | 持つもの | 持つ発火点 |
 |---|---|---|
 | `hook_event_name` | 発火点の名前 | すべて |
-| `transcript_path` | 会話の記録のファイルのパス | すべて |
-| `tool_input.file_path` | ツールが変えたファイルのパス | PostToolUse |
+| `session_id` | セッションの ID | すべて |
+| `transcript_path` | 親の会話の記録のファイルのパス。サブエージェントの中のツールのときも、親の会話の記録を指す | すべて |
+| `agent_id` | サブエージェントの ID。サブエージェントの中のツールのときだけ持つ | すべて |
+| `tool_name` | ツールの名前 | PreToolUse、PostToolUse |
+| `tool_input.file_path` | Edit か Write が変えるファイルのパス | PreToolUse、PostToolUse |
+| `tool_input.notebook_path` | NotebookEdit が変えるファイルのパス | PreToolUse、PostToolUse |
 | `stop_hook_active` | Stop の hook が同じ回答で既に 1 回動いたか(true か false) | Stop |
 
 - 発火点が PostToolUse のときは、スクリプトは、ファイルの全文を `tool_input.file_path` のパスから読む。
@@ -195,6 +199,7 @@ hooks/
 - `hookSpecificOutput.additionalContext` は、Claude Code が AI の文脈に足す文を受け取る鍵である。
 - 採用した理由: Claude Code は、終了コード 2 の標準エラーを AI に誤りとして渡し、終了コード 0 の `hookSpecificOutput.additionalContext` を文脈として渡す。スクリプトは、違反を直す対象として誤りの形で渡し、点検の依頼を文脈の形で渡す。
 - 採用した理由: hook は同じ編集で 1 回だけ動き、終了コード 2 で終えるときは標準エラーの文章だけが AI に届く。見出しの行「点検の依頼」が、誤りと点検の依頼を AI に見分けさせる。
+- 採用した理由: PreToolUse では、終了コード 2 で終えると、Claude Code はツールの呼び出しを止め、標準エラーの文を止めた理由として AI に渡す。
 - 採用した理由: Stop では、終了コード 2 の標準エラーだけが AI に続きの回答を出させる。`stop_hook_active` が true のときに終了コード 0 で終える行が、hook を 1 回の回答につき 1 回だけ動かす。
 - 採用しなかった理由: すべてを終了コード 0 で渡す形は、違反が文脈に埋もれて直されない。
 - 採用しなかった理由: すべてを終了コード 2 で渡す形は、点検の依頼が誤りとして扱われ、AI が直す対象のない誤りを探す。

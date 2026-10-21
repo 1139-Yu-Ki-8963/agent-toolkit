@@ -51,13 +51,53 @@ function checkLinks(input, text) {
   return [{ kind: "violation", source: "checkLinks", text: "リンク先のファイルがない: " + broken.join(", ") }];
 }
 
-function remindTextWritingRule(input) {
-  const filePath = input.tool_input && input.tool_input.file_path;
-  if (!isMarkdown(filePath)) return [];
-  return [{ kind: "prompt", source: "remindTextWritingRule", text: readPrompt("remind-text-writing-rule.md").replace("<ファイルのパス>", filePath) }];
+const RULES_DIR = path.join(__dirname, "..", "rules");
+const ALWAYS_CHECKED_RULES = ["text-writing/text-writing-rule.md"];
+
+function listRuleFiles(dir) {
+  const files = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) files.push(...listRuleFiles(full));
+    else if (entry.name.endsWith(".md") && !full.includes("-completed-example")) files.push(full);
+  }
+  return files;
 }
 
-const CHECKS = [remindPinkElephants, checkLinks, remindTextWritingRule];
+function readPaths(ruleFile) {
+  const text = fs.readFileSync(ruleFile, "utf8");
+  const m = text.match(/^---\n([\s\S]*?)\n---/);
+  if (!m) return [];
+  return [...m[1].matchAll(/^\s*-\s*"([^"]+)"/gm)].map((x) => x[1]);
+}
+
+function globToRegExp(glob) {
+  const escaped = glob.replace(/[.+^${}()|[\]\\]/g, "\\$&");
+  const body = escaped
+    .replace(/\*\*\//g, "\u0001")
+    .replace(/\*\*/g, "\u0002")
+    .replace(/\*/g, "[^/]*")
+    .replace(/\u0001/g, "(?:.*/)?")
+    .replace(/\u0002/g, ".*");
+  return new RegExp("(^|/)" + body + "$");
+}
+
+function matchingRules(filePath) {
+  const target = filePath.split(path.sep).join("/");
+  const matched = listRuleFiles(RULES_DIR).filter((rule) => readPaths(rule).some((glob) => globToRegExp(glob).test(target)));
+  const always = ALWAYS_CHECKED_RULES.map((rel) => path.join(RULES_DIR, rel));
+  return [...new Set([...always, ...matched])];
+}
+
+function requestRuleCheck(input) {
+  const filePath = input.tool_input && input.tool_input.file_path;
+  if (!isMarkdown(filePath)) return [];
+  const rules = matchingRules(filePath).join("\n");
+  const text = readPrompt("request-rule-check.md").replace("<ファイルのパス>", filePath).replace("<規約のパスの一覧>", rules);
+  return [{ kind: "prompt", source: "requestRuleCheck", text }];
+}
+
+const CHECKS = [remindPinkElephants, checkLinks, requestRuleCheck];
 
 function summarize(results) {
   const lines = [];
