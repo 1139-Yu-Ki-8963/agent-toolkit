@@ -37,6 +37,7 @@ sync-manifest.json への mapping 追加は本台帳での承認を前提とす�
 | fixing-skill | 承認済み | ユーザーの公開の承認(2026-10-21)。混入の照合(step 4-1)で 0 件 | source: public-skills |
 | fixing-test-plan | 承認済み | ユーザーの公開の承認(2026-10-21)。混入の照合(step 4-1)で 0 件 | source: public-skills |
 | fixing-markdown-document | 承認済み | ユーザーの公開の承認(2026-10-21)。混入の照合(step 4-1)で 0 件 | source: public-skills |
+| checking-markdown-document-with-rules | 承認済み | ユーザーの公開の承認(2026-10-21)。混入の照合(step 4-1)で 0 件 | source: public-skills |
 
 ## ルール（agent-home/rules/）
 
