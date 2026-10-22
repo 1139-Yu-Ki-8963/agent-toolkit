@@ -12,9 +12,35 @@ cp -R public-skills/.claude/rules/skill-writing <プロジェクト>/.claude/rul
 cp -R public-skills/.claude/skills/<スキル名> <プロジェクト>/.claude/skills/
 ```
 
-settings.json への追加は要らない。規約は、プロジェクトの中の `.claude/skills/` の下のファイルを読むか書くときに自動で読み込まれ、常時読み込まれるものはない。
+規約とスキルだけなら settings.json への追加は要らない(hook を使うときは「hook の導入」の章を見る)。規約は、プロジェクトの中の `.claude/skills/` の下のファイルを読むか書くときに自動で読み込まれ、常時読み込まれるものはない。
 
 規約の一式が自動で読み込まれる前提で動くのは、drafting-skill-with-template と checking-skill-with-template の 2 本だけ。この 2 本は、自分の `SKILL.md` を読んだときに規約が読み込まれる前提で動くので、プロジェクトの中の `.claude/skills/` に置く。`~/.claude/skills/` に置くと規約が読み込まれず、最初の step で中止する。revising-skill-writing-rule は規約のフォルダをパスで受け取って読む。ほかのスキルは `references/step共通の決まり.md` だけで動くので、置き場所を選ばない。
+
+## hook の導入
+
+スキル開発の流れ(`docs/流れ/スキル開発の流れ.md`)は、hook 3 本が動いている前提で書いてある。`.claude/hooks/` と `.claude/tools/skill-guard/` をプロジェクトの `.claude/` に置き、プロジェクトの `.claude/settings.json` に次の登録を足す。hook は `.claude/rules`、`.claude/skills`、`.claude/skills/tests` を、自分の置き場からの相対パスで見るので、パスの書き換えは要らない。
+
+```json
+{
+  "hooks": {
+    "PreToolUse": [
+      { "matcher": "Edit|Write", "hooks": [ { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-tool-use-write-file.js", "timeout": 60 } ] }
+    ],
+    "PostToolUse": [
+      { "matcher": "Edit|Write", "hooks": [ { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-tool-use-write-file.js", "timeout": 60 } ] },
+      { "matcher": "", "hooks": [ { "type": "command", "command": "node \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-tool-use-any-tool.js", "timeout": 60 } ] }
+    ]
+  }
+}
+```
+
+| hook | 何をするか |
+|---|---|
+| pre-tool-use-write-file | テスト計画書を持つスキルのファイルとテスト計画書の書き換えを、fixing-skill、revising-skill-writing-rule、fixing-test-plan、designing-skill-test-cases、designing-skill-test-scenarios の手順の外では止める |
+| post-tool-use-any-tool | どのツールの操作のあとでも、守るファイルの変化を、スキルの手順の跡と突き合わせる |
+| post-tool-use-write-file | `.md` を変えたら、当たる規約のパスの一覧を添えて照合と直しを促し、規約を変えたらピンクの象を除く書き直しとユーザーの承認を促す |
+
+各 hook の登録の値と確かめ方は、`.claude/hooks/<hook の名前>/README.md` にある。
 
 ## 収録スキル
 

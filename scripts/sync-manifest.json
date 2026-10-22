@@ -12,6 +12,16 @@
     },
     {
       "mode": "mirror",
+      "src": "~/Projects/public-skills/.claude/hooks",
+      "dst": "payload/public-skills/.claude/hooks"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/public-skills/.claude/tools",
+      "dst": "payload/public-skills/.claude/tools"
+    },
+    {
+      "mode": "mirror",
       "src": "~/Projects/public-skills/docs",
       "dst": "payload/public-skills/docs"
     },
