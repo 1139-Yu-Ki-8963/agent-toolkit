@@ -53,7 +53,7 @@ cp -R public-skills/.claude/skills/<スキル名> <プロジェクト>/.claude/s
 - `converting-mermaid-md-to-html`: Mermaid の図を含む md ファイル 1 本を、md の中身を変えずに、図をホイールで拡大、ドラッグで移動、右上のボタンで元に戻せて、上のバーに目次ボタンを持ち、ブラウザで直接開ける 1 ページの HTML に変換する。
 - `reporting-textlint-findings`: |。
 - `managing-textlint-banned-words`: textlint の禁止語の辞書と設定と hooks を依頼どおりの状態にし、辞書を一覧で表示する。
-- `fixing-skill`: 雛形「スキルの雛形(phase と step)」で作った既存のスキルを、checking-skill-with-template が出した照合の指摘の一覧か、testing-skill-with-template が書いた判定の記録に沿って、指摘を出どころの文書ごとに仕分け、承認を得て直し、直した箇所の意味が元と同じかを別の判定で確かめ、同じでない箇所を戻して、修正の結果をチャットに表示する。
+- `fixing-skill`: 雛形「スキルの雛形(phase と step)」で作った既存のスキルを、checking-skill-with-template か checking-markdown-document-with-rules が出した照合の指摘の一覧か、testing-skill-with-template が書いた判定の記録か、ユーザーの依頼の一覧に沿って、指摘を出どころの文書ごとに仕分け、承認を得て直し、直した箇所の意味が元と同じかを別の判定で確かめ、同じでない箇所を戻して、修正の結果をチャットに表示する。
 - `fixing-test-plan`: 判定の記録と、fixing-skill の修正の結果が出した直すケースの番号から、テスト計画書のテストケースの行の期待と、章「前提の状態として置くファイル」を、出どころの文と実行の記録に沿って直し、直す前にユーザーの承認を得て、修正の結果をチャットに表示する。
 - `fixing-markdown-document`: 照合の指摘の一覧を、判定者 3 人の多数で、直す指摘、規約が決めた語、保留の 3 種類に仕分け、規則ごとの直し方の対応表で前の文と後の文の対を作り、同じ原因の箇所を対象の全ファイルから探して同じ直し方で直し、直した文の意味が元と同じかを査読者に確かめさせ、直したファイルを照合者 2 人に照合し直させて、意味が変わった直しと新しい違反を生んだ直しを戻し、修正の結果をチャットに表示する。
 - `checking-markdown-document-with-rules`: Markdown の文書を、規約のパスの一覧の規約 1 本ごとに、書いた AI とは別の照合者 2 人に照合させ、指摘の一覧をチャットに出す。
