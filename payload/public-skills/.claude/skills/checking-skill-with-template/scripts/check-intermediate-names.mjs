@@ -17,20 +17,23 @@ function run(s) { R = []; E = 0; let g = false;
   return R.length; }
 const TB = new Map(), M = new Map(), key = (kd, nm, st) => `${kd}\u001f${nm}\u001f${st}`;
 function cell(x, kd, nm, NR) { x = x.replace(/[((][^))]*[))]/g, "").replace(/^ +/, ""); const k = run(x); for (let i = 0; i < k; i++) TB.set(key(kd, nm, R[i]), NR); }
-let fe = "", it = false, cur = "", NR = 0; const N = [], L = [], LS = [], LK = [], LN = [];
+let fe = "", it = false, io = false, cur = "", NR = 0; const N = [], O = [], L = [], LS = [], LK = [], LN = [];
 for (const s of lines) { NR++;
   if (!fe && s.startsWith("```")) { fe = s.match(/^`+/)[0]; continue; }
   if (fe) { if (s === fe) fe = ""; continue; }
   if (s === "### 受け渡す値") { it = true; continue; }
-  if (s.startsWith("#")) { it = false; cur = ""; }
+  if (s === "### 最終出力") { io = true; continue; }
+  if (s.startsWith("#")) { it = false; io = false; cur = ""; }
+  if (io && s.startsWith("| ") && !s.startsWith("| 名前 |") && !s.startsWith("|-")) { const c = s.split(/ *\| */); if (!N.includes(c[1])) O.push(c[1]); }
   if (it && s.startsWith("| ") && !s.startsWith("| 名前 |") && !s.startsWith("|-")) { const c = s.split(/ *\| */); N.push(c[1]); cell(c[2], "出力", c[1], NR); cell(c[3], "入力", c[1], NR); }
   if (/^#### ── step [0-9]+-[0-9]+ の情報 ──$/.test(s)) cur = s.trim().split(/[ \t]+/)[3];
   if (cur !== "" && /^- (入力|出力): /.test(s)) { L.push(s); LS.push(cur); LK.push(s.slice(2, 4)); LN.push(NR); }
 }
 const bl = (x) => Buffer.byteLength(x, "utf8");
-for (let i = 0; i < N.length; i++) for (let j = i + 1; j < N.length; j++) if (bl(N[j]) > bl(N[i])) { const t = N[i]; N[i] = N[j]; N[j] = t; }
+const A = N.concat(O.filter((o) => !N.includes(o)));
+for (let i = 0; i < A.length; i++) for (let j = i + 1; j < A.length; j++) if (bl(A[j]) > bl(A[i])) { const t = A[i]; A[i] = A[j]; A[j] = t; }
 for (let x = 0; x < L.length; x++) { let m = L[x]; const s = LS[x], k = LK[x], o = k === "入力" ? "出力" : "入力", P = {};
-  for (const nm of N) { if (nm === "") continue; for (let p; (p = m.indexOf(nm)) !== -1;) { M.set(key(k, nm, s), LN[x]); P[p + 1] = nm; m = m.slice(0, p) + "\u0001".repeat(nm.length) + m.slice(p + nm.length); } }
+  for (const nm of A) { if (nm === "") continue; for (let p; (p = m.indexOf(nm)) !== -1;) { if (N.includes(nm)) { M.set(key(k, nm, s), LN[x]); P[p + 1] = nm; } m = m.slice(0, p) + "\u0001".repeat(nm.length) + m.slice(p + nm.length); } }
   for (let q = 0, p; (p = L[x].slice(q).indexOf("step ")) !== -1;) { const st = q + p + 1; q = st + 4; const h = run(L[x].slice(q)); let nm = "";
     if (L[x].substr(q + E, 2) === " で") { let b = 0; const zi = L[x].slice(q + E).indexOf("step "), z = zi !== -1 ? q + E + zi + 1 : L[x].length + 1;
       for (const p of Object.keys(P).map(Number)) if (p > q && p < z && (!b || p < b)) b = p; if (b) nm = P[b]; }
