@@ -51,7 +51,7 @@ cp -R public-skills/.claude/skills/<スキル名> <プロジェクト>/.claude/s
 - `designing-skill-test-scenarios`: designing-skill-test-cases が書いたテスト計画書の動的なテストケースを、前提の状態、依頼の文、回答、実行の回数が同じものごとに 1 つのシナリオにまとめ、流す順を決め、ユーザーが選んだ実施する範囲(正常系だけ、1 回の実行で終わるすべて、全件)で実施するシナリオを決めた章「シナリオテストの表」をテスト計画書に足す。
 - `testing-skill-with-template`: テスト計画書の「静的なテストの一覧」のコマンドを先に流し、すべて合格なら、designing-skill-test-scenarios が書いた「シナリオテストの表」で実施するとしたシナリオを、テスト対象のスキルを初めて読むサブエージェントに流し、実行の記録と、静的と動的のテストケースごとの合否を持つ判定の記録を書く。
 - `converting-mermaid-md-to-html`: Mermaid の図を含む md ファイル 1 本を、md の中身を変えずに、図をホイールで拡大、ドラッグで移動、右上のボタンで元に戻せて、上のバーに目次ボタンを持ち、ブラウザで直接開ける 1 ページの HTML に変換する。
-- `reporting-textlint-findings`: |。
+- `reporting-textlint-findings`: md を textlint で機械検査し、指摘箇所に波線を引いた HTML を出す。
 - `managing-textlint-banned-words`: textlint の禁止語の辞書と設定と hooks を依頼どおりの状態にし、辞書を一覧で表示する。
 - `fixing-skill`: 雛形「スキルの雛形(phase と step)」で作った既存のスキルを、checking-skill-with-template か checking-markdown-document-with-rules が出した照合の指摘の一覧か、testing-skill-with-template が書いた判定の記録か、ユーザーの依頼の一覧に沿って、指摘を出どころの文書ごとに仕分け、承認を得て直し、直した箇所の意味が元と同じかを別の判定で確かめ、同じでない箇所を戻して、修正の結果をチャットに表示する。
 - `fixing-test-plan`: 判定の記録と、fixing-skill の修正の結果が出した直すケースの番号から、テスト計画書のテストケースの行の期待と、章「前提の状態として置くファイル」を、出どころの文と実行の記録に沿って直し、直す前にユーザーの承認を得て、修正の結果をチャットに表示する。
