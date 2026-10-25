@@ -2,7 +2,7 @@
 "use strict";
 const fs = require("fs");
 const path = require("path");
-const guard = require("../tools/skill-guard/skill-guard.js");
+const guard = require("./pre-tool-use-write-file/skill-guard.js");
 
 const EVENT = "PostToolUse";
 const PROMPT_DIR = path.join(__dirname, "post-tool-use-any-tool");

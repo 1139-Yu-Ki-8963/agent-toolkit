@@ -18,7 +18,7 @@ cp -R public-skills/.claude/skills/<スキル名> <プロジェクト>/.claude/s
 
 ## hook の導入
 
-スキル開発の流れ(`docs/流れ/スキル開発の流れ.md`)は、hook 3 本が動いている前提で書いてある。`.claude/hooks/` と `.claude/tools/skill-guard/` をプロジェクトの `.claude/` に置き、プロジェクトの `.claude/settings.json` に次の登録を足す。hook は `.claude/rules`、`.claude/skills`、`.claude/skills/tests` を、自分の置き場からの相対パスで見るので、パスの書き換えは要らない。
+スキル開発の流れ(`docs/流れ/スキル開発の流れ.md`)は、hook 3 本が動いている前提で書いてある。`.claude/hooks/` をプロジェクトの `.claude/` に置き、プロジェクトの `.claude/settings.json` に次の登録を足す。hook は `.claude/rules`、`.claude/skills`、`.claude/skills/tests` を、自分の置き場からの相対パスで見るので、パスの書き換えは要らない。
 
 ```json
 {
