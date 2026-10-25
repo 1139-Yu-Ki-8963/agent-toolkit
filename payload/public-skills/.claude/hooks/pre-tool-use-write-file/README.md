@@ -11,9 +11,9 @@
 
 ## 検査
 
-| 検査の名前 | 確かめること | 対象のファイルの条件 | 根拠の規約と規則の観点 | 呼ぶもの | 返す kind |
-|---|---|---|---|---|---|
-| blockUnguidedSkillWrite | 書き込む先がテスト計画書を持つスキルのファイルのとき、会話の記録に、そのファイルを書き換えてよいスキルを使った跡がある | `skills/tests/<スキルの名前>/テスト計画書.md` を持つスキルの `skills/<スキルの名前>/` の下のファイルと、そのテスト計画書 | 規約 thinking-rule の規則「テストの不合格から、テスト対象のスキルとテスト計画書を直すときは、決まった手順の中でだけ直す」(承認待ち) | `hooks/pre-tool-use-write-file/skill-guard.js` | `violation` |
+| 検査の名前 | 確かめること | 対象のファイルの条件 | 根拠の規約と規則の観点 | 呼ぶもの | 返す kind | テスト |
+|---|---|---|---|---|---|---|
+| blockUnguidedSkillWrite | 書き込む先がテスト計画書を持つスキルのファイルのとき、会話の記録に、そのファイルを書き換えてよいスキルを使った跡がある | `skills/tests/<スキルの名前>/テスト計画書.md` を持つスキルの `skills/<スキルの名前>/` の下のファイルと、そのテスト計画書 | 規約 thinking-rule の規則「テストの不合格から、テスト対象のスキルとテスト計画書を直すときは、決まった手順の中でだけ直す」 | `hooks/pre-tool-use-write-file/skill-guard.js` | `violation` | 「blockUnguidedSkillWrite: 結果を返す」と「blockUnguidedSkillWrite: 結果を返さない」 |
 
 ## 入力
 
@@ -36,4 +36,4 @@
 
 ## 確かめ方
 
-確かめる人は、`echo '{"hook_event_name":"PreToolUse","transcript_path":"/dev/null","tool_input":{"file_path":"$CLAUDE_PROJECT_DIR/.claude/skills/fixing-skill/SKILL.md"}}' | node $CLAUDE_PROJECT_DIR/.claude/hooks/pre-tool-use-write-file.js` を実行し、終了コードが 2 で、標準エラーが見出しの行「違反」と `blockUnguidedSkillWrite` の行を持つことを確かめる。
+確かめる人は、`node --test .claude/hooks/pre-tool-use-write-file/pre-tool-use-write-file.test.js` を実行し、すべてのテストが合格することを確かめる。

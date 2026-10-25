@@ -12,22 +12,23 @@ paths:
 |---|---|
 | 発火点 | PostToolUse |
 | matcher | `Edit\|Write` |
-| command | `node <プロジェクトのパス>/hooks/post-tool-use-write-file.js` |
+| command | `node $CLAUDE_PROJECT_DIR/.claude/hooks/post-tool-use-write-file.js` |
 | timeout | 60 |
 
 ## 検査
 
-| 検査の名前 | 確かめること | 対象のファイルの条件 | 根拠の規約と規則の観点 | 呼ぶもの | 返す kind |
-|---|---|---|---|---|---|
-| remindPinkElephants | 変えた規約の文が、ピンクの象を除く書き直しとユーザーの承認を経ているかの点検を AI に頼む | `rules/` の下の `.md` | 規約 rule-writing-rule の規則「規約を足す、直す、消す、分ける、まとめるときに守ること」 | remind-pink-elephants.md | `prompt` |
-| checkLinks | ファイルの中の相対パスのリンク先が存在する | `.md` | なし | なし | `violation` |
-| checkHookRequires | スクリプトの `require` の相対パスが、すべて `hooks/` の下を指す | `hooks/` の下の `.js` | 規約 hook-writing-rule の規則「hooks/ の中のどこに置くか」 | なし | `violation` |
-| requestRuleCheck | 変えたファイルに当たる規約のパスの一覧を作り、書く作業を終えたあとに、その一覧で別の照合者に照合させて直すことを AI に頼む | `.md` | 規約 thinking-rule の規則「AI は、規約に沿って文書を書く作業を、書いた AI とは別の照合が出したすべての指摘が直した状態か一覧に入った状態になったときに終える」 | request-rule-check.md | `prompt` |
+| 検査の名前 | 確かめること | 対象のファイルの条件 | 根拠の規約と規則の観点 | 呼ぶもの | 返す kind | テスト |
+|---|---|---|---|---|---|---|
+| remindPinkElephants | 変えた規約の文が、ピンクの象(文書に不要な対象への言及と、否定や釈明による再想起)を除く書き直しとユーザーの承認を経ているかの点検を AI に頼む | `rules/` の下の `.md` | 規約 rule-writing-rule の規則「規約を足す、直す、消す、分ける、まとめるときに守ること」 | remind-pink-elephants.md | `prompt` | 「remindPinkElephants: 結果を返す」と「remindPinkElephants: 結果を返さない」 |
+| checkLinks | ファイルの中の相対パスのリンク先が存在する | `.md` | なし | なし | `violation` | 「checkLinks: 結果を返す」と「checkLinks: 結果を返さない」 |
+| checkHookRequires | スクリプトの `require` の相対パスが、すべて `hooks/` の下を指す | `hooks/` の下の `.js` | 規約 hook-writing-rule の規則「hooks/ の中のどこに置くか」 | なし | `violation` | 「checkHookRequires: 結果を返す」と「checkHookRequires: 結果を返さない」 |
+| checkHookTests | README の検査の表の列「テスト」の名前が、すべてテストのファイルにある | `hooks/` の下の `.js` と README | 規約 hook-writing-rule の規則「スクリプト、README、点検の依頼の文が持つもの」 | なし | `violation` | 「checkHookTests: 結果を返す」と「checkHookTests: 結果を返さない」 |
+| requestRuleCheck | 変えたファイルに当たる規約のパスの一覧を作り、書く作業を終えたあとに、その一覧で別の照合者に照合させて直すことを AI に頼む | `.md` | 規約 thinking-rule の規則「AI は、規約に沿って文書を書く作業を、書いた AI とは別の照合が出したすべての指摘が直した状態か一覧に入った状態になったときに終える」 | request-rule-check.md | `prompt` | 「requestRuleCheck: 結果を返す」と「requestRuleCheck: 結果を返さない」 |
 
 検査 requestRuleCheck が作る規約のパスの一覧は、次の 2 つを持つ。
 
-- `rules/text-writing/text-writing-rule.md`。すべての `.md` に当たる。
-- `rules/` の下の `.md` のうち、ファイルの先頭の設定欄の `paths` に、変えたファイルのパスに当たる値を持つもの。フォルダの名前に `-completed-example` を含む完成例は、一覧に入れない。
+- `rules/text-writing/text-writing-rule.md`。この規約は、すべての `.md` に当たる。
+- `rules/` の下の規約と雛形のうち、ファイルの先頭の設定欄の `paths` に、変えたファイルのパスに当たる値を持つもの。
 
 ## 入力
 
@@ -48,7 +49,7 @@ paths:
 
 ## 確かめ方
 
-確かめる人は、`echo '{"hook_event_name":"PostToolUse","tool_input":{"file_path":"<プロジェクトのパス>/rules/text-writing/text-writing-rule.md"}}' | node <プロジェクトのパス>/hooks/post-tool-use-write-file.js` を実行し、終了コードが 0 で、標準出力の JSON の `hookSpecificOutput.additionalContext` が、見出しの行「点検の依頼」と、検査 remindPinkElephants と requestRuleCheck の `source` の行と `text` の行を持ち、requestRuleCheck の `text` の規約のパスの一覧が `rules/text-writing/text-writing-rule.md` と `rules/rule-writing/rule-writing-rule.md` の 2 行であることを確かめる。
+確かめる人は、`node --test hooks/post-tool-use-write-file/post-tool-use-write-file.test.js` を実行し、すべてのテストが合格することを確かめる。
 
 ## 点検の依頼の文
 

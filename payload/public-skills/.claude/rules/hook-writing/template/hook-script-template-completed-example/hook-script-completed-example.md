@@ -72,6 +72,37 @@ function checkHookRequires(input, text) {
   return [{ kind: "violation", source: "checkHookRequires", text: "hook が hooks/ の外のファイルを読み込んでいる: " + outside.join(", ") + "。規約 hook-writing-rule の規則「hooks/ の中のどこに置くか」により、hook だけが呼ぶファイルは hooks/ の下に置く。" }];
 }
 
+function hookNameOf(filePath) {
+  if (typeof filePath !== "string") return null;
+  const m = filePath.match(/\/hooks\/([^/]+)\.js$/) || filePath.match(/\/hooks\/([^/]+)\/README\.md$/);
+  return m ? { hooksDir: filePath.slice(0, filePath.indexOf("/hooks/") + 7), name: m[1] } : null;
+}
+
+function checkHookTests(input) {
+  const filePath = input.tool_input && input.tool_input.file_path;
+  const hook = hookNameOf(filePath);
+  if (!hook) return [];
+  const readme = path.join(hook.hooksDir, hook.name, "README.md");
+  const testFile = path.join(hook.hooksDir, hook.name, hook.name + ".test.js");
+  if (!fs.existsSync(readme)) return [];
+  const lines = fs.readFileSync(readme, "utf8").split("\n");
+  const header = lines.findIndex((l) => l.startsWith("| 検査の名前 |"));
+  if (header < 0) return [];
+  const columns = lines[header].split("|").map((c) => c.trim());
+  const testColumn = columns.indexOf("テスト");
+  const expected = [];
+  for (let i = header + 2; i < lines.length && lines[i].startsWith("|"); i++) {
+    const cell = testColumn >= 0 ? lines[i].split("|")[testColumn] || "" : "";
+    const names = [...cell.matchAll(/「([^」]+)」/g)].map((x) => x[1]);
+    if (names.length === 0) expected.push(lines[i].split("|")[1].trim() + ": 列「テスト」に名前がない");
+    else expected.push(...names);
+  }
+  const tests = fs.existsSync(testFile) ? fs.readFileSync(testFile, "utf8") : "";
+  const missing = expected.filter((name) => !tests.includes(name));
+  if (missing.length === 0) return [];
+  return [{ kind: "violation", source: "checkHookTests", text: "README の検査の表の列「テスト」の名前が、" + path.relative(hook.hooksDir, testFile) + " にない: " + missing.join("、") + "。規約 hook-writing-rule の規則「スクリプト、README、点検の依頼の文が持つもの」により、テストは検査ごとに列「テスト」の名前を持つ。" }];
+}
+
 const RULES_DIR = path.join(__dirname, "..", "rules");
 const ALWAYS_CHECKED_RULES = ["text-writing/text-writing-rule.md"];
 
@@ -118,7 +149,7 @@ function requestRuleCheck(input) {
   return [{ kind: "prompt", source: "requestRuleCheck", text }];
 }
 
-const CHECKS = [remindPinkElephants, checkLinks, checkHookRequires, requestRuleCheck];
+const CHECKS = [remindPinkElephants, checkLinks, checkHookRequires, checkHookTests, requestRuleCheck];
 
 function summarize(results) {
   const lines = [];
@@ -145,7 +176,7 @@ function main(raw) {
 
   let text = null;
   const filePath = input.tool_input && input.tool_input.file_path;
-  if (filePath && fs.existsSync(filePath)) {
+  if (EVENT === "PostToolUse" && filePath && fs.existsSync(filePath)) {
     text = fs.readFileSync(filePath, "utf8");
   }
 
@@ -154,7 +185,7 @@ function main(raw) {
 
   const message = summarize(results);
   const hasViolation = results.some((r) => r.kind === "violation");
-  if (hasViolation) {
+  if (EVENT === "Stop" || hasViolation) {
     process.stderr.write(message + "\n");
     process.exit(2);
   }
