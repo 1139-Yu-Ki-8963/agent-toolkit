@@ -21,6 +21,7 @@ paths:
 |---|---|---|---|---|---|
 | remindPinkElephants | 変えた規約の文が、ピンクの象を除く書き直しとユーザーの承認を経ているかの点検を AI に頼む | `rules/` の下の `.md` | 規約 rule-writing-rule の規則「規約を足す、直す、消す、分ける、まとめるときに守ること」 | remind-pink-elephants.md | `prompt` |
 | checkLinks | ファイルの中の相対パスのリンク先が存在する | `.md` | なし | なし | `violation` |
+| checkHookRequires | スクリプトの `require` の相対パスが、すべて `hooks/` の下を指す | `hooks/` の下の `.js` | 規約 hook-writing-rule の規則「hooks/ の中のどこに置くか」 | なし | `violation` |
 | requestRuleCheck | 変えたファイルに当たる規約のパスの一覧を作り、書く作業を終えたあとに、その一覧で別の照合者に照合させて直すことを AI に頼む | `.md` | 規約 thinking-rule の規則「AI は、規約に沿って文書を書く作業を、書いた AI とは別の照合が出したすべての指摘が直した状態か一覧に入った状態になったときに終える」 | request-rule-check.md | `prompt` |
 
 検査 requestRuleCheck が作る規約のパスの一覧は、次の 2 つを持つ。

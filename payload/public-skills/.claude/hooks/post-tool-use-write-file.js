@@ -49,10 +49,10 @@ function checkHookRequires(input, text) {
   if (!isHookScript(filePath) || text === null) return [];
   const hooksDir = filePath.replace(/(\/hooks\/).*$/, "$1");
   const outside = [];
-  const requirePattern = /require\(\s*["']([^"']+)["']\s*\)/g;
+  const requirePattern = /require\(\s*(?:"([^"]*)"|'([^']*)')\s*\)/g;
   let m;
   while ((m = requirePattern.exec(text)) !== null) {
-    const target = m[1];
+    const target = m[1] !== undefined ? m[1] : m[2];
     if (!target.startsWith(".")) continue;
     const resolved = path.resolve(path.dirname(filePath), target);
     if (!(resolved + path.sep).startsWith(hooksDir)) outside.push(target);

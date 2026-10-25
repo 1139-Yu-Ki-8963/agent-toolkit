@@ -51,6 +51,27 @@ function checkLinks(input, text) {
   return [{ kind: "violation", source: "checkLinks", text: "リンク先のファイルがない: " + broken.join(", ") }];
 }
 
+function isHookScript(filePath) {
+  return typeof filePath === "string" && filePath.endsWith(".js") && /\/hooks\/.+\.js$/.test(filePath);
+}
+
+function checkHookRequires(input, text) {
+  const filePath = input.tool_input && input.tool_input.file_path;
+  if (!isHookScript(filePath) || text === null) return [];
+  const hooksDir = filePath.replace(/(\/hooks\/).*$/, "$1");
+  const outside = [];
+  const requirePattern = /require\(\s*(?:"([^"]*)"|'([^']*)')\s*\)/g;
+  let m;
+  while ((m = requirePattern.exec(text)) !== null) {
+    const target = m[1] !== undefined ? m[1] : m[2];
+    if (!target.startsWith(".")) continue;
+    const resolved = path.resolve(path.dirname(filePath), target);
+    if (!(resolved + path.sep).startsWith(hooksDir)) outside.push(target);
+  }
+  if (outside.length === 0) return [];
+  return [{ kind: "violation", source: "checkHookRequires", text: "hook が hooks/ の外のファイルを読み込んでいる: " + outside.join(", ") + "。規約 hook-writing-rule の規則「hooks/ の中のどこに置くか」により、hook だけが呼ぶファイルは hooks/ の下に置く。" }];
+}
+
 const RULES_DIR = path.join(__dirname, "..", "rules");
 const ALWAYS_CHECKED_RULES = ["text-writing/text-writing-rule.md"];
 
@@ -68,7 +89,7 @@ function readPaths(ruleFile) {
   const text = fs.readFileSync(ruleFile, "utf8");
   const m = text.match(/^---\n([\s\S]*?)\n---/);
   if (!m) return [];
-  return [...m[1].matchAll(/^\s*-\s*"([^"]+)"/gm)].map((x) => x[1]);
+  return [...m[1].matchAll(/^\s*-\s*"?([^"\n]+?)"?\s*$/gm)].map((x) => x[1]);
 }
 
 function globToRegExp(glob) {
@@ -97,7 +118,7 @@ function requestRuleCheck(input) {
   return [{ kind: "prompt", source: "requestRuleCheck", text }];
 }
 
-const CHECKS = [remindPinkElephants, checkLinks, requestRuleCheck];
+const CHECKS = [remindPinkElephants, checkLinks, checkHookRequires, requestRuleCheck];
 
 function summarize(results) {
   const lines = [];
