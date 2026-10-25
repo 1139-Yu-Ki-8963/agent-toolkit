@@ -22,9 +22,9 @@ for (const s of lines) { NR++;
   if (!fe && s.startsWith("```")) { fe = s.match(/^`+/)[0]; continue; }
   if (fe) { if (s === fe) fe = ""; continue; }
   if (s === "### 受け渡す値") { it = true; continue; }
-  if (s === "### 最終出力") { io = true; continue; }
+  if (s === "### 最終出力" || s === "### 開始時の入力") { io = true; continue; }
   if (s.startsWith("#")) { it = false; io = false; cur = ""; }
-  if (io && s.startsWith("| ") && !s.startsWith("| 名前 |") && !s.startsWith("|-")) { const c = s.split(/ *\| */); if (!N.includes(c[1])) O.push(c[1]); }
+  if (io && s.startsWith("| ") && !s.startsWith("| 名前 |") && !s.startsWith("| 項目 |") && !s.startsWith("|-")) { const c = s.split(/ *\| */); if (!N.includes(c[1])) O.push(c[1]); }
   if (it && s.startsWith("| ") && !s.startsWith("| 名前 |") && !s.startsWith("|-")) { const c = s.split(/ *\| */); N.push(c[1]); cell(c[2], "出力", c[1], NR); cell(c[3], "入力", c[1], NR); }
   if (/^#### ── step [0-9]+-[0-9]+ の情報 ──$/.test(s)) cur = s.trim().split(/[ \t]+/)[3];
   if (cur !== "" && /^- (入力|出力): /.test(s)) { L.push(s); LS.push(cur); LK.push(s.slice(2, 4)); LN.push(NR); }
