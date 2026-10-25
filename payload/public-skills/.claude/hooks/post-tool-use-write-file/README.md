@@ -43,7 +43,7 @@
 
 ## 確かめ方
 
-確かめる人は、`node --test .claude/hooks/post-tool-use-write-file/post-tool-use-write-file.test.js` を実行し、すべてのテストが合格することを確かめる。
+確かめる人は、`node --test hooks/post-tool-use-write-file/post-tool-use-write-file.test.js` を実行し、すべてのテストが合格することを確かめる。
 
 ## 点検の依頼の文
 

@@ -36,4 +36,4 @@
 
 ## 確かめ方
 
-確かめる人は、`node --test .claude/hooks/pre-tool-use-write-file/pre-tool-use-write-file.test.js` を実行し、すべてのテストが合格することを確かめる。
+確かめる人は、`node --test hooks/pre-tool-use-write-file/pre-tool-use-write-file.test.js` を実行し、すべてのテストが合格することを確かめる。

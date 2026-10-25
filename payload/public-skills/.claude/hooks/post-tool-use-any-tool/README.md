@@ -37,4 +37,4 @@
 
 ## 確かめ方
 
-確かめる人は、`node --test .claude/hooks/post-tool-use-any-tool/post-tool-use-any-tool.test.js` を実行し、すべてのテストが合格することを確かめる。
+確かめる人は、`node --test hooks/post-tool-use-any-tool/post-tool-use-any-tool.test.js` を実行し、すべてのテストが合格することを確かめる。
