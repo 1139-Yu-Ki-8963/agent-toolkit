@@ -60,6 +60,7 @@ cp -R public-skills/.claude/skills/<スキル名> <プロジェクト>/.claude/s
 - `defining-skill-requirements`: スキルにしたい作業の依頼を読み、既にあるスキルを調べ、足りない情報を 1 問ずつ質問し、照合者 2 人の突き合わせと承認を経て、要件定義書を書く。
 - `designing-skill-structure`: 承認された要件定義書の作業の流れをスキルの単位に切り、切り方の案を 3 つ出してユーザーに選ばせ、足りない値を 1 問ずつ質問し、照合者 2 人の突き合わせと承認を経て、分割設計書を書く。
 - `designing-skill-phases`: 承認された分割設計書のスキル 1 本分を phase と step に切り、規約と雛形に突き合わせ、足りない値を 1 問ずつ質問し、照合者 2 人の突き合わせと承認を経て、構成の案を書く。
+- `rewrite-pink-elephants`: 入力されたMarkdownファイルの全文をAIの意味推論で読み、ピンクの象を全て検出・除去して、新しいMarkdownファイルに書き直す。
 
 ## 規約(`.claude/rules/skill-writing/`)
 

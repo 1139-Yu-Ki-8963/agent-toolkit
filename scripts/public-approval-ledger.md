@@ -125,6 +125,11 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 ## public-skills（~/Projects/public-skills/.claude/ を mirror）
 
 | スキル名 | 承認状況 | 承認根拠 | 備考 |
+| fixing-skill | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合(step 4-1)で 0 件 | source: public-skills |
+| fixing-test-plan | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合(step 4-1)で 0 件 | source: public-skills |
+| checking-markdown-document-with-rules | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合(step 4-1)で 0 件 | source: public-skills |
+| fixing-markdown-document | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合(step 4-1)で 0 件 | source: public-skills |
+| rewrite-pink-elephants | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合(step 4-1)で 0 件 | source: public-skills |
 |---|---|---|---|
 | reporting-textlint-findings | 承認済み | 初期同期対象（2026-09-15） | |
 | drafting-skill-with-template（旧 creating-agent-skills） | 承認済み | ユーザーの公開指示（2026-09-29）。環境固有のパスなし。実行者の検証 8 回で必須要件すべて ○。2026-09-30 に新規作成だけへ縮小し、drafting-skill-with-template に改名 | source: agent-home@09baffc、public-skills@bee2543 |
