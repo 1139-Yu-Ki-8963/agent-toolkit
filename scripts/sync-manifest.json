@@ -159,6 +159,11 @@
       "mode": "file",
       "src": "~/Projects/skill-factory/README.md",
       "dst": "payload/skill-factory/README.md"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/skill-factory/docs",
+      "dst": "payload/skill-factory/docs"
     }
   ]
 }

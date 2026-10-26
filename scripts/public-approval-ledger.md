@@ -197,4 +197,4 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 | .claude/rules/(text-writing、thinking、skill-or-rule、skill-writing、skill-testing、skill-making-flow) | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合で 0 件 | source: agent-home/rules(リンクの実体) |
 | .claude/skills/(段階が使う 10 本と補助の 3 本) | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合で 0 件 | source: agent-home/skills(リンクの実体) |
 | .claude/hooks/、.claude/settings.json、README.md | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合で 0 件 | hooks は public-skills の変換済みの写しを source にする |
-| docs/ | 除外 | 設計書と依頼の控えに、環境固有のパスとプロジェクト固有の語がある | 2026-10-26 に対応表から外した |
+| docs/(設計書、依頼の控えの規則の案、inbox の控えの見本) | 承認済み | ユーザーの公開の承認(2026-10-26)。環境固有のパスを語に置き換え、混入の照合で 0 件 | source: skill-factory/docs |
