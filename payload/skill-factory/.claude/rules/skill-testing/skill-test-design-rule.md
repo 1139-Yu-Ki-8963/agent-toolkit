@@ -1,6 +1,7 @@
 ---
 paths:
   - "**/skills/tests/**"
+  - "**/output/*/tests/**"
   - "**/skills/designing-skill-test-cases/**"
   - "**/skills/designing-skill-test-scenarios/**"
   - "**/skills/testing-skill-with-template/**"

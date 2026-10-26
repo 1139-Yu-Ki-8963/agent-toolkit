@@ -9,11 +9,11 @@
 | text-writing-rule | `.claude/rules/text-writing/text-writing-rule.md` | 常に | 63c6b6d1 |  |  |  |
 | thinking-rule | `.claude/rules/thinking/thinking-rule.md` | 常に | f9ad5725 |  |  |  |
 | skill-or-rule | `.claude/rules/skill-or-rule/skill-or-rule.md` | 常に | 555a7924 |  |  |  |
-| skill-making-flow-rule | `.claude/rules/skill-making-flow/skill-making-flow-rule.md` | 常に | 555a7924 |  |  |  |
-| skill-writing-rule | `.claude/rules/skill-writing/skill-writing-rule/skill-writing-rule.md` | `skills/*/SKILL.md`、`skills/*/references/`、`skills/*/scripts/` の下を読んだとき | b7f24c33 |  |  |  |
-| skill-template | `.claude/rules/skill-writing/skill-template/skill-template.md` | `skills/*/SKILL.md`、`skills/*/references/` の下を読んだとき | 2dfa58e0 | 対象外 |  |  |
-| skill-completed-example | `.claude/rules/skill-writing/skill-template-completed-example/skill-completed-example.md` | `skills/*/SKILL.md`、`skills/*/references/` の下を読んだとき | 7dbc4836 | 対象外 |  |  |
-| skill-test-design-rule | `.claude/rules/skill-testing/skill-test-design-rule.md` | `skills/tests/` の下か、段階 6 から 8 のスキルと fixing-skill のフォルダの下を読んだとき | 3ef9f52a |  |  |  |
+| skill-making-flow-rule | `.claude/rules/skill-making-flow/skill-making-flow-rule.md` | 常に | 0ad8487c |  |  |  |
+| skill-writing-rule | `.claude/rules/skill-writing/skill-writing-rule/skill-writing-rule.md` | `skills/*/` と `output/*/` の `SKILL.md`、`references/`、`scripts/` の下を読んだとき | 0ad8487c |  |  |  |
+| skill-template | `.claude/rules/skill-writing/skill-template/skill-template.md` | `skills/*/` と `output/*/` の `SKILL.md`、`references/` の下を読んだとき | 0ad8487c | 対象外 |  |  |
+| skill-completed-example | `.claude/rules/skill-writing/skill-template-completed-example/skill-completed-example.md` | `skills/*/` と `output/*/` の `SKILL.md`、`references/` の下を読んだとき | 0ad8487c | 対象外 |  |  |
+| skill-test-design-rule | `.claude/rules/skill-testing/skill-test-design-rule.md` | `skills/tests/` か `output/*/tests/` の下か、段階 6 から 8 のスキルと fixing-skill のフォルダの下を読んだとき | 0ad8487c |  |  |  |
 
 ## スキルの表
 
@@ -21,16 +21,16 @@
 
 | スキル | 段階 | 最後に変えたコミット | skill-writing-rule | text-writing-rule | ピンクの象の除去 | シナリオテスト |
 |---|---|---|---|---|---|---|
-| defining-skill-requirements | 1 | 0984deba |  |  |  | ○ 2026-10-25 0984deba |
-| designing-skill-structure | 2 | 143d08c8 |  |  |  | ○ 2026-10-25 143d08c8 |
-| designing-skill-phases | 3 | 143d08c8 |  |  |  | ○ 2026-10-25 143d08c8 |
-| drafting-skill-with-template | 4 | 0984deba |  |  |  | ○ 2026-10-25 0984deba |
-| checking-skill-with-template | 5 | a5c6c55b |  |  |  | ○ 2026-10-25 a5c6c55b |
-| fixing-skill | 5 | 143d08c8 | ○ 2026-10-25 143d08c8 |  |  | ○ 2026-10-25 143d08c8 |
-| designing-skill-test-cases | 6 | 143d08c8 | ○ 2026-10-25 143d08c8 |  |  | ○ 2026-10-25 143d08c8 |
+| defining-skill-requirements | 1 | 0ad8487c |  |  |  |  |
+| designing-skill-structure | 2 | 0ad8487c |  |  |  |  |
+| designing-skill-phases | 3 | 0ad8487c |  |  |  |  |
+| drafting-skill-with-template | 4 | 0ad8487c |  |  |  |  |
+| checking-skill-with-template | 5 | 0ad8487c |  |  |  |  |
+| fixing-skill | 5 | 0ad8487c |  |  |  |  |
+| designing-skill-test-cases | 6 | 0ad8487c |  |  |  |  |
 | designing-skill-test-scenarios | 7 | 2dfa58e0 |  |  |  | ○ 2026-10-25 2dfa58e0 |
-| testing-skill-with-template | 8 | 143d08c8 |  |  |  | ○ 2026-10-25 143d08c8 |
-| fixing-test-plan | 8 | 2dfa58e0 |  |  |  | ○ 2026-10-25 2dfa58e0 |
+| testing-skill-with-template | 8 | 0ad8487c |  |  |  |  |
+| fixing-test-plan | 8 | 0ad8487c |  |  |  |  |
 | checking-markdown-document-with-rules | 補助 | 2dfa58e0 |  |  |  |  |
 | fixing-markdown-document | 補助 | 2dfa58e0 |  |  |  |  |
 | rewrite-pink-elephants | 補助 | 305fed4b | 対象外 |  |  | 対象外 |
@@ -41,9 +41,9 @@
 
 | hook | 発火点 | matcher | 検査の名前 | 最後に変えたコミット | テストの合格 |
 |---|---|---|---|---|---|
-| pre-tool-use-write-file | PreToolUse | `Edit\|Write\|NotebookEdit` | blockUnguidedSkillWrite | 2666a0d4 |  |
-| post-tool-use-write-file | PostToolUse | `Edit\|Write` | remindPinkElephants、checkLinks、checkHookRequires、checkHookTests、requestRuleCheck | 2666a0d4 |  |
-| post-tool-use-any-tool | PostToolUse | `*` | detectUnguidedSkillChange | 2666a0d4 |  |
+| pre-tool-use-write-file | PreToolUse | `Edit\|Write\|NotebookEdit` | blockUnguidedSkillWrite | 0ad8487c | ○ 2026-10-26 0ad8487c |
+| post-tool-use-write-file | PostToolUse | `Edit\|Write` | remindPinkElephants、checkLinks、checkHookRequires、checkHookTests、requestRuleCheck | 0ad8487c | ○ 2026-10-26 0ad8487c |
+| post-tool-use-any-tool | PostToolUse | `*` | detectUnguidedSkillChange | 0ad8487c | ○ 2026-10-26 0ad8487c |
 
 ## 列ごとの規約とスキル
 

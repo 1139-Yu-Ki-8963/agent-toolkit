@@ -9,6 +9,11 @@ const HOME = process.env.SKILL_GUARD_HOME || path.join(__dirname, "..", "..");
 const SKILLS_DIR = path.join(HOME, "skills");
 const TESTS_DIR = path.join(SKILLS_DIR, "tests");
 const PLAN_NAME = "テスト計画書.md";
+// skill-factory の作業フォルダの output/<スキルの名前>/ に置く、作ったスキルとそのテスト
+const PROJECT = process.env.SKILL_GUARD_PROJECT || process.env.CLAUDE_PROJECT_DIR || process.cwd();
+const OUTPUT_DIR = path.join(PROJECT, "output");
+// output/<スキルの名前>/ の直下で、スキルのファイルとして守らないもの(テストの記録と設計の文書)
+const OUTPUT_NOT_SKILL = ["tests", "要件定義書.md", "分割設計書.md", "構成の案.md", "依頼の一覧.md"];
 
 // 守るファイルの種類ごとに、書き換えてよいスキルの名前
 const WRITERS = {
@@ -16,19 +21,31 @@ const WRITERS = {
   plan: ["fixing-test-plan", "designing-skill-test-cases", "designing-skill-test-scenarios"],
 };
 
-function guardedSkillNames() {
-  if (!fs.existsSync(TESTS_DIR)) return [];
-  return fs
-    .readdirSync(TESTS_DIR, { withFileTypes: true })
-    .filter((e) => e.isDirectory() && fs.existsSync(path.join(TESTS_DIR, e.name, PLAN_NAME)))
-    .map((e) => e.name)
-    .filter((name) => fs.existsSync(path.join(SKILLS_DIR, name)));
+// テスト計画書を持つスキルごとの、スキルのフォルダと、テスト計画書のパスと、スキルのファイルとして守らない直下の名前
+function guardedSkills() {
+  const result = [];
+  if (fs.existsSync(TESTS_DIR)) {
+    for (const e of fs.readdirSync(TESTS_DIR, { withFileTypes: true })) {
+      const plan = path.join(TESTS_DIR, e.name, PLAN_NAME);
+      const dir = path.join(SKILLS_DIR, e.name);
+      if (e.isDirectory() && fs.existsSync(plan) && fs.existsSync(dir)) result.push({ dir, plan, notSkill: [] });
+    }
+  }
+  if (fs.existsSync(OUTPUT_DIR)) {
+    for (const e of fs.readdirSync(OUTPUT_DIR, { withFileTypes: true })) {
+      const dir = path.join(OUTPUT_DIR, e.name);
+      const plan = path.join(dir, "tests", PLAN_NAME);
+      if (e.isDirectory() && fs.existsSync(plan)) result.push({ dir, plan, notSkill: OUTPUT_NOT_SKILL });
+    }
+  }
+  return result;
 }
 
-function listFiles(dir) {
+function listFiles(dir, notSkill) {
   const files = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (entry.name.startsWith(".")) continue;
+    if (notSkill && notSkill.includes(entry.name)) continue;
     const full = path.join(dir, entry.name);
     if (entry.isDirectory()) files.push(...listFiles(full));
     else files.push(full);
@@ -39,9 +56,9 @@ function listFiles(dir) {
 // 守るファイルの絶対パスと種類の一覧
 function guardedFiles() {
   const result = [];
-  for (const name of guardedSkillNames()) {
-    for (const f of listFiles(path.join(SKILLS_DIR, name))) result.push({ file: f, kind: "skill" });
-    result.push({ file: path.join(TESTS_DIR, name, PLAN_NAME), kind: "plan" });
+  for (const g of guardedSkills()) {
+    for (const f of listFiles(g.dir, g.notSkill)) result.push({ file: f, kind: "skill" });
+    result.push({ file: g.plan, kind: "plan" });
   }
   return result;
 }
@@ -49,9 +66,12 @@ function guardedFiles() {
 function kindOf(filePath) {
   if (typeof filePath !== "string") return null;
   const abs = path.resolve(filePath);
-  for (const name of guardedSkillNames()) {
-    if (abs === path.join(TESTS_DIR, name, PLAN_NAME)) return "plan";
-    if (abs.startsWith(path.join(SKILLS_DIR, name) + path.sep)) return "skill";
+  for (const g of guardedSkills()) {
+    if (abs === g.plan) return "plan";
+    if (!abs.startsWith(g.dir + path.sep)) continue;
+    const top = path.relative(g.dir, abs).split(path.sep)[0];
+    if (g.notSkill.includes(top) || top.startsWith(".")) continue;
+    return "skill";
   }
   return null;
 }
@@ -101,7 +121,7 @@ function baselinePath(input) {
 }
 
 function relative(file) {
-  return path.relative(HOME, file);
+  return file.startsWith(OUTPUT_DIR + path.sep) ? path.relative(PROJECT, file) : path.relative(HOME, file);
 }
 
 module.exports = { WRITERS, guardedFiles, kindOf, allowed, hashOf, baselinePath, relative };

@@ -4,6 +4,8 @@ paths:
   - "**/skills/*/references/**"
   - "**/skills-pool/*/SKILL.md"
   - "**/skills-pool/*/references/**"
+  - "**/output/*/SKILL.md"
+  - "**/output/*/references/**"
 ---
 
 # スキルの雛形(phase と step)

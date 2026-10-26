@@ -6,6 +6,9 @@ paths:
   - "**/skills-pool/*/references/**"
   - "**/skills/*/scripts/**"
   - "**/skills-pool/*/scripts/**"
+  - "**/output/*/SKILL.md"
+  - "**/output/*/references/**"
+  - "**/output/*/scripts/**"
   - "**/rules/skill-writing/**"
 ---
 
