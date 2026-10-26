@@ -13,7 +13,7 @@
 
 | 検査の名前 | 確かめること | 対象のファイルの条件 | 根拠の規約と規則の観点 | 呼ぶもの | 返す kind | テスト |
 |---|---|---|---|---|---|---|
-| blockUnguidedSkillWrite | 書き込む先がテスト計画書を持つスキルのファイルのとき、会話の記録に、そのファイルを書き換えてよいスキルを使った跡がある | `skills/tests/<スキルの名前>/テスト計画書.md` を持つスキルの `skills/<スキルの名前>/` の下のファイルと、そのテスト計画書。作業フォルダの `output/<スキルの名前>/tests/テスト計画書.md` を持つスキルの `output/<スキルの名前>/` の下のファイル(直下の `tests/`、`要件定義書.md`、`分割設計書.md`、`構成の案.md`、`依頼の一覧.md` を除く)と、そのテスト計画書 | 規約 thinking-rule の規則「テストの不合格から、テスト対象のスキルとテスト計画書を直すときは、決まった手順の中でだけ直す」 | `hooks/pre-tool-use-write-file/skill-guard.js` | `violation` | 「blockUnguidedSkillWrite: 結果を返す」と「blockUnguidedSkillWrite: 結果を返さない」 |
+| blockUnguidedSkillWrite | 書き込む先がテスト計画書を持つスキルのファイルのとき、会話の記録に、そのファイルを書き換えてよいスキルを使った跡がある | `skills/tests/<スキルの名前>/テスト計画書.md` を持つスキルの `skills/<スキルの名前>/` の下のファイルと、そのテスト計画書。作業フォルダの `output/<スキルの名前>/tests/テスト計画書.md` を持つスキルの `output/<スキルの名前>/` の下のファイル(直下の `tests/`、`ui/`、`要件定義書.md`、`分割設計書.md`、`構成の案.md`、`依頼の一覧.md` を除く)と、そのテスト計画書 | 規約 thinking-rule の規則「テストの不合格から、テスト対象のスキルとテスト計画書を直すときは、決まった手順の中でだけ直す」 | `hooks/pre-tool-use-write-file/skill-guard.js` | `violation` | 「blockUnguidedSkillWrite: 結果を返す」と「blockUnguidedSkillWrite: 結果を返さない」 |
 
 ## 入力
 

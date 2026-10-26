@@ -63,4 +63,5 @@ test("blockUnguidedSkillWrite: output の設計の文書とテストの記録で
   const home = outputHome();
   assert.equal(run(home, path.join(home, "output", "foo", "要件定義書.md")).code, 0);
   assert.equal(run(home, path.join(home, "output", "foo", "tests", "2026-10-26-1500", "判定の記録.md")).code, 0);
+  assert.equal(run(home, path.join(home, "output", "foo", "ui", "state.json")).code, 0);
 });

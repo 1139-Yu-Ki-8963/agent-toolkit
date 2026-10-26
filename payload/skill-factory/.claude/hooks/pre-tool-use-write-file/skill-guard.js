@@ -12,8 +12,8 @@ const PLAN_NAME = "テスト計画書.md";
 // skill-factory の作業フォルダの output/<スキルの名前>/ に置く、作ったスキルとそのテスト
 const PROJECT = process.env.SKILL_GUARD_PROJECT || process.env.CLAUDE_PROJECT_DIR || process.cwd();
 const OUTPUT_DIR = path.join(PROJECT, "output");
-// output/<スキルの名前>/ の直下で、スキルのファイルとして守らないもの(テストの記録と設計の文書)
-const OUTPUT_NOT_SKILL = ["tests", "要件定義書.md", "分割設計書.md", "構成の案.md", "依頼の一覧.md"];
+// output/<スキルの名前>/ の直下で、スキルのファイルとして守らないもの(テストの記録、確認と承認の画面のファイル、設計の文書)
+const OUTPUT_NOT_SKILL = ["tests", "ui", "要件定義書.md", "分割設計書.md", "構成の案.md", "依頼の一覧.md"];
 
 // 守るファイルの種類ごとに、書き換えてよいスキルの名前
 const WRITERS = {
