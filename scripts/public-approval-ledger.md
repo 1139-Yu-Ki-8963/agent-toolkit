@@ -177,6 +177,14 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 |---|---|---|---|
 | docs/(流れ、提案、履歴の 3 フォルダ。上の 2026-10-09 に承認した流れの md と html 2 本、提案/、各スキルの要件、テストの前提の状態に関する問題、フィードバックへの修正対応の履歴、新しい「消した規則の記録.md」を収める) | 承認済み | ユーザーの指示(2026-10-14「案 A(推奨): docs/で進めて」)。ルートの個別の file mapping 6 行と 提案/ の mirror を、docs の mirror 1 行に置き換えた。実体のない 変更履歴.md の行は消した | mirror。source: public-skills(2026-10-14 の整理) |
 
+### 2026-10-26 の整理(skill-factory にあるものを外す)
+
+| 対象 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| .claude/rules/(skill-testing、skill-writing、text-writing、thinking)と .claude/hooks/(3 本) | 除外 | ユーザーの指示(2026-10-26「正しく修正して公開しろ」)。payload/skill-factory にあるものと重複するため、public-skills から消した | payload と manifest から除去 |
+| .claude/rules/behavior | 承認済み | ユーザーの指示(2026-10-26)。skill-factory にない常時読み込みの規約。`~/.claude/` を `$HOME/.claude/` に置き換え、混入の照合で 0 件 | source: agent-home/rules/behavior |
+| README.md | 承認済み | 収録スキル 4 本と規約 3 フォルダの構成に書き換え。環境固有のパスなし | file |
+
 ## ai-consulting-toolkit（公開の再開 2026-10-05）
 
 2026-09-29 に公開をやめた ai-consulting-toolkit を、ユーザーの決定（2026-10-05）で再び公開する。正本は `~/Projects/ai-consulting-toolkit`（ローカルのみ、リモートなし）。公開前の検査（2026-10-05）: 秘密情報・メールアドレス・`/Users/` のパスなし。ポータルのデータは A 社〜J 社の架空のプロトタイプ。`clients/` は空で、settings.json の hook も対象外。`~/agent-home` への言及が consult-ai-config-doctor の参照資料（解体済みスキルへの古いリンク 5 行）と解説スライド 1 本の図にあるが、秘密ではなく前回の公開版にも含まれていたため、そのまま公開する。
@@ -196,5 +204,5 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 |---|---|---|---|
 | .claude/rules/(text-writing、thinking、skill-or-rule、skill-writing、skill-testing、skill-making-flow) | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合で 0 件 | source: agent-home/rules(リンクの実体) |
 | .claude/skills/(段階が使う 10 本と補助の 3 本) | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合で 0 件 | source: agent-home/skills(リンクの実体) |
-| .claude/hooks/、.claude/settings.json、README.md | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合で 0 件 | hooks は public-skills の変換済みの写しを source にする |
+| .claude/hooks/、.claude/settings.json、README.md | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合で 0 件 | hooks は、ビルダー scripts/build-skill-factory-hooks.mjs が正本 agent-home/hooks のパスを $CLAUDE_PROJECT_DIR/.claude/ に置き換えて写す(2026-10-26 に public-skills の写しから変更) |
 | docs/(設計書、依頼の控えの規則の案、inbox の控えの見本) | 承認済み | ユーザーの公開の承認(2026-10-26)。環境固有のパスを語に置き換え、混入の照合で 0 件 | source: skill-factory/docs |

@@ -12,11 +12,6 @@
     },
     {
       "mode": "mirror",
-      "src": "~/Projects/public-skills/.claude/hooks",
-      "dst": "payload/public-skills/.claude/hooks"
-    },
-    {
-      "mode": "mirror",
       "src": "~/Projects/public-skills/docs",
       "dst": "payload/public-skills/docs"
     },
@@ -146,9 +141,10 @@
       "dst": "payload/skill-factory/.claude/skills/rewrite-pink-elephants"
     },
     {
-      "mode": "mirror",
-      "src": "~/Projects/public-skills/.claude/hooks",
-      "dst": "payload/skill-factory/.claude/hooks"
+      "mode": "build",
+      "builder": "scripts/build-skill-factory-hooks.mjs",
+      "dst": "payload/skill-factory/.claude/hooks",
+      "note": "正本 ~/agent-home/hooks を、パスを $CLAUDE_PROJECT_DIR/.claude/ に置き換えて写す"
     },
     {
       "mode": "file",
