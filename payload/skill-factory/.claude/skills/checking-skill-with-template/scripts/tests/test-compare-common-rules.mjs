@@ -1,0 +1,22 @@
+#!/usr/bin/env node
+import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+const S = join(dirname(fileURLToPath(import.meta.url)), "..", "compare-common-rules.mjs");
+const D = mkdtempSync(join(process.env.TMPDIR || "/tmp", "test-compare-common-rules-"));
+process.on("exit", () => rmSync(D, { recursive: true, force: true }));
+let f = 0;
+const t = (code, args, want, name) => { const r = spawnSync(process.execPath, [S, ...args], { encoding: "utf8" }); const out = r.stdout + r.stderr; if (r.status !== code || (want && !out.includes(want))) { console.log(`失敗: ${name}(終了コード ${r.status})`); f = 1; } else console.log(`成功: ${name}`); };
+const w = (name, body) => { const p = join(D, name); writeFileSync(p, body); return p; };
+const body = "# 全スキル共通の決まり\n\n## 1. ツールの呼び方\n\n- 読む。\n";
+const tpl = "# 雛形\n\n## 全スキル共通の決まり\n\n説明の文。\n\n````markdown\n" + body + "````\n\n## 雛形の本文\n\n```text\n本文\n```\n";
+const T = w("template.md", tpl);
+t(0, [T, w("same.md", body)], "", "雛形の章と同じ写しは指摘なし");
+t(1, [T, w("changed.md", body.replace("- 読む。", "- 書く。"))], "changed.md:5 | 雛形の章と一字一句同じでない", "違う行がある写しはその行番号");
+t(1, [T, w("short.md", body.split("\n").slice(0, 3).join("\n") + "\n")], "short.md:4 |", "行が足りない写しは足りない行の番号");
+t(1, [T, w("long.md", body + "余分な行\n")], "long.md:6 |", "行が多い写しは余分な行の番号");
+t(2, [w("notpl.md", "# 章のない雛形\n"), w("copy.md", body)], "章がない", "章のない雛形は呼び出しの誤り");
+t(2, [T, join(D, "none.md")], "使い方", "ないファイルは呼び出しの誤り");
+t(2, [T], "使い方", "引数が 1 つは呼び出しの誤り");
+process.exit(f);

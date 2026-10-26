@@ -189,3 +189,12 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 | templates/案件雛形 | 承認済み | 2026-10-05 に新設。置き換え用の名前（<課題名> など）だけで、案件固有の情報なし | mirror。新規 |
 | README.md | 承認済み | 道具箱の入口。固有パスなし | file。新規 |
 | CLAUDE.md、.claude/rules、.claude/settings.json | 除外 | `~/agent-home` の規約への参照と、ローカルの hook を含むため公開しない | |
+
+## skill-factory（~/Projects/skill-factory を、リンクの実体から mirror）
+
+| 対象 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| .claude/rules/(text-writing、thinking、skill-or-rule、skill-writing、skill-testing、skill-making-flow) | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合で 0 件 | source: agent-home/rules(リンクの実体) |
+| .claude/skills/(段階が使う 10 本と補助の 3 本) | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合で 0 件 | source: agent-home/skills(リンクの実体) |
+| .claude/hooks/、.claude/settings.json、README.md | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合で 0 件 | hooks は public-skills の変換済みの写しを source にする |
+| docs/ | 除外 | 設計書と依頼の控えに、環境固有のパスとプロジェクト固有の語がある | 2026-10-26 に対応表から外した |

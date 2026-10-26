@@ -49,6 +49,116 @@
       "mode": "file",
       "src": "~/Projects/ai-consulting-toolkit/README.md",
       "dst": "payload/ai-consulting-toolkit/README.md"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/agent-home/rules/text-writing",
+      "dst": "payload/skill-factory/.claude/rules/text-writing"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/agent-home/rules/thinking",
+      "dst": "payload/skill-factory/.claude/rules/thinking"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/agent-home/rules/skill-or-rule",
+      "dst": "payload/skill-factory/.claude/rules/skill-or-rule"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/agent-home/rules/skill-writing",
+      "dst": "payload/skill-factory/.claude/rules/skill-writing"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/agent-home/rules/skill-testing",
+      "dst": "payload/skill-factory/.claude/rules/skill-testing"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/agent-home/rules/skill-making-flow",
+      "dst": "payload/skill-factory/.claude/rules/skill-making-flow"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/agent-home/skills/defining-skill-requirements",
+      "dst": "payload/skill-factory/.claude/skills/defining-skill-requirements"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/agent-home/skills/designing-skill-structure",
+      "dst": "payload/skill-factory/.claude/skills/designing-skill-structure"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/agent-home/skills/designing-skill-phases",
+      "dst": "payload/skill-factory/.claude/skills/designing-skill-phases"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/agent-home/skills/drafting-skill-with-template",
+      "dst": "payload/skill-factory/.claude/skills/drafting-skill-with-template"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/agent-home/skills/checking-skill-with-template",
+      "dst": "payload/skill-factory/.claude/skills/checking-skill-with-template"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/agent-home/skills/fixing-skill",
+      "dst": "payload/skill-factory/.claude/skills/fixing-skill"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/agent-home/skills/designing-skill-test-cases",
+      "dst": "payload/skill-factory/.claude/skills/designing-skill-test-cases"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/agent-home/skills/designing-skill-test-scenarios",
+      "dst": "payload/skill-factory/.claude/skills/designing-skill-test-scenarios"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/agent-home/skills/testing-skill-with-template",
+      "dst": "payload/skill-factory/.claude/skills/testing-skill-with-template"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/agent-home/skills/fixing-test-plan",
+      "dst": "payload/skill-factory/.claude/skills/fixing-test-plan"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/agent-home/skills/checking-markdown-document-with-rules",
+      "dst": "payload/skill-factory/.claude/skills/checking-markdown-document-with-rules"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/agent-home/skills/fixing-markdown-document",
+      "dst": "payload/skill-factory/.claude/skills/fixing-markdown-document"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/agent-home/skills/rewrite-pink-elephants",
+      "dst": "payload/skill-factory/.claude/skills/rewrite-pink-elephants"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/public-skills/.claude/hooks",
+      "dst": "payload/skill-factory/.claude/hooks"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/.claude/settings.json",
+      "dst": "payload/skill-factory/.claude/settings.json"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/README.md",
+      "dst": "payload/skill-factory/README.md"
     }
   ]
 }
