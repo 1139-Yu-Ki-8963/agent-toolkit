@@ -1,0 +1,1010 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>スキル作成の確認と承認の画面のイメージ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef1f5;--fg:#1f2328;--muted:#57606a;--line:#d9dde3}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:'Noto Sans JP',system-ui,sans-serif}
+header.page{padding:24px 32px;background:#fff;border-bottom:1px solid var(--line)}
+header.page h1{margin:0 0 8px;font-size:22px}
+header.page p{margin:0;font-size:14px;color:var(--muted)}
+nav.toc{padding:12px 32px;font-size:14px;display:flex;gap:16px;flex-wrap:wrap;background:#fff;border-bottom:1px solid var(--line)}
+nav.toc a{color:#1d5fbf}
+section.board{padding:24px 32px}
+section.board h2{margin:0 0 4px;font-size:18px}
+section.board .desc{margin:0 0 12px;font-size:13px;color:var(--muted)}
+.frame{max-width:100%;overflow:auto;border:1px solid var(--line);border-radius:12px;background:#fff}
+footer.page{padding:16px 32px 32px;font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<header class="page">
+<h1>スキル作成の確認と承認の画面のイメージ</h1>
+<p>skill-factory(規約 skill-making-flow の「適用する場面」が決める、AI が 8 段階でスキルを作り、各段階でユーザーが承認する作業場)に付ける画面の設計図。規約 skill-making-flow の段階 1 から 8 に 1 枚ずつ、上の帯が段階と成果物の状態、左が AI との会話、右がその段階の図と文書。Claude の Design(キャンバス)で作ったものを 1 枚の HTML にした。元のキャンバス: https://claude.ai/artifact/BbdZghRYTtntWQ3DPJNVxG(作成日: 2026-10-26)</p>
+</header>
+<nav class="toc">
+<a href="#b1">段階 1 要件定義書</a>
+<a href="#b2">段階 2 分割設計書</a>
+<a href="#b3">段階 3 構成の案</a>
+<a href="#b4">段階 4 SKILL.md の下書き</a>
+<a href="#b5">段階 5 照合と修正</a>
+<a href="#b6">段階 6 テスト計画書</a>
+<a href="#b7">段階 7 シナリオ</a>
+<a href="#b8">段階 8 テストの実行</a>
+</nav>
+
+<section class="board" id="b1">
+  <h2>段階 1: 要件定義書</h2>
+  <p class="desc">右の図: 全体の流れ図(8 段階と 3 つの輪)。右の文書: 要件定義書。承認: 要件定義書の全体。</p>
+  <div class="frame" style="width:1440px"><div style="min-height: 1000px; display: flex; flex-direction: column; background: #f6f7f9; font-family: 'Noto Sans JP', system-ui, sans-serif; color: #1f2328">
+
+  <header style="display: flex; align-items: center; gap: 24px; padding: 12px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
+    <div style="font-weight: 700; font-size: 16px">skill-factory</div>
+    <div style="font-size: 13px; color: #57606a">作業の名前: 議事録の要約</div>
+    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #fff6d6; color: #6b5400">成果物の状態: 要件定義書が下書き</div>
+    <div style="flex: 1 1 auto"></div>
+    <div style="font-size: 13px; color: #57606a">スキルの実体のフォルダ: skill-factory/.claude/skills/</div>
+  </header>
+
+  <nav aria-label="段階" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; color: #1d5fbf; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">1</span>要件定義書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">2</span>分割設計書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">3</span>構成の案</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">4</span>SKILL.md の下書き</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">5</span>照合と修正</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">6</span>テスト計画書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">7</span>シナリオ</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">8</span>テストの実行</div>
+  </nav>
+
+  <main style="display: flex; flex-wrap: wrap; flex: 1 1 auto; gap: 16px; padding: 16px 24px 24px">
+
+    <section aria-label="AI との会話" style="flex: 1 1 360px; min-width: 0; max-width: 420px; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px; overflow: hidden">
+      <div style="padding: 12px 16px; border-bottom: 1px solid #e6e9ee; font-size: 13px; font-weight: 700">会話</div>
+      <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; padding: 16px; overflow: auto">
+        <div style="align-self: flex-end; max-width: 85%; padding: 10px 14px; border-radius: 14px 14px 4px 14px; background: #1d5fbf; color: #ffffff; font-size: 14px; line-height: 1.6">議事録を要約するスキルを作って</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">段階 1 を defining-skill-requirements で始めます。作業の名前は「議事録の要約」とします。右上の図は 8 段階の全体の流れ、右下は要件定義書の下書きです。</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">決めてもらうこと: 要約の長さの上限は 300 字でよいですか。</div>
+        <div style="align-self: flex-end; max-width: 85%; padding: 10px 14px; border-radius: 14px 14px 4px 14px; background: #1d5fbf; color: #ffffff; font-size: 14px; line-height: 1.6">300 字で。</div>
+      </div>
+      <form style="display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid #e6e9ee">
+        <label for="chat-input-1" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">メッセージ</label>
+        <input id="chat-input-1" type="text" placeholder="AI に伝える" style="flex: 1 1 auto; min-width: 0; height: 44px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 8px; font-size: 14px; font-family: inherit">
+        <button type="button" style="height: 44px; padding: 0 16px; border: 0; border-radius: 8px; background: #1d5fbf; color: #ffffff; font-size: 14px; font-weight: 500; font-family: inherit">送る</button>
+      </form>
+    </section>
+
+    <section aria-label="プレビュー" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px; overflow: hidden">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 12px; border-bottom: 1px solid #e6e9ee">
+        <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: #eef1f5; color: #1f2328; font-size: 13px; font-weight: 700; font-family: inherit">全体の流れ図</button>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; color: #57606a; font-size: 13px; font-family: inherit">分割の比較図</button>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; color: #57606a; font-size: 13px; font-family: inherit">作業の流れ図</button>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; color: #57606a; font-size: 13px; font-family: inherit">成果物の対応</button>
+        <div style="flex: 1 1 auto"></div>
+        <div style="font-size: 12px; color: #57606a">designs/議事録の要約/要件定義書.md</div>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 1px solid #c7ced6; border-radius: 8px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">直す</button>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500; font-family: inherit">承認する</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px; padding: 16px 20px; border-bottom: 1px solid #e6e9ee; background: #fbfcfd">
+        <div style="font-size: 13px; font-weight: 700">図: 全体の流れ図(8 段階と 3 つの輪)。いまは段階 1</div>
+        <div style="position: relative; width: 900px; height: 230px">
+          <div style="position: absolute; left: 224px; top: 10px; width: 676px; height: 12px; border-top: 2px solid #c99700; border-left: 2px solid #c99700; border-right: 2px solid #c99700; border-radius: 6px 6px 0 0"></div>
+          <div style="position: absolute; left: 224px; top: -8px; width: 676px; text-align: center; font-size: 11px; color: #6b5400">段階 3 から 8 を、スキルの本数だけ繰り返す</div>
+
+          <div style="position: absolute; left: 0px; top: 40px; width: 100px; height: 72px; box-sizing: border-box; padding: 8px; border: 2px solid #1d5fbf; border-radius: 10px; background: #1d5fbf; color: #ffffff; font-size: 12px; line-height: 1.4"><div style="font-size: 11px; opacity: 0.85">段階 1</div><div style="font-weight: 700">要件定義書</div></div>
+          <svg aria-hidden="true" style="position: absolute; left: 100px; top: 70px" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 6h9"/><path d="M6 2l4 4-4 4"/></svg>
+          <div style="position: absolute; left: 112px; top: 40px; width: 100px; height: 72px; box-sizing: border-box; padding: 8px; border: 1px solid #c7ced6; border-radius: 10px; background: #ffffff; font-size: 12px; line-height: 1.4"><div style="font-size: 11px; color: #57606a">段階 2</div><div style="font-weight: 700">分割設計書</div></div>
+          <svg aria-hidden="true" style="position: absolute; left: 212px; top: 70px" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 6h9"/><path d="M6 2l4 4-4 4"/></svg>
+          <div style="position: absolute; left: 224px; top: 40px; width: 100px; height: 72px; box-sizing: border-box; padding: 8px; border: 1px solid #c7ced6; border-radius: 10px; background: #ffffff; font-size: 12px; line-height: 1.4"><div style="font-size: 11px; color: #57606a">段階 3</div><div style="font-weight: 700">構成の案</div></div>
+          <svg aria-hidden="true" style="position: absolute; left: 324px; top: 70px" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 6h9"/><path d="M6 2l4 4-4 4"/></svg>
+          <div style="position: absolute; left: 336px; top: 40px; width: 100px; height: 72px; box-sizing: border-box; padding: 8px; border: 1px solid #c7ced6; border-radius: 10px; background: #ffffff; font-size: 12px; line-height: 1.4"><div style="font-size: 11px; color: #57606a">段階 4</div><div style="font-weight: 700">SKILL.md の下書き</div></div>
+          <svg aria-hidden="true" style="position: absolute; left: 436px; top: 70px" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 6h9"/><path d="M6 2l4 4-4 4"/></svg>
+          <div style="position: absolute; left: 448px; top: 40px; width: 100px; height: 72px; box-sizing: border-box; padding: 8px; border: 1px solid #c7ced6; border-radius: 10px; background: #ffffff; font-size: 12px; line-height: 1.4"><div style="font-size: 11px; color: #57606a">段階 5</div><div style="font-weight: 700">照合と修正</div></div>
+          <svg aria-hidden="true" style="position: absolute; left: 548px; top: 70px" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 6h9"/><path d="M6 2l4 4-4 4"/></svg>
+          <div style="position: absolute; left: 560px; top: 40px; width: 100px; height: 72px; box-sizing: border-box; padding: 8px; border: 1px solid #c7ced6; border-radius: 10px; background: #ffffff; font-size: 12px; line-height: 1.4"><div style="font-size: 11px; color: #57606a">段階 6</div><div style="font-weight: 700">テスト計画書</div></div>
+          <svg aria-hidden="true" style="position: absolute; left: 660px; top: 70px" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 6h9"/><path d="M6 2l4 4-4 4"/></svg>
+          <div style="position: absolute; left: 672px; top: 40px; width: 100px; height: 72px; box-sizing: border-box; padding: 8px; border: 1px solid #c7ced6; border-radius: 10px; background: #ffffff; font-size: 12px; line-height: 1.4"><div style="font-size: 11px; color: #57606a">段階 7</div><div style="font-weight: 700">シナリオ</div></div>
+          <svg aria-hidden="true" style="position: absolute; left: 772px; top: 70px" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 6h9"/><path d="M6 2l4 4-4 4"/></svg>
+          <div style="position: absolute; left: 784px; top: 40px; width: 100px; height: 72px; box-sizing: border-box; padding: 8px; border: 1px solid #c7ced6; border-radius: 10px; background: #ffffff; font-size: 12px; line-height: 1.4"><div style="font-size: 11px; color: #57606a">段階 8</div><div style="font-weight: 700">テストの実行</div></div>
+
+          <div style="position: absolute; left: 470px; top: 112px; width: 56px; height: 14px; border-bottom: 2px solid #1d5fbf; border-left: 2px solid #1d5fbf; border-right: 2px solid #1d5fbf; border-radius: 0 0 6px 6px"></div>
+          <svg aria-hidden="true" style="position: absolute; left: 464px; top: 106px" width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="#1d5fbf" stroke-width="2"><path d="M2 9l5-7 5 7"/></svg>
+          <div style="position: absolute; left: 448px; top: 130px; width: 100px; text-align: center; font-size: 11px; color: #15488f">照合と修正を 3 回まで</div>
+
+          <div style="position: absolute; left: 530px; top: 112px; width: 304px; height: 62px; border-bottom: 2px solid #b42318; border-left: 2px solid #b42318; border-right: 2px solid #b42318; border-radius: 0 0 6px 6px"></div>
+          <svg aria-hidden="true" style="position: absolute; left: 524px; top: 106px" width="14" height="10" viewBox="0 0 14 10" fill="none" stroke="#b42318" stroke-width="2"><path d="M2 9l5-7 5 7"/></svg>
+          <div style="position: absolute; left: 560px; top: 180px; width: 324px; text-align: center; font-size: 11px; color: #b42318">不合格があれば、段階 5 に戻ってもう一度段階 7 と 8 を通る</div>
+
+          <div style="position: absolute; left: 0px; top: 212px; font-size: 11px; color: #57606a">青の箱: いまの段階。黄色の線: 繰り返し。青の線: 照合と修正の輪。赤の線: テストの不合格からの戻り。</div>
+        </div>
+      </div>
+
+      <article style="flex: 1 1 auto; padding: 16px 24px; overflow: auto; font-size: 13px; line-height: 1.7">
+        <h1 style="margin: 0 0 12px; font-size: 18px">議事録の要約の要件定義書</h1>
+        <div style="font-size: 12px; color: #57606a; margin-bottom: 12px">作成日: 2026-10-26。依頼の文: 議事録を要約するスキルを作って</div>
+        <h2 style="margin: 12px 0 6px; font-size: 14px; border-bottom: 1px solid #e6e9ee; padding-bottom: 4px">1. 目的</h2>
+        <p style="margin: 0">議事録の決定事項と宿題を、読む人が 1 分で分かる 300 字以内の文にする。</p>
+        <h2 style="margin: 12px 0 6px; font-size: 14px; border-bottom: 1px solid #e6e9ee; padding-bottom: 4px">2. 使う場面</h2>
+        <p style="margin: 0">ユーザーが、会議の議事録の md を 1 本渡し、要約を頼んだとき。</p>
+        <h2 style="margin: 12px 0 6px; font-size: 14px; border-bottom: 1px solid #e6e9ee; padding-bottom: 4px">3. 入力</h2>
+        <div style="overflow-x: auto">
+          <table style="border-collapse: collapse; width: 100%">
+            <thead><tr><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">項目</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">必須か任意か</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">値の例</th></tr></thead>
+            <tbody>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">議事録のパス</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">必須</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">meetings/2026-10-20.md</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">要約の長さの上限</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">任意</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee; background: #fff6d6">300 字(ユーザーの答え)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h2 style="margin: 12px 0 6px; font-size: 14px; border-bottom: 1px solid #e6e9ee; padding-bottom: 4px">4. 最終出力</h2>
+        <div style="overflow-x: auto">
+          <table style="border-collapse: collapse; width: 100%">
+            <thead><tr><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">名前</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">種類</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">置き場か見分け方</th></tr></thead>
+            <tbody>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">&lt;議事録の名前&gt;の要約.md</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">ファイル</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">議事録と同じフォルダ</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">&lt;議事録の名前&gt;の宿題の一覧.md</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">ファイル</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">議事録と同じフォルダ</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h2 style="margin: 12px 0 6px; font-size: 14px; border-bottom: 1px solid #e6e9ee; padding-bottom: 4px">5. 作業の流れ</h2>
+        <div style="overflow-x: auto">
+          <table style="border-collapse: collapse; width: 100%">
+            <thead><tr><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">番号</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">作業</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">入力</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">出力</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">完了の条件</th></tr></thead>
+            <tbody>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">議事録を読む</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">議事録のパス</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">議事録の本文</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">本文が 1 件ある</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">2</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">決定事項と宿題を抜き出す</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">議事録の本文</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">決定事項と宿題の一覧</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">「決定」の行がすべて一覧にある</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">3</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">要約を書き出す</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">一覧、長さの上限</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">要約.md</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">字数が上限以内</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">4</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">宿題の一覧を書き出す</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">一覧</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">宿題の一覧.md</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">宿題の全行が担当者を持つ</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+  </main>
+</div></div>
+</section>
+<section class="board" id="b2">
+  <h2>段階 2: 分割設計書</h2>
+  <p class="desc">右の図: 分割の比較図(作業の流れの上に切る候補と 3 案)。承認: 案を 1 つ選んで分割設計書を承認。</p>
+  <div class="frame" style="width:1440px"><div style="min-height: 1000px; display: flex; flex-direction: column; background: #f6f7f9; font-family: 'Noto Sans JP', system-ui, sans-serif; color: #1f2328">
+
+  <header style="display: flex; align-items: center; gap: 24px; padding: 12px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
+    <div style="font-weight: 700; font-size: 16px">skill-factory</div>
+    <div style="font-size: 13px; color: #57606a">作業の名前: 議事録の要約</div>
+    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #fff6d6; color: #6b5400">成果物の状態: 要件定義書が承認済み、分割設計書が下書き</div>
+    <div style="flex: 1 1 auto"></div>
+    <div style="font-size: 13px; color: #57606a">スキルの実体のフォルダ: skill-factory/.claude/skills/</div>
+  </header>
+
+  <nav aria-label="段階" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>要件定義書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; color: #1d5fbf; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">2</span>分割設計書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">3</span>構成の案</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">4</span>SKILL.md の下書き</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">5</span>照合と修正</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">6</span>テスト計画書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">7</span>シナリオ</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">8</span>テストの実行</div>
+  </nav>
+
+  <main style="display: flex; flex-wrap: wrap; flex: 1 1 auto; gap: 16px; padding: 16px 24px 24px">
+
+    <section aria-label="AI との会話" style="flex: 1 1 360px; min-width: 0; max-width: 420px; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px; overflow: hidden">
+      <div style="padding: 12px 16px; border-bottom: 1px solid #e6e9ee; font-size: 13px; font-weight: 700">会話</div>
+      <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; padding: 16px; overflow: auto">
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">要件定義書を承認いただいたので、段階 2 を designing-skill-structure で始めます。</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">右上の図は、要件定義書の作業の流れの上に、切る候補と 3 案を重ねたものです。右下は分割設計書の下書きです。</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">決めてもらうこと: 案 1(推奨)、案 2、案 3 のどれにしますか。図の案を押すと選べます。</div>
+        <div style="align-self: flex-end; max-width: 85%; padding: 10px 14px; border-radius: 14px 14px 4px 14px; background: #1d5fbf; color: #ffffff; font-size: 14px; line-height: 1.6">案 1 で。</div>
+      </div>
+      <form style="display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid #e6e9ee">
+        <label for="chat-input-2" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">メッセージ</label>
+        <input id="chat-input-2" type="text" placeholder="AI に伝える" style="flex: 1 1 auto; min-width: 0; height: 44px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 8px; font-size: 14px; font-family: inherit">
+        <button type="button" style="height: 44px; padding: 0 16px; border: 0; border-radius: 8px; background: #1d5fbf; color: #ffffff; font-size: 14px; font-weight: 500; font-family: inherit">送る</button>
+      </form>
+    </section>
+
+    <section aria-label="プレビュー" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px; overflow: hidden">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 12px; border-bottom: 1px solid #e6e9ee">
+        <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; color: #57606a; font-size: 13px; font-family: inherit">全体の流れ図</button>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: #eef1f5; color: #1f2328; font-size: 13px; font-weight: 700; font-family: inherit">分割の比較図</button>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; color: #57606a; font-size: 13px; font-family: inherit">入出力の契約の図</button>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; color: #57606a; font-size: 13px; font-family: inherit">成果物の対応</button>
+        <div style="flex: 1 1 auto"></div>
+        <div style="font-size: 12px; color: #57606a">designs/議事録の要約/分割設計書.md</div>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 1px solid #c7ced6; border-radius: 8px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">直す</button>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500; font-family: inherit">案 1 で承認する</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; padding: 16px 20px; border-bottom: 1px solid #e6e9ee; background: #fbfcfd">
+        <div style="font-size: 13px; font-weight: 700">図: 分割の比較図(要件定義書の作業の流れの上に、切る候補と 3 案を重ねる)</div>
+
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px">
+          <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border: 1px solid #c7ced6; border-radius: 10px; background: #ffffff; font-size: 12px"><div style="color: #57606a">作業 1</div><div style="font-weight: 700">議事録を読む</div><div style="color: #57606a">出力: 本文(会話の中)</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border: 1px solid #c7ced6; border-radius: 10px; background: #ffffff; font-size: 12px"><div style="color: #57606a">作業 2</div><div style="font-weight: 700">決定事項と宿題を抜き出す</div><div style="color: #57606a">出力: 一覧(会話の中)</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border: 2px solid #1d5fbf; border-radius: 10px; background: #ffffff; font-size: 12px"><div style="color: #57606a">作業 3</div><div style="font-weight: 700">要約を書き出す</div><div style="color: #15488f; font-weight: 500">出力: 要約.md(最終出力)</div></div>
+          <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px 10px; border: 2px solid #1d5fbf; border-radius: 10px; background: #ffffff; font-size: 12px"><div style="color: #57606a">作業 4</div><div style="font-weight: 700">宿題の一覧を書き出す</div><div style="color: #15488f; font-weight: 500">出力: 宿題の一覧.md(最終出力)</div></div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; height: 28px">
+          <div style="position: relative"><div style="position: absolute; right: -9px; top: 0; height: 28px; border-left: 2px dashed #c99700"></div><div style="position: absolute; right: -2px; top: 6px; font-size: 11px; color: #6b5400; white-space: nowrap">切る候補 a: 既存のスキルの後</div></div>
+          <div></div>
+          <div style="position: relative"><div style="position: absolute; right: -9px; top: 0; height: 28px; border-left: 2px dashed #c99700"></div><div style="position: absolute; right: -2px; top: 6px; font-size: 11px; color: #6b5400; white-space: nowrap">切る候補 b: 成果物が残る所</div></div>
+          <div></div>
+        </div>
+
+        <button type="button" style="display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 2px solid #1d5fbf; border-radius: 10px; background: #f3f7fd; text-align: left; font-family: inherit; color: #1f2328; width: 100%">
+          <div style="display: flex; gap: 10px; align-items: baseline; font-size: 12px"><span style="font-weight: 700">案 1(推奨): 切る候補のすべてで切り、成果物 1 つごとに 1 本</span><span style="color: #57606a">新規 2 本 + 既存 1 本</span></div>
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; width: 100%">
+            <div style="grid-column: 1 / 2; padding: 6px 10px; border-radius: 8px; background: #e6e9ee; font-size: 12px">既存: reading-meeting-minutes</div>
+            <div style="grid-column: 2 / 4; padding: 6px 10px; border-radius: 8px; background: #1d5fbf; color: #ffffff; font-size: 12px">新規 1: summarizing-meeting-minutes(作業 2、3)</div>
+            <div style="grid-column: 4 / 5; padding: 6px 10px; border-radius: 8px; background: #1d5fbf; color: #ffffff; font-size: 12px">新規 2: listing-meeting-action-items(作業 4)</div>
+          </div>
+        </button>
+
+        <button type="button" style="display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid #c7ced6; border-radius: 10px; background: #ffffff; text-align: left; font-family: inherit; color: #1f2328; width: 100%">
+          <div style="display: flex; gap: 10px; align-items: baseline; font-size: 12px"><span style="font-weight: 700">案 2: 既存のスキルに任せ、残りを 1 本にまとめる</span><span style="color: #57606a">新規 1 本 + 既存 1 本。新規 1 本が成果物を 2 つ持つ</span></div>
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; width: 100%">
+            <div style="grid-column: 1 / 2; padding: 6px 10px; border-radius: 8px; background: #e6e9ee; font-size: 12px">既存: reading-meeting-minutes</div>
+            <div style="grid-column: 2 / 5; padding: 6px 10px; border-radius: 8px; background: #7a8794; color: #ffffff; font-size: 12px">新規 1: processing-meeting-minutes(作業 2、3、4)</div>
+          </div>
+        </button>
+
+        <button type="button" style="display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; border: 1px solid #c7ced6; border-radius: 10px; background: #ffffff; text-align: left; font-family: inherit; color: #1f2328; width: 100%">
+          <div style="display: flex; gap: 10px; align-items: baseline; font-size: 12px"><span style="font-weight: 700">案 3: 本数が最も少ない切り方</span><span style="color: #57606a">新規 1 本。成果物を 2 つ持つ</span></div>
+          <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; width: 100%">
+            <div style="grid-column: 1 / 5; padding: 6px 10px; border-radius: 8px; background: #7a8794; color: #ffffff; font-size: 12px">新規 1: summarizing-meeting-minutes(作業 1、2、3、4)</div>
+          </div>
+        </button>
+
+        <div style="display: flex; align-items: center; gap: 8px; font-size: 12px; flex-wrap: wrap; padding-top: 4px">
+          <span style="font-weight: 700">案 1 の受け渡し:</span>
+          <span style="padding: 4px 8px; border-radius: 6px; background: #e6e9ee">reading-meeting-minutes</span>
+          <span style="color: #57606a">「議事録の本文」</span>
+          <svg aria-hidden="true" width="18" height="12" viewBox="0 0 18 12" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 6h14"/><path d="M10 2l4 4-4 4"/></svg>
+          <span style="padding: 4px 8px; border-radius: 6px; background: #dfe9f8; color: #15488f">summarizing-meeting-minutes</span>
+          <span style="color: #b42318">「決定事項と宿題の一覧」→「宿題の一覧の元」(名前が食い違う)</span>
+          <svg aria-hidden="true" width="18" height="12" viewBox="0 0 18 12" fill="none" stroke="#b42318" stroke-width="1.5"><path d="M0 6h14"/><path d="M10 2l4 4-4 4"/></svg>
+          <span style="padding: 4px 8px; border-radius: 6px; background: #dfe9f8; color: #15488f">listing-meeting-action-items</span>
+        </div>
+      </div>
+
+      <article style="flex: 1 1 auto; padding: 16px 24px; overflow: auto; font-size: 13px; line-height: 1.7">
+        <h1 style="margin: 0 0 12px; font-size: 18px">議事録の要約の分割設計書</h1>
+        <h2 style="margin: 12px 0 6px; font-size: 14px; border-bottom: 1px solid #e6e9ee; padding-bottom: 4px">1. 選んだ切り方と根拠</h2>
+        <ul style="margin: 0; padding-left: 20px">
+          <li>選んだ案: 案 1</li>
+          <li>切る所: 作業 1 の後(既存のスキル reading-meeting-minutes が受け持てる)、作業 3 の後(要約.md が残る)</li>
+          <li>根拠: 規約 skill-writing-rule の規則「作るスキルは、作るか足す成果物ごとに 1 つとする」にそのまま合う</li>
+        </ul>
+        <h2 style="margin: 12px 0 6px; font-size: 14px; border-bottom: 1px solid #e6e9ee; padding-bottom: 4px">3. 新しく作るスキル</h2>
+        <div style="overflow-x: auto">
+          <table style="border-collapse: collapse; width: 100%">
+            <thead><tr><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">作る順</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">スキルの名前</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">使う場面</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">最終出力</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">受け持つ作業の番号</th></tr></thead>
+            <tbody>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">summarizing-meeting-minutes</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">議事録の md を渡して要約を頼んだとき</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">&lt;議事録の名前&gt;の要約.md</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">2、3</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">2</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">listing-meeting-action-items</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">議事録の md を渡して宿題の一覧を頼んだとき</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">&lt;議事録の名前&gt;の宿題の一覧.md</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">4</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+  </main>
+</div></div>
+</section>
+<section class="board" id="b3">
+  <h2>段階 3: 構成の案</h2>
+  <p class="desc">右の図: phase と step の流れ図(流れのパターンを箱の形で区別)。承認: 構成の案の全体。</p>
+  <div class="frame" style="width:1440px"><div style="min-height: 1000px; display: flex; flex-direction: column; background: #f6f7f9; font-family: 'Noto Sans JP', system-ui, sans-serif; color: #1f2328">
+
+  <header style="display: flex; align-items: center; gap: 24px; padding: 12px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
+    <div style="font-weight: 700; font-size: 16px">skill-factory</div>
+    <div style="font-size: 13px; color: #57606a">作業の名前: 議事録の要約</div>
+    <div style="font-size: 13px; color: #57606a">いまのスキル: summarizing-meeting-minutes(作る順 1 / 2)</div>
+    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #fff6d6; color: #6b5400">成果物の状態: 構成の案が下書き</div>
+    <div style="flex: 1 1 auto"></div>
+    <div style="font-size: 13px; color: #57606a">スキルの実体のフォルダ: skill-factory/.claude/skills/</div>
+  </header>
+
+  <nav aria-label="段階" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>要件定義書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>分割設計書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; color: #1d5fbf; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">3</span>構成の案</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">4</span>SKILL.md の下書き</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">5</span>照合と修正</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">6</span>テスト計画書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">7</span>シナリオ</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">8</span>テストの実行</div>
+  </nav>
+
+  <main style="display: flex; flex-wrap: wrap; flex: 1 1 auto; gap: 16px; padding: 16px 24px 24px">
+
+    <section aria-label="AI との会話" style="flex: 1 1 360px; min-width: 0; max-width: 420px; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px; overflow: hidden">
+      <div style="padding: 12px 16px; border-bottom: 1px solid #e6e9ee; font-size: 13px; font-weight: 700">会話</div>
+      <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; padding: 16px; overflow: auto">
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">段階 3 を designing-skill-phases で始めます。対象は作る順 1 の summarizing-meeting-minutes です。</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">右上は phase と step の流れ図です。黄色の箱は承認で止まる step、点線の箱はサブエージェントへの委任です。タブでシーケンス図、入出力の契約の図、中止の一覧に切り替えられます。</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">決めてもらうこと: 要約の案を書く step 3-2 を委任にする案(推奨)と、AI 自身が書く案のどちらにしますか。</div>
+        <div style="align-self: flex-end; max-width: 85%; padding: 10px 14px; border-radius: 14px 14px 4px 14px; background: #1d5fbf; color: #ffffff; font-size: 14px; line-height: 1.6">委任で。</div>
+      </div>
+      <form style="display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid #e6e9ee">
+        <label for="chat-input-3" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">メッセージ</label>
+        <input id="chat-input-3" type="text" placeholder="AI に伝える" style="flex: 1 1 auto; min-width: 0; height: 44px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 8px; font-size: 14px; font-family: inherit">
+        <button type="button" style="height: 44px; padding: 0 16px; border: 0; border-radius: 8px; background: #1d5fbf; color: #ffffff; font-size: 14px; font-weight: 500; font-family: inherit">送る</button>
+      </form>
+    </section>
+
+    <section aria-label="プレビュー" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px; overflow: hidden">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 12px; border-bottom: 1px solid #e6e9ee">
+        <button type="button" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: #eef1f5; color: #1f2328; font-size: 13px; font-weight: 700; font-family: inherit">phase と step の流れ図</button>
+        <button type="button" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #57606a; font-size: 13px; font-family: inherit">シーケンス図</button>
+        <button type="button" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #57606a; font-size: 13px; font-family: inherit">入出力の契約の図</button>
+        <button type="button" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #57606a; font-size: 13px; font-family: inherit">中止の一覧</button>
+        <button type="button" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #57606a; font-size: 13px; font-family: inherit">成果物の対応</button>
+        <div style="flex: 1 1 auto"></div>
+        <div style="font-size: 12px; color: #57606a">designs/議事録の要約/summarizing-meeting-minutes の構成の案.md</div>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 1px solid #c7ced6; border-radius: 8px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">直す</button>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500; font-family: inherit">承認する</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px; padding: 14px 20px; border-bottom: 1px solid #e6e9ee; background: #fbfcfd">
+        <div style="font-size: 13px; font-weight: 700">図: phase と step の流れ図(章 5 と章 6 から描画)</div>
+        <div style="display: flex; gap: 8px; padding: 8px 12px; border-radius: 10px; background: #f6f7f9; align-items: center">
+          <div style="width: 92px; font-size: 12px; font-weight: 700; color: #57606a">phase 1<br>前提ツール</div>
+          <div style="width: 150px; padding: 8px 10px; border: 1px solid #c7ced6; border-radius: 8px; background: #ffffff; font-size: 12px">1-1 入力を受ける</div>
+          <svg aria-hidden="true" width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 7h14"/><path d="M10 3l4 4-4 4"/></svg>
+          <div style="width: 150px; padding: 8px 10px; border: 1px solid #c7ced6; border-radius: 8px; background: #ffffff; font-size: 12px">1-2 ツールの有無</div>
+        </div>
+        <div style="display: flex; gap: 8px; padding: 8px 12px; border-radius: 10px; background: #f6f7f9; align-items: center">
+          <div style="width: 92px; font-size: 12px; font-weight: 700; color: #57606a">phase 2<br>入力の確定</div>
+          <div style="width: 150px; padding: 8px 10px; border: 1px solid #c7ced6; border-radius: 8px; background: #ffffff; font-size: 12px">2-1 パスを読む</div>
+          <svg aria-hidden="true" width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 7h14"/><path d="M10 3l4 4-4 4"/></svg>
+          <div style="width: 150px; padding: 8px 10px; border: 1px solid #57606a; background: #ffffff; font-size: 12px; clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0 50%); text-align: center">2-2 読めたか [分岐]</div>
+          <div style="font-size: 11px; color: #b42318">読めない: 中止</div>
+          <svg aria-hidden="true" width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 7h14"/><path d="M10 3l4 4-4 4"/></svg>
+          <div style="width: 150px; padding: 8px 10px; border: 1px solid #c7ced6; border-radius: 8px; background: #ffffff; font-size: 12px">2-3 上限を決める</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 4px; padding: 8px 12px; border-radius: 10px; background: #f6f7f9">
+          <div style="display: flex; gap: 8px; align-items: center">
+            <div style="width: 92px; font-size: 12px; font-weight: 700; color: #57606a">phase 3<br>要約と承認</div>
+            <div style="width: 150px; padding: 8px 10px; border: 1px solid #c7ced6; border-radius: 8px; background: #ffffff; font-size: 12px">3-1 決定事項を 1 件ずつ [繰り返し]</div>
+            <svg aria-hidden="true" width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 7h14"/><path d="M10 3l4 4-4 4"/></svg>
+            <div style="width: 150px; padding: 8px 10px; border: 1px dashed #57606a; border-radius: 8px; background: #ffffff; font-size: 12px">3-2 案を書かせる [委任]</div>
+            <svg aria-hidden="true" width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 7h14"/><path d="M10 3l4 4-4 4"/></svg>
+            <div style="width: 150px; padding: 8px 10px; border: 1px solid #c7ced6; border-radius: 8px; background: #ffffff; font-size: 12px">3-3 短くし直す [やり直し]</div>
+            <svg aria-hidden="true" width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 7h14"/><path d="M10 3l4 4-4 4"/></svg>
+            <div style="width: 150px; padding: 8px 10px; border: 2px solid #c99700; border-radius: 8px; background: #fff6d6; font-size: 12px">3-4 承認を得る [ユーザー確認]</div>
+          </div>
+          <div style="display: flex; gap: 8px; align-items: center; padding-left: 100px">
+            <div style="width: 150px"></div>
+            <div style="width: 176px; height: 10px; border-bottom: 2px solid #b42318; border-left: 2px solid #b42318; border-right: 2px solid #b42318; border-radius: 0 0 6px 6px; position: relative"><svg aria-hidden="true" style="position: absolute; left: -7px; top: -7px" width="12" height="9" viewBox="0 0 12 9" fill="none" stroke="#b42318" stroke-width="2"><path d="M2 8l4-6 4 6"/></svg></div>
+            <div style="font-size: 11px; color: #b42318">やり直しの戻り(3-3 から 3-2 へ)</div>
+            <div style="font-size: 11px; color: #57606a; margin-left: 16px">3-4 の選択肢: 承認する(推奨) → 4-1 / 直す → 3-2 / やめる → 中止</div>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; padding: 8px 12px; border-radius: 10px; background: #dfe9f8; align-items: center">
+          <div style="width: 92px; font-size: 12px; font-weight: 700; color: #15488f">phase 4<br>最終出力</div>
+          <div style="width: 150px; padding: 8px 10px; border: 1px solid #1d5fbf; border-radius: 8px; background: #ffffff; font-size: 12px">4-1 要約.md を書く</div>
+          <svg aria-hidden="true" width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 7h14"/><path d="M10 3l4 4-4 4"/></svg>
+          <div style="width: 150px; padding: 8px 10px; border: 1px solid #1d5fbf; border-radius: 8px; background: #ffffff; font-size: 12px">4-2 完了を報告する</div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; gap: 14px; font-size: 11px; color: #57606a">
+          <span>白の箱: 直列</span><span>六角の箱: 分岐</span><span>点線の箱: 委任</span><span>黄色の箱: ユーザー確認</span><span>赤い線: やり直しの戻り</span><span>青の帯: 最終出力を出す phase</span>
+        </div>
+      </div>
+
+      <article style="flex: 1 1 auto; padding: 16px 24px; overflow: auto; font-size: 13px; line-height: 1.7">
+        <h1 style="margin: 0 0 12px; font-size: 18px">summarizing-meeting-minutes の構成の案</h1>
+        <h2 style="margin: 12px 0 6px; font-size: 14px; border-bottom: 1px solid #e6e9ee; padding-bottom: 4px">5. phase の一覧</h2>
+        <div style="overflow-x: auto">
+          <table style="border-collapse: collapse; width: 100%">
+            <thead><tr><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">phase</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">名前</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">phase の入力</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">phase の出力</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">合格の条件</th></tr></thead>
+            <tbody>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">前提ツールの確認</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">開始時の入力</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">前提ツールの有無の表</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">表の全行が「ある」。</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">2</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">入力の確定</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">議事録のパス、長さの上限</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">議事録の本文、長さの上限</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">議事録の本文が 1 件。</td></tr>
+              <tr style="background: #fffbea"><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">3</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">要約の作成と承認</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">議事録の本文、長さの上限</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">承認された要約</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">承認された要約が 1 件で、字数が上限以内。</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">4</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">最終出力の確認と完了の報告</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">承認された要約</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">要約.md、完了の報告</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">最終出力の表の全行のファイルがある。</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h2 style="margin: 16px 0 6px; font-size: 14px; border-bottom: 1px solid #e6e9ee; padding-bottom: 4px">6. step の一覧(抜粋)</h2>
+        <div style="overflow-x: auto">
+          <table style="border-collapse: collapse; width: 100%">
+            <thead><tr><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">step</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">名前</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">流れのパターン</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">中止の条件</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">1 件の定義</th></tr></thead>
+            <tbody>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">2-2</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">ファイルが読めたか</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">分岐</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">議事録のパスにファイルがない</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">なし</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">3-1</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">決定事項を 1 件ずつ抜き出す</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">繰り返し</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">なし</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">議事録の「決定」の行</td></tr>
+              <tr style="background: #fffbea"><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">3-4</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">要約の案の承認を得る</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">ユーザー確認</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">ユーザーが「やめる」を選ぶ</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">なし</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+  </main>
+</div></div>
+</section>
+<section class="board" id="b4">
+  <h2>段階 4: SKILL.md の下書き</h2>
+  <p class="desc">右の図: SKILL.md とリファレンスの階層と、step が読む章。承認: なし(完了の報告)。</p>
+  <div class="frame" style="width:1440px"><div style="min-height: 1000px; display: flex; flex-direction: column; background: #f6f7f9; font-family: 'Noto Sans JP', system-ui, sans-serif; color: #1f2328">
+
+  <header style="display: flex; align-items: center; gap: 24px; padding: 12px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
+    <div style="font-weight: 700; font-size: 16px">skill-factory</div>
+    <div style="font-size: 13px; color: #57606a">作業の名前: 議事録の要約</div>
+    <div style="font-size: 13px; color: #57606a">いまのスキル: summarizing-meeting-minutes(作る順 1 / 2)</div>
+    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #fff6d6; color: #6b5400">成果物の状態: 構成の案が承認済み、SKILL.md が下書き</div>
+    <div style="flex: 1 1 auto"></div>
+    <div style="font-size: 13px; color: #57606a">スキルの実体のフォルダ: skill-factory/.claude/skills/</div>
+  </header>
+
+  <nav aria-label="段階" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>要件定義書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>分割設計書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>構成の案</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; color: #1d5fbf; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">4</span>SKILL.md の下書き</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">5</span>照合と修正</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">6</span>テスト計画書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">7</span>シナリオ</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">8</span>テストの実行</div>
+  </nav>
+
+  <main style="display: flex; flex-wrap: wrap; flex: 1 1 auto; gap: 16px; padding: 16px 24px 24px">
+
+    <section aria-label="AI との会話" style="flex: 1 1 360px; min-width: 0; max-width: 420px; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px; overflow: hidden">
+      <div style="padding: 12px 16px; border-bottom: 1px solid #e6e9ee; font-size: 13px; font-weight: 700">会話</div>
+      <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; padding: 16px; overflow: auto">
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">段階 4 を drafting-skill-with-template で始めます。出力先は skill-factory/.claude/skills/summarizing-meeting-minutes/ です。</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">右上は、書いたファイルの階層の図です。step からリファレンスの章への線で、どの step がどの章を読むかを示しています。</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">完了の報告: SKILL.md とリファレンス 2 本を書きました。承認はなく、段階 5 の照合に進みます。決めてもらうこと: なし</div>
+      </div>
+      <form style="display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid #e6e9ee">
+        <label for="chat-input-4" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">メッセージ</label>
+        <input id="chat-input-4" type="text" placeholder="AI に伝える" style="flex: 1 1 auto; min-width: 0; height: 44px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 8px; font-size: 14px; font-family: inherit">
+        <button type="button" style="height: 44px; padding: 0 16px; border: 0; border-radius: 8px; background: #1d5fbf; color: #ffffff; font-size: 14px; font-weight: 500; font-family: inherit">送る</button>
+      </form>
+    </section>
+
+    <section aria-label="プレビュー" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px; overflow: hidden">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 12px; border-bottom: 1px solid #e6e9ee">
+        <button type="button" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: #eef1f5; color: #1f2328; font-size: 13px; font-weight: 700; font-family: inherit">階層の図(依存)</button>
+        <button type="button" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #57606a; font-size: 13px; font-family: inherit">phase と step の流れ図</button>
+        <button type="button" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #57606a; font-size: 13px; font-family: inherit">成果物の対応</button>
+        <div style="flex: 1 1 auto"></div>
+        <div style="font-size: 12px; color: #57606a">.claude/skills/summarizing-meeting-minutes/SKILL.md</div>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 1px solid #c7ced6; border-radius: 8px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">段階 5 へ進む</button>
+      </div>
+
+      <div style="display: flex; gap: 24px; padding: 14px 20px; border-bottom: 1px solid #e6e9ee; background: #fbfcfd">
+        <div style="display: flex; flex-direction: column; gap: 0; font-size: 13px; width: 420px">
+          <div style="font-size: 13px; font-weight: 700; margin-bottom: 8px">図: SKILL.md とリファレンスの階層と、step が読む章</div>
+          <div style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 6px; background: #e6e9ee; font-weight: 700">summarizing-meeting-minutes/</div>
+          <div style="margin-left: 12px; padding-left: 14px; border-left: 2px solid #c7ced6; display: flex; flex-direction: column">
+            <div style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; margin-top: 6px; border-radius: 6px; background: #dfe9f8; color: #15488f; font-weight: 700">SKILL.md</div>
+            <div style="margin-left: 12px; padding-left: 14px; border-left: 2px solid #c7ced6; display: flex; flex-direction: column; font-size: 12px">
+              <div style="padding: 4px 8px">全体像(開始時の入力、受け渡す値、中間成果物、最終出力、流れ)</div>
+              <div style="padding: 4px 8px">使用するリファレンス(表)</div>
+              <div style="padding: 4px 8px">phase 1 から 4、step 1-1 から 4-2</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; margin-top: 6px; border-radius: 6px; background: #e6e9ee; font-weight: 700">references/</div>
+            <div style="margin-left: 12px; padding-left: 14px; border-left: 2px solid #c7ced6; display: flex; flex-direction: column; font-size: 12px">
+              <div style="padding: 4px 8px">全スキル共通の決まり.md</div>
+              <div style="padding: 4px 8px">要約の書き方.md(章: 要約の雛形、委任の指示文、字数の判定の基準)</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px; padding: 6px 8px; margin-top: 6px; border-radius: 6px; background: #e6e9ee; color: #57606a">scripts/(なし)</div>
+          </div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 8px; flex: 1 1 auto; min-width: 0">
+          <div style="font-size: 13px; font-weight: 700">step が読む章(線の一覧)</div>
+          <div style="display: flex; flex-direction: column; gap: 6px; font-size: 12px">
+            <div style="display: flex; align-items: center; gap: 8px"><span style="width: 150px; padding: 5px 8px; border: 1px solid #c7ced6; border-radius: 6px; background: #ffffff">step 1-1 入力を受ける</span><svg aria-hidden="true" width="24" height="12" viewBox="0 0 24 12" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 6h20"/><path d="M16 2l4 4-4 4"/></svg><span style="padding: 5px 8px; border-radius: 6px; background: #eef1f5">全スキル共通の決まり.md</span></div>
+            <div style="display: flex; align-items: center; gap: 8px"><span style="width: 150px; padding: 5px 8px; border: 1px dashed #57606a; border-radius: 6px; background: #ffffff">step 3-2 案を書かせる</span><svg aria-hidden="true" width="24" height="12" viewBox="0 0 24 12" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 6h20"/><path d="M16 2l4 4-4 4"/></svg><span style="padding: 5px 8px; border-radius: 6px; background: #eef1f5">要約の書き方.md「委任の指示文」</span></div>
+            <div style="display: flex; align-items: center; gap: 8px"><span style="width: 150px; padding: 5px 8px; border: 1px solid #c7ced6; border-radius: 6px; background: #ffffff">step 3-3 短くし直す</span><svg aria-hidden="true" width="24" height="12" viewBox="0 0 24 12" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 6h20"/><path d="M16 2l4 4-4 4"/></svg><span style="padding: 5px 8px; border-radius: 6px; background: #eef1f5">要約の書き方.md「字数の判定の基準」</span></div>
+            <div style="display: flex; align-items: center; gap: 8px"><span style="width: 150px; padding: 5px 8px; border: 1px solid #1d5fbf; border-radius: 6px; background: #ffffff">step 4-1 要約.md を書く</span><svg aria-hidden="true" width="24" height="12" viewBox="0 0 24 12" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 6h20"/><path d="M16 2l4 4-4 4"/></svg><span style="padding: 5px 8px; border-radius: 6px; background: #eef1f5">要約の書き方.md「要約の雛形」</span></div>
+          </div>
+          <div style="font-size: 12px; color: #b42318; margin-top: 4px">どの step も読まない章、どの章も読まない step があれば、ここに赤で出す。いまは 0 件。</div>
+        </div>
+      </div>
+
+      <article style="flex: 1 1 auto; padding: 16px 24px; overflow: auto; font-size: 13px; line-height: 1.7">
+        <h1 style="margin: 0 0 8px; font-size: 18px">SKILL.md(プレビュー)</h1>
+        <pre style="margin: 0 0 12px; padding: 10px 12px; border-radius: 8px; background: #f6f7f9; font-size: 12px; white-space: pre-wrap">---
+name: summarizing-meeting-minutes
+description: 議事録の md を 1 本受け取り、決定事項を 300 字以内の要約にして、議事録と同じフォルダに要約.md を書く。
+---</pre>
+        <h2 style="margin: 12px 0 6px; font-size: 14px; border-bottom: 1px solid #e6e9ee; padding-bottom: 4px">全体像</h2>
+        <p style="margin: 0 0 8px">目的: 議事録の決定事項と宿題を、読む人が 1 分で分かる 300 字以内の文にする。</p>
+        <div style="overflow-x: auto">
+          <table style="border-collapse: collapse; width: 100%">
+            <thead><tr><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">phase</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">名前</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">step</th></tr></thead>
+            <tbody>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">前提ツールの確認</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1-1、1-2</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">2</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">入力の確定</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">2-1、2-2、2-3</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">3</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">要約の作成と承認</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">3-1、3-2、3-3、3-4</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">4</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">最終出力の確認と完了の報告</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">4-1、4-2</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h2 style="margin: 12px 0 6px; font-size: 14px; border-bottom: 1px solid #e6e9ee; padding-bottom: 4px">使用するリファレンス</h2>
+        <div style="overflow-x: auto">
+          <table style="border-collapse: collapse; width: 100%">
+            <thead><tr><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">パス</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">章</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">章の種類</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">使う step</th></tr></thead>
+            <tbody>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">references/要約の書き方.md</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">要約の雛形</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">雛形</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">4-1</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">references/要約の書き方.md</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">委任の指示文</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">委任の指示文</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">3-2</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">references/要約の書き方.md</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">字数の判定の基準</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">判定の基準</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">3-3</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+  </main>
+</div></div>
+</section>
+<section class="board" id="b5">
+  <h2>段階 5: 照合と修正</h2>
+  <p class="desc">右の図: 照合と修正の輪と、指摘の一覧の色分け。右の文書: 前の文と後の文の差分。承認: 直しの記録。</p>
+  <div class="frame" style="width:1440px"><div style="min-height: 1000px; display: flex; flex-direction: column; background: #f6f7f9; font-family: 'Noto Sans JP', system-ui, sans-serif; color: #1f2328">
+
+  <header style="display: flex; align-items: center; gap: 24px; padding: 12px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
+    <div style="font-weight: 700; font-size: 16px">skill-factory</div>
+    <div style="font-size: 13px; color: #57606a">作業の名前: 議事録の要約</div>
+    <div style="font-size: 13px; color: #57606a">いまのスキル: summarizing-meeting-minutes(作る順 1 / 2)</div>
+    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #fde8e6; color: #b42318">成果物の状態: SKILL.md に指摘あり(1 回目)</div>
+    <div style="flex: 1 1 auto"></div>
+    <div style="font-size: 13px; color: #57606a">スキルの実体のフォルダ: skill-factory/.claude/skills/</div>
+  </header>
+
+  <nav aria-label="段階" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>要件定義書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>分割設計書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>構成の案</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>SKILL.md の下書き</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; color: #1d5fbf; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">5</span>照合と修正(1 / 3 回目)</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">6</span>テスト計画書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">7</span>シナリオ</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">8</span>テストの実行</div>
+  </nav>
+
+  <main style="display: flex; flex-wrap: wrap; flex: 1 1 auto; gap: 16px; padding: 16px 24px 24px">
+
+    <section aria-label="AI との会話" style="flex: 1 1 360px; min-width: 0; max-width: 420px; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px; overflow: hidden">
+      <div style="padding: 12px 16px; border-bottom: 1px solid #e6e9ee; font-size: 13px; font-weight: 700">会話</div>
+      <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; padding: 16px; overflow: auto">
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">段階 5 の 1 回目の照合を checking-skill-with-template で流しました。指摘は 3 件です。右上の輪がいま何回目かを示し、表が指摘の種類を色で分けています。</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">fixing-skill で、致命的な誤り 1 件と機械的な不一致 1 件を直す案を作りました。右下が前の文と後の文の差分です。推論の好みの 1 件は保留の一覧に入れます。</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">決めてもらうこと: 直しの記録(前の文と後の文の 2 対)を承認しますか。</div>
+      </div>
+      <form style="display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid #e6e9ee">
+        <label for="chat-input-5" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">メッセージ</label>
+        <input id="chat-input-5" type="text" placeholder="AI に伝える" style="flex: 1 1 auto; min-width: 0; height: 44px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 8px; font-size: 14px; font-family: inherit">
+        <button type="button" style="height: 44px; padding: 0 16px; border: 0; border-radius: 8px; background: #1d5fbf; color: #ffffff; font-size: 14px; font-weight: 500; font-family: inherit">送る</button>
+      </form>
+    </section>
+
+    <section aria-label="プレビュー" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px; overflow: hidden">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 12px; border-bottom: 1px solid #e6e9ee">
+        <button type="button" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: #eef1f5; color: #1f2328; font-size: 13px; font-weight: 700; font-family: inherit">照合と修正の輪と指摘</button>
+        <button type="button" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #57606a; font-size: 13px; font-family: inherit">シーケンス図(判定者 2 体)</button>
+        <button type="button" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #57606a; font-size: 13px; font-family: inherit">成果物の対応</button>
+        <div style="flex: 1 1 auto"></div>
+        <div style="font-size: 12px; color: #57606a">直しの記録(会話の中)</div>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 1px solid #c7ced6; border-radius: 8px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">直さない</button>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500; font-family: inherit">直しの記録を承認する</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 10px; padding: 14px 20px; border-bottom: 1px solid #e6e9ee; background: #fbfcfd">
+        <div style="display: flex; align-items: center; gap: 12px">
+          <div style="font-size: 13px; font-weight: 700">図: 照合と修正の輪(3 回まで)</div>
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 12px">
+            <span style="padding: 6px 10px; border: 2px solid #1d5fbf; border-radius: 8px; background: #dfe9f8; color: #15488f; font-weight: 700">1 回目: 照合(指摘 3 件)</span>
+            <svg aria-hidden="true" width="18" height="12" viewBox="0 0 18 12" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 6h14"/><path d="M10 2l4 4-4 4"/></svg>
+            <span style="padding: 6px 10px; border: 2px solid #c99700; border-radius: 8px; background: #fff6d6; color: #6b5400; font-weight: 700">1 回目: 修正(承認待ち)</span>
+            <svg aria-hidden="true" width="18" height="12" viewBox="0 0 18 12" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 6h14"/><path d="M10 2l4 4-4 4"/></svg>
+            <span style="padding: 6px 10px; border: 1px solid #c7ced6; border-radius: 8px; background: #ffffff; color: #57606a">2 回目: 照合</span>
+            <svg aria-hidden="true" width="18" height="12" viewBox="0 0 18 12" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 6h14"/><path d="M10 2l4 4-4 4"/></svg>
+            <span style="padding: 6px 10px; border: 1px solid #c7ced6; border-radius: 8px; background: #ffffff; color: #57606a">…</span>
+            <svg aria-hidden="true" width="18" height="12" viewBox="0 0 18 12" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 6h14"/><path d="M10 2l4 4-4 4"/></svg>
+            <span style="padding: 6px 10px; border: 1px solid #1d5fbf; border-radius: 8px; background: #ffffff; color: #15488f">指摘なしで段階 6 へ</span>
+          </div>
+        </div>
+        <div style="font-size: 13px; font-weight: 700">指摘の一覧(種類で色分け)</div>
+        <div style="overflow-x: auto">
+          <table style="border-collapse: collapse; width: 100%; font-size: 12px">
+            <thead><tr><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">種類</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">照合</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">対象の箇所</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">違い</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">扱い</th></tr></thead>
+            <tbody>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee"><span style="padding: 2px 8px; border-radius: 999px; background: #fde8e6; color: #b42318">致命的な誤り</span></td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">規約の照合</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">SKILL.md:142 step 3-4</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">選択肢の表に「行き先」の列がない</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">直す</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee"><span style="padding: 2px 8px; border-radius: 999px; background: #fff6d6; color: #6b5400">機械的な不一致</span></td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">雛形の照合</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">references/全スキル共通の決まり.md:8</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">雛形の章と 1 文が違う</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">直す</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee"><span style="padding: 2px 8px; border-radius: 999px; background: #eef1f5; color: #57606a">推論の好み</span></td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">規約の照合</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">SKILL.md:61 description</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">「要約にして」を「要約に直して」にする案</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">保留の一覧へ</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="display: flex; gap: 14px; font-size: 11px; color: #57606a"><span style="padding: 2px 8px; border-radius: 999px; background: #e6e9ee">誤検知</span><span style="padding: 2px 8px; border-radius: 999px; background: #e6e9ee">範囲の外</span><span style="padding: 2px 8px; border-radius: 999px; background: #fde8e6; color: #b42318">致命的な誤り</span><span style="padding: 2px 8px; border-radius: 999px; background: #fff6d6; color: #6b5400">機械的な不一致</span><span style="padding: 2px 8px; border-radius: 999px; background: #eef1f5">推論の好み</span><span>の 5 種類に、上から順に当てはめる</span></div>
+      </div>
+
+      <article style="flex: 1 1 auto; padding: 16px 24px; overflow: auto; font-size: 13px; line-height: 1.7">
+        <h1 style="margin: 0 0 12px; font-size: 18px">直しの記録(前の文と後の文)</h1>
+        <div style="display: flex; flex-direction: column; gap: 12px">
+          <div style="border: 1px solid #e6e9ee; border-radius: 8px; overflow: hidden">
+            <div style="padding: 6px 10px; background: #f6f7f9; font-size: 12px; color: #57606a">SKILL.md:142 step 3-4 の選択肢の表(致命的な誤り)</div>
+            <div style="padding: 8px 10px; background: #fde8e6; font-size: 12px; white-space: pre-wrap">- | 表示する名前 | 選ぶと何が起こるか |
+- | 承認する(推奨) | 要約を確定する |</div>
+            <div style="padding: 8px 10px; background: #e3f4e6; font-size: 12px; white-space: pre-wrap">+ | 表示する名前 | 選ぶと何が起こるか | 行き先 |
++ | 承認する(推奨) | 要約を確定する | step 4-1 |</div>
+          </div>
+          <div style="border: 1px solid #e6e9ee; border-radius: 8px; overflow: hidden">
+            <div style="padding: 6px 10px; background: #f6f7f9; font-size: 12px; color: #57606a">references/全スキル共通の決まり.md:8(機械的な不一致)</div>
+            <div style="padding: 8px 10px; background: #fde8e6; font-size: 12px; white-space: pre-wrap">- 中止の表示は、理由と、ユーザーが次にすることを持つ。</div>
+            <div style="padding: 8px 10px; background: #e3f4e6; font-size: 12px; white-space: pre-wrap">+ 中止の表示は、中止した step の番号と、理由と、ユーザーが次にすることを持つ。</div>
+          </div>
+        </div>
+        <p style="margin: 12px 0 0; font-size: 12px; color: #57606a">承認のあと、AI は書き込み、判定者 2 体が意味が元と同じかを判定し、2 回目の照合を流す。</p>
+      </article>
+    </section>
+
+  </main>
+</div></div>
+</section>
+<section class="board" id="b6">
+  <h2>段階 6: テスト計画書</h2>
+  <p class="desc">右の図: 網羅の図(仕様の行の ID と、ケースがある箱)。承認: なし(完了の報告)。</p>
+  <div class="frame" style="width:1440px"><div style="min-height: 1000px; display: flex; flex-direction: column; background: #f6f7f9; font-family: 'Noto Sans JP', system-ui, sans-serif; color: #1f2328">
+
+  <header style="display: flex; align-items: center; gap: 24px; padding: 12px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
+    <div style="font-weight: 700; font-size: 16px">skill-factory</div>
+    <div style="font-size: 13px; color: #57606a">作業の名前: 議事録の要約</div>
+    <div style="font-size: 13px; color: #57606a">いまのスキル: summarizing-meeting-minutes(作る順 1 / 2)</div>
+    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #fff6d6; color: #6b5400">成果物の状態: SKILL.md が照合済み、テスト計画書が下書き</div>
+    <div style="flex: 1 1 auto"></div>
+    <div style="font-size: 13px; color: #57606a">スキルの実体のフォルダ: skill-factory/.claude/skills/</div>
+  </header>
+
+  <nav aria-label="段階" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>要件定義書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>分割設計書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>構成の案</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>SKILL.md の下書き</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>照合と修正</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; color: #1d5fbf; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">6</span>テスト計画書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">7</span>シナリオ</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">8</span>テストの実行</div>
+  </nav>
+
+  <main style="display: flex; flex-wrap: wrap; flex: 1 1 auto; gap: 16px; padding: 16px 24px 24px">
+
+    <section aria-label="AI との会話" style="flex: 1 1 360px; min-width: 0; max-width: 420px; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px; overflow: hidden">
+      <div style="padding: 12px 16px; border-bottom: 1px solid #e6e9ee; font-size: 13px; font-weight: 700">会話</div>
+      <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; padding: 16px; overflow: auto">
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">2 回目の照合が「指摘なし」だったので、段階 6 を designing-skill-test-cases で始めます。出力先は tests/summarizing-meeting-minutes/テスト計画書.md です。</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">右上は網羅の図です。流れ図の箱に仕様の行の ID を付け、テストケースがある箱を青で塗りました。全部の箱が 1 件以上のケースを持ちます。</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">完了の報告: ケース 9 件。承認はなく、段階 7 に進みます。決めてもらうこと: なし</div>
+      </div>
+      <form style="display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid #e6e9ee">
+        <label for="chat-input-6" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">メッセージ</label>
+        <input id="chat-input-6" type="text" placeholder="AI に伝える" style="flex: 1 1 auto; min-width: 0; height: 44px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 8px; font-size: 14px; font-family: inherit">
+        <button type="button" style="height: 44px; padding: 0 16px; border: 0; border-radius: 8px; background: #1d5fbf; color: #ffffff; font-size: 14px; font-weight: 500; font-family: inherit">送る</button>
+      </form>
+    </section>
+
+    <section aria-label="プレビュー" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px; overflow: hidden">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 12px; border-bottom: 1px solid #e6e9ee">
+        <button type="button" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: #eef1f5; color: #1f2328; font-size: 13px; font-weight: 700; font-family: inherit">網羅の図</button>
+        <button type="button" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #57606a; font-size: 13px; font-family: inherit">成果物の対応</button>
+        <div style="flex: 1 1 auto"></div>
+        <div style="font-size: 12px; color: #57606a">tests/summarizing-meeting-minutes/テスト計画書.md</div>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 1px solid #c7ced6; border-radius: 8px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">段階 7 へ進む</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 8px; padding: 14px 20px; border-bottom: 1px solid #e6e9ee; background: #fbfcfd">
+        <div style="display: flex; align-items: center; gap: 16px">
+          <div style="font-size: 13px; font-weight: 700">図: 網羅の図(仕様の行の ID と、ケースがある箱)</div>
+          <div style="font-size: 12px; color: #57606a">求める数 / 作った数: 9 / 9</div>
+        </div>
+        <div style="display: flex; gap: 8px; padding: 8px 12px; border-radius: 10px; background: #f6f7f9; align-items: center">
+          <div style="width: 92px; font-size: 12px; font-weight: 700; color: #57606a">phase 1</div>
+          <div style="width: 150px; padding: 8px 10px; border: 1px solid #1d5fbf; border-radius: 8px; background: #dfe9f8; font-size: 12px">1-1 入力を受ける<div style="font-size: 11px; color: #15488f">IN-1, IN-2 → ケース 1, 5</div></div>
+          <svg aria-hidden="true" width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 7h14"/><path d="M10 3l4 4-4 4"/></svg>
+          <div style="width: 150px; padding: 8px 10px; border: 1px solid #1d5fbf; border-radius: 8px; background: #dfe9f8; font-size: 12px">1-2 ツールの有無<div style="font-size: 11px; color: #15488f">TL-1 → ケース 6</div></div>
+        </div>
+        <div style="display: flex; gap: 8px; padding: 8px 12px; border-radius: 10px; background: #f6f7f9; align-items: center">
+          <div style="width: 92px; font-size: 12px; font-weight: 700; color: #57606a">phase 2</div>
+          <div style="width: 150px; padding: 8px 10px; border: 1px solid #1d5fbf; border-radius: 8px; background: #dfe9f8; font-size: 12px">2-1 パスを読む<div style="font-size: 11px; color: #15488f">PI-2 → ケース 1</div></div>
+          <svg aria-hidden="true" width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 7h14"/><path d="M10 3l4 4-4 4"/></svg>
+          <div style="width: 150px; padding: 8px 10px; border: 1px solid #1d5fbf; background: #dfe9f8; font-size: 12px; clip-path: polygon(8px 0, calc(100% - 8px) 0, 100% 50%, calc(100% - 8px) 100%, 8px 100%, 0 50%); text-align: center">2-2 読めたか<div style="font-size: 11px; color: #15488f">BR-1, AB-1 → ケース 7</div></div>
+          <svg aria-hidden="true" width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 7h14"/><path d="M10 3l4 4-4 4"/></svg>
+          <div style="width: 150px; padding: 8px 10px; border: 1px solid #1d5fbf; border-radius: 8px; background: #dfe9f8; font-size: 12px">2-3 上限を決める<div style="font-size: 11px; color: #15488f">P2-1 → ケース 1</div></div>
+        </div>
+        <div style="display: flex; gap: 8px; padding: 8px 12px; border-radius: 10px; background: #f6f7f9; align-items: center">
+          <div style="width: 92px; font-size: 12px; font-weight: 700; color: #57606a">phase 3</div>
+          <div style="width: 150px; padding: 8px 10px; border: 1px solid #1d5fbf; border-radius: 8px; background: #dfe9f8; font-size: 12px">3-1 1 件ずつ<div style="font-size: 11px; color: #15488f">VAL-1(0 件) → ケース 8</div></div>
+          <svg aria-hidden="true" width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 7h14"/><path d="M10 3l4 4-4 4"/></svg>
+          <div style="width: 150px; padding: 8px 10px; border: 1px dashed #1d5fbf; border-radius: 8px; background: #dfe9f8; font-size: 12px">3-2 案を書かせる<div style="font-size: 11px; color: #15488f">P3-1 → ケース 1</div></div>
+          <svg aria-hidden="true" width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 7h14"/><path d="M10 3l4 4-4 4"/></svg>
+          <div style="width: 150px; padding: 8px 10px; border: 1px solid #1d5fbf; border-radius: 8px; background: #dfe9f8; font-size: 12px">3-3 短くし直す<div style="font-size: 11px; color: #15488f">RT-1(進展なし) → ケース 9</div></div>
+          <svg aria-hidden="true" width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 7h14"/><path d="M10 3l4 4-4 4"/></svg>
+          <div style="width: 150px; padding: 8px 10px; border: 2px solid #c99700; border-radius: 8px; background: #dfe9f8; font-size: 12px">3-4 承認を得る<div style="font-size: 11px; color: #15488f">UC-1(直す、やめる) → ケース 3, 4</div></div>
+        </div>
+        <div style="display: flex; gap: 8px; padding: 8px 12px; border-radius: 10px; background: #f6f7f9; align-items: center">
+          <div style="width: 92px; font-size: 12px; font-weight: 700; color: #57606a">phase 4</div>
+          <div style="width: 150px; padding: 8px 10px; border: 1px solid #1d5fbf; border-radius: 8px; background: #dfe9f8; font-size: 12px">4-1 要約.md を書く<div style="font-size: 11px; color: #15488f">OUT-1 → ケース 1, 2(2 回実行)</div></div>
+          <svg aria-hidden="true" width="18" height="14" viewBox="0 0 18 14" fill="none" stroke="#57606a" stroke-width="1.5"><path d="M0 7h14"/><path d="M10 3l4 4-4 4"/></svg>
+          <div style="width: 150px; padding: 8px 10px; border: 1px solid #1d5fbf; border-radius: 8px; background: #dfe9f8; font-size: 12px">4-2 完了を報告する<div style="font-size: 11px; color: #15488f">P4-1 → ケース 1</div></div>
+        </div>
+        <div style="display: flex; gap: 14px; font-size: 11px; color: #57606a"><span>青の箱: ケースがある</span><span>白の箱: ケースがない(いまは 0 件)</span><span>ID: IN 開始時の入力、OUT 最終出力、P 合格の条件、BR 分岐、UC ユーザー確認、PI phase の入力、VAL 受け渡す値、AB 中止、RT やり直し、TL 前提ツール</span></div>
+      </div>
+
+      <article style="flex: 1 1 auto; padding: 16px 24px; overflow: auto; font-size: 13px; line-height: 1.7">
+        <h1 style="margin: 0 0 12px; font-size: 18px">テスト計画書: summarizing-meeting-minutes</h1>
+        <h2 style="margin: 12px 0 6px; font-size: 14px; border-bottom: 1px solid #e6e9ee; padding-bottom: 4px">テストケース(抜粋。列は 14 のうち 7)</h2>
+        <div style="overflow-x: auto">
+          <table style="border-collapse: collapse; width: 100%; font-size: 12px">
+            <thead><tr><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">番号</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">着眼点</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">phase</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">仕様の行</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">依頼の文</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">実行の回数</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">期待</th></tr></thead>
+            <tbody>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">最終出力の表の行の有無、中身、件数</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1 から 4</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">OUT-1</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">meetings/2026-10-20.md を要約して</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">要約.md が 1 件あり、字数が 300 以内。</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">2</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">冪等性</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">4</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">OUT-1</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">同上</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">2</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">2 回目の要約.md が 1 件のまま。</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">7</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">中止の表示</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">2</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">AB-1</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">meetings/none.md を要約して</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">中止の表示の step の番号が 2-2 である。理由が「議事録のパスにファイルがない」である。</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h2 style="margin: 12px 0 6px; font-size: 14px; border-bottom: 1px solid #e6e9ee; padding-bottom: 4px">網羅の基準と測定</h2>
+        <p style="margin: 0">件数の表の全行で、求めるケースの数と作ったケースの数が同じ(9 / 9)。仕様の行 11 行のすべてがケースを 1 件以上持つ。</p>
+      </article>
+    </section>
+
+  </main>
+</div></div>
+</section>
+<section class="board" id="b7">
+  <h2>段階 7: シナリオテストの表</h2>
+  <p class="desc">右の図: シナリオの経路の図(終点の形で終わり方を区別)。承認: 実施する範囲。</p>
+  <div class="frame" style="width:1440px"><div style="min-height: 1000px; display: flex; flex-direction: column; background: #f6f7f9; font-family: 'Noto Sans JP', system-ui, sans-serif; color: #1f2328">
+
+  <header style="display: flex; align-items: center; gap: 24px; padding: 12px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
+    <div style="font-weight: 700; font-size: 16px">skill-factory</div>
+    <div style="font-size: 13px; color: #57606a">作業の名前: 議事録の要約</div>
+    <div style="font-size: 13px; color: #57606a">いまのスキル: summarizing-meeting-minutes(作る順 1 / 2)</div>
+    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #fff6d6; color: #6b5400">成果物の状態: シナリオテストの表が下書き</div>
+    <div style="flex: 1 1 auto"></div>
+    <div style="font-size: 13px; color: #57606a">スキルの実体のフォルダ: skill-factory/.claude/skills/</div>
+  </header>
+
+  <nav aria-label="段階" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>要件定義書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>分割設計書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>構成の案</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>SKILL.md の下書き</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>照合と修正</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>テスト計画書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; color: #1d5fbf; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">7</span>シナリオ</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">8</span>テストの実行</div>
+  </nav>
+
+  <main style="display: flex; flex-wrap: wrap; flex: 1 1 auto; gap: 16px; padding: 16px 24px 24px">
+
+    <section aria-label="AI との会話" style="flex: 1 1 360px; min-width: 0; max-width: 420px; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px; overflow: hidden">
+      <div style="padding: 12px 16px; border-bottom: 1px solid #e6e9ee; font-size: 13px; font-weight: 700">会話</div>
+      <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; padding: 16px; overflow: auto">
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">段階 7 を designing-skill-test-scenarios で始めます。9 件のケースを、前提の状態と依頼の文が同じものでまとめて、シナリオ 5 本にしました。</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">右上は経路の図です。1 本の線が 1 シナリオで、丸で終わる線は最終出力まで届き、四角で終わる線は step で中止します。</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">決めてもらうこと: 実施する範囲は「正常系だけ」(推奨、S1 の 1 本)、「1 回の実行で終わるすべて」(S1 から S4 の 4 本)、「全件」(5 本)のどれにしますか。</div>
+      </div>
+      <form style="display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid #e6e9ee">
+        <label for="chat-input-7" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">メッセージ</label>
+        <input id="chat-input-7" type="text" placeholder="AI に伝える" style="flex: 1 1 auto; min-width: 0; height: 44px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 8px; font-size: 14px; font-family: inherit">
+        <button type="button" style="height: 44px; padding: 0 16px; border: 0; border-radius: 8px; background: #1d5fbf; color: #ffffff; font-size: 14px; font-weight: 500; font-family: inherit">送る</button>
+      </form>
+    </section>
+
+    <section aria-label="プレビュー" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px; overflow: hidden">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 12px; border-bottom: 1px solid #e6e9ee">
+        <button type="button" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: #eef1f5; color: #1f2328; font-size: 13px; font-weight: 700; font-family: inherit">シナリオの経路の図</button>
+        <button type="button" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #57606a; font-size: 13px; font-family: inherit">成果物の対応</button>
+        <div style="flex: 1 1 auto"></div>
+        <div style="font-size: 12px; color: #57606a">テスト計画書.md の章「シナリオテストの表」</div>
+        <button type="button" style="height: 36px; padding: 0 12px; border: 2px solid #1d5fbf; border-radius: 8px; background: #dfe9f8; color: #15488f; font-size: 13px; font-weight: 700; font-family: inherit">正常系だけ(推奨)</button>
+        <button type="button" style="height: 36px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 8px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">1 回の実行で終わるすべて</button>
+        <button type="button" style="height: 36px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 8px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">全件</button>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500; font-family: inherit">この範囲で決める</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 14px 20px; border-bottom: 1px solid #e6e9ee; background: #fbfcfd">
+        <div style="font-size: 13px; font-weight: 700">図: シナリオの経路(範囲「全件」のときの 5 本。選んだ範囲の線だけが濃くなる)</div>
+        <div style="display: grid; grid-template-columns: 120px repeat(4, minmax(0, 1fr)); gap: 6px 12px; font-size: 12px; align-items: center">
+          <div></div>
+          <div style="text-align: center; padding: 6px; border-radius: 8px; background: #f6f7f9; font-weight: 700; color: #57606a">phase 1 前提ツール</div>
+          <div style="text-align: center; padding: 6px; border-radius: 8px; background: #f6f7f9; font-weight: 700; color: #57606a">phase 2 入力の確定</div>
+          <div style="text-align: center; padding: 6px; border-radius: 8px; background: #f6f7f9; font-weight: 700; color: #57606a">phase 3 要約と承認</div>
+          <div style="text-align: center; padding: 6px; border-radius: 8px; background: #dfe9f8; font-weight: 700; color: #15488f">phase 4 最終出力</div>
+
+          <div style="font-weight: 700; color: #15488f">S1 正常系</div>
+          <div style="height: 4px; background: #1d5fbf; border-radius: 2px"></div>
+          <div style="height: 4px; background: #1d5fbf; border-radius: 2px"></div>
+          <div style="height: 4px; background: #1d5fbf; border-radius: 2px"></div>
+          <div style="display: flex; align-items: center; gap: 6px"><div style="flex: 1 1 auto; height: 4px; background: #1d5fbf; border-radius: 2px"></div><span style="width: 14px; height: 14px; border-radius: 999px; background: #1d5fbf"></span><span style="color: #15488f; white-space: nowrap">最終出力まで(ケース 1)</span></div>
+
+          <div style="color: #57606a">S2 2 回実行</div>
+          <div style="height: 4px; background: #c7ced6; border-radius: 2px"></div>
+          <div style="height: 4px; background: #c7ced6; border-radius: 2px"></div>
+          <div style="height: 4px; background: #c7ced6; border-radius: 2px"></div>
+          <div style="display: flex; align-items: center; gap: 6px"><div style="flex: 1 1 auto; height: 4px; background: #c7ced6; border-radius: 2px"></div><span style="width: 14px; height: 14px; border-radius: 999px; background: #c7ced6"></span><span style="color: #57606a; white-space: nowrap">最終出力まで、2 回(ケース 2)</span></div>
+
+          <div style="color: #57606a">S3 中止(パス)</div>
+          <div style="height: 4px; background: #c7ced6; border-radius: 2px"></div>
+          <div style="display: flex; align-items: center; gap: 6px"><div style="width: 40%; height: 4px; background: #c7ced6; border-radius: 2px"></div><span style="width: 12px; height: 12px; background: #b42318"></span><span style="color: #b42318; white-space: nowrap">step 2-2 で中止(ケース 7)</span></div>
+          <div></div>
+          <div></div>
+
+          <div style="color: #57606a">S4 中止(やめる)</div>
+          <div style="height: 4px; background: #c7ced6; border-radius: 2px"></div>
+          <div style="height: 4px; background: #c7ced6; border-radius: 2px"></div>
+          <div style="display: flex; align-items: center; gap: 6px"><div style="width: 85%; height: 4px; background: #c7ced6; border-radius: 2px"></div><span style="width: 12px; height: 12px; background: #b42318"></span><span style="color: #b42318; white-space: nowrap">step 3-4 で中止(ケース 4)</span></div>
+          <div></div>
+
+          <div style="color: #57606a">S5 決定 0 件</div>
+          <div style="height: 4px; background: #c7ced6; border-radius: 2px"></div>
+          <div style="height: 4px; background: #c7ced6; border-radius: 2px"></div>
+          <div style="height: 4px; background: #c7ced6; border-radius: 2px"></div>
+          <div style="display: flex; align-items: center; gap: 6px"><div style="flex: 1 1 auto; height: 4px; background: #c7ced6; border-radius: 2px"></div><span style="width: 14px; height: 14px; border-radius: 999px; background: #c7ced6"></span><span style="color: #57606a; white-space: nowrap">最終出力まで(ケース 8)</span></div>
+        </div>
+        <div style="display: flex; gap: 14px; font-size: 11px; color: #57606a; margin-top: 4px"><span>丸の終点: 最終出力まで</span><span>赤い四角の終点: step で中止</span><span>濃い線: 選んだ範囲(正常系だけ = S1)</span></div>
+      </div>
+
+      <article style="flex: 1 1 auto; padding: 16px 24px; overflow: auto; font-size: 13px; line-height: 1.7">
+        <h1 style="margin: 0 0 12px; font-size: 18px">シナリオテストの表(抜粋。列は 13 のうち 7)</h1>
+        <div style="overflow-x: auto">
+          <table style="border-collapse: collapse; width: 100%; font-size: 12px">
+            <thead><tr><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">シナリオの番号</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">流す順</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">実施する範囲</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">属するテストケース</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">通す phase</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">終わり方</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">実行の回数</th></tr></thead>
+            <tbody>
+              <tr style="background: #f3f7fd"><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">S1</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">正常系だけ</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1、3、5、6、9</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1 から 4</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">最終出力まで</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">S2</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">5</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">全件</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">2</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1 から 4</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">最終出力まで</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">2</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">S3</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">2</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1 回の実行で終わるすべて</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">7</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1、2</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">step 2-2 で中止</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">S4</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">3</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1 回の実行で終わるすべて</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">4</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1 から 3</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">step 3-4 で中止</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">S5</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">4</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1 回の実行で終わるすべて</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">8</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1 から 4</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">最終出力まで</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+  </main>
+</div></div>
+</section>
+<section class="board" id="b8">
+  <h2>段階 8: テストの実行</h2>
+  <p class="desc">右の図: 判定の結果の図(経路に合否を塗る、回帰で流すケース)。承認: 不合格があれば fixing-skill で直すか。</p>
+  <div class="frame" style="width:1440px"><div style="min-height: 1000px; display: flex; flex-direction: column; background: #f6f7f9; font-family: 'Noto Sans JP', system-ui, sans-serif; color: #1f2328">
+
+  <header style="display: flex; align-items: center; gap: 24px; padding: 12px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
+    <div style="font-weight: 700; font-size: 16px">skill-factory</div>
+    <div style="font-size: 13px; color: #57606a">作業の名前: 議事録の要約</div>
+    <div style="font-size: 13px; color: #57606a">いまのスキル: summarizing-meeting-minutes(作る順 1 / 2)</div>
+    <div style="display: flex; align-items: center; gap: 6px; font-size: 12px; padding: 4px 10px; border-radius: 999px; background: #fde8e6; color: #b42318">成果物の状態: テストに不合格 1 件</div>
+    <div style="flex: 1 1 auto"></div>
+    <div style="font-size: 13px; color: #57606a">スキルの実体のフォルダ: skill-factory/.claude/skills/</div>
+  </header>
+
+  <nav aria-label="段階" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 12px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>要件定義書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>分割設計書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>構成の案</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>SKILL.md の下書き</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>照合と修正</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>テスト計画書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span>シナリオ</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; color: #1d5fbf; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">8</span>テストの実行</div>
+  </nav>
+
+  <main style="display: flex; flex-wrap: wrap; flex: 1 1 auto; gap: 16px; padding: 16px 24px 24px">
+
+    <section aria-label="AI との会話" style="flex: 1 1 360px; min-width: 0; max-width: 420px; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px; overflow: hidden">
+      <div style="padding: 12px 16px; border-bottom: 1px solid #e6e9ee; font-size: 13px; font-weight: 700">会話</div>
+      <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; padding: 16px; overflow: auto">
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">段階 8 を testing-skill-with-template で流しました。範囲は「1 回の実行で終わるすべて」の 4 本です。判定の記録を tests/summarizing-meeting-minutes/2026-10-26T15-00/判定の記録.md に書きました。</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">結果は、合格 7、不合格 1、判定できない 0、未実施 1 です。右上の図で、不合格のケース 4(S4、step 3-4 の「やめる」)を赤で示し、直したあとに回帰で流すケースの集まりを示しました。</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">決めてもらうこと: 判定の記録を fixing-skill に渡して直しますか(直すと段階 5 に戻り、段階 7 と 8 をもう一度通ります)。</div>
+      </div>
+      <form style="display: flex; gap: 8px; padding: 12px 16px; border-top: 1px solid #e6e9ee">
+        <label for="chat-input-8" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">メッセージ</label>
+        <input id="chat-input-8" type="text" placeholder="AI に伝える" style="flex: 1 1 auto; min-width: 0; height: 44px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 8px; font-size: 14px; font-family: inherit">
+        <button type="button" style="height: 44px; padding: 0 16px; border: 0; border-radius: 8px; background: #1d5fbf; color: #ffffff; font-size: 14px; font-weight: 500; font-family: inherit">送る</button>
+      </form>
+    </section>
+
+    <section aria-label="プレビュー" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px; overflow: hidden">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 8px 12px; border-bottom: 1px solid #e6e9ee">
+        <button type="button" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: #eef1f5; color: #1f2328; font-size: 13px; font-weight: 700; font-family: inherit">判定の結果の図</button>
+        <button type="button" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #57606a; font-size: 13px; font-family: inherit">配置図(全件合格のあと)</button>
+        <button type="button" style="height: 36px; padding: 0 12px; border: 0; border-radius: 8px; background: transparent; color: #57606a; font-size: 13px; font-family: inherit">成果物の対応</button>
+        <div style="flex: 1 1 auto"></div>
+        <div style="font-size: 12px; color: #57606a">tests/summarizing-meeting-minutes/2026-10-26T15-00/判定の記録.md</div>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 1px solid #c7ced6; border-radius: 8px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">直さずに止める</button>
+        <button type="button" style="height: 36px; padding: 0 14px; border: 0; border-radius: 8px; background: #b42318; color: #ffffff; font-size: 13px; font-weight: 500; font-family: inherit">fixing-skill で直す(段階 5 へ)</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 6px; padding: 14px 20px; border-bottom: 1px solid #e6e9ee; background: #fbfcfd">
+        <div style="display: flex; align-items: center; gap: 16px; font-size: 13px">
+          <div style="font-weight: 700">図: 判定の結果(経路に合否を塗る)</div>
+          <div style="display: flex; gap: 8px; font-size: 12px"><span style="padding: 2px 10px; border-radius: 999px; background: #dfe9f8; color: #15488f">合格 7</span><span style="padding: 2px 10px; border-radius: 999px; background: #fde8e6; color: #b42318">不合格 1</span><span style="padding: 2px 10px; border-radius: 999px; background: #fff6d6; color: #6b5400">判定できない 0</span><span style="padding: 2px 10px; border-radius: 999px; background: #eef1f5; color: #57606a">未実施 1</span></div>
+        </div>
+        <div style="display: grid; grid-template-columns: 120px repeat(4, minmax(0, 1fr)); gap: 6px 12px; font-size: 12px; align-items: center">
+          <div></div>
+          <div style="text-align: center; padding: 6px; border-radius: 8px; background: #f6f7f9; font-weight: 700; color: #57606a">phase 1</div>
+          <div style="text-align: center; padding: 6px; border-radius: 8px; background: #f6f7f9; font-weight: 700; color: #57606a">phase 2</div>
+          <div style="text-align: center; padding: 6px; border-radius: 8px; background: #f6f7f9; font-weight: 700; color: #57606a">phase 3</div>
+          <div style="text-align: center; padding: 6px; border-radius: 8px; background: #dfe9f8; font-weight: 700; color: #15488f">phase 4</div>
+
+          <div style="color: #15488f; font-weight: 700">S1 正常系</div>
+          <div style="height: 4px; background: #1d5fbf; border-radius: 2px"></div><div style="height: 4px; background: #1d5fbf; border-radius: 2px"></div><div style="height: 4px; background: #1d5fbf; border-radius: 2px"></div>
+          <div style="display: flex; align-items: center; gap: 6px"><div style="flex: 1 1 auto; height: 4px; background: #1d5fbf; border-radius: 2px"></div><span style="width: 14px; height: 14px; border-radius: 999px; background: #1d5fbf"></span><span style="color: #15488f; white-space: nowrap">合格(ケース 1, 3, 5, 6, 9)</span></div>
+
+          <div style="color: #57606a">S2 2 回実行</div>
+          <div style="height: 4px; background: #e6e9ee; border-radius: 2px"></div><div style="height: 4px; background: #e6e9ee; border-radius: 2px"></div><div style="height: 4px; background: #e6e9ee; border-radius: 2px"></div>
+          <div style="display: flex; align-items: center; gap: 6px"><div style="flex: 1 1 auto; height: 4px; background: #e6e9ee; border-radius: 2px"></div><span style="width: 14px; height: 14px; border-radius: 999px; background: #e6e9ee"></span><span style="color: #57606a; white-space: nowrap">未実施(範囲の外)</span></div>
+
+          <div style="color: #15488f">S3 中止(パス)</div>
+          <div style="height: 4px; background: #1d5fbf; border-radius: 2px"></div>
+          <div style="display: flex; align-items: center; gap: 6px"><div style="width: 40%; height: 4px; background: #1d5fbf; border-radius: 2px"></div><span style="width: 12px; height: 12px; background: #1d5fbf"></span><span style="color: #15488f; white-space: nowrap">合格(ケース 7)</span></div>
+          <div></div><div></div>
+
+          <div style="color: #b42318; font-weight: 700">S4 中止(やめる)</div>
+          <div style="height: 4px; background: #1d5fbf; border-radius: 2px"></div><div style="height: 4px; background: #1d5fbf; border-radius: 2px"></div>
+          <div style="display: flex; align-items: center; gap: 6px"><div style="width: 85%; height: 4px; background: #b42318; border-radius: 2px"></div><span style="flex: 0 0 12px; width: 12px; height: 12px; background: #b42318"></span><span style="color: #b42318; white-space: nowrap">不合格(ケース 4: 中止の理由の文が違う)</span></div>
+          <div></div>
+
+          <div style="color: #15488f">S5 決定 0 件</div>
+          <div style="height: 4px; background: #1d5fbf; border-radius: 2px"></div><div style="height: 4px; background: #1d5fbf; border-radius: 2px"></div><div style="height: 4px; background: #1d5fbf; border-radius: 2px"></div>
+          <div style="display: flex; align-items: center; gap: 6px"><div style="flex: 1 1 auto; height: 4px; background: #1d5fbf; border-radius: 2px"></div><span style="width: 14px; height: 14px; border-radius: 999px; background: #1d5fbf"></span><span style="color: #15488f; white-space: nowrap">合格(ケース 8)</span></div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 10px; margin-top: 6px; padding: 8px 12px; border: 1px solid #f3c6c2; border-radius: 8px; background: #fff7f6; font-size: 12px">
+          <span style="font-weight: 700; color: #b42318">直したあとに回帰で流すケース:</span>
+          <span style="padding: 2px 8px; border-radius: 999px; background: #fde8e6">直したケース 4</span><span>+</span>
+          <span style="padding: 2px 8px; border-radius: 999px; background: #fde8e6">最初に流すケース 1</span><span>+</span>
+          <span style="padding: 2px 8px; border-radius: 999px; background: #fde8e6">直した step 3-4 の仕様の行 UC-1 のケース 3</span><span>+</span>
+          <span style="padding: 2px 8px; border-radius: 999px; background: #fde8e6">直した phase 3 のケース 8, 9</span>
+          <span style="color: #57606a">= 5 件</span>
+          <svg aria-hidden="true" width="18" height="12" viewBox="0 0 18 12" fill="none" stroke="#b42318" stroke-width="1.5"><path d="M0 6h14"/><path d="M10 2l4 4-4 4"/></svg>
+          <span style="color: #b42318">段階 5 → 7 → 8</span>
+        </div>
+      </div>
+
+      <article style="flex: 1 1 auto; padding: 16px 24px; overflow: auto; font-size: 13px; line-height: 1.7">
+        <h1 style="margin: 0 0 12px; font-size: 18px">判定の記録: summarizing-meeting-minutes</h1>
+        <h2 style="margin: 12px 0 6px; font-size: 14px; border-bottom: 1px solid #e6e9ee; padding-bottom: 4px">ケースごとの判定(抜粋)</h2>
+        <div style="overflow-x: auto">
+          <table style="border-collapse: collapse; width: 100%; font-size: 12px">
+            <thead><tr><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">ケースの番号</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">判定の仕方</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">実施したか</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">1 回目</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">2 回目</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">合否</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">根拠か未実施の理由</th></tr></thead>
+            <tbody>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">1</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">機械的</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">実施</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">合格</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">なし</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee; color: #15488f">合格</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">要約.md が 1 件、字数 248</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">2</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">機械的</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">未実施</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">なし</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">なし</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee; color: #57606a">未実施</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">実施する範囲の外(2 回実行)</td></tr>
+              <tr style="background: #fff7f6"><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">4</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">AI の推論</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">実施</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">不合格</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">不合格</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee; color: #b42318">不合格</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">中止の理由が「ユーザーが中止を選んだ」で、期待の「ユーザーが「やめる」を選んだ」と違う</td></tr>
+              <tr><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">7</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">機械的</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">実施</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">合格</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">なし</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee; color: #15488f">合格</td><td style="padding: 6px 8px; border-bottom: 1px solid #e6e9ee">中止の step が 2-2、理由が一致</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <h2 style="margin: 12px 0 6px; font-size: 14px; border-bottom: 1px solid #e6e9ee; padding-bottom: 4px">合計</h2>
+        <div style="overflow-x: auto">
+          <table style="border-collapse: collapse; width: 100%; font-size: 12px">
+            <thead><tr><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">合格</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">不合格</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">判定できない</th><th style="text-align: left; padding: 6px 8px; border-bottom: 1px solid #c7ced6">未実施</th></tr></thead>
+            <tbody><tr><td style="padding: 6px 8px">7</td><td style="padding: 6px 8px">1</td><td style="padding: 6px 8px">0</td><td style="padding: 6px 8px">1</td></tr></tbody>
+          </table>
+        </div>
+        <h2 style="margin: 12px 0 6px; font-size: 14px; border-bottom: 1px solid #e6e9ee; padding-bottom: 4px">全件合格のときに出す案内</h2>
+        <pre style="margin: 0; padding: 10px 12px; border-radius: 8px; background: #f6f7f9; font-size: 12px; white-space: pre-wrap">mkdir -p &lt;プロジェクトのパス&gt;/.claude/skills &amp;&amp; ln -s &lt;スキルの実体のフォルダ&gt;/summarizing-meeting-minutes &lt;プロジェクトのパス&gt;/.claude/skills/summarizing-meeting-minutes
+ln -s &lt;スキルの実体のフォルダ&gt;/summarizing-meeting-minutes $HOME/.claude/skills/summarizing-meeting-minutes</pre>
+      </article>
+    </section>
+
+  </main>
+</div></div>
+</section>
+<footer class="page">図は横幅 1440px で描いてある。画面が狭いときは横にスクロールして見る。</footer>
+</body>
+</html>
