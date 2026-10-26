@@ -8,8 +8,8 @@
 |---|---|---|---|---|---|---|
 | text-writing-rule | `.claude/rules/text-writing/text-writing-rule.md` | 常に | 63c6b6d1 |  |  |  |
 | thinking-rule | `.claude/rules/thinking/thinking-rule.md` | 常に | f9ad5725 |  |  |  |
-| skill-or-rule | `.claude/rules/skill-or-rule/skill-or-rule.md` | 常に | 1df9e7cc |  |  |  |
-| skill-making-flow-rule | `.claude/rules/skill-making-flow/skill-making-flow-rule.md` | 常に | 2007054e |  |  |  |
+| skill-or-rule | `.claude/rules/skill-or-rule/skill-or-rule.md` | 常に | 555a7924 |  |  |  |
+| skill-making-flow-rule | `.claude/rules/skill-making-flow/skill-making-flow-rule.md` | 常に | 555a7924 |  |  |  |
 | skill-writing-rule | `.claude/rules/skill-writing/skill-writing-rule/skill-writing-rule.md` | `skills/*/SKILL.md`、`skills/*/references/`、`skills/*/scripts/` の下を読んだとき | b7f24c33 |  |  |  |
 | skill-template | `.claude/rules/skill-writing/skill-template/skill-template.md` | `skills/*/SKILL.md`、`skills/*/references/` の下を読んだとき | 2dfa58e0 | 対象外 |  |  |
 | skill-completed-example | `.claude/rules/skill-writing/skill-template-completed-example/skill-completed-example.md` | `skills/*/SKILL.md`、`skills/*/references/` の下を読んだとき | 7dbc4836 | 対象外 |  |  |
