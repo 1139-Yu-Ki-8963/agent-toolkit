@@ -5,7 +5,7 @@
 import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import {spawn} from 'node:child_process';
+import {spawn, spawnSync} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import {fileURLToPath} from 'node:url';
 
@@ -97,6 +97,44 @@ function prompt(text) {
   });
 }
 
+// 段階の名前は、画面の段階の帯と同じ
+const STAGES = ['要件定義書', '分割設計書', '構成の案', 'SKILL.md の下書き', '照合と修正', 'テスト計画書', 'シナリオ', 'テストの実行'];
+
+function lastModified(dir) {
+  let time = fs.statSync(dir).mtimeMs;
+  for (const e of fs.readdirSync(dir, {withFileTypes: true})) {
+    const full = path.join(dir, e.name);
+    time = Math.max(time, e.isDirectory() ? lastModified(full) : fs.statSync(full).mtimeMs);
+  }
+  return time;
+}
+
+// 作業のフォルダが決まる前に画面の文書の欄に出す md。ui/はじめに.md の後ろに、動く準備と既にあるスキルを足す
+function startPage() {
+  const lines = [fs.readFileSync(path.join(uiDir, 'はじめに.md'), 'utf8'), '## 動く準備', ''];
+  const v = spawnSync('claude', ['--version'], {encoding: 'utf8'});
+  lines.push('- 中継サーバー: 動いている');
+  lines.push(v.status === 0
+    ? `- Claude Code: ${v.stdout.trim()}`
+    : '- Claude Code: `claude` のコマンドがない。`npm install -g @anthropic-ai/claude-code` で入れてから、中継サーバーを起動し直す');
+  lines.push('', '## 既にあるスキル', '');
+  const names = fs.existsSync(outputDir)
+    ? fs.readdirSync(outputDir, {withFileTypes: true}).filter(e => e.isDirectory()).map(e => e.name) : [];
+  if (!names.length) lines.push('なし');
+  else {
+    lines.push('| スキルの名前 | いまの段階 | 最後に変えた日時 |', '|---|---|---|');
+    for (const name of names.sort()) {
+      const dir = path.join(outputDir, name);
+      const statePath = path.join(dir, 'ui', 'state.json');
+      let stage = 'なし';
+      try { const n = JSON.parse(fs.readFileSync(statePath, 'utf8')).stage; stage = `${n} ${STAGES[n - 1]}`; } catch {}
+      const time = new Date(lastModified(dir)).toLocaleString('ja-JP');
+      lines.push(`| ${name} | ${stage} | ${time} |`);
+    }
+  }
+  return lines.join('\n') + '\n';
+}
+
 function send(res, status, body, headers = {}) {
   res.writeHead(status, {'Content-Type': 'text/plain; charset=utf-8', ...headers});
   res.end(body);
@@ -118,6 +156,9 @@ http.createServer((req, res) => {
   }
   if (req.method === 'GET' && url.pathname === '/api/status') {
     return send(res, 200, JSON.stringify({busy}), {'Content-Type': 'application/json'});
+  }
+  if (req.method === 'GET' && url.pathname === '/api/start') {
+    return send(res, 200, startPage(), {'Content-Type': 'text/markdown; charset=utf-8', 'Cache-Control': 'no-store'});
   }
   if (req.method === 'GET' && url.pathname.startsWith('/files/')) {
     const rel = decodeURIComponent(url.pathname.slice('/files/'.length));

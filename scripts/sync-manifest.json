@@ -192,6 +192,11 @@
       "dst": "payload/skill-factory/ui/index.html"
     },
     {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/ui/はじめに.md",
+      "dst": "payload/skill-factory/ui/はじめに.md"
+    },
+    {
       "mode": "mirror",
       "src": "~/Projects/skill-factory/ui/example",
       "dst": "payload/skill-factory/ui/example"

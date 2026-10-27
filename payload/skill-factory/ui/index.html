@@ -63,6 +63,7 @@ button{font-family:inherit;cursor:pointer}
 #doc ul{margin:0;padding-left:20px}
 #doc pre{background:var(--gray);padding:8px;overflow:auto}
 .empty{color:var(--muted);font-size:13px;padding:16px}
+[hidden],header .badge:empty{display:none!important}
 </style>
 </head>
 <body>
@@ -101,7 +102,8 @@ button{font-family:inherit;cursor:pointer}
 // 段階の名前は、規約 skill-making-flow の 8 段階の表示の名前
 const STAGES = ['要件定義書', '分割設計書', '構成の案', 'SKILL.md の下書き', '照合と修正', 'テスト計画書', 'シナリオ', 'テストの実行'];
 const $ = id => document.getElementById(id);
-const last = {state: null, conv: null, svg: null, doc: null};
+// state は、1 回目の読み込みで必ず描くように、読んだ値(なしは null)と違う undefined で始める
+const last = {state: undefined, conv: null, svg: null, doc: null};
 let state = null;
 let tab = null;
 
@@ -140,9 +142,29 @@ async function load() {
   $('busy').textContent = b.busy ? 'Claude Code が返事を書いています' : '';
 }
 
+function renderStages() {
+  $('stages').replaceChildren(...STAGES.map((name, i) => {
+    const n = i + 1;
+    const a = state && state.artifacts.find(x => x.stage === n);
+    const cls = state && n === state.stage ? 'now' : (a && a.status === '済み' ? 'done' : '');
+    const p = el('div', {className: 'pill ' + cls});
+    p.append(el('span', {className: 'num'}, cls === 'done' ? '✓' : String(n)), name);
+    return p;
+  }));
+}
+
+// 作業のフォルダが決まる前は、中継が作る md(できること、依頼の文の形、動く準備、既にあるスキル)を文書の欄に出す
+async function renderStart() {
+  renderStages();
+  const md = await fetch('/api/start', {cache: 'no-store'}).then(r => r.ok ? r.text() : null).catch(() => null);
+  $('doc').innerHTML = md === null
+    ? '<div class="empty">中継サーバーにつながりません。skill-factory で <code>node ui/server.mjs</code> を起動してください。</div>'
+    : marked.parse(md);
+}
+
 function renderState() {
   if (!state) {
-    $('doc').replaceChildren(el('div', {className: 'empty'}, 'AI が作業を始めると、ここに文書が出ます。入力欄から依頼を送ってください。'));
+    renderStart();
     return;
   }
   $('work').textContent = '作業の名前: ' + state.workName;
@@ -152,14 +174,7 @@ function renderState() {
   $('artifacts').textContent = '成果物の状態: ' + (shown.length ? shown.join('、') : 'なし');
 
   // F2: 段階の帯を出す
-  $('stages').replaceChildren(...STAGES.map((name, i) => {
-    const n = i + 1;
-    const a = state.artifacts.find(x => x.stage === n);
-    const cls = n === state.stage ? 'now' : (a && a.status === '済み' ? 'done' : '');
-    const p = el('div', {className: 'pill ' + cls});
-    p.append(el('span', {className: 'num'}, cls === 'done' ? '✓' : String(n)), name);
-    return p;
-  }));
+  renderStages();
 
   // F4: 図のタブ
   if (!state.figures.some(f => f.tab === tab)) tab = state.figures.length ? state.figures[0].tab : null;
