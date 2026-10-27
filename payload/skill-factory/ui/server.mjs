@@ -24,6 +24,8 @@ const pending = path.join(uiDir, '.pending', `${sessionId}.md`);
 let workDir = !arg ? null
   : fs.existsSync(arg) && fs.statSync(arg).isDirectory() ? path.resolve(arg) : path.join(outputDir, arg);
 let busy = false;
+// Claude Code が最後に Skill のツールで呼んだスキルの名前。まだ呼んでいないときは null
+let runningSkill = null;
 
 // 作業のフォルダは、起動したあとに output/*/ui/state.json が書かれた最初のフォルダとし、決まったら止めるまで同じフォルダとする
 function findWorkDir() {
@@ -86,6 +88,8 @@ function prompt(text) {
       if (msg.type !== 'assistant') continue;
       for (const c of msg.message.content || []) {
         if (c.type === 'text' && c.text.trim()) { append('Claude Code', c.text); replied = true; }
+        // Claude Code が Skill のツールを呼んだら、そのスキルの名前を、実行中のスキルとして画面に返す
+        if (c.type === 'tool_use' && c.name === 'Skill' && c.input && c.input.skill) runningSkill = c.input.skill;
       }
     }
   });
@@ -125,7 +129,7 @@ http.createServer((req, res) => {
     return send(res, 200, fs.readFileSync(path.join(uiDir, 'index.html')), {'Content-Type': 'text/html; charset=utf-8'});
   }
   if (req.method === 'GET' && url.pathname === '/api/status') {
-    return send(res, 200, JSON.stringify({busy, hasClaude}), {'Content-Type': 'application/json'});
+    return send(res, 200, JSON.stringify({busy, hasClaude, runningSkill}), {'Content-Type': 'application/json'});
   }
   if (req.method === 'GET' && url.pathname === '/api/start') {
     return send(res, 200, startPage(), {'Content-Type': 'text/markdown; charset=utf-8', 'Cache-Control': 'no-store'});

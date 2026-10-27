@@ -16,6 +16,9 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:12px 
 header .brand{font-weight:700;font-size:16px}
 header .meta{font-size:13px;color:var(--muted)}
 header .meta:empty{display:none}
+.running{display:flex;align-items:center;gap:8px;padding:4px 12px;border-radius:999px;background:var(--blue2);color:var(--blue);font-size:13px;font-weight:500}
+.running.busy::before{content:'';width:10px;height:10px;border:2px solid var(--blue);border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
 .conn{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
 .conn::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--green)}
 .conn.ng{color:var(--red)}
@@ -106,6 +109,7 @@ body.start form textarea{border:0;font-size:15px;outline:none}
   <div class="brand">skill-factory</div>
   <div class="meta" id="work"></div>
   <div class="meta" id="skill"></div>
+  <div class="running" id="running" role="status" hidden></div>
   <div class="conn" id="conn" role="status">接続中</div>
 </header>
 <div id="banner" hidden></div>
@@ -174,6 +178,10 @@ async function load() {
   const b = await fetch('/api/status', {cache: 'no-store'}).then(r => r.json()).catch(() => null);
   renderConn(b);
   if (!b) return;
+  // 実行中のスキル: 中継サーバーが、Claude Code の Skill のツールの呼び出しから受け取った名前をそのまま出す
+  $('running').hidden = !b.runningSkill;
+  $('running').textContent = b.runningSkill ? `${b.runningSkill} を実行中` : '';
+  $('running').className = 'running' + (b.busy ? ' busy' : '');
   const s = await getText('ui/state.json');
   const c = await getText('ui/conversation.md');
   let changed = false;
