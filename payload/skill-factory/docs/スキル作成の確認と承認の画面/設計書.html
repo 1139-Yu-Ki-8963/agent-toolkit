@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>確認と承認の画面の設計書</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/10.9.1/mermaid.min.js"></script>
+<style>
+:root{--bg:#f6f7f9;--fg:#1f2328;--muted:#57606a;--line:#d9dde3}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:'Noto Sans JP',system-ui,sans-serif;line-height:1.7}
+main{max-width:1100px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:22px}h2{font-size:17px;border-bottom:1px solid var(--line);padding-bottom:4px;margin-top:36px}h3{font-size:15px;margin-top:20px}
+.box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px;overflow-x:auto}
+table{border-collapse:collapse;width:100%;font-size:13px;background:#fff}
+th,td{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}
+th{background:#eef1f5}
+.note{font-size:13px;color:var(--muted)}
+code{font-size:12px}
+</style>
+</head>
+<body>
+<main>
+<h1>確認と承認の画面の設計書</h1>
+<p class="note">作成日: 2026-10-26。この設計書は、要件定義書(同じフォルダの 要件定義書.md)の画面、中継、スキル 2 本を、どの利用の流れでも正しく状態遷移させるための設計を持つ。章 8 の実測の結果を前提にする。</p>
+
+<h2>1. 前提と、この設計書で使う語</h2>
+<table>
+<tr><th>語</th><th>意味</th></tr>
+<tr><td>作業のフォルダ</td><td>1 回の作業の成果物と画面のファイルを置くフォルダ。決まり方は章 4。画面のファイルは、作業のフォルダの <code>ui/</code> に置く</td></tr>
+<tr><td>会話の ID</td><td>中継を 1 回起動するごとに 1 つ作る ID。画面からのすべての送信は、この ID の 1 つの claude の会話になる</td></tr>
+<tr><td>仮の会話</td><td>作業のフォルダが決まる前の会話。<code>ui/.pending/&lt;会話の ID&gt;.md</code>(skill-factory の <code>ui/</code> の下)に置く</td></tr>
+<tr><td>画面のファイル</td><td>作業のフォルダの <code>ui/state.json</code>、<code>ui/figures/</code>、<code>ui/conversation.md</code></td></tr>
+</table>
+
+<h2>2. 利用の流れ</h2>
+<p class="note">起動は、どの流れでも <code>node ui/server.mjs</code> の 1 つである。流れは、ユーザーが画面から最初に送る依頼の文の形で決まる。依頼の形と始める段階は、規約 skill-making-flow の規則 2 の表と docs/操作の流れ.md のとおりである。</p>
+<table>
+<tr><th>流れ(最初の依頼の文の形)</th><th>起動した時点の作業のフォルダ</th><th>始める段階</th><th>AI が state.json を最初に書く時点</th><th>画面に最初に出る文書と決めてもらうこと</th></tr>
+<tr><td>「&lt;作業&gt;をするスキルを作って」</td><td>ない。AI がスキルの名前を提案し、段階 1 の step 3-2 で作る</td><td>1</td><td>段階 1 の最初の質問の前</td><td>要件定義書.md(まだない)と、質問 1</td></tr>
+<tr><td>要件定義書のパス</td><td>ある</td><td>2</td><td>段階 2 の切り方の案の選択の前</td><td>要件定義書.md と、案の選択</td></tr>
+<tr><td>分割設計書のパス</td><td>ある</td><td>3</td><td>段階 3 の最初の質問の前</td><td>分割設計書.md と、質問 1</td></tr>
+<tr><td>構成の案のパス</td><td>ある</td><td>4</td><td>段階 4 の出力先の質問の前</td><td>構成の案.md と、出力先の質問</td></tr>
+<tr><td>「&lt;スキルの名前&gt; を照合して」</td><td>ある</td><td>5(照合だけ)</td><td>照合の指摘の一覧を見せる前</td><td>SKILL.md と、「直してよいか」</td></tr>
+<tr><td>「&lt;スキルの名前&gt; の &lt;直す内容&gt; を直して」</td><td>ある</td><td>5(fixing-skill から)</td><td>依頼の一覧.md を書いたあと、承認の前</td><td>依頼の一覧.md と、直しの承認</td></tr>
+<tr><td>スキルのフォルダのパスと「テストを作って」</td><td>ある</td><td>5 から 6</td><td>段階 5 の照合の前</td><td>SKILL.md と、なし</td></tr>
+<tr><td>テスト計画書のパスと実施する範囲</td><td>ある</td><td>7</td><td>段階 7 を始める前</td><td>tests/テスト計画書.md と、なし</td></tr>
+<tr><td>テスト計画書のパスと「テストを流して」</td><td>ある</td><td>8</td><td>段階 8 を始める前</td><td>tests/テスト計画書.md と、なし</td></tr>
+<tr><td>判定の記録のパス</td><td>ある</td><td>5(fixing-skill から)</td><td>直しの承認の前</td><td>判定の記録.md と、直しの承認</td></tr>
+<tr><td>どの形にも当たらない依頼(挨拶、質問)</td><td>決まらない</td><td>なし</td><td>書かない</td><td>なし。AI の返事に依頼の形の一覧が出る</td></tr>
+</table>
+<p class="note">段階 2 以降から始める流れでは、AI は、始める段階より前の段階の成果物の状態を「済み」にして書く。</p>
+
+<h2>3. 主体ごとの状態</h2>
+<h3>3.1 中継と画面</h3>
+<div class="box"><pre class="mermaid">
+stateDiagram-v2
+  [*] --> 作業なし_待ち: 起動(会話の ID を作る)
+  作業なし_待ち --> 作業なし_AI実行中: 送る(1 回目は --session-id)
+  作業なし_AI実行中 --> 作業あり_AI実行中: AI が state.json を書く(作業のフォルダを決め、仮の会話を移す)
+  作業なし_AI実行中 --> 作業なし_待ち: AI が state.json を書かずに終わる
+  作業あり_AI実行中 --> 作業あり_決めてもらう: AI が決めてもらうことを持つ state.json を書いて終わる
+  作業あり_AI実行中 --> 作業あり_待ち: AI が決めてもらうことなしで終わる
+  作業あり_決めてもらう --> 作業あり_AI実行中: 承認のボタンか入力欄から送る(--resume)
+  作業あり_待ち --> 作業あり_AI実行中: 入力欄から送る(--resume)
+</pre></div>
+<p class="note">AI が実行中の間の送信は、中継が断る(同時に動かす claude は 1 つ)。作業のフォルダは、一度決まったら、中継を止めるまで変えない。別の作業に移るときは、ユーザーが中継を起動し直す。</p>
+
+<h3>3.2 段階ごとの成果物</h3>
+<div class="box"><pre class="mermaid">
+stateDiagram-v2
+  [*] --> 未着手
+  未着手 --> 下書き: その段階のスキルを始める
+  下書き --> 承認待ち: 成果物を書き、承認か答えを求める
+  承認待ち --> 下書き: 直す
+  承認待ち --> 済み: 承認する(段階 4、6 は完了の報告)
+  済み --> 下書き: 段階 8 の不合格で段階 5 に戻る(段階 5 から 8)
+</pre></div>
+
+<h2>4. 作業のフォルダの決まり方</h2>
+<table>
+<tr><th>流れ</th><th>作業のフォルダ</th></tr>
+<tr><td>新しくスキルを作る流れ</td><td><code>output/&lt;作る順 1 のスキルの名前&gt;/</code>。分割設計書の 2 本目以降のスキルの段階 3 から 8 でも変えない。2 本目以降のスキルの成果物は <code>output/&lt;そのスキルの名前&gt;/</code> に置き、state.json の「いまのスキルの名前と作る順」で見分ける</td></tr>
+<tr><td>既にあるスキルへの流れ</td><td>依頼の文が指すスキルのフォルダ <code>output/&lt;スキルの名前&gt;/</code></td></tr>
+<tr><td>中継の見つけ方</td><td>起動したあとに <code>output/*/ui/state.json</code> が書かれた最初のフォルダ。起動の前からある state.json は見ない</td></tr>
+</table>
+
+<h2>5. 会話の扱い</h2>
+<div class="box"><pre class="mermaid">
+sequenceDiagram
+  actor U as ユーザー(画面)
+  participant S as 中継
+  participant C as claude
+  participant F as 作業のフォルダ
+  Note over S: 起動。会話の ID を作る
+  U->>S: 1 回目の送信
+  S->>S: 仮の会話に「ユーザー:」を書く
+  S->>C: claude -p --session-id ID --output-format stream-json --verbose --permission-mode acceptEdits
+  C-->>S: 途中の返事(1 つずつ)
+  S->>S: 返事ごとに「Claude Code:」を書く
+  C->>F: 段階 1 の step 3-2 でフォルダを作り、最初の質問の前に ui/state.json を書く
+  S->>F: state.json を見つけ、仮の会話を ui/conversation.md の後ろに移す
+  C-->>S: 質問 1 で終わる
+  U->>S: 2 回目の送信(答えか承認のボタンの文)
+  S->>F: ui/conversation.md に「ユーザー:」を書く
+  S->>C: claude -p --resume ID ...
+</pre></div>
+<ul>
+<li>conversation.md の 1 件は、「ユーザー:」か「Claude Code:」で始まる行から、次の同じ形の行の前までとする。</li>
+<li>前の作業の conversation.md が作業のフォルダにあるときは、中継は、その後ろに新しい会話を足す。</li>
+<li>claude が 0 でない終了コードで終わったときは、中継は、「Claude Code: (終了コード &lt;番号&gt;) &lt;標準エラーの文&gt;」を書く。</li>
+<li>仮の会話は、作業のフォルダに移したら消す。作業のフォルダが決まらないまま中継を止めたときは、<code>ui/.pending/</code> に残す。</li>
+</ul>
+
+<h2>6. ファイルを書く時点と書く役</h2>
+<table>
+<tr><th>時点</th><th>書くもの</th><th>書く役</th></tr>
+<tr><td>中継の起動</td><td>なし(会話の ID は中継の中に持つ)</td><td>中継</td></tr>
+<tr><td>作業のフォルダが決まる前の送信と返事</td><td><code>ui/.pending/&lt;会話の ID&gt;.md</code></td><td>中継</td></tr>
+<tr><td>段階のスキルがユーザーに質問か承認を出す前</td><td>作業のフォルダの <code>ui/state.json</code>(決めてもらうことと文書のパス)</td><td>updating-skill-factory-ui-state(AI が呼ぶ)</td></tr>
+<tr><td>段階のスキルが成果物を書いたあと、承認を求める前</td><td>作業のフォルダの <code>ui/figures/&lt;段階の番号&gt;-&lt;図の種類&gt;.svg</code>(規約の表の「描く図」が「まだ描けない」でない段階だけ)</td><td>drawing-skill-factory-figure(AI が呼ぶ)</td></tr>
+<tr><td>段階の完了の報告のあと</td><td>作業のフォルダの <code>ui/state.json</code>(次の段階と成果物の状態)</td><td>updating-skill-factory-ui-state(AI が呼ぶ)</td></tr>
+<tr><td>作業のフォルダが決まったあとの送信と返事</td><td>作業のフォルダの <code>ui/conversation.md</code></td><td>中継</td></tr>
+</table>
+<p class="note">自由回答の質問(段階 1 の質問など)では、決めてもらうことの選択肢は 0 件とし、画面は問いの文だけを出す。そのため、updating-skill-factory-ui-state のキーの名前と型の対応表の <code>choices</code> を「0 件でもよい」に変える。</p>
+
+<h2>7. 部品ごとの扱い</h2>
+<table>
+<tr><th>部品</th><th>扱い</th></tr>
+<tr><td>画面 <code>ui/index.html</code></td><td>使い続ける。F1 から F9 は 8 段階で確かめ済み。選択肢が 0 件の決めてもらうことは、問いの文だけを出す(いまの作りで出る)</td></tr>
+<tr><td>中継 <code>ui/server.mjs</code></td><td>この設計で作り直す(会話の ID、stream-json の読み取り、作業のフォルダの固定、仮の会話)</td></tr>
+<tr><td>スキル updating-skill-factory-ui-state</td><td>使い続ける。対応表の <code>choices</code> を「0 件でもよい」に、fixing-skill の手順で直す</td></tr>
+<tr><td>スキル drawing-skill-factory-figure</td><td>使い続ける</td></tr>
+<tr><td>規約 skill-making-flow の規則 3</td><td>書く時点と作業のフォルダの文を、章 4 と章 6 のとおりに置き換える</td></tr>
+<tr><td>要件定義書の章 2 と 2.2</td><td>「<code>claude -p --continue</code> の形で渡す」を、会話の ID で渡す形に直す</td></tr>
+<tr><td>README と docs の 3 本</td><td>画面の流れ、新しいスキル 2 本、起動の手順を足す</td></tr>
+</table>
+
+<h2>8. 実測の結果(2026-10-26、skill-factory の写しで本物の claude を動かした)</h2>
+<table>
+<tr><th>確かめたこと</th><th>結果</th><th>設計で決めたこと</th></tr>
+<tr><td><code>--session-id</code> で始め、<code>--resume</code> で続けると、前の会話を覚えているか</td><td>覚えている(「7 を覚えて」のあとに「7」が返った)</td><td>中継は、1 回目に <code>--session-id</code>、2 回目から <code>--resume</code> を使う</td></tr>
+<tr><td><code>claude -p</code> の標準出力は何か</td><td>最後の返事だけ</td><td>中継は、<code>--output-format stream-json --verbose</code> で途中の返事を 1 つずつ取る(「始めます」と「おわり」の 2 つが取れた)</td></tr>
+<tr><td><code>--permission-mode acceptEdits</code> で、Bash の node とファイルの書き込みが通るか</td><td>通った(42 が返り、memo.txt ができた)</td><td>中継は、<code>--permission-mode acceptEdits</code> を付ける</td></tr>
+</table>
+
+<h2>9. 受け入れの確認の計画</h2>
+<table>
+<tr><th>確かめること</th><th>方法</th></tr>
+<tr><td>新しくスキルを作る流れで、段階 1 の最初の質問の前に state.json ができ、仮の会話が作業のフォルダに移り、2 回目の送信が同じ会話の続きになり、承認のボタンの文で段階 2 に進む</td><td>skill-factory の写しで、本物の claude を、中継の要求の処理を直接呼ぶテストで動かす</td></tr>
+<tr><td>「&lt;スキルの名前&gt; を照合して」の流れで、前の ui/ を画面に出さず、段階 5 の照合のスクリプトが権限で止まらない</td><td>同じ方法</td></tr>
+<tr><td>画面の 9 機能</td><td>画面を表示しないブラウザで、段階 1 から 8 を開く(前と同じ方法)</td></tr>
+<tr><td>本物の中継とブラウザでの通し</td><td>ユーザーが <code>/sandbox</code> でローカルの待ち受けを許したあとに 1 回通す。許さないときは、ユーザーの PC で確かめてもらう</td></tr>
+</table>
+</main>
+<script>mermaid.initialize({startOnLoad: true, theme: 'neutral'});</script>
+</body>
+</html>

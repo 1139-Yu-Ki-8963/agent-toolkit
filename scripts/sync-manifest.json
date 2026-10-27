@@ -141,6 +141,26 @@
       "dst": "payload/skill-factory/.claude/skills/rewrite-pink-elephants"
     },
     {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/output/updating-skill-factory-ui-state/SKILL.md",
+      "dst": "payload/skill-factory/.claude/skills/updating-skill-factory-ui-state/SKILL.md"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/skill-factory/output/updating-skill-factory-ui-state/references",
+      "dst": "payload/skill-factory/.claude/skills/updating-skill-factory-ui-state/references"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/output/drawing-skill-factory-figure/SKILL.md",
+      "dst": "payload/skill-factory/.claude/skills/drawing-skill-factory-figure/SKILL.md"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/skill-factory/output/drawing-skill-factory-figure/references",
+      "dst": "payload/skill-factory/.claude/skills/drawing-skill-factory-figure/references"
+    },
+    {
       "mode": "build",
       "builder": "scripts/build-skill-factory-hooks.mjs",
       "dst": "payload/skill-factory/.claude/hooks",
@@ -160,6 +180,21 @@
       "mode": "mirror",
       "src": "~/Projects/skill-factory/docs",
       "dst": "payload/skill-factory/docs"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/ui/server.mjs",
+      "dst": "payload/skill-factory/ui/server.mjs"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/ui/index.html",
+      "dst": "payload/skill-factory/ui/index.html"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/skill-factory/ui/example",
+      "dst": "payload/skill-factory/ui/example"
     }
   ]
 }

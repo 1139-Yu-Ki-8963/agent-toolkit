@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="440" viewBox="0 0 900 440" font-family="'Noto Sans JP', system-ui, sans-serif">
+<defs><marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#57606a"/></marker><marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#1d5fbf"/></marker><marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0 0L10 5L0 10z" fill="#b42318"/></marker></defs>
+<rect x="0" y="0" width="900" height="96" rx="10" fill="#f6f7f9"/>
+<text x="12" y="28" font-size="12" font-weight="700" fill="#57606a">phase 1</text>
+<text x="12" y="44" font-size="11" fill="#57606a">全スキル共通の決<tspan x="12" dy="16">まりの読み込み</tspan></text>
+<rect x="110" y="8" width="150" height="60" rx="8" fill="#ffffff" stroke="#c7ced6"/>
+<text x="120" y="26" font-size="12" fill="#1f2328">1-1 全スキル共通の決<tspan x="120" dy="16">まりを読む</tspan></text>
+<text x="110" y="82" font-size="11" fill="#b42318">中止あり</text>
+<rect x="0" y="104" width="900" height="96" rx="10" fill="#f6f7f9"/>
+<text x="12" y="132" font-size="12" font-weight="700" fill="#57606a">phase 2</text>
+<text x="12" y="148" font-size="11" fill="#57606a">入力の確定</text>
+<rect x="110" y="112" width="150" height="60" rx="8" fill="#ffffff" stroke="#c7ced6"/>
+<text x="120" y="130" font-size="12" fill="#1f2328">2-1 依頼を読み取る</text>
+<line x1="260" y1="142" x2="285" y2="142" stroke="#57606a" stroke-width="1.5" marker-end="url(#arrow)"/>
+<polygon points="296,112 426,112 436,142 426,172 296,172 286,142" fill="#ffffff" stroke="#57606a"/>
+<text x="296" y="130" font-size="12" fill="#1f2328">2-2 議事録が読めたか<tspan x="296" dy="16">を見る [分岐]</tspan></text>
+<text x="286" y="186" font-size="11" fill="#b42318">中止あり</text>
+<rect x="0" y="208" width="900" height="96" rx="10" fill="#f6f7f9"/>
+<text x="12" y="236" font-size="12" font-weight="700" fill="#57606a">phase 3</text>
+<text x="12" y="252" font-size="11" fill="#57606a">要約の作成と承認</text>
+<rect x="110" y="216" width="150" height="60" rx="8" fill="#ffffff" stroke="#c7ced6"/>
+<text x="120" y="234" font-size="12" fill="#1f2328">3-1 決定事項を 1 件<tspan x="120" dy="16">ずつ抜き出す [繰り返</tspan><tspan x="120" dy="16">し]</tspan></text>
+<line x1="260" y1="246" x2="285" y2="246" stroke="#57606a" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="286" y="216" width="150" height="60" rx="8" fill="#ffffff" stroke="#57606a" stroke-dasharray="4 3"/>
+<text x="296" y="234" font-size="12" fill="#1f2328">3-2 要約の案を書かせ<tspan x="296" dy="16">る [委任]</tspan></text>
+<line x1="436" y1="246" x2="461" y2="246" stroke="#57606a" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="462" y="216" width="150" height="60" rx="8" fill="#ffffff" stroke="#c7ced6"/>
+<text x="472" y="234" font-size="12" fill="#1f2328">3-3 要約を短くし直す<tspan x="472" dy="16">[やり直し]</tspan></text>
+<line x1="612" y1="246" x2="637" y2="246" stroke="#57606a" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="638" y="216" width="150" height="60" rx="8" fill="#fff6d6" stroke="#c99700" stroke-width="2"/>
+<text x="648" y="234" font-size="12" fill="#1f2328">3-4 要約の案の承認を<tspan x="648" dy="16">得る [ユーザー確認]</tspan></text>
+<text x="638" y="290" font-size="11" fill="#b42318">中止あり</text>
+<rect x="0" y="312" width="900" height="96" rx="10" fill="#dfe9f8"/>
+<text x="12" y="340" font-size="12" font-weight="700" fill="#57606a">phase 4</text>
+<text x="12" y="356" font-size="11" fill="#57606a">最終出力の確認と<tspan x="12" dy="16">ユーザーへの完了</tspan><tspan x="12" dy="16">の報告</tspan></text>
+<rect x="110" y="320" width="150" height="60" rx="8" fill="#ffffff" stroke="#c7ced6"/>
+<text x="120" y="338" font-size="12" fill="#1f2328">4-1 最終出力を確かめ<tspan x="120" dy="16">る</tspan></text>
+<line x1="260" y1="350" x2="285" y2="350" stroke="#57606a" stroke-width="1.5" marker-end="url(#arrow)"/>
+<rect x="286" y="320" width="150" height="60" rx="8" fill="#ffffff" stroke="#c7ced6"/>
+<text x="296" y="338" font-size="12" fill="#1f2328">4-2 ユーザーに完了を<tspan x="296" dy="16">報告する</tspan></text>
+<text x="0" y="428" font-size="11" fill="#57606a">白の箱: 直列。六角の箱: 分岐。点線の箱: 委任。黄色の箱: ユーザー確認。赤の字: 中止のある step。青の帯: 最終出力を出す phase。</text>
+</svg>

@@ -1,0 +1,81 @@
+{
+  "workName": "議事録の要約",
+  "currentSkill": {
+    "name": "summarizing-meeting-minutes",
+    "order": 1,
+    "total": 2
+  },
+  "stage": 7,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "済み"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "済み"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "済み"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "済み"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "済み"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "済み"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "承認待ち"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "未着手"
+    }
+  ],
+  "figures": [
+    {
+      "tab": "全体の流れ図",
+      "path": "ui/figures/1-全体の流れ図.svg"
+    },
+    {
+      "tab": "分割の比較図",
+      "path": "ui/figures/2-分割の比較図.svg"
+    },
+    {
+      "tab": "phase と step の流れ図",
+      "path": "ui/figures/3-phase と step の流れ図.svg"
+    }
+  ],
+  "documentPath": "tests/テスト計画書.md",
+  "decision": {
+    "question": "実施する範囲はどれにしますか。",
+    "choices": [
+      "正常系だけ(推奨)",
+      "1 回の実行で終わるすべて",
+      "全件"
+    ]
+  },
+  "downloads": [
+    "要件定義書.md",
+    "分割設計書.md",
+    "構成の案.md",
+    "SKILL.md",
+    "tests/テスト計画書.md"
+  ]
+}

@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>スキル作成の確認と承認</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<style>
+:root{--bg:#f6f7f9;--fg:#1f2328;--muted:#57606a;--line:#d9dde3;--line2:#e6e9ee;--box:#c7ced6;--blue:#1d5fbf;--blue2:#dfe9f8;--gray:#eef1f5;--yellow:#fff6d6;--yellowfg:#6b5400}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:var(--bg);color:var(--fg);font-family:'Noto Sans JP',system-ui,sans-serif}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px;padding:12px 24px;background:#fff;border-bottom:1px solid var(--line)}
+header .brand{font-weight:700;font-size:16px}
+header .meta{font-size:13px;color:var(--muted)}
+header .badge{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--yellow);color:var(--yellowfg)}
+nav.stages{display:flex;flex-wrap:wrap;gap:8px;padding:12px 24px;background:#fff;border-bottom:1px solid var(--line)}
+.pill{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--gray);color:var(--muted);font-size:13px}
+.pill .num{display:inline-flex;width:20px;height:20px;border-radius:999px;background:#fff;border:1px solid var(--box);align-items:center;justify-content:center;font-size:12px}
+.pill.done{background:var(--blue2);color:var(--blue)}
+.pill.done .num{background:var(--blue);color:#fff;border:0}
+.pill.now{background:var(--blue);color:#fff;font-weight:500}
+.pill.now .num{background:#fff;color:var(--blue);border:0;font-weight:700}
+main{display:flex;flex-wrap:wrap;flex:1 1 auto;gap:16px;padding:16px 24px 24px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
+#chat{flex:1 1 360px;max-width:420px;max-height:calc(100vh - 140px)}
+.panel-title{padding:12px 16px;border-bottom:1px solid var(--line2);font-size:13px;font-weight:700}
+#messages{flex:1 1 auto;display:flex;flex-direction:column;gap:12px;padding:16px;overflow:auto}
+.msg{max-width:90%;padding:10px 14px;font-size:14px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg.user{align-self:flex-end;max-width:85%;border-radius:14px 14px 4px 14px;background:var(--blue);color:#fff}
+.msg.ai{align-self:flex-start;border-radius:14px 14px 14px 4px;background:var(--gray)}
+.msg.md{white-space:normal}
+.msg.md p,.msg.md ul,.msg.md ol{margin:4px 0}
+.msg.md ul,.msg.md ol{padding-left:18px}
+.msg.md pre{white-space:pre-wrap;background:#fff;padding:6px;border-radius:6px}
+.msg.md table{border-collapse:collapse;display:block;overflow-x:auto;font-size:12px}
+.msg.md th,.msg.md td{border:1px solid var(--line);padding:2px 6px}
+#busy{font-size:12px;color:var(--muted);padding:0 16px 8px}
+form{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line2)}
+form input{flex:1 1 auto;min-width:0;height:44px;padding:0 12px;border:1px solid var(--box);border-radius:8px;font-size:14px;font-family:inherit}
+button{font-family:inherit;cursor:pointer}
+.primary{height:44px;padding:0 16px;border:0;border-radius:8px;background:var(--blue);color:#fff;font-size:14px;font-weight:500}
+#preview{flex:999 1 560px}
+.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:8px 12px;border-bottom:1px solid var(--line2)}
+.tab{height:36px;padding:0 14px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:13px}
+.tab.on{background:var(--gray);color:var(--fg);font-weight:700}
+.spacer{flex:1 1 auto}
+#docpath{font-size:12px;color:var(--muted)}
+.choice{height:36px;padding:0 14px;border:1px solid var(--box);border-radius:8px;background:#fff;color:var(--fg);font-size:13px}
+.choice.main{border:0;background:var(--blue);color:#fff;font-weight:500}
+#decision,#downloads{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 20px;border-bottom:1px solid var(--line2);font-size:13px}
+#decision{background:var(--yellow);color:var(--yellowfg)}
+#downloads a{color:var(--blue)}
+#figure{padding:16px 20px;border-bottom:1px solid var(--line2);background:#fbfcfd;overflow:auto}
+#figure:empty{display:none}
+#figure svg{max-width:100%;height:auto}
+#doc{flex:1 1 auto;padding:16px 24px;overflow:auto;font-size:13px;line-height:1.7}
+#doc h1{margin:0 0 12px;font-size:18px}
+#doc h2{margin:12px 0 6px;font-size:14px;border-bottom:1px solid var(--line2);padding-bottom:4px}
+#doc h3{font-size:13px}
+#doc table{border-collapse:collapse;width:100%;display:block;overflow-x:auto}
+#doc th{text-align:left;padding:6px 8px;border-bottom:1px solid var(--box)}
+#doc td{padding:6px 8px;border-bottom:1px solid var(--line2);vertical-align:top}
+#doc ul{margin:0;padding-left:20px}
+#doc pre{background:var(--gray);padding:8px;overflow:auto}
+.empty{color:var(--muted);font-size:13px;padding:16px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">skill-factory</div>
+  <div class="meta" id="work"></div>
+  <div class="meta" id="skill"></div>
+  <div class="badge" id="artifacts"></div>
+</header>
+<nav class="stages" id="stages" aria-label="段階"></nav>
+<main>
+  <section class="panel" id="chat" aria-label="AI との会話">
+    <div class="panel-title">会話</div>
+    <div id="messages"></div>
+    <div id="busy"></div>
+    <form id="form">
+      <label for="input" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">メッセージ</label>
+      <input id="input" type="text" placeholder="AI に伝える" autocomplete="off">
+      <button class="primary" type="submit">送る</button>
+    </form>
+  </section>
+  <section class="panel" id="preview" aria-label="プレビュー">
+    <div class="toolbar">
+      <span id="tabs"></span>
+      <div class="spacer"></div>
+      <div id="docpath"></div>
+      <span id="choices"></span>
+    </div>
+    <div id="decision" hidden></div>
+    <div id="downloads" hidden></div>
+    <div id="figure"></div>
+    <article id="doc"></article>
+  </section>
+</main>
+<script>
+// 段階の名前は、規約 skill-making-flow の 8 段階の表示の名前
+const STAGES = ['要件定義書', '分割設計書', '構成の案', 'SKILL.md の下書き', '照合と修正', 'テスト計画書', 'シナリオ', 'テストの実行'];
+const $ = id => document.getElementById(id);
+const last = {state: null, conv: null, svg: null, doc: null};
+let state = null;
+let tab = null;
+
+const fileUrl = p => '/files/' + p.split('/').map(encodeURIComponent).join('/');
+
+async function getText(p) {
+  const r = await fetch(fileUrl(p), {cache: 'no-store'});
+  return r.ok ? r.text() : null;
+}
+
+function el(tag, attrs, text) {
+  const e = document.createElement(tag);
+  Object.assign(e, attrs || {});
+  if (text !== undefined) e.textContent = text;
+  return e;
+}
+
+// F1: 画面の状態を読む
+async function load() {
+  const s = await getText('ui/state.json');
+  if (s !== last.state) {
+    last.state = s;
+    state = s ? JSON.parse(s) : null;
+    renderState();
+  }
+  const c = await getText('ui/conversation.md');
+  if (c !== last.conv) {
+    last.conv = c;
+    renderConversation(c || '');
+  }
+  if (state) {
+    await renderFigure();
+    await renderDoc();
+  }
+  const b = await fetch('/api/status', {cache: 'no-store'}).then(r => r.json()).catch(() => ({busy: false}));
+  $('busy').textContent = b.busy ? 'Claude Code が返事を書いています' : '';
+}
+
+function renderState() {
+  if (!state) {
+    $('doc').replaceChildren(el('div', {className: 'empty'}, 'AI が作業を始めると、ここに文書が出ます。入力欄から依頼を送ってください。'));
+    return;
+  }
+  $('work').textContent = '作業の名前: ' + state.workName;
+  $('skill').textContent = state.currentSkill
+    ? `いまのスキル: ${state.currentSkill.name}(作る順 ${state.currentSkill.order} / ${state.currentSkill.total})` : '';
+  const shown = state.artifacts.filter(a => a.status !== '未着手').map(a => `${a.name}が${a.status}`);
+  $('artifacts').textContent = '成果物の状態: ' + (shown.length ? shown.join('、') : 'なし');
+
+  // F2: 段階の帯を出す
+  $('stages').replaceChildren(...STAGES.map((name, i) => {
+    const n = i + 1;
+    const a = state.artifacts.find(x => x.stage === n);
+    const cls = n === state.stage ? 'now' : (a && a.status === '済み' ? 'done' : '');
+    const p = el('div', {className: 'pill ' + cls});
+    p.append(el('span', {className: 'num'}, cls === 'done' ? '✓' : String(n)), name);
+    return p;
+  }));
+
+  // F4: 図のタブ
+  if (!state.figures.some(f => f.tab === tab)) tab = state.figures.length ? state.figures[0].tab : null;
+  renderTabs();
+
+  $('docpath').textContent = state.documentPath;
+
+  // F7: 承認の選択を送る
+  const d = state.decision;
+  $('decision').hidden = !d;
+  $('decision').textContent = d ? '決めてもらうこと: ' + d.question : '';
+  $('choices').replaceChildren(...(d ? d.choices : []).map((c, i) => {
+    const b = el('button', {type: 'button', className: 'choice' + (i === 0 ? ' main' : '')}, c);
+    b.onclick = () => send(c);
+    return b;
+  }));
+
+  // F8: ファイルをダウンロードする
+  $('downloads').hidden = !state.downloads.length;
+  $('downloads').replaceChildren(el('span', {}, 'ダウンロード:'), ...state.downloads.map(p =>
+    el('a', {href: fileUrl(p) + '?download=1', download: p.split('/').pop()}, p)));
+}
+
+function renderTabs() {
+  $('tabs').replaceChildren(...state.figures.map(f => {
+    const b = el('button', {type: 'button', className: 'tab' + (f.tab === tab ? ' on' : '')}, f.tab);
+    b.onclick = () => { tab = f.tab; renderTabs(); renderFigure(); };
+    return b;
+  }));
+}
+
+// F4: 図を出す(SVG をそのまま埋め込む)
+async function renderFigure() {
+  const f = state.figures.find(x => x.tab === tab);
+  const svg = f ? await getText(f.path) : null;
+  const key = (f ? f.path : '') + '\n' + svg;
+  if (key === last.svg) return;
+  last.svg = key;
+  $('figure').innerHTML = svg || '';
+}
+
+// F5: 文書を出す
+async function renderDoc() {
+  const md = await getText(state.documentPath);
+  const key = state.documentPath + '\n' + md;
+  if (key === last.doc) return;
+  last.doc = key;
+  $('doc').innerHTML = md === null
+    ? '<div class="empty">' + state.documentPath + ' がまだありません。</div>'
+    : marked.parse(md);
+}
+
+// F3: 会話を出す
+function renderConversation(text) {
+  const items = [];
+  for (const line of text.split('\n')) {
+    const m = line.match(/^(ユーザー|Claude Code): ?(.*)$/);
+    if (m) items.push({user: m[1] === 'ユーザー', lines: [m[2]]});
+    else if (items.length) items[items.length - 1].lines.push(line);
+  }
+  const box = $('messages');
+  box.replaceChildren(...items.map(it => {
+    const text = it.lines.join('\n').trim();
+    if (it.user) return el('div', {className: 'msg user'}, text);
+    // Claude Code の返事は md なので、見出し、表、箇条書きの形で出す
+    const m = el('div', {className: 'msg ai md'});
+    m.innerHTML = marked.parse(text);
+    return m;
+  }));
+  box.scrollTop = box.scrollHeight;
+}
+
+// F6: プロンプトを送る
+async function send(text) {
+  const r = await fetch('/api/prompt', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text})});
+  if (!r.ok) alert(await r.text());
+  load();
+}
+
+$('form').onsubmit = e => {
+  e.preventDefault();
+  const text = $('input').value.trim();
+  if (!text) return;
+  $('input').value = '';
+  send(text);
+};
+
+// F9: 画面の更新を受ける(2 秒ごとに読み直す)
+load();
+setInterval(load, 2000);
+</script>
+</body>
+</html>

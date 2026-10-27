@@ -28,17 +28,28 @@
    - 段階 7 の実施する範囲(推奨は「正常系だけ」)
 4. 段階 8 のテストが全件合格したら、AI が返すリンクのコマンドを、スキルを使うプロジェクトで実行する。
 
+## 確認と承認の画面で進めるとき
+
+この節の手順の主語は、ユーザーです。画面は、AI のスキル作成をブラウザで見て、承認か直す指示を返すための画面です。
+
+1. ターミナルで、このフォルダに `cd` を実行し、`node ui/server.mjs` を実行する。
+2. ブラウザで http://127.0.0.1:4173/ を開く。
+3. 画面の入力欄に、「<作業>をするスキルを作って」と書いて送る。スキルの名前は、AI が提案する。
+4. 画面の右上の図と右下の文書を見て、承認のボタンを押すか、直す指示を入力欄から送る。
+
+画面が読むファイルは、`output/<スキルの名前>/ui/` の state.json、figures/、conversation.md です。中継サーバーは、起動したあとに AI が state.json を書いたフォルダを、いまの作業のフォルダにします。中継サーバー `ui/server.mjs` は、起動ごとに 1 つの会話を作り、画面から送った文を conversation.md に書き足して、このフォルダの Claude Code に渡します(1 回目は `claude -p --session-id`、2 回目からは `claude -p --resume`)。Claude Code の途中の返事も、1 つずつ conversation.md に書き足します。どの依頼の形でも、起動のコマンドは同じです。設計は `docs/スキル作成の確認と承認の画面/設計書.html` にあります。画面の見本は、`node ui/server.mjs ui/example` で開けます。
+
 ## 前提
 
 - Claude Code と Node.js が、claude を起動する PC に入っていること。
-- `.claude/` の下に、規約 6 フォルダ、スキル 13 本、hook 3 本と settings.json があること。
+- `.claude/` の下に、規約 6 フォルダ、スキル 15 本、hook 3 本と settings.json があること。
 
 ## フォルダの中身
 
 | パス | 中身 |
 |---|---|
 | `.claude/rules/` | 規約 6 フォルダ。text-writing、thinking、skill-or-rule、skill-writing(規約、雛形、完成例)、skill-testing(規約 skill-test-design-rule)、skill-making-flow(8 段階の流れ) |
-| `.claude/skills/` | スキル 13 本。段階が使う 10 本(defining-skill-requirements、designing-skill-structure、designing-skill-phases、drafting-skill-with-template、checking-skill-with-template、fixing-skill、designing-skill-test-cases、designing-skill-test-scenarios、testing-skill-with-template、fixing-test-plan)と、hook と fixing-skill が呼ぶ補助の 3 本(checking-markdown-document-with-rules、fixing-markdown-document、rewrite-pink-elephants) |
+| `.claude/skills/` | スキル 15 本。段階が使う 10 本(defining-skill-requirements、designing-skill-structure、designing-skill-phases、drafting-skill-with-template、checking-skill-with-template、fixing-skill、designing-skill-test-cases、designing-skill-test-scenarios、testing-skill-with-template、fixing-test-plan)と、hook と fixing-skill が呼ぶ補助の 3 本(checking-markdown-document-with-rules、fixing-markdown-document、rewrite-pink-elephants)と、確認と承認の画面のための 2 本(updating-skill-factory-ui-state、drawing-skill-factory-figure。実体は `output/` の下) |
 | `.claude/hooks/` | hook 3 本 |
 | `.claude/settings.json` | hook 3 本の登録 |
 | `output/` | 作成したスキル。スキルごとのフォルダに、SKILL.md、references/、scripts/、要件定義書.md、分割設計書.md、構成の案.md、tests/ を持つ。配布しない |

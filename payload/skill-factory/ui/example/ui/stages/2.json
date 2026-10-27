@@ -1,0 +1,69 @@
+{
+  "workName": "議事録の要約",
+  "currentSkill": null,
+  "stage": 2,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "済み"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "承認待ち"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "未着手"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "未着手"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "未着手"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "未着手"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "未着手"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "未着手"
+    }
+  ],
+  "figures": [
+    {
+      "tab": "全体の流れ図",
+      "path": "ui/figures/1-全体の流れ図.svg"
+    },
+    {
+      "tab": "分割の比較図",
+      "path": "ui/figures/2-分割の比較図.svg"
+    }
+  ],
+  "documentPath": "分割設計書.md",
+  "decision": {
+    "question": "案 1(推奨)、案 2、案 3 のどれにしますか。",
+    "choices": [
+      "案 1 で承認する",
+      "直す"
+    ]
+  },
+  "downloads": [
+    "要件定義書.md",
+    "分割設計書.md"
+  ]
+}

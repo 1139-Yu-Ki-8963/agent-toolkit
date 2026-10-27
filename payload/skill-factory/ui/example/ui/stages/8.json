@@ -1,0 +1,81 @@
+{
+  "workName": "議事録の要約",
+  "currentSkill": {
+    "name": "summarizing-meeting-minutes",
+    "order": 1,
+    "total": 2
+  },
+  "stage": 8,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "済み"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "済み"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "済み"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "済み"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "済み"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "済み"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "済み"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "承認待ち"
+    }
+  ],
+  "figures": [
+    {
+      "tab": "全体の流れ図",
+      "path": "ui/figures/1-全体の流れ図.svg"
+    },
+    {
+      "tab": "分割の比較図",
+      "path": "ui/figures/2-分割の比較図.svg"
+    },
+    {
+      "tab": "phase と step の流れ図",
+      "path": "ui/figures/3-phase と step の流れ図.svg"
+    }
+  ],
+  "documentPath": "tests/2026-10-26T15-00/判定の記録.md",
+  "decision": {
+    "question": "不合格が 1 件あります。fixing-skill で直しますか。",
+    "choices": [
+      "fixing-skill で直す(段階 5 へ)",
+      "直さずに止める"
+    ]
+  },
+  "downloads": [
+    "要件定義書.md",
+    "分割設計書.md",
+    "構成の案.md",
+    "SKILL.md",
+    "tests/テスト計画書.md",
+    "tests/2026-10-26T15-00/判定の記録.md"
+  ]
+}
