@@ -39,9 +39,6 @@ main{display:flex;flex-wrap:wrap;flex:1 1 auto;gap:16px;padding:16px 24px 24px}
 .msg.md table{border-collapse:collapse;display:block;overflow-x:auto;font-size:12px}
 .msg.md th,.msg.md td{border:1px solid var(--line);padding:2px 6px}
 #busy{font-size:12px;color:var(--muted);padding:0 16px 8px}
-#examples{display:flex;flex-wrap:wrap;gap:8px;padding:0 16px 12px}
-#examples button{min-height:36px;padding:0 14px;border:1px solid var(--box);border-radius:999px;background:#fff;color:var(--fg);font-size:13px}
-#examples button:hover{background:var(--gray)}
 form{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line2)}
 form input{flex:1 1 auto;min-width:0;height:44px;padding:0 12px;border:1px solid var(--box);border-radius:8px;font-size:14px;font-family:inherit}
 button{font-family:inherit;cursor:pointer}
@@ -87,10 +84,9 @@ button{font-family:inherit;cursor:pointer}
     <div class="panel-title">会話</div>
     <div id="messages"></div>
     <div id="busy"></div>
-    <div id="examples"></div>
     <form id="form">
       <label for="input" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">メッセージ</label>
-      <input id="input" type="text" placeholder="AI に伝える" autocomplete="off">
+      <input id="input" type="text" placeholder="例: 議事録を要約するスキルを作って" autocomplete="off">
       <button class="primary" type="submit">送る</button>
     </form>
   </section>
@@ -248,8 +244,6 @@ function renderConversation(text) {
     if (m) items.push({user: m[1] === 'ユーザー', lines: [m[2]]});
     else if (items.length) items[items.length - 1].lines.push(line);
   }
-  // 依頼の例のボタンは、会話がまだないときだけ出す
-  $('examples').hidden = items.length > 0;
   const box = $('messages');
   box.replaceChildren(...items.map(it => {
     const text = it.lines.join('\n').trim();
@@ -268,25 +262,6 @@ async function send(text) {
   if (!r.ok) alert(await r.text());
   load();
 }
-
-// 依頼の例: 押すと、入力欄に依頼の文が入り、最初の <…> が選ばれた状態になる。送るのはユーザー
-const EXAMPLES = [
-  ['スキルを作る', '<作業>をするスキルを作って'],
-  ['スキルを照合する', '<スキルの名前> を照合して'],
-  ['スキルを直す', '<スキルの名前> の <直す内容> を直して'],
-  ['テストを作る', 'output/<スキルの名前>/ のテストを作って'],
-];
-$('examples').replaceChildren(...EXAMPLES.map(([label, text]) => {
-  const b = el('button', {type: 'button'}, label);
-  b.onclick = () => {
-    const input = $('input');
-    input.value = text;
-    input.focus();
-    const start = text.indexOf('<');
-    input.setSelectionRange(start, text.indexOf('>', start) + 1);
-  };
-  return b;
-}));
 
 $('form').onsubmit = e => {
   e.preventDefault();
