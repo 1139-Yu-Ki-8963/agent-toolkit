@@ -24,8 +24,10 @@ const pending = path.join(uiDir, '.pending', `${sessionId}.md`);
 let workDir = !arg ? null
   : fs.existsSync(arg) && fs.statSync(arg).isDirectory() ? path.resolve(arg) : path.join(outputDir, arg);
 let busy = false;
-// Claude Code が最後に Skill のツールで呼んだスキルの名前。まだ呼んでいないときは null
-let runningSkill = null;
+// Claude Code が Skill のツールで呼んだスキルの名前を、呼んだ順に並べたもの(起動から止めるまで)
+const skillCalls = [];
+// Agent か Task のツールの呼び出しのうち、結果がまだ返っていないものの id
+const openAgents = new Set();
 
 // 作業のフォルダは、起動したあとに output/*/ui/state.json が書かれた最初のフォルダとし、決まったら止めるまで同じフォルダとする
 function findWorkDir() {
@@ -87,11 +89,14 @@ function prompt(text) {
       let msg;
       try { msg = JSON.parse(line); } catch { continue; }
       if (msg.type === 'system' && msg.subtype === 'init') sessionStarted = true;
+      // ツールの結果が返ったら、そのサブエージェントを、結果が返っていない一覧から外す
+      if (msg.type === 'user') for (const c of (msg.message && msg.message.content) || []) if (c.type === 'tool_result') openAgents.delete(c.tool_use_id);
       if (msg.type !== 'assistant') continue;
       for (const c of msg.message.content || []) {
         if (c.type === 'text' && c.text.trim()) { append('Claude Code', c.text); replied = true; }
-        // Claude Code が Skill のツールを呼んだら、そのスキルの名前を、実行中のスキルとして画面に返す
-        if (c.type === 'tool_use' && c.name === 'Skill' && c.input && c.input.skill) runningSkill = c.input.skill;
+        // Claude Code が Skill のツールを呼んだら、そのスキルの名前を、呼んだ順の一覧に足す
+        if (c.type === 'tool_use' && c.name === 'Skill' && c.input && c.input.skill) skillCalls.push(c.input.skill);
+        if (c.type === 'tool_use' && (c.name === 'Agent' || c.name === 'Task')) openAgents.add(c.id);
       }
     }
   });
@@ -99,6 +104,7 @@ function prompt(text) {
   child.on('error', e => { err += e.message; });
   child.on('close', code => {
     busy = false;
+    openAgents.clear();
     if (code !== 0 || !replied) append('Claude Code', `(終了コード ${code}) ${err.trim()}`);
   });
 }
@@ -131,7 +137,11 @@ http.createServer((req, res) => {
     return send(res, 200, fs.readFileSync(path.join(uiDir, 'index.html')), {'Content-Type': 'text/html; charset=utf-8'});
   }
   if (req.method === 'GET' && url.pathname === '/api/status') {
-    return send(res, 200, JSON.stringify({busy, hasClaude, runningSkill}), {'Content-Type': 'application/json'});
+    return send(res, 200, JSON.stringify({busy, hasClaude, skillCalls, subagents: openAgents.size, workDir: findWorkDir() ? path.relative(factoryDir, findWorkDir()) : null}), {'Content-Type': 'application/json'});
+  }
+  // 段階ごとに使うスキルと規約の表。画面は、この 1 つのファイルから一覧を出す
+  if (req.method === 'GET' && url.pathname === '/api/stages') {
+    return sendFile(res, path.join(uiDir, '段階ごとのスキルと規約.json'), false);
   }
   if (req.method === 'GET' && url.pathname === '/api/start') {
     return send(res, 200, startPage(), {'Content-Type': 'text/markdown; charset=utf-8', 'Cache-Control': 'no-store'});

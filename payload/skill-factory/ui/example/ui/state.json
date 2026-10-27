@@ -6,7 +6,7 @@
     {
       "stage": 1,
       "name": "要件定義書",
-      "status": "承認待ち"
+      "status": "下書き"
     },
     {
       "stage": 2,
@@ -52,11 +52,62 @@
   ],
   "documentPath": "要件定義書.md",
   "decision": {
-    "question": "この要件定義書で、次の外部設計(designing-skill-structure)へ進んでよいですか。",
-    "choices": [
-      "承認する",
-      "直す",
-      "やめる"
+    "question": "質問 3: 要約に決定事項の一覧を入れますか。",
+    "choices": [],
+    "replies": [
+      "入れる",
+      "入れない"
+    ]
+  },
+  "questions": {
+    "title": "要件定義書のための質問",
+    "added": 0,
+    "removed": 0,
+    "items": [
+      {
+        "number": 1,
+        "text": "要約の長さの上限は何字にしますか。",
+        "choices": [
+          "300 字で",
+          "500 字で",
+          "上限なし"
+        ],
+        "answer": null
+      },
+      {
+        "number": 2,
+        "text": "議事録のファイルの形式は何ですか。",
+        "choices": [
+          "Markdown",
+          "テキスト",
+          "Word"
+        ],
+        "answer": null
+      },
+      {
+        "number": 3,
+        "text": "要約に決定事項の一覧を入れますか。",
+        "choices": [
+          "入れる",
+          "入れない"
+        ],
+        "answer": null
+      },
+      {
+        "number": 4,
+        "text": "要約をどこに書きますか。",
+        "choices": [
+          "議事録と同じフォルダ",
+          "チャットに表示"
+        ],
+        "answer": null
+      },
+      {
+        "number": 5,
+        "text": "ほかに守ってほしいことはありますか。",
+        "choices": [],
+        "answer": null
+      }
     ]
   },
   "downloads": [

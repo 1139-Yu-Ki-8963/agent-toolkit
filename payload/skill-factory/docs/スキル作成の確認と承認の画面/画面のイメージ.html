@@ -24,7 +24,7 @@ footer.page{padding:16px 32px 32px;font-size:12px;color:var(--muted)}
 <body>
 <header class="page">
 <h1>スキル作成の確認と承認の画面のイメージ</h1>
-<p>skill-factory(Claude Code のスキルを、要件定義からテストまで段階を踏んで作成できる作業場)に付ける画面の設計図。最初に部品と状態のパターン、次に開いた直後の画面、そのあとに段階 1 を書いている間と質問に答える画面と、規約 skill-making-flow の段階 1 から 8 に 1 枚ずつを置き、最後に段階ごとに使うスキルと規約を置く。上の帯が段階と成果物の状態、左が AI との会話と選択肢、右がその段階の図と文書。Claude の Design(キャンバス)で作ったものを 1 枚の HTML にした。元のキャンバス: https://claude.ai/artifact/BbdZghRYTtntWQ3DPJNVxG(段階 1 から 8、作成日: 2026-10-26)、https://claude.ai/artifact/EfjjJxZtpp45cC3LZ776MR(部品と開いた直後の画面、作成日: 2026-10-27)</p>
+<p>skill-factory(Claude Code のスキルを、要件定義からテストまで段階を踏んで作成できるフォルダ)に付ける画面の設計図。最初に部品と状態のパターン、次に開いた直後の画面、そのあとに段階 1 を書いている間と質問に答える画面と、規約 skill-making-flow の段階 1 から 8 に 1 枚ずつを置き、最後に段階ごとに使うスキルと規約を置く。上の帯が段階と成果物の状態、左が AI との会話と選択肢、右がその段階の図と文書。Claude の Design(キャンバス)で作ったものを 1 枚の HTML にした。元のキャンバス: https://claude.ai/artifact/BbdZghRYTtntWQ3DPJNVxG(段階 1 から 8、作成日: 2026-10-26)、https://claude.ai/artifact/EfjjJxZtpp45cC3LZ776MR(部品と開いた直後の画面、作成日: 2026-10-27)</p>
 </header>
 <nav class="toc">
 <a href="#parts">部品と状態のパターン</a>
@@ -238,7 +238,7 @@ footer.page{padding:16px 32px 32px;font-size:12px;color:var(--muted)}
   <div style="font-size: 12px; font-weight: 700; color: #57606a; margin: 12px 0 2px">規約</div><div style="display: flex; gap: 12px; padding: 6px 0; border-top: 1px solid #eef1f5; font-size: 12px"><span style="font-weight: 700">skill-making-flow</span><span style="margin-left: auto; color: #57606a">常に読み込む</span></div><div style="display: flex; gap: 12px; padding: 6px 0; border-top: 1px solid #eef1f5; font-size: 12px"><span style="font-weight: 700">skill-or-rule</span><span style="margin-left: auto; color: #57606a">常に読み込む</span></div><div style="display: flex; gap: 12px; padding: 6px 0; border-top: 1px solid #eef1f5; font-size: 12px"><span style="font-weight: 700">text-writing-rule</span><span style="margin-left: auto; color: #57606a">常に読み込む</span></div><div style="display: flex; gap: 12px; padding: 6px 0; border-top: 1px solid #eef1f5; font-size: 12px"><span style="font-weight: 700">thinking-rule</span><span style="margin-left: auto; color: #57606a">常に読み込む</span></div>
 </div>
       </div>
-      <div style="font-size: 12px; color: #57606a">スキルの状態は、この会話で Skill のツールで呼んだ順から決める。「実行中」は、最後に呼んだ段階のスキル。規約は、読み込む条件を出す。一覧の中身は段階ごとに決まっており、画面が持つ表(規約 skill-making-flow の表と、各スキルの SKILL.md から作る)から出す。</div>
+      <div style="font-size: 12px; color: #57606a">スキルの状態は、この会話で Skill のツールで呼んだ順から決める。「実行中」は、最後に呼んだ段階のスキル。規約は、読み込む条件を出す。一覧の中身は段階ごとに決まっており、画面が持つ表 ui/段階ごとのスキルと規約.json(規約 skill-making-flow の表と、各スキルの SKILL.md から作る)から出す。</div>
     </div>
   </section>
 
@@ -281,7 +281,7 @@ footer.page{padding:16px 32px 32px;font-size:12px;color:var(--muted)}
         <div style="font-size: 12px; color: #57606a">3. 送ったあとと、AI が返事を書いている間(出さない)</div>
         <div style="padding: 8px 16px; border: 1px dashed #c7ced6; border-radius: 8px; font-size: 12px; color: #57606a">候補なし</div>
       </div>
-      <div style="font-size: 12px; color: #57606a">決めてもらうことの塊(承認するか、直すか)は、スキルが決めた選択肢で、押すとそのまま送る。返答の候補は、自由に答える問いの答えの例で、押すと入力欄に入るだけにする。候補の文は、AI の返事が持つ候補をそのまま出す。</div>
+      <div style="font-size: 12px; color: #57606a">決めてもらうことの塊(承認するか、直すか)は、スキルが決めた選択肢で、押すとそのまま送る。返答の候補は、自由に答える問いの答えの例で、押すと入力欄に入るだけにする。候補の文は、画面の状態のファイル state.json の decision の replies から出す。</div>
     </div>
   </section>
 
@@ -317,7 +317,7 @@ footer.page{padding:16px 32px 32px;font-size:12px;color:var(--muted)}
       </div>
       <div style="display: flex; flex-direction: column; gap: 6px">
         <div style="font-size: 12px; color: #57606a">2. 送ったあと(答えは会話に 1 つの吹き出しで出る)</div>
-        <div style="align-self: flex-end; max-width: 85%; padding: 10px 14px; border-radius: 14px 14px 4px 14px; background: #1d5fbf; color: #ffffff; font-size: 13px; line-height: 1.6">質問 1: 300 字で<br>質問 2: Markdown<br>質問 3: 入れる<br>質問 4: 議事録と同じフォルダ</div>
+        <div style="align-self: flex-end; max-width: 85%; padding: 10px 14px; border-radius: 14px 14px 4px 14px; background: #1d5fbf; color: #ffffff; font-size: 13px; line-height: 1.6">1: 300 字で<br>2: Markdown<br>3: 入れる<br>4: 議事録と同じフォルダ</div>
       </div>
       <div style="display: flex; flex-direction: column; gap: 6px">
         <div style="font-size: 12px; color: #57606a">3. 次の回(まだ答えていない問いと、答えで増えた問いだけを出す。すべて答えると、右の欄は文書に戻る)</div>
@@ -328,7 +328,7 @@ footer.page{padding:16px 32px 32px;font-size:12px;color:var(--muted)}
   <div style="padding: 12px 0; border-top: 1px solid #eef1f5; font-size: 13px"><span style="font-size: 12px; font-weight: 700; color: #1d5fbf">質問 6</span> <span style="font-weight: 700">決定事項の一覧は、要約の前と後のどちらに置きますか。</span></div>
 </div>
       </div>
-      <div style="font-size: 12px; color: #57606a">目的: 全体の問数と、まだ答えていない問いを、ユーザーが一度に見て答えられるようにする。会話の欄には「右の欄に質問を 5 問出しました」の吹き出しだけを出す。質問と候補は、スキルが書く質問のファイルから出す。</div>
+      <div style="font-size: 12px; color: #57606a">目的: 全体の問数と、まだ答えていない問いを、ユーザーが一度に見て答えられるようにする。会話の欄には「右の欄に質問を 5 問出しました」の吹き出しだけを出す。質問と候補は、画面の状態のファイル state.json の questions から出す。送る文は、答えた問いだけを「質問の番号: 答え」の形で 1 行に 1 問ずつ並べたものとする。</div>
     </div>
   </section>
 
@@ -385,7 +385,7 @@ footer.page{padding:16px 32px 32px;font-size:12px;color:var(--muted)}
   </header>
 
   <nav aria-label="段階" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
-    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; color: #1d5fbf; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">1</span><span style="display: flex; flex-direction: column; line-height: 1.2">要件定義書<span style="font-size: 11px; font-weight: 400">作業中</span></span></div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; color: #1d5fbf; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">1</span><span style="display: flex; flex-direction: column; line-height: 1.2">要件定義書<span style="font-size: 11px; font-weight: 400">下書き</span></span></div>
     <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">2</span>分割設計書</div>
     <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">3</span>構成の案</div>
     <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">4</span>SKILL.md の下書き</div>
@@ -438,7 +438,7 @@ footer.page{padding:16px 32px 32px;font-size:12px;color:var(--muted)}
   </header>
 
   <nav aria-label="段階" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
-    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; color: #1d5fbf; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">1</span><span style="display: flex; flex-direction: column; line-height: 1.2">要件定義書<span style="font-size: 11px; font-weight: 400">質問中</span></span></div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; color: #1d5fbf; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">1</span><span style="display: flex; flex-direction: column; line-height: 1.2">要件定義書<span style="font-size: 11px; font-weight: 400">下書き</span></span></div>
     <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">2</span>分割設計書</div>
     <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">3</span>構成の案</div>
     <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">4</span>SKILL.md の下書き</div>
@@ -467,7 +467,7 @@ footer.page{padding:16px 32px 32px;font-size:12px;color:var(--muted)}
 
     <section aria-label="プレビュー" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px; overflow: hidden">
       <div style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #e6e9ee">
-        <div style="font-size: 12px; color: #57606a">output/summarizing-meeting-minutes/ui/質問の一覧.md</div>
+        <div style="font-size: 12px; color: #57606a">要件定義書のための質問</div>
         
       </div>
 
@@ -1005,7 +1005,7 @@ description: 議事録の md を 1 本受け取り、決定事項を 300 字以�
     <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span><span style="display: flex; flex-direction: column; line-height: 1.2">分割設計書<span style="font-size: 11px">済み</span></span></div>
     <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span><span style="display: flex; flex-direction: column; line-height: 1.2">構成の案<span style="font-size: 11px">済み</span></span></div>
     <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span><span style="display: flex; flex-direction: column; line-height: 1.2">SKILL.md の下書き<span style="font-size: 11px">済み</span></span></div>
-    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; color: #1d5fbf; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">5</span><span style="display: flex; flex-direction: column; line-height: 1.2">照合と修正<span style="font-size: 11px; font-weight: 400">指摘あり(1 回目)</span></span></div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; color: #1d5fbf; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">5</span><span style="display: flex; flex-direction: column; line-height: 1.2">照合と修正<span style="font-size: 11px; font-weight: 400">下書き</span></span></div>
     <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">6</span>テスト計画書</div>
     <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">7</span>シナリオ</div>
     <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">8</span>テストの実行</div>
@@ -1316,7 +1316,7 @@ description: 議事録の md を 1 本受け取り、決定事項を 300 字以�
     <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span><span style="display: flex; flex-direction: column; line-height: 1.2">照合と修正<span style="font-size: 11px">済み</span></span></div>
     <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span><span style="display: flex; flex-direction: column; line-height: 1.2">テスト計画書<span style="font-size: 11px">済み</span></span></div>
     <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #1d5fbf; color: #ffffff; align-items: center; justify-content: center; font-size: 12px">✓</span><span style="display: flex; flex-direction: column; line-height: 1.2">シナリオ<span style="font-size: 11px">済み</span></span></div>
-    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; color: #1d5fbf; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">8</span><span style="display: flex; flex-direction: column; line-height: 1.2">テストの実行<span style="font-size: 11px; font-weight: 400">不合格 1 件</span></span></div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; color: #1d5fbf; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">8</span><span style="display: flex; flex-direction: column; line-height: 1.2">テストの実行<span style="font-size: 11px; font-weight: 400">下書き</span></span></div>
   </nav>
 
   <main style="display: flex; flex-wrap: wrap; flex: 1 1 auto; gap: 16px; padding: 16px 24px 24px">

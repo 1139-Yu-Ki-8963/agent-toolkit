@@ -202,6 +202,11 @@
       "dst": "payload/skill-factory/ui/はじめに.md"
     },
     {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/ui/段階ごとのスキルと規約.json",
+      "dst": "payload/skill-factory/ui/段階ごとのスキルと規約.json"
+    },
+    {
       "mode": "mirror",
       "src": "~/Projects/skill-factory/ui/example",
       "dst": "payload/skill-factory/ui/example"

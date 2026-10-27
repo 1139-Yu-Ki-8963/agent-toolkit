@@ -16,8 +16,22 @@ header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:12px 
 header .brand{font-weight:700;font-size:16px}
 header .meta{font-size:13px;color:var(--muted)}
 header .meta:empty{display:none}
-.running{display:flex;align-items:center;gap:8px;padding:4px 12px;border-radius:999px;background:var(--blue2);color:var(--blue);font-size:13px;font-weight:500}
-.running.busy::before{content:'';width:10px;height:10px;border:2px solid var(--blue);border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
+.runwrap{position:relative}
+.running{display:flex;align-items:center;gap:8px;padding:4px 12px;border:0;border-radius:999px;background:var(--blue2);color:var(--blue);font-size:13px;font-weight:500}
+.running .sub{font-weight:400;color:#15488f}
+.spin{flex:0 0 auto;width:10px;height:10px;border:2px solid var(--blue);border-right-color:transparent;border-radius:50%;animation:spin .8s linear infinite}
+#stack{position:absolute;left:0;top:36px;z-index:3;width:560px;max-width:calc(100vw - 32px);max-height:70vh;overflow:auto;padding:16px;background:#fff;border:1px solid var(--box);border-radius:12px;box-shadow:0 8px 24px rgba(31,35,40,.12)}
+#stack .h{font-size:14px;font-weight:700;margin-bottom:8px}
+#stack .sec{font-size:12px;font-weight:700;color:var(--muted);margin:8px 0 2px}
+#stack .sk{display:grid;grid-template-columns:1fr auto;gap:2px 12px;padding:8px 0;border-top:1px solid var(--gray)}
+#stack .sk .n{font-size:13px;font-weight:700}
+#stack .sk .st{font-size:12px;text-align:right;color:var(--muted)}
+#stack .sk .st.now{color:var(--blue);font-weight:700}
+#stack .sk .st.done{color:var(--green)}
+#stack .sk .p{grid-column:1 / 3;font-size:12px;color:var(--muted)}
+#stack .rl{display:flex;gap:12px;padding:6px 0;border-top:1px solid var(--gray);font-size:12px}
+#stack .rl b{font-weight:700}
+#stack .rl span{margin-left:auto;color:var(--muted);text-align:right}
 @keyframes spin{to{transform:rotate(360deg)}}
 .conn{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
 .conn::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--green)}
@@ -93,6 +107,33 @@ form textarea.ng{border-color:var(--red)}
 #doc ul{margin:0;padding-left:20px}
 #doc pre{background:var(--gray);padding:8px;overflow:auto}
 .empty{color:var(--muted);font-size:13px}
+.making{display:flex;align-items:center;gap:8px;font-size:13px;font-weight:700;color:var(--blue)}
+.making-sub{font-size:12px;color:var(--muted);margin:6px 0 10px}
+.skel{display:flex;flex-direction:column;gap:8px}
+.skel div{height:10px;border-radius:4px;background:var(--gray)}
+.rewriting{display:flex;align-items:center;gap:8px;padding:6px 10px;margin-bottom:10px;border-radius:6px;background:var(--blue2);color:#15488f;font-size:12px}
+.dim{opacity:.55}
+.none-h{font-size:13px;font-weight:700}
+.none-s{font-size:12px;color:var(--muted);margin-top:4px}
+.chips{align-self:flex-start;display:flex;flex-wrap:wrap;gap:8px}
+.chip{height:32px;padding:0 12px;border:1px solid var(--box);border-radius:999px;background:#fff;color:var(--fg);font-size:13px}
+.chip.on{border-color:var(--blue);background:var(--blue2);color:var(--blue)}
+#qform{flex:1 1 auto;overflow:auto;padding:20px;background:#fbfcfd}
+.qbox{max-width:720px;padding:16px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.qnote{margin-bottom:8px;padding:8px 10px;border-radius:6px;background:#fff8e1;font-size:12px}
+.qhead{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
+.qhead .t{font-size:14px;font-weight:700}
+.qhead .c{font-size:12px;color:var(--muted)}
+.qi{display:flex;flex-direction:column;gap:8px;padding:12px 0;border-top:1px solid var(--gray)}
+.qi .l{display:flex;gap:8px;align-items:baseline}
+.qi .no{font-size:12px;font-weight:700;color:var(--blue)}
+.qi .no.ok{color:var(--green)}
+.qi .tx{font-size:13px;font-weight:700}
+.qi textarea{min-height:36px;padding:8px 10px;border:1px solid var(--box);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical}
+.qfoot{display:flex;justify-content:flex-end;align-items:center;gap:8px;padding-top:12px;border-top:1px solid var(--gray)}
+.qfoot span{font-size:12px;color:var(--muted)}
+.qfoot button{height:40px;padding:0 16px;border:0;border-radius:8px;background:var(--blue);color:#fff;font-size:13px;font-weight:500}
+.qfoot button:disabled{background:#d0d7de}
 /* 開いた直後の画面: 右の欄を出さず、会話の欄を中央に置く */
 body.start main{justify-content:center}
 body.start #chat{flex:0 1 720px;max-width:720px;border:0;background:transparent;justify-content:center}
@@ -109,7 +150,7 @@ body.start form textarea{border:0;font-size:15px;outline:none}
   <div class="brand">skill-factory</div>
   <div class="meta" id="work"></div>
   <div class="meta" id="skill"></div>
-  <div class="running" id="running" role="status" hidden></div>
+  <div class="runwrap" id="runwrap" hidden><button type="button" class="running" id="running" aria-expanded="false"></button><div id="stack" hidden></div></div>
   <div class="conn" id="conn" role="status">接続中</div>
 </header>
 <div id="banner" hidden></div>
@@ -140,6 +181,7 @@ body.start form textarea{border:0;font-size:15px;outline:none}
       <div id="figure"></div>
     </div>
     <article id="doc"></article>
+    <div id="qform" hidden></div>
   </section>
 </main>
 <script>
@@ -155,6 +197,17 @@ let tab = null;
 let folded = false;
 // 押した選択肢と、そのときの決めてもらうこと。state.json の決めてもらうことが変わるまで、ボタンを押せない形にする
 let picked = null;
+// 中継サーバーが返す、スキルの呼び出しの一覧とサブエージェントの数
+let status = {skillCalls: [], subagents: 0, workDir: null};
+// 段階ごとに使うスキルと規約の表(ui/段階ごとのスキルと規約.json)
+let stagesTable = null;
+let stackOpen = false;
+// 質問の一覧で、いま選んだか書いた答え(番号から答えへ)と、送ったときの質問の一覧
+let qAnswers = {};
+let qSent = null;
+// 返答の候補で押した候補と、送ったときの決めてもらうこと
+let replyOn = null;
+let replySent = null;
 
 const fileUrl = p => '/files/' + p.split('/').map(encodeURIComponent).join('/');
 
@@ -178,10 +231,7 @@ async function load() {
   const b = await fetch('/api/status', {cache: 'no-store'}).then(r => r.json()).catch(() => null);
   renderConn(b);
   if (!b) return;
-  // 実行中のスキル: 中継サーバーが、Claude Code の Skill のツールの呼び出しから受け取った名前をそのまま出す
-  $('running').hidden = !b.runningSkill;
-  $('running').textContent = b.runningSkill ? `${b.runningSkill} を実行中` : '';
-  $('running').className = 'running' + (b.busy ? ' busy' : '');
+  if (!stagesTable) stagesTable = await fetch('/api/stages', {cache: 'no-store'}).then(r => r.ok ? r.json() : null).catch(() => null);
   const s = await getText('ui/state.json');
   const c = await getText('ui/conversation.md');
   let changed = false;
@@ -189,6 +239,8 @@ async function load() {
     last.state = s;
     state = s ? JSON.parse(s) : null;
     if (!state || !picked || JSON.stringify(state.decision) !== picked.decision) picked = null;
+    if (!state || JSON.stringify(state.questions) !== qSent) qSent = null;
+    if (!state || JSON.stringify(state.decision) !== replySent) { replySent = null; replyOn = null; }
     renderState();
     changed = true;
   }
@@ -198,12 +250,84 @@ async function load() {
     changed = true;
   }
   if (b.busy !== busy) { busy = b.busy; changed = true; }
-  if (changed) renderChat();
+  const st = JSON.stringify([b.skillCalls, b.subagents, b.workDir]);
+  if (st !== JSON.stringify([status.skillCalls, status.subagents, status.workDir])) changed = true;
+  status = {skillCalls: b.skillCalls || [], subagents: b.subagents || 0, workDir: b.workDir || null};
+  if (changed) { renderChat(); renderRunning(); renderQuestions(); }
   if (state) {
     await renderFigure();
     await renderDoc();
   }
 }
+
+// 段階の表の行。state.json の段階がないときは段階 1 とする
+function stageRow() {
+  const n = state ? state.stage : 1;
+  return stagesTable && stagesTable.find(r => r.stage === n);
+}
+
+// 最後に呼んだ段階のスキル(段階の表で種類が「段階」のもの)と、そのあとに呼んだ補助のスキル
+function runningSkills() {
+  const row = stageRow();
+  const kind = name => { const k = row && row.skills.find(x => x.name === name); return k ? k.kind : '補助'; };
+  const calls = status.skillCalls;
+  let main = null, helper = null;
+  for (let i = calls.length - 1; i >= 0; i--) {
+    if (kind(calls[i]) === '段階') { main = calls[i]; break; }
+    if (!helper) helper = calls[i];
+  }
+  // 段階のスキルをまだ呼んでいないときは、最後に呼んだスキルを出す
+  if (!main && helper) { main = helper; helper = null; }
+  return {main, helper};
+}
+
+// 実行中のスキル: 名前は、中継サーバーが Claude Code の Skill のツールの呼び出しから受け取ったものをそのまま出す
+function renderRunning() {
+  const {main, helper} = runningSkills();
+  $('runwrap').hidden = !main;
+  if (!main) { stackOpen = false; $('stack').hidden = true; return; }
+  const btn = $('running');
+  btn.replaceChildren();
+  if (busy) btn.append(el('span', {className: 'spin', ariaHidden: 'true'}));
+  btn.append(document.createTextNode(`${main} を実行中`));
+  if (busy && status.subagents > 0) btn.append(el('span', {className: 'sub'}, `サブエージェント ${status.subagents} 体`));
+  else if (helper) btn.append(el('span', {className: 'sub'}, `+ ${helper}`));
+  const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  arrow.setAttribute('width', '12'); arrow.setAttribute('height', '12'); arrow.setAttribute('viewBox', '0 0 12 12');
+  arrow.setAttribute('fill', 'none'); arrow.setAttribute('stroke', 'currentColor'); arrow.setAttribute('stroke-width', '1.6'); arrow.setAttribute('aria-hidden', 'true');
+  arrow.innerHTML = '<path d="M3 4.5 6 7.5 9 4.5"/>';
+  btn.append(arrow);
+  btn.setAttribute('aria-expanded', String(stackOpen));
+  renderStack(main);
+}
+
+// 段階で使うスキルと規約の一覧。スキルの状態は、この会話で Skill のツールで呼んだ順から決める
+function renderStack(main) {
+  const box = $('stack');
+  box.hidden = !stackOpen;
+  const row = stageRow();
+  if (!row) { box.replaceChildren(el('div', {className: 'empty'}, '段階の表を読めません。')); return; }
+  const order = [...new Set(status.skillCalls)];
+  const nodes = [el('div', {className: 'h'}, `段階 ${row.stage}(${row.name})で使うスキルと規約`), el('div', {className: 'sec'}, 'スキル')];
+  for (const k of row.skills) {
+    const i = order.indexOf(k.name);
+    const now = k.name === main;
+    const r = el('div', {className: 'sk'});
+    r.append(el('div', {className: 'n'}, k.name),
+      el('div', {className: 'st' + (now ? ' now' : i >= 0 ? ' done' : '')}, now ? '実行中' : i >= 0 ? `呼んだ(${i + 1} 番目)` : 'まだ呼んでいない'),
+      el('div', {className: 'p'}, k.purpose));
+    nodes.push(r);
+  }
+  nodes.push(el('div', {className: 'sec'}, '規約'));
+  for (const r of row.rules) {
+    const d = el('div', {className: 'rl'});
+    d.append(el('b', {}, r.name), el('span', {}, r.when));
+    nodes.push(d);
+  }
+  box.replaceChildren(...nodes);
+}
+$('running').onclick = e => { e.stopPropagation(); stackOpen = !stackOpen; renderRunning(); };
+document.addEventListener('click', e => { if (stackOpen && !$('runwrap').contains(e.target)) { stackOpen = false; renderRunning(); } });
 
 // F10: 接続の状態を出す。中継サーバーにつながらないときと、claude のコマンドがないときは、ヘッダーの下に直し方を出す
 function renderConn(b) {
@@ -246,7 +370,6 @@ function renderState() {
   $('work').textContent = state.workName;
   const sk = state.currentSkill;
   $('skill').textContent = sk && sk.total > 1 ? `${sk.order} / ${sk.total} ${sk.name}` : '';
-  $('docpath').textContent = state.documentPath;
   renderDownloads();
 }
 
@@ -279,7 +402,20 @@ function renderChat() {
     nodes.push(t);
   }
   const d = state && state.decision;
-  if (d) nodes.push(renderDecision(d));
+  // 選択肢がなく返答の候補がある問いは、問いの吹き出しと候補のボタンで出す。送ったあとと、AI が返事を書いている間は候補を出さない
+  if (d && !d.choices.length && d.replies && d.replies.length) {
+    const m = el('div', {className: 'msg ai'}, d.question);
+    nodes.push(m);
+    if (!busy && replySent !== JSON.stringify(d)) {
+      const cs = el('div', {className: 'chips'});
+      for (const r of d.replies) {
+        const b = el('button', {type: 'button', className: 'chip' + (replyOn === r ? ' on' : '')}, r);
+        b.onclick = () => { replyOn = r; $('input').value = r; $('input').focus(); renderChat(); };
+        cs.append(b);
+      }
+      nodes.push(cs);
+    }
+  } else if (d) nodes.push(renderDecision(d));
   const box = $('messages');
   box.replaceChildren(...nodes);
   box.scrollTop = box.scrollHeight;
@@ -336,7 +472,7 @@ async function renderFigure() {
     if (!state.figures.some(f => f.tab === tab)) tab = state.figures.length ? state.figures[state.figures.length - 1].tab : null;
     renderTabs();
   }
-  $('figbox').hidden = !state.figures.length;
+  $('figbox').hidden = !state.figures.length || questionsOpen();
   const f = state.figures.find(x => x.tab === tab);
   $('figtitle').textContent = f ? '図: ' + f.tab : '';
   $('figure').hidden = folded;
@@ -358,15 +494,119 @@ function renderTabs() {
 }
 $('fold').onclick = () => { folded = !folded; renderFigure(); };
 
-// F5: 文書を出す
+// F5: 文書を出す。状態は、文書のパスにファイルがあるかと、AI が返事を書いているかの 2 つで決める
 async function renderDoc() {
   const md = await getText(state.documentPath);
-  const key = state.documentPath + '\n' + md;
+  const {main} = runningSkills();
+  const key = [state.documentPath, md, busy, main].join('\n');
   if (key === last.doc) return;
   last.doc = key;
-  $('doc').innerHTML = md === null
-    ? '<div class="empty">' + state.documentPath + ' がまだありません。</div>'
-    : marked.parse(md);
+  const name = state.documentPath.split('/').pop().replace(/\.md$/, '');
+  const doc = $('doc');
+  doc.replaceChildren();
+  if (md === null && busy) {
+    // 作っている
+    const h = el('div', {className: 'making'});
+    h.append(el('span', {className: 'spin', ariaHidden: 'true'}), document.createTextNode(`${name}を書いています`));
+    const skel = el('div', {className: 'skel'});
+    for (const w of [40, 90, 75, 85]) skel.append(el('div', {style: `width:${w}%`}));
+    doc.append(h, el('div', {className: 'making-sub'}, `${main ? main + ' が' : 'AI が'}書いています。書き終わると、ここに出ます。`), skel);
+  } else if (md === null) {
+    // まだない
+    doc.append(el('div', {className: 'none-h'}, `${name}はまだありません`), el('div', {className: 'none-s'}, '会話の最後の返事を確かめてください。'));
+  } else if (busy) {
+    // 書き直している
+    const bar = el('div', {className: 'rewriting', role: 'status'});
+    bar.append(el('span', {className: 'spin', ariaHidden: 'true'}), document.createTextNode('書き直しています。書き終わると、新しい中身に替わります。'));
+    const body = el('div', {className: 'dim'});
+    body.innerHTML = marked.parse(md);
+    doc.append(bar, body);
+  } else {
+    // 出している
+    doc.innerHTML = marked.parse(md);
+  }
+}
+
+// 質問の一覧: state.json の questions に、まだ答えていない問いがあり、AI が返事を書いていないときに、右の欄に出す
+function questionsOpen() {
+  const q = state && state.questions;
+  return !!(q && q.items.some(i => i.answer == null) && !busy && qSent !== JSON.stringify(q));
+}
+
+function renderQuestions() {
+  const open = questionsOpen();
+  $('qform').hidden = !open;
+  $('doc').hidden = open;
+  if (open) $('figbox').hidden = true;
+  if (state) $('dl').hidden = open || !state.downloads.length;
+  if (!state) return;
+  // 文書のパスは、作業のフォルダ(skill-factory からの相対パス)の下のパスとして出す
+  $('docpath').textContent = open ? state.questions.title : (status.workDir ? status.workDir + '/' : '') + state.documentPath;
+  if (!open) return;
+  const q = state.questions;
+  const rest = q.items.filter(i => i.answer == null);
+  const answered = q.items.length - rest.length + rest.filter(i => (qAnswers[i.number] || '').trim()).length;
+  const box = el('div', {className: 'qbox'});
+  if (q.added > 0 || q.removed > 0) box.append(el('div', {className: 'qnote'}, `前の答えで、質問が ${q.added} 問増え、${q.removed} 問減りました。`));
+  const head = el('div', {className: 'qhead'});
+  head.append(el('div', {className: 't'}, q.title), el('div', {className: 'c'}, `全 ${q.items.length} 問(回答済み ${answered} 問、残り ${q.items.length - answered} 問)`));
+  box.append(head);
+  for (const it of rest) {
+    const v = qAnswers[it.number] || '';
+    const row = el('div', {className: 'qi'});
+    const l = el('div', {className: 'l'});
+    l.append(el('span', {className: 'no' + (v.trim() ? ' ok' : '')}, (v.trim() ? '✓ ' : '') + `質問 ${it.number}`), el('span', {className: 'tx'}, it.text));
+    row.append(l);
+    if (it.choices && it.choices.length) {
+      const cs = el('div', {className: 'chips'});
+      for (const c of it.choices) {
+        const b = el('button', {type: 'button', className: 'chip' + (v === c ? ' on' : '')}, c);
+        b.onclick = () => { qAnswers[it.number] = v === c ? '' : c; renderQuestions(); };
+        cs.append(b);
+      }
+      row.append(cs);
+    } else {
+      const t = el('textarea', {placeholder: '答えを書く', value: v, rows: 1});
+      t.setAttribute('aria-label', `質問 ${it.number} の答え`);
+      t.oninput = () => { qAnswers[it.number] = t.value; updateQCount(); };
+      row.append(t);
+    }
+    box.append(row);
+  }
+  const foot = el('div', {className: 'qfoot'});
+  const go = el('button', {type: 'button', disabled: answered === q.items.length - rest.length}, '回答を送る');
+  go.onclick = () => {
+    const lines = rest.filter(i => (qAnswers[i.number] || '').trim()).map(i => `${i.number}: ${qAnswers[i.number].trim()}`);
+    if (!lines.length) return;
+    qSent = JSON.stringify(q);
+    qAnswers = {};
+    renderQuestions();
+    send(lines.join('\n'), false);
+  };
+  foot.append(el('span', {}, '答えた問いだけを送る'), go);
+  box.append(foot);
+  // 書いている途中の入力欄を作り直さないように、問いの組み立てが同じときは数と送るボタンだけを直す
+  const sig = JSON.stringify([q, rest.map(i => i.choices && i.choices.length ? qAnswers[i.number] || '' : '')]);
+  if ($('qform').dataset.sig === sig && $('qform').firstChild) { updateQCount(); return; }
+  $('qform').dataset.sig = sig;
+  $('qform').replaceChildren(box);
+}
+
+function updateQCount() {
+  const q = state.questions;
+  const rest = q.items.filter(i => i.answer == null);
+  const done = q.items.length - rest.length;
+  const answered = done + rest.filter(i => (qAnswers[i.number] || '').trim()).length;
+  const c = $('qform').querySelector('.qhead .c');
+  if (c) c.textContent = `全 ${q.items.length} 問(回答済み ${answered} 問、残り ${q.items.length - answered} 問)`;
+  for (const i of rest) {
+    const row = [...$('qform').querySelectorAll('.qi')][rest.indexOf(i)];
+    const v = (qAnswers[i.number] || '').trim();
+    const no = row && row.querySelector('.no');
+    if (no) { no.className = 'no' + (v ? ' ok' : ''); no.textContent = (v ? '✓ ' : '') + `質問 ${i.number}`; }
+  }
+  const go = $('qform').querySelector('.qfoot button');
+  if (go) go.disabled = answered === done;
 }
 
 // F6: プロンプトを送る。送れなかったときは、入力欄の上に理由を出し、書いた文を入力欄に戻す
@@ -396,6 +636,8 @@ $('form').onsubmit = e => {
   const text = $('input').value.trim();
   if (!text) return;
   $('input').value = '';
+  if (state && state.decision) replySent = JSON.stringify(state.decision);
+  replyOn = null;
   send(text, false);
 };
 

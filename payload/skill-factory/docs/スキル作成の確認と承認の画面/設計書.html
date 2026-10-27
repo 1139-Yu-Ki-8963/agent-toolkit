@@ -126,8 +126,8 @@ sequenceDiagram
 <h2>7. 部品ごとの扱い</h2>
 <table>
 <tr><th>部品</th><th>扱い</th></tr>
-<tr><td>画面 <code>ui/index.html</code></td><td>使い続ける。F1 から F9 は 8 段階で確かめ済み。選択肢が 0 件の決めてもらうことは、問いの文だけを出す(いまの作りで出る)</td></tr>
-<tr><td>中継 <code>ui/server.mjs</code></td><td>この設計で作り直す(会話の ID、stream-json の読み取り、作業のフォルダの固定、仮の会話)</td></tr>
+<tr><td>画面 <code>ui/index.html</code></td><td>使い続ける。F1 から F9 は 8 段階で確かめ済み。選択肢が 0 件の決めてもらうことは、返答の候補(<code>decision.replies</code>)があれば問いの吹き出しと候補のボタンを出し、なければ問いの文だけを出す。2026-10-28 に、画面のイメージの部品に合わせて、F5 の 4 つの状態、F10 から F13 を足した(章 10)</td></tr>
+<tr><td>中継 <code>ui/server.mjs</code></td><td>この設計で作り直す(会話の ID、stream-json の読み取り、作業のフォルダの固定、仮の会話)。2026-10-28 に、状態の問い合わせ <code>/api/status</code> の答えと、段階ごとのスキルと規約の表を返す <code>/api/stages</code> を足した(章 10)</td></tr>
 <tr><td>スキル updating-skill-factory-ui-state</td><td>使い続ける。対応表の <code>choices</code> を「0 件でもよい」に、fixing-skill の手順で直す</td></tr>
 <tr><td>スキル drawing-skill-factory-figure</td><td>使い続ける</td></tr>
 <tr><td>規約 skill-making-flow の規則 3</td><td>書く時点と作業のフォルダの文を、章 4 と章 6 のとおりに置き換える</td></tr>
@@ -151,6 +151,18 @@ sequenceDiagram
 <tr><td>画面の 9 機能</td><td>画面を表示しないブラウザで、段階 1 から 8 を開く(前と同じ方法)</td></tr>
 <tr><td>本物の中継とブラウザでの通し</td><td>ユーザーが <code>/sandbox</code> でローカルの待ち受けを許したあとに 1 回通す。許さないときは、ユーザーの PC で確かめてもらう</td></tr>
 </table>
+<h2>10. 画面のイメージの部品と、部品が読むもの(2026-10-28)</h2>
+<table>
+<tr><th>部品</th><th>読むもの</th><th>決まり</th></tr>
+<tr><td>開いた直後の画面の見出しと文</td><td><code>ui/はじめに.md</code>(<code>/api/start</code>)</td><td>作業のフォルダが決まる前だけ、会話の欄の上に出す</td></tr>
+<tr><td>実行中のスキル</td><td><code>/api/status</code> の <code>skillCalls</code>(Skill のツールで呼んだスキルの名前を呼んだ順に並べたもの)と <code>subagents</code>(結果が返っていない Agent か Task のツールの呼び出しの数)と <code>busy</code></td><td>名前は、最後に呼んだ段階のスキルとする。そのあとに補助のスキルを呼んだときは「+ 補助のスキルの名前」を、AI が返事を書いている間にサブエージェントがいるときは「サブエージェント N 体」を添える。AI が返事を書いている間だけ回る印を付ける。スキルをまだ呼んでいないときは出さない</td></tr>
+<tr><td>段階で使うスキルと規約の一覧</td><td><code>ui/段階ごとのスキルと規約.json</code>(<code>/api/stages</code>)と <code>skillCalls</code></td><td>実行中のスキルを押すと開く。表は、このファイルの 1 か所だけに持つ。スキルの状態は「実行中」(最後に呼んだ段階のスキル)、「呼んだ(N 番目)」(初めて呼んだ順)、「まだ呼んでいない」とする</td></tr>
+<tr><td>右の欄の 4 つの状態</td><td><code>state.json</code> の <code>documentPath</code> のファイルがあるかと <code>busy</code></td><td>ファイルがなく AI が返事を書いている: 作っている。ファイルがあり AI が返事を書いている: 書き直している。ファイルがあり AI が答えを待っている: 出している。ファイルがなく AI も返事を書いていない: まだない</td></tr>
+<tr><td>文書のパスの表示</td><td><code>/api/status</code> の <code>workDir</code>(skill-factory からの作業のフォルダの相対パス)と <code>documentPath</code></td><td><code>&lt;workDir&gt;/&lt;documentPath&gt;</code> の形で出す</td></tr>
+<tr><td>質問の一覧</td><td><code>state.json</code> の <code>questions</code>(<code>title</code>、<code>added</code>、<code>removed</code>、<code>items</code> の番号と文と選択肢と答え)</td><td>答えが null の問いがあり、AI が返事を書いていないときに、文書の代わりに右の欄に出す。答えが null の問いだけを並べ、見出しの横に「全 N 問(回答済み A 問、残り R 問)」を出す。<code>added</code> か <code>removed</code> が 1 以上なら「前の答えで、質問が X 問増え、Y 問減りました。」を出す。送る文は、答えた問いだけを「質問の番号: 答え」の形で 1 行に 1 問ずつ並べたものとする。送ったあとは、<code>questions</code> が変わるまで出さない</td></tr>
+<tr><td>返答の候補</td><td><code>state.json</code> の <code>decision.replies</code></td><td><code>choices</code> が 0 件で <code>replies</code> が 1 件以上のときに、問いの吹き出しの下に出す。押すと候補の文を入力欄に入れ、送らない。送ったあとと、AI が返事を書いている間は出さない</td></tr>
+</table>
+<p class="note">サブエージェントの数は、stream-json の Agent か Task の tool_use の id を、同じ id の tool_result が来るまで数える。バックグラウンドで動かすサブエージェントの数え方は、本物の claude の stream-json でまだ確かめていない。</p>
 </main>
 <script>mermaid.initialize({startOnLoad: true, theme: 'neutral'});</script>
 </body>

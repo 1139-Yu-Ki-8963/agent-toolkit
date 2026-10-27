@@ -1,0 +1,412 @@
+[
+  {
+    "stage": 1,
+    "name": "要件定義書",
+    "skills": [
+      {
+        "name": "defining-skill-requirements",
+        "kind": "段階",
+        "purpose": "要件定義書を書く。サブエージェント: 照合者 2 体(step 7-2)"
+      },
+      {
+        "name": "updating-skill-factory-ui-state",
+        "kind": "補助",
+        "purpose": "画面の状態を書く。段階のスキルを始める前、質問か承認を出す前、完了の報告のあと"
+      },
+      {
+        "name": "drawing-skill-factory-figure",
+        "kind": "補助",
+        "purpose": "図を描く。成果物を書いたあと、承認か結果の表示を出す前"
+      },
+      {
+        "name": "checking-markdown-document-with-rules",
+        "kind": "補助",
+        "purpose": "書いた md を規約に照らす。md のファイルを書いたとき(hook が頼む)"
+      },
+      {
+        "name": "fixing-markdown-document",
+        "kind": "補助",
+        "purpose": "照らした指摘を直す。照らして指摘が出たとき"
+      }
+    ],
+    "rules": [
+      {
+        "name": "skill-making-flow",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "skill-or-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "text-writing-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "thinking-rule",
+        "when": "常に読み込む"
+      }
+    ]
+  },
+  {
+    "stage": 2,
+    "name": "分割設計書",
+    "skills": [
+      {
+        "name": "designing-skill-structure",
+        "kind": "段階",
+        "purpose": "分割設計書を書く。サブエージェント: 照合者 2 体(step 9-2)"
+      },
+      {
+        "name": "updating-skill-factory-ui-state",
+        "kind": "補助",
+        "purpose": "画面の状態を書く。段階のスキルを始める前、質問か承認を出す前、完了の報告のあと"
+      },
+      {
+        "name": "drawing-skill-factory-figure",
+        "kind": "補助",
+        "purpose": "図を描く。成果物を書いたあと、承認か結果の表示を出す前"
+      },
+      {
+        "name": "checking-markdown-document-with-rules",
+        "kind": "補助",
+        "purpose": "書いた md を規約に照らす。md のファイルを書いたとき(hook が頼む)"
+      },
+      {
+        "name": "fixing-markdown-document",
+        "kind": "補助",
+        "purpose": "照らした指摘を直す。照らして指摘が出たとき"
+      }
+    ],
+    "rules": [
+      {
+        "name": "skill-making-flow",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "skill-or-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "text-writing-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "thinking-rule",
+        "when": "常に読み込む"
+      }
+    ]
+  },
+  {
+    "stage": 3,
+    "name": "構成の案",
+    "skills": [
+      {
+        "name": "designing-skill-phases",
+        "kind": "段階",
+        "purpose": "構成の案を書く。サブエージェント: 照合者 2 体(step 9-2)"
+      },
+      {
+        "name": "updating-skill-factory-ui-state",
+        "kind": "補助",
+        "purpose": "画面の状態を書く。段階のスキルを始める前、質問か承認を出す前、完了の報告のあと"
+      },
+      {
+        "name": "drawing-skill-factory-figure",
+        "kind": "補助",
+        "purpose": "図を描く。成果物を書いたあと、承認か結果の表示を出す前"
+      },
+      {
+        "name": "checking-markdown-document-with-rules",
+        "kind": "補助",
+        "purpose": "書いた md を規約に照らす。md のファイルを書いたとき(hook が頼む)"
+      },
+      {
+        "name": "fixing-markdown-document",
+        "kind": "補助",
+        "purpose": "照らした指摘を直す。照らして指摘が出たとき"
+      }
+    ],
+    "rules": [
+      {
+        "name": "skill-making-flow",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "skill-or-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "text-writing-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "thinking-rule",
+        "when": "常に読み込む"
+      }
+    ]
+  },
+  {
+    "stage": 4,
+    "name": "SKILL.md の下書き",
+    "skills": [
+      {
+        "name": "drafting-skill-with-template",
+        "kind": "段階",
+        "purpose": "SKILL.md とリファレンスを書く。サブエージェント: なし"
+      },
+      {
+        "name": "updating-skill-factory-ui-state",
+        "kind": "補助",
+        "purpose": "画面の状態を書く。段階のスキルを始める前、質問か承認を出す前、完了の報告のあと"
+      },
+      {
+        "name": "checking-markdown-document-with-rules",
+        "kind": "補助",
+        "purpose": "書いた md を規約に照らす。md のファイルを書いたとき(hook が頼む)"
+      },
+      {
+        "name": "fixing-markdown-document",
+        "kind": "補助",
+        "purpose": "照らした指摘を直す。照らして指摘が出たとき"
+      }
+    ],
+    "rules": [
+      {
+        "name": "skill-making-flow",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "skill-or-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "text-writing-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "thinking-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "skill-writing-rule、skill-template、skill-completed-example",
+        "when": "SKILL.md かリファレンスを読むか書くとき"
+      }
+    ]
+  },
+  {
+    "stage": 5,
+    "name": "照合と修正",
+    "skills": [
+      {
+        "name": "checking-skill-with-template",
+        "kind": "段階",
+        "purpose": "SKILL.md を規約と雛形に照らす。サブエージェント: 検証者 3 体(step 3-7)"
+      },
+      {
+        "name": "fixing-skill",
+        "kind": "段階",
+        "purpose": "指摘を直す。サブエージェント: 判定者 2 体(step 4-8)"
+      },
+      {
+        "name": "updating-skill-factory-ui-state",
+        "kind": "補助",
+        "purpose": "画面の状態を書く。段階のスキルを始める前、質問か承認を出す前、完了の報告のあと"
+      },
+      {
+        "name": "checking-markdown-document-with-rules",
+        "kind": "補助",
+        "purpose": "書いた md を規約に照らす。md のファイルを書いたとき(hook が頼む)"
+      },
+      {
+        "name": "fixing-markdown-document",
+        "kind": "補助",
+        "purpose": "照らした指摘を直す。照らして指摘が出たとき"
+      }
+    ],
+    "rules": [
+      {
+        "name": "skill-making-flow",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "skill-or-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "text-writing-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "thinking-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "skill-writing-rule、skill-template、skill-completed-example",
+        "when": "SKILL.md かリファレンスを読むか書くとき"
+      }
+    ]
+  },
+  {
+    "stage": 6,
+    "name": "テスト計画書",
+    "skills": [
+      {
+        "name": "designing-skill-test-cases",
+        "kind": "段階",
+        "purpose": "テスト計画書を書く。サブエージェント: なし"
+      },
+      {
+        "name": "updating-skill-factory-ui-state",
+        "kind": "補助",
+        "purpose": "画面の状態を書く。段階のスキルを始める前、質問か承認を出す前、完了の報告のあと"
+      },
+      {
+        "name": "checking-markdown-document-with-rules",
+        "kind": "補助",
+        "purpose": "書いた md を規約に照らす。md のファイルを書いたとき(hook が頼む)"
+      },
+      {
+        "name": "fixing-markdown-document",
+        "kind": "補助",
+        "purpose": "照らした指摘を直す。照らして指摘が出たとき"
+      }
+    ],
+    "rules": [
+      {
+        "name": "skill-making-flow",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "skill-or-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "text-writing-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "thinking-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "skill-writing-rule、skill-template、skill-completed-example",
+        "when": "SKILL.md かリファレンスを読むか書くとき"
+      },
+      {
+        "name": "skill-test-design-rule",
+        "when": "tests/ の下のファイルか、テストのスキルを読むか書くとき"
+      }
+    ]
+  },
+  {
+    "stage": 7,
+    "name": "シナリオ",
+    "skills": [
+      {
+        "name": "designing-skill-test-scenarios",
+        "kind": "段階",
+        "purpose": "シナリオテストの表を書く。サブエージェント: なし"
+      },
+      {
+        "name": "updating-skill-factory-ui-state",
+        "kind": "補助",
+        "purpose": "画面の状態を書く。段階のスキルを始める前、質問か承認を出す前、完了の報告のあと"
+      },
+      {
+        "name": "checking-markdown-document-with-rules",
+        "kind": "補助",
+        "purpose": "書いた md を規約に照らす。md のファイルを書いたとき(hook が頼む)"
+      },
+      {
+        "name": "fixing-markdown-document",
+        "kind": "補助",
+        "purpose": "照らした指摘を直す。照らして指摘が出たとき"
+      }
+    ],
+    "rules": [
+      {
+        "name": "skill-making-flow",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "skill-or-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "text-writing-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "thinking-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "skill-test-design-rule",
+        "when": "tests/ の下のファイルか、テストのスキルを読むか書くとき"
+      }
+    ]
+  },
+  {
+    "stage": 8,
+    "name": "テストの実行",
+    "skills": [
+      {
+        "name": "testing-skill-with-template",
+        "kind": "段階",
+        "purpose": "テストを流して判定の記録を書く。サブエージェント: 実行役(step 5-4)、判定者(step 6-3)"
+      },
+      {
+        "name": "fixing-skill",
+        "kind": "段階",
+        "purpose": "不合格のケースを直す(不合格があるとき)。サブエージェント: 判定者 2 体(step 3-5、4-8)"
+      },
+      {
+        "name": "fixing-test-plan",
+        "kind": "段階",
+        "purpose": "テスト計画書を直す(テストの期待の誤りのとき)。サブエージェント: なし"
+      },
+      {
+        "name": "updating-skill-factory-ui-state",
+        "kind": "補助",
+        "purpose": "画面の状態を書く。段階のスキルを始める前、質問か承認を出す前、完了の報告のあと"
+      },
+      {
+        "name": "checking-markdown-document-with-rules",
+        "kind": "補助",
+        "purpose": "書いた md を規約に照らす。md のファイルを書いたとき(hook が頼む)"
+      },
+      {
+        "name": "fixing-markdown-document",
+        "kind": "補助",
+        "purpose": "照らした指摘を直す。照らして指摘が出たとき"
+      }
+    ],
+    "rules": [
+      {
+        "name": "skill-making-flow",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "skill-or-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "text-writing-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "thinking-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "skill-writing-rule、skill-template、skill-completed-example",
+        "when": "SKILL.md かリファレンスを読むか書くとき"
+      },
+      {
+        "name": "skill-test-design-rule",
+        "when": "tests/ の下のファイルか、テストのスキルを読むか書くとき"
+      }
+    ]
+  }
+]
