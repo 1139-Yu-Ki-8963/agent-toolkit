@@ -100,13 +100,9 @@ function prompt(text) {
 // claude のコマンドがあるかは、起動のときに 1 回だけ確かめ、画面のヘッダーの状態に出す
 const hasClaude = spawnSync('claude', ['--version']).status === 0;
 
-// 作業のフォルダが決まる前に画面の文書の欄に出す md。ui/はじめに.md の後ろに、既にあるスキルの名前を足す
+// 作業のフォルダが決まる前に画面の文書の欄に出す md
 function startPage() {
-  const names = fs.existsSync(outputDir)
-    ? fs.readdirSync(outputDir, {withFileTypes: true}).filter(e => e.isDirectory()).map(e => e.name).sort() : [];
-  const lines = [fs.readFileSync(path.join(uiDir, 'はじめに.md'), 'utf8'), '## 既にあるスキル', ''];
-  lines.push(...(names.length ? names.map(n => `- ${n}`) : ['なし']));
-  return lines.join('\n') + '\n';
+  return fs.readFileSync(path.join(uiDir, 'はじめに.md'), 'utf8');
 }
 
 function send(res, status, body, headers = {}) {
