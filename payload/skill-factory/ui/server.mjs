@@ -71,6 +71,8 @@ function prompt(text) {
   busy = true;
   const args = ['-p', sessionStarted ? '--resume' : '--session-id', sessionId,
     '--output-format', 'stream-json', '--verbose',
+    // 別名 sonnet は、そのときの最新の Sonnet を指す。--resume の 2 回目からも毎回付ける
+    '--model', 'sonnet',
     // claude -p は許可の確認に答えられないので、ファイルの書き込みを許す
     '--permission-mode', 'acceptEdits', text];
   const child = spawn('claude', args, {cwd: factoryDir, stdio: ['ignore', 'pipe', 'pipe']});
