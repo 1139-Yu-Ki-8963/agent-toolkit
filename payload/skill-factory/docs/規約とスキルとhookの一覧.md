@@ -1,6 +1,6 @@
 # 規約とスキルと hook の一覧
 
-この文書は、skill-factory の `.claude/` の下にある規約 6 フォルダ、スキル 15 本、hook 3 本ごとに、何であるかと、検査を通ったかを持つ 3 つの表を持つ文書です。README の「フォルダの中身」の表が名前だけを持つのに対して、この文書は、各ファイルが受けた検査を持ちます。この文書では、作った人がスキルの実体を管理する git リポジトリを「作業用リポジトリ」と呼びます。「最後に変えたコミット」の列は、作業用リポジトリのコミットのうち、今の時点でその行のファイルを最後に変えたコミットの短い hash です。丸の hash と「最後に変えたコミット」が同じなら、検査のあとに更新はありません。
+この文書は、skill-factory の `.claude/` の下にある規約 7 フォルダ、スキル 15 本、hook 3 本ごとに、何であるかと、検査を通ったかを持つ 3 つの表を持つ文書です。README の「フォルダの中身」の表が名前だけを持つのに対して、この文書は、各ファイルが受けた検査を持ちます。この文書では、作った人がスキルの実体を管理する git リポジトリを「作業用リポジトリ」と呼びます。「最後に変えたコミット」の列は、作業用リポジトリのコミットのうち、今の時点でその行のファイルを最後に変えたコミットの短い hash です。丸の hash と「最後に変えたコミット」が同じなら、検査のあとに更新はありません。
 
 ## 規約の表
 
@@ -10,7 +10,8 @@
 | thinking-rule | `.claude/rules/thinking/thinking-rule.md` | 常に | f9ad5725 |  |  |  |
 | skill-or-rule | `.claude/rules/skill-or-rule/skill-or-rule.md` | 常に | 555a7924 |  |  |  |
 | skill-making-flow-rule | `.claude/rules/skill-making-flow/skill-making-flow-rule.md` | 常に | 0ad8487c |  |  |  |
-| skill-writing-rule | `.claude/rules/skill-writing/skill-writing-rule/skill-writing-rule.md` | `skills/*/` と `output/*/` の `SKILL.md`、`references/`、`scripts/` の下を読んだとき | 0ad8487c |  |  |  |
+| skill-factory-skill-naming-rule | `.claude/rules/skill-factory-skill-naming/skill-factory-skill-naming-rule.md` | `.claude/skills/*/SKILL.md` を読んだとき | 64a28164 |  |  |  |
+| skill-writing-rule | `.claude/rules/skill-writing/skill-writing-rule/skill-writing-rule.md` | `skills/*/` と `output/*/` の `SKILL.md`、`references/`、`scripts/` の下を読んだとき | 64a28164 |  |  |  |
 | skill-template | `.claude/rules/skill-writing/skill-template/skill-template.md` | `skills/*/` と `output/*/` の `SKILL.md`、`references/` の下を読んだとき | 0ad8487c | 対象外 |  |  |
 | skill-completed-example | `.claude/rules/skill-writing/skill-template-completed-example/skill-completed-example.md` | `skills/*/` と `output/*/` の `SKILL.md`、`references/` の下を読んだとき | 0ad8487c | 対象外 |  |  |
 | skill-test-design-rule | `.claude/rules/skill-testing/skill-test-design-rule.md` | `skills/tests/` か `output/*/tests/` の下か、段階 6 から 8 のスキルと fixing-skill のフォルダの下を読んだとき | 0ad8487c |  |  |  |

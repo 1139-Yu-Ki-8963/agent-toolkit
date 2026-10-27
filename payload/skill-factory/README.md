@@ -48,7 +48,7 @@
 
 | パス | 中身 |
 |---|---|
-| `.claude/rules/` | 規約 6 フォルダ。text-writing、thinking、skill-or-rule、skill-writing(規約、雛形、完成例)、skill-testing(規約 skill-test-design-rule)、skill-making-flow(8 段階の流れ) |
+| `.claude/rules/` | 規約 7 フォルダ。text-writing、thinking、skill-or-rule、skill-writing(規約、雛形、完成例)、skill-testing(規約 skill-test-design-rule)、skill-making-flow(8 段階の流れ)、skill-factory-skill-naming(skill-factory のスキルの名前)。規約ごとの責務は `docs/各規約の要件.md` にある |
 | `.claude/skills/` | スキル 15 本。段階が使う 10 本(defining-skill-requirements、designing-skill-structure、designing-skill-phases、drafting-skill-with-template、checking-skill-with-template、fixing-skill、designing-skill-test-cases、designing-skill-test-scenarios、testing-skill-with-template、fixing-test-plan)と、hook と fixing-skill が呼ぶ補助の 3 本(checking-markdown-document-with-rules、fixing-markdown-document、rewrite-pink-elephants)と、確認と承認の画面のための 2 本(updating-skill-factory-ui-state、drawing-skill-factory-figure。実体は `output/` の下) |
 | `.claude/hooks/` | hook 3 本 |
 | `.claude/settings.json` | hook 3 本の登録 |

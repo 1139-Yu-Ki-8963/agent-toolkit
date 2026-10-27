@@ -77,6 +77,11 @@
     },
     {
       "mode": "mirror",
+      "src": "~/agent-home/rules/skill-factory-skill-naming",
+      "dst": "payload/skill-factory/.claude/rules/skill-factory-skill-naming"
+    },
+    {
+      "mode": "mirror",
       "src": "~/agent-home/skills/defining-skill-requirements",
       "dst": "payload/skill-factory/.claude/skills/defining-skill-requirements"
     },
