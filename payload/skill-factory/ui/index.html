@@ -6,28 +6,34 @@
 <title>スキル作成の確認と承認</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
 <style>
-:root{--bg:#f6f7f9;--fg:#1f2328;--muted:#57606a;--line:#d9dde3;--line2:#e6e9ee;--box:#c7ced6;--blue:#1d5fbf;--blue2:#dfe9f8;--gray:#eef1f5;--yellow:#fff6d6;--yellowfg:#6b5400}
+:root{--bg:#f6f7f9;--fg:#1f2328;--muted:#57606a;--faint:#8c959f;--line:#d9dde3;--line2:#e6e9ee;--box:#c7ced6;--blue:#1d5fbf;--blue2:#dfe9f8;--gray:#eef1f5;--green:#1a7f37;--red:#cf222e;--redbg:#ffebe9;--redfg:#82071e}
 *{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:flex;flex-direction:column;background:var(--bg);color:var(--fg);font-family:'Noto Sans JP',system-ui,sans-serif}
-header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px;padding:12px 24px;background:#fff;border-bottom:1px solid var(--line)}
+body{margin:0;height:100vh;display:flex;flex-direction:column;background:var(--bg);color:var(--fg);font-family:'Noto Sans JP',system-ui,sans-serif}
+button{font-family:inherit;cursor:pointer}
+button:disabled{cursor:default}
+[hidden]{display:none!important}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:12px 24px;background:#fff;border-bottom:1px solid var(--line)}
 header .brand{font-weight:700;font-size:16px}
 header .meta{font-size:13px;color:var(--muted)}
-header .badge{font-size:12px;padding:4px 10px;border-radius:999px;background:var(--yellow);color:var(--yellowfg)}
-header .conn{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
-header .conn::before{content:'';width:8px;height:8px;border-radius:50%;background:#1a7f37}
-header .conn.ng{color:#cf222e}
-header .conn.ng::before{background:#cf222e}
-nav.stages{display:flex;flex-wrap:wrap;gap:8px;padding:12px 24px;background:#fff;border-bottom:1px solid var(--line)}
+header .meta:empty{display:none}
+.conn{margin-left:auto;display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.conn::before{content:'';width:8px;height:8px;border-radius:50%;background:var(--green)}
+.conn.ng{color:var(--red)}
+.conn.ng::before{background:var(--red)}
+#banner{padding:8px 24px;background:var(--redbg);color:var(--redfg);font-size:13px}
+nav.stages{display:flex;flex-wrap:wrap;gap:8px;padding:10px 24px;background:#fff;border-bottom:1px solid var(--line)}
 .pill{display:flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;background:var(--gray);color:var(--muted);font-size:13px}
-.pill .num{display:inline-flex;width:20px;height:20px;border-radius:999px;background:#fff;border:1px solid var(--box);align-items:center;justify-content:center;font-size:12px}
+.pill .num{display:inline-flex;flex:0 0 20px;width:20px;height:20px;border-radius:999px;background:#fff;border:1px solid var(--box);align-items:center;justify-content:center;font-size:12px}
+.pill .name{display:flex;flex-direction:column;line-height:1.2}
+.pill .status{font-size:11px;font-weight:400}
 .pill.done{background:var(--blue2);color:var(--blue)}
 .pill.done .num{background:var(--blue);color:#fff;border:0}
 .pill.now{background:var(--blue);color:#fff;font-weight:500}
 .pill.now .num{background:#fff;color:var(--blue);border:0;font-weight:700}
-main{display:flex;flex-wrap:wrap;flex:1 1 auto;gap:16px;padding:16px 24px 24px}
+.pill.back{border:1px dashed var(--blue)}
+main{display:flex;flex-wrap:wrap;flex:1 1 auto;gap:16px;padding:16px 24px 24px;min-height:0}
 .panel{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-width:0}
-#chat{flex:1 1 360px;max-width:420px;max-height:calc(100vh - 140px)}
-.panel-title{padding:12px 16px;border-bottom:1px solid var(--line2);font-size:13px;font-weight:700}
+#chat{flex:1 1 360px;max-width:420px;max-height:100%}
 #messages{flex:1 1 auto;display:flex;flex-direction:column;gap:12px;padding:16px;overflow:auto}
 .msg{max-width:90%;padding:10px 14px;font-size:14px;line-height:1.6;white-space:pre-wrap;overflow-wrap:anywhere}
 .msg.user{align-self:flex-end;max-width:85%;border-radius:14px 14px 4px 14px;background:var(--blue);color:#fff}
@@ -38,25 +44,41 @@ main{display:flex;flex-wrap:wrap;flex:1 1 auto;gap:16px;padding:16px 24px 24px}
 .msg.md pre{white-space:pre-wrap;background:#fff;padding:6px;border-radius:6px}
 .msg.md table{border-collapse:collapse;display:block;overflow-x:auto;font-size:12px}
 .msg.md th,.msg.md td{border:1px solid var(--line);padding:2px 6px}
-#busy{font-size:12px;color:var(--muted);padding:0 16px 8px}
-form{display:flex;gap:8px;padding:12px 16px;border-top:1px solid var(--line2)}
-form{align-items:flex-end}
-form textarea{flex:1 1 auto;min-width:0;padding:10px 12px;border:1px solid var(--box);border-radius:8px;font-size:14px;line-height:1.5;font-family:inherit;resize:none}
-button{font-family:inherit;cursor:pointer}
-.primary{height:44px;padding:0 16px;border:0;border-radius:8px;background:var(--blue);color:#fff;font-size:14px;font-weight:500}
-#preview{flex:999 1 560px}
-.toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:8px 12px;border-bottom:1px solid var(--line2)}
-.tab{height:36px;padding:0 14px;border:0;border-radius:8px;background:transparent;color:var(--muted);font-size:13px}
-.tab.on{background:var(--gray);color:var(--fg);font-weight:700}
-.spacer{flex:1 1 auto}
-#docpath{font-size:12px;color:var(--muted)}
-.choice{height:36px;padding:0 14px;border:1px solid var(--box);border-radius:8px;background:#fff;color:var(--fg);font-size:13px}
+.typing{align-self:flex-start;display:flex;gap:6px;padding:14px 16px;border-radius:14px 14px 14px 4px;background:var(--gray)}
+.typing span{width:8px;height:8px;border-radius:50%;background:var(--faint);animation:blink 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.2s}
+.typing span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,80%,100%{opacity:.3}40%{opacity:1}}
+.decision{align-self:stretch;display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--box);border-radius:12px}
+.decision.off{border-color:var(--line2);color:var(--faint)}
+.decision .q{font-size:13px;font-weight:700}
+.decision .hint{font-size:12px;color:var(--muted)}
+.decision .choices{display:flex;flex-wrap:wrap;gap:8px}
+.choice{height:40px;padding:0 16px;border:1px solid var(--box);border-radius:8px;background:#fff;color:var(--fg);font-size:13px}
 .choice.main{border:0;background:var(--blue);color:#fff;font-weight:500}
-#decision,#downloads{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:8px 20px;border-bottom:1px solid var(--line2);font-size:13px}
-#decision{background:var(--yellow);color:var(--yellowfg)}
-#downloads a{color:var(--blue)}
-#figure{padding:16px 20px;border-bottom:1px solid var(--line2);background:#fbfcfd;overflow:auto}
-#figure:empty{display:none}
+.decision.off .choice{border-color:var(--line2);color:var(--faint)}
+.decision.off .choice.main{background:#d0d7de;color:#fff}
+.decision.off .choice.picked{background:var(--blue);color:#fff;border:0}
+#err{padding:8px 16px 0;font-size:12px;color:var(--red)}
+form{display:flex;align-items:flex-end;gap:8px;padding:12px 16px;border-top:1px solid var(--line2)}
+form textarea{flex:1 1 auto;min-width:0;padding:10px 12px;border:1px solid var(--box);border-radius:8px;font-size:14px;line-height:1.5;font-family:inherit;resize:none}
+form textarea.ng{border-color:var(--red)}
+.primary{height:44px;padding:0 16px;border:0;border-radius:8px;background:var(--blue);color:#fff;font-size:14px;font-weight:500}
+#preview{flex:999 1 560px;max-height:100%}
+.bar{position:relative;display:flex;align-items:center;gap:8px;padding:8px 16px;border-bottom:1px solid var(--line2)}
+#docpath{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.dl{margin-left:auto;height:32px;padding:0 12px;border:1px solid var(--box);border-radius:8px;background:#fff;color:var(--fg);font-size:12px;display:flex;align-items:center;gap:6px}
+#dlmenu{position:absolute;right:16px;top:44px;z-index:2;display:flex;flex-direction:column;gap:4px;min-width:280px;max-width:480px;padding:6px;border:1px solid var(--box);border-radius:8px;background:#fff;box-shadow:0 4px 12px rgba(0,0,0,.08)}
+#dlmenu a{padding:8px 10px;border-radius:6px;font-size:12px;color:var(--blue);text-decoration:none;overflow-wrap:anywhere}
+#dlmenu a:hover{background:var(--gray)}
+#dlmenu a span{display:block;color:var(--muted)}
+#figbox{border-bottom:1px solid var(--line2);background:#fbfcfd}
+.fighead{display:flex;flex-wrap:wrap;align-items:center;gap:4px;padding:12px 20px}
+.fighead .title{font-size:13px;font-weight:700;margin-right:8px}
+.tab{height:28px;padding:0 10px;border:0;border-radius:6px;background:transparent;color:var(--muted);font-size:12px}
+.tab.on{background:var(--gray);color:var(--fg);font-weight:700}
+.fold{margin-left:auto;height:28px;padding:0 10px;border:0;background:transparent;color:var(--muted);font-size:12px}
+#figure{padding:0 20px 16px;overflow:auto;max-height:45vh}
 #figure svg{max-width:100%;height:auto}
 #doc{flex:1 1 auto;padding:16px 24px;overflow:auto;font-size:13px;line-height:1.7}
 #doc h1{margin:0 0 12px;font-size:18px}
@@ -67,40 +89,52 @@ button{font-family:inherit;cursor:pointer}
 #doc td{padding:6px 8px;border-bottom:1px solid var(--line2);vertical-align:top}
 #doc ul{margin:0;padding-left:20px}
 #doc pre{background:var(--gray);padding:8px;overflow:auto}
-.empty{color:var(--muted);font-size:13px;padding:16px}
-[hidden],header .badge:empty{display:none!important}
+.empty{color:var(--muted);font-size:13px}
+/* 開いた直後の画面: 右の欄を出さず、会話の欄を中央に置く */
+body.start main{justify-content:center}
+body.start #chat{flex:0 1 720px;max-width:720px;border:0;background:transparent;justify-content:center}
+body.start #messages{flex:0 1 auto}
+body.start form{border:1px solid var(--box);border-radius:12px;background:#fff;padding:12px}
+body.start form textarea{border:0;font-size:15px;outline:none}
+#welcome{padding:0 16px 24px}
+#welcome h1{margin:0 0 12px;font-size:24px}
+#welcome p{margin:0;font-size:15px;line-height:1.8}
 </style>
 </head>
-<body>
+<body class="start">
 <header>
   <div class="brand">skill-factory</div>
   <div class="meta" id="work"></div>
   <div class="meta" id="skill"></div>
-  <div class="badge" id="artifacts"></div>
   <div class="conn" id="conn" role="status">接続中</div>
 </header>
+<div id="banner" hidden></div>
 <nav class="stages" id="stages" aria-label="段階"></nav>
 <main>
   <section class="panel" id="chat" aria-label="AI との会話">
-    <div class="panel-title">会話</div>
+    <div id="welcome"></div>
     <div id="messages"></div>
-    <div id="busy"></div>
+    <div id="err" role="alert" hidden></div>
     <form id="form">
       <label for="input" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">メッセージ</label>
       <textarea id="input" rows="2" placeholder="例: 議事録を要約するスキルを作って"></textarea>
       <button class="primary" type="submit">送る</button>
     </form>
   </section>
-  <section class="panel" id="preview" aria-label="プレビュー">
-    <div class="toolbar">
-      <span id="tabs"></span>
-      <div class="spacer"></div>
+  <section class="panel" id="preview" aria-label="文書と図" hidden>
+    <div class="bar">
       <div id="docpath"></div>
-      <span id="choices"></span>
+      <button type="button" class="dl" id="dl" aria-expanded="false"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M8 2v8M4.5 6.5 8 10l3.5-3.5M3 13h10"></path></svg>ダウンロード</button>
+      <div id="dlmenu" hidden></div>
     </div>
-    <div id="decision" hidden></div>
-    <div id="downloads" hidden></div>
-    <div id="figure"></div>
+    <div id="figbox" hidden>
+      <div class="fighead">
+        <div class="title" id="figtitle"></div>
+        <span id="tabs"></span>
+        <button type="button" class="fold" id="fold">図を畳む</button>
+      </div>
+      <div id="figure"></div>
+    </div>
     <article id="doc"></article>
   </section>
 </main>
@@ -109,15 +143,23 @@ button{font-family:inherit;cursor:pointer}
 const STAGES = ['要件定義書', '分割設計書', '構成の案', 'SKILL.md の下書き', '照合と修正', 'テスト計画書', 'シナリオ', 'テストの実行'];
 const $ = id => document.getElementById(id);
 // state は、1 回目の読み込みで必ず描くように、読んだ値(なしは null)と違う undefined で始める
-const last = {state: undefined, conv: null, svg: null, doc: null};
+const last = {state: undefined, conv: undefined, svg: null, doc: null, figs: null};
 let state = null;
+let items = [];
+let busy = false;
 let tab = null;
+let folded = false;
+// 押した選択肢と、そのときの決めてもらうこと。state.json の決めてもらうことが変わるまで、ボタンを押せない形にする
+let picked = null;
 
 const fileUrl = p => '/files/' + p.split('/').map(encodeURIComponent).join('/');
 
+// 中継サーバーにつながらないときは null を返す
 async function getText(p) {
-  const r = await fetch(fileUrl(p), {cache: 'no-store'});
-  return r.ok ? r.text() : null;
+  try {
+    const r = await fetch(fileUrl(p), {cache: 'no-store'});
+    return r.ok ? r.text() : null;
+  } catch { return null; }
 }
 
 function el(tag, attrs, text) {
@@ -129,102 +171,184 @@ function el(tag, attrs, text) {
 
 // F1: 画面の状態を読む
 async function load() {
+  const b = await fetch('/api/status', {cache: 'no-store'}).then(r => r.json()).catch(() => null);
+  renderConn(b);
+  if (!b) return;
   const s = await getText('ui/state.json');
+  const c = await getText('ui/conversation.md');
+  let changed = false;
   if (s !== last.state) {
     last.state = s;
     state = s ? JSON.parse(s) : null;
+    if (!state || !picked || JSON.stringify(state.decision) !== picked.decision) picked = null;
     renderState();
+    changed = true;
   }
-  const c = await getText('ui/conversation.md');
   if (c !== last.conv) {
     last.conv = c;
-    renderConversation(c || '');
+    items = parseConversation(c || '');
+    changed = true;
   }
+  if (b.busy !== busy) { busy = b.busy; changed = true; }
+  if (changed) renderChat();
   if (state) {
     await renderFigure();
     await renderDoc();
   }
-  const b = await fetch('/api/status', {cache: 'no-store'}).then(r => r.json()).catch(() => null);
-  $('busy').textContent = b && b.busy ? 'Claude Code が返事を書いています' : '';
-  // ヘッダーの右端の状態: 中継サーバーにつながり、claude のコマンドがあれば「接続中」
+}
+
+// F10: 接続の状態を出す。中継サーバーにつながらないときと、claude のコマンドがないときは、ヘッダーの下に直し方を出す
+function renderConn(b) {
   const ng = !b ? '中継サーバーにつながりません' : (b.hasClaude ? '' : 'claude のコマンドがありません');
   $('conn').textContent = ng || '接続中';
   $('conn').className = 'conn' + (ng ? ' ng' : '');
+  $('banner').hidden = !ng;
+  $('banner').innerHTML = !b
+    ? 'skill-factory で <code>node ui/server.mjs</code> を起動し、この画面を読み直してください。'
+    : 'Claude Code を入れてから、中継サーバーを起動し直してください。';
 }
 
+// F2: 段階の帯を出す。成果物の状態を、未着手でない段階の名前の下に出す
 function renderStages() {
   $('stages').replaceChildren(...STAGES.map((name, i) => {
     const n = i + 1;
     const a = state && state.artifacts.find(x => x.stage === n);
-    const cls = state && n === state.stage ? 'now' : (a && a.status === '済み' ? 'done' : '');
+    const status = a ? a.status : '未着手';
+    const now = state && n === state.stage;
+    const cls = now ? 'now' : status === '済み' ? 'done' : status !== '未着手' ? 'back' : '';
     const p = el('div', {className: 'pill ' + cls});
-    p.append(el('span', {className: 'num'}, cls === 'done' ? '✓' : String(n)), name);
+    const label = el('span', {className: 'name'}, name);
+    if (status !== '未着手') label.append(el('span', {className: 'status'}, status));
+    p.append(el('span', {className: 'num'}, cls === 'done' ? '✓' : String(n)), label);
     return p;
   }));
 }
 
-// 作業のフォルダが決まる前は、ui/はじめに.md を文書の欄に出す
-async function renderStart() {
-  renderStages();
-  const md = await fetch('/api/start', {cache: 'no-store'}).then(r => r.ok ? r.text() : null).catch(() => null);
-  $('doc').innerHTML = md === null
-    ? '<div class="empty">中継サーバーにつながりません。skill-factory で <code>node ui/server.mjs</code> を起動してください。</div>'
-    : marked.parse(md);
-}
-
 function renderState() {
+  // 開いた直後の画面: 作業のフォルダが決まる前は、右の欄を出さず、ui/はじめに.md を会話の欄の上に出す
+  document.body.classList.toggle('start', !state);
+  $('preview').hidden = !state;
+  renderStages();
   if (!state) {
-    renderStart();
+    $('work').textContent = '';
+    $('skill').textContent = '';
+    fetch('/api/start', {cache: 'no-store'}).then(r => r.ok ? r.text() : '').then(md => { $('welcome').innerHTML = marked.parse(md); }).catch(() => {});
     return;
   }
-  $('work').textContent = '作業の名前: ' + state.workName;
-  $('skill').textContent = state.currentSkill
-    ? `いまのスキル: ${state.currentSkill.name}(作る順 ${state.currentSkill.order} / ${state.currentSkill.total})` : '';
-  const shown = state.artifacts.filter(a => a.status !== '未着手').map(a => `${a.name}が${a.status}`);
-  $('artifacts').textContent = '成果物の状態: ' + (shown.length ? shown.join('、') : 'なし');
-
-  // F2: 段階の帯を出す
-  renderStages();
-
-  // F4: 図のタブ
-  if (!state.figures.some(f => f.tab === tab)) tab = state.figures.length ? state.figures[0].tab : null;
-  renderTabs();
-
+  $('work').textContent = state.workName;
+  const sk = state.currentSkill;
+  $('skill').textContent = sk && sk.total > 1 ? `${sk.order} / ${sk.total} ${sk.name}` : '';
   $('docpath').textContent = state.documentPath;
-
-  // F7: 承認の選択を送る
-  const d = state.decision;
-  $('decision').hidden = !d;
-  $('decision').textContent = d ? '決めてもらうこと: ' + d.question : '';
-  $('choices').replaceChildren(...(d ? d.choices : []).map((c, i) => {
-    const b = el('button', {type: 'button', className: 'choice' + (i === 0 ? ' main' : '')}, c);
-    b.onclick = () => send(c);
-    return b;
-  }));
-
-  // F8: ファイルをダウンロードする
-  $('downloads').hidden = !state.downloads.length;
-  $('downloads').replaceChildren(el('span', {}, 'ダウンロード:'), ...state.downloads.map(p =>
-    el('a', {href: fileUrl(p) + '?download=1', download: p.split('/').pop()}, p)));
+  renderDownloads();
 }
 
-function renderTabs() {
-  $('tabs').replaceChildren(...state.figures.map(f => {
-    const b = el('button', {type: 'button', className: 'tab' + (f.tab === tab ? ' on' : '')}, f.tab);
-    b.onclick = () => { tab = f.tab; renderTabs(); renderFigure(); };
-    return b;
-  }));
+// F3: 会話を出す。conversation.md の 1 件は、「ユーザー:」か「Claude Code:」で始まる行から、次の同じ形の行の前まで
+function parseConversation(text) {
+  const list = [];
+  for (const line of text.split('\n')) {
+    const m = line.match(/^(ユーザー|Claude Code): ?(.*)$/);
+    if (m) list.push({user: m[1] === 'ユーザー', lines: [m[2]]});
+    else if (list.length) list[list.length - 1].lines.push(line);
+  }
+  return list;
 }
 
-// F4: 図を出す(SVG をそのまま埋め込む)
+// 会話の欄: 吹き出し、返事を書いている間の点の吹き出し、決めてもらうことの塊の順に出す
+function renderChat() {
+  $('welcome').hidden = !!state || items.length > 0;
+  const nodes = items.map(it => {
+    const text = it.lines.join('\n').trim();
+    if (it.user) return el('div', {className: 'msg user'}, text);
+    // Claude Code の返事は md なので、見出し、表、箇条書きの形で出す
+    const m = el('div', {className: 'msg ai md'});
+    m.innerHTML = marked.parse(text);
+    return m;
+  });
+  if (busy) {
+    const t = el('div', {className: 'typing', role: 'status'});
+    t.setAttribute('aria-label', 'Claude Code が返事を書いています');
+    t.append(el('span'), el('span'), el('span'));
+    nodes.push(t);
+  }
+  const d = state && state.decision;
+  if (d) nodes.push(renderDecision(d));
+  const box = $('messages');
+  box.replaceChildren(...nodes);
+  box.scrollTop = box.scrollHeight;
+}
+
+// F7: 承認の選択を送る。最初の選択肢を推奨として青で塗る
+function renderDecision(d) {
+  const off = busy || !!picked;
+  const wrap = el('div', {className: 'decision' + (off ? ' off' : '')});
+  wrap.append(el('div', {className: 'q'}, d.question));
+  if (!d.choices.length) {
+    wrap.append(el('div', {className: 'hint'}, '答えを入力欄に書いて送ってください。'));
+    return wrap;
+  }
+  const row = el('div', {className: 'choices'});
+  d.choices.forEach((c, i) => {
+    const isPicked = picked && picked.text === c;
+    const b = el('button', {type: 'button', className: 'choice' + (i === 0 ? ' main' : '') + (isPicked ? ' picked' : ''), disabled: off}, (isPicked ? '✓ ' : '') + c);
+    b.onclick = () => {
+      picked = {text: c, decision: JSON.stringify(d)};
+      renderChat();
+      send(c, true);
+    };
+    row.append(b);
+  });
+  wrap.append(row);
+  return wrap;
+}
+
+// F8: ファイルをダウンロードする。ボタンを押すと、ダウンロードできるファイルの一覧の全件を、パスとともに出す
+function renderDownloads() {
+  $('dl').hidden = !state.downloads.length;
+  $('dlmenu').replaceChildren(...state.downloads.map(p => {
+    const a = el('a', {href: fileUrl(p) + '?download=1', download: p.split('/').pop()}, p.split('/').pop());
+    a.append(el('span', {}, p));
+    return a;
+  }));
+  if (!state.downloads.length) toggleMenu(false);
+}
+
+function toggleMenu(open) {
+  $('dlmenu').hidden = !open;
+  $('dl').setAttribute('aria-expanded', String(open));
+}
+$('dl').onclick = e => { e.stopPropagation(); toggleMenu($('dlmenu').hidden); };
+document.addEventListener('click', e => { if (!$('dlmenu').contains(e.target)) toggleMenu(false); });
+
+// F4: 図を出す(SVG をそのまま埋め込む)。図が 0 件のときは、図の欄を出さない。新しい図ができたら、図の欄を開く
 async function renderFigure() {
+  const figs = JSON.stringify(state.figures);
+  if (figs !== last.figs) {
+    last.figs = figs;
+    folded = false;
+    if (!state.figures.some(f => f.tab === tab)) tab = state.figures.length ? state.figures[state.figures.length - 1].tab : null;
+    renderTabs();
+  }
+  $('figbox').hidden = !state.figures.length;
   const f = state.figures.find(x => x.tab === tab);
+  $('figtitle').textContent = f ? '図: ' + f.tab : '';
+  $('figure').hidden = folded;
+  $('fold').textContent = folded ? '図を開く' : '図を畳む';
   const svg = f ? await getText(f.path) : null;
   const key = (f ? f.path : '') + '\n' + svg;
   if (key === last.svg) return;
   last.svg = key;
   $('figure').innerHTML = svg || '';
 }
+
+function renderTabs() {
+  // 図が 1 つのときは、図の名前だけを出し、タブを出さない
+  $('tabs').replaceChildren(...(state.figures.length > 1 ? state.figures : []).map(f => {
+    const b = el('button', {type: 'button', className: 'tab' + (f.tab === tab ? ' on' : '')}, f.tab);
+    b.onclick = () => { tab = f.tab; folded = false; renderTabs(); renderFigure(); };
+    return b;
+  }));
+}
+$('fold').onclick = () => { folded = !folded; renderFigure(); };
 
 // F5: 文書を出す
 async function renderDoc() {
@@ -237,30 +361,20 @@ async function renderDoc() {
     : marked.parse(md);
 }
 
-// F3: 会話を出す
-function renderConversation(text) {
-  const items = [];
-  for (const line of text.split('\n')) {
-    const m = line.match(/^(ユーザー|Claude Code): ?(.*)$/);
-    if (m) items.push({user: m[1] === 'ユーザー', lines: [m[2]]});
-    else if (items.length) items[items.length - 1].lines.push(line);
+// F6: プロンプトを送る。送れなかったときは、入力欄の上に理由を出し、書いた文を入力欄に戻す
+async function send(text, fromChoice) {
+  let error = null;
+  try {
+    const r = await fetch('/api/prompt', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text})});
+    if (!r.ok) error = await r.text();
+  } catch { error = '中継サーバーにつながりません。'; }
+  $('err').hidden = !error;
+  $('err').textContent = error ? '送れませんでした。' + error : '';
+  $('input').classList.toggle('ng', !!error);
+  if (error) {
+    if (fromChoice) { picked = null; renderChat(); }
+    else $('input').value = text;
   }
-  const box = $('messages');
-  box.replaceChildren(...items.map(it => {
-    const text = it.lines.join('\n').trim();
-    if (it.user) return el('div', {className: 'msg user'}, text);
-    // Claude Code の返事は md なので、見出し、表、箇条書きの形で出す
-    const m = el('div', {className: 'msg ai md'});
-    m.innerHTML = marked.parse(text);
-    return m;
-  }));
-  box.scrollTop = box.scrollHeight;
-}
-
-// F6: プロンプトを送る
-async function send(text) {
-  const r = await fetch('/api/prompt', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text})});
-  if (!r.ok) alert(await r.text());
   load();
 }
 
@@ -274,10 +388,11 @@ $('form').onsubmit = e => {
   const text = $('input').value.trim();
   if (!text) return;
   $('input').value = '';
-  send(text);
+  send(text, false);
 };
 
 // F9: 画面の更新を受ける(2 秒ごとに読み直す)
+renderStages();
 load();
 setInterval(load, 2000);
 </script>
