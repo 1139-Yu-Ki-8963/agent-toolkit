@@ -97,6 +97,16 @@ code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Origin: http://evil.ex
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST -H "Origin: http://127.0.0.1:${port}" -H 'Content-Type: application/json' -d '{"text":"' "http://127.0.0.1:${port}/api/prompt")
 [ "$code" = "400" ] && ok "(e) 壊れた JSON は 400" || ng "(e) 壊れた JSON が $code"
 
+# (f) state.json が空か一瞬ないときも、中継サーバーは作業のフォルダを忘れない
+cp "${workDir}/ui/state.json" "${workDir}/ui/state.json.bak"
+: > "${workDir}/ui/state.json"
+wd=$(curl -s "http://127.0.0.1:${port}/api/status" | node -pe 'JSON.parse(require("fs").readFileSync(0)).workDir')
+[ "${wd}" = "${workDir}" ] && ok "(f) state.json が空でも workDir は ${workDir} のまま" || ng "(f) state.json が空で workDir が ${wd} になった"
+rm "${workDir}/ui/state.json"
+wd=$(curl -s "http://127.0.0.1:${port}/api/status" | node -pe 'JSON.parse(require("fs").readFileSync(0)).workDir')
+[ "${wd}" = "${workDir}" ] && ok "(f) state.json が一瞬なくても workDir は ${workDir} のまま" || ng "(f) state.json がなくて workDir が ${wd} になった"
+mv "${workDir}/ui/state.json.bak" "${workDir}/ui/state.json"
+
 # (c) 止めて起動し直し、/api/resume で同じ会話の ID が使われる
 first_id=$(grep -o '"sessionId":"[^"]*"' "${workDir}/ui/session.json" | cut -d'"' -f4)
 stop_server

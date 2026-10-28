@@ -249,6 +249,8 @@ async function load() {
   // 文が空か JSON として読めない state.json は、書いている途中とみなし、前の状態を保つ
   let parsed = null;
   if (s) { try { parsed = JSON.parse(s); } catch { parsed = undefined; } }
+  // いったん作業の状態を読んだあとは、state.json が空か読めないときも前の状態を保つ(AI が書き直す途中で画面を初期表示に戻さないため)
+  if (state && !parsed) parsed = undefined;
   if (s !== last.state && parsed !== undefined) {
     last.state = s;
     state = parsed;

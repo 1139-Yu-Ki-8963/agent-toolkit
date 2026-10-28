@@ -40,8 +40,8 @@ function saveSession(dir) {
 
 // 作業のフォルダは、起動したあとに output/*/ui/state.json が書かれた最初のフォルダとし、決まったら止めるまで同じフォルダとする
 function findWorkDir() {
-  // state.json が消えた(スキルの名前を変えて移した)作業のフォルダは探し直す
-  if (workDir && !fs.existsSync(path.join(workDir, 'ui', 'state.json'))) workDir = null;
+  // 作業のフォルダそのものが消えたときだけ探し直す。state.json が書き直しの途中でないときに、作業のフォルダを忘れないため
+  if (workDir && !fs.existsSync(workDir)) workDir = null;
   if (workDir) return workDir;
   let first = null;
   let firstTime = Infinity;
