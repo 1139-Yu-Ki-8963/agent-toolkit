@@ -31,6 +31,8 @@ const openAgents = new Set();
 
 // 作業のフォルダは、起動したあとに output/*/ui/state.json が書かれた最初のフォルダとし、決まったら止めるまで同じフォルダとする
 function findWorkDir() {
+  // 引数で決めていない作業のフォルダは、スキルの名前を変えて移したときに探し直す
+  if (workDir && !arg && !fs.existsSync(path.join(workDir, 'ui', 'state.json'))) workDir = null;
   if (workDir) return workDir;
   let first = null;
   let firstTime = Infinity;
