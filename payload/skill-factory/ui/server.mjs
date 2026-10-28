@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// スキル作成の確認と承認の画面の中継(設計: docs/スキル作成の確認と承認の画面/設計書.html)。
+// スキル作成の確認と承認の画面の中継サーバー(設計: docs/スキル作成の確認と承認の画面/設計書.html)。
 // 使い方: skill-factory/ で `node ui/server.mjs`。
 // 見本や既にある作業のフォルダを開くときだけ、`node ui/server.mjs <作業のフォルダのパスかスキルの名前>` とする。
 import http from 'node:http';

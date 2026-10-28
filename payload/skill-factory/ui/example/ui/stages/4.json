@@ -50,8 +50,8 @@
   ],
   "figures": [
     {
-      "tab": "全体の流れ図",
-      "path": "ui/figures/1-全体の流れ図.svg"
+      "tab": "作業の流れ図",
+      "path": "ui/figures/1-作業の流れ図.svg"
     },
     {
       "tab": "分割の比較図",
