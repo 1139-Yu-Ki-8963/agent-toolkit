@@ -12,7 +12,12 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:'Noto Sans JP',sy
 header.page{padding:24px 32px;background:#fff;border-bottom:1px solid var(--line)}
 header.page h1{margin:0 0 8px;font-size:22px}
 header.page p{margin:0;font-size:14px;color:var(--muted)}
-nav.toc{padding:12px 32px;font-size:14px;display:flex;gap:16px;flex-wrap:wrap;background:#fff;border-bottom:1px solid var(--line)}
+body{display:grid;grid-template-columns:220px 1fr;grid-template-rows:auto 1fr}
+header.page{grid-column:1/3}
+nav.toc{grid-column:1;position:sticky;top:0;align-self:start;height:100vh;overflow:auto;box-sizing:border-box;padding:16px;font-size:13px;display:flex;flex-direction:column;gap:8px;background:#fff;border-right:1px solid var(--line)}
+nav.toc a{text-decoration:none}
+nav.toc a.cur{font-weight:700}
+.boards{grid-column:2;min-width:0}
 nav.toc a{color:#1d5fbf}
 section.board{padding:24px 32px}
 section.board h2{margin:0 0 4px;font-size:18px}
@@ -24,7 +29,6 @@ footer.page{padding:16px 32px 32px;font-size:12px;color:var(--muted)}
 <body>
 <header class="page">
 <h1>スキル作成の確認と承認の画面のイメージ</h1>
-<p>skill-factory(Claude Code のスキルを、要件定義からテストまで段階を踏んで作成できるフォルダ)に付ける画面の設計図。最初に部品と状態のパターン、次に開いた直後の画面、そのあとに段階 1 を書いている間と質問に答える画面と、再開した直後の画面と、規約 skill-making-flow の段階 1 から 8 に 1 枚ずつを置き、最後に段階ごとに使うスキルと規約を置く。上の帯が段階と成果物の状態、左が AI との会話と選択肢、右がその段階の図と文書。Claude の Design(キャンバス)で作ったものを 1 枚の HTML にした。元のキャンバス: https://claude.ai/artifact/BbdZghRYTtntWQ3DPJNVxG(段階 1 から 8、作成日: 2026-10-26)、https://claude.ai/artifact/EfjjJxZtpp45cC3LZ776MR(部品と開いた直後の画面、作成日: 2026-10-27)</p>
 </header>
 <nav class="toc">
 <a href="#parts">部品と状態のパターン</a>
@@ -43,6 +47,7 @@ footer.page{padding:16px 32px 32px;font-size:12px;color:var(--muted)}
 <a href="#stack">段階ごとのスキルと規約</a>
 </nav>
 
+<div class="boards">
 <section class="board" id="parts">
   <h2>部品と状態のパターン</h2>
   <p class="desc">状態が何通りもある部品を、状態ごとに並べる。段階 1 から 8 の画面は、この部品で描く。</p>
@@ -1558,5 +1563,11 @@ description: 議事録の md を 1 本受け取り、決定事項を 300 字以�
 </section>
 
 <footer class="page">図は横幅 1440px で描いてある。画面が狭いときは横にスクロールして見る。</footer>
+</div>
+<script>
+const links=[...document.querySelectorAll("nav.toc a")];
+const io=new IntersectionObserver(es=>{for(const e of es){if(e.isIntersecting){links.forEach(a=>a.classList.toggle("cur",a.getAttribute("href")==="#"+e.target.id));}}},{rootMargin:"-10% 0px -80% 0px"});
+document.querySelectorAll("section.board").forEach(b=>io.observe(b));
+</script>
 </body>
 </html>
