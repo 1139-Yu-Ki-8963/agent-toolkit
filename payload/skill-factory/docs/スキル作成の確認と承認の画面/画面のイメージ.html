@@ -24,13 +24,14 @@ footer.page{padding:16px 32px 32px;font-size:12px;color:var(--muted)}
 <body>
 <header class="page">
 <h1>スキル作成の確認と承認の画面のイメージ</h1>
-<p>skill-factory(Claude Code のスキルを、要件定義からテストまで段階を踏んで作成できるフォルダ)に付ける画面の設計図。最初に部品と状態のパターン、次に開いた直後の画面、そのあとに段階 1 を書いている間と質問に答える画面と、規約 skill-making-flow の段階 1 から 8 に 1 枚ずつを置き、最後に段階ごとに使うスキルと規約を置く。上の帯が段階と成果物の状態、左が AI との会話と選択肢、右がその段階の図と文書。Claude の Design(キャンバス)で作ったものを 1 枚の HTML にした。元のキャンバス: https://claude.ai/artifact/BbdZghRYTtntWQ3DPJNVxG(段階 1 から 8、作成日: 2026-10-26)、https://claude.ai/artifact/EfjjJxZtpp45cC3LZ776MR(部品と開いた直後の画面、作成日: 2026-10-27)</p>
+<p>skill-factory(Claude Code のスキルを、要件定義からテストまで段階を踏んで作成できるフォルダ)に付ける画面の設計図。最初に部品と状態のパターン、次に開いた直後の画面、そのあとに段階 1 を書いている間と質問に答える画面と、再開した直後の画面と、規約 skill-making-flow の段階 1 から 8 に 1 枚ずつを置き、最後に段階ごとに使うスキルと規約を置く。上の帯が段階と成果物の状態、左が AI との会話と選択肢、右がその段階の図と文書。Claude の Design(キャンバス)で作ったものを 1 枚の HTML にした。元のキャンバス: https://claude.ai/artifact/BbdZghRYTtntWQ3DPJNVxG(段階 1 から 8、作成日: 2026-10-26)、https://claude.ai/artifact/EfjjJxZtpp45cC3LZ776MR(部品と開いた直後の画面、作成日: 2026-10-27)</p>
 </header>
 <nav class="toc">
 <a href="#parts">部品と状態のパターン</a>
 <a href="#b0">開いた直後の画面</a>
 <a href="#b1w">段階 1 書いている間</a>
 <a href="#b1q">段階 1 質問に答える</a>
+<a href="#b1r">再開した直後</a>
 <a href="#b1">段階 1 要件定義書</a>
 <a href="#b2">段階 2 分割設計書</a>
 <a href="#b3">段階 3 構成の案</a>
@@ -337,7 +338,7 @@ footer.page{padding:16px 32px 32px;font-size:12px;color:var(--muted)}
 
 <section class="board" id="b0">
   <h2>開いた直後の画面</h2>
-  <p class="desc">AI が画面の状態のファイルを書く前の画面。右の欄は出さず、見出しと入力欄だけを中央に出す。見出しは、ユーザーが最初にすること(やりたい作業を書く)を言う。</p>
+  <p class="desc">作業のフォルダが決まる前の画面。右の欄は出さず、見出しと入力欄を中央に出す。入力欄の下に、output/ の下に ui/state.json がある作業を「途中の作業」として並べ、行の「続きから」を押すと、中継サーバーがその作業のフォルダと ui/session.json の会話の ID で続きを始める。途中の作業が 0 件なら、この一覧は出さない。</p>
   <div class="frame" style="width:1280px"><div style="width: 1280px; height: 760px; display: flex; flex-direction: column; background: #f6f7f9; color: #1f2328; font-family: 'Noto Sans JP', system-ui, sans-serif">
   <header style="display: flex; align-items: center; gap: 16px; padding: 12px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
     <div style="font-weight: 700; font-size: 16px">skill-factory</div>
@@ -364,6 +365,21 @@ footer.page{padding:16px 32px 32px;font-size:12px;color:var(--muted)}
         <textarea id="input" rows="3" placeholder="例: 議事録を要約するスキルを作って" style="flex: 1 1 auto; min-width: 0; padding: 8px; border: 0; font-size: 15px; line-height: 1.5; resize: none; font-family: inherit; outline: none"></textarea>
         <button type="button" style="height: 44px; padding: 0 18px; border: 0; border-radius: 8px; background: #1d5fbf; color: #ffffff; font-size: 14px; font-weight: 500; font-family: inherit">送る</button>
       </form>
+      <div style="padding: 16px; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px">
+        <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px"><div style="font-size: 14px; font-weight: 700">途中の作業</div><div style="font-size: 12px; color: #57606a">output/ の下に ui/state.json がある作業。新しい作業は、上の入力欄から始める</div></div>
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: center; padding: 10px 0; border-top: 1px solid #eef1f5">
+  <div><div style="font-size: 14px; font-weight: 700">コミットの文面</div><div style="font-size: 12px; color: #57606a">段階 2 分割設計書 承認待ち ・ 最後の保存 10:42 ・ output/2026-10-28-1000/</div></div>
+  <button type="button" style="height: 32px; padding: 0 14px; border: 1px solid #1d5fbf; border-radius: 8px; background: #ffffff; color: #1d5fbf; font-size: 13px; font-family: inherit">続きから</button>
+</div>
+        <div style="display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: center; padding: 10px 0; border-top: 1px solid #eef1f5">
+  <div><div style="font-size: 14px; font-weight: 700">議事録の要約</div><div style="font-size: 12px; color: #57606a">段階 1 要件定義書 質問中(5 問のうち 2 問に回答) ・ 最後の保存 11:05 ・ output/2026-10-28-1100/</div></div>
+  <button type="button" style="height: 32px; padding: 0 14px; border: 1px solid #1d5fbf; border-radius: 8px; background: #ffffff; color: #1d5fbf; font-size: 13px; font-family: inherit">続きから</button>
+</div>
+        <details style="padding-top: 8px; border-top: 1px solid #eef1f5; font-size: 12px; color: #57606a"><summary>終わった作業 1 件</summary><div style="display: grid; grid-template-columns: 1fr auto; gap: 4px 16px; align-items: center; padding: 10px 0; border-top: 1px solid #eef1f5">
+  <div><div style="font-size: 14px; font-weight: 700">ログの要約</div><div style="font-size: 12px; color: #57606a">完了(8 段階が済み) ・ 最後の保存 10-27 18:20 ・ output/2026-10-27-1700/</div></div>
+  <button type="button" style="height: 32px; padding: 0 14px; border: 1px solid #1d5fbf; border-radius: 8px; background: #ffffff; color: #1d5fbf; font-size: 13px; font-family: inherit">続きから</button>
+</div></details>
+      </div>
     </section>
   </main>
 </div></div>
@@ -455,6 +471,84 @@ footer.page{padding:16px 32px 32px;font-size:12px;color:var(--muted)}
         <div style="align-self: flex-end; max-width: 85%; padding: 10px 14px; border-radius: 14px 14px 4px 14px; background: #1d5fbf; color: #ffffff; font-size: 14px; line-height: 1.6">議事録を要約するスキルを作って</div>
         <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">段階 1 を defining-skill-requirements で始めます。作業の名前は「議事録の要約」とします。</div>
         <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">要件定義書を書くための質問を、右の欄に 5 問出しました。答えた問いから送れます。</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">質問 3: 要約に決定事項の一覧を入れますか。</div>
+        <div style="display: flex; flex-wrap: wrap; gap: 8px"><button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 999px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">入れる</button><button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 999px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">入れない</button></div>
+      </div>
+      <form style="display: flex; align-items: flex-end; gap: 8px; padding: 12px 16px; border-top: 1px solid #e6e9ee">
+        <label for="chat-input-1" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">メッセージ</label>
+        <textarea id="chat-input-1" rows="2" placeholder="例: 議事録を要約するスキルを作って" style="flex: 1 1 auto; min-width: 0; padding: 10px 12px; line-height: 1.5; resize: none; border: 1px solid #c7ced6; border-radius: 8px; font-size: 14px; font-family: inherit"></textarea>
+        <button type="button" style="height: 44px; padding: 0 16px; border: 0; border-radius: 8px; background: #1d5fbf; color: #ffffff; font-size: 14px; font-weight: 500; font-family: inherit">送る</button>
+      </form>
+    </section>
+
+    <section aria-label="プレビュー" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px; overflow: hidden">
+      <div style="display: flex; align-items: center; gap: 8px; padding: 8px 16px; border-bottom: 1px solid #e6e9ee">
+        <div style="font-size: 12px; color: #57606a">要件定義書のための質問</div>
+        
+      </div>
+
+      <div style="flex: 1 1 auto; padding: 20px; background: #fbfcfd">
+        <div style="width: 720px; box-sizing: border-box; padding: 16px; border: 1px solid #d9dde3; border-radius: 8px; background: #ffffff">
+  <div style="display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px"><div style="font-size: 14px; font-weight: 700">要件定義書のための質問</div><div style="font-size: 12px; color: #57606a">全 5 問(回答済み 2 問、残り 3 問)</div></div>
+  <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-top: 1px solid #eef1f5">
+  <div style="display: flex; gap: 8px; align-items: baseline"><span style="font-size: 12px; font-weight: 700; color: #1a7f37">✓ 質問 1</span><span style="font-size: 13px; font-weight: 700">要約の長さの上限は何字にしますか。</span></div>
+  <div style="display: flex; flex-wrap: wrap; gap: 8px"><button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #1d5fbf; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px; font-family: inherit">300 字で</button><button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 999px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">500 字で</button><button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 999px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">上限なし</button></div>
+</div>
+  <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-top: 1px solid #eef1f5">
+  <div style="display: flex; gap: 8px; align-items: baseline"><span style="font-size: 12px; font-weight: 700; color: #1a7f37">✓ 質問 2</span><span style="font-size: 13px; font-weight: 700">議事録のファイルの形式は何ですか。</span></div>
+  <div style="display: flex; flex-wrap: wrap; gap: 8px"><button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #1d5fbf; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px; font-family: inherit">Markdown</button><button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 999px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">テキスト</button><button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 999px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">Word</button></div>
+</div>
+  <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-top: 1px solid #eef1f5">
+  <div style="display: flex; gap: 8px; align-items: baseline"><span style="font-size: 12px; font-weight: 700; color: #1d5fbf"> 質問 3</span><span style="font-size: 13px; font-weight: 700">要約に決定事項の一覧を入れますか。</span></div>
+  <div style="display: flex; flex-wrap: wrap; gap: 8px"><button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 999px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">入れる</button><button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 999px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">入れない</button></div>
+</div>
+  <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-top: 1px solid #eef1f5">
+  <div style="display: flex; gap: 8px; align-items: baseline"><span style="font-size: 12px; font-weight: 700; color: #1d5fbf"> 質問 4</span><span style="font-size: 13px; font-weight: 700">要約をどこに書きますか。</span></div>
+  <div style="display: flex; flex-wrap: wrap; gap: 8px"><button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 999px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">議事録と同じフォルダ</button><button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 999px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">チャットに表示</button></div>
+</div>
+  <div style="display: flex; flex-direction: column; gap: 8px; padding: 12px 0; border-top: 1px solid #eef1f5">
+  <div style="display: flex; gap: 8px; align-items: baseline"><span style="font-size: 12px; font-weight: 700; color: #1d5fbf"> 質問 5</span><span style="font-size: 13px; font-weight: 700">ほかに守ってほしいことはありますか。</span></div>
+  <div style="min-height: 36px; box-sizing: border-box; padding: 8px 10px; border: 1px solid #c7ced6; border-radius: 8px; font-size: 13px; color: #8c959f">答えを書く</div>
+</div>
+  <div style="display: flex; justify-content: flex-end; gap: 8px; padding-top: 12px; border-top: 1px solid #eef1f5"><div style="align-self: center; font-size: 12px; color: #57606a">答えた問いだけを送る</div><button type="button" style="height: 40px; padding: 0 16px; border: 0; border-radius: 8px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500; font-family: inherit">回答を送る</button></div>
+</div>
+      </div>
+    </section>
+
+  </main>
+</div></div>
+</section>
+
+<section class="board" id="b1r">
+  <h2>再開した直後の画面</h2>
+  <p class="desc">開いた直後の画面で「議事録の要約」の「続きから」を押した直後。中継サーバーは、その作業のフォルダの ui/session.json の会話の ID で Claude Code の会話を続ける。画面は ui/state.json を読むので、段階の帯、会話、右の欄の質問の一覧は、離れたときの状態のまま出る(答えた 2 問に印が付き、残り 3 問が答えを待つ)。会話の最後に、AI の「再開しました」の吹き出しを出す。</p>
+  <div class="frame" style="width:1440px"><div style="min-height: 1000px; display: flex; flex-direction: column; background: #f6f7f9; font-family: 'Noto Sans JP', system-ui, sans-serif; color: #1f2328">
+
+  <header style="display: flex; align-items: center; gap: 16px; padding: 12px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
+    <div style="font-weight: 700; font-size: 16px">skill-factory</div>
+    <div style="font-size: 13px; color: #57606a">議事録の要約</div>
+    <button type="button" aria-expanded="false" style="display: flex; align-items: center; gap: 8px; padding: 4px 12px; border: 0; border-radius: 999px; background: #dfe9f8; color: #1d5fbf; font-size: 13px; font-weight: 500; font-family: inherit">defining-skill-requirements を実行中<svg aria-hidden="true" width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4.5 6 7.5 9 4.5"/></svg></button><div role="status" style="margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; color: #57606a"><span aria-hidden="true" style="width: 8px; height: 8px; border-radius: 50%; background: #1a7f37"></span>接続中</div>
+  </header>
+
+  <nav aria-label="段階" style="display: flex; flex-wrap: wrap; gap: 8px; padding: 10px 24px; background: #ffffff; border-bottom: 1px solid #d9dde3">
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #1d5fbf; color: #ffffff; font-size: 13px; font-weight: 500"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; color: #1d5fbf; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">1</span><span style="display: flex; flex-direction: column; line-height: 1.2">要件定義書<span style="font-size: 11px; font-weight: 400">下書き</span></span></div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">2</span>分割設計書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">3</span>構成の案</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">4</span>SKILL.md の下書き</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">5</span>照合と修正</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">6</span>テスト計画書</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">7</span>シナリオ</div>
+    <div style="display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-radius: 999px; background: #eef1f5; color: #57606a; font-size: 13px"><span style="display: inline-flex; width: 20px; height: 20px; border-radius: 999px; background: #ffffff; border: 1px solid #c7ced6; align-items: center; justify-content: center; font-size: 12px">8</span>テストの実行</div>
+  </nav>
+
+  <main style="display: flex; flex-wrap: wrap; flex: 1 1 auto; gap: 16px; padding: 16px 24px 24px">
+
+    <section aria-label="AI との会話" style="flex: 1 1 360px; min-width: 0; max-width: 420px; display: flex; flex-direction: column; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px; overflow: hidden">
+      <div style="flex: 1 1 auto; display: flex; flex-direction: column; gap: 12px; padding: 16px; overflow: auto">
+        <div style="align-self: flex-end; max-width: 85%; padding: 10px 14px; border-radius: 14px 14px 4px 14px; background: #1d5fbf; color: #ffffff; font-size: 14px; line-height: 1.6">議事録を要約するスキルを作って</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">段階 1 を defining-skill-requirements で始めます。作業の名前は「議事録の要約」とします。</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">要件定義書を書くための質問を、右の欄に 5 問出しました。答えた問いから送れます。</div>
+        <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">再開しました。質問 3 から 5 が残っています。</div>
         <div style="align-self: flex-start; max-width: 90%; padding: 10px 14px; border-radius: 14px 14px 14px 4px; background: #eef1f5; font-size: 14px; line-height: 1.6">質問 3: 要約に決定事項の一覧を入れますか。</div>
         <div style="display: flex; flex-wrap: wrap; gap: 8px"><button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 999px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">入れる</button><button type="button" style="height: 32px; padding: 0 12px; border: 1px solid #c7ced6; border-radius: 999px; background: #ffffff; color: #1f2328; font-size: 13px; font-family: inherit">入れない</button></div>
       </div>
