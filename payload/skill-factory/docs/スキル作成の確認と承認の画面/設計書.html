@@ -21,26 +21,29 @@ code{font-size:12px}
 <body>
 <main>
 <h1>確認と承認の画面の設計書</h1>
-<p class="note">作成日: 2026-10-26。この設計書は、要件定義書(同じフォルダの 要件定義書.md)の画面、中継サーバー、スキル 2 本を、どの利用の流れでも正しく状態遷移させるための設計を持つ。章 8 の実測の結果を前提にする。</p>
+<p class="note">作成日: 2026-10-26。改訂日: 2026-10-28(作業のフォルダを <code>output/&lt;開始日時&gt;/</code> にし、作業のフォルダの状態遷移、再開、ファイルを書く時点を足した)。この設計書は、要件定義書(同じフォルダの 要件定義書.md)の画面、中継サーバー、スキル 2 本を、どの利用の流れでも正しく状態遷移させるための設計を持つ。章 8 の実測の結果を前提にする。中継サーバーの仕様と運用は、要件定義書の章 7 と章 8 が持つ。</p>
 
 <h2>1. 前提と、この設計書で使う語</h2>
 <table>
 <tr><th>語</th><th>意味</th></tr>
-<tr><td>作業のフォルダ</td><td>1 回の作業の成果物と画面のファイルを置くフォルダ。決まり方は章 4。画面のファイルは、作業のフォルダの <code>ui/</code> に置く</td></tr>
-<tr><td>会話の ID</td><td>中継サーバーを 1 回起動するごとに 1 つ作る ID。画面からのすべての送信は、この ID の 1 つの claude の会話になる</td></tr>
+<tr><td>作業のフォルダ</td><td>1 回の作業の成果物と画面のファイルを置くフォルダ <code>output/&lt;開始日時&gt;/</code>(規約 skill-making-flow の規則「作業のフォルダとスキルのフォルダ」)。決まり方は章 4。画面のファイルは、作業のフォルダの <code>ui/</code> に置く</td></tr>
+<tr><td>スキルのフォルダ</td><td>作業のフォルダの <code>skills/&lt;スキルの名前&gt;/</code>。段階 3 から 8 の成果物を置く</td></tr>
+<tr><td>会話の ID</td><td>1 つの claude の会話を指す ID。中継サーバーは、新しい作業では起動のときに作り、続きからでは作業のフォルダの <code>ui/session.json</code> から読む</td></tr>
 <tr><td>仮の会話</td><td>作業のフォルダが決まる前の会話。<code>ui/.pending/&lt;会話の ID&gt;.md</code>(skill-factory の <code>ui/</code> の下)に置く</td></tr>
-<tr><td>画面のファイル</td><td>作業のフォルダの <code>ui/state.json</code>、<code>ui/figures/</code>、<code>ui/conversation.md</code></td></tr>
+<tr><td>画面のファイル</td><td>作業のフォルダの <code>ui/state.json</code>、<code>ui/session.json</code>、<code>ui/figures/</code>、<code>ui/conversation.md</code></td></tr>
+<tr><td>途中の作業</td><td><code>output/*/ui/state.json</code> がある作業。開いた直後の画面の一覧に出る(章 11)</td></tr>
 </table>
 
 <h2>2. 利用の流れ</h2>
-<p class="note">起動は、どの流れでも <code>node ui/server.mjs</code> の 1 つである。流れは、ユーザーが画面から最初に送る依頼の文の形で決まる。依頼の形と始める段階は、規約 skill-making-flow の規則 2 の表と docs/操作の流れ.md のとおりである。</p>
+<p class="note">起動は、どの流れでも <code>node ui/server.mjs</code> の 1 つである。流れは、ユーザーが画面から最初に送る依頼の文の形か、「続きから」で決まる。依頼の形と始める段階は、規約 skill-making-flow の規則 3 の表と docs/操作の流れ.md のとおりである。</p>
 <table>
 <tr><th>流れ(最初の依頼の文の形)</th><th>起動した時点の作業のフォルダ</th><th>始める段階</th><th>AI が state.json を最初に書く時点</th><th>画面に最初に出る文書と決めてもらうこと</th></tr>
-<tr><td>「&lt;作業&gt;をするスキルを作って」</td><td>ない。AI がスキルの名前を提案し、段階 1 の step 3-2 で作る</td><td>1</td><td>段階 1 の最初の質問の前</td><td>要件定義書.md(まだない)と、質問 1</td></tr>
+<tr><td>「&lt;作業&gt;をするスキルを作って」</td><td>ない。AI が <code>output/&lt;開始日時&gt;/</code> を段階 1 の前に作る</td><td>1</td><td>段階 1 のスキルを始める前</td><td>要件定義書.md(まだない)と、質問 1</td></tr>
+<tr><td>開いた直後の画面の「続きから」</td><td>ユーザーが押した行の作業のフォルダ</td><td>離れたときの段階</td><td>書かない(離れたときの state.json のまま)</td><td>離れたときの文書と決めてもらうこと</td></tr>
 <tr><td>要件定義書のパス</td><td>ある</td><td>2</td><td>段階 2 の切り方の案の選択の前</td><td>要件定義書.md と、案の選択</td></tr>
 <tr><td>分割設計書のパス</td><td>ある</td><td>3</td><td>段階 3 の最初の質問の前</td><td>分割設計書.md と、質問 1</td></tr>
 <tr><td>構成の案のパス</td><td>ある</td><td>4</td><td>段階 4 の出力先の質問の前</td><td>構成の案.md と、出力先の質問</td></tr>
-<tr><td>「&lt;スキルの名前&gt; を照合して」</td><td>ある</td><td>5(照合だけ)</td><td>照合の指摘の一覧を見せる前</td><td>SKILL.md と、「直してよいか」</td></tr>
+<tr><td>「&lt;スキルの名前&gt; を照合して」</td><td>ある</td><td>5(照合だけ)</td><td>段階 5 のスキルを始める前</td><td>SKILL.md と、「直してよいか」</td></tr>
 <tr><td>「&lt;スキルの名前&gt; の &lt;直す内容&gt; を直して」</td><td>ある</td><td>5(fixing-skill から)</td><td>依頼の一覧.md を書いたあと、承認の前</td><td>依頼の一覧.md と、直しの承認</td></tr>
 <tr><td>スキルのフォルダのパスと「テストを作って」</td><td>ある</td><td>5 から 6</td><td>段階 5 の照合の前</td><td>SKILL.md と、なし</td></tr>
 <tr><td>テスト計画書のパスと実施する範囲</td><td>ある</td><td>7</td><td>段階 7 を始める前</td><td>tests/テスト計画書.md と、なし</td></tr>
@@ -48,7 +51,7 @@ code{font-size:12px}
 <tr><td>判定の記録のパス</td><td>ある</td><td>5(fixing-skill から)</td><td>直しの承認の前</td><td>判定の記録.md と、直しの承認</td></tr>
 <tr><td>どの形にも当たらない依頼(挨拶、質問)</td><td>決まらない</td><td>なし</td><td>書かない</td><td>なし。AI の返事に依頼の形の一覧が出る</td></tr>
 </table>
-<p class="note">段階 2 以降から始める流れでは、AI は、始める段階より前の段階の成果物の状態を「済み」にして書く。</p>
+<p class="note">段階 2 以降から始める流れでは、AI は、始める段階より前の段階の成果物の状態を「済み」にして書く。既にある作業のフォルダの下の成果物のパスから始める流れでは、AI は、そのパスの作業のフォルダを使う。</p>
 
 <h2>3. 主体ごとの状態</h2>
 <h3>3.1 中継サーバーと画面</h3>
@@ -56,16 +59,42 @@ code{font-size:12px}
 stateDiagram-v2
   [*] --> 作業なし_待ち: 起動(会話の ID を作る)
   作業なし_待ち --> 作業なし_AI実行中: 送る(1 回目は --session-id)
-  作業なし_AI実行中 --> 作業あり_AI実行中: AI が state.json を書く(作業のフォルダを決め、仮の会話を移す)
+  作業なし_待ち --> 作業あり_待ち: 続きから(session.json の会話の ID を読む)
+  作業なし_AI実行中 --> 作業あり_AI実行中: AI が state.json を書く(作業のフォルダを決め、仮の会話を移し、session.json を書く)
   作業なし_AI実行中 --> 作業なし_待ち: AI が state.json を書かずに終わる
   作業あり_AI実行中 --> 作業あり_決めてもらう: AI が決めてもらうことを持つ state.json を書いて終わる
-  作業あり_AI実行中 --> 作業あり_待ち: AI が決めてもらうことなしで終わる
+  作業あり_AI実行中 --> 作業あり_待ち: AI が決めてもらうことなしで終わる(異常終了を含む)
   作業あり_決めてもらう --> 作業あり_AI実行中: 承認のボタンか入力欄から送る(--resume)
   作業あり_待ち --> 作業あり_AI実行中: 入力欄から送る(--resume)
 </pre></div>
-<p class="note">AI が実行中の間の送信は、中継サーバーが断る(同時に動かす claude は 1 つ)。作業のフォルダは、一度決まったら、中継サーバーを止めるまで変えない。別の作業に移るときは、ユーザーが中継サーバーを起動し直す。</p>
+<p class="note">AI が実行中の間の送信は、中継サーバーが断る(同時に動かす claude は 1 つ)。作業のフォルダは、一度決まったら、中継サーバーを止めるまで変えない。別の作業に移るときは、ユーザーが中継サーバーを起動し直す。claude が 0 でない終了コードで終わったときは、中継サーバーは、章 5 のとおりに conversation.md に終了コードを書き、state.json は変えない。</p>
 
-<h3>3.2 段階ごとの成果物</h3>
+<h3>3.2 作業のフォルダ</h3>
+<p class="note">作業のフォルダの状態は、<code>ui/state.json</code> の値から決まる。章 11 の途中の作業の一覧の「状態」は、この状態である。契機は、ユーザーの「依頼の送信」(入力欄と質問の一覧からの送信)と「承認」(承認のボタン)、AI の「承認の要求」(決めてもらうことを持つ state.json を書く)と「完了の報告」(段階の完了の報告のあとに state.json を書く)の 4 つとする。</p>
+<div class="box"><pre class="mermaid">
+stateDiagram-v2
+  [*] --> 作業なし
+  作業なし --> 段階1から2作業中: 依頼の送信(AI が作業のフォルダと state.json を作る)
+  段階1から2作業中 --> 段階1から2作業中: 依頼の送信(質問の答え、直す指示)
+  段階1から2作業中 --> 承認待ち: 承認の要求(要件定義書か分割設計書)
+  承認待ち --> 段階1から2作業中: 承認(段階 1 の承認。完了の報告のあと段階 2 へ)
+  承認待ち --> 段階3から8作業中: 承認(段階 2 の承認。完了の報告のあと段階 3 へ)
+  承認待ち --> 段階3から8作業中: 承認(段階 3 から 8 の承認)
+  段階3から8作業中 --> 段階3から8作業中: 依頼の送信(質問の答え、直す指示)、完了の報告(段階 4、6、7)
+  段階3から8作業中 --> 承認待ち: 承認の要求(段階 3、5、7、8)
+  段階3から8作業中 --> 完了: 完了の報告(段階 8 の全ケース合格)
+  完了 --> [*]
+</pre></div>
+<table>
+<tr><th>状態 \ 契機</th><th>依頼の送信</th><th>承認の要求</th><th>承認</th><th>完了の報告</th></tr>
+<tr><td>作業なし</td><td>次: 段階 1 から 2 作業中。書かれるファイル: 仮の会話、<code>ui/state.json</code>(AI)、<code>ui/conversation.md</code> と <code>ui/session.json</code>(中継サーバー)</td><td>なし</td><td>なし</td><td>なし</td></tr>
+<tr><td>段階 1 から 2 作業中</td><td>次: 同じ状態。書かれるファイル: <code>conversation.md</code>、<code>state.json</code>(質問の一覧)、成果物の md</td><td>次: 承認待ち。書かれるファイル: 成果物の md、<code>figures/</code> の SVG、<code>state.json</code>(決めてもらうこと)、<code>conversation.md</code></td><td>なし</td><td>なし</td></tr>
+<tr><td>承認待ち</td><td>次: 元の作業中の状態(直す指示)。書かれるファイル: <code>conversation.md</code>、<code>state.json</code></td><td>なし</td><td>次: 段階 1 の承認なら段階 1 から 2 作業中、段階 2 から 8 の承認なら段階 3 から 8 作業中。書かれるファイル: <code>conversation.md</code>、<code>state.json</code>(完了の報告のあとと、次の段階のスキルを始める前)</td><td>なし</td></tr>
+<tr><td>段階 3 から 8 作業中</td><td>次: 同じ状態。書かれるファイル: <code>conversation.md</code>、<code>state.json</code>、スキルのフォルダの成果物</td><td>次: 承認待ち。書かれるファイル: スキルのフォルダの成果物、<code>figures/</code> の SVG、<code>state.json</code>、<code>conversation.md</code></td><td>なし</td><td>次: 段階 4、6、7 なら同じ状態、段階 8 の全ケース合格なら完了。書かれるファイル: <code>state.json</code>(成果物の状態)、<code>conversation.md</code></td></tr>
+<tr><td>完了</td><td>次: 段階 3 から 8 作業中(直す依頼)。書かれるファイル: <code>conversation.md</code>、<code>state.json</code></td><td>なし</td><td>なし</td><td>なし</td></tr>
+</table>
+
+<h3>3.3 段階ごとの成果物</h3>
 <div class="box"><pre class="mermaid">
 stateDiagram-v2
   [*] --> 未着手
@@ -79,10 +108,12 @@ stateDiagram-v2
 <h2>4. 作業のフォルダの決まり方</h2>
 <table>
 <tr><th>流れ</th><th>作業のフォルダ</th></tr>
-<tr><td>新しくスキルを作る流れ</td><td><code>output/&lt;作る順 1 のスキルの名前&gt;/</code>。分割設計書の 2 本目以降のスキルの段階 3 から 8 でも変えない。2 本目以降のスキルの成果物は <code>output/&lt;そのスキルの名前&gt;/</code> に置き、state.json の「いまのスキルの名前と作る順」で見分ける</td></tr>
-<tr><td>既にあるスキルへの流れ</td><td>依頼の文が指すスキルのフォルダ <code>output/&lt;スキルの名前&gt;/</code></td></tr>
-<tr><td>中継サーバーの見つけ方</td><td>起動したあとに <code>output/*/ui/state.json</code> が書かれた最初のフォルダ。起動の前からある state.json は見ない</td></tr>
+<tr><td>新しくスキルを作る流れ</td><td>AI が段階 1 の前に作る <code>output/&lt;開始日時&gt;/</code>。分割設計書の 2 本目以降のスキルの段階 3 から 8 でも変えない。スキル 1 本ごとの成果物は <code>output/&lt;開始日時&gt;/skills/&lt;スキルの名前&gt;/</code> に置き、state.json の「いまのスキルの名前と作る順」で見分ける</td></tr>
+<tr><td>既にある作業への流れ(成果物のパスから始める)</td><td>依頼の文が指すパスの <code>output/&lt;開始日時&gt;/</code></td></tr>
+<tr><td>「続きから」の流れ</td><td>ユーザーが押した行の作業のフォルダ(中継サーバーは <code>/api/resume</code> で受ける)</td></tr>
+<tr><td>中継サーバーの見つけ方(新しい作業)</td><td>送信の前になかった <code>output/*/ui/state.json</code> が、送信のあとに現れた最初のフォルダ。送信の前からある state.json は、途中の作業の一覧にだけ使う</td></tr>
 </table>
+<p class="note">作業の名前は state.json の <code>workName</code> だけが持ち、フォルダの名前は開始日時なので、ユーザーが作業の名前を変えてもフォルダは動かない。</p>
 
 <h2>5. 会話の扱い</h2>
 <div class="box"><pre class="mermaid">
@@ -94,21 +125,46 @@ sequenceDiagram
   Note over S: 起動。会話の ID を作る
   U->>S: 1 回目の送信
   S->>S: 仮の会話に「ユーザー:」を書く
-  S->>C: claude -p --session-id ID --output-format stream-json --verbose --permission-mode acceptEdits
+  S->>C: claude -p --session-id ID --output-format stream-json --verbose --permission-mode acceptEdits --model &lt;CLAUDE_MODEL&gt;(文は標準入力。1 行目は「画面: 新規」)
   C-->>S: 途中の返事(1 つずつ)
   S->>S: 返事ごとに「Claude Code:」を書く
-  C->>F: 段階 1 の step 3-2 でフォルダを作り、最初の質問の前に ui/state.json を書く
-  S->>F: state.json を見つけ、仮の会話を ui/conversation.md の後ろに移す
+  C->>F: 段階 1 の前に output/&lt;開始日時&gt;/ を作り、段階 1 のスキルを始める前に ui/state.json を書く
+  S->>F: state.json を見つけ、仮の会話を ui/conversation.md の後ろに移し、ui/session.json を書く
   C-->>S: 質問 1 で終わる
   U->>S: 2 回目の送信(答えか承認のボタンの文)
   S->>F: ui/conversation.md に「ユーザー:」を書く
-  S->>C: claude -p --resume ID ...
+  S->>C: claude -p --resume ID ...(1 行目は「画面: output/&lt;開始日時&gt;/」)
+</pre></div>
+<p class="note">続きからの流れ(章 11)</p>
+<div class="box"><pre class="mermaid">
+sequenceDiagram
+  actor U as ユーザー(画面)
+  participant S as 中継サーバー
+  participant C as claude
+  participant F as 作業のフォルダ
+  U->>S: GET /api/works
+  S->>F: output/*/ui/state.json を読む
+  S-->>U: 途中の作業の一覧
+  U->>S: POST /api/resume(作業のフォルダ)
+  S->>F: ui/session.json の会話の ID を読む
+  S-->>U: 作業のフォルダと会話の ID
+  U->>S: 送信(答えか承認のボタンの文)
+  S->>C: claude -p --resume ID ...(1 行目は「画面: output/&lt;開始日時&gt;/」)
+  alt --resume が 0 でない終了コードで終わる
+    S->>S: 新しい会話の ID を作る
+    S->>F: ui/session.json を書き直す
+    S-->>U: 「前の会話を続けられないので、新しい会話で始めます。成果物のパスを送ってください」
+    U->>S: 成果物のパスの送信
+    S->>C: claude -p --session-id 新しい ID ...
+  end
 </pre></div>
 <ul>
 <li>conversation.md の 1 件は、「ユーザー:」か「Claude Code:」で始まる行から、次の同じ形の行の前までとする。</li>
+<li>中継サーバーは、送る文を claude の標準入力で渡し、1 行目に「画面: &lt;作業のフォルダ&gt;」(作業のフォルダが決まる前は「画面: 新規」)を置く。AI は、この 1 行目で規約 skill-making-flow の規則「確認と承認の画面を使うときに AI が足す動作」を当てる。</li>
 <li>前の作業の conversation.md が作業のフォルダにあるときは、中継サーバーは、その後ろに新しい会話を足す。</li>
 <li>claude が 0 でない終了コードで終わったときは、中継サーバーは、「Claude Code: (終了コード &lt;番号&gt;) &lt;標準エラーの文&gt;」を書く。</li>
 <li>仮の会話は、作業のフォルダに移したら消す。作業のフォルダが決まらないまま中継サーバーを止めたときは、<code>ui/.pending/</code> に残す。</li>
+<li>中継サーバーは、Ctrl+C を受けると、動いている claude の子プロセスに SIGTERM を送り、5 秒以内に終わらなければ SIGKILL を送ってから終わる。書いている途中の返事は conversation.md に残らず、直前の保存までが残る(要件定義書の章 5)。</li>
 </ul>
 
 <h2>6. ファイルを書く時点と書く役</h2>
@@ -116,6 +172,8 @@ sequenceDiagram
 <tr><th>時点</th><th>書くもの</th><th>書く役</th></tr>
 <tr><td>中継サーバーの起動</td><td>なし(会話の ID は中継サーバーの中に持つ)</td><td>中継サーバー</td></tr>
 <tr><td>作業のフォルダが決まる前の送信と返事</td><td><code>ui/.pending/&lt;会話の ID&gt;.md</code></td><td>中継サーバー</td></tr>
+<tr><td>作業のフォルダが決まったとき(新しい作業では AI が最初に state.json を書いたとき、続きからでは会話の ID が変わったとき)</td><td>作業のフォルダの <code>ui/session.json</code>(会話の ID、作業のフォルダのパス、書いた日時)</td><td>中継サーバー</td></tr>
+<tr><td>段階のスキルを始める前</td><td>作業のフォルダの <code>ui/state.json</code>(段階の番号と成果物の状態「下書き」)</td><td>updating-skill-factory-ui-state(AI が呼ぶ)</td></tr>
 <tr><td>段階のスキルがユーザーに質問か承認を出す前</td><td>作業のフォルダの <code>ui/state.json</code>(決めてもらうことと文書のパス)</td><td>updating-skill-factory-ui-state(AI が呼ぶ)</td></tr>
 <tr><td>段階のスキルが成果物を書いたあと、承認を求める前</td><td>作業のフォルダの <code>ui/figures/&lt;段階の番号&gt;-&lt;図の種類&gt;.svg</code>(規約 skill-making-flow の規則「確認と承認の画面を使うときに AI が足す動作」の表「描く図」にある段階だけ)</td><td>drawing-skill-factory-figure(AI が呼ぶ)</td></tr>
 <tr><td>段階の完了の報告のあと</td><td>作業のフォルダの <code>ui/state.json</code>(次の段階と成果物の状態)</td><td>updating-skill-factory-ui-state(AI が呼ぶ)</td></tr>
@@ -126,13 +184,13 @@ sequenceDiagram
 <h2>7. 部品ごとの扱い</h2>
 <table>
 <tr><th>部品</th><th>扱い</th></tr>
-<tr><td>画面 <code>ui/index.html</code></td><td>使い続ける。F1 から F9 は 8 段階で確かめ済み。選択肢が 0 件の決めてもらうことは、返答の候補(<code>decision.replies</code>)があれば問いの吹き出しと候補のボタンを出し、なければ問いの文だけを出す。2026-10-28 に、画面のイメージの部品に合わせて、F5 の 4 つの状態、F10 から F13 を足した(章 10)</td></tr>
-<tr><td>中継サーバー <code>ui/server.mjs</code></td><td>この設計で作り直す(会話の ID、stream-json の読み取り、作業のフォルダの固定、仮の会話)。2026-10-28 に、状態の問い合わせ <code>/api/status</code> の答えと、段階ごとのスキルと規約の表を返す <code>/api/stages</code> を足した(章 10)</td></tr>
-<tr><td>スキル updating-skill-factory-ui-state</td><td>使い続ける。対応表の <code>choices</code> を「0 件でもよい」に、fixing-skill の手順で直す</td></tr>
+<tr><td>画面 <code>ui/index.html</code></td><td>使い続ける。F1 から F9 は 8 段階で確かめ済み。選択肢が 0 件の決めてもらうことは、返答の候補(<code>decision.replies</code>)があれば問いの吹き出しと候補のボタンを出し、なければ問いの文だけを出す。2026-10-28 に、画面のイメージの部品に合わせて、F5 の 4 つの状態、F10 から F13 を足した(章 10)。F9 は 2 秒ごとの読み直しだけとし、F14「途中の作業の一覧を出す」と F15「続きから始める」を足す(章 11)</td></tr>
+<tr><td>中継サーバー <code>ui/server.mjs</code></td><td>この設計で作り直す(会話の ID、stream-json の読み取り、作業のフォルダの固定、仮の会話)。2026-10-28 に、状態の問い合わせ <code>/api/status</code> の答えと、段階ごとのスキルと規約の表を返す <code>/api/stages</code> を足した(章 10)。同じ日に、起動時の引数の機能を消し、送る文の 1 行目「画面: 〜」、標準入力での受け渡し、Origin の確認、子プロセスの停止、<code>CLAUDE_MODEL</code>、ポートが使用中のときの表示、<code>/api/works</code>、<code>/api/resume</code>、<code>session.json</code> を足す(要件定義書の章 7)</td></tr>
+<tr><td>スキル updating-skill-factory-ui-state</td><td>使い続ける。対応表の <code>choices</code> を「0 件でもよい」に、fixing-skill の手順で直す。リファレンス「画面の状態のファイルの形」は、段階のスキルの表示を state.json の値に変換する対応表を持つ</td></tr>
 <tr><td>スキル drawing-skill-factory-figure</td><td>使い続ける</td></tr>
-<tr><td>規約 skill-making-flow の規則 3</td><td>書く時点と作業のフォルダの文を、章 4 と章 6 のとおりに置き換える</td></tr>
-<tr><td>要件定義書の章 2 と 2.2</td><td>「<code>claude -p --continue</code> の形で渡す」を、会話の ID で渡す形に直す</td></tr>
-<tr><td>README と docs の 3 本</td><td>画面の流れ、新しいスキル 2 本、起動の手順を足す</td></tr>
+<tr><td>規約 skill-making-flow の規則 2 と規則 6</td><td>2026-10-28 に反映済み(作業のフォルダ <code>output/&lt;開始日時&gt;/</code>、依頼の文の 1 行目「画面: 〜」、state.json を書く 3 つの時点、描く図)</td></tr>
+<tr><td>要件定義書</td><td>2026-10-28 に、責務境界、フォルダ、保存、再開、中継サーバーの仕様、運用、受け入れたリスクの一覧を書いた</td></tr>
+<tr><td>README と docs の 3 本</td><td>画面の流れ、新しいスキル 2 本、起動と停止と更新の手順を足す</td></tr>
 </table>
 
 <h2>8. 実測の結果(2026-10-26、skill-factory の写しで本物の claude を動かした)</h2>
@@ -148,7 +206,9 @@ sequenceDiagram
 <tr><th>確かめること</th><th>方法</th></tr>
 <tr><td>新しくスキルを作る流れで、段階 1 の最初の質問の前に state.json ができ、仮の会話が作業のフォルダに移り、2 回目の送信が同じ会話の続きになり、承認のボタンの文で段階 2 に進む</td><td>skill-factory の写しで、本物の claude を、中継サーバーの要求の処理を直接呼ぶテストで動かす</td></tr>
 <tr><td>「&lt;スキルの名前&gt; を照合して」の流れで、前の ui/ を画面に出さず、段階 5 の照合のスクリプトが権限で止まらない</td><td>同じ方法</td></tr>
-<tr><td>画面の 9 機能</td><td>画面を表示しないブラウザで、段階 1 から 8 を開く(前と同じ方法)</td></tr>
+<tr><td>中継サーバーを止めて起動し直し、「続きから」で同じ会話が続く。session.json を消したときは、新しい会話で始まり、成果物のパスの送信で段階が決まる</td><td>同じ方法</td></tr>
+<tr><td>Origin が違う POST が 403 になる。ポートが使用中のときに表示を出して終了コード 1 で終わる。Ctrl+C で子プロセスが止まる</td><td>中継サーバーの単体テスト</td></tr>
+<tr><td>画面の 15 機能</td><td>画面を表示しないブラウザで、開いた直後の画面と段階 1 から 8 を開く(前と同じ方法)</td></tr>
 <tr><td>本物の中継サーバーとブラウザでの通し</td><td>ユーザーが <code>/sandbox</code> でローカルの待ち受けを許したあとに 1 回通す。許さないときは、ユーザーの PC で確かめてもらう</td></tr>
 </table>
 <h2>10. 画面のイメージの部品と、部品が読むもの(2026-10-28)</h2>
@@ -163,6 +223,14 @@ sequenceDiagram
 <tr><td>返答の候補</td><td><code>state.json</code> の <code>decision.replies</code></td><td><code>choices</code> が 0 件で <code>replies</code> が 1 件以上のときに、問いの吹き出しの下に出す。押すと候補の文を入力欄に入れ、送らない。送ったあとと、AI が返事を書いている間は出さない</td></tr>
 </table>
 <p class="note">サブエージェントの数は、stream-json の Agent か Task の tool_use の id を、同じ id の tool_result が来るまで数える。バックグラウンドで動かすサブエージェントの数え方は、本物の claude の stream-json でまだ確かめていない。</p>
+
+<h2>11. 再開(2026-10-28)</h2>
+<table>
+<tr><th>部品</th><th>読むもの</th><th>決まり</th></tr>
+<tr><td>途中の作業の一覧(開いた直後の画面の入力欄の下)</td><td><code>/api/works</code>(中継サーバーが <code>output/*/ui/state.json</code> から作る)</td><td>1 行は、作業の名前(<code>workName</code>)、段階の番号と成果物の名前(<code>stage</code> と <code>artifacts</code>)、状態、最後の保存(state.json の更新日時)、作業のフォルダのパスを持つ。状態は、<code>artifacts</code> の 8 件目が「済み」なら「完了」、<code>decision</code> があれば「承認待ち」、<code>questions</code> に答えのない問いがあれば「質問中(N 問のうち A 問に回答)」、それ以外は「作業中」とする。「完了」の行は「終わった作業 N 件」の折りたたみに入れる。0 件なら一覧を出さない</td></tr>
+<tr><td>「続きから」のボタン</td><td><code>/api/resume</code> の答え(作業のフォルダと会話の ID)</td><td>押すと、画面は作業のフォルダを受け取り、その <code>ui/state.json</code>、<code>ui/conversation.md</code>、<code>ui/figures/</code> を読んで、離れたときの表示を出す。会話の最後に「再開しました」の吹き出しを出す</td></tr>
+<tr><td>会話の ID が使えないときの表示</td><td><code>/api/prompt</code> の答え(新しい会話で始めたこと)</td><td>画面は、会話に「前の会話を続けられないので、新しい会話で始めます。成果物のパスを送ってください」を出す。ユーザーが送った成果物のパスから、AI は、規約 skill-making-flow の規則「最初の依頼から始める段階を決める」で段階を決める</td></tr>
+</table>
 </main>
 <script>mermaid.initialize({startOnLoad: true, theme: 'neutral'});</script>
 </body>
