@@ -117,7 +117,7 @@ sequenceDiagram
 <tr><td>中継の起動</td><td>なし(会話の ID は中継の中に持つ)</td><td>中継</td></tr>
 <tr><td>作業のフォルダが決まる前の送信と返事</td><td><code>ui/.pending/&lt;会話の ID&gt;.md</code></td><td>中継</td></tr>
 <tr><td>段階のスキルがユーザーに質問か承認を出す前</td><td>作業のフォルダの <code>ui/state.json</code>(決めてもらうことと文書のパス)</td><td>updating-skill-factory-ui-state(AI が呼ぶ)</td></tr>
-<tr><td>段階のスキルが成果物を書いたあと、承認を求める前</td><td>作業のフォルダの <code>ui/figures/&lt;段階の番号&gt;-&lt;図の種類&gt;.svg</code>(規約の表の「描く図」が「まだ描けない」でない段階だけ)</td><td>drawing-skill-factory-figure(AI が呼ぶ)</td></tr>
+<tr><td>段階のスキルが成果物を書いたあと、承認を求める前</td><td>作業のフォルダの <code>ui/figures/&lt;段階の番号&gt;-&lt;図の種類&gt;.svg</code>(規約 skill-making-flow の規則「確認と承認の画面を使うときに AI が足す動作」の表「描く図」にある段階だけ)</td><td>drawing-skill-factory-figure(AI が呼ぶ)</td></tr>
 <tr><td>段階の完了の報告のあと</td><td>作業のフォルダの <code>ui/state.json</code>(次の段階と成果物の状態)</td><td>updating-skill-factory-ui-state(AI が呼ぶ)</td></tr>
 <tr><td>作業のフォルダが決まったあとの送信と返事</td><td>作業のフォルダの <code>ui/conversation.md</code></td><td>中継</td></tr>
 </table>
