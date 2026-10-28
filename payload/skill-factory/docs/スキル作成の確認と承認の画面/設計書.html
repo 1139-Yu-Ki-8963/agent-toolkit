@@ -26,7 +26,7 @@ code{font-size:12px}
 <h2>1. 前提と、この設計書で使う語</h2>
 <table>
 <tr><th>語</th><th>意味</th></tr>
-<tr><td>作業のフォルダ</td><td>1 回の作業の成果物と画面のファイルを置くフォルダ <code>output/&lt;開始日時&gt;/</code>(規約 skill-making-flow の規則「作業のフォルダとスキルのフォルダ」)。決まり方は章 4。画面のファイルは、作業のフォルダの <code>ui/</code> に置く</td></tr>
+<tr><td>作業のフォルダ</td><td>1 回の作業の成果物と画面のファイルを置くフォルダ <code>output/&lt;開始日時&gt;/</code>(規約 skill-making-flow の規則「作業のフォルダとスキルのフォルダのパスと作る時期」)。決まり方は章 4。画面のファイルは、作業のフォルダの <code>ui/</code> に置く</td></tr>
 <tr><td>スキルのフォルダ</td><td>作業のフォルダの <code>skills/&lt;スキルの名前&gt;/</code>。段階 3 から 8 の成果物を置く</td></tr>
 <tr><td>会話の ID</td><td>1 つの claude の会話を指す ID。中継サーバーは、新しい作業では起動のときに作り、続きからでは作業のフォルダの <code>ui/session.json</code> から読む</td></tr>
 <tr><td>仮の会話</td><td>作業のフォルダが決まる前の会話。<code>ui/.pending/&lt;会話の ID&gt;.md</code>(skill-factory の <code>ui/</code> の下)に置く</td></tr>

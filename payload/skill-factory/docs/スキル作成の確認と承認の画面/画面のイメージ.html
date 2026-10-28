@@ -45,6 +45,7 @@ footer.page{padding:16px 32px 32px;font-size:12px;color:var(--muted)}
 <a href="#b7">段階 7 シナリオ</a>
 <a href="#b8">段階 8 テストの実行</a>
 <a href="#stack">段階ごとのスキルと規約</a>
+<a href="#folders">作業のフォルダの状態と画面</a>
 </nav>
 
 <div class="boards">
@@ -1560,6 +1561,59 @@ description: 議事録の md を 1 本受け取り、決定事項を 300 字以�
   <div style="font-size: 12px; font-weight: 700; color: #57606a; margin: 12px 0 2px">規約</div><div style="display: flex; gap: 12px; padding: 6px 0; border-top: 1px solid #eef1f5; font-size: 12px"><span style="font-weight: 700">skill-making-flow</span><span style="margin-left: auto; color: #57606a">常に読み込む</span></div><div style="display: flex; gap: 12px; padding: 6px 0; border-top: 1px solid #eef1f5; font-size: 12px"><span style="font-weight: 700">skill-or-rule</span><span style="margin-left: auto; color: #57606a">常に読み込む</span></div><div style="display: flex; gap: 12px; padding: 6px 0; border-top: 1px solid #eef1f5; font-size: 12px"><span style="font-weight: 700">text-writing-rule</span><span style="margin-left: auto; color: #57606a">常に読み込む</span></div><div style="display: flex; gap: 12px; padding: 6px 0; border-top: 1px solid #eef1f5; font-size: 12px"><span style="font-weight: 700">thinking-rule</span><span style="margin-left: auto; color: #57606a">常に読み込む</span></div><div style="display: flex; gap: 12px; padding: 6px 0; border-top: 1px solid #eef1f5; font-size: 12px"><span style="font-weight: 700">skill-writing-rule、skill-template、skill-completed-example</span><span style="margin-left: auto; color: #57606a; text-align: right">SKILL.md かリファレンスを読むか書くとき</span></div><div style="display: flex; gap: 12px; padding: 6px 0; border-top: 1px solid #eef1f5; font-size: 12px"><span style="font-weight: 700">skill-test-design-rule</span><span style="margin-left: auto; color: #57606a; text-align: right">tests/ の下のファイルか、テストのスキルを読むか書くとき</span></div>
 </div>
 </div></div>
+</section>
+
+
+<section class="board" id="folders">
+  <h2>作業のフォルダの状態と、そのときの画面</h2>
+  <p class="desc">規約 skill-making-flow の規則「作業のフォルダとスキルのフォルダのパスと作る時期」のとおり、作業のフォルダは output/&lt;開始日時&gt;/、スキルのフォルダは output/&lt;開始日時&gt;/skills/&lt;スキルの名前&gt;/。状態は ui/state.json の値で決まる。左から、状態と入る契機、そのときのフォルダの中身、画面に出るもの、対応する板。状態遷移図と状態遷移表は、設計書.html の章 3.2 にある。</p>
+  <div style="padding: 24px; background: #ffffff; border: 1px solid #d9dde3; border-radius: 12px">
+  <div style="display: grid; grid-template-columns: 180px 1fr 1fr 160px; gap: 16px; padding: 12px 0; border-top: 1px solid #eef1f5; align-items: start">
+  <div><div style="font-size: 14px; font-weight: 700">作業なし</div><div style="font-size: 12px; color: #57606a; margin-top: 4px">契機: 画面を開く</div></div>
+  <pre style="margin: 0; padding: 10px 12px; background: #fbfcfd; border: 1px solid #e6e9ee; border-radius: 8px; font-size: 12px; line-height: 1.6; white-space: pre">output/
+  (作業のフォルダがない)
+ui/.pending/&lt;会話の ID&gt;.md  ← 仮の会話</pre>
+  <div style="font-size: 12px; color: #1f2328; line-height: 1.7">右の欄は出さず、入力欄と「途中の作業」の一覧だけ。送った文は仮の会話に残る</div>
+  <div style="font-size: 12px"><a href="#b0" style="color: #1d5fbf">開いた直後の画面</a></div>
+</div>
+  <div style="display: grid; grid-template-columns: 180px 1fr 1fr 160px; gap: 16px; padding: 12px 0; border-top: 1px solid #eef1f5; align-items: start">
+  <div><div style="font-size: 14px; font-weight: 700">段階 1〜2 作業中</div><div style="font-size: 12px; color: #57606a; margin-top: 4px">契機: 依頼を送る(AI が作業のフォルダと state.json を作る)</div></div>
+  <pre style="margin: 0; padding: 10px 12px; background: #fbfcfd; border: 1px solid #e6e9ee; border-radius: 8px; font-size: 12px; line-height: 1.6; white-space: pre">output/2026-10-28-1100/
+  ui/state.json      stage 1、要件定義書「下書き」、questions
+  ui/conversation.md ← 仮の会話を移す
+  ui/session.json    会話の ID</pre>
+  <div style="font-size: 12px; color: #1f2328; line-height: 1.7">段階の帯に「下書き」。右の欄に質問の一覧。答えは questions.items[].answer と conversation.md に残る</div>
+  <div style="font-size: 12px"><a href="#b1q" style="color: #1d5fbf">段階 1 質問に答える</a></div>
+</div>
+  <div style="display: grid; grid-template-columns: 180px 1fr 1fr 160px; gap: 16px; padding: 12px 0; border-top: 1px solid #eef1f5; align-items: start">
+  <div><div style="font-size: 14px; font-weight: 700">承認待ち</div><div style="font-size: 12px; color: #57606a; margin-top: 4px">契機: AI が承認の質問を出す(承認の要求)</div></div>
+  <pre style="margin: 0; padding: 10px 12px; background: #fbfcfd; border: 1px solid #e6e9ee; border-radius: 8px; font-size: 12px; line-height: 1.6; white-space: pre">output/2026-10-28-1100/
+  要件定義書.md
+  ui/state.json      要件定義書「承認待ち」、decision
+  ui/figures/1-1-作業の流れ図.svg</pre>
+  <div style="font-size: 12px; color: #1f2328; line-height: 1.7">段階の帯に「承認待ち」。会話の最後に承認のボタン。右の欄に図と文書</div>
+  <div style="font-size: 12px"><a href="#b1" style="color: #1d5fbf">段階 1 要件定義書</a></div>
+</div>
+  <div style="display: grid; grid-template-columns: 180px 1fr 1fr 160px; gap: 16px; padding: 12px 0; border-top: 1px solid #eef1f5; align-items: start">
+  <div><div style="font-size: 14px; font-weight: 700">段階 3〜8 作業中</div><div style="font-size: 12px; color: #57606a; margin-top: 4px">契機: 分割設計書を承認(スキルの名前が決まり、スキルのフォルダができる)</div></div>
+  <pre style="margin: 0; padding: 10px 12px; background: #fbfcfd; border: 1px solid #e6e9ee; border-radius: 8px; font-size: 12px; line-height: 1.6; white-space: pre">output/2026-10-28-1100/
+  要件定義書.md、分割設計書.md
+  skills/summarizing-meeting-minutes/
+    構成の案.md、SKILL.md、references/、tests/
+  ui/…</pre>
+  <div style="font-size: 12px; color: #1f2328; line-height: 1.7">文書のパスは skills/&lt;スキルの名前&gt;/ の下。スキルが 2 本なら skills/ の下に 2 つ目のフォルダができ、ヘッダーに「2 / 2 &lt;名前&gt;」</div>
+  <div style="font-size: 12px"><a href="#b3" style="color: #1d5fbf">段階 3 構成の案</a></div>
+</div>
+  <div style="display: grid; grid-template-columns: 180px 1fr 1fr 160px; gap: 16px; padding: 12px 0; border-top: 1px solid #eef1f5; align-items: start">
+  <div><div style="font-size: 14px; font-weight: 700">完了</div><div style="font-size: 12px; color: #57606a; margin-top: 4px">契機: 段階 8 の全ケースが合格(完了の報告)</div></div>
+  <pre style="margin: 0; padding: 10px 12px; background: #fbfcfd; border: 1px solid #e6e9ee; border-radius: 8px; font-size: 12px; line-height: 1.6; white-space: pre">output/2026-10-28-1100/
+  skills/&lt;スキルの名前&gt;/tests/&lt;実行日時&gt;/判定の記録.md
+  ui/state.json      8 つの成果物が「済み」</pre>
+  <div style="font-size: 12px; color: #1f2328; line-height: 1.7">段階の帯がすべて「済み」。開いた直後の画面の一覧では「終わった作業」に入る</div>
+  <div style="font-size: 12px"><a href="#b8" style="color: #1d5fbf">段階 8 テストの実行</a></div>
+</div>
+  <div style="margin-top: 12px; font-size: 12px; color: #57606a">離れたとき: どの状態でも、ファイルは直前の保存の時点のまま残る。再開は「途中の作業」の一覧の「続きから」(板「再開した直後」)。会話の ID が使えないときは、新しい会話で成果物のパスを送る。</div>
+  </div>
 </section>
 
 <footer class="page">図は横幅 1440px で描いてある。画面が狭いときは横にスクロールして見る。</footer>
