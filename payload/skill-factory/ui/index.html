@@ -143,6 +143,15 @@ body.start form textarea{border:0;font-size:15px;outline:none}
 #welcome{padding:0 16px 24px}
 #welcome h1{margin:0 0 12px;font-size:24px}
 #welcome p{margin:0;font-size:15px;line-height:1.8}
+#works{margin:16px 16px 0;padding:16px;background:#fff;border:1px solid var(--line);border-radius:12px}
+#works .wh{display:flex;align-items:baseline;gap:8px;margin-bottom:4px}
+#works .wh .t{font-size:14px;font-weight:700}
+#works .wh .s{font-size:12px;color:var(--muted)}
+#works .wk{display:grid;grid-template-columns:1fr auto;gap:4px 16px;align-items:center;padding:10px 0;border-top:1px solid var(--gray)}
+#works .wk .n{font-size:14px;font-weight:700}
+#works .wk .d{font-size:12px;color:var(--muted)}
+#works .wk button{height:32px;padding:0 14px;border:1px solid var(--blue);border-radius:8px;background:#fff;color:var(--blue);font-size:13px}
+#works details{padding-top:8px;border-top:1px solid var(--gray);font-size:12px;color:var(--muted)}
 </style>
 </head>
 <body class="start">
@@ -165,6 +174,7 @@ body.start form textarea{border:0;font-size:15px;outline:none}
       <textarea id="input" rows="2" placeholder="例: 議事録を要約するスキルを作って"></textarea>
       <button class="primary" type="submit">送る</button>
     </form>
+    <div id="works" hidden></div>
   </section>
   <section class="panel" id="preview" aria-label="文書と図" hidden>
     <div class="bar">
@@ -185,8 +195,6 @@ body.start form textarea{border:0;font-size:15px;outline:none}
   </section>
 </main>
 <script>
-// 段階の名前は、規約 skill-making-flow の 8 段階の表示の名前
-const STAGES = ['要件定義書', '分割設計書', '構成の案', 'SKILL.md の下書き', '照合と修正', 'テスト計画書', 'シナリオ', 'テストの実行'];
 const $ = id => document.getElementById(id);
 // state は、1 回目の読み込みで必ず描くように、読んだ値(なしは null)と違う undefined で始める
 const last = {state: undefined, conv: undefined, svg: null, doc: null, figs: null};
@@ -231,13 +239,19 @@ async function load() {
   const b = await fetch('/api/status', {cache: 'no-store'}).then(r => r.json()).catch(() => null);
   renderConn(b);
   if (!b) return;
-  if (!stagesTable) stagesTable = await fetch('/api/stages', {cache: 'no-store'}).then(r => r.ok ? r.json() : null).catch(() => null);
+  if (!stagesTable) {
+    stagesTable = await fetch('/api/stages', {cache: 'no-store'}).then(r => r.ok ? r.json() : null).catch(() => null);
+    if (stagesTable) renderStages();
+  }
   const s = await getText('ui/state.json');
   const c = await getText('ui/conversation.md');
   let changed = false;
-  if (s !== last.state) {
+  // 文が空か JSON として読めない state.json は、書いている途中とみなし、前の状態を保つ
+  let parsed = null;
+  if (s) { try { parsed = JSON.parse(s); } catch { parsed = undefined; } }
+  if (s !== last.state && parsed !== undefined) {
     last.state = s;
-    state = s ? JSON.parse(s) : null;
+    state = parsed;
     if (!state || !picked || JSON.stringify(state.decision) !== picked.decision) picked = null;
     if (!state || JSON.stringify(state.questions) !== qSent) qSent = null;
     if (!state || JSON.stringify(state.decision) !== replySent) { replySent = null; replyOn = null; }
@@ -340,10 +354,13 @@ function renderConn(b) {
     : 'Claude Code を入れてから、中継サーバーを起動し直してください。';
 }
 
-// F2: 段階の帯を出す。成果物の状態を、未着手でない段階の名前の下に出す
+// F2: 段階の帯を出す。段階の名前は段階の表(/api/stages)から出し、表が読めていない間は帯を出さない。成果物の状態を、未着手でない段階の名前の下に出す
 function renderStages() {
-  $('stages').replaceChildren(...STAGES.map((name, i) => {
-    const n = i + 1;
+  $('stages').hidden = !stagesTable;
+  if (!stagesTable) return;
+  $('stages').replaceChildren(...stagesTable.map(row => {
+    const n = row.stage;
+    const name = row.name;
     const a = state && state.artifacts.find(x => x.stage === n);
     const status = a ? a.status : '未着手';
     const now = state && n === state.stage;
@@ -365,12 +382,59 @@ function renderState() {
     $('work').textContent = '';
     $('skill').textContent = '';
     fetch('/api/start', {cache: 'no-store'}).then(r => r.ok ? r.text() : '').then(md => { $('welcome').innerHTML = marked.parse(md); }).catch(() => {});
+    renderWorks();
     return;
   }
   $('work').textContent = state.workName;
   const sk = state.currentSkill;
   $('skill').textContent = sk && sk.total > 1 ? `${sk.order} / ${sk.total} ${sk.name}` : '';
   renderDownloads();
+}
+
+// 途中の作業の一覧: output/ の下に ui/state.json がある作業を、開いた直後の画面の入力欄の下に出す。0 件なら出さない
+function fmtSaved(iso) {
+  const d = new Date(iso);
+  const hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  if (d.toDateString() === new Date().toDateString()) return hm;
+  return `${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')} ${hm}`;
+}
+
+function workRow(w) {
+  const r = el('div', {className: 'wk'});
+  const info = el('div');
+  const desc = w.done ? '完了(8 段階が済み)' : `段階 ${w.stage}${w.artifact ? ` ${w.artifact.name} ${w.artifact.status}` : ''}`;
+  info.append(el('div', {className: 'n'}, w.workName), el('div', {className: 'd'}, `${desc} ・ 最後の保存 ${fmtSaved(w.savedAt)} ・ ${w.dir}/`));
+  const b = el('button', {type: 'button'}, '続きから');
+  b.onclick = async () => {
+    b.disabled = true;
+    let error = null;
+    try {
+      const res = await fetch('/api/resume', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({dir: w.dir})});
+      if (!res.ok) error = await res.text();
+    } catch { error = '中継サーバーにつながりません。'; }
+    if (error) { $('err').hidden = false; $('err').textContent = '続けられませんでした。' + error; b.disabled = false; return; }
+    location.reload();
+  };
+  r.append(info, b);
+  return r;
+}
+
+async function renderWorks() {
+  const works = await fetch('/api/works', {cache: 'no-store'}).then(r => r.ok ? r.json() : []).catch(() => []);
+  const box = $('works');
+  if (state || !works.length) { box.hidden = true; return; }
+  const rest = works.filter(w => !w.done);
+  const done = works.filter(w => w.done);
+  const head = el('div', {className: 'wh'});
+  head.append(el('div', {className: 't'}, '途中の作業'), el('div', {className: 's'}, 'output/ の下に ui/state.json がある作業。新しい作業は、上の入力欄から始める'));
+  const nodes = [head, ...rest.map(workRow)];
+  if (done.length) {
+    const dt = el('details');
+    dt.append(el('summary', {}, `終わった作業 ${done.length} 件`), ...done.map(workRow));
+    nodes.push(dt);
+  }
+  box.replaceChildren(...nodes);
+  box.hidden = $('welcome').hidden;
 }
 
 // F3: 会話を出す。conversation.md の 1 件は、「ユーザー:」か「Claude Code:」で始まる行から、次の同じ形の行の前まで
@@ -387,6 +451,7 @@ function parseConversation(text) {
 // 会話の欄: 吹き出し、返事を書いている間の点の吹き出し、決めてもらうことの塊の順に出す
 function renderChat() {
   $('welcome').hidden = !!state || items.length > 0;
+  if ($('welcome').hidden) $('works').hidden = true;
   const nodes = items.map(it => {
     const text = it.lines.join('\n').trim();
     if (it.user) return el('div', {className: 'msg user'}, text);
@@ -540,8 +605,9 @@ function renderQuestions() {
   if (open) $('figbox').hidden = true;
   if (state) $('dl').hidden = open || !state.downloads.length;
   if (!state) return;
-  // 文書のパスは、作業のフォルダ(skill-factory からの相対パス)の下のパスとして出す
-  $('docpath').textContent = open ? state.questions.title : (status.workDir ? status.workDir + '/' : '') + state.documentPath;
+  // 文書のパスは、作業のフォルダ(skill-factory からの相対パス)の下のパスとして出す。作業のフォルダの外(`../`)のパスは、そのまま出す
+  const dp = state.documentPath;
+  $('docpath').textContent = open ? state.questions.title : (status.workDir && !dp.startsWith('../') ? status.workDir + '/' : '') + dp;
   if (!open) return;
   const q = state.questions;
   const rest = q.items.filter(i => i.answer == null);
@@ -642,7 +708,6 @@ $('form').onsubmit = e => {
 };
 
 // F9: 画面の更新を受ける(2 秒ごとに読み直す)
-renderStages();
 load();
 setInterval(load, 2000);
 </script>

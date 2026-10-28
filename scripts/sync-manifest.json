@@ -198,6 +198,11 @@
     },
     {
       "mode": "file",
+      "src": "~/Projects/skill-factory/ui/test.sh",
+      "dst": "payload/skill-factory/ui/test.sh"
+    },
+    {
+      "mode": "file",
       "src": "~/Projects/skill-factory/ui/はじめに.md",
       "dst": "payload/skill-factory/ui/はじめに.md"
     },
