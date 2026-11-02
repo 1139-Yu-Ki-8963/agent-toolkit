@@ -298,7 +298,7 @@ function cntBadgeClass(openTasks){
   if (openTasks.some(function(t){ return dueStatus(t.due)==='soon'; })) return 'soon';
   return 'normal';
 }
-function accessColumns(){ return Object.keys(DATA.access[0].items); }
+function accessColumns(){ return DATA.access.length ? Object.keys(DATA.access[0].items) : []; }
 function accessAlertCount(){
   var n = 0;
   DATA.access.forEach(function(m){ Object.values(m.items).forEach(function(it){ if (it.status==='a') n++; }); });
@@ -893,7 +893,7 @@ function renderAccessPage(){
   var colFilter = ui.colFilter;
   var activeCols = colFilter==='open' ? openCols : cols;
   var catList = Object.keys(CAT_VAR);
-  var gridCols = '180px 64px repeat('+activeCols.length+',112px)';
+  var gridCols = '180px 64px' + (activeCols.length ? ' repeat('+activeCols.length+',112px)' : '');
   var alertCount = accessAlertCount();
   var headHtml = '<tr class="acc-grid-head" style="grid-template-columns:'+gridCols+'">'
     + '<th scope="col" class="acc-sticky-member" style="align-self:end">メンバー</th>'
@@ -970,8 +970,8 @@ function renderAccessPage(){
     + '</div></div></div>'
     + '<div class="main-body" style="display:flex;flex-direction:column;gap:14px">'
     + (ui.accView==='matrix'
-        ? ('<table class="acc-table" style="width:max-content;min-width:100%"><thead>'+headHtml+'</thead><tbody>'+rowsHtml+'</tbody></table>')
-        : ('<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px">'+cardsHtml+'</div>'))
+        ? ('<table class="acc-table" style="width:max-content;min-width:100%"><thead>'+headHtml+'</thead><tbody>'+(rowsHtml || '<tr><td colspan="2" class="search-empty">登録されたメンバーがいません。</td></tr>')+'</tbody></table>')
+        : ('<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px">'+(cardsHtml || '<div class="search-empty">登録されたメンバーがいません。</div>')+'</div>'))
     + '<div class="card" style="min-width:960px">'
     + '<h2 style="font-size:11px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;margin:0 0 8px">要対応・期日が近いもの</h2>'
     + '<div style="display:flex;flex-direction:column;gap:7px;font-size:12.5px">' + renderAccessAttention() + '</div>'

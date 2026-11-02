@@ -8,7 +8,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash, AskUserQuestion
 
 # コンサル業務管理ポータルのデータ更新（consult-portal-update）
 
-議事録・メール・チャット・資料リストなどの入力から `portal/data.js` の該当エントリを追加・更新し、機械検証まで完遂するスキル。ポータルの設計意図「AI が情報を集約し、人は確認と判断だけを行う」の集約側を担う。UI（`portal/index.html`）の変更は本スキルの対象外である。
+議事録・メール・チャット・資料リストなどの入力から `clients/<案件名>/portal/data.js` の該当エントリを追加・更新し、機械検証まで完遂するスキル。このスキルのパスは、道具箱のルートから見たパスである。案件フォルダ `clients/<案件名>/` を開いたセッションでは、`clients/<案件名>/` を除いたパスと、道具箱のスクリプトの絶対パスを使う。ポータルの設計意図「AI が情報を集約し、人は確認と判断だけを行う」の集約側を担う。UI（`portal/index.html`）の変更は本スキルの対象外である。
 
 ## Phase 1: 入力と正本の確認
 
@@ -20,7 +20,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash, AskUserQuestion
 
 ### Step 1-2: スキーマと現データの読み込み
 
-`docs/13_業務管理ポータル設計/02_データモデル設計.md` と `portal/data.js` を Read する。各エンティティ（projects / issues / docs / people / meetings / decisions / access）のフィールド・状態値・参照形式を確認する。更新対象の data.js は実案件では `clients/<案件名>/portal/data.js`（複製）であり、リポジトリ直下の `portal/data.js` はモックデータ固定のデモのため対象にしない。
+`docs/13_業務管理ポータル設計/02_データモデル設計.md` と `clients/<案件名>/portal/data.js` を Read する。各エンティティ（projects / issues / docs / people / meetings / decisions / access）のフィールド・状態値・参照形式を確認する。リポジトリ直下の `portal/data.js` はモックデータ固定のデモのため対象にしない。
 
 **完了**: スキーマ定義と現在のデータを把握していること
 
@@ -59,7 +59,7 @@ allowed-tools: Read, Write, Edit, Glob, Bash, AskUserQuestion
 ### Step 4-1: 機械検証
 
 ```bash
-bash .claude/skills/consult-portal-update/scripts/verify-portal-data.sh portal/data.js
+bash .claude/skills/consult-portal-update/scripts/verify-portal-data.sh clients/<案件名>/portal/data.js
 ```
 
 4 系統（構文・必須フィールド・状態値・参照整合）の全 PASS を確認する。FAIL があれば該当エントリを修正して再実行する。全 PASS になるまで Phase 3 と本 Step を繰り返す。
@@ -68,13 +68,13 @@ bash .claude/skills/consult-portal-update/scripts/verify-portal-data.sh portal/d
 
 ### Step 4-2: 表示確認
 
-`portal/index.html` をブラウザで開き（または実描画検証ツールで）、更新したエントリが該当画面に表示されることを確認する。件数バッジ・期限強調・フィルタ母数の変化も確認する。
+`clients/<案件名>/portal/index.html` をブラウザで開き（または実描画検証ツールで）、更新したエントリが該当画面に表示されることを確認する。件数バッジ・期限強調・フィルタ母数の変化も確認する。
 
 **完了**: 更新エントリの表示を確認したこと
 
 ## Phase 5: 記録
 
-変更を git commit する（命名規約に従い日本語 prefix。例:【データ更新】8/29定例議事録をポータルへ反映）。版管理は git が担い、専用の履歴機構は持たない。
+変更を、案件フォルダ `clients/<案件名>/` の git に commit する（命名規約に従い日本語 prefix。例:【データ更新】8/29定例議事録をポータルへ反映）。`clients/` は道具箱の git の管理外のため、案件フォルダは、案件を始めるときに `git init` した案件ごとの git を持つ。版管理は案件ごとの git が担い、専用の履歴機構は持たない。
 
 **完了**: commit が作成されていること
 

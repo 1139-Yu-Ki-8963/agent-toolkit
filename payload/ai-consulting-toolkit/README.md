@@ -61,7 +61,7 @@
 
 ## 案件での使い方
 
-案件を開始したら、`templates/案件雛形/` をリポジトリ直下の `clients/<案件名>/`（git管理外）へ複製する。フォルダとファイルの役割は複製した `README.md` を、AI がものを置くフォルダと名前は複製した `.claude/rules/case-folder-placement/case-folder-placement-rule.md` を、構成を決めた理由は [docs/14_案件フォルダ設計/案件フォルダ設計.md](docs/14_案件フォルダ設計/案件フォルダ設計.md) を参照する。
+案件を開始したら、`templates/案件雛形/` をリポジトリ直下の `clients/<案件名>/`（道具箱の git の管理外）へ複製し、`clients/<案件名>/` で `git init` して、案件ごとの git で版を記録する。複製した `portal/` は、その案件の業務管理ポータルである。フォルダとファイルの役割は複製した `README.md` を、AI がものを置くフォルダと名前は複製した `.claude/rules/case-folder-placement/case-folder-placement-rule.md` を、ポータルのデータの直し方は複製した `.claude/rules/portal-operation/portal-operation-rule.md` を、構成を決めた理由は [docs/14_案件フォルダ設計/案件フォルダ設計.md](docs/14_案件フォルダ設計/案件フォルダ設計.md) を参照する。
 docs/ のテンプレート（03_業務棚卸しテンプレート/業務棚卸しテンプレート.md・05_効果測定テンプレート/効果測定テンプレート.md・06_データ取り扱いチェック/データ取り扱いチェック.md）を `clients/<案件名>/` にコピーし、案件固有の内容を記入する。
 テンプレート本体（docs/ 配下）は案件情報で汚さず、常に空欄の雛形として保つ。
 
