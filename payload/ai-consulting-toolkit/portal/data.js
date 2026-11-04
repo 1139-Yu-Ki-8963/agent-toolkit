@@ -86,6 +86,7 @@ window.PORTAL_DATA = {
   "issues": [
     {
       "id": "ISS-04",
+      "req": "現状分析の実施",
       "name": "データ品質",
       "title": "基幹システムのデータ品質が想定より低い",
       "prio": "高",
@@ -253,6 +254,7 @@ window.PORTAL_DATA = {
     },
     {
       "id": "ISS-07",
+      "req": "現状分析の実施",
       "name": "ヒアリング日程",
       "title": "現場部門のヒアリング日程が確定しない",
       "prio": "高",
@@ -380,6 +382,7 @@ window.PORTAL_DATA = {
     },
     {
       "id": "ISS-09",
+      "req": "現状分析の実施",
       "name": "組織図の鮮度",
       "title": "受領した組織図が最新版でない可能性",
       "prio": "中",
@@ -477,6 +480,7 @@ window.PORTAL_DATA = {
     },
     {
       "id": "ISS-11",
+      "req": "現状分析の実施",
       "name": "KPI定義の合意",
       "title": "KPI定義の合意が部門間で取れていない",
       "prio": "中",
@@ -591,6 +595,7 @@ window.PORTAL_DATA = {
     },
     {
       "id": "ISS-12",
+      "req": "実行フェーズの準備",
       "name": "推進体制",
       "title": "10月以降のA社側推進体制が未確定",
       "prio": "低",
@@ -669,6 +674,7 @@ window.PORTAL_DATA = {
     },
     {
       "id": "ISS-13",
+      "req": "実行フェーズの準備",
       "name": "セキュリティ審査の長期化",
       "title": "セキュリティ審査の長期化",
       "prio": "高",
@@ -708,6 +714,7 @@ window.PORTAL_DATA = {
     },
     {
       "id": "ISS-14",
+      "req": "実行フェーズの準備",
       "name": "予算超過リスク",
       "title": "予算超過リスク",
       "prio": "高",
@@ -747,6 +754,7 @@ window.PORTAL_DATA = {
     },
     {
       "id": "ISS-15",
+      "req": "実行フェーズの準備",
       "name": "個人情報の取扱範囲",
       "title": "個人情報の取扱範囲",
       "prio": "高",
@@ -786,6 +794,7 @@ window.PORTAL_DATA = {
     },
     {
       "id": "ISS-16",
+      "req": "実行フェーズの準備",
       "name": "経営会議の報告形式",
       "title": "経営会議の報告形式",
       "prio": "中",
@@ -820,6 +829,7 @@ window.PORTAL_DATA = {
     },
     {
       "id": "ISS-17",
+      "req": "現状分析の実施",
       "name": "データ辞書の不在",
       "title": "データ辞書の不在",
       "prio": "中",
@@ -859,6 +869,7 @@ window.PORTAL_DATA = {
     },
     {
       "id": "ISS-18",
+      "req": "現状分析の実施",
       "name": "現場の協力度ばらつき",
       "title": "現場の協力度ばらつき",
       "prio": "中",
@@ -898,6 +909,7 @@ window.PORTAL_DATA = {
     },
     {
       "id": "ISS-19",
+      "req": "実行フェーズの準備",
       "name": "ベンダー契約の更新時期",
       "title": "ベンダー契約の更新時期",
       "prio": "中",
@@ -937,6 +949,7 @@ window.PORTAL_DATA = {
     },
     {
       "id": "ISS-20",
+      "req": "実行フェーズの準備",
       "name": "PoC環境の調達",
       "title": "PoC環境の調達",
       "prio": "中",
@@ -976,6 +989,7 @@ window.PORTAL_DATA = {
     },
     {
       "id": "ISS-21",
+      "req": "現状分析の実施",
       "name": "用語定義の不統一",
       "title": "用語定義の不統一",
       "prio": "中",
@@ -1010,6 +1024,7 @@ window.PORTAL_DATA = {
     },
     {
       "id": "ISS-22",
+      "req": "現状分析の実施",
       "name": "過去施策の失敗要因分析",
       "title": "過去施策の失敗要因分析",
       "prio": "中",
@@ -1049,6 +1064,7 @@ window.PORTAL_DATA = {
     },
     {
       "id": "ISS-23",
+      "req": "現状分析の実施",
       "name": "レガシー帳票の棚卸し",
       "title": "レガシー帳票の棚卸し",
       "prio": "低",
@@ -1088,6 +1104,7 @@ window.PORTAL_DATA = {
     },
     {
       "id": "ISS-24",
+      "req": "現状分析の実施",
       "name": "会議体の重複",
       "title": "会議体の重複",
       "prio": "低",
@@ -1122,6 +1139,7 @@ window.PORTAL_DATA = {
     },
     {
       "id": "ISS-25",
+      "req": "実行フェーズの準備",
       "name": "海外拠点の巻き込み",
       "title": "海外拠点の巻き込み",
       "prio": "低",
@@ -1161,6 +1179,7 @@ window.PORTAL_DATA = {
     },
     {
       "id": "ISS-26",
+      "req": "実行フェーズの準備",
       "name": "教育計画の未着手",
       "title": "教育計画の未着手",
       "prio": "低",
@@ -1195,6 +1214,7 @@ window.PORTAL_DATA = {
     },
     {
       "id": "ISS-27",
+      "req": "実行フェーズの準備",
       "name": "ツール標準の不在",
       "title": "ツール標準の不在",
       "prio": "低",
@@ -1233,6 +1253,32 @@ window.PORTAL_DATA = {
       "aiLabel": "✦ AI解読済 · 8/29"
     }
   ],
+  "caseDeliv": [
+    {
+      "type": "XLS",
+      "n": "課題受付簿",
+      "st": "完了",
+      "due": "7/15"
+    },
+    {
+      "type": "XLS",
+      "n": "業務棚卸し表",
+      "st": "作成中",
+      "due": "9/12"
+    },
+    {
+      "type": "XLS",
+      "n": "準備状況一覧(先方提出用)",
+      "st": "作成中",
+      "due": "9/5"
+    },
+    {
+      "type": "PPT",
+      "n": "9月度 経営会議報告",
+      "st": "未着手",
+      "due": "9/30"
+    }
+  ],
   "docs": [
     {
       "group": "今週の受領(8/25〜)",
@@ -1261,16 +1307,6 @@ window.PORTAL_DATA = {
       "date": "8/26",
       "from": "山本部長(情シス)",
       "relIssue": "ISS-04",
-      "status": "確認済",
-      "ai": "解読済"
-    },
-    {
-      "group": "今週の受領(8/25〜)",
-      "name": "議事録_0822ルーティン.docx",
-      "ext": "DOC",
-      "date": "8/26",
-      "from": "当社作成",
-      "relIssue": null,
       "status": "確認済",
       "ai": "解読済"
     },
@@ -1322,16 +1358,6 @@ window.PORTAL_DATA = {
       "from": "営業企画 伊藤氏",
       "relIssue": "ISS-11",
       "status": "差戻し",
-      "ai": "解読済"
-    },
-    {
-      "group": "8月中旬",
-      "name": "ヒアリングメモ_経理部.docx",
-      "ext": "DOC",
-      "date": "8/18",
-      "from": "当社作成",
-      "relIssue": null,
-      "status": "確認済",
       "ai": "解読済"
     },
     {
@@ -1560,16 +1586,6 @@ window.PORTAL_DATA = {
       "ext": "PDF",
       "date": "7/5",
       "from": "当社法務",
-      "relIssue": null,
-      "status": "確認済",
-      "ai": "解読済"
-    },
-    {
-      "group": "7月以前",
-      "name": "キックオフ準備メモ.docx",
-      "ext": "DOC",
-      "date": "7/3",
-      "from": "当社作成",
       "relIssue": null,
       "status": "確認済",
       "ai": "解読済"

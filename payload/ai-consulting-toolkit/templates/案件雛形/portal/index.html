@@ -46,19 +46,24 @@ a:hover{color:var(--c-link-hover);text-decoration:underline}
 [data-page]{cursor:pointer}
 
 /* ---- app shell ---- */
-.app{display:flex;height:100vh;background:var(--c-bg);color:var(--c-text);font-size:13px;overflow:hidden}
+.app{display:flex;height:100vh;height:100dvh;background:var(--c-bg);color:var(--c-text);font-size:15px;line-height:1.5;overflow:hidden}
 .sidebar{width:236px;flex:none;background:var(--c-sidebar-bg);border-right:1px solid var(--c-border-soft);display:flex;flex-direction:column;padding:14px 10px;gap:1px;overflow-y:auto}
-.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden}
-.main-header{padding:16px 24px 12px;border-bottom:1px solid var(--c-border-soft)}
-.main-body{flex:1;overflow:auto;padding:14px 24px}
-.page-title{font-size:16px;font-weight:600;margin:0}
-.page-sub{font-size:12px;color:var(--c-text-sub);margin-top:3px}
-.breadcrumb{font-size:11px;color:var(--c-text-faint)}
+/* 本文の幅を --content-max までに抑え、残りを左右の余白にする(スクロールバーは画面の端に残る) */
+.main{flex:1;display:flex;flex-direction:column;min-width:0;overflow:hidden;--content-max:1040px;--gutter:max(24px, calc((100% - var(--content-max)) / 2))}
+.main.wide{--content-max:1480px}
+.main-header{padding:18px var(--gutter) 14px;border-bottom:1px solid var(--c-border-soft)}
+.main-body{flex:1;overflow:auto;padding:16px var(--gutter)}
+.page-pad{padding-left:var(--gutter);padding-right:var(--gutter)}
+.mobile-bar{display:none}
+.nav-backdrop{display:none}
+.page-title{font-size:20px;font-weight:600;margin:0}
+.page-sub{font-size:14px;color:var(--c-text-sub);margin-top:3px}
+.breadcrumb{font-size:13px;color:var(--c-text-faint)}
 .crumb-link{cursor:pointer;color:var(--c-link)}
 .crumb-link:hover{text-decoration:underline}
-.group-label{font-size:11px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;padding:6px 2px 0;margin:0}
-.workspace-grid{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:14px;padding:16px 24px;overflow:auto;align-content:start}
-.goal-grid{flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;padding:16px 24px;overflow:auto;align-content:start}
+.group-label{font-size:13px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;padding:6px 2px 0;margin:0}
+.workspace-grid{flex:1;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;padding:16px var(--gutter);overflow:auto;align-content:start}
+.goal-grid{flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px;padding:16px var(--gutter);overflow:auto;align-content:start}
 .workspace-left{display:flex;flex-direction:column;gap:14px;min-width:0}
 .workspace-right{display:flex;flex-direction:column;gap:14px;min-height:0}
 .min-w-0{min-width:0}
@@ -73,57 +78,57 @@ a:hover{color:var(--c-link-hover);text-decoration:underline}
 /* ---- sidebar ---- */
 .sb-proj{display:flex;align-items:center;gap:8px;padding:6px 8px;margin-bottom:8px;border-radius:6px;cursor:pointer}
 .sb-proj:hover{background:#eceae4}
-.sb-proj-avatar{width:24px;height:24px;border-radius:5px;background:var(--c-text);color:#fff;display:grid;place-items:center;font-size:11px;font-weight:600;flex:none}
-.sb-proj-name{font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.sb-proj-sub{font-size:10.5px;color:var(--c-text-faint);white-space:nowrap}
-.sb-search{display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:6px;cursor:pointer;color:var(--c-text-sub);border:1px solid var(--c-border-strong);background:#fff;margin-bottom:8px;font-size:12px}
+.sb-proj-avatar{width:24px;height:24px;border-radius:5px;background:var(--c-text);color:#fff;display:grid;place-items:center;font-size:13px;font-weight:600;flex:none}
+.sb-proj-name{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sb-proj-sub{font-size:12.5px;color:var(--c-text-faint);white-space:nowrap}
+.sb-search{display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:6px;cursor:pointer;color:var(--c-text-sub);border:1px solid var(--c-border-strong);background:#fff;margin-bottom:8px;font-size:14px}
 .sb-search:hover{border-color:rgba(0,0,0,.25)}
-.sb-kbd{margin-left:auto;font-size:10px;color:#84827a;border:1px solid var(--c-border-strong);border-radius:4px;padding:1px 5px}
+.sb-kbd{margin-left:auto;font-size:12px;color:#84827a;border:1px solid var(--c-border-strong);border-radius:4px;padding:1px 5px}
 .sb-item{position:relative;display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:5px;cursor:pointer;color:var(--c-text)}
 .sb-item:hover{background:#eceae4}
 .sb-item.active::before{content:"";position:absolute;inset:0;background:#e9e7e1;border-radius:5px;z-index:0}
 .sb-item>*{position:relative;z-index:1}
-.sb-item-count{margin-left:auto;font-size:11px;color:#8a877e}
-.sb-pin{gap:6px;padding:5px 8px 5px 22px;font-size:12.5px;color:var(--c-neutral)}
+.sb-item-count{margin-left:auto;font-size:13px;color:#8a877e}
+.sb-pin{gap:6px;padding:5px 8px 5px 22px;font-size:14.5px;color:var(--c-neutral)}
 .sb-pin-dot{width:6px;height:6px;border-radius:50%;flex:none}
-.sb-more{padding:4px 8px 4px 22px;font-size:11px;color:var(--c-text-faint);cursor:pointer}
+.sb-more{padding:4px 8px 4px 22px;font-size:13px;color:var(--c-text-faint);cursor:pointer}
 .sb-more:hover{color:var(--c-neutral)}
-.sb-footer{margin-top:auto;padding:10px 8px;border-top:1px solid var(--c-border-soft);font-size:11px;color:var(--c-text-faint);line-height:1.6}
+.sb-footer{margin-top:auto;padding:10px 8px;border-top:1px solid var(--c-border-soft);font-size:13px;color:var(--c-text-faint);line-height:1.6}
 
 /* ---- reusable chips / badges / pills ---- */
-.chip{font-size:10.5px;font-weight:600;padding:2px 7px;border-radius:4px;white-space:nowrap;flex:none;display:inline-block}
+.chip{font-size:12.5px;font-weight:600;padding:2px 7px;border-radius:4px;white-space:nowrap;flex:none;display:inline-block}
 .chip-danger{background:var(--c-danger-bg);color:var(--c-danger)}
 .chip-warning{background:var(--c-warning-bg);color:var(--c-warning)}
 .chip-success{background:var(--c-success-bg);color:var(--c-success)}
 .chip-link{background:var(--c-link-bg);color:var(--c-link)}
 .chip-neutral{background:var(--c-neutral-bg);color:var(--c-neutral)}
-.pill{padding:3px 10px;border-radius:20px;border:1px solid var(--c-border-strong);color:var(--c-neutral);font-size:11.5px;cursor:pointer;white-space:nowrap;flex:none}
+.pill{padding:5px 12px;border-radius:20px;border:1px solid var(--c-border-strong);color:var(--c-neutral);font-size:13.5px;cursor:pointer;white-space:nowrap;flex:none}
 .pill.active{background:var(--c-text);color:#fff;border-color:var(--c-text)}
 .filters{display:flex;gap:6px;flex-wrap:wrap}
 .seg{display:flex;gap:2px;background:var(--c-neutral-bg);border-radius:6px;padding:2px}
-.seg-btn{padding:3px 10px;border-radius:5px;font-size:11px;color:var(--c-text-sub);cursor:pointer;white-space:nowrap;flex:none}
+.seg-btn{padding:5px 12px;border-radius:5px;font-size:13px;color:var(--c-text-sub);cursor:pointer;white-space:nowrap;flex:none}
 .seg-btn.active{background:#fff;color:var(--c-text);font-weight:600;box-shadow:0 1px 2px rgba(0,0,0,.08)}
-.badge-count{font-weight:700;font-size:10px;padding:0 6px;border-radius:8px;display:inline-block;min-width:10px;text-align:center}
+.badge-count{font-weight:700;font-size:12px;padding:0 6px;border-radius:8px;display:inline-block;min-width:10px;text-align:center}
 .badge-count.overdue{background:var(--c-danger);color:#fff}
 .badge-count.soon{background:var(--c-warning-bg);color:var(--c-warning)}
 .badge-count.normal{background:var(--c-neutral-bg);color:var(--c-neutral)}
 .badge-count.empty{background:#f2f1ed;color:var(--c-text-faintest)}
-.side-us{font-size:10px;font-weight:600;padding:1px 7px;border-radius:4px;background:var(--c-neutral-bg);color:var(--c-text)}
-.side-cl{font-size:10px;font-weight:600;padding:1px 7px;border-radius:4px;background:var(--c-link-bg);color:var(--c-link)}
-.due{font-size:10.5px;color:var(--c-text-sub);white-space:nowrap}
+.side-us{font-size:12px;font-weight:600;padding:1px 7px;border-radius:4px;background:var(--c-neutral-bg);color:var(--c-text)}
+.side-cl{font-size:12px;font-weight:600;padding:1px 7px;border-radius:4px;background:var(--c-link-bg);color:var(--c-link)}
+.due{font-size:12.5px;color:var(--c-text-sub);white-space:nowrap}
 .due.soon{color:var(--c-danger);font-weight:600}
 .due.done{color:var(--c-text-faintest)}
 .task-text{font-weight:500;min-width:0}
 .task-text.done{color:var(--c-text-faint);text-decoration:line-through;font-weight:400}
-.avatar{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:600;flex:none}
+.avatar{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:600;flex:none}
 .progress-track{height:5px;border-radius:3px;background:var(--c-neutral-bg)}
 .progress-fill{height:5px;border-radius:3px;background:var(--c-text)}
 .card{background:#fff;border:1px solid var(--c-border);border-radius:8px;padding:13px 16px}
 .card.hl{background:var(--c-warning-bg-strong);border-color:var(--c-warning-accent)}
-.search-empty{padding:14px;font-size:12px;color:var(--c-text-faint)}
+.search-empty{padding:14px;font-size:14px;color:var(--c-text-faint)}
 
 /* ---- issue portfolio ---- */
-.issue-row{display:grid;grid-template-columns:minmax(200px,1fr) minmax(180px,290px) 118px;min-width:640px;gap:18px;align-items:center;cursor:pointer}
+.issue-row{display:grid;grid-template-columns:minmax(0,1fr) 150px;gap:24px;align-items:center;cursor:pointer}
 .issue-row:hover{border-color:var(--c-text)}
 
 /* ---- docs table ---- */
@@ -133,12 +138,12 @@ a:hover{color:var(--c-link-hover);text-decoration:underline}
 .doc-table th,.doc-table td{text-align:left;font-weight:inherit;vertical-align:baseline;padding:0;border:0}
 .doc-head,.doc-row{display:grid;grid-template-columns:34px minmax(220px,1fr) 82px 140px 180px 84px 90px;min-width:950px;gap:0 12px;align-items:center}
 .doc-table tr.doc-head,.doc-table tr.doc-row{display:grid}
-.doc-head{padding:8px 10px;font-size:11px;font-weight:600;color:var(--c-text-faint);border-bottom:1px solid var(--c-border-strong)}
+.doc-head{padding:8px 10px;font-size:13px;font-weight:600;color:var(--c-text-faint);border-bottom:1px solid var(--c-border-strong)}
 .doc-row{padding:10px 10px;border-bottom:1px solid var(--c-border-soft)}
 .doc-row.hl{background:var(--c-warning-bg-strong);outline:2px solid var(--c-warning-accent);outline-offset:-2px;border-radius:6px}
 .doc-group-row{display:block}
 .doc-group-row th{display:block;min-width:950px}
-.ext-icon{width:22px;height:22px;border-radius:4px;display:grid;place-items:center;font-size:10px}
+.ext-icon{width:32px;height:22px;border-radius:4px;display:grid;place-items:center;font-size:12px}
 
 /* ---- people ---- */
 .people-row{display:flex;gap:12px;align-items:center;background:#fff;border:1px solid var(--c-border);border-radius:8px;padding:10px 14px;margin-bottom:6px}
@@ -151,31 +156,10 @@ a:hover{color:var(--c-link-hover);text-decoration:underline}
 .acc-table th,.acc-table td{text-align:left;font-weight:inherit;vertical-align:baseline;padding:0;border:0}
 .acc-grid-head,.acc-grid-row{display:grid;align-items:center;gap:0 10px}
 .acc-table tr.acc-grid-head,.acc-table tr.acc-grid-row{display:grid}
-.acc-grid-head{padding:8px 10px;font-size:10.5px;font-weight:600;color:var(--c-text-faint);border-bottom:1px solid var(--c-border-strong)}
+.acc-grid-head{padding:8px 10px;font-size:12.5px;font-weight:600;color:var(--c-text-faint);border-bottom:1px solid var(--c-border-strong)}
 .acc-grid-row{padding:12px 10px;border-bottom:1px solid rgba(0,0,0,.05)}
 .acc-sticky-member{position:sticky;left:0;background:var(--c-bg);z-index:1}
-.acc-sticky-sum{position:sticky;left:190px;background:var(--c-bg);z-index:1}
-
-/* ---- map ---- */
-.map-root{flex:none;width:220px;background:var(--c-text);color:#fff;border-radius:10px;padding:16px 18px}
-.map-line{flex:none;width:22px;border-top:1.5px solid #cfcdc5}
-.map-line-dashed{flex:none;width:22px;border-top:1.5px dashed #cfcdc5}
-.map-column{flex:1;display:flex;flex-direction:column;gap:14px;border-left:1.5px solid #cfcdc5;padding:6px 0}
-.map-issue-row{display:flex;align-items:center}
-.map-issue-node{flex:none;width:196px;background:#fff;border-radius:8px;padding:10px 12px;cursor:pointer}
-.map-issue-node:hover{box-shadow:0 2px 8px rgba(0,0,0,.08)}
-.map-children{display:flex;flex-direction:column;gap:10px;border-left:1.5px solid #cfcdc5;padding:4px 0}
-.map-ms-row{display:flex;align-items:center}
-.map-ms-node{flex:none;width:170px;background:var(--c-neutral-bg);border-radius:7px;padding:8px 11px}
-.map-tasks{display:flex;flex-direction:column;gap:7px;border-left:1.5px solid #dedbd2;padding:3px 0}
-.map-task-row{display:flex;align-items:center}
-.map-task-node{background:#fff;border:1px solid #dedbd2;border-radius:6px;padding:5px 10px;font-size:11px;color:var(--c-neutral)}
-.map-folded-tasks{display:flex;gap:8px;align-items:center;flex-wrap:wrap;max-width:520px}
-.map-folded-chip{background:var(--c-neutral-bg);border-radius:7px;padding:7px 11px;font-size:11px}
-.map-more-node{flex:none;width:196px;border:1.5px dashed #cfcdc5;border-radius:8px;padding:10px 12px;cursor:pointer;color:var(--c-text-faint)}
-.map-more-node:hover{color:var(--c-neutral);border-color:var(--c-text-faint)}
-.map-extra-node{flex:none;width:196px;background:#fff;border:1px solid var(--c-border);border-radius:8px;padding:8px 12px;cursor:pointer}
-.map-extra-node:hover{border-color:var(--c-text)}
+.acc-sticky-sum{position:sticky;left:210px;background:var(--c-bg);z-index:1}
 
 /* ---- overlays ---- */
 .overlay{position:fixed;inset:0;z-index:40}
@@ -183,17 +167,57 @@ a:hover{color:var(--c-link-hover);text-decoration:underline}
 .proj-row{display:flex;gap:10px;align-items:center;padding:8px 10px;border-radius:7px;cursor:pointer}
 .proj-row:hover{background:#f6f5f2}
 .proj-row.active{background:var(--c-neutral-bg)}
-.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--c-text);color:#fff;border-radius:8px;padding:9px 16px;font-size:11.5px;z-index:45;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--c-text);color:#fff;border-radius:8px;padding:9px 16px;font-size:13.5px;z-index:45;box-shadow:0 6px 20px rgba(0,0,0,.25)}
 .search-backdrop{position:fixed;inset:0;background:rgba(38,37,31,.35);z-index:50;display:flex;align-items:flex-start;justify-content:center;padding-top:11vh}
 .search-box{width:560px;max-width:90%;background:#fff;border-radius:10px;box-shadow:0 12px 40px rgba(0,0,0,.22);overflow:hidden}
-.search-input{width:100%;box-sizing:border-box;border:none;padding:14px 16px;font-size:14px;font-family:inherit;border-bottom:1px solid var(--c-border);background:#fff;color:var(--c-text)}
+.search-input{width:100%;box-sizing:border-box;border:none;padding:14px 16px;font-size:16px;font-family:inherit;border-bottom:1px solid var(--c-border);background:#fff;color:var(--c-text)}
 [tabindex]:focus,[tabindex]:focus-visible,.search-input:focus,.search-input:focus-visible{outline:2px solid var(--c-link);outline-offset:2px}
 .search-results{max-height:320px;overflow-y:auto;padding:6px}
-.search-result-row{display:flex;gap:10px;align-items:baseline;padding:9px 10px;border-radius:6px;cursor:pointer;font-size:12.5px}
+.search-result-row{display:flex;gap:10px;align-items:baseline;padding:9px 10px;border-radius:6px;cursor:pointer;font-size:14.5px}
 .search-result-row:hover{background:#f6f5f2}
-.search-footer{padding:8px 14px;border-top:1px solid var(--c-border-soft);font-size:10.5px;color:var(--c-text-faint)}
+.search-footer{padding:8px 14px;border-top:1px solid var(--c-border-soft);font-size:12.5px;color:var(--c-text-faint)}
 .goal-link{display:flex;gap:10px;align-items:baseline;margin-top:12px;cursor:pointer;border-radius:7px;padding:4px 6px;margin-left:-6px}
 .goal-link:hover{background:var(--c-sidebar-bg)}
+
+/* ---- press feedback ---- */
+.pill,.seg-btn,.mb-btn{transition:transform 120ms ease-out}
+.pill:active,.seg-btn:active,.mb-btn:active{transform:scale(.97)}
+
+/* ---- mobile (幅 760px 以下) ---- */
+@media (max-width:760px){
+  .app{flex-direction:column}
+  .mobile-bar{display:flex;align-items:center;gap:6px;padding:6px 8px;background:var(--c-sidebar-bg);border-bottom:1px solid var(--c-border-soft);flex:none}
+  .mb-btn{width:44px;height:44px;flex:none;display:grid;place-items:center;border-radius:8px;font-size:20px;color:var(--c-text);cursor:pointer}
+  .mb-proj{flex:1;min-width:0;display:flex;align-items:center;gap:8px;padding:4px 6px;border-radius:8px;cursor:pointer}
+  .sidebar{position:fixed;top:0;left:0;bottom:0;width:min(300px,86vw);z-index:30;transform:translateX(-100%);transition:transform 240ms cubic-bezier(.32,.72,0,1);box-shadow:0 0 32px rgba(0,0,0,.18)}
+  .app.nav-open .sidebar{transform:none}
+  .nav-backdrop{display:block;position:fixed;inset:0;z-index:29;background:rgba(38,37,31,.35);opacity:0;pointer-events:none;transition:opacity 200ms ease}
+  .app.nav-open .nav-backdrop{opacity:1;pointer-events:auto}
+  .sb-item{padding:10px 8px}
+  .main,.main.wide{--gutter:16px;min-height:0}
+  .main-header{padding-top:14px;padding-bottom:12px}
+  .workspace-grid,.goal-grid{grid-template-columns:minmax(0,1fr)}
+  .issue-row{grid-template-columns:minmax(0,1fr);gap:10px}
+  .pill,.seg-btn{padding:8px 14px}
+  .seg{flex-wrap:wrap}
+  .people-row{flex-wrap:wrap}
+  .ppl-name{width:auto !important;flex:1 1 160px !important;min-width:0}
+  .ppl-note{flex:1 1 100% !important;white-space:normal !important;order:5}
+  .mtg-line{flex-wrap:wrap}
+  .doc-table tr.doc-head{display:none}
+  .doc-table tr.doc-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;min-width:0;padding:12px 4px}
+  .doc-row td:nth-child(2){flex:1 1 calc(100% - 44px);min-width:0}
+  .doc-group-row th,.doc-group-row h2,.doc-table td.search-empty{min-width:0 !important}
+  .acc-wide{min-width:0 !important}
+  .goal-link{flex-wrap:wrap}
+  .mb-btn[data-action="open-search"]{font-size:24px}
+  .search-backdrop{padding-top:6vh}
+  .search-result-row{flex-wrap:wrap}
+  .overlay-panel{width:auto;right:12px;top:56px}
+}
+@media (prefers-reduced-motion:reduce){
+  .sidebar{transition:none}
+}
 </style>
 </head>
 <body>
@@ -210,12 +234,12 @@ var DATA = window.PORTAL_DATA;
 
 /* ============ filter routing ============ */
 var FILTER_MAP = { prio:'prioFilter', doc:'docFilter', ppl:'pplFilter', mtg:'mtgFilter',
-  ball:'ballFilter', col:'colFilter', accview:'accView', zoom:'mapZoom', mapgrain:'mapFull' };
+  ball:'ballFilter', col:'colFilter', accview:'accView', mtgview:'mtgView' };
 
 var ui = {
   projKey:'a', prioFilter:'all', docFilter:'all', pplFilter:'all', mtgFilter:'all',
-  ballFilter:'all', colFilter:'all', accView:'matrix', mapFull:true, mapMore:false,
-  mapZoom:0.8, projOpen:false, searchOpen:false, searchQ:''
+  ballFilter:'all', colFilter:'all', accView:'matrix', mtgView:'mtg',
+  projOpen:false, searchOpen:false, searchQ:''
 };
 var nav = { page:'issues', issueId:null, hl:null };
 
@@ -229,7 +253,7 @@ function currentProject(){ return DATA.projects.find(function(p){ return p.key==
 var PRIO_CLASS = {'高':'chip-danger','中':'chip-warning','低':'chip-success'};
 var PRIO_DOT = {'高':'var(--c-danger)','中':'var(--c-warning-accent)','低':'var(--c-success)'};
 var NOTE_TAG = { f:['事実','chip-link'], j:['判断・仮説','chip-warning'], r:['リスク','chip-danger'], q:['論点','chip-neutral'] };
-var REL_KIND = { doc:['資料','docs','chip-link'], ppl:['人物','people','chip-neutral'], dec:['決定','decisions','chip-warning'], mtg:['会議','meetings','chip-neutral'] };
+var REL_KIND = { doc:['資料','docs','chip-link'], ppl:['人物','people','chip-neutral'], dec:['決定','meetings','chip-warning'], mtg:['会議','meetings','chip-neutral'] };
 var DELIV_ICON = { XLS:'chip-success', PDF:'chip-danger', PPT:'chip-link', DOC:'chip-link' };
 var STANCE_CLASS = { '協力的':'chip-success', '多忙':'chip-warning', '慎重':'chip-danger', '中立':'chip-neutral', '当社':'chip-neutral' };
 var EXT_CLASS = { XLS:'chip-success', PDF:'chip-danger', PPT:'chip-link', DOC:'chip-link' };
@@ -309,32 +333,32 @@ function accessAlertCount(){
 function renderNextRow(t){
   var st = dueStatus(t.due);
   var dueCls = (st==='overdue'||st==='soon') ? 'soon' : '';
-  return '<div style="display:flex;gap:9px;align-items:baseline;font-size:12.5px">'
+  return '<div style="display:flex;gap:9px;align-items:baseline;font-size:14.5px">'
     + '<span class="due '+dueCls+' flex-none">'+esc(t.due)+'</span>'
     + '<span class="'+(t.side==='cl'?'side-cl':'side-us')+' flex-none nowrap">'+(t.side==='cl'?'先方':'当社')+'</span>'
     + '<span class="task-text">'+esc(t.t)+'</span>'
-    + '<span class="flex-none nowrap" style="margin-left:auto;font-size:10.5px;color:var(--c-text-faint)">'+esc(t.owner||'')+'</span>'
+    + '<span class="flex-none nowrap" style="margin-left:auto;font-size:12.5px;color:var(--c-text-faint)">'+esc(t.owner||'')+'</span>'
     + '</div>';
 }
 function renderTaskRow(t){
   var icon = t.done ? '✓' : '○';
   var st = dueStatus(t.due);
   var dueCls = t.done ? 'done' : ((st==='overdue'||st==='soon') ? 'soon' : '');
-  return '<div style="display:flex;gap:8px;align-items:baseline;font-size:12px;flex-wrap:wrap">'
+  return '<div style="display:flex;gap:8px;align-items:baseline;font-size:14px;flex-wrap:wrap">'
     + '<span class="flex-none" style="color:'+(t.done?'var(--c-success)':'var(--c-text-faintest)')+'">'+icon+'</span>'
     + '<span class="'+(t.side==='cl'?'side-cl':'side-us')+' flex-none nowrap">'+(t.side==='cl'?'先方':'当社')+'</span>'
     + '<span class="task-text '+(t.done?'done':'')+'">'+esc(t.t)+'</span>'
     + '<span class="flex-none" style="margin-left:auto;display:flex;gap:7px;align-items:baseline">'
-    + '<span class="nowrap" style="font-size:10px;color:var(--c-text-faint)">'+esc(t.owner||'')+'</span>'
+    + '<span class="nowrap" style="font-size:12px;color:var(--c-text-faint)">'+esc(t.owner||'')+'</span>'
     + '<span class="due '+dueCls+' flex-none">'+esc(t.due)+'</span>'
     + '</span></div>';
 }
 function renderNote(n){
   var type=n[0], text=n[1], src=n[2];
   var tag = NOTE_TAG[type] || NOTE_TAG.q;
-  return '<div style="display:flex;gap:9px;align-items:baseline;font-size:12.5px;line-height:1.6">'
+  return '<div style="display:flex;gap:9px;align-items:baseline;font-size:14.5px;line-height:1.6">'
     + '<span class="chip '+tag[1]+' flex-none">'+esc(tag[0])+'</span>'
-    + '<div class="min-w-0" style="flex:1">'+esc(text)+' <span class="nowrap" style="font-size:10.5px;color:var(--c-text-faint)">— '+esc(src)+'</span></div>'
+    + '<div class="min-w-0" style="flex:1">'+esc(text)+' <span class="nowrap" style="font-size:12.5px;color:var(--c-text-faint)">— '+esc(src)+'</span></div>'
     + '</div>';
 }
 function renderRel(r){
@@ -342,51 +366,65 @@ function renderRel(r){
   var k = REL_KIND[kind];
   if (!k) return '';
   var text = label || key;
-  return '<div style="display:flex;gap:8px;align-items:baseline;font-size:12.5px">'
+  return '<div style="display:flex;gap:8px;align-items:baseline;font-size:14.5px">'
     + '<span class="chip '+k[2]+' flex-none">'+esc(k[0])+'</span>'
     + '<span class="crumb-link min-w-0" data-page="'+esc(k[1])+'" data-hl="'+esc(key)+'">'+esc(text)+'</span>'
     + '</div>';
 }
 function renderDeliv(d){
   var ic = DELIV_ICON[d.type] || 'chip-link';
-  return '<div style="display:flex;gap:10px;align-items:center;font-size:12.5px;padding:8px 10px;background:var(--c-bg);border-radius:6px">'
-    + '<span class="chip '+ic+'" style="width:26px;height:18px;display:grid;place-items:center;font-size:9px">'+esc(d.type)+'</span>'
+  return '<div style="display:flex;gap:10px;align-items:center;font-size:14.5px;padding:8px 10px;background:var(--c-bg);border-radius:6px">'
+    + '<span class="chip '+ic+'" style="width:26px;height:18px;display:grid;place-items:center;font-size:11px">'+esc(d.type)+'</span>'
     + '<span style="font-weight:500;min-width:0;flex:1">'+esc(d.n)+'</span>'
     + '<span class="chip '+delivStatusClass(d.st)+' flex-none">'+esc(d.st)+'</span>'
-    + '<span class="nowrap flex-none" style="font-size:10.5px;color:var(--c-text-faint)">〜'+esc(d.due)+'</span>'
+    + '<span class="nowrap flex-none" style="font-size:12.5px;color:var(--c-text-faint)">〜'+esc(d.due)+'</span>'
     + '</div>';
 }
 
 /* ============ sidebar ============ */
+/* メニューは雛形のフォルダと 1 対 1 に対応し、README の「構成」と同じ順に並ぶ。
+   対応と順の理由は docs/13_業務管理ポータル設計/01_画面設計.md の「メニューと案件フォルダの対応」。 */
+function sbItem(page, label, count, countStyle){
+  return '<div class="sb-item '+(nav.page===page?'active':'')+'" data-page="'+page+'"><span>'+label+'</span>'
+    + (count==null ? '' : '<span class="sb-item-count" style="'+(countStyle||'')+'">'+count+'</span>') + '</div>';
+}
 function renderSidebar(){
   var pinned = DATA.issues.slice(0,5);
   var restCount = DATA.issues.length - pinned.length;
   var proj = currentProject();
-  var taskTotal = DATA.issues.reduce(function(n,i){ return n+i.tasks.length; }, 0);
   var accCount = accessAlertCount();
   var html = '<div class="sidebar">';
   html += '<div class="sb-proj" data-action="toggle-proj">'
     + '<div class="sb-proj-avatar">'+esc(proj.ini)+'</div>'
     + '<div class="min-w-0"><div class="sb-proj-name">'+esc(proj.name)+'</div><div class="sb-proj-sub">'+esc(proj.sub)+'</div></div>'
-    + '<span class="flex-none nowrap" style="margin-left:auto;color:var(--c-text-faint);font-size:9px">▼</span>'
+    + '<span class="flex-none nowrap" style="margin-left:auto;color:var(--c-text-faint);font-size:11px">▼</span>'
     + '</div>';
   html += '<div class="sb-search" data-action="open-search">⌕ 検索<span class="sb-kbd">⌘K</span></div>';
-  html += '<div class="sb-item '+(nav.page==='issues'?'active':'')+'" data-page="issues"><span style="font-weight:600">◧ 課題管理</span><span class="sb-item-count">'+DATA.issues.length+'</span></div>';
+  html += sbItem('docs', '▦ 参照資料', DATA.docs.length);
+  html += '<div class="sb-item '+(nav.page==='issues'?'active':'')+'" data-page="issues"><span style="font-weight:600">◧ 依頼内容</span><span class="sb-item-count">'+DATA.issues.length+'</span></div>';
   pinned.forEach(function(is){
     html += '<div class="sb-item sb-pin '+(nav.page==='issue'&&nav.issueId===is.id?'active':'')+'" data-page="issue" data-issue="'+esc(is.id)+'">'
       + '<span class="sb-pin-dot" style="background:'+PRIO_DOT[is.prio]+'" title="優先度: '+esc(is.prio)+'" aria-label="優先度: '+esc(is.prio)+'"></span><span>'+esc(is.name)+'</span></div>';
   });
-  html += '<div class="sb-more" data-page="issues">… 他'+restCount+'件(ピン留め外)を一覧で表示</div>';
-  html += '<div class="sb-item '+(nav.page==='map'?'active':'')+'" data-page="map" style="margin-top:6px"><span>◈ 全体マップ</span></div>';
-  html += '<div class="sb-item '+(nav.page==='tasks'?'active':'')+'" data-page="tasks"><span>▤ 計画・タスク</span><span class="sb-item-count">'+taskTotal+'</span></div>';
-  html += '<div class="sb-item '+(nav.page==='docs'?'active':'')+'" data-page="docs"><span>▦ 受領資料一覧</span><span class="sb-item-count">'+DATA.docs.length+'</span></div>';
-  html += '<div class="sb-item '+(nav.page==='people'?'active':'')+'" data-page="people"><span>◉ 登場人物</span><span class="sb-item-count">'+DATA.people.length+'</span></div>';
-  html += '<div class="sb-item '+(nav.page==='access'?'active':'')+'" data-page="access"><span>⛿ アクセス・環境準備</span><span class="sb-item-count" style="'+(accCount>0?'color:var(--c-warning-accent)':'')+'">'+accCount+'</span></div>';
-  html += '<div class="sb-item '+(nav.page==='meetings'?'active':'')+'" data-page="meetings"><span>▥ 会議メモ・議事録</span><span class="sb-item-count">'+DATA.meetings.length+'</span></div>';
-  html += '<div class="sb-item '+(nav.page==='decisions'?'active':'')+'" data-page="decisions"><span>✓ 決定事項ログ</span><span class="sb-item-count">'+DATA.decisions.length+'</span></div>';
+  if (restCount > 0) html += '<div class="sb-more" data-page="issues">… 他'+restCount+'件の課題を一覧で表示</div>';
+  html += '<h2 class="group-label" style="margin-top:10px;padding-left:8px">案件管理</h2>';
+  html += sbItem('meetings', '▥ 議事録', DATA.meetings.length);
+  html += sbItem('case', '▣ 案件全体', (DATA.caseDeliv||[]).length);
+  html += sbItem('access', '⛿ 参画準備', accCount, accCount>0?'color:var(--c-warning-accent)':'');
+  html += sbItem('people', '◉ 登場人物', DATA.people.length);
   html += '<div class="sb-footer">最終AI更新<br>8/29 18:04 — 8/29ルーティン会議の議事録から3件反映</div>';
   html += '</div>';
   return html;
+}
+
+/* ============ mobile bar ============ */
+function renderMobileBar(){
+  var proj = currentProject();
+  return '<div class="mobile-bar">'
+    + '<span class="mb-btn" data-action="toggle-nav" aria-label="メニューを開く">☰</span>'
+    + '<div class="mb-proj" data-action="toggle-proj"><div class="sb-proj-avatar">'+esc(proj.ini)+'</div><div class="min-w-0"><div class="sb-proj-name">'+esc(proj.name)+'</div><div class="sb-proj-sub">'+esc(proj.sub)+'</div></div></div>'
+    + '<span class="mb-btn" data-action="open-search" aria-label="検索">⌕</span>'
+    + '</div>';
 }
 
 /* ============ overlays ============ */
@@ -394,19 +432,19 @@ function renderProjSwitcher(){
   if (!ui.projOpen) return '';
   var sel = currentProject();
   var html = '<div class="overlay" data-action="close-proj"><div class="overlay-panel" data-action="noop">';
-  html += '<div style="padding:8px 10px 6px;font-size:10.5px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em">担当プロジェクト('+DATA.projects.length+')</div>';
+  html += '<div style="padding:8px 10px 6px;font-size:12.5px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em">担当プロジェクト('+DATA.projects.length+')</div>';
   DATA.projects.forEach(function(p){
     var active = p.key===sel.key;
     html += '<div class="proj-row '+(active?'active':'')+'" data-action="switch-project" data-key="'+esc(p.key)+'">'
       + '<div class="sb-proj-avatar" style="'+(active?'background:var(--c-text)':'background:#d8d5cc;color:var(--c-text)')+'">'+esc(p.ini)+'</div>'
       + '<div class="min-w-0" style="flex:1"><div class="sb-proj-name">'+esc(p.name)+'</div><div class="sb-proj-sub">'+esc(p.sub)+'</div></div>'
-      + '<span class="nowrap flex-none" style="font-size:10.5px;color:var(--c-text-faint)">課題 '+p.issues+'</span>'
+      + '<span class="nowrap flex-none" style="font-size:12.5px;color:var(--c-text-faint)">課題 '+p.issues+'</span>'
       + (p.alerts>0
           ? '<span class="chip chip-danger nowrap" style="border-radius:8px">要対応 '+p.alerts+'</span>'
-          : '<span class="nowrap flex-none" style="font-size:10.5px;color:var(--c-text-faint)">—</span>')
+          : '<span class="nowrap flex-none" style="font-size:12.5px;color:var(--c-text-faint)">—</span>')
       + '</div>';
   });
-  html += '<div style="padding:8px 10px;border-top:1px solid var(--c-border-soft);font-size:10px;color:var(--c-text-faint);margin-top:4px">要対応 = 期限超過・先方滞留・未申請などAIが検知した件数</div>';
+  html += '<div style="padding:8px 10px;border-top:1px solid var(--c-border-soft);font-size:12px;color:var(--c-text-faint);margin-top:4px">要対応 = 期限超過・先方滞留・未申請などAIが検知した件数</div>';
   html += '</div></div>';
   return html;
 }
@@ -436,7 +474,7 @@ function searchResults(){
     if (hit(m.title)||hit(m.summary)) out.push({kind:'会議',cls:'chip-neutral',label:m.title,sub:m.attendees,page:'meetings',hl:m.title});
   });
   DATA.decisions.forEach(function(d){
-    if (hit(d.text)||hit(d.id)) out.push({kind:'決定',cls:'chip-warning',label:d.text,sub:d.id+' · '+d.date,page:'decisions',hl:d.id});
+    if (hit(d.text)||hit(d.id)) out.push({kind:'決定',cls:'chip-warning',label:d.text,sub:d.id+' · '+d.date,page:'meetings',hl:d.id});
   });
   return out.slice(0,10);
 }
@@ -449,7 +487,7 @@ function renderSearchResultsInner(){
     return '<div class="search-result-row" data-action="search-go" data-page="'+esc(r.page)+'" data-issue="'+esc(r.issueId||'')+'" data-hl="'+esc(r.hl||'')+'">'
       + '<span class="chip '+r.cls+'">'+esc(r.kind)+'</span>'
       + '<span style="font-weight:500;min-width:0">'+esc(r.label)+'</span>'
-      + '<span class="nowrap flex-none" style="margin-left:auto;font-size:10.5px;color:var(--c-text-faint)">'+esc(r.sub)+'</span>'
+      + '<span class="nowrap flex-none" style="margin-left:auto;font-size:12.5px;color:var(--c-text-faint)">'+esc(r.sub)+'</span>'
       + '</div>';
   }).join('');
 }
@@ -463,48 +501,53 @@ function renderSearchModal(){
     + '</div></div>';
 }
 
-/* ============ page: issue portfolio ============ */
+/* ============ page: request list (依頼内容/) ============ */
+function requestNames(){
+  var names = [];
+  DATA.issues.forEach(function(i){ var r = i.req || '依頼の決まっていない課題'; if (names.indexOf(r) === -1) names.push(r); });
+  return names;
+}
+function renderIssueCard(i){
+  var prog = issueProgress(i);
+  var od = issueOwnerDue(i);
+  var stuck = issueStuck(i);
+  return '<div class="card issue-row" data-page="issue" data-issue="'+esc(i.id)+'">'
+    + '<div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
+    + '<span class="chip '+PRIO_CLASS[i.prio]+'">'+esc(i.prio)+'</span>'
+    + '<span style="font-weight:600">'+esc(i.name)+'</span>'
+    + (stuck ? '<span class="chip chip-danger nowrap">⚠ 先方滞留</span>' : '')
+    + '<span style="font-size:13px;color:var(--c-text-faint)">'+esc(i.id)+' · '+esc(od.owner)+' · 〜'+esc(od.due)+'</span>'
+    + '</div><div style="font-size:13.5px;color:var(--c-text-sub);margin-top:5px;line-height:1.5">ゴール: '+esc(i.goal)+'</div>'
+    + '<div style="font-size:13.5px;color:var(--c-neutral);line-height:1.5;margin-top:3px"><span style="color:var(--c-text-faint)">次のアクション:</span> '+esc(nextActionText(i))+'</div></div>'
+    + '<div style="display:flex;flex-direction:column;gap:4px">'
+    + '<div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--c-text-faint)"><span>計画 '+esc(prog.frac)+'</span><span>'+prog.pct+'%</span></div>'
+    + '<div class="progress-track"><div class="progress-fill" style="width:'+prog.pct+'%"></div></div>'
+    + '</div></div>';
+}
 function renderIssuesPage(){
   var pf = ui.prioFilter;
   var order = {'高':0,'中':1,'低':2};
   function cnt(p){ return DATA.issues.filter(function(i){ return i.prio===p; }).length; }
-  var vis = DATA.issues.filter(function(i){ return pf==='all'||i.prio===pf; }).slice().sort(function(a,b){ return order[a.prio]-order[b.prio]; });
-  var last = null;
-  var rows = vis.map(function(i){
-    var showHeader = i.prio !== last; last = i.prio;
-    var prog = issueProgress(i);
-    var od = issueOwnerDue(i);
-    var stuck = issueStuck(i);
-    var html = '';
-    if (showHeader) html += '<h2 class="group-label">'+esc(i.prio)+'優先 · '+cnt(i.prio)+'件</h2>';
-    html += '<div class="card issue-row" data-page="issue" data-issue="'+esc(i.id)+'">'
-      + '<div><div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">'
-      + '<span class="chip '+PRIO_CLASS[i.prio]+'">'+esc(i.prio)+'</span>'
-      + '<span style="font-weight:600">'+esc(i.name)+'</span>'
-      + (stuck ? '<span class="chip chip-danger nowrap">⚠ 先方滞留</span>' : '')
-      + '<span style="font-size:11px;color:var(--c-text-faint)">'+esc(i.id)+' · '+esc(od.owner)+' · 〜'+esc(od.due)+'</span>'
-      + '</div><div style="font-size:11.5px;color:var(--c-text-sub);margin-top:5px;line-height:1.5">ゴール: '+esc(i.goal)+'</div></div>'
-      + '<div style="font-size:11.5px;color:var(--c-neutral);line-height:1.5"><span style="color:var(--c-text-faint)">次のアクション:</span> '+esc(nextActionText(i))+'</div>'
-      + '<div style="display:flex;flex-direction:column;gap:4px">'
-      + '<div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--c-text-faint)"><span>計画 '+esc(prog.frac)+'</span><span>'+prog.pct+'%</span></div>'
-      + '<div class="progress-track"><div class="progress-fill" style="width:'+prog.pct+'%"></div></div>'
-      + '</div></div>';
-    return html;
+  var vis = DATA.issues.filter(function(i){ return pf==='all'||i.prio===pf; });
+  var rows = requestNames().map(function(r){
+    var list = vis.filter(function(i){ return (i.req || '依頼の決まっていない課題') === r; })
+      .slice().sort(function(a,b){ return order[a.prio]-order[b.prio]; });
+    if (!list.length) return '';
+    return '<h2 class="group-label">'+esc(r)+' · 課題'+list.length+'件</h2>' + list.map(renderIssueCard).join('');
   }).join('');
   return '<div class="main">'
     + '<div class="main-header"><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
-    + '<h1 class="page-title nowrap flex-none">課題管理 — '+DATA.issues.length+'件</h1>'
+    + '<h1 class="page-title nowrap flex-none">依頼内容 — 課題'+DATA.issues.length+'件</h1>'
     + '<div class="filters">'
     + '<span class="pill '+(pf==='all'?'active':'')+'" data-filter="prio" data-value="all">すべて '+DATA.issues.length+'</span>'
     + '<span class="pill '+(pf==='高'?'active':'')+'" data-filter="prio" data-value="高">高 '+cnt('高')+'</span>'
     + '<span class="pill '+(pf==='中'?'active':'')+'" data-filter="prio" data-value="中">中 '+cnt('中')+'</span>'
     + '<span class="pill '+(pf==='低'?'active':'')+'" data-filter="prio" data-value="低">低 '+cnt('低')+'</span>'
     + '</div></div>'
-    + '<div class="page-sub">優先度グループと絞り込みで件数が増えても一覧性を保ちます。カードをクリックでワークスペースへ。</div></div>'
+    + '<div class="page-sub">依頼内容/ の依頼ごとに課題を並べます。課題をクリックすると、課題のワークスペースを開きます。</div></div>'
     + '<div class="main-body" style="display:flex;flex-direction:column;gap:10px">'
     + (rows || '<div class="search-empty">該当する課題がありません。</div>')
-    + '<div style="font-size:11.5px;color:var(--c-text-faint)">'+vis.length+'件を表示 / 全'+DATA.issues.length+'件</div>'
-    + '<div style="font-size:11.5px;color:var(--c-text-faint)">ゴール・計画・進捗はすべてAIが議事録・チャットから自動更新します。</div>'
+    + '<div style="font-size:13.5px;color:var(--c-text-faint)">'+vis.length+'件を表示 / 全'+DATA.issues.length+'件</div>'
     + '</div></div>';
 }
 
@@ -532,39 +575,39 @@ function renderIssuePage(){
     return { name:m.name, due:m.due, doneCount: all.filter(function(t){ return t.done; }).length, total: all.length, tasks: vis };
   });
   var html = '<div class="main">';
-  html += '<div style="padding:18px 24px 0">'
-    + '<div class="breadcrumb"><span class="crumb-link" data-page="issues">課題管理</span> / '+esc(cur.id)+'</div>'
+  html += '<div class="page-pad" style="padding-top:20px">'
+    + '<div class="breadcrumb"><span class="crumb-link" data-page="issues">依頼内容</span> / '+esc(cur.req||'依頼の決まっていない課題')+' / '+esc(cur.id)+'</div>'
     + '<div style="display:flex;align-items:center;gap:10px;margin-top:4px">'
     + '<span class="chip '+PRIO_CLASS[cur.prio]+'">'+esc(cur.prio)+'</span>'
-    + '<h1 style="font-size:17px;font-weight:600;margin:0">'+esc(cur.title)+'</h1></div>'
+    + '<h1 style="font-size:21px;font-weight:600;margin:0">'+esc(cur.title)+'</h1></div>'
     + '<div class="goal-link" data-page="goal" data-issue="'+esc(cur.id)+'">'
-    + '<span style="font-size:11px;font-weight:600;letter-spacing:.05em;color:var(--c-text-faint);flex:none;white-space:nowrap">⚑ ゴール</span>'
-    + '<div style="font-size:14px;font-weight:600;line-height:1.6;min-width:0">'+esc(cur.goal)+'</div>'
-    + '<span class="flex-none nowrap" style="font-size:11px;color:var(--c-link);align-self:center">達成条件・成果物 →</span>'
+    + '<span style="font-size:13px;font-weight:600;letter-spacing:.05em;color:var(--c-text-faint);flex:none;white-space:nowrap">⚑ ゴール</span>'
+    + '<div style="font-size:16px;font-weight:600;line-height:1.6;min-width:0">'+esc(cur.goal)+'</div>'
+    + '<span class="flex-none nowrap" style="font-size:13px;color:var(--c-link);align-self:center">達成条件・成果物 →</span>'
     + '</div></div>';
   html += '<div class="workspace-grid"><div class="workspace-left">';
   html += '<div class="card">'
     + '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px;flex-wrap:wrap">'
-    + '<h2 style="font-size:11px;font-weight:600;color:var(--c-text);letter-spacing:.05em;white-space:nowrap;margin:0">▶ 次のアクション(期限順)</h2>'
-    + '<span style="font-size:10.5px;color:var(--c-text-faint);white-space:nowrap">未完了 '+open.length+'件中 直近'+nextRows.length+'件</span></div>'
+    + '<h2 style="font-size:13px;font-weight:600;color:var(--c-text);letter-spacing:.05em;white-space:nowrap;margin:0">▶ 次のアクション(期限順)</h2>'
+    + '<span style="font-size:12.5px;color:var(--c-text-faint);white-space:nowrap">未完了 '+open.length+'件中 直近'+nextRows.length+'件</span></div>'
     + '<div style="display:flex;flex-direction:column;gap:7px">'
-    + (nextRows.map(renderNextRow).join('') || '<div style="font-size:12px;color:var(--c-text-faint)">未完了のタスクはありません。</div>')
+    + (nextRows.map(renderNextRow).join('') || '<div style="font-size:14px;color:var(--c-text-faint)">未完了のタスクはありません。</div>')
     + '</div>'
-    + (nextMore>0 ? '<div style="font-size:10.5px;color:var(--c-text-faint);margin-top:8px">… 他'+nextMore+'件は下の「計画・やること」に期限順で続きます</div>' : '')
+    + (nextMore>0 ? '<div style="font-size:12.5px;color:var(--c-text-faint);margin-top:8px">… 他'+nextMore+'件は下の「計画・やること」に期限順で続きます</div>' : '')
     + '</div>';
   if (clStuck.length){
     html += '<div class="card" style="background:var(--c-danger-bg);border-color:var(--c-danger-border)">'
-      + '<div style="font-size:11px;font-weight:600;color:var(--c-danger);margin-bottom:6px">⚠ 先方待ちの滞留(期限超過)</div>'
+      + '<div style="font-size:13px;font-weight:600;color:var(--c-danger);margin-bottom:6px">⚠ 先方待ちの滞留(期限超過)</div>'
       + clStuck.map(function(t){
-          return '<div style="font-size:12px;color:var(--c-neutral);line-height:1.6">'+esc(t.t)+' — '+esc(t.owner)+' · 期限 '+esc(t.due)+' 超過。リマインド推奨</div>';
+          return '<div style="font-size:14px;color:var(--c-neutral);line-height:1.6">'+esc(t.t)+' — '+esc(t.owner)+' · 期限 '+esc(t.due)+' 超過。リマインド推奨</div>';
         }).join('')
       + '</div>';
   }
   html += '<div class="card">'
     + '<div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">'
-    + '<h2 style="font-size:11px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;white-space:nowrap;margin:0">計画(中目標 → タスク)</h2>'
-    + '<span style="font-size:11px;color:var(--c-text-sub);white-space:nowrap">'+esc(issueProgress(cur).frac)+' 完了</span>'
-    + '<span class="flex-none nowrap" style="margin-left:auto;font-size:10px;color:var(--c-danger);font-weight:600">赤い期限 = 今週中</span></div>'
+    + '<h2 style="font-size:13px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;white-space:nowrap;margin:0">計画(中目標 → タスク)</h2>'
+    + '<span style="font-size:13px;color:var(--c-text-sub);white-space:nowrap">'+esc(issueProgress(cur).frac)+' 完了</span>'
+    + '<span class="flex-none nowrap" style="margin-left:auto;font-size:12px;color:var(--c-danger);font-weight:600">赤い期限 = 今週中</span></div>'
     + '<div class="seg" style="margin-top:10px;max-width:100%;align-self:flex-start">'
     + '<span class="seg-btn '+(bf==='all'?'active':'')+'" data-filter="ball" data-value="all">すべて</span>'
     + '<span class="seg-btn '+(bf==='us'?'active':'')+'" data-filter="ball" data-value="us">当社の対応タスク <span class="badge-count '+usCntCls+'">'+usOpen+'</span></span>'
@@ -573,31 +616,31 @@ function renderIssuePage(){
     + milestones.map(function(ms){
         return '<div style="margin-top:10px">'
           + '<div style="display:flex;align-items:baseline;gap:8px;background:var(--c-neutral-bg);border-radius:6px;padding:7px 11px;flex-wrap:wrap">'
-          + '<h3 style="font-size:12px;font-weight:600;margin:0">◇ '+esc(ms.name)+'</h3>'
-          + '<span style="font-size:10.5px;color:var(--c-text-sub);white-space:nowrap">中目標 · 〜'+esc(ms.due)+'</span>'
-          + '<span class="flex-none nowrap" style="margin-left:auto;font-size:10.5px;color:var(--c-text-sub)">'+ms.doneCount+'/'+ms.total+' 完了</span></div>'
+          + '<h3 style="font-size:14px;font-weight:600;margin:0">◇ '+esc(ms.name)+'</h3>'
+          + '<span style="font-size:12.5px;color:var(--c-text-sub);white-space:nowrap">中目標 · 〜'+esc(ms.due)+'</span>'
+          + '<span class="flex-none nowrap" style="margin-left:auto;font-size:12.5px;color:var(--c-text-sub)">'+ms.doneCount+'/'+ms.total+' 完了</span></div>'
           + '<div style="display:flex;flex-direction:column;gap:8px;padding:10px 2px 2px 14px;border-left:2px solid #e0ddd4;margin-left:10px">'
-          + (ms.tasks.map(renderTaskRow).join('') || '<div style="font-size:11px;color:var(--c-text-faint)">対象のタスクはありません。</div>')
+          + (ms.tasks.map(renderTaskRow).join('') || '<div style="font-size:13px;color:var(--c-text-faint)">対象のタスクはありません。</div>')
           + '</div></div>';
       }).join('')
     + '</div>';
   html += '<div class="card">'
     + '<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:10px;flex-wrap:wrap">'
-    + '<h2 style="font-size:11px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;margin:0">この課題の記録</h2>'
-    + '<span style="font-size:10.5px;color:var(--c-text-faint)">事実=AI集約(出典つき) / 判断・リスク・論点=人の見解(記名)</span></div>'
+    + '<h2 style="font-size:13px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;margin:0">この課題の記録</h2>'
+    + '<span style="font-size:12.5px;color:var(--c-text-faint)">事実=AI集約(出典つき) / 判断・リスク・論点=人の見解(記名)</span></div>'
     + '<div style="display:flex;flex-direction:column;gap:8px">'
-    + ((cur.notes||[]).map(renderNote).join('') || '<div style="font-size:12px;color:var(--c-text-faint)">記録はまだありません。</div>')
+    + ((cur.notes||[]).map(renderNote).join('') || '<div style="font-size:14px;color:var(--c-text-faint)">記録はまだありません。</div>')
     + '</div></div>';
   html += '</div><div class="workspace-right">';
   html += '<div class="card">'
-    + '<h2 style="font-size:11px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;margin:0 0 8px">ステータス</h2>'
-    + '<div style="font-size:12px;line-height:1.9;color:var(--c-neutral)">状態: 対応中 · 担当: '+esc(od.owner)+' · 期限: '+esc(od.due)+'</div>'
+    + '<h2 style="font-size:13px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;margin:0 0 8px">ステータス</h2>'
+    + '<div style="font-size:14px;line-height:1.9;color:var(--c-neutral)">状態: 対応中 · 担当: '+esc(od.owner)+' · 期限: '+esc(od.due)+'</div>'
     + '<div style="margin-top:8px;display:flex"><span class="chip chip-success">'+esc(cur.aiLabel||'')+'</span></div>'
-    + '<div style="font-size:10.5px;color:var(--c-text-faint);margin-top:8px;line-height:1.6">最終更新: '+esc(cur.aiLabel||'—')+'</div>'
+    + '<div style="font-size:12.5px;color:var(--c-text-faint);margin-top:8px;line-height:1.6">最終更新: '+esc(cur.aiLabel||'—')+'</div>'
     + '</div>';
   html += '<div class="card" style="display:flex;flex-direction:column;gap:8px">'
-    + '<h2 style="font-size:11px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;margin:0">関連</h2>'
-    + ((cur.rels||[]).map(renderRel).join('') || '<div style="font-size:12px;color:var(--c-text-faint)">関連情報はまだありません。</div>')
+    + '<h2 style="font-size:13px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;margin:0">関連</h2>'
+    + ((cur.rels||[]).map(renderRel).join('') || '<div style="font-size:14px;color:var(--c-text-faint)">関連情報はまだありません。</div>')
     + '</div>';
   html += '</div></div></div>';
   return html;
@@ -611,172 +654,52 @@ function renderGoalPage(){
   var msDefs = (cur.ms && cur.ms.length) ? cur.ms : [{name:'初動対応', due:''}];
   var deliv = cur.deliv || [];
   var html = '<div class="main">';
-  html += '<div style="padding:18px 24px 14px;border-bottom:1px solid var(--c-border-soft)">'
-    + '<div class="breadcrumb"><span class="crumb-link" data-page="issues">課題管理</span> / <span class="crumb-link" data-page="issue" data-issue="'+esc(cur.id)+'">'+esc(cur.id)+'</span> / ゴール詳細</div>'
-    + '<div style="display:flex;gap:10px;align-items:baseline;margin-top:8px"><span style="font-size:13px;flex:none">⚑</span><h1 style="font-size:17px;font-weight:600;line-height:1.6;min-width:0;margin:0">'+esc(cur.goal)+'</h1></div>'
-    + '<div style="font-size:11.5px;color:var(--c-text-sub);margin-top:4px">'+esc(cur.title)+'('+esc(cur.id)+')のゴール · 状態: 対応中 · 担当: '+esc(od.owner)+' · 期限: '+esc(od.due)+'</div>'
+  html += '<div class="page-pad" style="padding-top:20px;padding-bottom:16px;border-bottom:1px solid var(--c-border-soft)">'
+    + '<div class="breadcrumb"><span class="crumb-link" data-page="issues">依頼内容</span> / <span class="crumb-link" data-page="issue" data-issue="'+esc(cur.id)+'">'+esc(cur.id)+'</span> / ゴール詳細</div>'
+    + '<div style="display:flex;gap:10px;align-items:baseline;margin-top:8px"><span style="font-size:15px;flex:none">⚑</span><h1 style="font-size:21px;font-weight:600;line-height:1.6;min-width:0;margin:0">'+esc(cur.goal)+'</h1></div>'
+    + '<div style="font-size:13.5px;color:var(--c-text-sub);margin-top:4px">'+esc(cur.title)+'('+esc(cur.id)+')のゴール · 状態: 対応中 · 担当: '+esc(od.owner)+' · 期限: '+esc(od.due)+'</div>'
     + '</div>';
   html += '<div class="goal-grid"><div class="workspace-left">';
   html += '<div class="card">'
-    + '<h2 style="font-size:11px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;margin:0 0 10px">達成条件(すべてYesでゴール)</h2>'
+    + '<h2 style="font-size:13px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;margin:0 0 10px">達成条件(すべてYesでゴール)</h2>'
     + '<div style="display:flex;flex-direction:column;gap:8px">'
     + crit.map(function(c){
-        return '<div style="display:flex;gap:9px;align-items:baseline;font-size:12.5px;line-height:1.6"><span style="color:var(--c-success);flex:none">☐</span><div class="min-w-0">'+esc(c)+'</div></div>';
+        return '<div style="display:flex;gap:9px;align-items:baseline;font-size:14.5px;line-height:1.6"><span style="color:var(--c-success);flex:none">☐</span><div class="min-w-0">'+esc(c)+'</div></div>';
       }).join('')
     + '</div></div>';
   html += '<div class="card">'
-    + '<h2 style="font-size:11px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;margin:0 0 10px">対応する中目標</h2>'
+    + '<h2 style="font-size:13px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;margin:0 0 10px">対応する中目標</h2>'
     + '<div style="display:flex;flex-direction:column;gap:8px">'
     + msDefs.map(function(m, mi){
         var all = cur.tasks.filter(function(t){ return (t.ms||0)===mi; });
-        return '<div style="display:flex;gap:8px;align-items:baseline;font-size:12.5px"><span class="flex-none">◇</span><span style="font-weight:600;min-width:0">'+esc(m.name)+'</span><span class="flex-none nowrap" style="margin-left:auto;font-size:10.5px;color:var(--c-text-sub)">〜'+esc(m.due)+' · '+all.filter(function(t){return t.done;}).length+'/'+all.length+' 完了</span></div>';
+        return '<div style="display:flex;gap:8px;align-items:baseline;font-size:14.5px"><span class="flex-none">◇</span><span style="font-weight:600;min-width:0">'+esc(m.name)+'</span><span class="flex-none nowrap" style="margin-left:auto;font-size:12.5px;color:var(--c-text-sub)">〜'+esc(m.due)+' · '+all.filter(function(t){return t.done;}).length+'/'+all.length+' 完了</span></div>';
       }).join('')
     + '</div>'
-    + '<div class="crumb-link" data-page="issue" data-issue="'+esc(cur.id)+'" style="font-size:11px;margin-top:10px">← タスクの詳細は課題ワークスペースへ</div>'
+    + '<div class="crumb-link" data-page="issue" data-issue="'+esc(cur.id)+'" style="font-size:13px;margin-top:10px">← タスクの詳細は課題ワークスペースへ</div>'
     + '</div>';
   html += '</div><div class="workspace-right">';
   html += '<div class="card">'
-    + '<h2 style="font-size:11px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;margin:0 0 10px">納品物・成果物</h2>'
-    + (!deliv.length ? '<div style="font-size:12px;color:var(--c-text-faint)">納品物は未定義です。計画の進行にあわせてAIが候補を提案します。</div>' : '')
+    + '<h2 style="font-size:13px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;margin:0 0 10px">納品物・成果物</h2>'
+    + (!deliv.length ? '<div style="font-size:14px;color:var(--c-text-faint)">納品物は未定義です。計画の進行にあわせてAIが候補を提案します。</div>' : '')
     + '<div style="display:flex;flex-direction:column;gap:8px">' + deliv.map(renderDeliv).join('') + '</div>'
     + '</div>';
   html += '<div class="card" style="flex:1;display:flex;flex-direction:column">'
-    + '<h2 style="font-size:11px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;margin:0 0 10px">完成イメージ</h2>'
+    + '<h2 style="font-size:13px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;margin:0 0 10px">完成イメージ</h2>'
     + '<div style="flex:1;min-height:160px;border-radius:6px;background:repeating-linear-gradient(45deg,#f2f1ed,#f2f1ed 10px,#eceae4 10px,#eceae4 20px);display:grid;place-items:center;padding:16px">'
-    + '<div style="font-family:ui-monospace,Menlo,monospace;font-size:11px;color:var(--c-text-sub);text-align:center;line-height:1.7">完成イメージ図のプレースホルダ<br>(体制図・データフロー図・成果物サンプル等をここにドロップ)</div>'
+    + '<div style="font-family:ui-monospace,Menlo,monospace;font-size:13px;color:var(--c-text-sub);text-align:center;line-height:1.7">完成イメージ図のプレースホルダ<br>(体制図・データフロー図・成果物サンプル等をここにドロップ)</div>'
     + '</div></div>';
   html += '</div></div></div>';
   return html;
 }
 
-/* ============ page: portfolio map ============ */
-function renderMapIssueRow(i){
-  var borderColor = PRIO_DOT[i.prio];
-  var prog = issueProgress(i);
-  var msDefs = i.ms || [];
-  var childrenHtml;
-  if (ui.mapFull){
-    childrenHtml = '<div class="map-line"></div><div class="map-children">'
-      + msDefs.map(function(m, mi){
-          var tasks = i.tasks.filter(function(t){ return (t.ms||0)===mi; });
-          return '<div class="map-ms-row">'
-            + '<div class="map-line" style="width:18px"></div>'
-            + '<div class="map-ms-node"><div style="font-size:11.5px;font-weight:600">'+esc(m.name)+'</div><div style="font-size:10px;color:var(--c-text-sub);margin-top:2px">中目標 · 〜'+esc(m.due)+'</div></div>'
-            + '<div class="map-line" style="width:18px"></div>'
-            + '<div class="map-tasks">'
-            + tasks.map(function(t){
-                return '<div class="map-task-row"><div class="map-line" style="width:14px;border-color:#dedbd2"></div><div class="map-task-node" style="'+(t.done?'border-color:#e6e3da;color:var(--c-text-faint);text-decoration:line-through':'')+'">'+(t.done?'✓':'○')+' '+esc(t.t)+' <span style="color:var(--c-text-faint)">'+esc(t.due)+'</span></div></div>';
-              }).join('')
-            + '</div></div>';
-        }).join('')
-      + '</div>';
-  } else {
-    childrenHtml = '<div class="map-line"></div><div class="map-folded-tasks">'
-      + msDefs.map(function(m, mi){
-          var tasks = i.tasks.filter(function(t){ return (t.ms||0)===mi; });
-          return '<div class="map-folded-chip"><span style="font-weight:600">'+esc(m.name)+'</span> <span style="color:var(--c-text-sub)">〜'+esc(m.due)+' · タスク'+tasks.length+'</span></div>';
-        }).join('')
-      + '</div>';
-  }
-  return '<div class="map-issue-row"><div class="map-line"></div>'
-    + '<div class="map-issue-node" style="border:1.5px solid '+borderColor+'" data-page="issue" data-issue="'+esc(i.id)+'" title="優先度: '+esc(i.prio)+'">'
-    + '<div style="display:flex;gap:6px;align-items:center"><span style="width:6px;height:6px;border-radius:50%;background:'+borderColor+'" title="優先度: '+esc(i.prio)+'" aria-label="優先度: '+esc(i.prio)+'"></span><span style="font-weight:600;font-size:12.5px">'+esc(i.name)+'</span><span class="flex-none" style="margin-left:auto;font-size:10px;color:var(--c-text-faint)">'+prog.pct+'%</span></div>'
-    + '<div style="font-size:10.5px;color:var(--c-text-sub);line-height:1.5;margin-top:4px">'+esc(i.goal)+'</div>'
-    + '</div>' + childrenHtml + '</div>';
-}
-function renderMapExtraRow(i){
-  var borderColor = PRIO_DOT[i.prio];
-  var prog = issueProgress(i);
-  var od = issueOwnerDue(i);
-  return '<div class="map-issue-row"><div class="map-line" style="border-color:#e0ddd4"></div>'
-    + '<div class="map-extra-node" data-page="issue" data-issue="'+esc(i.id)+'">'
-    + '<div style="display:flex;gap:6px;align-items:center"><span style="width:6px;height:6px;border-radius:50%;background:'+borderColor+'" class="flex-none" title="優先度: '+esc(i.prio)+'" aria-label="優先度: '+esc(i.prio)+'"></span><span style="font-size:12px;font-weight:600">'+esc(i.name)+'</span><span class="flex-none" style="margin-left:auto;font-size:10px;color:var(--c-text-faint)">'+prog.pct+'%</span></div>'
-    + '<div style="font-size:10px;color:var(--c-text-faint);margin-top:2px">'+esc(i.id)+' · '+esc(od.owner)+' · 〜'+esc(od.due)+'</div>'
-    + '</div></div>';
-}
-function renderMapPage(){
-  var primary = DATA.issues.slice(0,5);
-  var rest = DATA.issues.slice(5);
-  function tally(p){ return rest.filter(function(i){ return i.prio===p; }).length; }
-  var html = '<div class="main">';
-  html += '<div style="padding:16px 24px 12px;border-bottom:1px solid var(--c-border-soft);display:flex;align-items:center;gap:14px;flex-wrap:wrap">'
-    + '<h1 class="page-title flex-none nowrap">全体マップ</h1>'
-    + '<div style="font-size:12px;color:var(--c-text-sub)" class="flex-none nowrap">プロジェクトゴール → 課題 → 中目標 → タスク</div>'
-    + '<div class="seg">'
-    + '<span class="seg-btn '+(!ui.mapFull?'active':'')+'" data-filter="mapgrain" data-value="false">中目標まで</span>'
-    + '<span class="seg-btn '+(ui.mapFull?'active':'')+'" data-filter="mapgrain" data-value="true">タスクまで展開</span>'
-    + '</div><div class="seg">'
-    + '<span class="seg-btn '+(ui.mapZoom===0.65?'active':'')+'" data-filter="zoom" data-value="0.65">65%</span>'
-    + '<span class="seg-btn '+(ui.mapZoom===0.8?'active':'')+'" data-filter="zoom" data-value="0.8">80%</span>'
-    + '<span class="seg-btn '+(ui.mapZoom===1?'active':'')+'" data-filter="zoom" data-value="1">100%</span>'
-    + '</div>'
-    + '<div style="margin-left:auto;display:flex;gap:12px;font-size:10.5px;color:var(--c-text-sub);align-items:center;flex-wrap:wrap" class="flex-none">'
-    + '<span style="display:flex;gap:5px;align-items:center" class="nowrap"><span style="width:9px;height:9px;border-radius:2px;background:var(--c-text)" class="flex-none"></span>ゴール</span>'
-    + '<span style="display:flex;gap:5px;align-items:center" class="nowrap"><span style="width:9px;height:9px;border-radius:2px;background:#fff;border:1.5px solid var(--c-danger)" class="flex-none"></span>課題</span>'
-    + '<span style="display:flex;gap:5px;align-items:center" class="nowrap"><span style="width:9px;height:9px;border-radius:2px;background:var(--c-neutral-bg)" class="flex-none"></span>中目標</span>'
-    + '<span style="display:flex;gap:5px;align-items:center" class="nowrap"><span style="width:9px;height:9px;border-radius:50%;background:#fff;border:1.5px solid var(--c-text-faint)" class="flex-none"></span>タスク</span>'
-    + '</div></div>';
-  html += '<div class="main-body" style="padding:28px 24px">'
-    + '<div style="zoom:'+ui.mapZoom+'"><div style="display:flex;align-items:center;width:max-content">'
-    + '<div class="map-root">'
-    + '<div style="font-size:10.5px;color:#b9b6ac;letter-spacing:.05em;font-weight:600">プロジェクトゴール</div>'
-    + '<div style="font-size:13.5px;font-weight:600;line-height:1.6;margin-top:6px">10月の実行フェーズ開始を、データ・体制・合意の3点で成立させる</div>'
-    + '<div style="font-size:10.5px;color:#b9b6ac;margin-top:8px">期限 9/30 · 経営会議承認</div>'
-    + '</div><div class="map-line"></div>'
-    + '<div class="map-column">'
-    + primary.map(renderMapIssueRow).join('')
-    + '<div class="map-issue-row"><div class="map-line-dashed"></div>'
-    + '<div class="map-more-node" data-action="toggle-map-more">'
-    + '<div style="font-size:12px;font-weight:600">'+(ui.mapMore ? ('− 他'+rest.length+'課題を折りたたむ') : ('+ 他'+rest.length+'課題を展開'))+'</div>'
-    + '<div style="font-size:10.5px;line-height:1.5;margin-top:3px">高'+tally('高')+' · 中'+tally('中')+' · 低'+tally('低')+' — クリックでマップ内に展開/折りたたみ</div>'
-    + '</div></div>'
-    + (ui.mapMore ? rest.map(renderMapExtraRow).join('') : '')
-    + '</div></div></div>'
-    + '<div style="font-size:11.5px;color:var(--c-text-faint);margin-top:20px">課題カードをクリックでワークスペースへ。表示切替とズームで全体像と詳細を行き来できます。構造はAIが計画から自動生成します。</div>'
-    + '</div></div>';
-  return html;
-}
-
-/* ============ page: task board ============ */
-function renderTasksPage(){
-  var bf = ui.ballFilter;
-  function inBall(t){ return bf==='all' || (bf==='cl' ? t.side==='cl' : t.side!=='cl'); }
-  var totalTasks = DATA.issues.reduce(function(n,i){ return n+i.tasks.length; }, 0);
-  var groups = DATA.issues.map(function(i){
-    var msDefs = (i.ms && i.ms.length) ? i.ms : [{name:'初動対応', due:''}];
-    var milestones = msDefs.map(function(m, mi){
-      var tasks = i.tasks.filter(function(t){ return (t.ms||0)===mi && inBall(t); }).slice().sort(function(a,b){
-        if (a.done !== b.done) return a.done ? 1 : -1;
-        return dueSortKey(a.due)-dueSortKey(b.due);
-      });
-      return { name:m.name, due:m.due, tasks:tasks };
-    }).filter(function(ms){ return ms.tasks.length; });
-    return { issue:i, milestones:milestones };
-  }).filter(function(g){ return g.milestones.length; });
-  var shownCount = groups.reduce(function(n,g){ return n + g.milestones.reduce(function(m,ms){ return m+ms.tasks.length; }, 0); }, 0);
-  var body = groups.length ? groups.map(function(g){
-    return '<div class="card">'
-      + '<div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">'
-      + '<span class="chip '+PRIO_CLASS[g.issue.prio]+' flex-none">'+esc(g.issue.prio)+'</span>'
-      + '<h2 class="crumb-link" data-page="issue" data-issue="'+esc(g.issue.id)+'" style="font-weight:600;font-size:13px;margin:0">'+esc(g.issue.name)+'</h2>'
-      + '</div><div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">'
-      + g.milestones.map(function(ms){
-          return '<div><h3 style="font-size:10.5px;font-weight:400;color:var(--c-text-sub);padding:2px 0;margin:0">◇ '+esc(ms.name)+' · 〜'+esc(ms.due)+'</h3>'
-            + '<div style="display:flex;flex-direction:column;gap:6px;padding-left:6px">'+ms.tasks.map(renderTaskRow).join('')+'</div></div>';
-        }).join('')
-      + '</div></div>';
-  }).join('') : '<div class="search-empty">該当するタスクがありません。</div>';
+/* ============ page: case-wide (案件管理/案件全体/) ============ */
+function renderCasePage(){
+  var items = DATA.caseDeliv || [];
   return '<div class="main">'
-    + '<div class="main-header"><h1 class="page-title">計画・タスク — 全課題横断</h1>'
-    + '<div class="page-sub">各課題の計画をAIが集約。担当と期限で状況を俯瞰します。</div>'
-    + '<div class="seg" style="margin-top:10px">'
-    + '<span class="seg-btn '+(bf==='all'?'active':'')+'" data-filter="ball" data-value="all">すべて</span>'
-    + '<span class="seg-btn '+(bf==='us'?'active':'')+'" data-filter="ball" data-value="us">当社の対応タスク</span>'
-    + '<span class="seg-btn '+(bf==='cl'?'active':'')+'" data-filter="ball" data-value="cl">先方の対応タスク</span>'
-    + '</div></div>'
-    + '<div class="main-body" style="display:flex;flex-direction:column;gap:14px">'
-    + body
-    + '<div style="font-size:11.5px;color:var(--c-text-faint)">'+shownCount+'件を表示 / 全'+totalTasks+'件</div>'
+    + '<div class="main-header"><h1 class="page-title">案件全体 — '+items.length+'件</h1>'
+    + '<div class="page-sub">2 つ以上の依頼にまたがるものと、依頼が決まる前に作るもの(案件管理/案件全体/)の成果物と納品です。</div></div>'
+    + '<div class="main-body" style="display:flex;flex-direction:column;gap:8px">'
+    + (items.length ? items.map(renderDeliv).join('') : '<div class="search-empty">案件全体の成果物はまだありません。</div>')
     + '</div></div>';
 }
 
@@ -802,17 +725,17 @@ function renderDocsPage(){
     html += '<tr class="doc-row '+(isHl?'hl':'')+'">'
       + '<td class="ext-icon '+(EXT_CLASS[d.ext]||'chip-link')+'">'+esc(d.ext)+'</td>'
       + '<td style="font-weight:500">'+esc(d.name)+'</td>'
-      + '<td style="color:var(--c-text-sub);font-size:12px">'+esc(d.date)+'</td>'
-      + '<td style="font-size:12px">'+esc(d.from)+'</td>'
-      + '<td style="font-size:11px">'+(relIssue ? ('<span class="chip '+relCls+'">'+esc(relIssue.name)+'</span>') : '<span style="color:var(--c-text-faint)">—</span>')+'</td>'
-      + '<td class="'+DOC_STATUS_CLASS[d.status]+' nowrap" style="font-size:11.5px">● '+esc(d.status)+'</td>'
-      + '<td class="'+DOC_AI_CLASS[d.ai]+' nowrap" style="font-size:10.5px">✦ '+esc(d.ai)+'</td>'
+      + '<td style="color:var(--c-text-sub);font-size:14px">'+esc(d.date)+'</td>'
+      + '<td style="font-size:14px">'+esc(d.from)+'</td>'
+      + '<td style="font-size:13px">'+(relIssue ? ('<span class="chip '+relCls+'">'+esc(relIssue.name)+'</span>') : '<span style="color:var(--c-text-faint)">—</span>')+'</td>'
+      + '<td class="'+DOC_STATUS_CLASS[d.status]+' nowrap" style="font-size:13.5px">● '+esc(d.status)+'</td>'
+      + '<td class="'+DOC_AI_CLASS[d.ai]+' nowrap" style="font-size:12.5px">✦ '+esc(d.ai)+'</td>'
       + '</tr>';
     return html;
   }).join('');
   return '<div class="main">'
     + '<div class="main-header">'
-    + '<div style="display:flex;align-items:baseline;gap:12px"><h1 class="page-title">受領資料一覧</h1><div style="font-size:12px;color:var(--c-text-faint)">'+DATA.docs.length+'件 · AIがメール・共有フォルダから自動記録</div></div>'
+    + '<div style="display:flex;align-items:baseline;gap:4px 12px;flex-wrap:wrap"><h1 class="page-title">参照資料</h1><div style="font-size:14px;color:var(--c-text-faint)">'+DATA.docs.length+'件 · 先方から受け取った原本 · AIがメール・共有フォルダから自動記録</div></div>'
     + '<div class="filters" style="margin-top:12px">'
     + '<span class="pill '+(F==='all'?'active':'')+'" data-filter="doc" data-value="all">すべて '+DATA.docs.length+'</span>'
     + '<span class="pill '+(F==='未確認'?'active':'')+'" data-filter="doc" data-value="未確認">未確認 '+c('未確認')+'</span>'
@@ -820,13 +743,13 @@ function renderDocsPage(){
     + '<span class="pill '+(F==='差戻し'?'active':'')+'" data-filter="doc" data-value="差戻し">差戻し '+c('差戻し')+'</span>'
     + '<span class="pill '+(F==='ai'?'active':'')+'" data-filter="doc" data-value="ai">✦ AI未解読のみ '+aiCount+'</span>'
     + '</div></div>'
-    + '<div class="main-body" style="padding:0 24px;overflow:auto">'
+    + '<div class="main-body" style="padding-top:0;padding-bottom:0;overflow:auto">'
     + '<table class="doc-table" style="margin-top:14px">'
     + '<thead><tr class="doc-head"><th scope="col"></th><th scope="col">資料名</th><th scope="col">受領日</th><th scope="col">提供元</th><th scope="col">関連課題</th><th scope="col">確認状況</th><th scope="col">AI解読</th></tr></thead>'
     + '<tbody>' + (rows || '<tr><td colspan="7" class="search-empty" style="min-width:950px">該当する資料がありません。</td></tr>') + '</tbody>'
     + '</table>'
     + '</div>'
-    + '<div style="padding:10px 24px;border-top:1px solid var(--c-border-soft);font-size:11.5px;color:var(--c-text-faint);display:flex">'
+    + '<div class="page-pad docs-foot" style="padding-top:10px;padding-bottom:10px;border-top:1px solid var(--c-border-soft);font-size:13.5px;color:var(--c-text-faint);display:flex;gap:12px;flex-wrap:wrap">'
     + '<span>'+vis.length+'件を表示 / 全'+DATA.docs.length+'件</span>'
     + '<span style="margin-left:auto">受領の記録・課題への関連付けはAIが自動で行います</span>'
     + '</div></div>';
@@ -849,17 +772,17 @@ function renderPeoplePage(){
     if (showHeader) html += '<h2 class="group-label">'+esc(p.group)+'</h2>';
     html += '<div class="people-row '+(isHl?'hl':'')+'">'
       + '<span class="avatar" style="background:'+esc(p.color)+'">'+esc(p.ini)+'</span>'
-      + '<div style="width:200px;flex:none"><div style="font-weight:600;font-size:12.5px">'+esc(p.name)+' '+(p.isKey?'★':'')+'</div><div style="font-size:10.5px;color:var(--c-text-faint)">'+esc(p.role)+'</div></div>'
+      + '<div class="ppl-name" style="width:220px;flex:none"><div style="font-weight:600;font-size:14.5px">'+esc(p.name)+' '+(p.isKey?'★':'')+'</div><div style="font-size:12.5px;color:var(--c-text-faint)">'+esc(p.role)+'</div></div>'
       + '<span class="chip '+(STANCE_CLASS[p.stance]||'chip-neutral')+' flex-none">'+esc(p.stance)+'</span>'
-      + '<div style="flex:1;font-size:11.5px;color:var(--c-text-sub);line-height:1.5;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.note)+'</div>'
-      + '<div class="flex-none nowrap" style="font-size:10.5px;color:var(--c-text-faint)">'+esc(p.links)+'</div>'
-      + '<div class="flex-none nowrap" style="font-size:10.5px;color:var(--c-text-faint);width:96px;text-align:right">'+esc(p.lastContact)+'</div>'
+      + '<div class="ppl-note" style="flex:1;font-size:13.5px;color:var(--c-text-sub);line-height:1.5;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(p.note)+'</div>'
+      + '<div class="flex-none nowrap" style="font-size:12.5px;color:var(--c-text-faint)">'+esc(p.links)+'</div>'
+      + '<div class="flex-none nowrap" style="font-size:12.5px;color:var(--c-text-faint);width:96px;text-align:right">'+esc(p.lastContact)+'</div>'
       + '</div>';
     return html;
   }).join('');
   return '<div class="main">'
-    + '<div class="main-header" style="display:flex;align-items:center;gap:12px">'
-    + '<h1 class="page-title">登場人物・関係者</h1>'
+    + '<div class="main-header" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
+    + '<h1 class="page-title">登場人物</h1>'
     + '<div class="filters" style="margin-left:8px">'
     + '<span class="pill '+(F==='all'?'active':'')+'" data-filter="ppl" data-value="all">すべて '+cAll+'</span>'
     + '<span class="pill '+(F==='cl'?'active':'')+'" data-filter="ppl" data-value="cl">クライアント '+cCl+'</span>'
@@ -868,7 +791,7 @@ function renderPeoplePage(){
     + '</div></div>'
     + '<div class="main-body" style="display:flex;flex-direction:column">'
     + (rows || '<div class="search-empty">該当する人物がいません。</div>')
-    + '<div style="font-size:11.5px;color:var(--c-text-faint);margin-top:8px">'+vis.length+'件を表示 / 全'+cAll+'件</div>'
+    + '<div style="font-size:13.5px;color:var(--c-text-faint);margin-top:8px">'+vis.length+'件を表示 / 全'+cAll+'件</div>'
     + '</div></div>';
 }
 
@@ -881,7 +804,7 @@ function renderAccessAttention(){
       if (it.status==='a') items.push({ member:m.member, name:name });
     });
   });
-  if (!items.length) return '<div style="font-size:12px;color:var(--c-text-faint)">現在、要対応の項目はありません。</div>';
+  if (!items.length) return '<div style="font-size:14px;color:var(--c-text-faint)">現在、要対応の項目はありません。</div>';
   return items.map(function(it){
     return '<div style="display:flex;gap:10px;align-items:baseline"><span style="width:8px;height:8px;border-radius:50%;background:var(--c-danger);flex:none;align-self:center"></span>'
       + '<span><span style="font-weight:600">'+esc(it.member)+'</span>の「'+esc(it.name)+'」が要対応です。早急な対応を推奨します。</span></div>';
@@ -893,21 +816,21 @@ function renderAccessPage(){
   var colFilter = ui.colFilter;
   var activeCols = colFilter==='open' ? openCols : cols;
   var catList = Object.keys(CAT_VAR);
-  var gridCols = '180px 64px' + (activeCols.length ? ' repeat('+activeCols.length+',112px)' : '');
+  var gridCols = '200px 64px' + (activeCols.length ? ' repeat('+activeCols.length+',124px)' : '');
   var alertCount = accessAlertCount();
   var headHtml = '<tr class="acc-grid-head" style="grid-template-columns:'+gridCols+'">'
     + '<th scope="col" class="acc-sticky-member" style="align-self:end">メンバー</th>'
     + '<th scope="col" class="acc-sticky-sum" style="align-self:end">状況</th>'
     + activeCols.map(function(name){
         var cat = DATA.access[0].items[name].category;
-        return '<th scope="col" style="display:flex;flex-direction:column;gap:3px;align-items:flex-start"><span style="display:flex;gap:4px;align-items:center;white-space:nowrap;color:var(--c-text-faint);font-size:9.5px"><span style="width:7px;height:7px;border-radius:50%;background:var('+CAT_VAR[cat]+')" class="flex-none"></span>'+esc(cat)+'</span><span style="line-height:1.35">'+esc(name)+'</span></th>';
+        return '<th scope="col" style="display:flex;flex-direction:column;gap:3px;align-items:flex-start"><span style="display:flex;gap:4px;align-items:center;white-space:nowrap;color:var(--c-text-faint);font-size:11.5px"><span style="width:7px;height:7px;border-radius:50%;background:var('+CAT_VAR[cat]+')" class="flex-none"></span>'+esc(cat)+'</span><span style="line-height:1.35">'+esc(name)+'</span></th>';
       }).join('')
     + '</tr>';
   var rowsHtml = DATA.access.map(function(m){
     var cells = activeCols.map(function(name){
       var it = m.items[name];
       var st = ACC_STATUS[it.status] || ACC_STATUS.n;
-      return '<td style="font-size:11px;color:'+st[1]+';white-space:nowrap">'+esc(st[0])+'</td>';
+      return '<td style="font-size:13px;color:'+st[1]+';white-space:nowrap">'+esc(st[0])+'</td>';
     }).join('');
     var values = Object.values(m.items).map(function(it){ return it.status; });
     var done = values.filter(function(s){ return s==='d'; }).length;
@@ -916,8 +839,8 @@ function renderAccessPage(){
     var hasOpen = values.some(function(s){ return s==='p'||s==='a'||s==='n'; });
     var sumColor = hasA ? 'var(--c-danger)' : (hasOpen ? 'var(--c-warning-accent)' : 'var(--c-success)');
     return '<tr class="acc-grid-row" style="grid-template-columns:'+gridCols+'">'
-      + '<th scope="row" class="acc-sticky-member" style="display:flex;gap:8px;align-items:center;font-weight:inherit"><span class="avatar" style="width:26px;height:26px;font-size:10px;background:'+avatarColor(m.member)+'">'+esc(m.ini)+'</span><span><span style="font-weight:600;font-size:12.5px">'+esc(m.member)+'</span><br><span style="font-size:10.5px;color:var(--c-text-faint)">'+esc(m.role)+'</span></span></th>'
-      + '<td class="acc-sticky-sum" style="font-size:11px;font-weight:600;color:'+sumColor+'">'+done+'/'+applicable+'</td>'
+      + '<th scope="row" class="acc-sticky-member" style="display:flex;gap:8px;align-items:center;font-weight:inherit"><span class="avatar" style="width:26px;height:26px;font-size:12px;background:'+avatarColor(m.member)+'">'+esc(m.ini)+'</span><span><span style="font-weight:600;font-size:14.5px">'+esc(m.member)+'</span><br><span style="font-size:12.5px;color:var(--c-text-faint)">'+esc(m.role)+'</span></span></th>'
+      + '<td class="acc-sticky-sum" style="font-size:13px;font-weight:600;color:'+sumColor+'">'+done+'/'+applicable+'</td>'
       + cells + '</tr>';
   }).join('');
   var cardsHtml = DATA.access.map(function(m){
@@ -932,11 +855,11 @@ function renderAccessPage(){
     return '<div class="card">'
       + '<div style="display:flex;gap:10px;align-items:center">'
       + '<span class="avatar" style="background:'+avatarColor(m.member)+'">'+esc(m.ini)+'</span>'
-      + '<div><div style="font-weight:600">'+esc(m.member)+'</div><div style="font-size:10.5px;color:var(--c-text-faint)">'+esc(m.role)+'</div></div>'
-      + '<span class="flex-none nowrap" style="margin-left:auto;font-size:11px;font-weight:600;color:'+barColor+'">'+done+'/'+applicable+' 完了</span>'
+      + '<div><div style="font-weight:600">'+esc(m.member)+'</div><div style="font-size:12.5px;color:var(--c-text-faint)">'+esc(m.role)+'</div></div>'
+      + '<span class="flex-none nowrap" style="margin-left:auto;font-size:13px;font-weight:600;color:'+barColor+'">'+done+'/'+applicable+' 完了</span>'
       + '</div>'
       + '<div class="progress-track" style="margin-top:10px"><div class="progress-fill" style="width:'+pct+'%;background:'+barColor+'"></div></div>'
-      + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;font-size:11px">'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;font-size:13px">'
       + openItems.map(function(e){
           var name = e[0], it = e[1];
           var st = ACC_STATUS[it.status];
@@ -948,16 +871,16 @@ function renderAccessPage(){
       + (notStarted ? '<span style="padding:3px 9px;border-radius:5px;background:#f2f1ed;color:var(--c-text-faint)">未着手 '+notStarted+'件</span>' : '')
       + '</div></div>';
   }).join('');
-  return '<div class="main">'
+  return '<div class="main wide">'
     + '<div class="main-header">'
     + '<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
-    + '<h1 class="page-title flex-none nowrap">アクセス・環境準備</h1>'
-    + '<div style="font-size:12px;color:var(--c-text-faint)" class="flex-none nowrap">メンバー'+DATA.access.length+'名 × 準備項目'+cols.length+'件 · AIが自動更新 · 要対応 '+alertCount+'件</div>'
+    + '<h1 class="page-title flex-none nowrap">参画準備</h1>'
+    + '<div style="font-size:14px;color:var(--c-text-faint)" class="flex-none nowrap">メンバー'+DATA.access.length+'名 × 準備項目'+cols.length+'件 · AIが自動更新 · 要対応 '+alertCount+'件</div>'
     + '<div class="seg" style="margin-left:auto;align-self:center">'
     + '<span class="seg-btn '+(ui.accView==='matrix'?'active':'')+'" data-filter="accview" data-value="matrix">マトリクス</span>'
     + '<span class="seg-btn '+(ui.accView==='cards'?'active':'')+'" data-filter="accview" data-value="cards">メンバー別</span>'
     + '</div></div>'
-    + '<div style="display:flex;gap:12px;margin-top:12px;font-size:10.5px;color:var(--c-text-sub);align-items:center;flex-wrap:wrap">'
+    + '<div style="display:flex;gap:12px;margin-top:12px;font-size:12.5px;color:var(--c-text-sub);align-items:center;flex-wrap:wrap">'
     + '<span class="nowrap" style="display:flex;gap:5px;align-items:center"><span style="width:8px;height:8px;border-radius:50%;background:var(--c-success)" class="flex-none"></span>完了</span>'
     + '<span class="nowrap" style="display:flex;gap:5px;align-items:center"><span style="width:8px;height:8px;border-radius:50%;background:var(--c-warning-accent)" class="flex-none"></span>申請中</span>'
     + '<span class="nowrap" style="display:flex;gap:5px;align-items:center"><span style="width:8px;height:8px;border-radius:50%;background:var(--c-danger)" class="flex-none"></span>要対応</span>'
@@ -972,71 +895,74 @@ function renderAccessPage(){
     + (ui.accView==='matrix'
         ? ('<table class="acc-table" style="width:max-content;min-width:100%"><thead>'+headHtml+'</thead><tbody>'+(rowsHtml || '<tr><td colspan="2" class="search-empty">登録されたメンバーがいません。</td></tr>')+'</tbody></table>')
         : ('<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px">'+(cardsHtml || '<div class="search-empty">登録されたメンバーがいません。</div>')+'</div>'))
-    + '<div class="card" style="min-width:960px">'
-    + '<h2 style="font-size:11px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;margin:0 0 8px">要対応・期日が近いもの</h2>'
-    + '<div style="display:flex;flex-direction:column;gap:7px;font-size:12.5px">' + renderAccessAttention() + '</div>'
+    + '<div class="card acc-wide" style="min-width:960px">'
+    + '<h2 style="font-size:13px;font-weight:600;color:var(--c-text-faint);letter-spacing:.05em;margin:0 0 8px">要対応・期日が近いもの</h2>'
+    + '<div style="display:flex;flex-direction:column;gap:7px;font-size:14.5px">' + renderAccessAttention() + '</div>'
     + '</div>'
-    + '<div style="font-size:11.5px;color:var(--c-text-faint);min-width:960px">申請・承認・エラーの状態変化は、AIが申請メール・チケットシステムの通知から自動反映します。</div>'
+    + '<div class="acc-wide" style="font-size:13.5px;color:var(--c-text-faint);min-width:960px">申請・承認・エラーの状態変化は、AIが申請メール・チケットシステムの通知から自動反映します。</div>'
     + '</div></div>';
 }
 
-/* ============ page: meeting log ============ */
-function renderMeetingsPage(){
+/* ============ page: minutes (案件管理/議事録/) ============ */
+function renderMeetingRows(){
   var F = ui.mtgFilter;
   var vis = DATA.meetings.filter(function(m){ return F==='all' || m.type===F; });
-  function c(t){ return DATA.meetings.filter(function(m){ return m.type===t; }).length; }
   var last = null;
-  var rows = vis.map(function(m){
+  return vis.map(function(m){
     var showHeader = m.group !== last; last = m.group;
     var isHl = m.title === nav.hl;
     var html = '';
     if (showHeader) html += '<h2 class="group-label">'+esc(m.group)+'</h2>';
     html += '<div class="card '+(isHl?'hl':'')+'" style="margin-bottom:6px">'
       + '<div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">'
-      + '<span style="font-weight:600;font-size:12.5px">'+esc(m.title)+'</span>'
-      + '<span style="font-size:11px;color:var(--c-text-faint)">出席: '+esc(m.attendees)+'</span>'
-      + '<span class="flex-none" style="margin-left:auto"><span class="'+(m.ingested?'text-success':'text-warning')+' nowrap" style="font-size:10.5px">'+(m.ingested?'✦ 取込済':'✦ 取込待ち')+'</span></span>'
+      + '<span style="font-weight:600;font-size:14.5px">'+esc(m.title)+'</span>'
+      + '<span style="font-size:13px;color:var(--c-text-faint)">出席: '+esc(m.attendees)+'</span>'
+      + '<span class="flex-none" style="margin-left:auto"><span class="'+(m.ingested?'text-success':'text-warning')+' nowrap" style="font-size:12.5px">'+(m.ingested?'✦ 取込済':'✦ 取込待ち')+'</span></span>'
       + '</div>'
-      + '<div style="display:flex;gap:12px;align-items:baseline;margin-top:5px">'
-      + '<div style="flex:1;font-size:11.5px;color:var(--c-neutral);line-height:1.5;min-width:0">'+esc(m.summary)+'</div>'
-      + '<div class="flex-none nowrap" style="font-size:10.5px;color:#8a877e">反映: '+esc(m.aiImpact)+'</div>'
+      + '<div class="mtg-line" style="display:flex;gap:4px 12px;align-items:baseline;margin-top:5px">'
+      + '<div style="flex:1;font-size:13.5px;color:var(--c-neutral);line-height:1.5;min-width:0">'+esc(m.summary)+'</div>'
+      + '<div class="flex-none nowrap" style="font-size:12.5px;color:#8a877e">反映: '+esc(m.aiImpact)+'</div>'
       + '</div></div>';
     return html;
-  }).join('');
-  return '<div class="main">'
-    + '<div class="main-header"><h1 class="page-title">会議メモ・議事録 — '+DATA.meetings.length+'件</h1>'
-    + '<div class="page-sub">議事録を取り込むと、AIが課題・タスク・決定事項への反映内容を抽出します。</div>'
-    + '<div class="filters" style="margin-top:10px">'
-    + '<span class="pill '+(F==='all'?'active':'')+'" data-filter="mtg" data-value="all">すべて '+DATA.meetings.length+'</span>'
-    + '<span class="pill '+(F==='r'?'active':'')+'" data-filter="mtg" data-value="r">週次ルーティン '+c('r')+'</span>'
-    + '<span class="pill '+(F==='i'?'active':'')+'" data-filter="mtg" data-value="i">個別・ヒアリング '+c('i')+'</span>'
-    + '<span class="pill '+(F==='e'?'active':'')+'" data-filter="mtg" data-value="e">経営報告 '+c('e')+'</span>'
-    + '</div></div>'
-    + '<div class="main-body" style="display:flex;flex-direction:column">'
-    + (rows || '<div class="search-empty">該当する会議がありません。</div>')
-    + '</div></div>';
+  }).join('') || '<div class="search-empty">該当する会議がありません。</div>';
 }
-
-/* ============ page: decision log ============ */
-function renderDecisionsPage(){
+function renderDecisionRows(){
   var last = null;
-  var rows = DATA.decisions.map(function(d){
+  return DATA.decisions.map(function(d){
     var showHeader = d.group !== last; last = d.group;
     var isHl = d.id === nav.hl;
     var html = '';
     if (showHeader) html += '<h2 class="group-label">'+esc(d.group)+'</h2>';
     html += '<div class="card '+(isHl?'hl':'')+'" style="margin-bottom:8px">'
-      + '<div style="display:flex;gap:10px;align-items:baseline"><span class="flex-none" style="font-size:11px;color:var(--c-text-faint);font-weight:600">'+esc(d.id)+'</span><span style="font-weight:600;min-width:0">'+esc(d.text)+'</span></div>'
-      + '<div style="display:flex;gap:14px;margin-top:8px;font-size:11.5px;color:var(--c-text-sub);align-items:baseline;flex-wrap:wrap">'
+      + '<div style="display:flex;gap:10px;align-items:baseline"><span class="flex-none" style="font-size:13px;color:var(--c-text-faint);font-weight:600">'+esc(d.id)+'</span><span style="font-weight:600;min-width:0">'+esc(d.text)+'</span></div>'
+      + '<div style="display:flex;gap:14px;margin-top:8px;font-size:13.5px;color:var(--c-text-sub);align-items:baseline;flex-wrap:wrap">'
       + '<span>'+esc(d.date)+' '+esc(d.venue)+' · 合意者: '+esc(d.agreedBy)+'</span>'
       + (d.relIssueKey ? ('<span style="display:flex;gap:6px;align-items:baseline">関連課題: <span class="chip chip-danger" data-page="issue" data-issue="'+esc(d.relIssueKey)+'" style="cursor:pointer">'+esc(d.relLabel)+' →</span></span>') : '')
       + '</div></div>';
     return html;
-  }).join('');
+  }).join('') || '<div class="search-empty">決定事項はまだありません。</div>';
+}
+function renderMeetingsPage(){
+  var F = ui.mtgFilter;
+  var isDec = ui.mtgView === 'dec';
+  function c(t){ return DATA.meetings.filter(function(m){ return m.type===t; }).length; }
   return '<div class="main">'
-    + '<div class="main-header"><h1 class="page-title">決定事項ログ — '+DATA.decisions.length+'件</h1>'
-    + '<div class="page-sub">「いつ・どの場で・誰と」決めたかをAIが議事録から記録。関連課題チップからワークスペースへ移動できます。</div></div>'
-    + '<div class="main-body" style="display:flex;flex-direction:column">'+rows+'</div></div>';
+    + '<div class="main-header"><h1 class="page-title">議事録</h1>'
+    + '<div class="page-sub">案件管理/議事録/ の会議の文書と、AI がそこから取り出した決定事項です。</div>'
+    + '<div class="seg" style="margin-top:10px;align-self:flex-start;display:inline-flex">'
+    + '<span class="seg-btn '+(!isDec?'active':'')+'" data-filter="mtgview" data-value="mtg">会議 '+DATA.meetings.length+'</span>'
+    + '<span class="seg-btn '+(isDec?'active':'')+'" data-filter="mtgview" data-value="dec">決定事項 '+DATA.decisions.length+'</span>'
+    + '</div>'
+    + (isDec ? '' : ('<div class="filters" style="margin-top:10px">'
+      + '<span class="pill '+(F==='all'?'active':'')+'" data-filter="mtg" data-value="all">すべて '+DATA.meetings.length+'</span>'
+      + '<span class="pill '+(F==='r'?'active':'')+'" data-filter="mtg" data-value="r">週次ルーティン '+c('r')+'</span>'
+      + '<span class="pill '+(F==='i'?'active':'')+'" data-filter="mtg" data-value="i">個別・ヒアリング '+c('i')+'</span>'
+      + '<span class="pill '+(F==='e'?'active':'')+'" data-filter="mtg" data-value="e">経営報告 '+c('e')+'</span>'
+      + '</div>'))
+    + '</div>'
+    + '<div class="main-body" style="display:flex;flex-direction:column">'
+    + (isDec ? renderDecisionRows() : renderMeetingRows())
+    + '</div></div>';
 }
 
 /* ============ router / render ============ */
@@ -1044,13 +970,11 @@ function renderMain(){
   switch (nav.page){
     case 'issue': return renderIssuePage();
     case 'goal': return renderGoalPage();
-    case 'map': return renderMapPage();
-    case 'tasks': return renderTasksPage();
+    case 'case': return renderCasePage();
     case 'docs': return renderDocsPage();
     case 'people': return renderPeoplePage();
     case 'access': return renderAccessPage();
     case 'meetings': return renderMeetingsPage();
-    case 'decisions': return renderDecisionsPage();
     default: return renderIssuesPage();
   }
 }
@@ -1081,14 +1005,14 @@ function enhanceInteractive(root){
   var els = root.querySelectorAll('[data-page],[data-action],[data-filter]');
   els.forEach(function(el){
     if (el.dataset.action === 'noop') return;
-    if (el.dataset.action === 'close-proj' || el.dataset.action === 'close-search') return;
+    if (el.dataset.action === 'close-proj' || el.dataset.action === 'close-search' || el.dataset.action === 'close-nav') return;
     el.setAttribute('tabindex', '0');
     if (!/^H[1-6]$/.test(el.tagName)) el.setAttribute('role', el.dataset.page ? 'link' : 'button');
   });
 }
 function render(){
   var root = document.getElementById('app');
-  root.innerHTML = '<div class="app">' + renderSidebar() + renderMain() + '</div>'
+  root.innerHTML = '<div class="app">' + renderMobileBar() + renderSidebar() + '<div class="nav-backdrop" data-action="close-nav"></div>' + renderMain() + '</div>'
     + renderProjSwitcher() + renderProjToast() + renderSearchModal();
   var appEl = root.querySelector('.app');
   if (appEl) promoteLandmarks(appEl);
@@ -1132,9 +1056,13 @@ function navigate(page, issueId, hl){
   if (location.hash === newHash) render();
   else location.hash = newHash;
 }
-window.addEventListener('hashchange', function(){
+function applyHash(){
   nav = parseHash();
   if (nav.hl){ ui.docFilter = 'all'; ui.pplFilter = 'all'; ui.mtgFilter = 'all'; }
+  if (nav.page === 'meetings' && nav.hl) ui.mtgView = /^DEC-/.test(nav.hl) ? 'dec' : 'mtg';
+}
+window.addEventListener('hashchange', function(){
+  applyHash();
   render();
 });
 
@@ -1160,6 +1088,10 @@ function trapTabInSearch(e){
   if (e.shiftKey && document.activeElement === first){ e.preventDefault(); last.focus(); }
   else if (!e.shiftKey && document.activeElement === last){ e.preventDefault(); first.focus(); }
 }
+function setNavOpen(open){
+  var appEl = document.querySelector('.app');
+  if (appEl) appEl.classList.toggle('nav-open', open);
+}
 function handleAction(action, ds){
   switch (action){
     case 'toggle-proj': ui.projOpen = !ui.projOpen; render(); break;
@@ -1171,7 +1103,8 @@ function handleAction(action, ds){
       ui.searchOpen = false;
       navigate(ds.page, ds.issue || null, ds.hl || null);
       break;
-    case 'toggle-map-more': ui.mapMore = !ui.mapMore; render(); break;
+    case 'toggle-nav': setNavOpen(!document.querySelector('.app').classList.contains('nav-open')); break;
+    case 'close-nav': setNavOpen(false); break;
     default: break;
   }
 }
@@ -1181,8 +1114,6 @@ function activateElement(el, e){
   if (el.dataset.filter){
     var key = FILTER_MAP[el.dataset.filter];
     var val = el.dataset.value;
-    if (el.dataset.filter === 'zoom') val = parseFloat(val);
-    if (el.dataset.filter === 'mapgrain') val = (val === 'true');
     ui[key] = val;
     render();
     return;
@@ -1210,6 +1141,7 @@ function onGlobalKeydown(e){
     openSearchModal();
     return;
   }
+  if (e.key==='Escape') setNavOpen(false);
   if (ui.searchOpen){
     if (e.key==='Escape'){ closeSearchModal(); return; }
     if (e.key==='Tab'){ trapTabInSearch(e); return; }
@@ -1218,7 +1150,7 @@ function onGlobalKeydown(e){
 
 /* ============ bootstrap ============ */
 document.addEventListener('DOMContentLoaded', function(){
-  nav = parseHash();
+  applyHash();
   document.getElementById('app').addEventListener('click', onAppClick);
   document.getElementById('app').addEventListener('keydown', onAppKeydown);
   document.addEventListener('keydown', onGlobalKeydown);
