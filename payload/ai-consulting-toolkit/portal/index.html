@@ -409,7 +409,8 @@ function renderSidebar(){
   if (restCount > 0) html += '<div class="sb-more" data-page="issues">… 他'+restCount+'件の課題を一覧で表示</div>';
   html += '<h2 class="group-label" style="margin-top:10px;padding-left:8px">案件管理</h2>';
   html += sbItem('meetings', '▥ 議事録', DATA.meetings.length);
-  html += sbItem('case', '▣ 案件全体', (DATA.caseDeliv||[]).length);
+  html += sbItem('research', '▤ 調査', (DATA.research||[]).length);
+  html += sbItem('reports', '▣ 全体報告', (DATA.reports||[]).length);
   html += sbItem('access', '⛿ 参画準備', accCount, accCount>0?'color:var(--c-warning-accent)':'');
   html += sbItem('people', '◉ 登場人物', DATA.people.length);
   html += '<div class="sb-footer">最終AI更新<br>8/29 18:04 — 8/29ルーティン会議の議事録から3件反映</div>';
@@ -692,14 +693,30 @@ function renderGoalPage(){
   return html;
 }
 
-/* ============ page: case-wide (案件管理/案件全体/) ============ */
-function renderCasePage(){
-  var items = DATA.caseDeliv || [];
+/* ============ page: research (案件管理/調査/) ============ */
+function renderResearchPage(){
+  var items = DATA.research || [];
   return '<div class="main">'
-    + '<div class="main-header"><h1 class="page-title">案件全体 — '+items.length+'件</h1>'
-    + '<div class="page-sub">2 つ以上の依頼にまたがるものと、依頼が決まる前に作るもの(案件管理/案件全体/)の成果物と納品です。</div></div>'
+    + '<div class="main-header"><h1 class="page-title">調査 — '+items.length+'件</h1>'
+    + '<div class="page-sub">案件全体を理解するために調べてまとめたものと、2 つ以上の依頼か課題にまたがる分析です。手元で使い、先方には出しません。</div></div>'
     + '<div class="main-body" style="display:flex;flex-direction:column;gap:8px">'
-    + (items.length ? items.map(renderDeliv).join('') : '<div class="search-empty">案件全体の成果物はまだありません。</div>')
+    + (items.length ? items.map(function(r){
+        return '<div style="display:flex;gap:10px;align-items:center;font-size:14.5px;padding:10px 12px;background:#fff;border:1px solid var(--c-border);border-radius:8px">'
+          + '<span class="chip '+(DELIV_ICON[r.type]||"chip-link")+'" style="width:34px;height:20px;display:grid;place-items:center;font-size:11px">'+esc(r.type)+'</span>'
+          + '<span style="font-weight:500;min-width:0;flex:1">'+esc(r.n)+'</span>'
+          + '<span class="nowrap flex-none" style="font-size:12.5px;color:var(--c-text-faint)">更新 '+esc(r.date)+'</span></div>';
+      }).join('') : '<div class="search-empty">調査はまだありません。</div>')
+    + '</div></div>';
+}
+
+/* ============ page: reports (案件管理/全体報告/) ============ */
+function renderReportsPage(){
+  var items = DATA.reports || [];
+  return '<div class="main">'
+    + '<div class="main-header"><h1 class="page-title">全体報告 — '+items.length+'件</h1>'
+    + '<div class="page-sub">2 つ以上の依頼にまたがる、先方への報告と提案です。</div></div>'
+    + '<div class="main-body" style="display:flex;flex-direction:column;gap:8px">'
+    + (items.length ? items.map(renderDeliv).join('') : '<div class="search-empty">全体報告はまだありません。</div>')
     + '</div></div>';
 }
 
@@ -970,7 +987,8 @@ function renderMain(){
   switch (nav.page){
     case 'issue': return renderIssuePage();
     case 'goal': return renderGoalPage();
-    case 'case': return renderCasePage();
+    case 'research': return renderResearchPage();
+    case 'reports': return renderReportsPage();
     case 'docs': return renderDocsPage();
     case 'people': return renderPeoplePage();
     case 'access': return renderAccessPage();
