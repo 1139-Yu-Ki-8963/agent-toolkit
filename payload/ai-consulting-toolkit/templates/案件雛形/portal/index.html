@@ -408,11 +408,11 @@ function renderSidebar(){
   });
   if (restCount > 0) html += '<div class="sb-more" data-page="issues">… 他'+restCount+'件の課題を一覧で表示</div>';
   html += '<h2 class="group-label" style="margin-top:10px;padding-left:8px">案件管理</h2>';
+  html += sbItem('access', '⛿ 参画準備', accCount, accCount>0?'color:var(--c-warning-accent)':'');
+  html += sbItem('people', '◉ 登場人物', DATA.people.length);
   html += sbItem('meetings', '▥ 議事録', DATA.meetings.length);
   html += sbItem('research', '▤ 調査', (DATA.research||[]).length);
   html += sbItem('reports', '▣ 全体報告', (DATA.reports||[]).length);
-  html += sbItem('access', '⛿ 参画準備', accCount, accCount>0?'color:var(--c-warning-accent)':'');
-  html += sbItem('people', '◉ 登場人物', DATA.people.length);
   html += '<div class="sb-footer">最終AI更新<br>8/29 18:04 — 8/29ルーティン会議の議事録から3件反映</div>';
   html += '</div>';
   return html;
