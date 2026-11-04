@@ -12,7 +12,6 @@ window.PORTAL_DATA = {
   ],
   "issues": [],
   "research": [],
-  "reports": [],
   "docs": [],
   "people": [],
   "meetings": [],

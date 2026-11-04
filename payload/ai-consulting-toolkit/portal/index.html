@@ -412,7 +412,6 @@ function renderSidebar(){
   html += sbItem('people', '◉ 登場人物', DATA.people.length);
   html += sbItem('meetings', '▥ 議事録', DATA.meetings.length);
   html += sbItem('research', '▤ 調査', (DATA.research||[]).length);
-  html += sbItem('reports', '▣ 全体報告', (DATA.reports||[]).length);
   html += '<div class="sb-footer">最終AI更新<br>8/29 18:04 — 8/29ルーティン会議の議事録から3件反映</div>';
   html += '</div>';
   return html;
@@ -698,7 +697,7 @@ function renderResearchPage(){
   var items = DATA.research || [];
   return '<div class="main">'
     + '<div class="main-header"><h1 class="page-title">調査 — '+items.length+'件</h1>'
-    + '<div class="page-sub">案件全体を理解するために調べてまとめたものと、2 つ以上の依頼か課題にまたがる分析です。手元で使い、先方には出しません。</div></div>'
+    + '<div class="page-sub">1 つの依頼の中で管理できない、こちらで調査した、案件全体を理解するための資料と、2 つ以上の課題にまたがるものです。</div></div>'
     + '<div class="main-body" style="display:flex;flex-direction:column;gap:8px">'
     + (items.length ? items.map(function(r){
         return '<div style="display:flex;gap:10px;align-items:center;font-size:14.5px;padding:10px 12px;background:#fff;border:1px solid var(--c-border);border-radius:8px">'
@@ -706,17 +705,6 @@ function renderResearchPage(){
           + '<span style="font-weight:500;min-width:0;flex:1">'+esc(r.n)+'</span>'
           + '<span class="nowrap flex-none" style="font-size:12.5px;color:var(--c-text-faint)">更新 '+esc(r.date)+'</span></div>';
       }).join('') : '<div class="search-empty">調査はまだありません。</div>')
-    + '</div></div>';
-}
-
-/* ============ page: reports (案件管理/全体報告/) ============ */
-function renderReportsPage(){
-  var items = DATA.reports || [];
-  return '<div class="main">'
-    + '<div class="main-header"><h1 class="page-title">全体報告 — '+items.length+'件</h1>'
-    + '<div class="page-sub">2 つ以上の依頼にまたがる、先方への報告と提案です。</div></div>'
-    + '<div class="main-body" style="display:flex;flex-direction:column;gap:8px">'
-    + (items.length ? items.map(renderDeliv).join('') : '<div class="search-empty">全体報告はまだありません。</div>')
     + '</div></div>';
 }
 
@@ -988,7 +976,6 @@ function renderMain(){
     case 'issue': return renderIssuePage();
     case 'goal': return renderGoalPage();
     case 'research': return renderResearchPage();
-    case 'reports': return renderReportsPage();
     case 'docs': return renderDocsPage();
     case 'people': return renderPeoplePage();
     case 'access': return renderAccessPage();
