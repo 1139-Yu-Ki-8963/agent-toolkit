@@ -146,6 +146,11 @@
       "dst": "payload/skill-factory/.claude/skills/rewrite-pink-elephants"
     },
     {
+      "mode": "mirror",
+      "src": "~/agent-home/skills/reporting-daily-results",
+      "dst": "payload/skill-factory/.claude/skills/reporting-daily-results"
+    },
+    {
       "mode": "file",
       "src": "~/Projects/skill-factory/output/updating-skill-factory-ui-state/SKILL.md",
       "dst": "payload/skill-factory/.claude/skills/updating-skill-factory-ui-state/SKILL.md"
