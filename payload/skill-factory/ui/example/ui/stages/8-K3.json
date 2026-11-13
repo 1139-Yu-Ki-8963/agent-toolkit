@@ -1,0 +1,127 @@
+{
+  "workName": "コミットをまとめるスキルの作成",
+  "currentSkill": {
+    "name": "squashing-commits",
+    "order": 1,
+    "total": 1,
+    "done": 0
+  },
+  "stage": 8,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "済み"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "済み"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "済み"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "済み"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "済み"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "済み"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "済み"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "下書き"
+    }
+  ],
+  "figures": [],
+  "documentPath": "",
+  "decision": {
+    "question": "node がありません。インストールしますか？",
+    "choices": [
+      {
+        "label": "インストールする(推奨)",
+        "result": "AI は、brew --version && brew install node を実行し、もう一度 node --version で確かめてから、続きを進めます。",
+        "recommend": true,
+        "recommendReason": "step 5-2 からのテストの実行に、このツールが要るためです。",
+        "confirm": false
+      },
+      {
+        "label": "やめる",
+        "result": "AI は、testing-skill-with-template を中止し、ここまでの成果物を残します。",
+        "recommend": false,
+        "recommendReason": null,
+        "confirm": true
+      }
+    ],
+    "notice": null,
+    "detail": [
+      {
+        "name": "足りないツール",
+        "value": "node(前提ツール。版の指定なし)"
+      },
+      {
+        "name": "確かめたコマンド",
+        "value": "node --version の終了コードが 0 でなかった"
+      },
+      {
+        "name": "実行するコマンド",
+        "value": "brew --version && brew install node(macOS)"
+      },
+      {
+        "name": "管理者の権限",
+        "value": "求めない"
+      }
+    ],
+    "replies": []
+  },
+  "questions": null,
+  "rounds": null,
+  "downloads": [
+    "要件定義書.md",
+    "分割設計書.md",
+    "構成の案.md",
+    "SKILL.md",
+    "tests/テスト計画書.md",
+    "tests/判定の記録.md"
+  ],
+  "screen": "インストールの確認",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": null,
+  "panels": null,
+  "checkRound": null,
+  "forms": null,
+  "abort": null,
+  "summaryCard": null,
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
+}

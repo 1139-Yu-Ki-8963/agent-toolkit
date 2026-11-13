@@ -1,0 +1,8 @@
+{
+  "private": true,
+  "description": "画面のテスト ui/tests/test-screen.mjs が使うライブラリ。画面と中継サーバーは使わない",
+  "devDependencies": {
+    "marked": "12.0.2",
+    "playwright": "1.62.1"
+  }
+}

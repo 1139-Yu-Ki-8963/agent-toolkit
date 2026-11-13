@@ -1,0 +1,169 @@
+{
+  "workName": "コミットをまとめるスキルの作成",
+  "currentSkill": null,
+  "stage": 2,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "済み"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "承認待ち"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "未着手"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "未着手"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "未着手"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "未着手"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "未着手"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "未着手"
+    }
+  ],
+  "figures": [
+    {
+      "tab": "分割の比較図",
+      "path": "ui/figures/2-分割の比較図.svg"
+    }
+  ],
+  "documentPath": "分割設計書.md",
+  "decision": {
+    "question": "この分割設計書で、次の内部設計(designing-skill-phases)へ進んでよいですか？",
+    "choices": [
+      {
+        "label": "承認する(推奨)",
+        "result": "AI は、分割設計書を確定し、1 本目 combining-commit-changes の構成の案を作ります。",
+        "recommend": true,
+        "recommendReason": "要件定義書の出すものが「まとめた変更の差分」と「1 つのコミット」の 2 つで、規則「成果物 1 つにつき 1 本」に合うためです。",
+        "confirm": false
+      },
+      {
+        "label": "却下する",
+        "result": "AI は、却下の理由を 1 文で聞き、その理由で切り方を決め直して、この画面をもう一度出します。",
+        "recommend": false,
+        "recommendReason": null,
+        "confirm": false
+      },
+      {
+        "label": "やめる",
+        "result": "AI は、designing-skill-structure を中止し、output/2026-11-07-1658/ の途中の分割設計書を残します。",
+        "recommend": false,
+        "recommendReason": null,
+        "confirm": true
+      }
+    ],
+    "replies": [],
+    "freeText": "AI は、選択肢にない回答として受け、同じ質問をもう一度出します。(step 9-6)"
+  },
+  "questions": null,
+  "rounds": null,
+  "downloads": [
+    "要件定義書.md",
+    "分割設計書.md"
+  ],
+  "screen": "成果物の承認",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": null,
+  "panels": [
+    {
+      "kind": "図",
+      "name": "分割の比較図",
+      "path": "ui/figures/2-分割の比較図.svg",
+      "key": null,
+      "open": true,
+      "isNew": true
+    },
+    {
+      "kind": "文書",
+      "name": "分割設計書",
+      "path": "分割設計書.md",
+      "key": null,
+      "open": false,
+      "isNew": false
+    },
+    {
+      "kind": "文書",
+      "name": "受け渡しの見本",
+      "path": "テストの見本/まとめた変更の差分.md",
+      "key": null,
+      "open": false,
+      "isNew": false
+    }
+  ],
+  "checkRound": null,
+  "forms": null,
+  "abort": null,
+  "summaryCard": [
+    {
+      "name": "本数",
+      "value": "2 本に分ける(新規 2 本)"
+    },
+    {
+      "name": "切る所",
+      "value": "作業 2 と作業 3 の間"
+    },
+    {
+      "name": "根拠",
+      "value": "要件定義書の出すものが「まとめた変更の差分」と「1 つのコミット」の 2 つ。規約 skill-writing-rule の規則「作るスキルは、作るか足す成果物 1 つにつき 1 本とする」"
+    }
+  ],
+  "skills": [
+    {
+      "order": 1,
+      "name": "combining-commit-changes",
+      "role": "コミットの変更の統合",
+      "output": "まとめた変更の差分",
+      "works": "1 コミットを読む、2 変更を 1 つにまとめる",
+      "handoff": "要件定義書の入力「直近の N 件のコミット」 → combining-commit-changes の入力「直近の N 件のコミット」",
+      "handoffMatch": true
+    },
+    {
+      "order": 2,
+      "name": "squashing-commits",
+      "role": "1 つのコミットの作成",
+      "output": "1 つのコミット",
+      "works": "3 メッセージを書く、4 コミットを作る",
+      "handoff": "combining-commit-changes の最終出力「まとめた変更の差分」 → squashing-commits の入力「まとめた変更の差分」",
+      "handoffMatch": true
+    }
+  ],
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
+}

@@ -1,0 +1,119 @@
+{
+  "workName": "コミットをまとめるスキルの作成",
+  "currentSkill": {
+    "name": "squashing-commits",
+    "order": 1,
+    "total": 1,
+    "done": 0
+  },
+  "stage": 3,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "済み"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "済み"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "下書き"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "未着手"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "未着手"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "未着手"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "未着手"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "未着手"
+    }
+  ],
+  "figures": [],
+  "documentPath": "",
+  "decision": {
+    "question": "残っている問題を、前と違う直し方で直してよいですか？",
+    "choices": [
+      {
+        "label": "直し方を変えて続ける(推奨)",
+        "result": "AI は、上の次の直し方で構成の案を直し、もう一度照合者 2 人に突き合わせさせます。",
+        "recommend": true,
+        "recommendReason": "2 回の直しがどちらも同じ箇所だけを変えて、同じ指摘が残ったためです。",
+        "confirm": false
+      },
+      {
+        "label": "中止する",
+        "result": "AI は、確かめを挟まずに designing-skill-phases を中止し、途中の構成の案を残します。",
+        "recommend": false,
+        "recommendReason": null,
+        "confirm": false
+      }
+    ],
+    "detail": [
+      {
+        "name": "残っている問題",
+        "value": "構成の案の照合者 2 人の指摘 1 件(2 回直しても残る)。step 6-3 の「直す」の行き先が、要件定義書の項目 9「あなたが確かめる時点: 書いたあと」と合わない。"
+      },
+      {
+        "name": "これまでの直し方",
+        "value": "step 6-3 の行き先の文を変える"
+      },
+      {
+        "name": "次の直し方",
+        "value": "step 5-1 の入力に「直したい点」を足し、6-3 からの戻りを 5-1 の側で受ける"
+      }
+    ],
+    "replies": []
+  },
+  "questions": null,
+  "rounds": null,
+  "downloads": [
+    "要件定義書.md",
+    "分割設計書.md",
+    "構成の案.md"
+  ],
+  "screen": "進展がないときの確認",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": null,
+  "panels": null,
+  "checkRound": null,
+  "forms": null,
+  "abort": null,
+  "summaryCard": null,
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
+}

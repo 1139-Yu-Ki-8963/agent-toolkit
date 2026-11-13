@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# テストが読むファイルを変えたコミットの前に、毎回自動のテストを流す。不合格ならコミットを止める。
+# 有効にする手順: skill-factory/ で `git config core.hooksPath ui/tests/git-hooks`。
+set -u
+root=$(git rev-parse --show-toplevel) || exit 1
+targets="ui/ .claude/rules/ .claude/skills/ output/updating-skill-factory-ui-state/ README.md"
+# shellcheck disable=SC2086
+staged=$(git diff --cached --name-only -- $targets)
+[ -z "$staged" ] && exit 0
+# テストは作業ツリーを流すので、コミットする中身と違う変更があるときは止める
+# shellcheck disable=SC2086
+if [ -n "$(git diff --name-only -- $targets)" ]; then
+  echo "テストが読むファイルにステージしていない変更があります。git add してからコミットしてください。"
+  exit 1
+fi
+exec bash "$root/ui/tests/run-auto.sh"

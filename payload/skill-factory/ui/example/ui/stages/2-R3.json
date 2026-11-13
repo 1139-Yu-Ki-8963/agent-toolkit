@@ -1,0 +1,105 @@
+{
+  "workName": "コミットをまとめるスキルの作成",
+  "currentSkill": null,
+  "stage": 2,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "済み"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "未着手"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "未着手"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "未着手"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "未着手"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "未着手"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "未着手"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "未着手"
+    }
+  ],
+  "figures": [],
+  "documentPath": "",
+  "decision": {
+    "question": "正しいパスを教えてください。",
+    "choices": [],
+    "notice": "output/2026-11-07-1658/ に、この名前のファイルはない",
+    "replies": [
+      {
+        "text": "output/2026-11-07-1658/要件定義書.md",
+        "recommend": true,
+        "reason": "同じフォルダにある、名前が近いファイル"
+      }
+    ]
+  },
+  "questions": null,
+  "rounds": null,
+  "downloads": [
+    "要件定義書.md",
+    "分割設計書.md"
+  ],
+  "screen": "依頼のファイルがない",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": {
+    "start": {
+      "request": "「output/2026-11-07-1658/要件定義.md ができたから続きをやって」",
+      "form": "要件定義書のパス",
+      "folder": null,
+      "next": null,
+      "rewrite": false,
+      "stage": 2,
+      "skill": "designing-skill-structure",
+      "purpose": "要件定義書の作業を、スキルの単位に切る",
+      "inputs": [],
+      "outputs": []
+    },
+    "done": null
+  },
+  "panels": null,
+  "checkRound": null,
+  "forms": null,
+  "abort": null,
+  "summaryCard": null,
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
+}

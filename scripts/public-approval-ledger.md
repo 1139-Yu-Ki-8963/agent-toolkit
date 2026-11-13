@@ -203,7 +203,12 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 
 | 対象 | 承認状況 | 承認根拠 | 備考 |
 |---|---|---|---|
-| .claude/rules/(text-writing、thinking、skill-or-rule、skill-writing、skill-testing、skill-making-flow) | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合で 0 件 | source: agent-home/rules(リンクの実体) |
-| .claude/skills/(段階が使う 10 本と補助の 3 本) | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合で 0 件 | source: agent-home/skills(リンクの実体) |
-| .claude/hooks/、.claude/settings.json、README.md | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合で 0 件 | hooks は、ビルダー scripts/build-skill-factory-hooks.mjs が正本 agent-home/hooks のパスを $CLAUDE_PROJECT_DIR/.claude/ に置き換えて写す(2026-10-26 に public-skills の写しから変更) |
-| docs/(設計書、依頼の控えの規則の案、inbox の控えの見本) | 承認済み | ユーザーの公開の承認(2026-10-26)。環境固有のパスを語に置き換え、混入の照合で 0 件 | source: skill-factory/docs |
+| .claude/rules/(text-writing、thinking、skill-or-rule、skill-writing、skill-testing、skill-making-flow) | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合で 0 件 | 2026-11-13 に写し元を ~/Projects/skill-factory/.claude/rules/<名前> に変えた(リンクの実体は agent-home/rules) |
+| .claude/rules/(behavior、rule-writing、hook-writing、skill-factory-skill-naming、ui-design) | 承認済み | ユーザーの指示(2026-11-13「両方やれ」)。README の前提の規約 11 フォルダを揃える。--check-artifacts で 0 件 | 2026-11-13 に追加。source: ~/Projects/skill-factory/.claude/rules/<名前> |
+| .claude/skills/(段階が使う 10 本) | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合で 0 件 | 2026-11-13 に写し元を ~/Projects/skill-factory/.claude/skills/<名前> に変えた(agent-home/skills にはもうない) |
+| .claude/skills/(補助の 3 本と reporting-daily-results) | 承認済み | ユーザーの公開の承認(2026-10-26、2026-11-11) | source: agent-home/skills |
+| .claude/skills/(updating-skill-factory-ui-state、drawing-skill-factory-figure) | 承認済み | ユーザーの公開の承認(2026-10-26) | source: ~/Projects/skill-factory/output/<名前>(SKILL.md と references/ だけ) |
+| .claude/hooks/、.claude/settings.json、README.md | 承認済み | ユーザーの公開の承認(2026-10-26)。混入の照合で 0 件 | 2026-11-13 に hooks の写し元を ~/Projects/skill-factory/.claude/hooks の mirror に変え、ビルダー scripts/build-skill-factory-hooks.mjs を消した(hook の中に agent-home のパスがなくなった) |
+| docs/ | 除外 | ユーザーの決定(2026-11-13「ドキュメントは公開する必要ない」) | 2026-11-13 に payload と manifest から除去 |
+| ui/(server.mjs、index.html、デザイントークン.css、はじめに.md、段階ごとのスキルと規約.json、example/) | 承認済み | ユーザーの公開の承認(2026-10-26)。デザイントークン.css は index.html が読むため 2026-11-13 に追加。example の見本の環境固有のパスを <skill-factory のパス> に直し、--check-artifacts で 0 件 | source: ~/Projects/skill-factory/ui |
+| ui/tests/(git が持つ 14 ファイルと fixtures/、git-hooks/、lib/) | 承認済み | ユーザーの指示(2026-11-13)。ui/test.sh が ui/tests/ に変わったため。実行の記録のフォルダ(2026-*)と node_modules は含めない | 2026-11-13 に追加。source: ~/Projects/skill-factory/ui/tests |

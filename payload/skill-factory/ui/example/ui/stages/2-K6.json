@@ -1,0 +1,111 @@
+{
+  "workName": "コミットをまとめるスキルの作成",
+  "currentSkill": null,
+  "stage": 2,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "済み"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "下書き"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "未着手"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "未着手"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "未着手"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "未着手"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "未着手"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "未着手"
+    }
+  ],
+  "figures": [
+    {
+      "tab": "分割の比較図",
+      "path": "ui/figures/2-分割の比較図.svg"
+    }
+  ],
+  "documentPath": "分割設計書.md",
+  "decision": null,
+  "questions": null,
+  "rounds": null,
+  "downloads": [
+    "要件定義書.md",
+    "分割設計書.md"
+  ],
+  "screen": "中止",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": null,
+  "panels": [
+    {
+      "kind": "文書",
+      "name": "分割設計書(承認の前の版)",
+      "path": "分割設計書.md",
+      "key": null,
+      "open": false,
+      "isNew": false
+    },
+    {
+      "kind": "図",
+      "name": "分割の比較図",
+      "path": "ui/figures/2-分割の比較図.svg",
+      "key": null,
+      "open": false,
+      "isNew": false
+    }
+  ],
+  "checkRound": null,
+  "forms": null,
+  "abort": {
+    "skill": "designing-skill-structure",
+    "step": "step 9-6",
+    "reason": "ユーザーが「やめる」を選んだ。",
+    "next": "もう一度分けるときは、要件定義書のパス output/2026-11-07-1658/要件定義書.md を送る。",
+    "artifacts": [
+      "output/2026-11-07-1658/分割設計書.md(承認の前の版)",
+      "テストの見本と受け渡しの見本(output/2026-11-07-1658/テストの見本/)"
+    ]
+  },
+  "summaryCard": null,
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
+}

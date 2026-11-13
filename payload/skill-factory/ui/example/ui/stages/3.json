@@ -1,9 +1,10 @@
 {
-  "workName": "議事録の要約",
+  "workName": "コミットをまとめるスキルの作成",
   "currentSkill": {
-    "name": "summarizing-meeting-minutes",
+    "name": "squashing-commits",
     "order": 1,
-    "total": 2
+    "total": 1,
+    "done": 0
   },
   "stage": 3,
   "artifacts": [
@@ -50,29 +51,150 @@
   ],
   "figures": [
     {
-      "tab": "作業の流れ図",
-      "path": "ui/figures/1-作業の流れ図.svg"
-    },
-    {
-      "tab": "分割の比較図",
-      "path": "ui/figures/2-分割の比較図.svg"
-    },
-    {
       "tab": "phase と step の流れ図",
-      "path": "ui/figures/3-phase と step の流れ図.svg"
+      "path": "ui/figures/3-1-phase と step の流れ図.svg"
     }
   ],
   "documentPath": "構成の案.md",
   "decision": {
-    "question": "この構成の案で、段階 4 へ進んでよいですか。",
+    "question": "この構成の案で、次の下書き(drafting-skill-with-template)へ進んでよいですか？",
     "choices": [
-      "承認する",
-      "直す"
-    ]
+      {
+        "label": "承認する(推奨)",
+        "result": "AI は、構成の案を確定し、SKILL.md とリファレンス 3 本の下書きを書きます(段階 4 は承認がなく、続けて段階 5 の照合に進みます)。",
+        "recommend": true,
+        "recommendReason": "照合者 2 人の突き合わせで、要件定義書の値と分割設計書の値がすべて写されていたためです。",
+        "confirm": false
+      },
+      {
+        "label": "却下する",
+        "result": "AI は、却下の理由を 1 文で聞き、その理由で phase と step を切り直して、この画面をもう一度出します。直したい点が要件定義書の値を変えるときは、AI はスキルを中止し、K6 を出します(step 7-1)。",
+        "recommend": false,
+        "recommendReason": null,
+        "confirm": false
+      },
+      {
+        "label": "やめる",
+        "result": "AI は、designing-skill-phases を中止し、途中の構成の案を skills/squashing-commits/ に残します。もう一度始めるときは、分割設計書のパスを送ります。",
+        "recommend": false,
+        "recommendReason": null,
+        "confirm": true
+      }
+    ],
+    "replies": [],
+    "freeText": "AI は、直したい点として受け、構成の案を作り直して(K1 を経て)この画面をもう一度出します。"
   },
+  "questions": null,
+  "rounds": null,
   "downloads": [
     "要件定義書.md",
     "分割設計書.md",
     "構成の案.md"
-  ]
+  ],
+  "screen": "成果物の承認",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": null,
+  "panels": [
+    {
+      "kind": "図",
+      "name": "流れ図",
+      "path": "ui/figures/3-1-phase と step の流れ図.svg",
+      "key": null,
+      "open": true,
+      "isNew": true
+    },
+    {
+      "kind": "文書",
+      "name": "AI が決めた 7 件",
+      "path": null,
+      "key": "aiValues",
+      "open": false,
+      "isNew": false
+    },
+    {
+      "kind": "文書",
+      "name": "構成の案",
+      "path": "構成の案.md",
+      "key": null,
+      "open": false,
+      "isNew": false
+    }
+  ],
+  "checkRound": null,
+  "forms": null,
+  "abort": null,
+  "summaryCard": [
+    {
+      "name": "動く順",
+      "value": "共通の決まりと前提ツールの準備 → 入力の確定(N を聞く) → コミットの読み取り → 変更のまとめ(書き換える前にあなたに確かめる) → メッセージを書く → コミットを作る(まとめの結果をあなたに確かめる) → 最終出力の確認と完了の報告"
+    },
+    {
+      "name": "あなたが確かめる時点",
+      "value": "書いたあと(まとめの結果を見せて確かめる。要件定義書の項目 9 の値)。ほかに、全体の決まり「履歴を書き換える前に必ず確かめる」の確認が 1 つ"
+    },
+    {
+      "name": "うまくいかなかったときの終わり方",
+      "value": "中止で終わる道 13(前提ツール 4、リポジトリとコミットの数 2、git のコマンドの失敗 5、やめると元に戻す 2)。元に戻すときは、履歴をまとめる前に戻してから中止"
+    },
+    {
+      "name": "AI が自分で決めた値",
+      "value": "7 件(要件定義書にも分割設計書にもない値。タブ「文書: AI が決めた 7 件」に表がある)"
+    },
+    {
+      "name": "全文",
+      "value": "タブ「文書: 構成の案」(phase 7 つ、step 18)"
+    }
+  ],
+  "skills": null,
+  "aiValues": [
+    {
+      "name": "git を実行する step はどれか",
+      "value": "3-1(リポジトリとコミットの数を確かめる)、3-2(直近の N 件を読む)、4-2(reset --soft でまとめる)、6-1(commit)、6-2(数を数える)、6-4(reset --hard で戻す)",
+      "source": "分割設計書の作業 1 から 4 を、git のコマンド 1 つにつき 1 step に切った"
+    },
+    {
+      "name": "N が依頼の文にないとき、どの step で聞くか",
+      "value": "2-2(「まとめる件数 N を教えてください」)。リポジトリでないときは 3-1 で中止",
+      "source": "雛形の固定の step 2-2 が「読み取れなかった入力を聞く」step なので、そこに置いた"
+    },
+    {
+      "name": "phase ごとに何を受け取り、何を出すか",
+      "value": "phase 3 は N を受けて「読んだコミット、基準のコミット、先頭のコミット」を出す。phase 4 は「まとめた変更」、phase 5 は「新しいメッセージ」、phase 6 は「作ったコミット」を出す",
+      "source": "step の入力と出力をつないで決めた"
+    },
+    {
+      "name": "要件定義書にない合格の条件",
+      "value": "N を聞き終えるまで git commit を 0 回。メッセージの 1 行目は 1 行で 2 行目は空行。まとめたあとのコミットは 1 件ちょうど",
+      "source": "要件定義書の「出すもの」と「全体の決まり」から、確かめられる形に書き直した"
+    },
+    {
+      "name": "step 3-1 から 6-4 の切り方(10 step)",
+      "value": "読む 2 step、まとめる 2 step、メッセージ 1 step、コミット 4 step、戻す 1 step",
+      "source": "分割設計書の作業 1 から 4 と、要件定義書の「ないときの動作」「確かめる時点」から切った"
+    },
+    {
+      "name": "step の間で渡す値(11 個)",
+      "value": "不足しているツールの一覧、依頼の内容、確定した依頼(N)、読んだコミット、まとめる前の先頭のコミット、基準のコミット、まとめた変更、直したい点、新しいコミットのメッセージ、作ったコミット、まとめたあとのコミットの数",
+      "source": "step の入力と出力の文から名前を付けた"
+    },
+    {
+      "name": "付属のファイル(3 本)",
+      "value": "references/全スキル共通の決まり.md、references/インストールの方法.md(OS ごとの git と node の入れ方)、references/コミットのメッセージの形.md(1 行目、空行、本文に元のメッセージ)",
+      "source": "雛形が決めている 1 本と、step 1-5 と 5-1 が読む 2 本"
+    }
+  ],
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
 }

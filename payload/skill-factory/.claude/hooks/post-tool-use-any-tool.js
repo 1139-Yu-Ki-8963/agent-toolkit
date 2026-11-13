@@ -58,7 +58,39 @@ function detectUnguidedSkillChange(input) {
   ];
 }
 
-const CHECKS = [detectUnguidedSkillChange];
+// 画面の状態のファイル(`<作業のフォルダ>/ui/state.json`)を Write か Edit で書いた直後に、
+// 値の組を画面の状態のファイルのインターフェース設計書の章 2 の表と照らし合わせる。表は ui/tests/lib/state-contract.mjs が持つ
+function checkStateContract(input, text) {
+  const name = input.tool_name;
+  const filePath = input.tool_input && input.tool_input.file_path;
+  if (name !== "Write" && name !== "Edit") return [];
+  if (!filePath || !/[\\/]ui[\\/]state\.json$/.test(filePath) || text === null) return [];
+  let state;
+  try {
+    state = JSON.parse(text);
+  } catch (e) {
+    return [{ kind: "violation", source: "checkStateContract", text: filePath + " を JSON として読めない。同じ返事の中で書き直してください。" }];
+  }
+  const projectDir = process.env.CLAUDE_PROJECT_DIR || path.join(__dirname, "..", "..");
+  const lib = path.join(projectDir, "ui", "tests", "lib", "state-contract.mjs");
+  if (!fs.existsSync(lib)) return [];
+  const { stateContractGaps } = require(lib);
+  const gaps = stateContractGaps(state);
+  if (gaps.length === 0) return [];
+  return [
+    {
+      kind: "violation",
+      source: "checkStateContract",
+      text:
+        filePath +
+        " の値の組が、画面の状態のファイルのインターフェース設計書の章 2 の表に合わない: " +
+        gaps.join("、") +
+        "。同じ返事の中で state.json を書き直してください。",
+    },
+  ];
+}
+
+const CHECKS = [detectUnguidedSkillChange, checkStateContract];
 
 function summarize(results) {
   const lines = [];

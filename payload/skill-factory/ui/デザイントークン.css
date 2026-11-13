@@ -1,0 +1,137 @@
+:root {
+  /* 色 */
+  --color-surface: #ffffff; /* カード、パネル、ボタンの背景。青や灰色の塗りの上に載せる文字の色 */
+  --color-background: #f6f7f9; /* 画面全体の背景 */
+  --color-surface-faint: #fbfcfd; /* 入力の欄と図の欄の、ごく薄い背景 */
+  --color-surface-muted: #eef1f5; /* 吹き出し、段階の帯、押したときの背景に使う薄い灰色 */
+  --color-surface-info: #f3f7fd; /* 状態の帯と押した選択肢の、薄い青の背景 */
+  --color-surface-found: #eef3fb; /* 見つけたことを知らせる帯の背景 */
+  --color-primary-soft: #dfe9f8; /* 主な色の薄い背景(選んだ選択肢、実行中の表示、タグ) */
+  --color-primary-hover-soft: #d2e0f5; /* 主な色の薄い背景に指を載せたときの色 */
+  --color-primary-mid: #9ebde8; /* 進み具合の棒の、確認中の区間の色 */
+  --color-primary: #1d5fbf; /* 主な色(主なボタン、選んだもの、リンク、進み具合) */
+  --color-primary-strong: #15488f; /* 薄い青の背景の上の文字と、主なボタンに指を載せたときの色 */
+  --color-text: #1f2328; /* 本文の色 */
+  --color-text-muted: #57606a; /* 名前、補足、説明の文字の色 */
+  --color-text-subtle: #6e7781; /* 出どころや注の、さらに小さい文字の色 */
+  --color-text-faint: #8c959f; /* 使えない状態や、飾りの文字の色 */
+  --color-border: #d9dde3; /* パネルとカードの枠線 */
+  --color-border-light: #e6e9ee; /* 区切り線と、カードの内側の枠線 */
+  --color-border-control: #c7ced6; /* ボタンと入力欄の枠線 */
+  --color-border-field: #d5dae1; /* 入力欄の中の小さい欄の枠線 */
+  --color-disabled: #d0d7de; /* 押せないボタンの背景 */
+  --color-success: #1a7f37; /* 接続中、完了の印の色 */
+  --color-success-surface: #e3f4e6; /* 完了のタグの背景 */
+  --color-success-text: #14632b; /* 完了のタグの文字の色 */
+  --color-danger: #cf222e; /* 失敗と接続できない状態の色 */
+  --color-danger-strong: #b42318; /* 接続できない状態の文字の色 */
+  --color-danger-surface: #ffebe9; /* 失敗の帯の背景 */
+  --color-danger-text: #82071e; /* 失敗の帯の文字の色 */
+  --color-note-surface: #fff8e1; /* 注意の欄の背景 */
+  --color-warning-surface: #fff4e5; /* 警告の欄の背景 */
+  --color-attention-surface: #fff6d6; /* 注目のタグの背景 */
+  --color-attention-text: #6b5400; /* 注目のタグの文字の色 */
+  --color-attention: #c99700; /* 注目を表す点の色 */
+  --color-terminal-background: #15181c; /* 端末の画面の背景 */
+  --color-terminal-text: #e6e8eb; /* 端末の画面の文字の色 */
+  --color-terminal-muted: #a4adb8; /* 端末の画面の補足の文字の色 */
+  --color-terminal-border: #3a4048; /* 端末の画面の区切り線 */
+  --color-terminal-chip-surface: #2b3a55; /* 端末の画面のタグの背景 */
+  --color-terminal-chip-text: #8ab4ff; /* 端末の画面のタグの文字の色 */
+
+  /* 影 */
+  --shadow-card: 0 1px 2px rgba(31,35,40,.04),0 4px 16px rgba(31,35,40,.05); /* カードとパネルの影 */
+  --shadow-menu: 0 4px 12px rgba(0,0,0,.08); /* ダウンロードのメニューの影 */
+  --shadow-popover: 0 8px 24px rgba(31,35,40,.12); /* 実行中のスキルの一覧の影 */
+  --shadow-popover-strong: 0 8px 24px rgba(31,35,40,.14); /* 試作で、実行中のスキルの一覧に付ける濃い影 */
+  --shadow-float: 0 2px 4px rgba(31,35,40,.06),0 8px 24px rgba(31,35,40,.1); /* 試作で、浮かせたボタンの影 */
+  --shadow-drawer: 0 2px 4px rgba(31,35,40,.06),0 12px 32px rgba(31,35,40,.14); /* 試作で、横から出す会話の欄の影 */
+
+  /* 文字の大きさ */
+  --font-size-caption: 11px; /* 出どころ、注、タグの小さい文字 */
+  --font-size-small: 12px; /* 補足、名前、ボタンの小さい文字 */
+  --font-size-body: 13px; /* 一覧、選択肢、ボタンの文字 */
+  --font-size-body-large: 14px; /* 会話の吹き出し、画面の文書の本文 */
+  --font-size-lead: 15px; /* 問いの見出し、値の文字 */
+  --font-size-title-small: 16px; /* 小さい見出し */
+  --font-size-title: 17px; /* 文書の見出し 1 */
+  --font-size-heading: 18px; /* 画面の見出し */
+  --font-size-summary: 19px; /* 画面 2 のまとめの文 */
+  --font-size-display: 20px; /* 試作の大きい見出しとまとめの文 */
+  --font-size-page-title: 22px; /* 部品の一覧のページの見出し */
+
+  /* 行の高さ */
+  --line-height-none: 1; /* 1 行の飾りの文字 */
+  --line-height-tight: 1.2; /* 段階の名前のような、詰めた 2 段の文字 */
+  --line-height-snug: 1.3; /* 詰めた見出し */
+  --line-height-compact: 1.35; /* 試作の詰めた文字 */
+  --line-height-heading: 1.4; /* 画面の見出し */
+  --line-height-title: 1.45; /* 値と問いの見出し */
+  --line-height-body: 1.5; /* 補足と一覧の文字 */
+  --line-height-relaxed: 1.55; /* ゆとりのある補足 */
+  --line-height-loose: 1.6; /* 会話の吹き出しと説明の文 */
+  --line-height-document: 1.7; /* 読む文書と、入力欄の文 */
+  --line-height-badge-small: 18px; /* 小さいタグの 1 行の高さ */
+  --line-height-badge: 20px; /* タグの 1 行の高さ */
+
+  /* 余白と隙間(数は px) */
+  --space-1: 1px; /* 行の間の細い隙間と、行の上下の細い余白 */
+  --space-2: 2px; /* 詰めた並びの隙間と、小さい上の余白 */
+  --space-3: 3px; /* 選択肢の丸いボタンを文字に合わせる上の余白 */
+  --space-4: 4px; /* 詰めた並びの隙間と、小さい内側の余白 */
+  --space-5: 5px; /* 段階の名前の中の隙間 */
+  --space-6: 6px; /* 並びの隙間と、タグと入力欄の内側の余白 */
+  --space-7: 7px; /* 一覧の 1 行の上下の余白 */
+  --space-8: 8px; /* 並びの隙間と、ボタンと入力欄の内側の余白 */
+  --space-10: 10px; /* 値の行の上下の余白と、並びの隙間 */
+  --space-12: 12px; /* ブロックの隙間と、カードの内側の余白 */
+  --space-14: 14px; /* 吹き出しの左右の余白 */
+  --space-16: 16px; /* パネルの内側と、段落の間の余白 */
+  --space-18: 18px; /* 画面 2 のまとめの上下の余白と、大きい隙間 */
+  --space-20: 20px; /* 画面の左右の余白と、ブロックの間の余白 */
+  --space-24: 24px; /* 画面の外側の余白と、大きいブロックの隙間 */
+  --space-32: 32px; /* 部品の一覧のページの余白 */
+
+  /* 角の丸み */
+  --radius-bar: 2px; /* 細い棒と点の角 */
+  --radius-mark: 3px; /* 小さい印の角 */
+  --radius-tiny: 4px; /* 吹き出しの尻尾の角と、飾りの線の角 */
+  --radius-small: 6px; /* 小さいボタンと小さい欄の角 */
+  --radius-control: 8px; /* ボタンと入力欄の角 */
+  --radius-panel: 10px; /* パネルと会話の欄の角 */
+  --radius-card: 12px; /* カードの角 */
+  --radius-bubble: 14px; /* 会話の吹き出しの角 */
+  --radius-pill: 999px; /* タグと段階の名前の、完全に丸い角 */
+  --radius-circle: 50%; /* 円形の印の角 */
+
+  /* 高さ */
+  --height-option: 22px; /* 選択肢の 1 行の最低の高さ */
+  --height-row-group: 24px; /* 試作で、見出しの 1 行の最低の高さ */
+  --height-pill: 26px; /* 段階の帯の名前の高さ */
+  --height-tab: 28px; /* 切り替えの小さいボタンの高さ */
+  --height-status: 30px; /* 実行中の表示と、一覧の 1 行の最低の高さ */
+  --height-control-small: 32px; /* 小さいボタンとタグの高さ */
+  --height-control-34: 34px; /* 試作の折りたたみの 1 行の最低の高さ */
+  --height-control-compact: 36px; /* 詰めたボタンと帯の高さ */
+  --height-control: 40px; /* 選択肢のボタンと、見出しの帯の高さ */
+  --height-control-touch: 44px; /* 押すボタンの最低の高さ */
+  --height-list-item: 52px; /* 試作の一覧の 1 行の最低の高さ */
+
+  /* 幅 */
+  --width-label-column: 132px; /* 名前と値の表の、名前の列の幅 */
+  --width-label-column-narrow: 90px; /* カードの中の名前と値の表の、名前の列の幅 */
+  --width-menu-min: 280px; /* ダウンロードのメニューの最小の幅 */
+  --width-chat-input-max: 420px; /* 段階 2 から 8 の下の段の、書き足す入力欄の最大の幅 */
+  --height-chat: 56px; /* 下の 1 行(入力欄、送る、会話の記録)の高さ */
+  --height-footer: 64px; /* 下の段(ボタンを置く帯)の高さ */
+  --height-input-min: 68px; /* 同じ画面に開く入力欄の最低の高さ */
+  --height-dialog-sample: 200px; /* 部品の一覧で、確かめのカードの見本を置く枠の高さ */
+  --width-dialog: 440px; /* 「スキルを中止しますか？」の確かめのカードの幅 */
+  --width-card: 640px; /* 段階 2 から 8 の中央のカードと、段階 1 の聞き取りの欄の幅 */
+  --width-card-wide: 988px; /* 段階 3 の承認の画面で図のタブを、段階 6 と 7 の承認の画面と段階 8 の画面で図と文書のタブを開いている間のカードの幅(図の幅 900px と左右の余白) */
+  --width-edge-accent: 4px; /* 8-2 のケースごとの判定の塊の、合否で色が変わる左の縁の太さ */
+  --width-figure: 900px; /* 段階 3 の phase と step の流れ図と、段階 7 のシナリオテストが受け持つテストケースの図の幅 */
+
+  /* 画面の高さの制限 */
+  --screen-height-limit: 800px; /* 1 つの状態の画面で、質問と主なボタンを入れる高さの制限(幅 1280px で高さ 800px の表示) */
+}

@@ -1,9 +1,10 @@
 {
-  "workName": "議事録の要約",
+  "workName": "コミットをまとめるスキルの作成",
   "currentSkill": {
-    "name": "summarizing-meeting-minutes",
+    "name": "squashing-commits",
     "order": 1,
-    "total": 2
+    "total": 1,
+    "done": 0
   },
   "stage": 5,
   "artifacts": [
@@ -48,32 +49,253 @@
       "status": "未着手"
     }
   ],
-  "figures": [
-    {
-      "tab": "作業の流れ図",
-      "path": "ui/figures/1-作業の流れ図.svg"
-    },
-    {
-      "tab": "分割の比較図",
-      "path": "ui/figures/2-分割の比較図.svg"
-    },
-    {
-      "tab": "phase と step の流れ図",
-      "path": "ui/figures/3-phase と step の流れ図.svg"
-    }
-  ],
+  "figures": [],
   "documentPath": "SKILL.md",
   "decision": {
-    "question": "直しの記録を承認しますか。",
+    "question": "skills/squashing-commits を直す承認を求めます。この直しのとおりに直してよいですか？",
     "choices": [
-      "直しの記録を承認する",
-      "直さない"
-    ]
+      {
+        "label": "すべて直す(推奨)",
+        "result": "AI は、動きが変わる直しを含む 5 か所を直します。",
+        "recommend": true,
+        "recommendReason": "動きが変わる直しは 1 件で、その変わり方が上に書かれており、残りは意味を変えない直しのためです。",
+        "confirm": false
+      },
+      {
+        "label": "動きを変えない直しだけ直す",
+        "result": "AI は、指摘 3 から 6 の 4 か所だけを直し、指摘 1 は直さずに残します。",
+        "recommend": false,
+        "recommendReason": null,
+        "confirm": false
+      },
+      {
+        "label": "やめる",
+        "result": "AI は、fixing-skill を中止し、直す前のスキルを残します。",
+        "recommend": false,
+        "recommendReason": null,
+        "confirm": true
+      }
+    ],
+    "replies": [],
+    "freeText": "AI は、選択肢にない回答として受け、同じ質問をもう一度出します。"
   },
+  "questions": null,
+  "rounds": null,
   "downloads": [
     "要件定義書.md",
     "分割設計書.md",
     "構成の案.md",
-    "SKILL.md"
-  ]
+    "SKILL.md",
+    "tests/テスト計画書.md"
+  ],
+  "screen": "直しの承認",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": null,
+  "panels": [
+    {
+      "kind": "文書",
+      "name": "直しの一覧と保留",
+      "path": null,
+      "key": "fixRecord",
+      "open": false,
+      "isNew": false
+    },
+    {
+      "kind": "文書",
+      "name": "照合の指摘の一覧",
+      "path": null,
+      "key": "findings",
+      "open": false,
+      "isNew": false
+    },
+    {
+      "kind": "文書",
+      "name": "SKILL.md",
+      "path": "SKILL.md",
+      "key": null,
+      "open": false,
+      "isNew": false
+    }
+  ],
+  "checkRound": {
+    "round": 1,
+    "limit": 3
+  },
+  "forms": null,
+  "abort": null,
+  "summaryCard": null,
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": {
+    "total": 6,
+    "byKind": [
+      {
+        "name": "比べたファイル",
+        "count": 5,
+        "files": []
+      },
+      {
+        "name": "雛形の違反",
+        "count": 1,
+        "files": [
+          "SKILL.md:142"
+        ]
+      },
+      {
+        "name": "規約の違反",
+        "count": 5,
+        "files": [
+          "SKILL.md:98",
+          "SKILL.md:61",
+          "references/コミットのメッセージの形.md:3",
+          "references/コミットのメッセージの形.md:5",
+          "references/インストールの方法.md:7"
+        ]
+      }
+    ],
+    "items": [
+      {
+        "file": "SKILL.md",
+        "line": 142,
+        "rule": "雛形の項目「step の行き先」",
+        "text": "step 6-3 の「直す」の行き先が 2 文",
+        "fix": "「直すなら step 5-1。」",
+        "held": false
+      },
+      {
+        "file": "SKILL.md",
+        "line": 98,
+        "rule": "step の名前は動詞で終える",
+        "text": "「依頼を読み取る」の判定",
+        "fix": "「依頼を読む」",
+        "held": true
+      },
+      {
+        "file": "references/コミットのメッセージの形.md",
+        "line": 3,
+        "rule": "文には主語を書く",
+        "text": "主語がない",
+        "fix": "「スキルは、1 行目に…」",
+        "held": false
+      },
+      {
+        "file": "references/コミットのメッセージの形.md",
+        "line": 5,
+        "rule": "文には主語を書く",
+        "text": "主語がない",
+        "fix": "「スキルは、空行を…」",
+        "held": false
+      },
+      {
+        "file": "references/インストールの方法.md",
+        "line": 7,
+        "rule": "文には主語を書く",
+        "text": "主語がない",
+        "fix": "「AI は、OS を…」",
+        "held": false
+      },
+      {
+        "file": "SKILL.md",
+        "line": 61,
+        "rule": "1 つの動作は 1 文で書く",
+        "text": "2 つの動作が 1 文",
+        "fix": "2 文に分ける",
+        "held": false
+      }
+    ],
+    "ending": null
+  },
+  "fixRecord": {
+    "rows": [
+      {
+        "name": "止まっていること",
+        "value": "照合の指摘の一覧 6 件のうち、直す指摘 5 件の承認"
+      },
+      {
+        "name": "段階",
+        "value": "段階 5 スキルの照合と修正(1 回目 / 3 回まで)"
+      }
+    ],
+    "fixes": [
+      {
+        "file": "SKILL.md",
+        "line": 142,
+        "before": "直すなら、直したい点を受けて step 5-1 へ戻る。",
+        "after": "直すなら step 5-1。",
+        "reason": "行き先の文を雛形の形にする",
+        "happened": "step 6-3 の「直す」の行き先が、雛形の「<選択肢>なら step <番号>」の形と違い、2 文になっている",
+        "behavior": "step 6-3 の「直す」で AI が 5-1 に渡す「直したい点」の書き場所が、行き先の列から入力の列へ移る",
+        "stepChange": "6-3 の行き先の列、5-1 の入力の列",
+        "behaviorChanges": true
+      },
+      {
+        "file": "references/コミットのメッセージの形.md",
+        "line": 3,
+        "before": "1 行目に、変更の要約を新しく書く。",
+        "after": "スキルは、1 行目に、変更の要約を新しく書く。",
+        "reason": "主語を足す",
+        "happened": "text-writing-rule の規則「文には主語を書く」に合わない",
+        "behavior": "なし",
+        "stepChange": "なし",
+        "behaviorChanges": false
+      },
+      {
+        "file": "references/コミットのメッセージの形.md",
+        "line": 5,
+        "before": "空行を 1 つ置く。",
+        "after": "スキルは、空行を 1 つ置く。",
+        "reason": "主語を足す",
+        "happened": "text-writing-rule の規則「文には主語を書く」に合わない",
+        "behavior": "なし",
+        "stepChange": "なし",
+        "behaviorChanges": false
+      },
+      {
+        "file": "references/インストールの方法.md",
+        "line": 7,
+        "before": "OS を Platform の値で見分ける。",
+        "after": "AI は、OS を Platform の値で見分ける。",
+        "reason": "主語を足す",
+        "happened": "text-writing-rule の規則「文には主語を書く」に合わない",
+        "behavior": "なし",
+        "stepChange": "なし",
+        "behaviorChanges": false
+      },
+      {
+        "file": "SKILL.md",
+        "line": 61,
+        "before": "N を読み取り、2 以上かを確かめる。",
+        "after": "AI は、N を読み取る。AI は、N が 2 以上かを確かめる。",
+        "reason": "2 文に分ける",
+        "happened": "text-writing-rule の規則「1 つの動作は 1 文で書く」に合わない",
+        "behavior": "なし",
+        "stepChange": "なし",
+        "behaviorChanges": false
+      }
+    ],
+    "held": [
+      {
+        "file": "SKILL.md",
+        "line": 98,
+        "text": "規則「step の名前は動詞で終える」",
+        "reason": "「読み取る」が動詞で終わっているかを、規則の文から決められない"
+      }
+    ],
+    "afterApproval": [
+      "5 か所を直し、直した文の意味が元と同じかを査読者に確かめさせ、直したファイルを照合者 2 人に照合し直させ、修正の結果(5-3)を出してから、もう一度 checking-skill-with-template を流します(2 回目 / 3 回まで)。",
+      "保留 1 件は、2 回目の照合に「前の回の保留の一覧」として渡します。"
+    ]
+  },
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
 }

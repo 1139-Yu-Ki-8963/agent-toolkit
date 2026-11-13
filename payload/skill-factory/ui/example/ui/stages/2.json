@@ -1,5 +1,5 @@
 {
-  "workName": "議事録の要約",
+  "workName": "コミットをまとめるスキルの作成",
   "currentSkill": null,
   "stage": 2,
   "artifacts": [
@@ -46,24 +46,123 @@
   ],
   "figures": [
     {
-      "tab": "作業の流れ図",
-      "path": "ui/figures/1-作業の流れ図.svg"
-    },
-    {
       "tab": "分割の比較図",
       "path": "ui/figures/2-分割の比較図.svg"
     }
   ],
   "documentPath": "分割設計書.md",
   "decision": {
-    "question": "案 1(推奨)、案 2、案 3 のどれにしますか。",
+    "question": "この分割設計書で、次の内部設計(designing-skill-phases)へ進んでよいですか？",
     "choices": [
-      "案 1 で承認する",
-      "直す"
-    ]
+      {
+        "label": "承認する(推奨)",
+        "result": "AI は、分割設計書を確定し、1 本目 squashing-commits の構成の案を作ります。",
+        "recommend": true,
+        "recommendReason": "作業 1 から 4 の成果物は「1 つのコミット」の 1 つだけで、規則「成果物 1 つにつき 1 本」に合うためです。",
+        "confirm": false
+      },
+      {
+        "label": "却下する",
+        "result": "AI は、却下の理由を 1 文で聞き、その理由で切り方を決め直して、この画面をもう一度出します。却下の理由が要件定義書の値を変えるときは、AI はスキルを中止し、K6 を出します(step 9-8)。",
+        "recommend": false,
+        "recommendReason": null,
+        "confirm": false
+      },
+      {
+        "label": "やめる",
+        "result": "AI は、designing-skill-structure を中止し、output/2026-11-07-1658/ の途中の分割設計書を残します。",
+        "recommend": false,
+        "recommendReason": null,
+        "confirm": true
+      }
+    ],
+    "replies": [],
+    "freeText": "AI は、選択肢にない回答として受け、同じ質問をもう一度出します。(step 9-6)"
   },
+  "questions": null,
+  "rounds": null,
   "downloads": [
     "要件定義書.md",
     "分割設計書.md"
-  ]
+  ],
+  "screen": "成果物の承認",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": null,
+  "panels": [
+    {
+      "kind": "図",
+      "name": "分割の比較図",
+      "path": "ui/figures/2-分割の比較図.svg",
+      "key": null,
+      "open": true,
+      "isNew": true
+    },
+    {
+      "kind": "文書",
+      "name": "分割設計書",
+      "path": "分割設計書.md",
+      "key": null,
+      "open": false,
+      "isNew": false
+    },
+    {
+      "kind": "文書",
+      "name": "要件定義書",
+      "path": "要件定義書.md",
+      "key": null,
+      "open": false,
+      "isNew": false
+    }
+  ],
+  "checkRound": null,
+  "forms": null,
+  "abort": null,
+  "summaryCard": [
+    {
+      "name": "本数",
+      "value": "新規 1 本"
+    },
+    {
+      "name": "切る所",
+      "value": "切る所なし(作業 1 から作業 4 までを、1 本のスキルが受け持つ)"
+    },
+    {
+      "name": "根拠",
+      "value": "規約 skill-writing-rule の規則「作るスキルは、作るか足す成果物 1 つにつき 1 本とする」と、規則「1 つのスキルが扱う場面と目的は 1 つ」"
+    },
+    {
+      "name": "採らなかった案",
+      "value": "なし"
+    },
+    {
+      "name": "全文",
+      "value": "タブ「文書: 分割設計書」に全文がある"
+    }
+  ],
+  "skills": [
+    {
+      "order": 1,
+      "name": "squashing-commits",
+      "role": "複数のコミットの統合",
+      "output": "1 つのコミット",
+      "works": "1 コミットを読む、2 変更を 1 つにまとめる、3 メッセージを書く、4 コミットを作る",
+      "handoff": "要件定義書の入力「直近の N 件のコミット」 → squashing-commits の入力「直近の N 件のコミット」",
+      "handoffMatch": true
+    }
+  ],
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
 }

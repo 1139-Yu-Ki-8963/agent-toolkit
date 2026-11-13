@@ -1,0 +1,210 @@
+{
+  "workName": "議事録の要約",
+  "currentSkill": null,
+  "stage": 1,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "下書き"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "未着手"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "未着手"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "未着手"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "未着手"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "未着手"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "未着手"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "未着手"
+    }
+  ],
+  "figures": [],
+  "documentPath": "要件定義書.md",
+  "decision": null,
+  "questions": {
+    "title": "渡すものと出すもの",
+    "added": 0,
+    "removed": 0,
+    "notice": null,
+    "items": [
+      {
+        "number": 1,
+        "text": "「基本設計書」は、次のどれを指しますか。",
+        "choices": [
+          "1 つのファイルにまとめる",
+          "分けて、いつも一緒に作る",
+          "分けて、ファイルごとに作り直す"
+        ],
+        "answer": null,
+        "reason": "AI が調べて見つけました。docs/設計/ の基本設計は、基本設計書.md(1 行目)と画面遷移.md(1 行目)の 2 つに分かれています。",
+        "example": "1 つのファイルにまとめる",
+        "results": [
+          "これを選ぶと、スキルは、1 つのファイルを出します。",
+          "これを選ぶと、スキルは、ファイルの組をいつも一緒に作ります。",
+          "これを選ぶと、ファイルごとにスキルを分ける候補になります。"
+        ],
+        "previousAnswer": null,
+        "category": "渡すものと出すもの",
+        "multiple": false,
+        "parts": [
+          {
+            "name": "画面の一覧",
+            "source": "docs/設計/基本設計書.md(3 行目)",
+            "selected": true
+          },
+          {
+            "name": "画面の遷移",
+            "source": "AI の案",
+            "selected": true
+          }
+        ],
+        "files": [
+          {
+            "name": "基本設計書.md",
+            "source": "docs/設計/基本設計書.md(1 行目)",
+            "mainParts": "画面の一覧",
+            "selected": true
+          },
+          {
+            "name": "画面遷移.md",
+            "source": "AI の案",
+            "mainParts": "画面の遷移",
+            "selected": false
+          }
+        ]
+      },
+      {
+        "number": 2,
+        "text": "スキルが読むものを、すべて挙げてください。",
+        "choices": [
+          "議事録(推奨)",
+          "メモ",
+          "ない"
+        ],
+        "answer": null,
+        "reason": "スキルが読むものが決まります。",
+        "example": "議事録のファイル 1 つ",
+        "results": [
+          "これを選ぶと、スキルは、議事録を読みます。",
+          "これを選ぶと、スキルは、メモを読みます。",
+          "これを選ぶと、スキルは、ファイルを読みません。"
+        ],
+        "previousAnswer": null,
+        "category": "渡すものと出すもの",
+        "multiple": true,
+        "parts": [],
+        "files": []
+      }
+    ]
+  },
+  "rounds": [
+    {
+      "kind": "1 段目",
+      "items": [
+        {
+          "number": 1,
+          "text": "「基本設計書」は、次のどれを指しますか。",
+          "choices": [
+            "1 つのファイルにまとめる",
+            "分けて、いつも一緒に作る",
+            "分けて、ファイルごとに作り直す"
+          ],
+          "answer": null,
+          "reason": "AI が調べて見つけました。docs/設計/ の基本設計は、基本設計書.md(1 行目)と画面遷移.md(1 行目)の 2 つに分かれています。",
+          "example": "1 つのファイルにまとめる",
+          "results": [
+            "これを選ぶと、スキルは、1 つのファイルを出します。",
+            "これを選ぶと、スキルは、ファイルの組をいつも一緒に作ります。",
+            "これを選ぶと、ファイルごとにスキルを分ける候補になります。"
+          ],
+          "previousAnswer": null,
+          "category": "渡すものと出すもの",
+          "multiple": false,
+          "parts": [
+            {
+              "name": "画面の一覧",
+              "source": "docs/設計/基本設計書.md(3 行目)",
+              "selected": true
+            },
+            {
+              "name": "画面の遷移",
+              "source": "AI の案",
+              "selected": true
+            }
+          ],
+          "files": [
+            {
+              "name": "基本設計書.md",
+              "source": "docs/設計/基本設計書.md(1 行目)",
+              "mainParts": "画面の一覧",
+              "selected": true
+            },
+            {
+              "name": "画面遷移.md",
+              "source": "AI の案",
+              "mainParts": "画面の遷移",
+              "selected": false
+            }
+          ],
+          "replaced": false
+        },
+        {
+          "number": 2,
+          "text": "スキルが読むものを、すべて挙げてください。",
+          "choices": [
+            "議事録(推奨)",
+            "メモ",
+            "ない"
+          ],
+          "answer": null,
+          "reason": "スキルが読むものが決まります。",
+          "example": "議事録のファイル 1 つ",
+          "results": [
+            "これを選ぶと、スキルは、議事録を読みます。",
+            "これを選ぶと、スキルは、メモを読みます。",
+            "これを選ぶと、スキルは、ファイルを読みません。"
+          ],
+          "previousAnswer": null,
+          "category": "渡すものと出すもの",
+          "multiple": true,
+          "parts": [],
+          "files": [],
+          "replaced": false
+        }
+      ]
+    }
+  ],
+  "downloads": [],
+  "screen": "画面 4",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null
+}

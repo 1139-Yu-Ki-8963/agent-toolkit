@@ -1,0 +1,210 @@
+{
+  "workName": "コミットをまとめるスキルの作成",
+  "currentSkill": {
+    "name": "squashing-commits",
+    "order": 1,
+    "total": 1,
+    "done": 0
+  },
+  "stage": 8,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "済み"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "済み"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "済み"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "済み"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "済み"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "済み"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "済み"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "下書き"
+    }
+  ],
+  "figures": [],
+  "documentPath": "tests/判定の記録.md",
+  "decision": null,
+  "questions": null,
+  "rounds": null,
+  "downloads": [
+    "要件定義書.md",
+    "分割設計書.md",
+    "構成の案.md",
+    "SKILL.md",
+    "tests/テスト計画書.md",
+    "tests/判定の記録.md"
+  ],
+  "screen": "不合格の仕分けの結果",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": null,
+  "panels": [
+    {
+      "kind": "図",
+      "name": "判定の結果の図",
+      "path": "ui/figures/8-1-判定の結果の図.svg",
+      "key": null,
+      "open": true,
+      "isNew": false
+    },
+    {
+      "kind": "文書",
+      "name": "判定の記録",
+      "path": "tests/判定の記録.md",
+      "key": null,
+      "open": false,
+      "isNew": false
+    }
+  ],
+  "checkRound": null,
+  "forms": null,
+  "abort": null,
+  "summaryCard": null,
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": {
+    "total": 12,
+    "staticPass": 6,
+    "pass": 8,
+    "fail": 2,
+    "undecidable": 1,
+    "skipped": 1,
+    "stopped": "不合格 2 件と判定できない 1 件の仕分け",
+    "cases": [
+      {
+        "id": "TC-01",
+        "status": "合格",
+        "run": null,
+        "reason": null
+      },
+      {
+        "id": "TC-02",
+        "status": "合格",
+        "run": null,
+        "reason": null
+      },
+      {
+        "id": "TC-03",
+        "status": "合格",
+        "run": null,
+        "reason": null
+      },
+      {
+        "id": "TC-04",
+        "status": "合格",
+        "run": null,
+        "reason": null
+      },
+      {
+        "id": "TC-05",
+        "status": "合格",
+        "run": null,
+        "reason": null
+      },
+      {
+        "id": "TC-06",
+        "status": "合格",
+        "run": null,
+        "reason": null
+      },
+      {
+        "id": "TC-09",
+        "status": "合格",
+        "run": null,
+        "reason": null
+      },
+      {
+        "id": "TC-10",
+        "status": "合格",
+        "run": null,
+        "reason": null
+      },
+      {
+        "id": "TC-07",
+        "status": "不合格",
+        "run": "S-06 · 1 回目",
+        "reason": "期待: 直したい点を 5-1 へ渡し、メッセージを書き直したコミットができる。実際: 直す前と同じハッシュを表示した(S-06 の実行の記録 3 行目)。"
+      },
+      {
+        "id": "TC-08",
+        "status": "不合格",
+        "run": "S-07 · 1 回目",
+        "reason": "期待: 中止の表示の step が 6-3。実際: 6-4(S-07 の実行の記録 5 行目)。"
+      },
+      {
+        "id": "TC-11",
+        "status": "判定できない",
+        "run": "S-01 · 1 回目",
+        "reason": "実行の記録に git rev-list --count の出力がなく、判定の材料が足りない(S-01)。"
+      },
+      {
+        "id": "TC-12",
+        "status": "未実施",
+        "run": null,
+        "reason": "1 回の実行で終わらない"
+      }
+    ],
+    "staticFail": [],
+    "interrupted": null,
+    "next": "AI は、続けて不合格と判定できないケースの原因を仕分けます(8-3)。"
+  },
+  "triage": [
+    {
+      "id": "TC-07",
+      "kind": "スキルの誤り",
+      "cause": "step 6-1 の「決めた値」に、step 6-3 から戻ったときに git commit --amend を使う条件が書かれていない",
+      "target": "SKILL.md の step 6-1 の行(fixing-skill が直し、5-2 と同じ承認の画面を出す)"
+    },
+    {
+      "id": "TC-08",
+      "kind": "テストの期待の誤り",
+      "cause": "構成の案の step 6-4 の行では、「元に戻す」のあとの中止の表示は step 6-4 で出る。テスト計画書の期待「6-3」が誤り",
+      "target": "tests/テスト計画書.md の TC-08 の期待(fixing-test-plan が直し、8-4 の承認の画面を出す)"
+    },
+    {
+      "id": "TC-11",
+      "kind": "テストの期待の誤り",
+      "cause": "合否が「判定できない」のケースは、step 3-6 でテストの期待の誤りに仕分ける。シナリオ S-01 の記録する項目に、git rev-list --count の出力がない",
+      "target": "tests/テスト計画書.md の章「前提の状況として置くファイルとコマンド」と S-01 の記録する項目(fixing-test-plan が直す)"
+    }
+  ],
+  "planFix": null,
+  "docCheck": null,
+  "install": null
+}

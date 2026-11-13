@@ -1,0 +1,125 @@
+{
+  "workName": "コミットをまとめるスキルの作成",
+  "currentSkill": {
+    "name": "squashing-commits",
+    "order": 1,
+    "total": 1,
+    "done": 0
+  },
+  "stage": 6,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "済み"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "済み"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "済み"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "済み"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "済み"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "下書き"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "未着手"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "未着手"
+    }
+  ],
+  "figures": [],
+  "documentPath": "tests/テスト計画書.md",
+  "decision": {
+    "question": "skills/squashing-commits/tests/テスト計画書.md が既にあり、中身が違います。上書きしますか？",
+    "choices": [
+      {
+        "label": "上書きする(推奨)",
+        "result": "AI は、いまの SKILL.md から作ったテスト計画書で、既にあるファイルを上書きします。",
+        "recommend": true,
+        "recommendReason": "既にあるファイルの 2 件の期待が、段階 5 で直した SKILL.md と合わないためです。",
+        "confirm": false
+      },
+      {
+        "label": "やめる",
+        "result": "AI は、designing-skill-test-cases を中止し、既にあるファイルを残します。",
+        "recommend": false,
+        "recommendReason": null,
+        "confirm": true
+      }
+    ],
+    "notice": "章「シナリオテストの表」は、上書きで消えます。",
+    "files": [
+      {
+        "path": "output/2026-11-07-1658/skills/squashing-commits/tests/テスト計画書.md",
+        "writtenAt": "2026-11-07 18:42(前の実行で、章「シナリオテストの表」まで書いた)",
+        "diff": "テストケースの表のうち TC-07 と TC-08 の期待が、いまの SKILL.md の step 6-3 と合わない"
+      }
+    ],
+    "replies": []
+  },
+  "questions": null,
+  "rounds": null,
+  "downloads": [
+    "要件定義書.md",
+    "分割設計書.md",
+    "構成の案.md",
+    "SKILL.md",
+    "tests/テスト計画書.md",
+    "tests/判定の記録.md"
+  ],
+  "screen": "上書きの確認",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": null,
+  "panels": [
+    {
+      "kind": "文書",
+      "name": "既にあるテスト計画書",
+      "path": "tests/テスト計画書.md",
+      "key": null,
+      "open": false,
+      "isNew": false
+    }
+  ],
+  "checkRound": null,
+  "forms": null,
+  "abort": null,
+  "summaryCard": null,
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
+}

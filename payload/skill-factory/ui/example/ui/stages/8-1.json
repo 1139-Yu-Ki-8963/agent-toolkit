@@ -1,0 +1,144 @@
+{
+  "workName": "コミットをまとめるスキルの作成",
+  "currentSkill": {
+    "name": "squashing-commits",
+    "order": 1,
+    "total": 1,
+    "done": 0
+  },
+  "stage": 8,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "済み"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "済み"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "済み"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "済み"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "済み"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "済み"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "済み"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "下書き"
+    }
+  ],
+  "figures": [],
+  "documentPath": "tests/テスト計画書.md",
+  "decision": null,
+  "questions": null,
+  "rounds": null,
+  "downloads": [
+    "要件定義書.md",
+    "分割設計書.md",
+    "構成の案.md",
+    "SKILL.md",
+    "tests/テスト計画書.md",
+    "tests/判定の記録.md"
+  ],
+  "screen": "テストの実行",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": {
+    "start": {
+      "request": null,
+      "form": null,
+      "folder": null,
+      "next": "AI は、テストが終わったら、判定の結果の図を描いて、テストの結果の画面(8-2)を出します。",
+      "rewrite": false,
+      "stage": 8,
+      "skill": "testing-skill-with-template",
+      "purpose": "テスト計画書のシナリオを流し、判定の記録を書く",
+      "inputs": [
+        {
+          "name": "テスト計画書のパス",
+          "value": "tests/テスト計画書.md",
+          "kind": "ユーザーのチャット入力"
+        }
+      ],
+      "outputs": [
+        "tests/2026-11-08-0915/判定の記録.md"
+      ]
+    },
+    "done": {
+      "title": "シナリオテストの表",
+      "outputs": [
+        {
+          "path": "tests/テスト計画書.md",
+          "unchanged": false
+        }
+      ]
+    }
+  },
+  "panels": [
+    {
+      "kind": "文書",
+      "name": "テスト計画書",
+      "path": "tests/テスト計画書.md",
+      "key": null,
+      "open": false,
+      "isNew": false
+    },
+    {
+      "kind": "文書",
+      "name": "判定の記録",
+      "path": "tests/2026-11-08-0915/判定の記録.md",
+      "key": null,
+      "open": false,
+      "isNew": false
+    },
+    {
+      "kind": "図",
+      "name": "判定の結果の図",
+      "path": "ui/figures/8-1-判定の結果の図.svg",
+      "key": null,
+      "open": false,
+      "isNew": false
+    }
+  ],
+  "checkRound": null,
+  "forms": null,
+  "abort": null,
+  "summaryCard": null,
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
+}

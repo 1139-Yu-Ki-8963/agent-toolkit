@@ -1,0 +1,159 @@
+{
+  "workName": "コミットをまとめるスキルの作成",
+  "currentSkill": {
+    "name": "squashing-commits",
+    "order": 1,
+    "total": 1,
+    "done": 0
+  },
+  "stage": 5,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "済み"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "済み"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "済み"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "済み"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "下書き"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "未着手"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "未着手"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "未着手"
+    }
+  ],
+  "figures": [],
+  "documentPath": "SKILL.md",
+  "decision": null,
+  "questions": null,
+  "rounds": null,
+  "downloads": [
+    "要件定義書.md",
+    "分割設計書.md",
+    "構成の案.md",
+    "SKILL.md",
+    "tests/テスト計画書.md"
+  ],
+  "screen": "修正の結果",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": null,
+  "panels": [
+    {
+      "kind": "文書",
+      "name": "直したあとの SKILL.md",
+      "path": "SKILL.md",
+      "key": null,
+      "open": false,
+      "isNew": true
+    }
+  ],
+  "checkRound": {
+    "round": 1,
+    "limit": 3
+  },
+  "forms": null,
+  "abort": null,
+  "summaryCard": null,
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": {
+    "source": "照合の指摘の一覧",
+    "counts": [
+      {
+        "name": "直した",
+        "count": 5
+      },
+      {
+        "name": "戻した",
+        "count": 0
+      },
+      {
+        "name": "保留",
+        "count": 1
+      }
+    ],
+    "fixed": [
+      {
+        "file": "SKILL.md:142",
+        "before": "直すなら、直したい点を受けて step 5-1 へ戻る。",
+        "after": "直すなら step 5-1。"
+      },
+      {
+        "file": "SKILL.md:61",
+        "before": "N を読み取り、2 以上かを確かめる。",
+        "after": "AI は、N を読み取る。AI は、N が 2 以上かを確かめる。"
+      },
+      {
+        "file": "references/コミットのメッセージの形.md:3",
+        "before": "1 行目に、変更の要約を新しく書く。",
+        "after": "スキルは、1 行目に、変更の要約を新しく書く。"
+      },
+      {
+        "file": "references/コミットのメッセージの形.md:5",
+        "before": "空行を 1 つ置く。",
+        "after": "スキルは、空行を 1 つ置く。"
+      },
+      {
+        "file": "references/インストールの方法.md:7",
+        "before": "OS を Platform の値で見分ける。",
+        "after": "AI は、OS を Platform の値で見分ける。"
+      }
+    ],
+    "reverted": [],
+    "rows": [
+      {
+        "name": "保留",
+        "value": "指摘 2(SKILL.md:98)。規約の文が曖昧。2 回目の照合に「前の回の保留の一覧」として渡す"
+      },
+      {
+        "name": "査読者の判定",
+        "value": "5 件とも意味が同じ"
+      },
+      {
+        "name": "照合し直し",
+        "value": "新しい違反なし"
+      }
+    ],
+    "next": "AI は、続けてもう一度照合します(2 回目 / 3 回まで)。"
+  },
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
+}

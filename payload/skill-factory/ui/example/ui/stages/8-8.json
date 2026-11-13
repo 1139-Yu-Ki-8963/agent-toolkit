@@ -1,0 +1,119 @@
+{
+  "workName": "コミットをまとめるスキルの作成",
+  "currentSkill": {
+    "name": "squashing-commits",
+    "order": 1,
+    "total": 1,
+    "done": 1
+  },
+  "stage": 8,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "済み"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "済み"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "済み"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "済み"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "済み"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "済み"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "済み"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "済み"
+    }
+  ],
+  "figures": [],
+  "documentPath": "tests/判定の記録.md",
+  "decision": null,
+  "questions": null,
+  "rounds": null,
+  "downloads": [
+    "要件定義書.md",
+    "分割設計書.md",
+    "構成の案.md",
+    "SKILL.md",
+    "tests/テスト計画書.md",
+    "tests/判定の記録.md"
+  ],
+  "screen": "スキルができた",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": null,
+  "panels": [
+    {
+      "kind": "図",
+      "name": "判定の結果の図(最終)",
+      "path": "ui/figures/8-1-判定の結果の図.svg",
+      "key": null,
+      "open": false,
+      "isNew": false
+    },
+    {
+      "kind": "文書",
+      "name": "判定の記録",
+      "path": "tests/判定の記録.md",
+      "key": null,
+      "open": false,
+      "isNew": false
+    }
+  ],
+  "checkRound": null,
+  "forms": null,
+  "abort": null,
+  "summaryCard": null,
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": {
+    "folder": "output/2026-11-07-1658/skills/squashing-commits/",
+    "contents": "SKILL.md、references/ 3 本、tests/テスト計画書.md、tests/2026-11-08-1030/判定の記録.md",
+    "tests": "スクリプト 6 件 合格 · シナリオ 10 件 合格(流し直し 2 回目)· 未実施 1 件(TC-12。1 回の実行で終わらない)",
+    "run": "要件定義書の依頼の例 2 件を実行役に通し、2 件とも最終出力「1 つのコミット」ができた",
+    "left": "段階 5 で保留した違反 1 件(SKILL.md:98。規約の文が曖昧。3 回の照合で「前の回の保留の一覧」に残った)",
+    "commands": [
+      {
+        "when": "すべてのプロジェクトで使うとき(要件定義書の項目 11-3)",
+        "command": "ln -s <skill-factory のパス>/output/2026-11-07-1658/skills/squashing-commits $HOME/.claude/skills/squashing-commits"
+      }
+    ],
+    "next": "この作業は、ここで終わりです。次の依頼(別のスキルを作る、このスキルを直す)は、下の 1 行から送ってください。"
+  }
+}

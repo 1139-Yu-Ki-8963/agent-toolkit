@@ -1,9 +1,10 @@
 {
-  "workName": "議事録の要約",
+  "workName": "コミットをまとめるスキルの作成",
   "currentSkill": {
-    "name": "summarizing-meeting-minutes",
+    "name": "squashing-commits",
     "order": 1,
-    "total": 2
+    "total": 1,
+    "done": 0
   },
   "stage": 4,
   "artifacts": [
@@ -25,7 +26,7 @@
     {
       "stage": 4,
       "name": "SKILL.md",
-      "status": "承認待ち"
+      "status": "下書き"
     },
     {
       "stage": 5,
@@ -48,31 +49,86 @@
       "status": "未着手"
     }
   ],
-  "figures": [
-    {
-      "tab": "作業の流れ図",
-      "path": "ui/figures/1-作業の流れ図.svg"
-    },
-    {
-      "tab": "分割の比較図",
-      "path": "ui/figures/2-分割の比較図.svg"
-    },
-    {
-      "tab": "phase と step の流れ図",
-      "path": "ui/figures/3-phase と step の流れ図.svg"
-    }
-  ],
+  "figures": [],
   "documentPath": "SKILL.md",
-  "decision": {
-    "question": "SKILL.md とリファレンスを書きました。段階 5 の照合へ進みますか。",
-    "choices": [
-      "段階 5 へ進む"
-    ]
-  },
+  "decision": null,
+  "questions": null,
+  "rounds": null,
   "downloads": [
     "要件定義書.md",
     "分割設計書.md",
     "構成の案.md",
     "SKILL.md"
-  ]
+  ],
+  "screen": null,
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": {
+    "start": {
+      "request": null,
+      "form": null,
+      "folder": null,
+      "next": "AI は、SKILL.md とリファレンスができたら、続けて段階 5 の照合(checking-skill-with-template)を始めます。承認はありません。",
+      "rewrite": false,
+      "stage": 4,
+      "skill": "drafting-skill-with-template",
+      "purpose": "構成の案から SKILL.md とリファレンスを書く",
+      "inputs": [
+        {
+          "name": "構成の案のパス",
+          "value": "output/2026-11-07-1658/skills/squashing-commits/構成の案.md",
+          "kind": "ユーザーのチャット入力"
+        }
+      ],
+      "outputs": [
+        "output/2026-11-07-1658/skills/squashing-commits/"
+      ]
+    },
+    "done": {
+      "title": "構成の案",
+      "outputs": [
+        {
+          "path": "output/2026-11-07-1658/skills/squashing-commits/構成の案.md",
+          "unchanged": false
+        }
+      ]
+    }
+  },
+  "panels": [
+    {
+      "kind": "文書",
+      "name": "構成の案",
+      "path": "構成の案.md",
+      "key": null,
+      "open": false,
+      "isNew": false
+    },
+    {
+      "kind": "文書",
+      "name": "SKILL.md",
+      "path": "SKILL.md",
+      "key": null,
+      "open": false,
+      "isNew": false
+    }
+  ],
+  "checkRound": null,
+  "forms": null,
+  "abort": null,
+  "summaryCard": null,
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
 }

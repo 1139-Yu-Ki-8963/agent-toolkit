@@ -1,0 +1,134 @@
+{
+  "workName": "コミットをまとめるスキルの作成",
+  "currentSkill": null,
+  "stage": 2,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "済み"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "下書き"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "未着手"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "未着手"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "未着手"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "未着手"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "未着手"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "未着手"
+    }
+  ],
+  "figures": [],
+  "documentPath": "",
+  "decision": null,
+  "questions": {
+    "title": "分割で生まれた値の質問",
+    "added": 0,
+    "removed": 0,
+    "notice": "この質問は、切り方の案 2(読む / まとめるの 2 本)を選んだときの見本です。2 本に分けると、1 本目の最終出力を 2 本目が受け取る形と場所を、あなたが決めます。",
+    "items": [
+      {
+        "number": 1,
+        "text": "1 本目(reading-commits)が読んだコミットを、2 本目(squashing-commits)にどの形で渡しますか？",
+        "choices": [
+          "git log の出力の文をそのままファイルに書いて渡す",
+          "コミットのハッシュの一覧だけを渡す"
+        ],
+        "answer": null
+      },
+      {
+        "number": 2,
+        "text": "渡すファイルを置く場所は、どこにしますか？",
+        "choices": [
+          "output/2026-11-07-1658/読んだコミット.md(作業のフォルダの中)"
+        ],
+        "answer": null
+      }
+    ]
+  },
+  "rounds": null,
+  "downloads": [
+    "要件定義書.md",
+    "分割設計書.md"
+  ],
+  "screen": "分割で生まれた値の質問",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": {
+    "start": {
+      "request": null,
+      "form": null,
+      "folder": null,
+      "next": "AI は、分割設計書ができたら、分割の比較図を描いて、承認の画面(2-2)を出します。",
+      "rewrite": false,
+      "stage": 2,
+      "skill": "designing-skill-structure",
+      "purpose": "要件定義書の作業を、スキルの単位に切る",
+      "inputs": [
+        {
+          "name": "要件定義書のパス",
+          "value": "output/2026-11-07-1658/要件定義書.md",
+          "kind": "ユーザーのチャット入力"
+        }
+      ],
+      "outputs": [
+        "output/2026-11-07-1658/分割設計書.md"
+      ]
+    },
+    "done": {
+      "title": "要件定義書",
+      "outputs": [
+        {
+          "path": "output/2026-11-07-1658/要件定義書.md",
+          "unchanged": false
+        }
+      ]
+    }
+  },
+  "panels": null,
+  "checkRound": null,
+  "forms": null,
+  "abort": null,
+  "summaryCard": null,
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
+}

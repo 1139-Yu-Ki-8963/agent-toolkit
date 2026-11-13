@@ -78,3 +78,86 @@ test("detectUnguidedSkillChange: output の設計の文書が変わっても結�
   fs.appendFileSync(path.join(home, "output", "foo", "要件定義書.md"), "changed\n");
   assert.equal(run(home, id).code, 0);
 });
+
+// 画面の状態のファイルを Write で書いた直後の入力を流す。照らし合わせの表は、このプロジェクトの ui/tests/lib/state-contract.mjs が持つ
+const PROJECT = path.join(__dirname, "..", "..", "..");
+
+function writeState(state) {
+  const home = guardedHome();
+  const file = path.join(home, "output", "w", "ui", "state.json");
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, typeof state === "string" ? state : JSON.stringify(state));
+  const input = { hook_event_name: "PostToolUse", session_id: sessionId(), transcript_path: "/dev/null", tool_name: "Write", tool_input: { file_path: file } };
+  const r = spawnSync(process.execPath, [SCRIPT], {
+    input: JSON.stringify(input),
+    encoding: "utf8",
+    env: { ...process.env, SKILL_GUARD_HOME: home, SKILL_GUARD_PROJECT: home, CLAUDE_PROJECT_DIR: PROJECT },
+  });
+  return { code: r.status, stdout: r.stdout, stderr: r.stderr };
+}
+
+const fit = JSON.parse(fs.readFileSync(path.join(PROJECT, "ui", "example", "ui", "state.json"), "utf8"));
+
+test("checkStateContract: 結果を返す", () => {
+  // 画面 4 なのに questions が null(2026-11-06 に起きた「質問はありません」の不具合の形)
+  const r = writeState({ ...fit, screen: "画面 4", questions: null });
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /checkStateContract/);
+  assert.match(r.stderr, /questions/);
+  const broken = writeState("{ not json");
+  assert.equal(broken.code, 2);
+  assert.match(broken.stderr, /JSON として読めない/);
+});
+
+test("checkStateContract: 結果を返さない", () => {
+  const r = writeState(fit);
+  assert.equal(r.code, 0, r.stderr);
+});
+
+// 段階 2 から 8 の画面(インターフェース設計書の章 2 の 2 つ目の表)。段階 1 のキーを null にし、段階 2 から 8 で足すキーを持つ
+const stage5 = {
+  ...fit,
+  stage: 5,
+  currentSkill: { name: "foo", order: 1, total: 1, done: 0 },
+  artifacts: fit.artifacts.map((a) => ({ ...a, status: a.stage < 5 ? "済み" : a.stage === 5 ? "下書き" : "未着手" })),
+  decision: null,
+  questions: null,
+  rounds: null,
+  screen: "指摘の一覧",
+  findings: { total: 1, byKind: [{ name: "雛形の違反", count: 1 }], items: [{ file: "SKILL.md", line: 3, rule: "規則 1", text: "違反", fix: "直し方", held: false }], ending: null },
+  checkRound: { round: 1, limit: 3 },
+  panels: [{ kind: "文書", name: "SKILL.md", path: "skills/foo/SKILL.md", key: null, open: false, isNew: false }],
+};
+
+test("checkStateContract: 段階 2 から 8 の画面で結果を返す", () => {
+  // 指摘の一覧なのに findings が null
+  const r = writeState({ ...stage5, findings: null });
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /checkStateContract/);
+  assert.match(r.stderr, /findings/);
+  // 表にない screen の値
+  const unknown = writeState({ ...stage5, screen: "照合と修正を終えた" });
+  assert.equal(unknown.code, 2);
+  assert.match(unknown.stderr, /章 2 の表にない/);
+  // 段階 2 から 8 の画面の decision は聞き返しを持てない
+  const askBack = writeState({ ...stage5, screen: "直しの承認", decision: { question: "直してよいですか", choices: ["直す"], replies: [], askBack: true }, fixRecord: { fixes: [], held: [], afterApproval: [] } });
+  assert.equal(askBack.code, 2);
+  assert.match(askBack.stderr, /聞き返しを持てない/);
+  // panels の要素の形が違う
+  const panels = writeState({ ...stage5, panels: [{ kind: "表", name: "a" }] });
+  assert.equal(panels.code, 2);
+  assert.match(panels.stderr, /panels\[0\]/);
+});
+
+test("checkStateContract: 段階 2 から 8 の画面で結果を返さない", () => {
+  assert.equal(writeState(stage5).code, 0, writeState(stage5).stderr);
+  // decision.choices の要素は、文字列とオブジェクトのどちらでもよい
+  const approval = {
+    ...stage5,
+    screen: "直しの承認",
+    decision: { question: "直してよいですか", choices: ["直す(推奨)", { label: "やめる", result: "スキルを中止する", recommend: false, recommendReason: null, confirm: true }], replies: [] },
+    fixRecord: { fixes: [{ file: "SKILL.md", line: 3, before: "前", after: "後", reason: "規則 1", behaviorChanges: false }], held: [], afterApproval: ["照合し直す"] },
+  };
+  const r = writeState(approval);
+  assert.equal(r.code, 0, r.stderr);
+});

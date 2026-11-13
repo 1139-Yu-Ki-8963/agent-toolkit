@@ -1,0 +1,186 @@
+{
+  "workName": "コミットをまとめるスキルの作成",
+  "currentSkill": {
+    "name": "squashing-commits",
+    "order": 1,
+    "total": 1,
+    "done": 0
+  },
+  "stage": 5,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "済み"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "済み"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "済み"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "済み"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "下書き"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "未着手"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "未着手"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "未着手"
+    }
+  ],
+  "figures": [],
+  "documentPath": "SKILL.md",
+  "decision": null,
+  "questions": null,
+  "rounds": null,
+  "downloads": [
+    "要件定義書.md",
+    "分割設計書.md",
+    "構成の案.md",
+    "SKILL.md",
+    "tests/テスト計画書.md"
+  ],
+  "screen": "指摘の一覧",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": null,
+  "panels": [
+    {
+      "kind": "文書",
+      "name": "照合の指摘の一覧",
+      "path": null,
+      "key": "findings",
+      "open": false,
+      "isNew": true
+    },
+    {
+      "kind": "文書",
+      "name": "SKILL.md",
+      "path": "SKILL.md",
+      "key": null,
+      "open": false,
+      "isNew": false
+    }
+  ],
+  "checkRound": {
+    "round": 1,
+    "limit": 3
+  },
+  "forms": null,
+  "abort": null,
+  "summaryCard": null,
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": {
+    "total": 6,
+    "byKind": [
+      {
+        "name": "比べたファイル",
+        "count": 5,
+        "files": []
+      },
+      {
+        "name": "雛形の違反",
+        "count": 1,
+        "files": [
+          "SKILL.md:142"
+        ]
+      },
+      {
+        "name": "規約の違反",
+        "count": 5,
+        "files": [
+          "SKILL.md:98",
+          "SKILL.md:61",
+          "references/コミットのメッセージの形.md:3",
+          "references/コミットのメッセージの形.md:5",
+          "references/インストールの方法.md:7"
+        ]
+      }
+    ],
+    "items": [
+      {
+        "file": "SKILL.md",
+        "line": 142,
+        "rule": "雛形の項目「step の行き先」",
+        "text": "step 6-3 の「直す」の行き先が 2 文",
+        "fix": "「直すなら step 5-1。」",
+        "held": false
+      },
+      {
+        "file": "SKILL.md",
+        "line": 98,
+        "rule": "step の名前は動詞で終える",
+        "text": "「依頼を読み取る」の判定",
+        "fix": "「依頼を読む」",
+        "held": true
+      },
+      {
+        "file": "references/コミットのメッセージの形.md",
+        "line": 3,
+        "rule": "文には主語を書く",
+        "text": "主語がない",
+        "fix": "「スキルは、1 行目に…」",
+        "held": false
+      },
+      {
+        "file": "references/コミットのメッセージの形.md",
+        "line": 5,
+        "rule": "文には主語を書く",
+        "text": "主語がない",
+        "fix": "「スキルは、空行を…」",
+        "held": false
+      },
+      {
+        "file": "references/インストールの方法.md",
+        "line": 7,
+        "rule": "文には主語を書く",
+        "text": "主語がない",
+        "fix": "「AI は、OS を…」",
+        "held": false
+      },
+      {
+        "file": "SKILL.md",
+        "line": 61,
+        "rule": "1 つの動作は 1 文で書く",
+        "text": "2 つの動作が 1 文",
+        "fix": "2 文に分ける",
+        "held": false
+      }
+    ],
+    "ending": null
+  },
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
+}

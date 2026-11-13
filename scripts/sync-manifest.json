@@ -47,87 +47,107 @@
     },
     {
       "mode": "mirror",
-      "src": "~/agent-home/rules/text-writing",
+      "src": "~/Projects/skill-factory/.claude/rules/text-writing",
       "dst": "payload/skill-factory/.claude/rules/text-writing"
     },
     {
       "mode": "mirror",
-      "src": "~/agent-home/rules/thinking",
+      "src": "~/Projects/skill-factory/.claude/rules/thinking",
       "dst": "payload/skill-factory/.claude/rules/thinking"
     },
     {
       "mode": "mirror",
-      "src": "~/agent-home/rules/skill-or-rule",
+      "src": "~/Projects/skill-factory/.claude/rules/skill-or-rule",
       "dst": "payload/skill-factory/.claude/rules/skill-or-rule"
     },
     {
       "mode": "mirror",
-      "src": "~/agent-home/rules/skill-writing",
+      "src": "~/Projects/skill-factory/.claude/rules/behavior",
+      "dst": "payload/skill-factory/.claude/rules/behavior"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/skill-factory/.claude/rules/rule-writing",
+      "dst": "payload/skill-factory/.claude/rules/rule-writing"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/skill-factory/.claude/rules/hook-writing",
+      "dst": "payload/skill-factory/.claude/rules/hook-writing"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/skill-factory/.claude/rules/skill-writing",
       "dst": "payload/skill-factory/.claude/rules/skill-writing"
     },
     {
       "mode": "mirror",
-      "src": "~/agent-home/rules/skill-testing",
+      "src": "~/Projects/skill-factory/.claude/rules/skill-testing",
       "dst": "payload/skill-factory/.claude/rules/skill-testing"
     },
     {
       "mode": "mirror",
-      "src": "~/agent-home/rules/skill-making-flow",
+      "src": "~/Projects/skill-factory/.claude/rules/skill-making-flow",
       "dst": "payload/skill-factory/.claude/rules/skill-making-flow"
     },
     {
       "mode": "mirror",
-      "src": "~/agent-home/rules/skill-factory-skill-naming",
+      "src": "~/Projects/skill-factory/.claude/rules/skill-factory-skill-naming",
       "dst": "payload/skill-factory/.claude/rules/skill-factory-skill-naming"
     },
     {
       "mode": "mirror",
-      "src": "~/agent-home/skills/defining-skill-requirements",
+      "src": "~/Projects/skill-factory/.claude/rules/ui-design",
+      "dst": "payload/skill-factory/.claude/rules/ui-design"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/skill-factory/.claude/skills/defining-skill-requirements",
       "dst": "payload/skill-factory/.claude/skills/defining-skill-requirements"
     },
     {
       "mode": "mirror",
-      "src": "~/agent-home/skills/designing-skill-structure",
+      "src": "~/Projects/skill-factory/.claude/skills/designing-skill-structure",
       "dst": "payload/skill-factory/.claude/skills/designing-skill-structure"
     },
     {
       "mode": "mirror",
-      "src": "~/agent-home/skills/designing-skill-phases",
+      "src": "~/Projects/skill-factory/.claude/skills/designing-skill-phases",
       "dst": "payload/skill-factory/.claude/skills/designing-skill-phases"
     },
     {
       "mode": "mirror",
-      "src": "~/agent-home/skills/drafting-skill-with-template",
+      "src": "~/Projects/skill-factory/.claude/skills/drafting-skill-with-template",
       "dst": "payload/skill-factory/.claude/skills/drafting-skill-with-template"
     },
     {
       "mode": "mirror",
-      "src": "~/agent-home/skills/checking-skill-with-template",
+      "src": "~/Projects/skill-factory/.claude/skills/checking-skill-with-template",
       "dst": "payload/skill-factory/.claude/skills/checking-skill-with-template"
     },
     {
       "mode": "mirror",
-      "src": "~/agent-home/skills/fixing-skill",
+      "src": "~/Projects/skill-factory/.claude/skills/fixing-skill",
       "dst": "payload/skill-factory/.claude/skills/fixing-skill"
     },
     {
       "mode": "mirror",
-      "src": "~/agent-home/skills/designing-skill-test-cases",
+      "src": "~/Projects/skill-factory/.claude/skills/designing-skill-test-cases",
       "dst": "payload/skill-factory/.claude/skills/designing-skill-test-cases"
     },
     {
       "mode": "mirror",
-      "src": "~/agent-home/skills/designing-skill-test-scenarios",
+      "src": "~/Projects/skill-factory/.claude/skills/designing-skill-test-scenarios",
       "dst": "payload/skill-factory/.claude/skills/designing-skill-test-scenarios"
     },
     {
       "mode": "mirror",
-      "src": "~/agent-home/skills/testing-skill-with-template",
+      "src": "~/Projects/skill-factory/.claude/skills/testing-skill-with-template",
       "dst": "payload/skill-factory/.claude/skills/testing-skill-with-template"
     },
     {
       "mode": "mirror",
-      "src": "~/agent-home/skills/fixing-test-plan",
+      "src": "~/Projects/skill-factory/.claude/skills/fixing-test-plan",
       "dst": "payload/skill-factory/.claude/skills/fixing-test-plan"
     },
     {
@@ -171,10 +191,9 @@
       "dst": "payload/skill-factory/.claude/skills/drawing-skill-factory-figure/references"
     },
     {
-      "mode": "build",
-      "builder": "scripts/build-skill-factory-hooks.mjs",
-      "dst": "payload/skill-factory/.claude/hooks",
-      "note": "正本 ~/agent-home/hooks を、パスを $CLAUDE_PROJECT_DIR/.claude/ に置き換えて写す"
+      "mode": "mirror",
+      "src": "~/Projects/skill-factory/.claude/hooks",
+      "dst": "payload/skill-factory/.claude/hooks"
     },
     {
       "mode": "file",
@@ -185,11 +204,6 @@
       "mode": "file",
       "src": "~/Projects/skill-factory/README.md",
       "dst": "payload/skill-factory/README.md"
-    },
-    {
-      "mode": "mirror",
-      "src": "~/Projects/skill-factory/docs",
-      "dst": "payload/skill-factory/docs"
     },
     {
       "mode": "file",
@@ -203,8 +217,8 @@
     },
     {
       "mode": "file",
-      "src": "~/Projects/skill-factory/ui/test.sh",
-      "dst": "payload/skill-factory/ui/test.sh"
+      "src": "~/Projects/skill-factory/ui/デザイントークン.css",
+      "dst": "payload/skill-factory/ui/デザイントークン.css"
     },
     {
       "mode": "file",
@@ -220,6 +234,91 @@
       "mode": "mirror",
       "src": "~/Projects/skill-factory/ui/example",
       "dst": "payload/skill-factory/ui/example"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/ui/tests/.gitignore",
+      "dst": "payload/skill-factory/ui/tests/.gitignore"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/ui/tests/contract-baseline.json",
+      "dst": "payload/skill-factory/ui/tests/contract-baseline.json"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/ui/tests/fake-claude.mjs",
+      "dst": "payload/skill-factory/ui/tests/fake-claude.mjs"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/ui/tests/known-failures.json",
+      "dst": "payload/skill-factory/ui/tests/known-failures.json"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/ui/tests/package-lock.json",
+      "dst": "payload/skill-factory/ui/tests/package-lock.json"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/ui/tests/package.json",
+      "dst": "payload/skill-factory/ui/tests/package.json"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/ui/tests/run-auto.sh",
+      "dst": "payload/skill-factory/ui/tests/run-auto.sh"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/ui/tests/test-mutants.mjs",
+      "dst": "payload/skill-factory/ui/tests/test-mutants.mjs"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/ui/tests/test-real.mjs",
+      "dst": "payload/skill-factory/ui/tests/test-real.mjs"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/ui/tests/test-relay-edge.mjs",
+      "dst": "payload/skill-factory/ui/tests/test-relay-edge.mjs"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/ui/tests/test-relay.sh",
+      "dst": "payload/skill-factory/ui/tests/test-relay.sh"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/ui/tests/test-screen.mjs",
+      "dst": "payload/skill-factory/ui/tests/test-screen.mjs"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/ui/tests/test-static.mjs",
+      "dst": "payload/skill-factory/ui/tests/test-static.mjs"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-factory/ui/tests/テスト計画書.md",
+      "dst": "payload/skill-factory/ui/tests/テスト計画書.md"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/skill-factory/ui/tests/fixtures",
+      "dst": "payload/skill-factory/ui/tests/fixtures"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/skill-factory/ui/tests/git-hooks",
+      "dst": "payload/skill-factory/ui/tests/git-hooks"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/skill-factory/ui/tests/lib",
+      "dst": "payload/skill-factory/ui/tests/lib"
     }
   ]
 }

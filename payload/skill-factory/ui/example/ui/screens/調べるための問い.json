@@ -1,0 +1,154 @@
+{
+  "workName": "議事録の要約",
+  "currentSkill": null,
+  "stage": 1,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "下書き"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "未着手"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "未着手"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "未着手"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "未着手"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "未着手"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "未着手"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "未着手"
+    }
+  ],
+  "figures": [],
+  "documentPath": "要件定義書.md",
+  "decision": null,
+  "questions": {
+    "title": "このスキルを作るために、調べる前に教えてください。",
+    "added": 0,
+    "removed": 0,
+    "notice": null,
+    "items": [
+      {
+        "number": 1,
+        "text": "このスキルを、どのプロジェクトで使いますか。",
+        "choices": [
+          "すべてのプロジェクト",
+          "このプロジェクトだけ"
+        ],
+        "answer": null,
+        "reason": "調べるフォルダと、スキルを置く場所が決まります。",
+        "example": "すべてのプロジェクト",
+        "results": [
+          "これを選ぶと、AI は、~/.claude/skills/ を調べます。",
+          "これを選ぶと、AI は、このプロジェクトの .claude/skills/ を調べます。"
+        ],
+        "previousAnswer": null,
+        "category": null,
+        "multiple": false,
+        "parts": [],
+        "files": []
+      },
+      {
+        "number": 2,
+        "text": "スキルが読む実物は、どこにありますか。",
+        "choices": [
+          "フォルダかリポジトリのパスを書く",
+          "まだない"
+        ],
+        "answer": null,
+        "reason": "AI が実物を読むと、形式と見出しが分かります。",
+        "example": "docs/議事録/",
+        "results": [
+          "これを選ぶと、AI は、そのパスの実物を調べます。",
+          "これを選ぶと、AI は、見本を作って案に出します。"
+        ],
+        "previousAnswer": null,
+        "category": null,
+        "multiple": false,
+        "parts": [],
+        "files": []
+      }
+    ]
+  },
+  "rounds": [
+    {
+      "kind": "調べるための問い",
+      "items": [
+        {
+          "number": 1,
+          "text": "このスキルを、どのプロジェクトで使いますか。",
+          "choices": [
+            "すべてのプロジェクト",
+            "このプロジェクトだけ"
+          ],
+          "answer": null,
+          "reason": "調べるフォルダと、スキルを置く場所が決まります。",
+          "example": "すべてのプロジェクト",
+          "results": [
+            "これを選ぶと、AI は、~/.claude/skills/ を調べます。",
+            "これを選ぶと、AI は、このプロジェクトの .claude/skills/ を調べます。"
+          ],
+          "previousAnswer": null,
+          "category": null,
+          "multiple": false,
+          "parts": [],
+          "files": [],
+          "replaced": false
+        },
+        {
+          "number": 2,
+          "text": "スキルが読む実物は、どこにありますか。",
+          "choices": [
+            "フォルダかリポジトリのパスを書く",
+            "まだない"
+          ],
+          "answer": null,
+          "reason": "AI が実物を読むと、形式と見出しが分かります。",
+          "example": "docs/議事録/",
+          "results": [
+            "これを選ぶと、AI は、そのパスの実物を調べます。",
+            "これを選ぶと、AI は、見本を作って案に出します。"
+          ],
+          "previousAnswer": null,
+          "category": null,
+          "multiple": false,
+          "parts": [],
+          "files": [],
+          "replaced": false
+        }
+      ]
+    }
+  ],
+  "downloads": [],
+  "screen": "調べるための問い",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null
+}

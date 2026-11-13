@@ -1,9 +1,10 @@
 {
-  "workName": "議事録の要約",
+  "workName": "コミットをまとめるスキルの作成",
   "currentSkill": {
-    "name": "summarizing-meeting-minutes",
+    "name": "squashing-commits",
     "order": 1,
-    "total": 2
+    "total": 1,
+    "done": 0
   },
   "stage": 6,
   "artifacts": [
@@ -48,32 +49,121 @@
       "status": "未着手"
     }
   ],
-  "figures": [
-    {
-      "tab": "作業の流れ図",
-      "path": "ui/figures/1-作業の流れ図.svg"
-    },
-    {
-      "tab": "分割の比較図",
-      "path": "ui/figures/2-分割の比較図.svg"
-    },
-    {
-      "tab": "phase と step の流れ図",
-      "path": "ui/figures/3-phase と step の流れ図.svg"
-    }
-  ],
+  "figures": [],
   "documentPath": "tests/テスト計画書.md",
   "decision": {
-    "question": "テスト計画書を書きました。段階 7 へ進みますか。",
+    "question": "テストケース 31 件を作りました。この計画で、テストのシナリオを決めてよいですか？",
     "choices": [
-      "段階 7 へ進む"
-    ]
+      {
+        "label": "承認する(推奨)",
+        "result": "AI は、テスト計画書を skills/squashing-commits/tests/ に確定し、続けてテストのシナリオを決めます(段階 7)。",
+        "recommend": true,
+        "recommendReason": "対象 61 のうち、ケースあり 38、実行環境で作れない 23、未対応 0 で、7 つの分類のそれぞれに観点が 1 件以上あるためです(章「網羅の証明」の 1 行の結論と表 1)。",
+        "confirm": false
+      },
+      {
+        "label": "却下する",
+        "result": "AI は、却下の理由を 1 文で聞き、理由が指す観点とケースを作り直して、この画面をもう一度出します。",
+        "recommend": false,
+        "recommendReason": null,
+        "confirm": false
+      },
+      {
+        "label": "やめる",
+        "result": "AI は、designing-skill-test-cases を中止し、途中のテスト計画書を skills/squashing-commits/tests/ に残します。もう一度始めるときは、スキルのフォルダのパスと「テストを作って」を送ります。",
+        "recommend": false,
+        "recommendReason": null,
+        "confirm": true
+      }
+    ],
+    "replies": [],
+    "freeText": "AI は、選択肢にない回答として受け、同じ質問をもう一度出します。"
   },
+  "questions": null,
+  "rounds": null,
   "downloads": [
     "要件定義書.md",
     "分割設計書.md",
     "構成の案.md",
     "SKILL.md",
-    "tests/テスト計画書.md"
-  ]
+    "tests/テスト計画書.md",
+    "tests/判定の記録.md"
+  ],
+  "screen": "成果物の承認",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": null,
+  "panels": [
+    {
+      "kind": "文書",
+      "name": "1. テスト観点",
+      "path": "tests/テスト計画書.md",
+      "section": [
+        "テスト観点の一覧",
+        "使わなかった技法と理由"
+      ],
+      "key": null,
+      "open": true,
+      "isNew": true
+    },
+    {
+      "kind": "文書",
+      "name": "2. テストケース(31 件)",
+      "path": "tests/テスト計画書.md",
+      "section": "テストケースの一覧",
+      "key": null,
+      "open": false,
+      "isNew": false
+    },
+    {
+      "kind": "文書",
+      "name": "3. 網羅の証明",
+      "path": "tests/テスト計画書.md",
+      "section": "網羅の証明",
+      "key": null,
+      "open": false,
+      "isNew": false
+    },
+    {
+      "kind": "文書",
+      "name": "テスト計画書",
+      "path": "tests/テスト計画書.md",
+      "section": null,
+      "key": null,
+      "open": false,
+      "isNew": false
+    }
+  ],
+  "checkRound": null,
+  "forms": null,
+  "abort": null,
+  "summaryCard": [
+    {
+      "name": "1. テスト観点",
+      "value": "20 件(入力、出力、状態、外部依存、異常の扱い、並行と時間、環境の 7 つの分類のそれぞれに 1 件以上。当てない観点は V-19 並行と時間と V-20 環境の 2 件で、理由は「スキルに該当がない」)"
+    },
+    {
+      "name": "2. テストケース",
+      "value": "31 件(スクリプトで確かめる 4 件、スキルを流して確かめる 27 件。種別は正常 13、異常 10、境界 3、保守性 4、冪等性 1)"
+    },
+    {
+      "name": "3. 網羅の証明",
+      "value": "対象 61 のうち、ケースあり 38、実行環境で作れない 23、未対応 0。対象 1 つにつき作るケースの数の 12 行がすべて一致"
+    }
+  ],
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
 }

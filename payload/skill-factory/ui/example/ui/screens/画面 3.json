@@ -1,0 +1,144 @@
+{
+  "workName": "議事録の要約",
+  "currentSkill": null,
+  "stage": 1,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "下書き"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "未着手"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "未着手"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "未着手"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "未着手"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "未着手"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "未着手"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "未着手"
+    }
+  ],
+  "figures": [],
+  "documentPath": "要件定義書.md",
+  "decision": {
+    "question": "内容は合っていますか。足りないことは「その他」に書き足せます。",
+    "choices": [
+      "合っています。質問へ進む(推奨)",
+      "内容を修正する"
+    ],
+    "replies": []
+  },
+  "questions": null,
+  "rounds": [
+    {
+      "kind": "調べるための問い",
+      "items": [
+        {
+          "number": 1,
+          "text": "このスキルを、どのプロジェクトで使いますか。",
+          "choices": [
+            "すべてのプロジェクト",
+            "このプロジェクトだけ"
+          ],
+          "answer": "すべてのプロジェクト",
+          "reason": "調べるフォルダと、スキルを置く場所が決まります。",
+          "example": "すべてのプロジェクト",
+          "results": [
+            "これを選ぶと、AI は、~/.claude/skills/ を調べます。",
+            "これを選ぶと、AI は、このプロジェクトの .claude/skills/ を調べます。"
+          ],
+          "previousAnswer": null,
+          "category": null,
+          "multiple": false,
+          "parts": [],
+          "files": [],
+          "replaced": false
+        },
+        {
+          "number": 2,
+          "text": "スキルが読む実物は、どこにありますか。",
+          "choices": [
+            "フォルダかリポジトリのパスを書く",
+            "まだない"
+          ],
+          "answer": "まだない",
+          "reason": "AI が実物を読むと、形式と見出しが分かります。",
+          "example": "docs/議事録/",
+          "results": [
+            "これを選ぶと、AI は、そのパスの実物を調べます。",
+            "これを選ぶと、AI は、見本を作って案に出します。"
+          ],
+          "previousAnswer": null,
+          "category": null,
+          "multiple": false,
+          "parts": [],
+          "files": [],
+          "replaced": false
+        }
+      ]
+    }
+  ],
+  "downloads": [],
+  "screen": "画面 3",
+  "summary": null,
+  "research": null,
+  "factCheck": {
+    "heading": "あなたの文章と調べた結果から 10 個決まりました。ここでは 3 個を確かめます。",
+    "note": "残りの 7 個は、前の画面か案の画面に、あなたの文章と調べた結果のまま出します。\nこのあと、質問 5 問と、案の画面 1 枚で決めます。",
+    "facts": [
+      {
+        "text": "Markdown の議事録が 9 件あります",
+        "source": "調査: docs/議事録/"
+      },
+      {
+        "text": "似たスキルはありません",
+        "source": "調査: .claude/skills/ の 15 本"
+      }
+    ],
+    "items": [
+      {
+        "name": "作業を繰り返す頻度",
+        "value": "週 1 回",
+        "label": null
+      },
+      {
+        "name": "スキルで楽にしたいこと",
+        "value": "毎回 30 分かけて手で書く作業を減らしたい",
+        "label": "修正しました"
+      },
+      {
+        "name": "スキルが読むもの",
+        "value": "週 1 回の定例の議事録(Markdown)",
+        "label": "追加"
+      }
+    ]
+  },
+  "approvalSheet": null,
+  "draftReview": null
+}

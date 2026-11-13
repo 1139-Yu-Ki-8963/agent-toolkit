@@ -1,0 +1,122 @@
+{
+  "workName": "コミットをまとめるスキルの作成",
+  "currentSkill": {
+    "name": "squashing-commits",
+    "order": 1,
+    "total": 1,
+    "done": 0
+  },
+  "stage": 5,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "済み"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "済み"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "済み"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "済み"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "未着手"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "未着手"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "未着手"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "未着手"
+    }
+  ],
+  "figures": [],
+  "documentPath": "",
+  "decision": null,
+  "questions": {
+    "title": "AI からの質問",
+    "added": 0,
+    "removed": 0,
+    "notice": "依頼の文「squashing-commits のメッセージの形を直して」には、1 行目の長さの基準が書かれていません。規約 skill-making-flow の規則 3 で、AI は結果を変える値を推奨を添えて聞き、答えを依頼の一覧の「後の文」に写します。",
+    "items": [
+      {
+        "number": 1,
+        "text": "新しいコミットのメッセージの 1 行目の長さを、何文字までにしますか？",
+        "choices": [
+          {
+            "text": "50 文字まで",
+            "recommend": true,
+            "reason": "git の慣例で、一覧で切れない"
+          },
+          "72 文字まで",
+          "決めない"
+        ],
+        "answer": null
+      },
+      {
+        "number": 2,
+        "text": "1 行目の先頭に付ける種別の語(【変更】のような角括弧の語)は、何にしますか？",
+        "choices": [
+          {
+            "text": "【変更】【追加】【修正】",
+            "recommend": true,
+            "reason": "このリポジトリの直近 20 件のコミットで使われている 3 つ"
+          },
+          "付けない"
+        ],
+        "answer": null
+      }
+    ]
+  },
+  "rounds": null,
+  "downloads": [
+    "要件定義書.md",
+    "分割設計書.md",
+    "構成の案.md",
+    "SKILL.md",
+    "tests/テスト計画書.md"
+  ],
+  "screen": "開始時の入力の質問",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": null,
+  "panels": null,
+  "checkRound": null,
+  "forms": null,
+  "abort": null,
+  "summaryCard": null,
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
+}

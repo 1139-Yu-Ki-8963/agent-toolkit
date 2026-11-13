@@ -1,0 +1,238 @@
+{
+  "workName": "議事録の要約",
+  "currentSkill": null,
+  "stage": 1,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "下書き"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "未着手"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "未着手"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "未着手"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "未着手"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "未着手"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "未着手"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "未着手"
+    }
+  ],
+  "figures": [],
+  "documentPath": "要件定義書.md",
+  "decision": {
+    "question": "作り方の案は、これでよいですか？",
+    "choices": [
+      "この案で進む(推奨)",
+      "内容を修正する"
+    ],
+    "replies": []
+  },
+  "questions": null,
+  "rounds": [
+    {
+      "kind": "調べるための問い",
+      "items": [
+        {
+          "number": 1,
+          "text": "このスキルを、どのプロジェクトで使いますか。",
+          "choices": [
+            "すべてのプロジェクト",
+            "このプロジェクトだけ"
+          ],
+          "answer": "すべてのプロジェクト",
+          "reason": "調べるフォルダと、スキルを置く場所が決まります。",
+          "example": "すべてのプロジェクト",
+          "results": [
+            "これを選ぶと、AI は、~/.claude/skills/ を調べます。",
+            "これを選ぶと、AI は、このプロジェクトの .claude/skills/ を調べます。"
+          ],
+          "previousAnswer": null,
+          "category": null,
+          "multiple": false,
+          "parts": [],
+          "files": [],
+          "replaced": false
+        },
+        {
+          "number": 2,
+          "text": "スキルが読む実物は、どこにありますか。",
+          "choices": [
+            "フォルダかリポジトリのパスを書く",
+            "まだない"
+          ],
+          "answer": "まだない",
+          "reason": "AI が実物を読むと、形式と見出しが分かります。",
+          "example": "docs/議事録/",
+          "results": [
+            "これを選ぶと、AI は、そのパスの実物を調べます。",
+            "これを選ぶと、AI は、見本を作って案に出します。"
+          ],
+          "previousAnswer": null,
+          "category": null,
+          "multiple": false,
+          "parts": [],
+          "files": [],
+          "replaced": false
+        }
+      ]
+    },
+    {
+      "kind": "2 段目",
+      "items": [
+        {
+          "number": 3,
+          "text": "スキルが書き換えるか消すファイルはありますか。",
+          "choices": [
+            "ない(推奨)",
+            "書き換える",
+            "消す"
+          ],
+          "answer": "ない(推奨)",
+          "reason": "元に戻せない操作の前の確認が決まります。",
+          "example": "読むだけ",
+          "results": [
+            "これを選ぶと、スキルは、読むだけです。",
+            "これを選ぶと、スキルは、確かめてから変えます。",
+            "これを選ぶと、スキルは、確かめてから消します。"
+          ],
+          "previousAnswer": null,
+          "category": "作業の範囲",
+          "multiple": true,
+          "parts": [],
+          "files": [],
+          "replaced": false
+        },
+        {
+          "number": 4,
+          "text": "スキルが作ったものを、あなたはどの時点で確かめますか。",
+          "choices": [
+            "書く前",
+            "書いたあと",
+            "確かめない"
+          ],
+          "answer": "書く前",
+          "reason": "スキルが止まって待つ時点が決まります。",
+          "example": "置く前に見せる",
+          "results": [
+            "これを選ぶと、スキルは、案を見せて待ちます。",
+            "これを選ぶと、スキルは、書いたものを見せて待ちます。",
+            "これを選ぶと、スキルは、止まらずに動きます。"
+          ],
+          "previousAnswer": null,
+          "category": "作業の範囲",
+          "multiple": true,
+          "parts": [],
+          "files": [],
+          "replaced": false
+        },
+        {
+          "number": 5,
+          "text": "スキルで、ほかに決めておきたいことはありますか。",
+          "choices": [],
+          "answer": "なし",
+          "reason": "足りないことを聞きます。",
+          "example": "なし",
+          "results": [],
+          "previousAnswer": null,
+          "category": "作業の範囲",
+          "multiple": false,
+          "parts": [],
+          "files": [],
+          "replaced": false
+        }
+      ]
+    }
+  ],
+  "downloads": [],
+  "screen": "AI の案",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": {
+    "heading": "作り方の案は、これでよいですか？",
+    "rows": [
+      {
+        "section": "議事録の渡し方",
+        "name": "渡し方と形式",
+        "label": null,
+        "cells": [
+          {
+            "name": "渡し方",
+            "value": "ファイルのパスを依頼の文に書く",
+            "source": "AI の案",
+            "choices": []
+          },
+          {
+            "name": "形式",
+            "value": "Markdown",
+            "source": "調査: docs/議事録/",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "section": "要約の作り方",
+        "name": "種類と形式",
+        "label": "変更",
+        "cells": [
+          {
+            "name": "語の定義",
+            "value": "決定事項と宿題を持つ要約",
+            "source": "あなたの文章",
+            "choices": []
+          },
+          {
+            "name": "出し方",
+            "value": "ファイル",
+            "source": "あなたの文章",
+            "choices": []
+          }
+        ]
+      },
+      {
+        "section": "要約の作り方",
+        "name": "直しで生まれた質問",
+        "label": "追加",
+        "cells": [
+          {
+            "name": "全文を出す場合",
+            "value": "毎回",
+            "source": "「出し方」の直し",
+            "choices": [
+              "毎回",
+              "頼まれたときだけ"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "draftReview": null
+}

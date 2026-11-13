@@ -1,0 +1,191 @@
+{
+  "workName": "議事録の要約",
+  "currentSkill": null,
+  "stage": 1,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "下書き"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "未着手"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "未着手"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "未着手"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "未着手"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "未着手"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "未着手"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "未着手"
+    }
+  ],
+  "figures": [],
+  "documentPath": "要件定義書.md",
+  "decision": null,
+  "questions": {
+    "title": "作業の範囲",
+    "added": 0,
+    "removed": 1,
+    "notice": "前の答えで、質問が 1 問減りました。",
+    "items": [
+      {
+        "number": 1,
+        "text": "スキルが書き換えるか消すファイルはありますか。",
+        "choices": [
+          "ない(推奨)",
+          "書き換える",
+          "消す"
+        ],
+        "answer": null,
+        "reason": "元に戻せない操作の前の確認が決まります。",
+        "example": "読むだけ",
+        "results": [
+          "これを選ぶと、スキルは、読むだけです。",
+          "これを選ぶと、スキルは、確かめてから変えます。",
+          "これを選ぶと、スキルは、確かめてから消します。"
+        ],
+        "previousAnswer": null,
+        "category": "作業の範囲",
+        "multiple": true,
+        "parts": [],
+        "files": []
+      },
+      {
+        "number": 2,
+        "text": "スキルが作ったものを、あなたはどの時点で確かめますか。",
+        "choices": [
+          "書く前",
+          "書いたあと",
+          "確かめない"
+        ],
+        "answer": null,
+        "reason": "スキルが止まって待つ時点が決まります。",
+        "example": "置く前に見せる",
+        "results": [
+          "これを選ぶと、スキルは、案を見せて待ちます。",
+          "これを選ぶと、スキルは、書いたものを見せて待ちます。",
+          "これを選ぶと、スキルは、止まらずに動きます。"
+        ],
+        "previousAnswer": null,
+        "category": "作業の範囲",
+        "multiple": true,
+        "parts": [],
+        "files": []
+      },
+      {
+        "number": 3,
+        "text": "スキルで、ほかに決めておきたいことはありますか。",
+        "choices": [],
+        "answer": null,
+        "reason": "足りないことを聞きます。",
+        "example": "なし",
+        "results": [],
+        "previousAnswer": null,
+        "category": "作業の範囲",
+        "multiple": false,
+        "parts": [],
+        "files": []
+      }
+    ]
+  },
+  "rounds": [
+    {
+      "kind": "2 段目",
+      "items": [
+        {
+          "number": 1,
+          "text": "スキルが書き換えるか消すファイルはありますか。",
+          "choices": [
+            "ない(推奨)",
+            "書き換える",
+            "消す"
+          ],
+          "answer": null,
+          "reason": "元に戻せない操作の前の確認が決まります。",
+          "example": "読むだけ",
+          "results": [
+            "これを選ぶと、スキルは、読むだけです。",
+            "これを選ぶと、スキルは、確かめてから変えます。",
+            "これを選ぶと、スキルは、確かめてから消します。"
+          ],
+          "previousAnswer": null,
+          "category": "作業の範囲",
+          "multiple": true,
+          "parts": [],
+          "files": [],
+          "replaced": false
+        },
+        {
+          "number": 2,
+          "text": "スキルが作ったものを、あなたはどの時点で確かめますか。",
+          "choices": [
+            "書く前",
+            "書いたあと",
+            "確かめない"
+          ],
+          "answer": null,
+          "reason": "スキルが止まって待つ時点が決まります。",
+          "example": "置く前に見せる",
+          "results": [
+            "これを選ぶと、スキルは、案を見せて待ちます。",
+            "これを選ぶと、スキルは、書いたものを見せて待ちます。",
+            "これを選ぶと、スキルは、止まらずに動きます。"
+          ],
+          "previousAnswer": null,
+          "category": "作業の範囲",
+          "multiple": true,
+          "parts": [],
+          "files": [],
+          "replaced": false
+        },
+        {
+          "number": 3,
+          "text": "スキルで、ほかに決めておきたいことはありますか。",
+          "choices": [],
+          "answer": null,
+          "reason": "足りないことを聞きます。",
+          "example": "なし",
+          "results": [],
+          "previousAnswer": null,
+          "category": "作業の範囲",
+          "multiple": false,
+          "parts": [],
+          "files": [],
+          "replaced": false
+        }
+      ]
+    }
+  ],
+  "downloads": [],
+  "screen": "画面 4",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null
+}

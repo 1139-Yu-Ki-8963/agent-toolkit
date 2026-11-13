@@ -1,0 +1,146 @@
+{
+  "workName": "コミットをまとめるスキルの作成",
+  "currentSkill": {
+    "name": "squashing-commits",
+    "order": 1,
+    "total": 1,
+    "done": 0
+  },
+  "stage": 8,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "済み"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "済み"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "済み"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "済み"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "済み"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "済み"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "済み"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "済み"
+    }
+  ],
+  "figures": [],
+  "documentPath": "",
+  "decision": null,
+  "questions": null,
+  "rounds": null,
+  "downloads": [
+    "要件定義書.md",
+    "分割設計書.md",
+    "構成の案.md",
+    "SKILL.md",
+    "tests/テスト計画書.md",
+    "tests/判定の記録.md"
+  ],
+  "screen": "文書の照合の結果",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": null,
+  "panels": [
+    {
+      "kind": "文書",
+      "name": "直した文書(4 か所の前後)",
+      "path": null,
+      "key": "docCheck",
+      "open": false,
+      "isNew": false
+    },
+    {
+      "kind": "文書",
+      "name": "テスト計画書",
+      "path": "tests/テスト計画書.md",
+      "key": null,
+      "open": false,
+      "isNew": false
+    }
+  ],
+  "checkRound": null,
+  "forms": null,
+  "abort": null,
+  "summaryCard": null,
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": {
+    "files": 9,
+    "findings": 4,
+    "wording": 3,
+    "changed": 4,
+    "changes": [
+      {
+        "file": "skills/squashing-commits/tests/テスト計画書.md",
+        "line": 41,
+        "before": "前提: なし(ただし fixtures/three-commits/ があるときはそれを使う)",
+        "after": "前提: tests/fixtures/three-commits/",
+        "rule": "項目の値は、読む人が使う中身だけを持つ",
+        "meaningChanges": true
+      },
+      {
+        "file": "分割設計書.md",
+        "line": 132,
+        "before": "まず最初に規則を見る",
+        "after": "最初に規則を見る",
+        "rule": "1 つの意味は、1 つの言葉で言う",
+        "meaningChanges": false
+      },
+      {
+        "file": "構成の案.md",
+        "line": 209,
+        "before": "発動する場面は、…",
+        "after": "このスキルが発動する場面は、…",
+        "rule": "文には主語を書く",
+        "meaningChanges": false
+      },
+      {
+        "file": "構成の案.md",
+        "line": 233,
+        "before": "なし(この段階では値が決まらないため)",
+        "after": "なし",
+        "rule": "項目の値は、読む人が使う中身だけを持つ",
+        "meaningChanges": false
+      }
+    ],
+    "next": "AI は、続けて「スキルができた」の画面(8-8)を出します。"
+  },
+  "install": null
+}

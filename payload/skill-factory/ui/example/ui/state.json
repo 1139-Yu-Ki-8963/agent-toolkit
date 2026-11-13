@@ -63,6 +63,7 @@
     "title": "要件定義書のための質問",
     "added": 0,
     "removed": 0,
+    "notice": null,
     "items": [
       {
         "number": 1,
@@ -72,7 +73,15 @@
           "500 字で",
           "上限なし"
         ],
-        "answer": null
+        "answer": null,
+        "reason": null,
+        "example": null,
+        "results": [],
+        "previousAnswer": null,
+        "category": null,
+        "multiple": false,
+        "parts": [],
+        "files": []
       },
       {
         "number": 2,
@@ -82,7 +91,15 @@
           "テキスト",
           "Word"
         ],
-        "answer": null
+        "answer": null,
+        "reason": null,
+        "example": null,
+        "results": [],
+        "previousAnswer": null,
+        "category": null,
+        "multiple": false,
+        "parts": [],
+        "files": []
       },
       {
         "number": 3,
@@ -91,7 +108,15 @@
           "入れる",
           "入れない"
         ],
-        "answer": null
+        "answer": null,
+        "reason": null,
+        "example": null,
+        "results": [],
+        "previousAnswer": null,
+        "category": null,
+        "multiple": false,
+        "parts": [],
+        "files": []
       },
       {
         "number": 4,
@@ -100,17 +125,40 @@
           "議事録と同じフォルダ",
           "チャットに表示"
         ],
-        "answer": null
+        "answer": null,
+        "reason": null,
+        "example": null,
+        "results": [],
+        "previousAnswer": null,
+        "category": null,
+        "multiple": false,
+        "parts": [],
+        "files": []
       },
       {
         "number": 5,
         "text": "ほかに守ってほしいことはありますか。",
         "choices": [],
-        "answer": null
+        "answer": null,
+        "reason": null,
+        "example": null,
+        "results": [],
+        "previousAnswer": null,
+        "category": null,
+        "multiple": false,
+        "parts": [],
+        "files": []
       }
     ]
   },
+  "rounds": null,
   "downloads": [
     "要件定義書.md"
-  ]
+  ],
+  "screen": null,
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null
 }

@@ -1,9 +1,10 @@
 {
-  "workName": "議事録の要約",
+  "workName": "コミットをまとめるスキルの作成",
   "currentSkill": {
-    "name": "summarizing-meeting-minutes",
+    "name": "squashing-commits",
     "order": 1,
-    "total": 2
+    "total": 1,
+    "done": 0
   },
   "stage": 7,
   "artifacts": [
@@ -50,32 +51,327 @@
   ],
   "figures": [
     {
-      "tab": "作業の流れ図",
-      "path": "ui/figures/1-作業の流れ図.svg"
-    },
-    {
-      "tab": "分割の比較図",
-      "path": "ui/figures/2-分割の比較図.svg"
-    },
-    {
-      "tab": "phase と step の流れ図",
-      "path": "ui/figures/3-phase と step の流れ図.svg"
+      "tab": "シナリオテストが受け持つテストケース",
+      "path": "ui/figures/7-1-シナリオテストが受け持つテストケース.svg"
     }
   ],
   "documentPath": "tests/テスト計画書.md",
   "decision": {
-    "question": "実施する範囲はどれにしますか。",
+    "question": "実施する範囲を「1 回の実行で終わるすべて」にして、シナリオテストの表を書いてよいですか？",
     "choices": [
-      "正常系だけ(推奨)",
-      "1 回の実行で終わるすべて",
-      "全件"
-    ]
+      {
+        "label": "承認する(推奨)",
+        "result": "AI は、章「シナリオテストの表」をテスト計画書に足し、続けてテストを流します(段階 8)。",
+        "recommend": true,
+        "recommendReason": "既定の値のシナリオは、入力がないときの動作と異常のときの完了の条件から作ったケースを持ち、1 回の実行で確かめられるためです(step 4-1 の推奨する理由)。",
+        "confirm": false
+      },
+      {
+        "label": "却下する",
+        "result": "AI は、却下の理由を 1 文で聞き、理由が指す範囲(正常系だけ、1 回の実行で終わるすべて、全件)で決め直して、この画面をもう一度出します。理由が 3 つの範囲のどれも指さないときは、AI はスキルを中止します(step 4-3)。",
+        "recommend": false,
+        "recommendReason": null,
+        "confirm": false
+      },
+      {
+        "label": "やめる",
+        "result": "AI は、designing-skill-test-scenarios を中止し、テスト計画書を今のまま残します。もう一度始めるときは、テスト計画書のパスと実施する範囲を送ります。",
+        "recommend": false,
+        "recommendReason": null,
+        "confirm": true
+      }
+    ],
+    "replies": [],
+    "freeText": "AI は、選択肢にない回答として受け、同じ質問をもう一度出します。"
   },
+  "questions": null,
+  "rounds": null,
   "downloads": [
     "要件定義書.md",
     "分割設計書.md",
     "構成の案.md",
     "SKILL.md",
-    "tests/テスト計画書.md"
-  ]
+    "tests/テスト計画書.md",
+    "tests/判定の記録.md"
+  ],
+  "screen": "成果物の承認",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": null,
+  "panels": [
+    {
+      "kind": "図",
+      "name": "受け持つテストケース",
+      "path": "ui/figures/7-1-シナリオテストが受け持つテストケース.svg",
+      "key": null,
+      "open": true,
+      "isNew": true
+    },
+    {
+      "kind": "文書",
+      "name": "シナリオの一覧",
+      "path": null,
+      "key": "scenarios",
+      "open": false,
+      "isNew": false
+    },
+    {
+      "kind": "文書",
+      "name": "テスト計画書",
+      "path": "tests/テスト計画書.md",
+      "key": null,
+      "open": false,
+      "isNew": false
+    }
+  ],
+  "checkRound": null,
+  "forms": null,
+  "abort": null,
+  "summaryCard": [
+    {
+      "name": "流さないケース",
+      "value": "TC-27(S12。1 回目は書き換えて承認し、2 回目に同じ依頼でまとめ直す冪等性のケース。1 回の実行で終わらない)"
+    },
+    {
+      "name": "スクリプトで確かめるテスト",
+      "value": "4 件(範囲に関わらず、先にすべて流す)"
+    }
+  ],
+  "skills": null,
+  "aiValues": null,
+  "ranges": [
+    {
+      "name": "1 回の実行で終わるすべて",
+      "count": 11,
+      "cases": 22,
+      "runs": 11,
+      "recommend": true,
+      "reason": "既定の値",
+      "skipped": [
+        "TC-27(S12。1 回目は書き換えて承認し、2 回目に同じ依頼でまとめ直す冪等性のケース。1 回の実行で終わらない)"
+      ]
+    },
+    {
+      "name": "全件",
+      "count": 12,
+      "cases": 23,
+      "runs": 13,
+      "recommend": false,
+      "reason": null,
+      "skipped": []
+    },
+    {
+      "name": "正常系だけ",
+      "count": 1,
+      "cases": 8,
+      "runs": 1,
+      "recommend": false,
+      "reason": null,
+      "skipped": []
+    }
+  ],
+  "scenarios": [
+    {
+      "number": "S1",
+      "order": 1,
+      "included": true,
+      "reason": null,
+      "cases": [
+        "TC-05",
+        "TC-06",
+        "TC-07",
+        "TC-08",
+        "TC-09",
+        "TC-11",
+        "TC-13",
+        "TC-25"
+      ],
+      "phases": "1、2、3、4、5、6、7",
+      "end": "最終出力まで",
+      "setup": "コミットが 4 件ある git のリポジトリ",
+      "request": "直近の 3 件のコミットをまとめて",
+      "answers": "書き換える、承認する",
+      "runs": 1
+    },
+    {
+      "number": "S2",
+      "order": 2,
+      "included": true,
+      "reason": null,
+      "cases": [
+        "TC-10",
+        "TC-14"
+      ],
+      "phases": "2",
+      "end": "最終出力まで",
+      "setup": "コミットが 4 件ある git のリポジトリ",
+      "request": "コミットをまとめて",
+      "answers": "答え方: まとめる件数 N の質問には 3 と答える。書き換えの確認には書き換えると答える。まとめたコミットの確認には承認すると答える。",
+      "runs": 1
+    },
+    {
+      "number": "S3",
+      "order": 3,
+      "included": true,
+      "reason": null,
+      "cases": [
+        "TC-12"
+      ],
+      "phases": "3",
+      "end": "最終出力まで",
+      "setup": "コミットが 3 件ある git のリポジトリ",
+      "request": "直近の 2 件のコミットをまとめて",
+      "answers": "書き換える、承認する",
+      "runs": 1
+    },
+    {
+      "number": "S4",
+      "order": 4,
+      "included": true,
+      "reason": null,
+      "cases": [
+        "TC-16",
+        "TC-26"
+      ],
+      "phases": "1、5、6、7",
+      "end": "最終出力まで",
+      "setup": "コミットが 4 件ある git のリポジトリ",
+      "request": "直近の 3 件のコミットをまとめて",
+      "answers": "書き換える、直す(1 行目を短くしてください)、承認する",
+      "runs": 1
+    },
+    {
+      "number": "S5",
+      "order": 5,
+      "included": true,
+      "reason": null,
+      "cases": [
+        "TC-18"
+      ],
+      "phases": "なし",
+      "end": "step 1-1 で中止",
+      "setup": "全スキル共通の決まりが読めない",
+      "request": "直近の 3 件のコミットをまとめて",
+      "answers": "なし",
+      "runs": 1
+    },
+    {
+      "number": "S6",
+      "order": 6,
+      "included": true,
+      "reason": null,
+      "cases": [
+        "TC-19"
+      ],
+      "phases": "なし",
+      "end": "step 3-1 で中止",
+      "setup": "git のリポジトリでない",
+      "request": "直近の 3 件のコミットをまとめて",
+      "answers": "なし",
+      "runs": 1
+    },
+    {
+      "number": "S7",
+      "order": 7,
+      "included": true,
+      "reason": null,
+      "cases": [
+        "TC-20"
+      ],
+      "phases": "なし",
+      "end": "step 3-1 で中止",
+      "setup": "コミットが 4 件ある git のリポジトリ",
+      "request": "直近の 10 件のコミットをまとめて",
+      "answers": "なし",
+      "runs": 1
+    },
+    {
+      "number": "S8",
+      "order": 8,
+      "included": true,
+      "reason": null,
+      "cases": [
+        "TC-15",
+        "TC-21"
+      ],
+      "phases": "なし",
+      "end": "step 4-1 で中止",
+      "setup": "コミットが 4 件ある git のリポジトリ",
+      "request": "直近の 3 件のコミットをまとめて",
+      "answers": "やめる",
+      "runs": 1
+    },
+    {
+      "number": "S9",
+      "order": 9,
+      "included": true,
+      "reason": null,
+      "cases": [
+        "TC-22"
+      ],
+      "phases": "なし",
+      "end": "step 5-1 で中止",
+      "setup": "コミットのメッセージの形が読めない",
+      "request": "直近の 3 件のコミットをまとめて",
+      "answers": "書き換える",
+      "runs": 1
+    },
+    {
+      "number": "S10",
+      "order": 10,
+      "included": true,
+      "reason": null,
+      "cases": [
+        "TC-23"
+      ],
+      "phases": "なし",
+      "end": "step 6-1 で中止",
+      "setup": "コミットが失敗する git のリポジトリ",
+      "request": "直近の 3 件のコミットをまとめて",
+      "answers": "書き換える",
+      "runs": 1
+    },
+    {
+      "number": "S11",
+      "order": 11,
+      "included": true,
+      "reason": null,
+      "cases": [
+        "TC-17",
+        "TC-24"
+      ],
+      "phases": "なし",
+      "end": "step 6-4 で中止",
+      "setup": "コミットが 4 件ある git のリポジトリ",
+      "request": "直近の 3 件のコミットをまとめて",
+      "answers": "書き換える、元に戻す",
+      "runs": 1
+    },
+    {
+      "number": "S12",
+      "order": 12,
+      "included": false,
+      "reason": "実施する範囲 1 回の実行で終わるすべて に入っていない",
+      "cases": [
+        "TC-27"
+      ],
+      "phases": "なし",
+      "end": "最終出力まで",
+      "setup": "コミットが 4 件ある git のリポジトリ",
+      "request": "直近の 3 件のコミットをまとめて",
+      "answers": "1 回目: 書き換える、承認する。2 回目: なし",
+      "runs": 2
+    }
+  ],
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
 }

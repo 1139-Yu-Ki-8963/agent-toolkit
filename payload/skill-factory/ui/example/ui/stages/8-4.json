@@ -1,0 +1,169 @@
+{
+  "workName": "コミットをまとめるスキルの作成",
+  "currentSkill": {
+    "name": "squashing-commits",
+    "order": 1,
+    "total": 1,
+    "done": 0
+  },
+  "stage": 8,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "済み"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "済み"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "済み"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "済み"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "済み"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "済み"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "済み"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "承認待ち"
+    }
+  ],
+  "figures": [],
+  "documentPath": "tests/テスト計画書.md",
+  "decision": {
+    "question": "この直しで skills/squashing-commits/tests/テスト計画書.md を書き換えてよいですか？",
+    "choices": [
+      {
+        "label": "この直しで書く(推奨)",
+        "result": "AI は、テスト計画書を書き換え、修正の結果(8-5)を出します。そのあと、designing-skill-test-scenarios でシナリオテストの表を作り直し(7-1)、testing-skill-with-template でテストを流し直します(8-1)。",
+        "recommend": true,
+        "recommendReason": "TC-08 の後の期待が構成の案の step 6-4 の行と一致し、TC-11 は期待を変えずに記録する項目だけを足すためです。",
+        "confirm": false
+      },
+      {
+        "label": "直す点を伝える",
+        "result": "同じ画面に入力欄が開き、AI は書かれた点を直したい点として直しの案を作り直し、この画面をもう一度出します。下の 1 行に書いた文も同じ扱いです。",
+        "recommend": false,
+        "recommendReason": null,
+        "confirm": false,
+        "input": {
+          "placeholder": "例: TC-11 は、記録する項目を足すのでなく、期待を「コミットの数を数えるコマンドの出力が 1」に変えてほしい",
+          "sendLabel": "直す点を送る"
+        }
+      },
+      {
+        "label": "やめる",
+        "result": "AI は、fixing-test-plan を中止し、直す前のテスト計画書を残します。",
+        "recommend": false,
+        "recommendReason": null,
+        "confirm": true
+      }
+    ],
+    "replies": [],
+    "freeText": "AI は、書かれた点を直したい点として直しの案を作り直し、この画面をもう一度出します。"
+  },
+  "questions": null,
+  "rounds": null,
+  "downloads": [
+    "要件定義書.md",
+    "分割設計書.md",
+    "構成の案.md",
+    "SKILL.md",
+    "tests/テスト計画書.md",
+    "tests/判定の記録.md"
+  ],
+  "screen": "テスト計画書の直しの承認",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": null,
+  "panels": [
+    {
+      "kind": "図",
+      "name": "判定の結果の図",
+      "path": "ui/figures/8-1-判定の結果の図.svg",
+      "key": null,
+      "open": false,
+      "isNew": false
+    },
+    {
+      "kind": "文書",
+      "name": "テスト計画書(直す前)",
+      "path": "tests/テスト計画書.md",
+      "key": null,
+      "open": false,
+      "isNew": false
+    }
+  ],
+  "checkRound": null,
+  "forms": null,
+  "abort": null,
+  "summaryCard": null,
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": {
+    "cases": [
+      {
+        "id": "TC-08",
+        "name": "step 6-3 の「元に戻す」",
+        "kind": "テストの期待の誤り",
+        "before": "中止の表示の step が 6-3 である",
+        "after": "中止の表示の step が 6-4 である",
+        "source": "構成の案の step 6-4 の行「中止の理由: ユーザーが「元に戻す」を選び、履歴をまとめる前に戻した」と、S-07 の実行の記録 5 行目"
+      },
+      {
+        "id": "TC-11",
+        "name": "phase 6 の合格の条件",
+        "kind": "テストの期待の誤り(判定できない)",
+        "before": "まとめたあとのコミットの数が 1 件ちょうどである",
+        "after": "変えない。S-01 の記録する項目に「git rev-list --count <基準のコミット>..HEAD の出力」を足す(判定の材料がなかったため)",
+        "source": "S-01 の実行の記録"
+      }
+    ],
+    "files": [
+      {
+        "path": "tests/fixtures/three-commits/",
+        "text": "章「前提の状況として置くファイルとコマンド」に、コミットが 3 件ある git のリポジトリの状態を足す。出どころ: 分割設計書の章 4 の見本のパス。"
+      }
+    ],
+    "unfixable": [
+      {
+        "id": "TC-07",
+        "kind": "スキルの誤り",
+        "reason": "期待は正しい。スキルの step 6-1 を直す(fixing-skill の 5-2 と同じ承認の画面で、先に承認を受けた)。テスト計画書では直さない。"
+      }
+    ]
+  },
+  "docCheck": null,
+  "install": null
+}

@@ -45,6 +45,10 @@
       {
         "name": "thinking-rule",
         "when": "常に読み込む"
+      },
+      {
+        "name": "behavior-rule",
+        "when": "常に読み込む"
       }
     ]
   },
@@ -93,6 +97,10 @@
       },
       {
         "name": "thinking-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "behavior-rule",
         "when": "常に読み込む"
       }
     ]
@@ -143,6 +151,10 @@
       {
         "name": "thinking-rule",
         "when": "常に読み込む"
+      },
+      {
+        "name": "behavior-rule",
+        "when": "常に読み込む"
       }
     ]
   },
@@ -191,6 +203,14 @@
       {
         "name": "skill-writing-rule、skill-template、skill-completed-example",
         "when": "SKILL.md かリファレンスを読むか書くとき"
+      },
+      {
+        "name": "behavior-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "skill-factory-skill-naming-rule",
+        "when": "スキルのファイルを触るとき"
       }
     ]
   },
@@ -244,6 +264,14 @@
       {
         "name": "skill-writing-rule、skill-template、skill-completed-example",
         "when": "SKILL.md かリファレンスを読むか書くとき"
+      },
+      {
+        "name": "behavior-rule",
+        "when": "常に読み込む"
+      },
+      {
+        "name": "skill-factory-skill-naming-rule",
+        "when": "スキルのファイルを触るとき"
       }
     ]
   },
@@ -296,6 +324,10 @@
       {
         "name": "skill-test-design-rule",
         "when": "tests/ の下のファイルか、テストのスキルを読むか書くとき"
+      },
+      {
+        "name": "behavior-rule",
+        "when": "常に読み込む"
       }
     ]
   },
@@ -344,6 +376,10 @@
       {
         "name": "skill-test-design-rule",
         "when": "tests/ の下のファイルか、テストのスキルを読むか書くとき"
+      },
+      {
+        "name": "behavior-rule",
+        "when": "常に読み込む"
       }
     ]
   },
@@ -406,6 +442,10 @@
       {
         "name": "skill-test-design-rule",
         "when": "tests/ の下のファイルか、テストのスキルを読むか書くとき"
+      },
+      {
+        "name": "behavior-rule",
+        "when": "常に読み込む"
       }
     ]
   }

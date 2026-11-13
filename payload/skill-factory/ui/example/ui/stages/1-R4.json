@@ -1,0 +1,135 @@
+{
+  "workName": "コミットをまとめるスキルの作成",
+  "currentSkill": null,
+  "stage": 1,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "未着手"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "未着手"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "未着手"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "未着手"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "未着手"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "未着手"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "未着手"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "未着手"
+    }
+  ],
+  "figures": [],
+  "documentPath": "",
+  "decision": {
+    "question": "依頼「こんにちは、進めて」は、表のどの形にも当たりませんでした。どの形で頼みますか？",
+    "choices": [],
+    "replies": [
+      "output/2026-11-07-1658/分割設計書.md ができたから続きをやって",
+      "skills/squashing-commits を照合して"
+    ]
+  },
+  "questions": null,
+  "rounds": null,
+  "downloads": [],
+  "screen": "依頼の形を聞く",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": null,
+  "panels": null,
+  "checkRound": null,
+  "forms": [
+    {
+      "form": "「<作業>をするスキルを作って」",
+      "stage": 1,
+      "skill": "defining-skill-requirements"
+    },
+    {
+      "form": "要件定義書のパス(「<パス>ができたから続きをやって」の形を含む)",
+      "stage": 2,
+      "skill": "designing-skill-structure"
+    },
+    {
+      "form": "分割設計書のパス(「<パス>ができたから続きをやって」の形を含む)",
+      "stage": 3,
+      "skill": "designing-skill-phases"
+    },
+    {
+      "form": "構成の案のパス(「<パス>ができたから続きをやって」の形を含む)",
+      "stage": 4,
+      "skill": "drafting-skill-with-template"
+    },
+    {
+      "form": "スキルのフォルダのパスだけ、または「<スキルの名前> を照合して」",
+      "stage": 5,
+      "skill": "checking-skill-with-template"
+    },
+    {
+      "form": "「<スキルの名前> の <直す内容> を直して」(文を足す変更を含む)",
+      "stage": 5,
+      "skill": "fixing-skill"
+    },
+    {
+      "form": "スキルのフォルダのパスと「テストを作って」",
+      "stage": 5,
+      "skill": "checking-skill-with-template"
+    },
+    {
+      "form": "テスト計画書のパスと実施する範囲",
+      "stage": 7,
+      "skill": "designing-skill-test-scenarios"
+    },
+    {
+      "form": "テスト計画書のパスと「テストを流して」",
+      "stage": 8,
+      "skill": "testing-skill-with-template"
+    },
+    {
+      "form": "判定の記録のパス",
+      "stage": 5,
+      "skill": "fixing-skill"
+    }
+  ],
+  "abort": null,
+  "summaryCard": null,
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
+}

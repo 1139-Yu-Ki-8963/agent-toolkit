@@ -1,0 +1,124 @@
+{
+  "workName": "コミットをまとめるスキルの作成",
+  "currentSkill": {
+    "name": "squashing-commits",
+    "order": 1,
+    "total": 1,
+    "done": 0
+  },
+  "stage": 5,
+  "artifacts": [
+    {
+      "stage": 1,
+      "name": "要件定義書",
+      "status": "済み"
+    },
+    {
+      "stage": 2,
+      "name": "分割設計書",
+      "status": "済み"
+    },
+    {
+      "stage": 3,
+      "name": "構成の案",
+      "status": "済み"
+    },
+    {
+      "stage": 4,
+      "name": "SKILL.md",
+      "status": "済み"
+    },
+    {
+      "stage": 5,
+      "name": "照合の指摘の一覧",
+      "status": "未着手"
+    },
+    {
+      "stage": 6,
+      "name": "テスト計画書",
+      "status": "未着手"
+    },
+    {
+      "stage": 7,
+      "name": "シナリオテストの表",
+      "status": "未着手"
+    },
+    {
+      "stage": 8,
+      "name": "判定の記録",
+      "status": "未着手"
+    }
+  ],
+  "figures": [],
+  "documentPath": "",
+  "decision": null,
+  "questions": null,
+  "rounds": null,
+  "downloads": [
+    "要件定義書.md",
+    "分割設計書.md",
+    "構成の案.md",
+    "SKILL.md",
+    "tests/テスト計画書.md"
+  ],
+  "screen": "始める段階の知らせ",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": {
+    "start": {
+      "request": "「squashing-commits のメッセージの形を直して」",
+      "form": "「<スキルの名前> の <直す内容> を直して」",
+      "folder": "output/2026-11-07-1658/skills/squashing-commits/",
+      "next": "AI は、続けて依頼の一覧を書き、fixing-skill を始めます。この画面は、自動で「AI が作業している」(K1)に切り替わります。",
+      "rewrite": false,
+      "stage": 5,
+      "skill": "fixing-skill",
+      "purpose": "ユーザーの依頼の一覧に沿ってスキルを直す",
+      "inputs": [
+        {
+          "name": "対象のスキルのフォルダ",
+          "value": "output/2026-11-07-1658/skills/squashing-commits/",
+          "kind": "ユーザーのチャット入力"
+        },
+        {
+          "name": "出どころの文書",
+          "value": "skills/squashing-commits/依頼の一覧.md(AI がこれから書く)",
+          "kind": "ユーザーのチャット入力"
+        }
+      ],
+      "outputs": [
+        "skills/squashing-commits/依頼の一覧.md"
+      ]
+    },
+    "done": null
+  },
+  "panels": [
+    {
+      "kind": "文書",
+      "name": "依頼の一覧",
+      "path": "依頼の一覧.md",
+      "key": null,
+      "open": false,
+      "isNew": false
+    }
+  ],
+  "checkRound": null,
+  "forms": null,
+  "abort": null,
+  "summaryCard": null,
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
+}
