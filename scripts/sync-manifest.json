@@ -319,6 +319,21 @@
       "mode": "mirror",
       "src": "~/Projects/skill-factory/ui/tests/lib",
       "dst": "payload/skill-factory/ui/tests/lib"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/slide-creator-studio/.claude/skills",
+      "dst": "payload/slide-creator-studio/.claude/skills"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/slide-creator-studio/.claude/rules",
+      "dst": "payload/slide-creator-studio/.claude/rules"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/slide-creator-studio/README.md",
+      "dst": "payload/slide-creator-studio/README.md"
     }
   ]
 }

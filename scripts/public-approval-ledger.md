@@ -212,3 +212,14 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 | docs/ | 除外 | ユーザーの決定(2026-11-13「ドキュメントは公開する必要ない」) | 2026-11-13 に payload と manifest から除去 |
 | ui/(server.mjs、index.html、デザイントークン.css、はじめに.md、段階ごとのスキルと規約.json、example/) | 承認済み | ユーザーの公開の承認(2026-10-26)。デザイントークン.css は index.html が読むため 2026-11-13 に追加。example の見本の環境固有のパスを <skill-factory のパス> に直し、--check-artifacts で 0 件 | source: ~/Projects/skill-factory/ui |
 | ui/tests/(git が持つ 14 ファイルと fixtures/、git-hooks/、lib/) | 承認済み | ユーザーの指示(2026-11-13)。ui/test.sh が ui/tests/ に変わったため。実行の記録のフォルダ(2026-*)と node_modules は含めない | 2026-11-13 に追加。source: ~/Projects/skill-factory/ui/tests |
+
+## slide-creator-studio(公開の開始 2026-11-14)
+
+Claude デザイン(Artifact の型「Design」)の上にスライドを作るスキル 4 本と、規約 slide-writing-rule、デザインシステム「墨と赤」、その見本の一式。正本は `~/Projects/slide-creator-studio`(ローカルのみ、リモートなし)。公開前の検査(2026-11-14): `/Users/`、`agent-home`、メールアドレスの照合で 0 件。見本のスライドと確認用の画像の中身は、架空の内容。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| .claude/skills(creating-claude-design-slide、checking-one-slide-one-message、checking-slide-story、assembling-claude-design-slides) | 承認済み | ユーザーの指示(2026-11-14「toolkitに新規フォルダとして、公開までしろ」)。上記の検査 | mirror。新規 |
+| .claude/rules/slide-writing(規約、デザインシステム、見本) | 承認済み | 同上 | mirror。新規 |
+| README.md | 承認済み | 同上。環境固有のパスなし | file。新規 |
+| slides/(スキルの試しで作ったスライド) | 除外 | 試しの成果物で、配布物ではない | manifest に入れない |

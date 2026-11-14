@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>付録 開発工程の流れ</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#16202B;--sub:#5B6672;--tint:#F1F3F5;--red:#B3261E}
+body{margin:0}
+.s{width:1920px;height:1080px;box-sizing:border-box;padding:64px 80px 60px;display:flex;flex-direction:column;background:#FFFFFF;color:var(--ink);font-family:'Zen Kaku Gothic New',sans-serif;line-height:1.4;word-break:auto-phrase;font-feature-settings:'palt';word-spacing:-0.12em}
+.hd{height:32px;font-size:24px;line-height:32px;color:var(--sub)}
+.tt{margin:16px 0 0;height:78px;font-size:56px;font-weight:700;line-height:78px}
+.cc{margin:4px 0 0;height:62px;font-size:44px;font-weight:700;line-height:62px}
+.bd{margin-top:36px;flex:1;min-height:0;display:flex;flex-direction:column}
+.ft{height:32px;margin-top:16px;display:flex;justify-content:space-between;font-size:24px;line-height:32px;color:var(--sub)}
+.lb{font-size:28px;font-weight:700;color:var(--sub)}
+.pl{background:var(--tint);border-radius:999px;padding:14px 36px;font-size:32px;font-weight:700;white-space:nowrap}
+.g{display:grid;grid-template-columns:220px repeat(7,minmax(0,1fr));column-gap:4px}
+.cz{min-height:64px;background:var(--ink);color:#FFFFFF;font-weight:700;font-size:28px;display:flex;align-items:center;justify-content:center;clip-path:polygon(0 0,calc(100% - 18px) 0,100% 50%,calc(100% - 18px) 100%,0 100%,18px 50%)}
+.rw{margin-top:10px;background:var(--tint);border-radius:20px;padding:40px 0}
+.rl{font-size:28px;font-weight:700;padding-left:20px}
+.c{font-size:28px;padding:0 4px 0 10px}
+</style>
+</helmet>
+<div class="s">
+<div class="hd">業務システム刷新の提案・付録</div>
+<h1 class="tt">開発工程の流れ</h1>
+<p class="cc">工程ごとに変わるのは、作るものと元になる資料だけ</p>
+<div class="bd">
+<div style="display: grid; grid-template-columns: 220px minmax(0, 1fr); align-items: center">
+<div class="lb">どの工程も<br>同じ 1 周</div>
+<div style="display: flex; align-items: center; gap: 20px">
+<div class="pl">準備する</div>
+<svg width="40" height="24" viewBox="0 0 40 24" aria-hidden="true"><path d="M2 12H36M26 3L36 12L26 21" fill="none" stroke="#16202B" stroke-width="3"/></svg>
+<div class="pl">作る</div>
+<svg width="40" height="24" viewBox="0 0 40 24" aria-hidden="true"><path d="M2 12H36M26 3L36 12L26 21" fill="none" stroke="#16202B" stroke-width="3"/></svg>
+<div class="pl">確かめる</div>
+<svg width="40" height="24" viewBox="0 0 40 24" aria-hidden="true"><path d="M2 12H36M26 3L36 12L26 21" fill="none" stroke="#16202B" stroke-width="3"/></svg>
+<div class="pl">不具合を直す</div>
+</div>
+</div>
+<div class="g" style="margin-top: 56px">
+<div></div>
+<div class="cz">要件定義</div>
+<div class="cz">基本設計</div>
+<div class="cz">詳細設計</div>
+<div class="cz">製造</div>
+<div class="cz">単体テスト</div>
+<div class="cz">結合テスト</div>
+<div class="cz">総合テスト</div>
+</div>
+<div class="g rw">
+<div class="rl">作るもの</div>
+<div class="c">要件定義書</div>
+<div class="c">基本設計書</div>
+<div class="c">詳細設計書</div>
+<div class="c">ソースコード</div>
+<div class="c">1 画面・<br>1 処理を<br>動かすテスト</div>
+<div class="c">画面と画面・<br>機能と機能を<br>つなぐテスト</div>
+<div class="c">業務を通して<br>動かすテスト</div>
+</div>
+<div class="g rw">
+<div class="rl">元になる資料</div>
+<div class="c">ヒアリング<br>記録</div>
+<div class="c">要件定義書</div>
+<div class="c">基本設計書</div>
+<div class="c">詳細設計書</div>
+<div class="c">詳細設計書</div>
+<div class="c">基本設計書</div>
+<div class="c">要件定義書</div>
+</div>
+</div>
+<div class="ft"><span>※ 一般的な開発工程の区分で、この案件の文書から確かめたものではない。</span><span>付録 1</span></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1920,"height":1080}}'>
+class Component extends DCLogic {
+renderVals() {
+return {};
+}
+}
+</script>
+</body>
+</html>

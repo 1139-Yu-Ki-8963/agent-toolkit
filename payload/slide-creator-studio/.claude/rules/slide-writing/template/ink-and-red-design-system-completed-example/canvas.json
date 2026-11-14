@@ -1,0 +1,29 @@
+{
+  "v": 3,
+  "createdOnFiles": { "v": 1, "at": "2026-11-13T09:00:00Z" },
+  "title": "業務システム刷新の提案スライド",
+  "launch": { "view": "canvas" },
+  "pages": [],
+  "boards": {
+    "Main.dc.html": { "x": 0, "y": 0, "w": 1920, "h": 1080, "title": "1 手戻りの内訳" },
+    "Q2.dc.html": { "x": 2000, "y": 0, "w": 1920, "h": 1080, "title": "2 手戻りの原因" },
+    "Q3.dc.html": { "x": 4000, "y": 0, "w": 1920, "h": 1080, "title": "3 変更の内容" },
+    "Q4.dc.html": { "x": 6000, "y": 0, "w": 1920, "h": 1080, "title": "4 進め方" },
+    "Q5.dc.html": { "x": 8000, "y": 0, "w": 1920, "h": 1080, "title": "5 まとめ" },
+    "Q6.dc.html": { "x": 10000, "y": 0, "w": 1920, "h": 1080, "title": "6 次のアクション" },
+    "Z1.dc.html": { "x": 12000, "y": 0, "w": 1920, "h": 1080, "title": "付録 1 開発工程の流れ" },
+    "Z2.dc.html": { "x": 14000, "y": 0, "w": 1920, "h": 1080, "title": "付録 2 V 字モデル" }
+  },
+  "order": [
+    "Main.dc.html",
+    "Q2.dc.html",
+    "Q3.dc.html",
+    "Q4.dc.html",
+    "Q5.dc.html",
+    "Q6.dc.html",
+    "Z1.dc.html",
+    "Z2.dc.html"
+  ],
+  "notes": {},
+  "designSystems": []
+}
