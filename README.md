@@ -46,9 +46,8 @@ payload/
 │   │       ├── checking-one-slide-one-message/
 │   │       ├── checking-slide-story/
 │   │       └── assembling-claude-design-slides/
-│   └── slides/2026-11-14_理想のAI駆動開発フロー/理想のAI駆動開発フロースライド.html   スキルで作った資料 10 枚
-└── basic-design-factory/                 AI 駆動開発の工程ごとに作る資料の図
-    └── AI駆動開発フローの資料マップ.html
+│   ├── slides/2026-11-14_理想のAI駆動開発フロー/理想のAI駆動開発フロースライド.html   スキルで作った資料 10 枚
+│   └── slides/2026-11-14_AI駆動開発フローの資料マップ/AI駆動開発フローの資料マップ.html   工程ごとに作る資料の図
 ```
 
 2026-09-29 に、reverse-docs-skills、claude-code-template、explanation-slides-kit、ai-driven-development-setup、ai-consulting-toolkit の公開をやめた。2026-10-05 に、`.claude/` 配下の構成に改め、規約を 1 ファイル版に一本化し、reviewing-agent-skills(checking-skill-with-template に置き換え)の公開をやめた。同日、ai-consulting-toolkit の公開を再開した(skills、docs、portal に加え、templates と README.md を同期)。
@@ -65,9 +64,7 @@ payload/
 
 slide-creator-studio の側では、作ったスライドを非公開の `output-slides/` に置き、公開すると選んだものだけを `payload/` に symlink で置く。この toolkit は、その `payload/` だけを `payload/slide-creator-studio/slides/` に写す(`sync-manifest.json` の mirror の `symlinkRoot`)。
 
-## basic-design-factory(AI 駆動開発の工程ごとに作る資料の図)
-
-資料「AI 駆動開発フローの資料マップ」は、AI 駆動開発の工程ごとに作る資料と、用意する順を、縦の 1 枚の図にした HTML 1 本([`payload/basic-design-factory/AI駆動開発フローの資料マップ.html`](payload/basic-design-factory/AI駆動開発フローの資料マップ.html))。図は、右上のボタン、ホイール、ドラッグで拡大と移動ができ、資料の札を押すと、その資料の説明のスライドが重なって出る。見る人は、ファイルを落として、ブラウザで開く。拡大と移動には @panzoom/panzoom 4.6.2(MIT)を HTML の中に入れて使っている。2026-11-16 に公開を始めた。
+資料「AI 駆動開発フローの資料マップ」は、AI 駆動開発の工程ごとに作る資料と、用意する順を、縦の 1 枚の図にした HTML 1 本([`payload/slide-creator-studio/slides/2026-11-14_AI駆動開発フローの資料マップ/AI駆動開発フローの資料マップ.html`](payload/slide-creator-studio/slides/2026-11-14_AI駆動開発フローの資料マップ/AI駆動開発フローの資料マップ.html))。図は、右上のボタン、ホイール、ドラッグで拡大と移動ができ、資料の札を押すと、その資料の説明のスライドが重なって出る。見る人は、ファイルを落として、ブラウザで開く。拡大と移動には @panzoom/panzoom 4.6.2(MIT)を HTML の中に入れて使っている。2026-11-16 に公開を始めた。
 
 ## public-skills(プロジェクトに置いて動く公開スキル集)
 

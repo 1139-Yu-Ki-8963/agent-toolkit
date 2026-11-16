@@ -268,3 +268,12 @@ Claude デザインに作った 10 枚を、1 つの HTML ファイルにまと�
 | ~/Projects/slide-creator-studio/payload(mirror、symlinkRoot: output-slides) | 承認済み | ユーザーの指示(2026-11-16「候補 1 で進める」: 選んだものだけを payload に symlink で分けて公開する) | 前の file の対応(理想のAI駆動開発フロースライド.html)を、この mirror に置き換えた。payload/ に新しいリンクを置くときは、この記録にそのファイルの行を足す |
 | payload/2026-11-14_理想のAI駆動開発フロー/理想のAI駆動開発フロースライド.html(symlink) | 承認済み | 上の節「資料の名前の変更」の承認 | 指す先は output-slides/2026-11-14_理想のAI駆動開発フロー/理想のAI駆動開発フロースライド.html |
 | output-slides/(作ったスライドの置き場) | 除外 | ユーザーの指示(作ったものは、まず非公開の置き場に置く) | manifest に入れない |
+
+## 資料「AI 駆動開発フローの資料マップ」の置き場の変更(2026-11-16)
+
+資料「AI 駆動開発フローの資料マップ」は、基本設計書の雛形と規約を使わないので、元のファイルを basic-design-factory から slide-creator-studio の `output-slides/2026-11-14_AI駆動開発フローの資料マップ/` に移し、公開を slide-creator-studio の `payload/` の symlink に変えた。上の節「basic-design-factory」の行は、2026-11-16 に承認した記録として残す。公開する HTML の中身は、移す前と同じ(バイトの比較で一致)で、公開前の検査の結果も同じ。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| payload/2026-11-14_AI駆動開発フローの資料マップ/AI駆動開発フローの資料マップ.html(symlink) | 承認済み | ユーザーの指示(2026-11-16「A で移す」)。上記の検査 | 指す先は output-slides/2026-11-14_AI駆動開発フローの資料マップ/AI駆動開発フローの資料マップ.html。slide-creator-studio の payload の mirror で写す |
+| payload/basic-design-factory/(file の対応) | 除外 | 同上 | manifest と payload から消した |
