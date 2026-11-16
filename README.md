@@ -46,7 +46,7 @@ payload/
 │   │       ├── checking-one-slide-one-message/
 │   │       ├── checking-slide-story/
 │   │       └── assembling-claude-design-slides/
-│   └── slides/2026-11-14_理想のAI駆動開発/理想のAI駆動開発スライド.html   スキルで作った資料 10 枚
+│   └── slides/2026-11-14_理想のAI駆動開発フロー/理想のAI駆動開発フロースライド.html   スキルで作った資料 10 枚
 └── basic-design-factory/                 AI 駆動開発の工程ごとに作る資料の図
     └── 工程ごとに作る資料と、用意する順.html
 ```
@@ -61,7 +61,7 @@ payload/
 
 説明用のスライドを、Claude デザイン(Artifact の型「Design」)の上に作るスキル 4 本と、規約 1 本の一式。1 枚を作る、1 枚の図が 1 つの結論だけを伝えているかを判定する、結論の並びが 1 つの話として通るかを判定する、決まった並びで資料に組み立てる、の 4 つができる。使い方は [`payload/slide-creator-studio/README.md`](payload/slide-creator-studio/README.md) にある。2026-11-14 に公開を始めた。
 
-このスキルで作った資料「理想の AI駆動開発(一般論)」10 枚を、1 つの HTML ファイルにまとめて [`payload/slide-creator-studio/slides/`](payload/slide-creator-studio/slides/2026-11-14_理想のAI駆動開発/理想のAI駆動開発スライド.html) に置いている。ファイルを落としてブラウザで開き、← → かスペースでページを送る。3 枚目は、周回のボタンを押すと動く。2026-11-16 に公開を始めた。
+このスキルで作った資料「理想の AI駆動開発フロー(一般論)」10 枚を、1 つの HTML ファイルにまとめて [`payload/slide-creator-studio/slides/`](payload/slide-creator-studio/slides/2026-11-14_理想のAI駆動開発フロー/理想のAI駆動開発フロースライド.html) に置いている。ファイルを落としてブラウザで開き、← → かスペースでページを送る。3 枚目は、周回のボタンを押すと動く。2026-11-16 に公開を始めた。
 
 ## basic-design-factory(AI 駆動開発の工程ごとに作る資料の図)
 
