@@ -234,6 +234,14 @@ AI 駆動開発の工程ごとに作る資料と、用意する順の、縦の�
 | slides/2026-11-14_AI駆動開発で作る資料/ のほかのファイル(build/、板の .dc.html、確認用の画像、html/AI駆動開発で作る資料.html) | 除外 | 依頼は縦の図の HTML 1 本だけ | manifest に入れない |
 | docs/、output/、.claude/ | 除外 | 配布物ではない | manifest に入れない |
 
+## basic-design-factory の資料の名前の変更(2026-11-16)
+
+資料「工程ごとに作る資料と、用意する順」の名前を、「AI 駆動開発フローの資料マップ」に変えた。上の節の行は、2026-11-16 に承認した記録として残す。中身は、図の題(h1)と HTML の title だけが変わり、公開前の検査の結果は上の節と同じ(forbiddenContent、`/Users/`、`agent-home`、メールアドレスの照合で 0 件。外から読むのは Google Fonts だけ)。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| slides/2026-11-14_AI駆動開発で作る資料/html/AI駆動開発フローの資料マップ.html | 承認済み | ユーザーの指示(2026-11-16「A で全部変える」: 名前を「AI 駆動開発フローの資料マップ」にする)。上記の検査 | file。html/工程ごとに作る資料と、用意する順.html から名前を変えた。古いパスは payload から消した |
+
 ## slide-creator-studio の資料「理想の AI駆動開発」(公開の開始 2026-11-16)
 
 Claude デザインに作った 10 枚を、1 つの HTML ファイルにまとめたもの。正本は `~/Projects/slide-creator-studio/slides/2026-11-14_理想のAI駆動開発/`。公開前の検査(2026-11-16): `payload-forbidden-content.json` の forbiddenContent、`/Users/`、`agent-home`、メールアドレスの照合で 0 件。外から読むのは Google Fonts だけ。内容は一般論で、特定の案件の名前を持たない。

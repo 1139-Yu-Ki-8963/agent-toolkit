@@ -343,8 +343,8 @@
     },
     {
       "mode": "file",
-      "src": "~/Projects/basic-design-factory/slides/2026-11-14_AI駆動開発で作る資料/html/工程ごとに作る資料と、用意する順.html",
-      "dst": "payload/basic-design-factory/工程ごとに作る資料と、用意する順.html"
+      "src": "~/Projects/basic-design-factory/slides/2026-11-14_AI駆動開発で作る資料/html/AI駆動開発フローの資料マップ.html",
+      "dst": "payload/basic-design-factory/AI駆動開発フローの資料マップ.html"
     }
   ]
 }
