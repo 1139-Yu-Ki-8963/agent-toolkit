@@ -12,7 +12,7 @@ paths:
 
 ## 省ける部分
 
-雛形の本文のうち、`// 【` で始まる注釈の行は、書く人が入れる部分を示す。書く人は、その注釈の行を、注釈が示す中身に置き換える。発火点が Stop 以外のときは、`stop_hook_active` の判定の行を省く。
+雛形の本文のうち、`// 【` で始まる注釈の行は、書く人が入れる部分を示す。書く人は、その注釈の行を、注釈が示す中身に置き換える。発火点が Stop 以外のときは、`stop_hook_active` の判定の行を省く。回答のたびに確かめる検査を持つ Stop のスクリプトは、`CHECKS` の次の行に `const CHECK_EVERY_STOP = true;` を置き、判定の行を `if (input.stop_hook_active === true && !CHECK_EVERY_STOP) process.exit(0);` とする。
 
 ## 雛形の本文
 
