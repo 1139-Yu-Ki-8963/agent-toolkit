@@ -37,15 +37,17 @@ payload/
 │   ├── docs/                             業務フロー、判定基準、テンプレート、案件フォルダ設計(14)
 │   ├── templates/案件雛形/               新しい案件を始めるとき複製するフォルダ一式
 │   └── portal/                           業務管理ポータル(データは架空のプロトタイプ)
-└── slide-creator-studio/                 Claude デザインの上にスライドを作るスキルと規約
-    ├── README.md
-    └── .claude/
-        ├── rules/slide-writing/  スライドの書き方の規約、デザインシステム「墨と赤」、見本
-        └── skills/
-            ├── creating-claude-design-slide/
-            ├── checking-one-slide-one-message/
-            ├── checking-slide-story/
-            └── assembling-claude-design-slides/
+├── slide-creator-studio/                 Claude デザインの上にスライドを作るスキルと規約
+│   ├── README.md
+│   └── .claude/
+│       ├── rules/slide-writing/  スライドの書き方の規約、デザインシステム「墨と赤」、見本
+│       └── skills/
+│           ├── creating-claude-design-slide/
+│           ├── checking-one-slide-one-message/
+│           ├── checking-slide-story/
+│           └── assembling-claude-design-slides/
+└── basic-design-factory/                 AI 駆動開発の工程ごとに作る資料の図
+    └── 工程ごとに作る資料と、用意する順.html
 ```
 
 2026-09-29 に、reverse-docs-skills、claude-code-template、explanation-slides-kit、ai-driven-development-setup、ai-consulting-toolkit の公開をやめた。2026-10-05 に、`.claude/` 配下の構成に改め、規約を 1 ファイル版に一本化し、reviewing-agent-skills(checking-skill-with-template に置き換え)の公開をやめた。同日、ai-consulting-toolkit の公開を再開した(skills、docs、portal に加え、templates と README.md を同期)。
@@ -57,6 +59,10 @@ payload/
 ## slide-creator-studio(Claude デザインの上にスライドを作る)
 
 説明用のスライドを、Claude デザイン(Artifact の型「Design」)の上に作るスキル 4 本と、規約 1 本の一式。1 枚を作る、1 枚の図が 1 つの結論だけを伝えているかを判定する、結論の並びが 1 つの話として通るかを判定する、決まった並びで資料に組み立てる、の 4 つができる。使い方は [`payload/slide-creator-studio/README.md`](payload/slide-creator-studio/README.md) にある。2026-11-14 に公開を始めた。
+
+## basic-design-factory(AI 駆動開発の工程ごとに作る資料の図)
+
+AI 駆動開発の工程ごとに作る資料と、用意する順を、縦の 1 枚の図にした HTML 1 本。図は、右上のボタン、ホイール、ドラッグで拡大と移動ができ、資料の札を押すと、その資料の説明のスライドが重なって出る。見る人は、ファイルを落として、ブラウザで開く。拡大と移動には @panzoom/panzoom 4.6.2(MIT)を HTML の中に入れて使っている。2026-11-16 に公開を始めた。
 
 ## public-skills(プロジェクトに置いて動く公開スキル集)
 

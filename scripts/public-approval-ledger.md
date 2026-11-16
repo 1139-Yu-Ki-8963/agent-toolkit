@@ -223,3 +223,13 @@ Claude デザイン(Artifact の型「Design」)の上にスライドを作る�
 | .claude/rules/slide-writing(規約、デザインシステム、見本) | 承認済み | 同上 | mirror。新規 |
 | README.md | 承認済み | 同上。環境固有のパスなし | file。新規 |
 | slides/(スキルの試しで作ったスライド) | 除外 | 試しの成果物で、配布物ではない | manifest に入れない |
+
+## basic-design-factory(公開の開始 2026-11-16)
+
+AI 駆動開発の工程ごとに作る資料と、用意する順の、縦の図の HTML 1 本。正本は `~/Projects/basic-design-factory`(ローカルのみ、git のリポジトリではない)。公開前の検査(2026-11-16): `payload-forbidden-content.json` の forbiddenContent、`/Users/`、`agent-home`、メールアドレスの照合で 0 件。外から読むのは Google Fonts だけ。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| slides/2026-11-14_AI駆動開発で作る資料/html/工程ごとに作る資料と、用意する順.html | 承認済み | ユーザーの指示(2026-11-16「HTMLをtoolkitのpayloadで公開したい」「Aで、4 件も写す」)。上記の検査 | file。新規。payload/basic-design-factory/ に置く |
+| slides/2026-11-14_AI駆動開発で作る資料/ のほかのファイル(build/、板の .dc.html、確認用の画像、html/AI駆動開発で作る資料.html) | 除外 | 依頼は縦の図の HTML 1 本だけ | manifest に入れない |
+| docs/、output/、.claude/ | 除外 | 配布物ではない | manifest に入れない |
