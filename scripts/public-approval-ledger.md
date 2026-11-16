@@ -287,3 +287,11 @@ pstack(cursor/plugins、MIT、Copyright (c) 2026 Lauren Tan)の原則とプレ�
 | ~/Projects/engineering-handbook/rules(mirror) | 承認済み | ユーザーの指示(2026-11-17「agent toolkitのpayloadに公開までして」)。上記の検査 | 規約 2 本 |
 | ~/Projects/engineering-handbook/skills(mirror) | 承認済み | 同上 | スキル 9 本 |
 | ~/Projects/engineering-handbook/README.md、LICENSE、NOTICE.md(file) | 承認済み | 同上 | LICENSE の著作権者は GitHub のアカウント名 1139-Yu-Ki-8963 |
+
+## slide-creator-studio の資料「AIエージェントの誤りを止める仕組み」の活用例(公開の開始 2026-11-17)
+
+スライド 2 枚の資料を、どの場面で、どの目的で見せるかをまとめた md 1 本。公開前の検査(2026-11-17): `payload-forbidden-content.json` の forbiddenContent、`/Users/`、`agent-home`、メールアドレスの照合で 0 件。外から読むものはない。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| payload/2026-11-16_AIエージェントの誤りを止める仕組み/AIエージェントの誤りを止める仕組みの活用例.md(symlink) | 承認済み | ユーザーの指示(2026-11-17「payloadに公開して」)。上記の検査 | 指す先は output-slides/2026-11-16_AIエージェントの誤りを止める仕組み/AIエージェントの誤りを止める仕組みの活用例.md。板の .dc.html、canvas.json、確認用の画像は公開しない |

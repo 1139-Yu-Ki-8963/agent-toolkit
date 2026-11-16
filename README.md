@@ -47,7 +47,8 @@ payload/
 │   │       ├── checking-slide-story/
 │   │       └── assembling-claude-design-slides/
 │   ├── slides/2026-11-14_理想のAI駆動開発フロー/理想のAI駆動開発フロースライド.html   スキルで作った資料 10 枚
-│   └── slides/2026-11-14_AI駆動開発フローの資料マップ/AI駆動開発フローの資料マップ.html   工程ごとに作る資料の図
+│   ├── slides/2026-11-14_AI駆動開発フローの資料マップ/AI駆動開発フローの資料マップ.html   工程ごとに作る資料の図
+│   └── slides/2026-11-16_AIエージェントの誤りを止める仕組み/AIエージェントの誤りを止める仕組みの活用例.md   スライド 2 枚の資料の、見せる場面と目的
 ├── engineering-handbook/                 ベテランエンジニアのように振る舞わせる規約 2 本とスキル 9 本
 │   ├── README.md
 │   ├── LICENSE                           MIT(pstack 由来の部分を含む)
@@ -71,6 +72,8 @@ payload/
 slide-creator-studio の側では、作ったスライドを非公開の `output-slides/` に置き、公開すると選んだものだけを `payload/` に symlink で置く。この toolkit は、その `payload/` だけを `payload/slide-creator-studio/slides/` に写す(`sync-manifest.json` の mirror の `symlinkRoot`)。
 
 資料「AI 駆動開発フローの資料マップ」は、AI 駆動開発の工程ごとに作る資料と、用意する順を、縦の 1 枚の図にした HTML 1 本([`payload/slide-creator-studio/slides/2026-11-14_AI駆動開発フローの資料マップ/AI駆動開発フローの資料マップ.html`](payload/slide-creator-studio/slides/2026-11-14_AI駆動開発フローの資料マップ/AI駆動開発フローの資料マップ.html))。図は、右上のボタン、ホイール、ドラッグで拡大と移動ができ、資料の札を押すと、その資料の説明のスライドが重なって出る。見る人は、ファイルを落として、ブラウザで開く。拡大と移動には @panzoom/panzoom 4.6.2(MIT)を HTML の中に入れて使っている。2026-11-16 に公開を始めた。
+
+資料「AIエージェントの誤りを止める仕組み」(スライド 2 枚)を、どの場面で、どの目的で見せるかをまとめた md 1 本を、[`payload/slide-creator-studio/slides/2026-11-16_AIエージェントの誤りを止める仕組み/AIエージェントの誤りを止める仕組みの活用例.md`](payload/slide-creator-studio/slides/2026-11-16_AIエージェントの誤りを止める仕組み/AIエージェントの誤りを止める仕組みの活用例.md) に置いている。2026-11-17 に公開を始めた。
 
 ## engineering-handbook(ベテランエンジニアのように振る舞わせる規約とスキル)
 
