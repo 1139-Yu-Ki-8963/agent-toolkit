@@ -340,6 +340,31 @@
       "src": "~/Projects/slide-creator-studio/payload",
       "dst": "payload/slide-creator-studio/slides",
       "symlinkRoot": "~/Projects/slide-creator-studio/output-slides"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/engineering-handbook/rules",
+      "dst": "payload/engineering-handbook/rules"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/engineering-handbook/skills",
+      "dst": "payload/engineering-handbook/skills"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/engineering-handbook/README.md",
+      "dst": "payload/engineering-handbook/README.md"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/engineering-handbook/LICENSE",
+      "dst": "payload/engineering-handbook/LICENSE"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/engineering-handbook/NOTICE.md",
+      "dst": "payload/engineering-handbook/NOTICE.md"
     }
   ]
 }

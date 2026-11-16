@@ -277,3 +277,13 @@ Claude デザインに作った 10 枚を、1 つの HTML ファイルにまと�
 |---|---|---|---|
 | payload/2026-11-14_AI駆動開発フローの資料マップ/AI駆動開発フローの資料マップ.html(symlink) | 承認済み | ユーザーの指示(2026-11-16「A で移す」)。上記の検査 | 指す先は output-slides/2026-11-14_AI駆動開発フローの資料マップ/AI駆動開発フローの資料マップ.html。slide-creator-studio の payload の mirror で写す |
 | payload/basic-design-factory/(file の対応) | 除外 | 同上 | manifest と payload から消した |
+
+## engineering-handbook(公開の開始 2026-11-17)
+
+pstack(cursor/plugins、MIT、Copyright (c) 2026 Lauren Tan)の原則とプレイブックを、日本語に訳して作り直した規約 2 本とスキル 9 本。正本は `~/Projects/engineering-handbook/`。公開前の検査(2026-11-17): `payload-forbidden-content.json` の names、pathSuffixes、forbiddenContent、`/Users/`、`agent-home`、メールアドレスの照合で 0 件。隠しファイルなし。内容は一般論で、特定の案件の名前を持たない。pstack の MIT の許諾文と著作権表示を、LICENSE と NOTICE.md に含めた。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| ~/Projects/engineering-handbook/rules(mirror) | 承認済み | ユーザーの指示(2026-11-17「agent toolkitのpayloadに公開までして」)。上記の検査 | 規約 2 本 |
+| ~/Projects/engineering-handbook/skills(mirror) | 承認済み | 同上 | スキル 9 本 |
+| ~/Projects/engineering-handbook/README.md、LICENSE、NOTICE.md(file) | 承認済み | 同上 | LICENSE の著作権者は GitHub のアカウント名 1139-Yu-Ki-8963 |
