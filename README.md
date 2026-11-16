@@ -63,6 +63,8 @@ payload/
 
 このスキルで作った資料「理想の AI駆動開発フロー(一般論)」10 枚を、1 つの HTML ファイルにまとめて [`payload/slide-creator-studio/slides/`](payload/slide-creator-studio/slides/2026-11-14_理想のAI駆動開発フロー/理想のAI駆動開発フロースライド.html) に置いている。ファイルを落としてブラウザで開き、← → かスペースでページを送る。3 枚目は、周回のボタンを押すと動く。2026-11-16 に公開を始めた。
 
+slide-creator-studio の側では、作ったスライドを非公開の `output-slides/` に置き、公開すると選んだものだけを `payload/` に symlink で置く。この toolkit は、その `payload/` だけを `payload/slide-creator-studio/slides/` に写す(`sync-manifest.json` の mirror の `symlinkRoot`)。
+
 ## basic-design-factory(AI 駆動開発の工程ごとに作る資料の図)
 
 AI 駆動開発の工程ごとに作る資料と、用意する順を、縦の 1 枚の図にした HTML 1 本。図は、右上のボタン、ホイール、ドラッグで拡大と移動ができ、資料の札を押すと、その資料の説明のスライドが重なって出る。見る人は、ファイルを落として、ブラウザで開く。拡大と移動には @panzoom/panzoom 4.6.2(MIT)を HTML の中に入れて使っている。2026-11-16 に公開を始めた。

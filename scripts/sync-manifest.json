@@ -336,9 +336,10 @@
       "dst": "payload/slide-creator-studio/README.md"
     },
     {
-      "mode": "file",
-      "src": "~/Projects/slide-creator-studio/slides/2026-11-14_理想のAI駆動開発フロー/理想のAI駆動開発フロースライド.html",
-      "dst": "payload/slide-creator-studio/slides/2026-11-14_理想のAI駆動開発フロー/理想のAI駆動開発フロースライド.html"
+      "mode": "mirror",
+      "src": "~/Projects/slide-creator-studio/payload",
+      "dst": "payload/slide-creator-studio/slides",
+      "symlinkRoot": "~/Projects/slide-creator-studio/output-slides"
     },
     {
       "mode": "file",

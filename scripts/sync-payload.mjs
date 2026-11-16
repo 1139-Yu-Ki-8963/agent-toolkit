@@ -59,6 +59,8 @@ function loadManifest() {
     // build モードは src を持たず builder のみを持つ（resolveBuilder で解決）
     srcAbs: m.src !== undefined ? resolveHome(m.src) : undefined,
     dstAbs: path.join(REPO_ROOT, m.dst),
+    // mirror の src の中の symlink を写すときだけ持つ。リンクが指してよいフォルダ。
+    symlinkRootAbs: m.symlinkRoot !== undefined ? resolveHome(m.symlinkRoot) : undefined,
   }));
 }
 
@@ -103,7 +105,26 @@ function isForbiddenArtifact(relPath) {
   );
 }
 
-function walkFiles(dir) {
+// symlinkRoot を渡したときだけ、symlink を指す先のファイルとして拾う。
+// 壊れたリンク、フォルダへのリンク、symlinkRoot の外を指すリンクは、エラーで止める。
+// symlinkRoot を渡さないときは、これまでどおり symlink を拾わない。
+function resolveLink(full, symlinkRoot) {
+  let target;
+  try {
+    target = fs.realpathSync(full);
+  } catch {
+    throw new Error(`壊れた symlink です: ${full}`);
+  }
+  if (fs.statSync(target).isDirectory()) {
+    throw new Error(`フォルダへの symlink は写せません: ${full}`);
+  }
+  const root = fs.realpathSync(symlinkRoot);
+  if (!target.startsWith(root + path.sep)) {
+    throw new Error(`symlink が許した範囲 ${symlinkRoot} の外を指しています: ${full} -> ${target}`);
+  }
+}
+
+function walkFiles(dir, symlinkRoot) {
   const results = [];
   function recurse(cur) {
     let entries;
@@ -118,6 +139,9 @@ function walkFiles(dir) {
       if (entry.isDirectory()) {
         recurse(full);
       } else if (entry.isFile()) {
+        results.push(path.relative(dir, full));
+      } else if (entry.isSymbolicLink() && symlinkRoot !== undefined) {
+        resolveLink(full, symlinkRoot);
         results.push(path.relative(dir, full));
       }
     }
@@ -169,7 +193,7 @@ function computeMirrorDrift(mirror, overlayMap) {
   }
 
   const srcFiles = new Set(
-    [...walkFiles(mirror.srcAbs)].filter((rel) => !isForbiddenArtifact(rel))
+    [...walkFiles(mirror.srcAbs, mirror.symlinkRootAbs)].filter((rel) => !isForbiddenArtifact(rel))
   );
   const dstFiles = fs.existsSync(mirror.dstAbs) ? new Set(walkFiles(mirror.dstAbs)) : new Set();
 

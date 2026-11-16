@@ -222,7 +222,7 @@ Claude デザイン(Artifact の型「Design」)の上にスライドを作る�
 | .claude/skills(creating-claude-design-slide、checking-one-slide-one-message、checking-slide-story、assembling-claude-design-slides) | 承認済み | ユーザーの指示(2026-11-14「toolkitに新規フォルダとして、公開までしろ」)。上記の検査 | mirror。新規 |
 | .claude/rules/slide-writing(規約、デザインシステム、見本) | 承認済み | 同上 | mirror。新規 |
 | README.md | 承認済み | 同上。環境固有のパスなし | file。新規 |
-| slides/(スキルの試しで作ったスライド) | 除外 | 試しの成果物で、配布物ではない | manifest に入れない。2026-11-16 に、slides/2026-11-14_理想のAI駆動開発/理想のAI駆動開発スライド.html の 1 本だけを公開に変えた(下の節) |
+| slides/(スキルの試しで作ったスライド) | 除外 | 試しの成果物で、配布物ではない | manifest に入れない。2026-11-16 に、slides/2026-11-14_理想のAI駆動開発/理想のAI駆動開発スライド.html の 1 本だけを公開に変えた(下の節)。同日、slides/ を output-slides/ に名前を変え、公開は payload/ の mirror に変えた(下の節「公開の仕組みの変更」) |
 
 ## basic-design-factory(公開の開始 2026-11-16)
 
@@ -250,3 +250,13 @@ Claude デザインに作った 10 枚を、1 つの HTML ファイルにまと�
 | 資産 | 承認状況 | 承認根拠 | 備考 |
 |---|---|---|---|
 | slides/2026-11-14_理想のAI駆動開発フロー/理想のAI駆動開発フロースライド.html | 承認済み | ユーザーの指示(2026-11-16「候補 1 で進める」: 名前を「理想の AI駆動開発フロー」にする)。上記の検査 | file。slides/2026-11-14_理想のAI駆動開発/理想のAI駆動開発スライド.html から名前を変えた。古いパスは payload から消した |
+
+## slide-creator-studio の公開の仕組みの変更(2026-11-16)
+
+作ったスライドの置き場を `output-slides/` に名前を変え、公開しない。ユーザーが公開すると選んだ成果物だけを、プロジェクトの `payload/` に `output-slides/` のファイルへの symlink で置き、その `payload/` を mirror で写す。mirror の `symlinkRoot` は `output-slides/` とし、`sync-payload.mjs` は、壊れたリンク、フォルダへのリンク、`symlinkRoot` の外を指すリンクでエラーで止まる。ほかの mirror は `symlinkRoot` を持たないので、これまでどおり symlink を写さない。公開するものは、変更の前と同じ HTML 1 本で、公開のパスも同じ。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| ~/Projects/slide-creator-studio/payload(mirror、symlinkRoot: output-slides) | 承認済み | ユーザーの指示(2026-11-16「候補 1 で進める」: 選んだものだけを payload に symlink で分けて公開する) | 前の file の対応(理想のAI駆動開発フロースライド.html)を、この mirror に置き換えた。payload/ に新しいリンクを置くときは、この記録にそのファイルの行を足す |
+| payload/2026-11-14_理想のAI駆動開発フロー/理想のAI駆動開発フロースライド.html(symlink) | 承認済み | 上の節「資料の名前の変更」の承認 | 指す先は output-slides/2026-11-14_理想のAI駆動開発フロー/理想のAI駆動開発フロースライド.html |
+| output-slides/(作ったスライドの置き場) | 除外 | ユーザーの指示(作ったものは、まず非公開の置き場に置く) | manifest に入れない |
