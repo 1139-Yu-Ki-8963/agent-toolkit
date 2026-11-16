@@ -337,6 +337,11 @@
     },
     {
       "mode": "file",
+      "src": "~/Projects/slide-creator-studio/slides/2026-11-14_理想のAI駆動開発/理想のAI駆動開発スライド.html",
+      "dst": "payload/slide-creator-studio/slides/2026-11-14_理想のAI駆動開発/理想のAI駆動開発スライド.html"
+    },
+    {
+      "mode": "file",
       "src": "~/Projects/basic-design-factory/slides/2026-11-14_AI駆動開発で作る資料/html/工程ごとに作る資料と、用意する順.html",
       "dst": "payload/basic-design-factory/工程ごとに作る資料と、用意する順.html"
     }
