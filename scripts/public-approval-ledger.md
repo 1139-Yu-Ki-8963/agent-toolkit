@@ -222,7 +222,7 @@ Claude デザイン(Artifact の型「Design」)の上にスライドを作る�
 | .claude/skills(creating-claude-design-slide、checking-one-slide-one-message、checking-slide-story、assembling-claude-design-slides) | 承認済み | ユーザーの指示(2026-11-14「toolkitに新規フォルダとして、公開までしろ」)。上記の検査 | mirror。新規 |
 | .claude/rules/slide-writing(規約、デザインシステム、見本) | 承認済み | 同上 | mirror。新規 |
 | README.md | 承認済み | 同上。環境固有のパスなし | file。新規 |
-| slides/(スキルの試しで作ったスライド) | 除外 | 試しの成果物で、配布物ではない | manifest に入れない |
+| slides/(スキルの試しで作ったスライド) | 除外 | 試しの成果物で、配布物ではない | manifest に入れない。2026-11-16 に、slides/2026-11-14_理想のAI駆動開発/理想のAI駆動開発スライド.html の 1 本だけを公開に変えた(下の節) |
 
 ## basic-design-factory(公開の開始 2026-11-16)
 
