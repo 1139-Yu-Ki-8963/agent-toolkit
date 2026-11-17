@@ -1,0 +1,43 @@
+#!/usr/bin/env node
+// merge-findings.js のテスト。一時ファイルは TMPDIR の下(なければ /tmp)に作り、終了時に消す。
+const fs = require("fs");
+const path = require("path");
+const { spawnSync } = require("child_process");
+const S = path.join(__dirname, "..", "merge-findings.js");
+const D = fs.mkdtempSync(path.join(process.env.TMPDIR || "/tmp", "test-merge-findings-"));
+process.on("exit", () => fs.rmSync(D, { recursive: true, force: true }));
+let failed = 0;
+const run = (args) => spawnSync(process.execPath, [S, ...args], { encoding: "utf8" });
+const t = (name, ok) => { if (ok) console.log(`成功: ${name}`); else { console.log(`失敗: ${name}`); failed = 1; } };
+const w = (name, body) => { const p = path.join(D, name); fs.writeFileSync(p, typeof body === "string" ? body : JSON.stringify(body)); return p; };
+const rule = w("button-rule.md", ["# ボタンの規約", "## 守ること", "### ボタン", "規則 1: 代替テキスト", "- 判定の仕方: 機械的", "- 重さ: 直す",
+  "規則 2: プライマリーのボタンの数", "- 重さ: できれば直す", "### 大きさ", "規則 1: ターゲットサイズ", "- 判定の仕方: 機械的"].join("\n"));
+const base = { rule_file: rule, file: "index.html", occurrence: 1, rule_quote: "q", problem: "p", fix_before: "b", fix_after: "a", fix_reason: "r", decision_needed: false };
+const alt = { ...base, rule_viewpoint: "代替テキスト", line: 12, quote: "<button>" };
+const prim = { ...base, rule_viewpoint: "プライマリーのボタンの数", line: 20, quote: "<button class=p>" };
+const size = { ...base, rule_viewpoint: "ターゲットサイズ", line: 51, quote: "height: 32px;", url: "file:///a.html", width: [1440], selector: ".s", photo: ["写真/1-1440.png"], file_guessed: true };
+const a = w("1-1.json", [prim, alt, size]);
+const b = w("1-2.json", [{ ...alt, line: 13 }, { ...size, file: "other.css", line: 2 }]);
+const out = path.join(D, "まとめた指摘.json");
+const r = run(["--rules", rule, "--out", out, a, b]);
+t("終了コード 0", r.status === 0);
+const m = JSON.parse(fs.readFileSync(out, "utf8"));
+const counts = JSON.parse(r.stdout);
+t("同じ鍵の指摘を 1 件にまとめる(行の番号と推し量ったファイルは鍵に入れない)", m.length === 3);
+t("2 人が出した指摘は single が false", m.find((x) => x.rule_viewpoint === "代替テキスト").single === false && m.find((x) => x.rule_viewpoint === "ターゲットサイズ").single === false);
+t("1 人だけが出した指摘は single が true", m.find((x) => x.rule_viewpoint === "プライマリーのボタンの数").single === true);
+t("重さを規約の行「重さ: 」から付け、行がないときは直す", m.find((x) => x.rule_viewpoint === "プライマリーのボタンの数").weight === "できれば直す" && m.find((x) => x.rule_viewpoint === "ターゲットサイズ").weight === "直す");
+t("重さの重い順に並べ、1 から通し番号を付ける", m.map((x) => x.number).join() === "1,2,3" && m[2].weight === "できれば直す");
+t("重さごとの件数を数える", counts.by_weight["直す"] === 2 && counts.by_weight["できれば直す"] === 1 && counts.total === 3);
+t("規約の節ごとの件数を数える", counts.by_section["button-rule.md ボタン"] === 2 && counts.by_section["button-rule.md 大きさ"] === 1);
+const e = run(["--rules", rule, "--out", path.join(D, "e.json"), w("e1.json", []), w("e2.json", [])]);
+t("2 人とも 0 件なら空の配列と 0 件の件数を出す", e.status === 0 && fs.readFileSync(path.join(D, "e.json"), "utf8").trim() === "[]" && JSON.parse(e.stdout).total === 0);
+t("引数が足りないと終了コード 2", run(["--rules", rule, a]).status === 2);
+t("配列でない返り値は終了コード 2", run(["--rules", rule, "--out", path.join(D, "x.json"), w("obj.json", {})]).status === 2);
+const sa = w("s1.json", [{ ...alt, quote: "color:  red;\n  margin: 0;" }]);
+const sb = w("s2.json", [{ ...alt, quote: " color: red;\tmargin: 0; " }]);
+const so = path.join(D, "s.json");
+const sr = run(["--rules", rule, "--out", so, sa, sb]);
+const sm = sr.status === 0 ? JSON.parse(fs.readFileSync(so, "utf8")) : [];
+t("quote の空白の並び(半角の空白、タブ、改行)だけが違う 2 件は 1 件にまとめ、quote は 1 人目の文字列のまま残す", sm.length === 1 && sm[0].single === false && sm[0].quote === "color:  red;\n  margin: 0;");
+process.exit(failed);

@@ -1,0 +1,26 @@
+#!/usr/bin/env node
+const fs = require("fs");
+const path = require("path");
+const { spawnSync } = require("child_process");
+const S = path.join(__dirname, "..", "select-findings.js");
+const D = fs.mkdtempSync(path.join(process.env.TMPDIR || "/tmp", "test-select-findings-"));
+process.on("exit", () => fs.rmSync(D, { recursive: true, force: true }));
+const item = (number, weight, extra) => ({ number, weight, file: "a.css", line: number, quote: `q${number}`, occurrence: 1, rule_viewpoint: "観点", fix_before: `q${number}`, fix_after: `r${number}`, decision_needed: false, ...extra });
+const J = path.join(D, "指摘の一覧.json");
+fs.writeFileSync(J, JSON.stringify([item(1, "できれば直す"), item(2, "直す"), item(3, "直す"), item(4, "直す"), item(9, "できれば直す", { fix_after: ["a", "b"], decision_needed: true })]));
+let pass = 0, fail = 0;
+const t = (name, args, code, check) => { const r = spawnSync(process.execPath, [S, ...args], { encoding: "utf8" }); let ok = r.status === code; if (ok && check) { try { ok = check(r.stdout); } catch { ok = false; } } if (ok) { pass++; console.log(`成功: ${name}`); } else { fail++; console.log(`失敗: ${name}(終了コード ${r.status}、出力 ${(r.stdout + r.stderr).trim()})`); } };
+const is = (want) => (o) => JSON.stringify(JSON.parse(o)) === JSON.stringify(want);
+t("「全部直して」は、すべての番号を重さの順に並べる", [J, "全部直して"], 0, is({ fix: [2, 3, 4, 1, 9], skip: [], plans: {} }));
+t("「1、3 を直して。9 は案 2」は、番号と案を読み取る", [J, "1、3 を直して。9 は案 2"], 0, is({ fix: [3, 1, 9], skip: [], plans: { 9: 2 } }));
+t("「4 は直さない(理由)」は、直さない番号と理由を読み取る", [J, "4 は直さない(独自のフォーカスの表示を持つため)"], 0, is({ fix: [], skip: [{ number: 4, reason: "独自のフォーカスの表示を持つため" }], plans: {} }));
+t("「全部直して」と直さない番号を合わせると、直さない番号を除く", [J, "全部直して。4 は直さない（理由。）"], 0, is({ fix: [2, 3, 1, 9], skip: [{ number: 4, reason: "理由。" }], plans: {} }));
+t("理由のない直さない番号は、理由を空にする", [J, "1 を直して、4 は直さない"], 0, is({ fix: [1], skip: [{ number: 4, reason: "" }], plans: {} }));
+t("全角の数字と読点を読み取る", [J, "１，３を直して"], 0, is({ fix: [3, 1], skip: [], plans: {} }));
+t("一覧にない番号は、終了コード 1 でその番号を出す", [J, "1、7 を直して"], 1, (o) => o.includes("一覧にない番号: 7"));
+t("ない案は、終了コード 1", [J, "9 は案 3"], 1, (o) => o.includes("読み取れない返事: 9 は案 3"));
+t("番号も「全部」もない返事は、終了コード 1", [J, "よろしく"], 1, (o) => o.includes("読み取れない返事: よろしく"));
+t("引数が 1 つは、終了コード 2", [J], 2);
+t("読めない json は、終了コード 2", [path.join(D, "none.json"), "全部直して"], 2);
+console.log(`合格 ${pass} 件、不合格 ${fail} 件`);
+process.exit(fail ? 1 : 0);

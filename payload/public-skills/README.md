@@ -20,6 +20,15 @@ cp -R public-skills/.claude/skills/<スキル名> <プロジェクト>/.claude/s
 - `converting-mermaid-md-to-html`: Mermaid の図を含む md ファイル 1 本を、md の中身を変えずに、図をホイールで拡大、ドラッグで移動、右上のボタンで元に戻せて、上のバーに目次ボタンを持ち、ブラウザで直接開ける 1 ページの HTML に変換する。
 - `reporting-textlint-findings`: md を textlint で機械検査し、指摘箇所に波線を引いた HTML を出す。
 - `managing-textlint-banned-words`: textlint の禁止語の辞書と設定と hooks を依頼どおりの状態にし、辞書を一覧で表示する。
+- `checking-ui-with-rules`: 画面の決まりを書いたルールの文書(例: デジタル庁デザインシステムの Markdown)を規約の形に直し、プロジェクトの画面のファイルを照合者 2 人に照合させ、画面の URL があるときは 3 つの幅(1440、768、375)で写真を撮って文字の色の濃さの差と押す場所の大きさを測り、指摘の一覧をプロジェクトの `ui-check-results/<日時>/` に書く。直したあとの調べ直しも受け持つ。結果のフォルダ `ui-check-results/` は照合するプロジェクトの中にできるので、git で追わないときは、そのプロジェクトの `.gitignore` に `ui-check-results/` を足す。
+- `fixing-ui-with-rules`: checking-ui-with-rules の指摘の一覧のうち、返事で頼まれた番号の指摘を、書き換えてよいかを確かめてから画面のファイルに直し、調べ直しを頼む文を出す。直さないと決めた箇所の一覧は、照合するプロジェクトの中の `ui-check-results/直さないと決めた箇所の一覧.md` に書くので、`.gitignore` の扱いは checking-ui-with-rules と同じとする。
+
+checking-ui-with-rules は、画面の URL を渡したときだけ、Playwright と Chromium を使う。スキルは、初めて使うときに、確かめてからスキルのフォルダの `.tools/` に入れる(node と npm が要る)。手で入れるときは、次のコマンドを使う。
+
+```bash
+npm install --prefix "<スキルのフォルダ>/.tools" playwright@1.65.1
+npm install --prefix "<スキルのフォルダ>/.tools" @playwright/browser-chromium@1.65.1
+```
 
 ## 規約(`.claude/rules/`)
 
