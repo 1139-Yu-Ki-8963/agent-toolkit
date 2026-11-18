@@ -1,0 +1,26 @@
+#!/usr/bin/env node
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+const S = join(dirname(fileURLToPath(import.meta.url)), "..", "check-harness.mjs");
+const D = mkdtempSync(join(process.env.TMPDIR || "/tmp", "test-check-harness-"));
+process.on("exit", () => rmSync(D, { recursive: true, force: true }));
+let fail = 0;
+const skill = (path, name) => { mkdirSync(join(D, path), { recursive: true }); writeFileSync(join(D, path, "SKILL.md"), `---\nname: ${name}\ndescription: 見本。\n---\n`); return join(D, path); };
+const run = (args, home) => { const r = spawnSync(process.execPath, [S, ...args], { encoding: "utf8", env: { ...process.env, HOME: home } }); let j = null; try { j = JSON.parse(r.stdout); } catch { j = null; } return { code: r.status, j }; };
+const t = (name, cond) => { console.log(`${cond ? "成功" : "失敗"}: ${name}`); if (!cond) fail = 1; };
+const home = join(D, "home"); mkdirSync(home);
+const only = skill("project/skills/only-skill", "only-skill");
+let r = run([only], home);
+t("同じ名前のスキルがないときは、終了コード 0 で、指摘が 0 件", r.code === 0 && r.j && r.j.findings.length === 0);
+const a = skill("project/skills/dup-skill", "dup-skill");
+skill("project/skills/dup-skill-copy", "dup-skill");
+skill("home/.claude/skills/dup-skill", "dup-skill");
+r = run([a], home);
+t("同じフォルダと、ホームのフォルダの下の .claude/skills に同じ名前のスキルがあるときは、終了コード 1 で、指摘が 2 件", r.code === 1 && r.j && r.j.findings.length === 2);
+t("指摘は、区分「助言」、重さ「参考」、減点 0", r.j && r.j.findings.every(f => f.kind === "助言" && f.severity === "参考" && f.deduction === 0));
+t("指摘の中身は、ホームのフォルダの下の .claude/skills を持つ", r.j && r.j.findings.some(f => f.message.includes("ホームのフォルダの下の .claude/skills")));
+t("引数がないときは、終了コード 2", run([], home).code === 2);
+t("SKILL.md のないフォルダは、終了コード 2", run([home], home).code === 2);
+process.exit(fail);

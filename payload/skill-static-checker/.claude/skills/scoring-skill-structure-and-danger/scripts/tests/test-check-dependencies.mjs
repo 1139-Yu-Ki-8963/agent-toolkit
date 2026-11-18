@@ -1,0 +1,24 @@
+#!/usr/bin/env node
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+const S = join(dirname(fileURLToPath(import.meta.url)), "..", "check-dependencies.mjs");
+const D = mkdtempSync(join(process.env.TMPDIR || "/tmp", "test-check-dependencies-"));
+process.on("exit", () => rmSync(D, { recursive: true, force: true }));
+let fail = 0;
+const skill = (name, files) => { const d = join(D, name); for (const [p, c] of Object.entries(files)) { mkdirSync(dirname(join(d, p)), { recursive: true }); writeFileSync(join(d, p), c); } return d; };
+const run = (args, env = {}) => { const r = spawnSync(process.execPath, [S, ...args], { encoding: "utf8", env: { ...process.env, ...env }, timeout: 240000 }); let j = null; try { j = JSON.parse(r.stdout); } catch { j = null; } return { code: r.status, j }; };
+const t = (name, cond) => { console.log(`${cond ? "成功" : "失敗"}: ${name}`); if (!cond) fail = 1; };
+const md = rows => `---\nname: d\ndescription: 見本。\n---\n\n## 前提ツール\n\n| ツール | 区分 | 版 | 有無を見るファイル | ツールの有無を確かめるコマンド |\n|---|---|---|---|---|\n${rows}\n\n## 使用するスクリプト\n\nなし\n`;
+let r = run([skill("none", { "SKILL.md": "---\nname: d\ndescription: 見本。\n---\n\n## 前提ツール\n\nなし\n" })]);
+t("前提ツールが「なし」のときは、終了コード 0 で、状態「対象なし」", r.code === 0 && r.j && r.j.status === "対象なし" && r.j.findings.length === 0);
+r = run([skill("node-only", { "SKILL.md": md("| node | 前提 | なし | なし | `node --version` |") })]);
+t("区分「前提」の行だけのときは、状態「対象なし」", r.code === 0 && r.j && r.j.status === "対象なし");
+r = run([skill("offline", { "SKILL.md": md("| node | 前提 | なし | なし | `node --version` |\n| left-pad | スキルごとのツール | 1.3.0 | index.js | `node -e \"process.exit(0)\"` |") })], { npm_config_registry: "http://127.0.0.1:9/" });
+t("登録所につながらないときは、終了コード 1 で、状態「調べられなかった」", r.code === 1 && r.j && r.j.status === "調べられなかった");
+t("登録所につながらないときの指摘は、重さ「参考」で、前提ツールの表の行を指す", r.j && r.j.findings.length === 1 && r.j.findings[0].severity === "参考" && r.j.findings[0].line === 11);
+t("調べた部品の名前と版を持つ", r.j && r.j.packages.join() === "left-pad@1.3.0");
+t("引数がないときは、終了コード 2", run([]).code === 2);
+t("SKILL.md のないフォルダは、終了コード 2", run([D]).code === 2);
+process.exit(fail);

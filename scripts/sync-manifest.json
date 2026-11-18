@@ -365,6 +365,21 @@
       "mode": "file",
       "src": "~/Projects/engineering-handbook/NOTICE.md",
       "dst": "payload/engineering-handbook/NOTICE.md"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/skill-static-checker/.claude/skills",
+      "dst": "payload/skill-static-checker/.claude/skills"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/skill-static-checker/sample-reports",
+      "dst": "payload/skill-static-checker/sample-reports"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-static-checker/README.md",
+      "dst": "payload/skill-static-checker/README.md"
     }
   ]
 }

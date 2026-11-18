@@ -1,0 +1,28 @@
+#!/usr/bin/env node
+import { mkdtempSync, writeFileSync, rmSync, readFileSync, existsSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+const S = join(dirname(fileURLToPath(import.meta.url)), "..", "render-html.mjs");
+const D = mkdtempSync(join(process.env.TMPDIR || "/tmp", "test-render-html-"));
+process.on("exit", () => rmSync(D, { recursive: true, force: true }));
+let fail = 0;
+const run = args => { const r = spawnSync(process.execPath, [S, ...args], { encoding: "utf8" }); return { code: r.status, out: r.stdout.trim() }; };
+const t = (name, cond) => { console.log(`${cond ? "成功" : "失敗"}: ${name}`); if (!cond) fail = 1; };
+const score = { skill: "sample-skill", target: "/x/sample-skill", structure: { score: 87, threshold: 70, pass: true, counts: { 重大: 1, 注意: 0, 参考: 0 }, dimensions: [{ name: "正しさ", weight: 0.35, deduction: 30, score: 70, weighted: 24.5 }] }, danger: { pass: false, counts: { 重大: 1, 注意: 0, 参考: 0 } }, advice: { counts: { 重大: 0, 注意: 0, 参考: 0 } }, checks: [{ script: "check-dependencies", status: "対象なし", findings: 0, packages: [] }], metrics: [{ label: "SKILL.md の行数", value: 600, limit: 500, unit: "行", over: true }], findings: [{ check: "check-schema", item: "XML のタグ", kind: "危険", severity: "重大", dimension: null, deduction: 0, file: "SKILL.md", line: 3, message: "<script>alert(1)</script> がある。", fix: "消す。" }] };
+const sj = join(D, "score.json"); writeFileSync(sj, JSON.stringify(score));
+let r = run([sj, join(D, "out"), "--time", "202611191230"]);
+const file = join(D, "out", "sample-skill-構造と危険の静的チェック-202611191230.html");
+t("終了コード 0 で、決まった名前の HTML を書き、そのパスを出す", r.code === 0 && r.out === file && existsSync(file));
+const h = existsSync(file) ? readFileSync(file, "utf8") : "";
+t("HTML は、構造の点数、合格ライン、危険の不合格を持つ", h.includes(">87 <") && h.includes("合格ライン 70 点") && h.includes("不合格"));
+t("HTML は、指摘の中身の山かっこを文字に置き換える", h.includes("&lt;script&gt;alert(1)&lt;/script&gt;") && !h.includes("<script>"));
+t("HTML は、外部のファイルを読み込まない", !/<(link|script)\b[^>]*(href|src)=/i.test(h) && !/@import|url\(/i.test(h));
+t("HTML は、参考の数の値と、上限を超えたことを持つ", h.includes("SKILL.md の行数") && h.includes("超える"));
+t("HTML は、日本語の文書として書く", h.includes('<html lang="ja">'));
+t("同じ名前のファイルがあるときは、終了コード 2", run([sj, join(D, "out"), "--time", "202611191230"]).code === 2);
+t("--time が 12 桁でないときは、終了コード 2", run([sj, join(D, "out"), "--time", "2026"]).code === 2);
+writeFileSync(join(D, "bad.json"), "{}");
+t("点数の JSON の形が違うときは、終了コード 2", run([join(D, "bad.json"), join(D, "out")]).code === 2);
+t("引数がないときは、終了コード 2", run([]).code === 2);
+process.exit(fail);
