@@ -1,0 +1,25 @@
+#!/usr/bin/env node
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync, readFileSync, existsSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+const S = join(dirname(fileURLToPath(import.meta.url)), "..", "save-ai-findings.mjs");
+const D = mkdtempSync(join(process.env.TMPDIR || "/tmp", "test-save-ai-findings-"));
+process.on("exit", () => rmSync(D, { recursive: true, force: true }));
+let fail = 0, n = 0;
+const t = (name, cond) => { console.log(`${cond ? "成功" : "失敗"}: ${name}`); if (!cond) fail = 1; };
+const sk = join(D, "sample-skill"); mkdirSync(join(sk, "references"), { recursive: true }); writeFileSync(join(sk, "SKILL.md"), "---\nname: sample-skill\n---\n"); writeFileSync(join(sk, "references", "a.md"), "# a\n");
+const run = (check, rows, out = true) => { const p = join(D, `in-${n}.json`), o = join(D, `out-${n++}.json`); writeFileSync(p, typeof rows === "string" ? rows : JSON.stringify(rows)); const r = spawnSync(process.execPath, [S, "--check", check, sk, p, ...(out ? ["--out", o] : [])], { encoding: "utf8" }); let j = null; try { j = JSON.parse(out ? readFileSync(o, "utf8") : r.stdout); } catch { j = null; } return { code: r.status, j }; };
+const row = (item, more = {}) => ({ item, file: "SKILL.md", line: 3, message: "中身", fix: "直し方", ...more });
+let r = run("日本語の章の中身", [row("「目的:」の行の中身"), row("ほかのスキルの文を写したままの章", { file: "references/a.md", line: 0 })]);
+t("日本語の章の中身の指摘に、表から重さ、細かい重さ、分野、減点を付けて、終了コード 1 で書く", r.code === 1 && r.j && r.j.findings.length === 2 && r.j.findings[0].kind === "構造" && r.j.findings[0].severity === "注意" && r.j.findings[0].source_severity === "LOW" && r.j.findings[0].dimension === "見つけやすさ" && r.j.findings[0].deduction === 5);
+t("検査の名前と、調べるスキルのフォルダの絶対パスを、スクリプトが決める", r.j && r.j.script === "ai-structure" && r.j.findings.every(f => f.check === "ai-structure") && r.j.target === sk && r.j.status === "済み");
+r = run("AI を乗っ取る書き方", [row("AI を乗っ取る書き方(隠す)"), row("AI を乗っ取る書き方(疑わしい)")]);
+t("AI を乗っ取る書き方の指摘は、区分「危険」、分野 null、減点 0 で、表の重さを付ける", r.j && r.j.script === "ai-danger" && r.j.findings[0].kind === "危険" && r.j.findings[0].severity === "重大" && r.j.findings[0].dimension === null && r.j.findings[0].deduction === 0 && r.j.findings[1].severity === "注意");
+r = run("AI を乗っ取る書き方", [], false);
+t("指摘が 0 件のときは、findings を空の配列にして、終了コード 0 で書く", r.code === 0 && r.j && r.j.findings.length === 0);
+t("--out がないときは、標準出力に JSON を出す", r.j && r.j.script === "ai-danger");
+for (const [why, rows] of [["知らない項目の名前", [row("知らない項目")]], ["ほかの検査の項目の名前", [row("AI を乗っ取る書き方(隠す)")]], ["項目の足りない行", [{ item: "「目的:」の行の中身", file: "SKILL.md", line: 3, message: "中身" }]], ["重さを持つ行", [row("「目的:」の行の中身", { severity: "重大" })]], ["ないファイル", [row("「目的:」の行の中身", { file: "none.md" })]], ["フォルダの外のファイル", [row("「目的:」の行の中身", { file: "../x.md" })]], ["整数でない行", [row("「目的:」の行の中身", { line: "3" })]], ["空の中身", [row("「目的:」の行の中身", { message: " " })]], ["配列でない JSON", { item: "x" }], ["JSON でないファイル", "{"]]) t(`${why}を持つ判定の JSON は、終了コード 2 で、指摘の JSON を書かない`, run("日本語の章の中身", rows).code === 2 && !existsSync(join(D, `out-${n - 1}.json`)));
+t("--check の値が決まった 2 つのどちらでもないときは、終了コード 2", run("ほかの検査", []).code === 2);
+t("引数がないときは、終了コード 2", spawnSync(process.execPath, [S]).status === 2);
+process.exit(fail);

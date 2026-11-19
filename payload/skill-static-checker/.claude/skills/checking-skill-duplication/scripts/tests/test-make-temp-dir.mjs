@@ -1,0 +1,21 @@
+#!/usr/bin/env node
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, readdirSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+const S = join(dirname(fileURLToPath(import.meta.url)), "..", "make-temp-dir.mjs");
+const D = mkdtempSync(join(process.env.TMPDIR || "/tmp", "test-make-temp-dir-"));
+process.on("exit", () => rmSync(D, { recursive: true, force: true }));
+let fail = 0;
+const t = (name, cond) => { console.log(`${cond ? "成功" : "失敗"}: ${name}`); if (!cond) fail = 1; };
+const run = args => spawnSync(process.execPath, [S, ...args], { encoding: "utf8", env: { ...process.env, TMPDIR: D, TMP: D, TEMP: D } });
+let r = run([]);
+const p = r.stdout.trim();
+t("OS の一時フォルダの下に、名前が checking-skill-duplication- で始まるフォルダを作り、絶対パスを 1 行出す", r.status === 0 && r.stdout.split("\n").length === 2 && existsSync(p) && dirname(p) === D.split("\\").join("/") && p.split("/").pop().startsWith("checking-skill-duplication-"));
+t("出すパスの区切りは /", !p.includes("\\"));
+r = run(["findings", "work"]);
+t("引数の名前の下のフォルダも作る", r.status === 0 && ["findings", "work"].every(n => existsSync(join(r.stdout.trim(), n))));
+t("2 回作ると、別のフォルダになる", run([]).stdout.trim() !== p);
+const before = readdirSync(D).length;
+t("下のフォルダの名前がパスを持つときは、作らずに終了コード 2", run(["a/b"]).status === 2 && run([".."]).status === 2 && readdirSync(D).length === before);
+process.exit(fail);

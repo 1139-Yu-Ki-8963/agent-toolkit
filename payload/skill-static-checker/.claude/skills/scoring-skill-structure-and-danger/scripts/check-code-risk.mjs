@@ -26,6 +26,7 @@ for (const [p, t] of files) {
   if (PY.includes(e)) L.forEach((s, i) => { if (!code(s)) return;
     if (/(^|[^\w.])(eval|exec)\s*\(/.test(s)) add("HIGH", "危ないコード(eval と exec)", p, i + 1, "文字列をコードとして動かす eval か exec を使っている。", "eval と exec を使わずに、決まった処理を書く。");
     if (/subprocess\.(run|Popen|call|check_call|check_output)\(.*shell\s*=\s*True/.test(s)) add("HIGH", "危ないコード(シェルに渡す実行)", p, i + 1, "subprocess を shell=True で動かしている。", "shell=True を外し、引数の一覧で渡す。");
+    if (/\b[\w.]+\.execute\(\s*(?:[rR]?[fF]|[fF][rR])["'].*\{[^}]+\}/.test(s)) add("HIGH", "危ないコード(SQL の組み立て)", p, i + 1, "実行時の値を f 文字列で埋め込んだ SQL を、execute に渡している。", "SQL の値は、execute の第 2 引数のパラメータで渡す。");
   });
   if (JS.includes(e) || SH.includes(e) || PY.includes(e) || DOC(p)) L.forEach((s, i) => {
     if (/\b(curl|wget)\b[^|\n]*\|\s*(sudo\s+)?(sh|bash|zsh)\b/.test(s)) add("HIGH", "危ないコード(取得したものをシェルに渡す)", p, i + 1, "取得した中身を、そのままシェルに渡している。", "パッケージマネージャで入れる。");

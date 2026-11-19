@@ -380,6 +380,16 @@
       "mode": "file",
       "src": "~/Projects/skill-static-checker/README.md",
       "dst": "payload/skill-static-checker/README.md"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-static-checker/スキルとツールの責務.html",
+      "dst": "payload/skill-static-checker/スキルとツールの責務.html"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/skill-static-checker/SkillEvaluator との対応.md",
+      "dst": "payload/skill-static-checker/SkillEvaluator との対応.md"
     }
   ]
 }

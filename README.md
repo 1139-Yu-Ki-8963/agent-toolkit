@@ -59,10 +59,12 @@ payload/
 │   ├── NOTICE.md                         もとにした pstack の著作権表示と、ファイルの対応
 │   ├── rules/                            .claude/rules/ に置く規約(veteran-engineer、agent-behavior)
 │   └── skills/                           .claude/skills/ に置くスキル(investigate、bug-fix など 9 本)
-├── skill-static-checker/                 スキルを構造と危険の静的チェックにかけて点数と報告の HTML を出すスキル
+├── skill-static-checker/                 スキルの構造と危険の静的チェックと、重複の検査を行うスキル 2 本
 │   ├── README.md
-│   ├── .claude/skills/                   スキル scoring-skill-structure-and-danger と、そのテスト計画書
-│   └── sample-reports/                   報告の HTML の見本 2 本
+│   ├── スキルとツールの責務.html          step ごとのツールと AI の受け持ちの一覧
+│   ├── SkillEvaluator との対応.md         SkillEvaluator のどの検査を写したかの記録
+│   ├── .claude/skills/                   スキル 2 本と、テスト計画書と判定の記録
+│   └── sample-reports/                   報告の HTML の見本 4 本
 ```
 
 2026-09-29 に、reverse-docs-skills、claude-code-template、explanation-slides-kit、ai-driven-development-setup、ai-consulting-toolkit の公開をやめた。2026-10-05 に、`.claude/` 配下の構成に改め、規約を 1 ファイル版に一本化し、reviewing-agent-skills(checking-skill-with-template に置き換え)の公開をやめた。同日、ai-consulting-toolkit の公開を再開した(skills、docs、portal に加え、templates と README.md を同期)。
@@ -97,9 +99,14 @@ Claude Code に、ベテランエンジニアの判断と作業の進め方を�
 
 Cursor の公式プラグインリポジトリにある pstack(作者 Lauren Tan、MIT License)を、日本語に訳し、要約し、Claude Code で単体で動くように作り直したもの。ライセンスは [`payload/engineering-handbook/LICENSE`](payload/engineering-handbook/LICENSE)、もとにしたファイルの対応は [`payload/engineering-handbook/NOTICE.md`](payload/engineering-handbook/NOTICE.md) にある。2026-11-17 に公開を始めた。
 
-## skill-static-checker(スキルの構造と危険の静的チェック)
+## skill-static-checker(スキルの構造と危険の静的チェックと、重複の検査)
 
-スキルのフォルダを動かさずに調べ、構造の点数(100 点から減点し、70 点が合格ライン)と、危険の合否を出し、報告の HTML を書くスキル scoring-skill-structure-and-danger。NVIDIA の SkillEvaluator の Tier 1 に当たる検査を、日本語のスキルと skill-factory の規約に合わせて行う。`.claude/skills/scoring-skill-structure-and-danger/` を `.claude/skills/` に写して使う。node が要る。スキルが名前で挙げる規約は、[`payload/skill-factory/.claude/rules/`](payload/skill-factory/.claude/rules/) にある。報告の見本は [`payload/skill-static-checker/sample-reports/`](payload/skill-static-checker/sample-reports/) にあり、ファイルを落としてブラウザで開く。使い方は [`payload/skill-static-checker/README.md`](payload/skill-static-checker/README.md) にある。2026-11-19 に公開を始めた。
+2 本のスキルを持つ。NVIDIA の SkillEvaluator の Tier 1 と Tier 2 に当たる検査を、日本語のスキルと skill-factory の規約に合わせて行う。
+
+- scoring-skill-structure-and-danger: スキルのフォルダを動かさずに調べ、構造の点数(100 点から減点し、70 点が合格ライン)と、危険の合否を出し、報告の HTML を書く。Tier 1 に当たる。
+- checking-skill-duplication: スキルの中で同じ指示を繰り返す節と、役目が重なるほかのスキルを、判定者 2 人(サブエージェント)に仕分けさせ、重複の検査の合否と報告の HTML を出す。Tier 2 に当たり、節の本文を埋め込みの提供元に送らない。
+
+どちらも、スキルのフォルダを `.claude/skills/` に写して使う。node が要る。step ごとのツールと AI の受け持ちは [`payload/skill-static-checker/スキルとツールの責務.html`](payload/skill-static-checker/スキルとツールの責務.html)、SkillEvaluator のどの検査を写したかは [`payload/skill-static-checker/SkillEvaluator との対応.md`](<payload/skill-static-checker/SkillEvaluator との対応.md>) にある。スキルが名前で挙げる規約は、[`payload/skill-factory/.claude/rules/`](payload/skill-factory/.claude/rules/) にある。報告の見本は [`payload/skill-static-checker/sample-reports/`](payload/skill-static-checker/sample-reports/) にあり、ファイルを落としてブラウザで開く。使い方は [`payload/skill-static-checker/README.md`](payload/skill-static-checker/README.md) にある。2026-11-19 に公開を始めた。
 
 ## public-skills(プロジェクトに置いて動く公開スキル集)
 

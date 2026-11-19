@@ -1,0 +1,24 @@
+#!/usr/bin/env node
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, readdirSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+const S = join(dirname(fileURLToPath(import.meta.url)), "..", "make-judge-prompt.mjs");
+const D = mkdtempSync(join(process.env.TMPDIR || "/tmp", "test-make-judge-prompt-"));
+process.on("exit", () => rmSync(D, { recursive: true, force: true }));
+let fail = 0;
+const t = (name, cond) => { console.log(`${cond ? "成功" : "失敗"}: ${name}`); if (!cond) fail = 1; };
+const run = args => spawnSync(process.execPath, [S, ...args], { encoding: "utf8" });
+const w = join(D, "work"); mkdirSync(w);
+writeFileSync(join(w, "duplicate-sections.json"), JSON.stringify({ target: "/x/sample-skill", pairs: [] }));
+writeFileSync(join(w, "similar-skills.json"), JSON.stringify({ catalog: "/x", skills: [] }));
+let r = run([w]);
+const p = D.split("\\").join("/") + "/work";
+t("指示文のコードブロックの 4 つの空欄を埋めて、標準出力に出す", r.status === 0 && r.stdout.includes("調べるスキルのフォルダ: /x/sample-skill\n") && r.stdout.includes("比べるスキルの置き場: /x\n") && r.stdout.includes(`重複の候補の JSON: ${p}/duplicate-sections.json\n`) && r.stdout.includes(`似たスキルの JSON: ${p}/similar-skills.json\n`));
+t("空欄の山かっこと、コードブロックの区切りの行を残さない", !/<[^>]*(フォルダ|置き場|パス)>/.test(r.stdout) && !r.stdout.includes("```text"));
+t("指示文の始まりの文と、指示文の終わりの文を持つ", r.stdout.startsWith("この指示文を受け取った AI は、スキルの重複の判定者です。") && r.stdout.includes("理由は、日本語の 1 文で書いてください。\n"));
+t("指示文の後ろに、返す書式の見出しと、キー sections と skills を持つ json のコードブロックを付ける", r.stdout.includes("サブエージェントが返す書式:\n") && r.stdout.includes("```json") && r.stdout.includes('"sections"') && r.stdout.includes('"skills"') && r.stdout.includes('"category"') && !r.stdout.includes("返り値の文が"));
+const n = join(D, "nojson"); mkdirSync(n);
+t("候補の JSON がないフォルダは、終了コード 2", run([n]).status === 2);
+t("引数がないときは、終了コード 2", run([]).status === 2);
+process.exit(fail);

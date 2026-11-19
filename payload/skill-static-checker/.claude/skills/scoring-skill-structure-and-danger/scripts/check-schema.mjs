@@ -32,8 +32,15 @@ if (name && !(/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(name) && name.length <= 64)) 
 if (name.toLowerCase().split("-").some(w => w === "anthropic" || w === "claude")) add("name の予約語", "HIGH", 15, LN.name, `name「${name}」が、予約語 anthropic か claude を持つ。`, "name から anthropic と claude を除く。");
 if (name && name !== basename(resolve(DIR))) add("name とフォルダの名前", "HIGH", 15, LN.name, `name「${name}」が、フォルダの名前「${basename(resolve(DIR))}」と違う。`, "name とフォルダの名前を同じにする。");
 if ([...desc].length > 1024) add("description の字数", "HIGH", 15, LN.description, `description が ${[...desc].length} 字で、1,024 字を超える。`, "description を 1,024 字以内にする。");
-for (const [k, v] of Object.entries(V)) if (X.test(v)) add("XML のタグ", "HIGH", 15, LN[k], `キー「${k}」の値が XML のタグを持ち、AI への指示として読まれるおそれがある。`, "値から山かっこのタグを除く。");
-for (const k of ["alwaysApply", "globs"]) if (k in V) add("alwaysApply と globs", "HIGH", 15, LN[k], `フロントマターが、スキルでは使わないキー「${k}」を持つ。`, `キー「${k}」の行を消す。`);
+const CTRL = /<(?:(?:system|developer|assistant|user|tool|context|instructions?|prompt|override|rules|policy)(?:[_-]?(?:prompt|message|call|use|result|instruction)s?)?|script)(?=[\s<>:])/i, PH = /<(?![^<>]*\/\s*>)([A-Za-z][^<>=\r\n]*)>/g, ARROW = /(?<!\S)(?:->|=>|>=)(?!\S)|(?<![^\s(\[])>=? ?\d+(?:\.\d+)?(?![^\s)\],])/g;
+const isPh = b => { if (/\s$/.test(b) || /[;&`]|\$[({]/.test(b) || b.split(/\s+/).filter(w => /[\p{L}\p{N}]/u.test(w)).length > 4) return false; if (!b.includes("|")) return true; const c = b.split("|"); c[0] = c[0].trim().replace(/^(?:[^|:]+:|\S+\s+(?:e\.g\.|i\.e\.),?)\s+/i, ""); return c.every(x => /^(?:\S+|"[^"]*"|'[^']*')$/.test(x.trim())); };
+const hides = m => { const ops = new Set([...m.matchAll(ARROW)].map(x => x.index + x[0].indexOf(">"))), op = []; let after = false; for (let i = 0; i < m.length; i++) { const c = m[i]; if (after && c !== ">") return true; after = false; if (c === "<") op.push(i); else if (c === ">") { if (op.length) op.pop(); else if (!ops.has(i)) return true; } else if (op.length && m.startsWith("[]", i)) { if (!/^[A-Za-z][A-Za-z0-9_-]*$/.test(m.slice(op.at(-1) + 1, i))) return true; after = true; i++; } } return after; };
+const maskHint = h => { if (CTRL.test(h)) return h; const m = h.replace(PH, (all, b) => isPh(b) ? "[]" : all); return hides(m) ? h : m; };
+const xk = Object.keys(V).filter(k => X.test(k === "argument-hint" ? maskHint(V[k]) : V[k])), xo = xk.filter(k => k !== "name" && k !== "description");
+for (const k of xk.filter(k => k === "name" || k === "description")) add("XML のタグ", "HIGH", 15, LN[k], `キー「${k}」の値が XML のタグを持ち、AI への指示として読まれるおそれがある。`, "値から山かっこのタグを除く。");
+if (xo.length) add("XML のタグ", "HIGH", 15, LN[xo[0]], `name と description のほかのキー(${xo.join("、")})の値が XML のタグを持ち、AI への指示として読まれるおそれがある。`, "値から山かっこのタグを除く。argument-hint の引数は、<file> のような短い書き方にする。");
+const fb = ["alwaysApply", "globs"].filter(k => k in V);
+if (fb.length) add("alwaysApply と globs", "HIGH", 15, LN[fb[0]], `フロントマターが、スキルでは使わないキー(${fb.join("、")})を持つ。`, `キー(${fb.join("、")})の行を消す。`);
 if ("metadata.version" in V && !/^(0|[1-9]\d{0,8})\.(0|[1-9]\d{0,8})\.(0|[1-9]\d{0,8})$/.test(V["metadata.version"])) add("metadata.version の形", "HIGH", 15, LN["metadata.version"], `metadata.version「${V["metadata.version"]}」が「1.2.3」の形でない。`, "metadata.version を、点で区切った 3 つの整数にする。");
 try { const R = JSON.stringify({ script: "check-schema", target: resolve(DIR), status: "済み", findings: F }, null, 2) + "\n"; if (OUT) writeFileSync(OUT, R); else process.stdout.write(R); } catch (e) { console.error(`指摘の JSON を書けない: ${e.message}`); process.exit(2); }
 process.exitCode = F.length ? 1 : 0;

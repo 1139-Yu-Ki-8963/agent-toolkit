@@ -15,14 +15,14 @@ for (const [p, t] of files) t.split("\n").forEach((s, i) => {
   for (const ch of s) { const c = ch.codePointAt(0), k = cat(c); if (k) { if (last === col - 1) G.at(-1).push({ c, k }); else G.push([{ c, k }]); last = col; } col++; }
   for (const g of G) {
     const ks = new Set(g.map(x => x.k)), main = ORDER.find(k => ks.has(k)), n = i + 1, label = `見えない文字(${CAT[main]})`, rm = "見えない文字を消す。";
-    const dec = g.filter(x => x.k === "tags" && x.c >= 0xe0020 && x.c <= 0xe007e).map(x => String.fromCharCode(x.c - 0xe0000)).join("");
+    const dec = g.filter(x => x.k === "tags" && x.c >= 0xe0020 && x.c <= 0xe007e).map(x => String.fromCharCode(x.c - 0xe0000)).join("").trim();
     if (g.length === 1 && g[0].c === 0xfeff && i === 0 && s.codePointAt(0) === 0xfeff) add("INFO", "ファイルの先頭の BOM", p, n, "ファイルの先頭に BOM がある。害はない。", "要らなければ BOM を消す。");
     else if (dec) add("CRITICAL", label, p, n, `タグ文字が、見えない英字の文「${dec.slice(0, 80)}」を持つ。`, rm);
     else if (g.length >= 40) add("CRITICAL", label, p, n, `見えない文字が ${g.length} 字続く(${hex(g)})。`, rm);
     else if (ks.has("bidi")) add("HIGH", label, p, n, `文字の向きを変える文字がある(${hex(g)})。表示とコードの中身が食い違うおそれがある。`, rm);
     else if (g.length >= 10) add("HIGH", label, p, n, `見えない文字が ${g.length} 字続く(${hex(g)})。`, rm);
-    else if (g.length >= 3 || main === "deprecated" || main === "operators") add("MEDIUM", label, p, n, `見えない文字がある(${hex(g)})。`, rm);
-    else add("LOW", label, p, n, `見えない文字が 1 つか 2 つある(${hex(g)})。写したときに紛れたおそれがある。`, rm);
+    else if (["zero", "deprecated", "operators"].includes(main) && (g.length >= 3 || main !== "zero")) add("MEDIUM", label, p, n, `見えない文字がある(${hex(g)})。`, rm);
+    else add("LOW", label, p, n, `見えない文字がある(${hex(g)})。写したときに紛れたおそれがある。`, rm);
   }
 });
 try { const R = JSON.stringify({ script: "check-unicode", target: resolve(DIR), status: "済み", findings: F }, null, 2) + "\n"; if (OUT) writeFileSync(OUT, R); else process.stdout.write(R); } catch (e) { console.error(`指摘の JSON を書けない: ${e.message}`); process.exit(2); }

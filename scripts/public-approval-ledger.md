@@ -222,6 +222,9 @@ mirror モード（`~/agent-home/agents` → `payload/.../agent-home/agents`）�
 | .claude/skills/(scoring-skill-structure-and-danger と、tests/ のテスト計画書) | 承認済み | ユーザーの指示(2026-11-19)「公開まで進めて」「skill-static-checker を新しい GitHub のリポジトリにして push、toolkitのみで公開」。写したあとの grep で、/Users/ の後に名前が続く形、agent-home、~/Projects、メールアドレスの形は 0 件。--check-artifacts で 0 件 | 2026-11-19 に追加。source: skill-static-checker@7bb5d9b |
 | sample-reports/(報告の HTML 2 本) | 承認済み | 同上。この PC のパスを <skill-factory のパス> と <作業用のフォルダ> に置き換えた | 2026-11-19 に追加。source: skill-static-checker@7bb5d9b |
 | README.md | 承認済み | 同上。.claude/rules/ のシンボリックリンクは写さない | file |
+| .claude/skills/(checking-skill-duplication と、tests/ のテスト計画書 2 本と判定の記録 2 本) | 承認済み | ユーザーの選択(2026-11-20)「a」(公開の README のリンク先の 2 つのファイルを写しの設定に足し、承認の記録を直して push する候補)。写したあとの grep で、この PC のパス、アカウント名、一時フォルダのパスは 0 件。--check-artifacts で 0 件 | 2026-11-20 に追加。source: skill-static-checker@1118a07 |
+| sample-reports/(報告の HTML 4 本。2026-11-19 の 2 本を置き換え) | 承認済み | 同上。この PC のパスを <skill-factory のパス> と <作業用のフォルダ> に置き換えた | 2026-11-20 に追加。source: skill-static-checker@1118a07 |
+| スキルとツールの責務.html、SkillEvaluator との対応.md | 承認済み | 同上。README.md がリンクで指すファイル | 2026-11-20 に追加。file。source: skill-static-checker@1118a07 |
 
 ## slide-creator-studio(公開の開始 2026-11-14)
 

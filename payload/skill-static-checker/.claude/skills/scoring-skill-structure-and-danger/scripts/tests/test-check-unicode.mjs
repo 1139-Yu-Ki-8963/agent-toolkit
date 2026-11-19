@@ -25,6 +25,10 @@ t("幅のない文字 1 字は、重さ「注意」の LOW", at(7) && at(7).sour
 t("幅のない文字 3 字の連なりは、重さ「注意」の MEDIUM", at(8) && at(8).source_severity === "MEDIUM");
 t("見えない文字 12 字の連なりは、重さ「重大」の HIGH", at(9) && at(9).source_severity === "HIGH");
 t("見えない演算子は、重さ「注意」の MEDIUM", at(10) && at(10).source_severity === "MEDIUM");
+const sp = String.fromCodePoint(0xe0020), tg = String.fromCodePoint(0xe0001);
+r = run([skill("tags", { "SKILL.md": FM + `1 行目${sp}${sp}${sp}\n2 行目${tg}${tg}${tg}\n` })]);
+t("タグ文字の連なりを解いた文が空白だけのときは、重さ「重大」にしない", r.j && r.j.findings.find(f => f.line === 5) && r.j.findings.find(f => f.line === 5).severity !== "重大");
+t("英字の文を持たないタグ文字の 3 字の連なりは、MEDIUM にせず、LOW とする", r.j && r.j.findings.find(f => f.line === 6) && r.j.findings.find(f => f.line === 6).source_severity === "LOW");
 t("引数がないときは、終了コード 2", run([]).code === 2);
 t("SKILL.md のないフォルダは、終了コード 2", run([D]).code === 2);
 process.exit(fail);

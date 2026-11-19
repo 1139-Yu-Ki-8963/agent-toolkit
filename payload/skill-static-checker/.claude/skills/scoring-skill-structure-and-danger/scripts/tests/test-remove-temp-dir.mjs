@@ -1,0 +1,23 @@
+#!/usr/bin/env node
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync, existsSync, readdirSync } from "node:fs";
+import { spawnSync } from "node:child_process";
+import { join, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+const S = join(dirname(fileURLToPath(import.meta.url)), "..", "remove-temp-dir.mjs");
+const D = mkdtempSync(join(process.env.TMPDIR || "/tmp", "test-remove-temp-dir-"));
+process.on("exit", () => rmSync(D, { recursive: true, force: true }));
+let fail = 0;
+const t = (name, cond) => { console.log(`${cond ? "成功" : "失敗"}: ${name}`); if (!cond) fail = 1; };
+const run = args => spawnSync(process.execPath, [S, ...args], { encoding: "utf8", env: { ...process.env, TMPDIR: D, TMP: D, TEMP: D } });
+const mk = p => { mkdirSync(join(p, "sub"), { recursive: true }); writeFileSync(join(p, "sub", "a.json"), "{}"); return p; };
+const ok = mk(join(D, "scoring-skill-structure-and-danger-abc"));
+t("OS の一時フォルダの直下の、名前が scoring-skill-structure-and-danger- で始まるフォルダを、中身ごと消す", run([ok]).status === 0 && !existsSync(ok));
+const deep = mk(join(D, "x", "scoring-skill-structure-and-danger-abc"));
+t("一時フォルダの直下にないフォルダは、消さずに終了コード 2", run([deep]).status === 2 && existsSync(deep));
+const other = mk(join(D, "other-abc"));
+t("名前が scoring-skill-structure-and-danger- で始まらないフォルダは、消さずに終了コード 2", run([other]).status === 2 && existsSync(other));
+const up = mk(join(D, "scoring-skill-structure-and-danger-up"));
+t("「..」で一時フォルダそのものを指すパスは、消さずに終了コード 2", run([join(up, "..")]).status === 2 && existsSync(up));
+t("名前が scoring-skill-structure-and-danger- だけのフォルダは、終了コード 2", run([join(D, "scoring-skill-structure-and-danger-")]).status === 2);
+t("引数がないときと、2 つ以上のときは、終了コード 2", run([]).status === 2 && run([up, up]).status === 2 && existsSync(up));
+process.exit(fail);

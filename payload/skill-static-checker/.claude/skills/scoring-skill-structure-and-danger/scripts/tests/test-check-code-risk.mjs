@@ -26,6 +26,9 @@ t("取得したものをシェルに渡すコマンドを、重さ「重大」�
 t("パッケージマネージャの外の取得を、重さ「注意」で指摘する", r.j && r.j.findings.some(f => f.item === "外部からの取得" && f.severity === "注意"));
 t("scripts/ の外のスクリプトの実行を指摘する", has("同梱していないスクリプトの実行", "SKILL.md"));
 t("2 行のコマンドのコードブロックを指摘する", has("1 行のコマンドでない実行", "SKILL.md"));
+const EX = "exe" + "cute";
+r = run([skill("sql", { "SKILL.md": "---\nname: sql\ndescription: 見本。\n---\n", "scripts/q.py": `cur.${EX}(f"SELECT * FROM t WHERE id = {uid}")\ncur.${EX}("SELECT * FROM t WHERE id = ?", (uid,))\n` })]);
+t("Python の f 文字列で組み立てた SQL を execute に渡す行を、重さ「重大」で指摘する", r.j && r.j.findings.filter(f => f.item === "危ないコード(SQL の組み立て)").length === 1 && r.j.findings.find(f => f.item === "危ないコード(SQL の組み立て)").line === 1 && r.j.findings.find(f => f.item === "危ないコード(SQL の組み立て)").severity === "重大");
 t("引数がないときは、終了コード 2", run([]).code === 2);
 t("SKILL.md のないフォルダは、終了コード 2", run([D]).code === 2);
 process.exit(fail);

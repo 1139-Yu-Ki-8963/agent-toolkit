@@ -15,7 +15,7 @@ const has = (r, item, sev) => !!(r.j && r.j.findings.some(f => f.item === item &
 let r = run([skill("mit", { "SKILL.md": md("MIT") })]);
 t("license: MIT は、終了コード 0 で、指摘が 0 件", r.code === 0 && r.j && r.j.findings.length === 0 && r.j.license === "MIT");
 r = run([skill("dual", { "SKILL.md": md("MIT OR GPL-3.0-only") })]);
-t("MIT OR GPL-3.0-only は、許可の一覧の側を選べるので、指摘が 0 件", r.code === 0);
+t("MIT OR GPL-3.0-only は、制限のあるライセンスの名前を持つので、「許可しないライセンス」を重さ「重大」で指摘する", r.code === 1 && has(r, "許可しないライセンス", "重大"));
 r = run([skill("gpl", { "SKILL.md": md("GPL-3.0") })]);
 t("license: GPL-3.0 は、終了コード 1 で、「許可しないライセンス」を重さ「重大」で指摘する", r.code === 1 && has(r, "許可しないライセンス", "重大"));
 r = run([skill("unknown", { "SKILL.md": md("Foo-1.0") })]);
@@ -23,9 +23,18 @@ t("許可の一覧にないライセンスは、重さ「注意」で指摘す�
 r = run([skill("none", { "SKILL.md": md(null) })]);
 t("license の値も LICENSE のファイルもないときは、終了コード 0 で、指摘が 0 件", r.code === 0 && r.j && r.j.findings.length === 0);
 r = run([skill("file", { "SKILL.md": md("MIT"), LICENSE: "GNU GENERAL PUBLIC LICENSE\nVersion 3, 29 June 2007\n" })]);
-t("LICENSE のファイルが GPL のときは、重大の指摘と食い違いの指摘を持つ", has(r, "許可しないライセンス", "重大") && has(r, "ライセンスの食い違い"));
+t("LICENSE のファイルが GPL のときは、LICENSE のファイルを「許可しないライセンス」で指摘し、食い違いの指摘は持たない", r.j && r.j.findings.some(f => f.item === "許可しないライセンス" && f.file === "LICENSE") && !has(r, "ライセンスの食い違い"));
 r = run([skill("prop", { "SKILL.md": md(null), LICENSE: "Copyright 2026 Example Inc.\nAll rights reserved.\n" })]);
 t("知られたライセンスの文がなく、配ることを禁じる文を持つ LICENSE は、重大の指摘を持つ", has(r, "許可しないライセンス", "重大"));
+for (const [lic, item, sev, why] of [["MIT AND GPL-3.0-only", "許可しないライセンス", "重大", "AND の式"], ["LGPL-2.1+", "許可しないライセンス", "重大", "+ の形"], ["GPL-2.0-with-classpath-exception", "許可しないライセンス", "重大", "-with-...-exception の形"], ["MIT OR Foo-1.0", "許可の一覧にないライセンス", "注意", "許可の一覧にない名前を持つ OR の式"], ["MIT AND", "ライセンスの式の誤り", "重大", "SPDX の書き方に合わない式"]]) { r = run([skill("expr-" + lic.replace(/\W/g, "_"), { "SKILL.md": md(lic) })]); t(`${why}(${lic})は、「${item}」を重さ「${sev}」で指摘する`, has(r, item, sev)); }
+r = run([skill("notice", { "SKILL.md": md(null), NOTICE: "This product includes software.\nAll rights reserved.\n" })]);
+t("NOTICE のファイルは、ライセンスの判定で読まない", r.code === 0 && r.j && r.j.findings.length === 0);
+r = run([skill("clash", { "SKILL.md": md("Apache-2.0"), LICENSE: "MIT License\nPermission is hereby granted, free of charge, without restriction.\n" })]);
+t("フロントマターと LICENSE のファイルのライセンスが違うときは、「ライセンスの食い違い」を重さ「重大」で指摘する", has(r, "ライセンスの食い違い", "重大"));
+r = run([skill("in-expr", { "SKILL.md": md("MIT OR Apache-2.0"), LICENSE: "MIT License\nPermission is hereby granted, free of charge, without restriction.\n" })]);
+t("LICENSE のファイルのライセンスが、フロントマターの式の中の名前に含まれるときは、食い違いとしない", r.code === 0 && r.j && r.j.findings.length === 0);
+r = run([skill("unrec", { "SKILL.md": md("MIT"), COPYING: "自由に使ってよい。\n" })]);
+t("見分けられない COPYING は、フロントマターの license があっても、「知らないライセンス」を重さ「重大」で指摘する", has(r, "知らないライセンス", "重大"));
 r = run([skill("spdx", { "SKILL.md": md("MIT"), "scripts/a.mjs": "#!/usr/bin/env node\n// SPDX-License-" + "Identifier: AGPL-3.0-only\n" })]);
 t("ファイルの SPDX の見出しが AGPL のときは、そのファイルを重大で指摘する", r.j && r.j.findings.some(f => f.file === "scripts/a.mjs" && f.severity === "重大"));
 t("引数がないときは、終了コード 2", run([]).code === 2);
