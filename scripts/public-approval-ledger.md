@@ -380,3 +380,11 @@ pstack(cursor/plugins、MIT、Copyright (c) 2026 Lauren Tan)の原則とプレ�
 |---|---|---|---|
 | ~/Projects/slide-creator-studio/.claude/rules(mirror) | 承認済み | ユーザーの指示(2026-11-20「それ以外は規則も直して、追加してOK」)。上記の検査 | 公開の開始(2026-11-14)の行の範囲の中の変更 |
 | ~/Projects/slide-creator-studio/.claude/skills(mirror) | 承認済み | 同上 | 同上 |
+
+## slide-creator-studio のグラフの選び方の変更(2026-11-21)
+
+規約 slide-writing-rule の規則「グラフの種類の選び方」を、総務省統計局「なるほど統計学園」の「グラフ作成の基本」と、デジタル庁「ダッシュボードデザインの実践ガイドブック」の 4.2 の定義に合わせた。型の表の割合の行を、1 つの全体の構成比(円グラフ)と、2 つ以上の集団か時点の構成比(帯グラフを並べる)に分けた。デザインシステム「墨と赤」に、円グラフの部品と、割合の組み方を足した。公開前の検査(2026-11-21): 変えた 2 本の文書で、`/Users/`、`agent-home`、メールアドレスの照合で 0 件。`sync-payload.mjs --check-artifacts` で該当なし。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| ~/Projects/slide-creator-studio/.claude/rules(mirror) | 承認済み | ユーザーの承認(2026-11-21「a」)。上記の検査 | 公開の開始(2026-11-14)の行の範囲の中の変更 |
