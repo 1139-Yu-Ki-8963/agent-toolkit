@@ -10,7 +10,7 @@ Claude Code で使うスキル集を、公開できると判断した範囲だ�
 
 ```bash
 git clone https://github.com/1139-Yu-Ki-8963/agent-toolkit.git
-cp -R agent-toolkit/payload/public-skills/.claude/rules/skill-writing <プロジェクト>/.claude/rules/
+cp -R agent-toolkit/payload/public-skills/.claude/rules/<規約のフォルダ> <プロジェクト>/.claude/rules/
 cp -R agent-toolkit/payload/public-skills/.claude/skills/<スキル名> <プロジェクト>/.claude/skills/
 ```
 
@@ -23,12 +23,12 @@ payload/
 ├── public-skills/                        プロジェクトの .claude/ に置いて動く公開スキル集
 │   ├── README.md
 │   └── .claude/
-│       ├── rules/skill-writing/  スキルの書き方の規約(1 ファイル版)、雛形、完成例
+│       ├── rules/                        規約 3 つ(rule-writing、hook-writing、behavior)
 │       └── skills/
-│           ├── drafting-skill-with-template/
-│           ├── checking-skill-with-template/
-│           ├── designing-skill-test-with-template/
-│           ├── testing-skill-with-template/
+│           ├── revising-skill-writing-rule/
+│           ├── checking-ui-with-rules/
+│           ├── fixing-ui-with-rules/
+│           ├── managing-textlint-banned-words/
 │           ├── converting-mermaid-md-to-html/
 │           └── reporting-textlint-findings/
 ├── ai-consulting-toolkit/                AI 推進コンサルタントの道具箱
@@ -114,14 +114,14 @@ Cursor の公式プラグインリポジトリにある pstack(作者 Lauren Tan
 
 | スキル | 何をするか | 前提 |
 |---|---|---|
-| [`drafting-skill-with-template`](payload/public-skills/.claude/skills/drafting-skill-with-template/SKILL.md) | 依頼にある作業を、規約と雛形に従ったスキルとして新しく書き、何も知らないサブエージェントに規約と照らさせて、違反がなくなるまで直す | `.claude/rules/skill-writing`、サブエージェントを起動できる環境 |
-| [`checking-skill-with-template`](payload/public-skills/.claude/skills/checking-skill-with-template/SKILL.md) | 既存のスキルの全ファイルを雛形の形と機械的に突き合わせ、規約の規則と 1 つずつ照らし、違反を一覧にする。ファイルは変更しない | 同上 |
-| [`designing-skill-test-with-template`](payload/public-skills/.claude/skills/designing-skill-test-with-template/SKILL.md) | 既存のスキルから、対象の説明、仕様、機能の一覧、シナリオ、経路の網羅の表、既知の限界からなるテスト設計の文書を書き出す | サブエージェントを起動できる環境 |
-| [`testing-skill-with-template`](payload/public-skills/.claude/skills/testing-skill-with-template/SKILL.md) | テスト設計の文書のシナリオを実行者に実行させ、記録を照らし、評価者の評価と合わせて検証の結果を表示する。対象は変更しない | 同上 |
+| [`revising-skill-writing-rule`](payload/public-skills/.claude/skills/revising-skill-writing-rule/SKILL.md) | スキル作成の規約の一式(規約、雛形、完成例)に決まりを足す、直す、消す依頼を、既にある決まりと突き合わせて、置く位置を決め、承認を得て反映する | 規約の一式(skill-factory の `.claude/rules/skill-writing`)。パスで渡す |
+| [`checking-ui-with-rules`](payload/public-skills/.claude/skills/checking-ui-with-rules/SKILL.md) | ルールの文書を規約にし、画面のファイルと画面を照合者 2 人に見比べさせ、指摘の一覧を結果のフォルダに書く。直したあとの調べ直しも受け持つ | node、npm、git。画面の URL を渡すときは Playwright と Chromium(スキルが入れる) |
+| [`fixing-ui-with-rules`](payload/public-skills/.claude/skills/fixing-ui-with-rules/SKILL.md) | checking-ui-with-rules の指摘の一覧のうち、頼まれた番号の指摘だけを画面のファイルに直し、調べ直しの頼み方を出す | node、npm |
+| [`managing-textlint-banned-words`](payload/public-skills/.claude/skills/managing-textlint-banned-words/SKILL.md) | textlint の禁止語の辞書と設定と hooks を依頼どおりの状態にし、辞書を一覧で表示する | node、npm。textlint のパッケージはスキルが入れる |
 | [`converting-mermaid-md-to-html`](payload/public-skills/.claude/skills/converting-mermaid-md-to-html/SKILL.md) | Mermaid の図を含む md 1 本を、図を描画した 1 ページの HTML に変換する | hugo(extended)。無ければスキルが入れ方を案内する |
 | [`reporting-textlint-findings`](payload/public-skills/.claude/skills/reporting-textlint-findings/SKILL.md) | md を textlint で検査し、指摘箇所に波線を引いた HTML を書き出す | node と textlint のパッケージ(一覧はスキルの SKILL.md) |
 
-4 つは、作る(drafting)、規約と照らす(checking)、テストを設計する(designing)、実行して検証する(testing)の順で使う。規約は、プロジェクトの `.claude/skills/` の下のファイルを読むか書くときに自動で読み込まれる。
+スキルを作る流れのスキルと規約 skill-writing は、[`payload/skill-factory/`](payload/skill-factory/) にある。規約は、プロジェクトの `.claude/skills/` の下のファイルを読むか書くときに自動で読み込まれる。
 
 ## 更新(payload の同期)
 
