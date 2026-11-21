@@ -36,7 +36,7 @@ cp -R .claude/rules/slide-writing <プロジェクト>/.claude/rules/
 
 ## 前提
 
-- Claude Code。Artifact のツールで、型「Design」の Artifact を作れること。
+- Claude Code。ツール `Artifact` で、型「Design」の Artifact を作れること。
 - サブエージェントを起動できること。2 つの判定のスキルは、読む役目に haiku、判定する役目に opus のサブエージェントを使う。
 - 画像にして確かめる手順は、Playwright の MCP のツールを使う。
 - 規約 slide-writing-rule は、文の書き方の規約 text-writing-rule を前提にしている。text-writing-rule は、このリポジトリの `payload/skill-factory/.claude/rules/text-writing/` にある。
