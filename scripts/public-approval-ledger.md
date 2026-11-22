@@ -432,3 +432,12 @@ pstack(cursor/plugins、MIT、Copyright (c) 2026 Lauren Tan)の原則とプレ�
 | 資産 | 承認状況 | 承認根拠 | 備考 |
 |---|---|---|---|
 | ~/Projects/slide-creator-studio/.claude/skills(mirror) | 承認済み | ユーザーの承認(2026-11-22「a」。スキル 4 本を直して公開する案)。上記の検査 | 公開の開始(2026-11-14)の行の範囲の中の変更 |
+
+## slide-creator-studio の画像の手順の、Playwright の MCP の確かめ(2026-11-23)
+
+スキル creating-claude-design-slide と checking-one-slide-one-message に、Playwright の MCP のツールがあるかを最初に確かめ、なければ入れるコマンドを示して入れてよいかを聞く手順を足した。断られたときは、作るスキルは画像で確かめずに進めて報告し、判定のスキルは止まる。README の前提に、Playwright を使う理由(絵の欠け、フォント、日本語の指定を自動で確かめられる)と、ツール `browser_run_code_unsafe` が任意のコードを利用者の権限で動かせることを書いた。確かめたこと: MCP があるこの Mac で、ツールが見つかり、画像のスクリプトが動くこと(2026-11-22 に確認したスクリプトから変えていない)。確かめていないこと: MCP がない会話での聞き方と、入れた後に同じ会話でツールが使えるか。公開前の検査(2026-11-23): 変えた 3 本の文書で、`/Users/`、`agent-home`、メールアドレスの照合で 0 件。`sync-payload.mjs --check-artifacts` で該当なし。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| ~/Projects/slide-creator-studio/.claude/skills(mirror) | 承認済み | ユーザーの承認(2026-11-23「a」。MCP を確かめ、なければ許可を得て入れる案で公開まで進める)。上記の検査 | 公開の開始(2026-11-14)の行の範囲の中の変更 |
+| ~/Projects/slide-creator-studio/README.md(file) | 承認済み | 同上 | 前提の 2 行 |

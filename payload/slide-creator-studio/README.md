@@ -43,7 +43,8 @@ cp -R .claude/rules/slide-writing <プロジェクト>/.claude/rules/
 
 - Claude Code。ツール `Artifact` で、型「Design」の Artifact を作れること。
 - サブエージェントを起動できること。2 つの判定のスキルは、読む役目に haiku、判定する役目に opus のサブエージェントを使う。
-- 画像にして確かめる手順は、Playwright の MCP のツールを使う。
+- 画像にして確かめる手順は、Playwright の MCP のツール `browser_run_code_unsafe` を使う。画像を作ると同時に、絵の欠け、フォントの読み込み、日本語の指定を自動で確かめられるためである。入れていないときは、スキルが入れてよいかを聞く。入れるコマンドは `claude mcp add playwright npx @playwright/mcp@latest`。
+- このツールは、AI が書いたコードを、利用者の権限で、Claude Code のサンドボックスの外で動かせる(Playwright MCP の説明では RCE 相当)。使うたびに許可の確認が出たら、実行するコードを見て判断する。
 - 規約 slide-writing-rule は、文の書き方の規約 text-writing-rule を前提にしている。text-writing-rule は、このリポジトリの `payload/skill-factory/.claude/rules/text-writing/` にある。
 
 ## 使い方
