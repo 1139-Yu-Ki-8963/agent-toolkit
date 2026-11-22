@@ -29,19 +29,29 @@ description: スライドの 1 枚の図が、1 つの結論だけを伝えて�
 
 ### step 1 判定するスライドの中身を得る
 
-進める役目の AI は、判定する板ごとに、`.dc.html` の全文を得る。元のファイルを置いたフォルダがあるときは、そのフォルダのファイルを読む。フォルダがないときは、ツール `Artifact` で、Claude デザインの `project/canvas.json` と、板の `.dc.html` を読む。
+進める役目の AI は、判定する板ごとに、`.dc.html` を得て読む。元のファイルを置いたフォルダがあるときは、そのフォルダのファイルを読む。フォルダがないときは、ツール `Artifact` で、Claude デザインの `project/canvas.json` と、板の `.dc.html` を読む。
 
 フォルダがないときは、進める役目の AI は、ツール `Artifact` を使う前に、名前が `Artifact` のツールがあるかを、ツールの一覧と、後から読み込むツールの一覧(ToolSearch)で確かめる。どちらにもないときは、AI は、何も作らずに、ユーザーに伝えて止まる。伝える文は、ツール `Artifact` が使える条件(Claude Code の CLI か、デスクトップのアプリで始めた会話)と、出典の URL(https://code.claude.com/docs/en/artifacts)を持つ。AI は、ほかの出し先に代えない。
+
+板の `.dc.html` は、次のコマンドで、埋め込んだファイルの base64 を省いて読む。`.dc.html` を、ファイルを読むツールでそのまま読まない。
+
+```bash
+sed -E 's#(;base64,)[A-Za-z0-9+/=]+#\1<省略>#g' '<.dc.html のパス>'
+```
+
+板を Claude デザインから得るときに、ツール `Artifact` がファイルを手元に保存したら、AI は、保存されたファイルを、このコマンドで読む。ツールが中身だけを返したら、その中身から読み取る。
 
 進める役目の AI は、板ごとに、板の題と、結論の一文を書き出す。
 
 ### step 2 結論の一文を隠した、図だけの画像を作る
 
-進める役目の AI は、板ごとに、次の順で画像を作る。使うツールは、Playwright の MCP のツール(`browser_navigate`、`browser_resize`、`browser_evaluate`、`browser_take_screenshot`)とする。
+進める役目の AI は、スキル creating-claude-design-slide の step 5 のスクリプト(`.claude/skills/creating-claude-design-slide/SKILL.md`)で、画像を作る。スクリプトの `boards` の値は、板ごとに次の 3 つとする。
 
-1. AI は、`.dc.html` の `<helmet>` の中身を `<head>` に、`<x-dc>` の中のスライドの本体を `<body>` に置いた確認用の HTML を作り、結論の一文の要素に `style="visibility: hidden"` を付ける。見本と同じ作りの板では、結論の一文の要素は、クラス `cc` を持つ要素である。確認用の HTML は、ファイルに置かずに、手順 2 の `browser_evaluate` の関数の中に全文を書く。
-2. AI は、`browser_navigate` で空のページ(`about:blank`)を開き、`browser_resize` で表示の大きさを 1920×1080px にし、`browser_evaluate` で、確認用の HTML の全文を `document.open()`、`document.write(<全文>)`、`document.close()` でそのページに書き込み、`document.fonts.ready` を待つ。
-3. AI は、`browser_take_screenshot` で、画面を、元のファイルを置いたフォルダの下の `確認用の画像/判定用/<.dc.html と同じ名前>-figure.png` に保存する。このツールは、プロジェクトのフォルダの下にだけ画像を保存でき、保存先のフォルダを自分で作る。元のファイルを置いたフォルダがないときは、AI は、規約の名前でフォルダを作る。
+- `src`: 板の `.dc.html` の絶対パス。元のファイルを置いたフォルダがないときは、AI は、規約の名前でフォルダを作り、Claude デザインから得たファイルを、base64 を省かない元のままでそこに置く。
+- `out`: 元のファイルを置いたフォルダの下の `確認用の画像/判定用/<.dc.html と同じ名前>-figure.png` の絶対パス。
+- `hide`: 結論の一文の要素のセレクター。見本と同じ作りの板では `.cc` とする。ほかの作りの板では、step 1 で読んだ板から、結論の一文の要素だけに当たるセレクターを決める。
+
+AI は、返った値の `brokenImages` が 0 で、`fonts` が 1 以上であることを、板ごとに確かめる。
 
 ### step 3 読む役目の AI に、図だけを読ませる
 

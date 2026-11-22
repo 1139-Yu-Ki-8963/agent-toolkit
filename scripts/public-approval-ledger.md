@@ -424,3 +424,11 @@ pstack(cursor/plugins、MIT、Copyright (c) 2026 Lauren Tan)の原則とプレ�
 | 資産 | 承認状況 | 承認根拠 | 備考 |
 |---|---|---|---|
 | ~/Projects/slide-creator-studio/.claude/rules(mirror) | 承認済み | ユーザーの承認(2026-11-22「a」。穴は承認した範囲の中で直し、公開まで進める案)。上記の検査 | 公開の開始(2026-11-14)の行の範囲の中の変更 |
+
+## slide-creator-studio のスキル 4 本の、絵入りの板への対応(2026-11-22)
+
+スキル 4 本(creating-claude-design-slide、checking-one-slide-one-message、checking-slide-story、assembling-claude-design-slides)を、絵入りの板を base64 を省いて読む形に直した。画像は、Playwright の MCP のツール `browser_run_code_unsafe` に渡すスクリプトが、板のファイルから作る。creating-claude-design-slide は、読むファイルに素材のフォルダを足し、板の `lang` の属性を確かめる。確かめたこと: 最終のスクリプトで、絵入りの板 5 枚と見本の板 1 枚の画像を作った。base64 を省くコマンドは、直す前に絵入りの板 5 枚で試した。確かめていないこと: 別の AI に 4 本を通しで使わせた試しは、板を読むコマンドと、絵を埋め込むコマンドの 2 件が権限の自動判定に止められ、その 2 つの手順を終えていない。Claude デザインへの送信と、Claude デザインからの読み取りも確かめていない。公開前の検査(2026-11-22): 変えた 4 本の文書で、`/Users/`、`agent-home`、メールアドレスの照合で 0 件。`sync-payload.mjs --check-artifacts` で該当なし。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| ~/Projects/slide-creator-studio/.claude/skills(mirror) | 承認済み | ユーザーの承認(2026-11-22「a」。スキル 4 本を直して公開する案)。上記の検査 | 公開の開始(2026-11-14)の行の範囲の中の変更 |

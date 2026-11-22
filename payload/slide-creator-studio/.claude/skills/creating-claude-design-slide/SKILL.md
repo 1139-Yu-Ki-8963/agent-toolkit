@@ -19,8 +19,21 @@ description: スライドの 1 枚を、デザインシステムの値と部品�
 | `.claude/rules/slide-writing/slide-writing-rule/slide-writing-rule.md` | 規約。言葉、文字と可読性、色と図形、レイアウトの規則と、ファイルの名前と板の並べ方 | 1 |
 | `.claude/rules/slide-writing/template/<デザインシステムの名前>-design-system/<デザインシステムの名前>-design-system.md` | 規約の雛形であるデザインシステム。色、文字、グリッド、部品、間隔の値と、見せ方の型ごとの組み方 | 1 |
 | `.claude/rules/slide-writing/template/<デザインシステムの名前>-design-system-completed-example/` | デザインシステムの完成例(このスキルでは「見本」と呼ぶ)。`.dc.html`、`canvas.json`、確認用の画像 | 3 |
+| `.claude/rules/slide-writing/template/<デザインシステムの名前>-design-system/<素材のフォルダ>/` | デザインシステムが章「部品」で使うと決めた素材(例: `illustration/`)。素材を持つデザインシステムのときだけ読む | 3 |
 
-規約、デザインシステム、見本として読むファイルは、この表の 3 つだけで、3 つとも `.claude/rules/slide-writing/` の下にある。このほかに、AI は、置き先の Claude デザインのファイルと、元のファイルを置くフォルダのファイルを読む。
+規約、デザインシステム、見本、素材として読むファイルは、この表の 4 つだけで、4 つとも `.claude/rules/slide-writing/` の下にある。このほかに、AI は、置き先の Claude デザインのファイルと、元のファイルを置くフォルダのファイルを読む。
+
+## 板の読み方と直し方
+
+板の `.dc.html` は、次のコマンドで、埋め込んだファイルの base64 を省いて読む。`.dc.html` を、ファイルを読むツールでそのまま読まない。
+
+```bash
+sed -E 's#(;base64,)[A-Za-z0-9+/=]+#\1<省略>#g' '<.dc.html のパス>'
+```
+
+板を Claude デザインから得るときに、ツール `Artifact` がファイルを手元に保存したら、AI は、保存されたファイルを、このコマンドで読む。ツールが中身だけを返したら、その中身から読み取る。
+
+base64 を省いた表示は、読むためだけに使い、ファイルに保存しない。既にある板を直すときは、AI は、元のファイルの直す箇所だけをコマンド(`sed`、スクリプトの文字列の置き換え)で置き換え、板を写すときは、`cp` で写す。置き換えの前に、置き換える文字列が板に 1 か所だけあることを件数で確かめる。
 
 ## 入力
 
@@ -41,7 +54,7 @@ AI は、作業の最初に、名前が `Artifact` のツールがあるかを�
 
 AI は、規約 slide-writing-rule とデザインシステムを、ファイルを読むツールで全文読む。
 
-置き先が既にある Claude デザインのときは、AI は、ツール `Artifact` で、その Claude デザインの `project/canvas.json` と、作るページの前後のページの `.dc.html` を読む。既にあるページに案を足すときは、AI は、そのページの `.dc.html` も読む。同じ会話の中で AI 自身が出したばかりのファイルは、手元の元のファイルを読めばよい。
+置き先が既にある Claude デザインのときは、AI は、ツール `Artifact` で、その Claude デザインの `project/canvas.json` と、作るページの前後のページの `.dc.html` を読む。既にあるページに案を足すときは、AI は、そのページの `.dc.html` も読む。同じ会話の中で AI 自身が出したばかりのファイルは、手元の元のファイルを読めばよい。どの板も、節「板の読み方と直し方」のとおりに読む。見本の板も同じとする。
 
 ### step 2 この 1 枚で見せるものを決める
 
@@ -77,6 +90,8 @@ AI は、選んだ候補を、次の決まりで組む。
 - 既にあるページに案を足すときは、既にある板を案 1 とし、候補の 1 つに数える。新しく作る板の数は、案の数から 1 を引いた数とする。AI は、案 1 の板の中身を変えない。
 - 言葉、文字の量、色、レイアウトは、規約の節「言葉」「文字と可読性」「色と図形」「レイアウト」に従う。
 - 板は、見本の `.dc.html` の構造(領域の並び、クラスの作り)を手本にする。
+- 板の `<html>` の要素は、資料の言語の `lang` の属性(日本語の資料は `lang="ja"`)を持つ。
+- 素材は、デザインシステムの章「部品」の決まりのとおりに使う。素材を板に埋め込む文字列は、コマンドで作って書き込み、AI の文として書かない。
 - 色の値は、見本と同じく、`.dc.html` ごとの `:root` に CSS の変数として定義し、板の中ではその変数を使う。
 - 案を 2 つ以上作るときは、案ごとに、見せ方の型か、部品の並べ方を変える。結論の一文は、案ごとに、その見せ方でいちばん分かることを書いてよい。
 
@@ -102,7 +117,7 @@ AI は、step 2 で見せ方の型を選ぶときに、規約の規則「推奨�
 
 置き先が既にある Claude デザインのとき:
 
-1. AI は、step 1 で読んだ `canvas.json` を、元のファイルを置くフォルダの `canvas.json` として使う。手元に元のファイルを置くフォルダがないときは、AI は、規約の名前でフォルダを作り、読んだファイルをそこに置く。
+1. AI は、step 1 で読んだ `canvas.json` を、元のファイルを置くフォルダの `canvas.json` として使う。手元に元のファイルを置くフォルダがないときは、AI は、規約の名前でフォルダを作り、読んだファイルを、base64 を省かない元のままでそこに置く。
 2. AI は、作った板の `.dc.html` を書き、`canvas.json` の `boards` と `order` に、その板を足す。案の板は、`order` の中で、そのページの板のすぐ後ろに足す。案を足したページの板の題には、規約のとおりに ` 案 1` を足す。
 3. AI は、出す直前に、ツール `Artifact` で、その Claude デザインを、`url` だけを渡して読み直す(ファイルのパスは渡さない)。読み直しのない呼び出しと、ファイルのパスを渡した読み直しだけの呼び出しは、ツールが止める。
 4. AI は、ツール `Artifact` で、同じ URL に、変えたファイルだけを出す。呼び出しは、`url`(その Claude デザインの URL)、`root`(元のファイルを置くフォルダ)、`file_path`(変えたファイルの 1 つの絶対パス)、`files`(変えたファイルごとの、`project/<ファイルの名前>` とフォルダの中のファイルの名前の対応)を持つ。
@@ -117,19 +132,57 @@ AI は、step 2 で見せ方の型を選ぶときに、規約の規則「推奨�
 
 AI は、作った板の全部を、表示倍率 100% 相当(1920×1080px)の画像にして、1 枚ずつ見る。
 
-画像は、次の順で作る。
+画像は、手元の `.dc.html` のファイルから、次のスクリプトで作る。使うツールは、Playwright の MCP のツール `browser_run_code_unsafe` とする。板の中身は、ツールの引数に書かずに、スクリプトがファイルから読む。
 
-使うツールは、Playwright の MCP のツール(`browser_navigate`、`browser_resize`、`browser_evaluate`、`browser_take_screenshot`)とする。
+1. AI は、次のスクリプトの `boards` に、板ごとに、`.dc.html` の絶対パス(`src`)と、規約の規則「確認用の画像の名前」の名前の画像の絶対パス(`out`)を書く。`hide` は、画像の中で隠す要素の CSS のセレクターで、このスキルでは空の文字列とする。スクリプトのほかの行は、変えない。
+2. AI は、スクリプトの全文を、`browser_run_code_unsafe` の `code` に渡して 1 回呼ぶ。スクリプトは、自分用のタブを開き、すべての板を画像にして、そのタブを閉じる。
+3. AI は、返った値の `brokenImages` が 0 で、`fonts` が 1 以上であることと、`lang` が空でないことを、板ごとに確かめる。`lang` が空の板は、`<html>` の要素に `lang` の属性がない板である(画像は日本語として描く)。合わない板は、原因を直して作り直す。ユーザーが直すことを頼んでいない既にある板は、直さずに報告に書く。
 
-1. AI は、`.dc.html` ごとに、`<helmet>` の中身(フォントの読み込みと `<style>`)を `<head>` に、`<x-dc>` の中のスライドの本体を `<body>` に置いた確認用の HTML を作る。確認用の HTML は、ファイルに置かずに、手順 2 の `browser_evaluate` の関数の中に全文を書く。
-2. AI は、`browser_navigate` で空のページ(`about:blank`)を開き、`browser_resize` で表示の大きさを 1920×1080px にし、`browser_evaluate` で、確認用の HTML の全文を `document.open()`、`document.write(<全文>)`、`document.close()` でそのページに書き込み、`document.fonts.ready` を待つ。このツールは、手元のファイル(`file:` の URL)を開けないので、この書き込みの形を使う。そのあと、AI は、`browser_take_screenshot` で、画面を画像にする。このツールは、プロジェクトのフォルダの下にだけ画像を保存でき、保存先のフォルダを自分で作る。
-
-ほかの作業が、同じブラウザのタブを同じ時に使っているときは、AI は、`browser_run_code_unsafe` で、自分用の新しいページを開き、書き込みと画像の保存を、1 回の呼び出しの中で行う。大きさ、書き込みの形、`document.fonts.ready` を待つこと、保存先は、上の手順と同じとする。
-3. AI は、画像を、規約の規則「確認用の画像の名前」の名前で保存する。
+```js
+async (page) => {
+  const boards = [
+    { src: '<.dc.html の絶対パス>', out: '<画像の絶対パス>', hide: '' },
+  ];
+  const tab = await page.context().newPage();
+  const results = [];
+  try {
+    await tab.setViewportSize({ width: 1920, height: 1080 });
+    for (const { src, out, hide } of boards) {
+      await tab.goto('about:blank');
+      await tab.setContent('<input type="file">');
+      await tab.setInputFiles('input', src);
+      const text = await tab.evaluate(() => document.querySelector('input').files[0].text());
+      const lang = text.match(/<html[^>]*\slang="([^"]+)"/i)?.[1] ?? '';
+      const head = text.match(/<helmet>([\s\S]*?)<\/helmet>/i)?.[1];
+      const body = text.match(/<x-dc[^>]*>([\s\S]*)<\/x-dc>/i)?.[1].replace(/<helmet>[\s\S]*?<\/helmet>/i, '');
+      if (head === undefined || body === undefined) throw new Error(`helmet か x-dc がない: ${src}`);
+      await tab.setContent(`<!doctype html><html lang="${lang || 'ja'}"><head><meta charset="utf-8">${head}</head><body style="margin:0">${body}</body></html>`, { waitUntil: 'load' });
+      if (hide) {
+        const target = tab.locator(hide);
+        if (await target.count() !== 1) throw new Error(`隠す要素が 1 つでない: ${src}`);
+        await target.evaluate((el) => el.style.setProperty('visibility', 'hidden', 'important'));
+      }
+      const state = await tab.evaluate(async () => {
+        await document.fonts.ready;
+        await Promise.all([...document.images].map((i) => i.decode().catch(() => {})));
+        return {
+          fonts: [...document.fonts].filter((f) => f.status === 'loaded').length,
+          brokenImages: [...document.images].filter((i) => !i.naturalWidth).length,
+        };
+      });
+      await tab.screenshot({ path: out });
+      results.push({ out, lang, ...state });
+    }
+  } finally {
+    await tab.close();
+  }
+  return results;
+}
+```
 
 画像で確かめる項目:
 
-- はみ出し、要素の重なり、位置のずれがない。
+- はみ出し、要素の重なり、位置のずれ、絵の欠けがない。
 - 図の部品が、デザインシステムの章「部品」の表にある部品で、図の中の文字の大きさが、章「文字の値」の値と同じである。AI は、見本の確認用の画像を 1 枚以上開き、作った板の画像と見比べる。
 - 図が、規約の規則「図が本文領域の中で使う広さ」に合う。
 - 矢印の線の折れの数が、規約の規則「矢印の線の折れの数」に合う。
@@ -161,7 +214,7 @@ Claude デザインに出せなかったときは、AI は、作業を未完了�
 
 ユーザーが、2 つ以上の案から 1 つを選んだときは、AI は、次の順で、ページを選ばれた案にする。
 
-1. AI は、選ばれた案の `.dc.html` の中身を、ページのファイル(`Main.dc.html` か `Q<ページの番号>.dc.html`)の中身にする。選ばれた案が案 1 のときは、案 1 がページのファイルなので、中身を変えない。
+1. AI は、選ばれた案の `.dc.html` を、`cp` でページのファイル(`Main.dc.html` か `Q<ページの番号>.dc.html`)に写す。選ばれた案が案 1 のときは、案 1 がページのファイルなので、中身を変えない。
 2. AI は、選ばれなかった案の `.dc.html` を消し、`canvas.json` の `boards` と `order` からその板を消し、ページの板の題から ` 案 <案の番号>` を消す。
 3. AI は、ツール `Artifact` で、同じ URL に、変えたファイルを出し、消したファイルを `null` で渡して消す。
 4. AI は、選ばれなかった案の確認用の画像を消し、ページの確認用の画像を作り直す。
