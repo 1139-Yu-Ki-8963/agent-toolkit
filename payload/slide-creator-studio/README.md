@@ -22,8 +22,13 @@
     ├── slide-writing-rule/                規約(構成、言葉、文字と可読性、色と図形、レイアウト、ファイルの名前)
     └── template/
         ├── ink-and-red-design-system/                    デザインシステム「墨と赤」(色、文字、グリッド、部品、間隔の値)
+        │   └── illustration/                             デジタル庁のイラスト 40 点と、その利用規約
         └── ink-and-red-design-system-completed-example/  デザインシステムの見本(8 枚のスライドと、確認用の画像)
 ```
+
+## イラストの著作権
+
+`.claude/rules/slide-writing/template/ink-and-red-design-system/illustration/` の PNG 40 点は、デジタル庁の[イラストレーション・アイコン素材](https://www.digital.go.jp/policies/servicedesign/designsystem/Illustration_Icons)のファイルを、変えずに置いたものです。著作権はデジタル庁にあり、利用の条件は、同じフォルダの `LICENSE.txt` に従います。編集、加工して使うときは、出典と編集の内容の表記が要ります。
 
 ## 導入
 
