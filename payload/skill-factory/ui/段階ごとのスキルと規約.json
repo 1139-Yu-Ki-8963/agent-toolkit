@@ -6,7 +6,7 @@
       {
         "name": "defining-skill-requirements",
         "kind": "段階",
-        "purpose": "要件定義書を書く。サブエージェント: 照合者 2 体(step 7-2)"
+        "purpose": "要求と要件を分けた要件定義書を書く。サブエージェント: 照合者 2 体(step 8-3)"
       },
       {
         "name": "updating-skill-factory-ui-state",
@@ -344,6 +344,11 @@
         "name": "updating-skill-factory-ui-state",
         "kind": "補助",
         "purpose": "画面の状態を書く。段階のスキルを始める前、質問か承認を出す前、完了の報告のあと"
+      },
+      {
+        "name": "drawing-skill-factory-figure",
+        "kind": "補助",
+        "purpose": "図を描く。成果物を書いたあと、承認か結果の表示を出す前"
       },
       {
         "name": "checking-markdown-document-with-rules",

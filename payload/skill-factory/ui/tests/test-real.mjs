@@ -23,7 +23,7 @@ if (scenario === '--list') { for (const n of [...contractNames, ...Object.values
 const limits = {
   contract: {minutes: 10, usd: 0.5, note: 'モデル haiku と sonnet。合わせて 7 回の呼び出し'},
   'hearing-screens': {minutes: 60, usd: 5, note: '依頼「コミットをまとめるskillを作る」から画面 3 の次の画面まで。モデル sonnet'},
-  'hearing-to-written': {minutes: 180, usd: 5, totalUsd: 12, note: '依頼「コミットをまとめるskillを作る」から、全カテゴリーの問い、AI の案、画面 5 の修正と承認、画面 6 まで。モデル sonnet。1 回の通しの費用の上限は 12 ドル'},
+  'hearing-to-written': {minutes: 180, usd: 5, totalUsd: 12, note: '依頼「コミットをまとめるskillを作る」から、全カテゴリーの問い、画面 5 の修正と承認、画面 6 まで。モデル sonnet。1 回の通しの費用の上限は 12 ドル'},
   'until-stage-3': {minutes: 60, usd: 5, note: '依頼から段階 3 に入るまで。モデル sonnet'},
   'until-stage-8': {minutes: 360, usd: 30, note: '依頼から段階 8 の判定の記録まで。モデル sonnet。最も時間と利用料がかかる'},
   'check-skill': {minutes: 30, usd: 3, note: '「<スキルの名前> を照合して」の流れ。モデル sonnet'},
@@ -112,6 +112,9 @@ function makeCopy() {
   fs.mkdirSync(path.join(sf, 'ui'), {recursive: true});
   fs.mkdirSync(path.join(sf, 'output'), {recursive: true});
   for (const f of ['server.mjs', 'index.html', 'デザイントークン.css', 'はじめに.md', '段階ごとのスキルと規約.json']) fs.copyFileSync(path.join(uiDir, f), path.join(sf, 'ui', f));
+  // hook post-tool-use-any-tool は、state.json の検査を <プロジェクト>/ui/tests/lib/state-contract.mjs から読むので、本物の使い方と同じに写す
+  fs.mkdirSync(path.join(sf, 'ui', 'tests', 'lib'), {recursive: true});
+  fs.copyFileSync(path.join(uiDir, 'tests', 'lib', 'state-contract.mjs'), path.join(sf, 'ui', 'tests', 'lib', 'state-contract.mjs'));
   // リンクをたどって実体を写し、本物の規約とスキルと output/ に書かないようにする
   // .claude/skills/tests は、スキルのテストの記録で、読み取りだけのファイルを持ち、AI の実行に要らない
   const skipTests = path.join(factory, '.claude', 'skills', 'tests');
@@ -161,14 +164,15 @@ const stateKeys = ['workName', 'currentSkill', 'stage', 'artifacts', 'figures', 
 const stateProblems = s => stateKeys.filter(k => !(k in s));
 
 // 段階 stopStage に入るまで、質問の一覧には答え、承認のボタンは最初の選択肢を押す。段階 7 の実施する範囲は最初の選択肢(推奨)を選ぶ
-async function drive(page, rel, stopStage, onRow) {
+async function drive(page, rel, stopStage, onRow, onText) {
   const rows = page.locator('#qform .qi');
+  let idleSince = 0;
   const seen = {form: new Set(), choice: new Set()};
   while (Date.now() < deadline) {
     const s = stateOf(rel);
     if (s.stage >= stopStage && (stopStage < 8 || s.artifacts.at(-1).status === '済み')) break;
-    if (await busyOf(page)) { await sleep(2000); continue; }
-    if (await hearingStep(page, onRow)) {
+    if (await busyOf(page)) { idleSince = 0; await sleep(2000); continue; }
+    if (await hearingStep(page, onText)) {
       seen.choice.add(s.stage);
     } else if (await formOpen(page)) {
       seen.form.add(s.stage);
@@ -181,15 +185,26 @@ async function drive(page, rel, stopStage, onRow) {
       await page.locator('#messages .chips .chip').first().click();
       await page.press('#input', 'Enter');
     } else {
+      idleSince ||= Date.now();
+      // AI が動いていないのに押すものがない状態は、時間の上限まで待たずに不合格にする
+      if (Date.now() - idleSince > 3 * 60 * 1000) {
+        check('AI の返事のあとに押せるものがある', false, `stage=${s.stage} screen=${s.screen} decision=${JSON.stringify(s.decision)}`);
+        break;
+      }
       await sleep(5000);
       continue;
     }
+    idleSince = 0;
     await until(() => busyOf(page), 10000);
   }
   return seen;
 }
 // 選ぶと要件定義書を書かずに終わる選択肢(リファレンス「聞き取りの項目と問い」の章「答えで終える条件」)。テストの利用者は選ばない
-const ENDING = /そのまま使う|毎回|1 回だけ|やめる|中止/;
+// 選択肢の見出し(最初の「:」より前)で見分ける。「書く前: 案を見せて待ち、直すかやめる」のように、説明の中の語は見ない
+const ENDING_HEAD = /そのまま使う|毎回|1 回だけ|やめる|中止/;
+const ENDING = {test: text => ENDING_HEAD.test(String(text).split(/[::]/)[0])};
+// 「次へ」でページを送るたびに呼ぶ関数(hearingFlow が、送ったページに AI の問いが届くかを確かめる)
+let onPageTurn = null;
 // 聞き取りの画面の 1 回分の操作。出ている画面の選択肢を選び、主なボタンを押す。押したら true を返す。onText は、選択肢のない問いの答えの文か、問いの文から答えを返す関数
 // skip は、答えを入れない問いの塊の番号(0 から)
 async function hearingStep(page, onText, skip = new Set()) {
@@ -201,6 +216,8 @@ async function hearingStep(page, onText, skip = new Set()) {
     const options = f.locator('.zop');
     if (await options.count()) {
       const checked = f.locator('.zop:has(input:checked) .zopt');
+      // 複数を選べる問い(チェックボックス)は、選んだ選択肢があれば選び直さない。押し直すとチェックが外れる
+      if ((await checked.count()) && (await f.locator('.zop input[type="checkbox"]').count())) continue;
       if ((await checked.count()) && !ENDING.test(await checked.first().innerText())) continue;
       const labels = await f.locator('.zop .zopt').allInnerTexts();
       const preferred = labels.findIndex(l => /新しく作る|要約|まだない/.test(l));
@@ -214,10 +231,12 @@ async function hearingStep(page, onText, skip = new Set()) {
       await area.fill(answer);
     }
   }
-  if (screen === 'AI の案') {
-    await page.locator('#hearscroll').evaluate(e => { e.scrollTop = e.scrollHeight; });
-    // 最後まで見た印は、スクロールの通知のあとに付く
-    await until(async () => (await page.locator('#hearfoot .btn.pri:not([disabled])').count()) > 0, 5000);
+  // 画面「AI から決めてもらうこと」は、選択肢をラジオボタン(名前 lpick)で出す。選ばれた選択肢がないときは、推奨の選択肢か 1 つ目を選ぶ
+  const picks = page.locator('#hearbody input[name="lpick"]');
+  if ((await picks.count()) && !(await page.locator('#hearbody input[name="lpick"]:checked').count())) {
+    const reco = page.locator('#hearbody label.lopt:has(.lreco) input[name="lpick"]');
+    await ((await reco.count()) ? reco.first() : picks.first()).click();
+    console.log(`操作: ${screen} で推奨の選択肢を選ぶ`);
   }
   const main = page.locator('#hearfoot .btn.pri:not([disabled])').last();
   if (!(await main.count())) {
@@ -227,6 +246,7 @@ async function hearingStep(page, onText, skip = new Set()) {
     console.log(`操作: ${screen} で「次へ」を押す`);
     await next.click();
     await sleep(300);
+    if (onPageTurn) await onPageTurn(page);
     return hearingStep(page, onText);
   }
   console.log(`操作: ${screen} で「${await main.innerText()}」を押す`);
@@ -278,7 +298,7 @@ async function untilFirstQuestion() {
   await page.fill('#input', '請求書の受領を記録するスキルを作って');
   await page.press('#input', 'Enter');
   // 段階 1 は聞き取りの画面で問う。state.json の screen があるときは、問いの一覧の代わりに聞き取りの画面の主なボタンを待つ
-  check('依頼のあとに質問の一覧か、押せる主なボタンを持つ聞き取りの画面が出る', await until(async () => (await formOpen(page)) || (await page.locator('#hearfoot .btn.pri:not([disabled])').count()) > 0, 20 * 60 * 1000));
+  check('依頼のあとに質問の一覧か、押せる主なボタンを持つ聞き取りの画面が出る', await until(async () => (await formOpen(page)) || (await page.locator('#hearbody fieldset.zqs').count()) > 0 || (await page.locator('#hearfoot .btn.pri:not([disabled])').count()) > 0, 20 * 60 * 1000));
   const rel = await page.evaluate(() => seenWorkDir);
   check('作業のフォルダは output/<開始日時> の形', /^output\/\d{4}-\d\d-\d\d-\d{4}$/.test(rel), rel);
   check('仮の会話が作業のフォルダに移る', fs.readdirSync(path.join(sf, 'ui', '.pending')).length === 0 && conversationOf(rel).includes('請求書の受領'));
@@ -316,18 +336,30 @@ async function stageFlow(stopStage) {
   }
   check('会話の ID が変わらない', sessionOf(rel) === firstId);
   check('答えのあとに段階が戻らない', stateOf(rel).stage >= stageBefore, stateOf(rel).stage);
-  const seen = await drive(page, rel, stopStage, onRow);
+  const seen = await drive(page, rel, stopStage, onRow, '受領台帳ZQ7');
   const final = stateOf(rel);
   check(`段階 ${stopStage} まで進む`, final.stage >= stopStage, `段階 ${final.stage}`);
   check('承認のボタンで段階が進む', seen.choice.size > 0);
-  const reqPath = path.join(sf, rel, '要件定義書.md');
-  const req = fs.existsSync(reqPath) ? fs.readFileSync(reqPath, 'utf8') : '';
-  const missing = sent.filter(a => !req.includes(a));
-  check(`画面で送った答えの ${sent.length} 問のすべてが要件定義書に書かれる`, sent.length > 0 && missing.length === 0, missing.join(' / '));
+  // 2026-11-20: 答えの正本は聞き取りの記録の章「答え」。要件定義書の章 5「質問への答えの一覧」は、質問の番号と反映した章だけを持つ
+  const recordPath = path.join(sf, rel, '聞き取りの記録.md');
+  const record = fs.existsSync(recordPath) ? fs.readFileSync(recordPath, 'utf8') : '';
+  sent.push(...hearingAnswers(conversationOf(rel)));
+  const missing = sent.filter(a => !includesText(record, recordedWord(a)));
+  check(`画面で送った答えの ${sent.length} 問のすべてが聞き取りの記録に書かれる`, sent.length > 0 && missing.length === 0, missing.join(' / '));
+  check('要件定義書ができる', fs.existsSync(path.join(sf, rel, '要件定義書.md')));
   check('最後まで同じ会話の ID を使う', sessionOf(rel) === firstId);
   check('分割設計書ができる', fs.existsSync(path.join(sf, rel, '分割設計書.md')));
   const figures = fs.existsSync(path.join(sf, rel, 'ui', 'figures')) ? fs.readdirSync(path.join(sf, rel, 'ui', 'figures')) : [];
-  check('段階 1 と段階 2 の図がある(規約 skill-making-flow の規則 6)', figures.length >= 2, figures.join('、'));
+  if (stopStage >= 8) {
+    for (const [stage, kind] of [[3, 'phase と step の流れ図'], [7, 'シナリオテストが受け持つテストケース'], [8, '判定の結果の図']]) {
+      check(`段階 ${stage} の${kind}がある(規約 skill-making-flow の規則 6)`, figures.some(f => f.startsWith(`${stage}-`) && f.includes(kind)), figures.join('、'));
+    }
+    // 2026-11-22: 段階 7 の承認の前に、業務フローと正常系のシナリオの一致の図(シナリオの経路の図)を描く(規約 skill-making-flow の規則 6 の表)
+    const route = figures.filter(f => /^7-.*シナリオの経路の図\.svg$/.test(f));
+    check('段階 7 のシナリオの経路の図がある', route.length > 0, figures.join('、'));
+    const svg = route.length ? fs.readFileSync(path.join(sf, rel, 'ui', 'figures', route[0]), 'utf8') : '';
+    check('段階 7 のシナリオの経路の図が、正常系の判定の帯を持つ', /正常系 S\d+ は、\d+ つの phase/.test(svg), svg.slice(0, 200));
+  }
   check('最後の state.json も 16 のキーを持つ', stateProblems(final).length === 0);
   if (stopStage >= 8) {
     const skillsDir = path.join(sf, rel, 'skills');
@@ -379,27 +411,58 @@ async function lostFlow() {
 // 文字の並びだけを比べる。pre-line と md の表示は空白と改行を変える
 const squeeze = text => String(text).replace(/\s+/g, '');
 const includesText = (body, text) => squeeze(body).includes(squeeze(text));
-// 選択肢の後ろの(推奨)と(AI の推測)を外す
-const plainChoice = c => String(c).replace(/[((](推奨|AI の推測)[))]$/, '');
+// 選択肢の後ろの(推奨)と(AI の推測)を外す。選択肢は、文字列か、label を持つオブジェクト(画面の状態のファイルの形の行 decision.choices[])。オブジェクトのときは label を使う
+const plainChoice = c => String(c && typeof c === 'object' ? c.label ?? '' : c).replace(/[((](推奨|AI の推測)[))]$/, '');
 // 聞き取りの記録と比べる語。AI は選択肢の後ろの括弧の説明(例: (値を聞く))を省いて書くことがある
 const recordedWord = a => String(a).replace(/[((][^()()]*[))]$/, '');
 // 選択肢のない問いへの、テストの利用者の答え
 const textAnswer = question => (/確かめる点/.test(question) ? '読みの候補の 1 つ目' : /パス|どこ|場所/.test(question) ? 'まだない' : /字数|数|件/.test(question) ? '1 件' : /語/.test(question) ? '件名' : 'AI の案のとおりでよいです');
 
-// 画面に出ていない、AI が state.json に書いた値の一覧を返す
-function missingOnScreen(s, screen, body) {
+// 画面(index.html の questionGroups)と同じ分け方で、問いの一覧をカテゴリーの組に分ける。category がない要素は、前の要素のカテゴリーに入れる
+const catOf = it => (typeof it.category === 'string' && it.category.trim() ? it.category.trim() : null);
+function questionGroups(items) {
+  const names = [...new Set(items.map(catOf).filter(Boolean))];
+  if (names.length < 2) return [{name: names[0] || null, items}];
+  const groups = names.map(name => ({name, items: []}));
+  let now = groups[0];
+  for (const it of items) {
+    if (catOf(it)) now = groups.find(g => g.name === catOf(it));
+    now.items.push(it);
+  }
+  return groups;
+}
+// 画面にいま出ているページの問いの組を返す。画面は、2 つ以上のカテゴリーを持つ回を、カテゴリーごとのページに分けて出す。
+// ページは、見出し(カテゴリーの名前)と最初の問いの文の両方が合う組を、今の回(questions.items)から前の回(rounds)の順に探し、ないときは最初の問いの文だけで探す。
+// 前の回と今の回が同じカテゴリーの名前を持つとき(「前へ」で前の回のページを出したとき)も、見出しと最初の問いの文の両方で組を選ぶ。
+// first は、今の回の最初の組か(知らせの行は、回の最初のページにだけ出る)。見つからないときは、今の回のすべての問いを 1 つの組とする
+async function shownGroup(page, s) {
+  const heading = await page.locator('#hearbody .zt1').first().innerText().catch(() => '');
+  const legend = await page.locator('#hearbody fieldset.zqs legend').first().innerText().catch(() => '');
+  const now = s.questions ? s.questions.items : [];
+  const lists = [now, ...(Array.isArray(s.rounds) ? [...s.rounds].reverse().map(r => (r.items || []).filter(i => i.replaced !== true)) : [])];
+  const byLegend = g => !!legend && g.items.length > 0 && squeeze(g.items[0].text) === squeeze(legend);
+  for (const match of [g => byLegend(g) && !!g.name && squeeze(g.name) === squeeze(heading), byLegend]) {
+    for (const [li, items] of lists.entries()) {
+      const groups = questionGroups(items);
+      const gi = groups.findIndex(match);
+      if (gi >= 0) return {...groups[gi], first: li === 0 && gi === 0};
+    }
+  }
+  return {name: null, items: now, first: true};
+}
+
+// 画面に出ていない、AI が state.json に書いた値の一覧を返す。shown は、問いの画面で、いま出ているページの問いの組(shownGroup)
+function missingOnScreen(s, screen, body, shown = null) {
   const want = [];
+  const items = shown ? shown.items : s.questions ? s.questions.items : [];
   if (screen === '画面 2' && s.summary) want.push(...s.summary.lines, ...s.summary.readings);
-  if (screen === '調べるための問い' && s.questions) want.push(...s.questions.items.map(i => i.text));
+  if (screen === '調べるための問い' && s.questions) want.push(...items.map(i => i.text));
   if (screen === '画面 3' && s.factCheck) want.push(s.factCheck.heading, ...s.factCheck.facts.map(x => x.text), ...s.factCheck.items.flatMap(x => [x.name, x.value]));
   if (screen === '画面 4' && s.questions) {
-    want.push(s.questions.title);
-    if (s.questions.notice) want.push(s.questions.notice);
-    for (const i of s.questions.items) want.push(i.text, ...(i.choices || []).map(plainChoice));
-  }
-  if (screen === 'AI の案' && s.approvalSheet) {
-    want.push(s.approvalSheet.heading);
-    for (const r of s.approvalSheet.rows) want.push(r.section, r.name, ...r.cells.flatMap(c => [c.name, c.value, c.source]));
+    // 見出しは、ページのカテゴリーの名前(ないときは questions.title)
+    want.push((shown && shown.name) || s.questions.title);
+    if (s.questions.notice && (!shown || shown.first)) want.push(s.questions.notice);
+    for (const i of items) want.push(i.text, ...(i.choices || []).map(plainChoice));
   }
   if (screen === '画面 5' && s.draftReview) {
     for (const x of s.draftReview.checkFirst) want.push(x.name, x.value);
@@ -503,6 +566,21 @@ async function hearingFlow(stopScreen = null) {
   let stuck = 0;
   const end = Date.now() + (limits[scenario].minutes - 5) * 60 * 1000;
   let busySince = null;
+  // 「次へ」で送ったページ(2 つ以上のカテゴリーを持つ回の 2 つ目からのカテゴリー)にも、AI の問いと複数を選べる問いのチェックが出るかを確かめる
+  onPageTurn = async p => {
+    const r = workRel();
+    let st = null;
+    // AI が書いている途中の state.json は読めないので、そのときは確かめない
+    try { st = r ? stateOf(r) : null; } catch { return; }
+    const sc = await p.locator('#hearbody').getAttribute('data-screen').catch(() => null);
+    if (!st || !st.questions || !['調べるための問い', '画面 4'].includes(sc)) return;
+    const shown = await shownGroup(p, st);
+    const gaps = missingOnScreen(st, sc, await p.locator('#hearbody').innerText().catch(() => ''), shown);
+    check(`${sc} の「次へ」で出したページに AI の問いが届く(${shown.name || st.questions.title})`, gaps.length === 0, gaps.join(' / '));
+    if (sc !== '画面 4') return;
+    const shownMulti = shown.items.filter(i => i.multiple === true && (i.choices || []).length).length;
+    check(`画面 4 の「次へ」で出したページの複数を選べる問いがチェックで出る(${shown.name || st.questions.title})`, (await p.locator('#hearbody fieldset.zqs:has(.zops input[type=checkbox])').count()) === shownMulti, String(shownMulti));
+  };
   while (Date.now() < end) {
     if (await busyOf(page)) {
       busySince = busySince || Date.now();
@@ -538,21 +616,15 @@ async function hearingFlow(stopScreen = null) {
     const lastDrawn = await page.evaluate(() => last.state);
     if (lastDrawn !== text) { await sleep(2500); }
     const bodyNow = await page.locator('#hearbody').innerText().catch(() => body);
+    const shown = ['調べるための問い', '画面 4'].includes(screen) && s.questions ? await shownGroup(page, s) : null;
     if (text !== domChecks.lastState) {
       domChecks.lastState = text;
-      const gaps = missingOnScreen(s, screen, bodyNow);
+      const gaps = missingOnScreen(s, screen, bodyNow, shown);
       if (screen === '画面 2' && s.summary && !domChecks['画面 2']) { domChecks['画面 2'] = true; check('画面 2 に AI のまとめか読みの候補が届く', gaps.length === 0, gaps.join(' / ')); }
       else if (screen === '調べるための問い' && s.questions && !domChecks[screen]) { domChecks[screen] = true; check('調べるための問いに AI の問いが届く', gaps.length === 0, gaps.join(' / ')); }
       else if (screen === '画面 3' && s.factCheck && !domChecks[screen]) { domChecks[screen] = true; check('画面 3 に AI の見出しと事実が届く', gaps.length === 0, gaps.join(' / ')); }
       else if (screen === '画面 4' && s.questions) check(`画面 4 に AI の問いが届く(${s.questions.title})`, gaps.length === 0, gaps.join(' / '));
-      else if (screen === 'AI の案' && s.approvalSheet) check('AI の案に、AI が書いた行と値と出どころが届く', s.approvalSheet.rows.length > 0 && gaps.length === 0, gaps.join(' / '));
       else if (screen === '画面 5' && s.draftReview) check('画面 5 に、AI が書いた下書きの項目が届く', s.draftReview.sections.length > 0 && gaps.length === 0, gaps.join(' / '));
-    }
-    if (screen === 'AI の案' && !domChecks.gate && s.approvalSheet) {
-      domChecks.gate = true;
-      const scroll = page.locator('#hearscroll');
-      const go = page.locator('#hearfoot [data-need="gate"]');
-      if (await scroll.evaluate(e => e.scrollHeight > e.clientHeight + 8)) check('AI の案は、最後まで見るまで進めない', await go.isDisabled());
     }
     await photo(screen || `旧い形-段階${s.stage}`);
     if (!stopScreen && domChecks['画面 3'] && screen !== '画面 3') { after3 = 1; break; }
@@ -563,6 +635,29 @@ async function hearingFlow(stopScreen = null) {
     } else stuck = 0;
     actedText = text;
     let acted = false;
+    // 画面 4 の中に AI の聞き返し(decision.askBack が true)が出たときは、画面は、聞き返しの選択肢のほかの、いまの画面の入力と主なボタンを押せなくする(index.html の hearGates と lockBelowAsk)。
+    // 画面 4 のほかの操作より先に、聞き返しの選択肢のうち推奨(オブジェクトの recommend が true か、末尾が「(推奨)」の文。index.html の normChoice と同じ)を押し、推奨がなければ 1 つ目を押す
+    if (screen === '画面 4' && s.decision && s.decision.askBack === true && (s.decision.choices || []).length) {
+      const asks = page.locator('#hearbody .decision[data-ask="true"] .choices button.choice');
+      if ((await asks.count()) && !(await asks.first().isDisabled())) {
+        const askLabel = c => String(c && typeof c === 'object' ? c.label ?? '' : c);
+        const recommended = s.decision.choices.findIndex(c => (c && typeof c === 'object' && c.recommend === true) || /[((]推奨[))]$/.test(askLabel(c)));
+        const index = recommended >= 0 ? recommended : 0;
+        const label = askLabel(s.decision.choices[index]);
+        const usersBefore = parseUsers(conversationOf(rel)).length;
+        console.log(`操作: 画面 4 の聞き返し「${s.decision.question}」で「${label}」を押す`);
+        await asks.nth(index).click();
+        await until(() => busyOf(page), 10000);
+        await until(async () => !(await busyOf(page)), 25 * 60 * 1000);
+        await sleep(2500);
+        const users = parseUsers(conversationOf(rel));
+        // 画面は、聞き返しの選択肢の文をそのまま送る。直した答えがたまっているときは、2 行目から「直した答え」の行を添える(index.html の send)
+        check('画面 4 の聞き返しの選択肢を押すと、送る文の 1 行目が、押した選択肢の文(聞き返しの答え)になる', users.length > usersBefore && (users.at(-1) || '').split('\n')[0].trim() === label.trim(), users.at(-1));
+        actedText = null;
+        stuck = 0;
+        continue;
+      }
+    }
     if (screen === '画面 4' && s.questions && backs.length) {
       let pressed = null;
       const usersBefore = parseUsers(conversationOf(rel)).length;
@@ -618,7 +713,9 @@ async function hearingFlow(stopScreen = null) {
       reached4.multiple += multi;
       reached4.parts += s.questions.items.filter(i => (i.parts || []).length).length;
       reached4.files += s.questions.items.filter(i => (i.files || []).length).length;
-      check(`画面 4 の複数を選べる問いがチェックで出る(${s.questions.title})`, (await page.locator('#hearbody fieldset.zqs:has(.zops input[type=checkbox])').count()) === multi, String(multi));
+      // 画面は、いま出ているページのカテゴリーの問いだけを出すので、比べる数もそのページの問いで数える
+      const shownMulti = shown.items.filter(i => i.multiple === true && (i.choices || []).length).length;
+      check(`画面 4 の複数を選べる問いがチェックで出る(${shown.name || s.questions.title})`, (await page.locator('#hearbody fieldset.zqs:has(.zops input[type=checkbox])').count()) === shownMulti, String(shownMulti));
       if (sentAnswers.length && !answersViewed) {
         answersViewed = true;
         await page.locator('#hearfoot .ghost', {hasText: 'これまでの答えの一覧'}).click();
@@ -672,10 +769,14 @@ async function hearingFlow(stopScreen = null) {
       pickedReadings.push(...lines.map(l => l.slice(l.lastIndexOf('): ') + 3)));
     }
     if (screen === '画面 4' && stopScreen && s.questions) {
-      // 画面が送った「番号: 答え」の行から、選択肢の文と補足の文を取り出す
+      // 画面が送った「番号: 答え」の行と、前の回の答えを直したときに添える「直した答え <記録の番号>: 答え」の行(画面遷移設計書の T27)から、選択肢の文と補足の文を取り出す。
+      // <記録の番号> は「6-1」「16」「深掘り 1」のような聞き取りの記録の番号で、記録の番号を持たない古い形の state.json では回の中の番号。どちらも最初の「: 」までとする
+      // 今の回の問いの数と比べるのは「番号: 答え」の行だけ。直した答えの行は、前の回の問いの答えなので、数えない
       const users = parseUsers(conversationOf(rel));
-      const lines = users.at(-1).split('\n').map(l => l.replace(/^\d+:\s*/, ''));
-      const answers = lines.flatMap(l => { const m = l.match(/^(.*)[((]補足: (.*)[))]$/); return m ? [plainChoice(m[1]), m[2]] : [plainChoice(l)]; }).filter(Boolean);
+      const rows = users.at(-1).split('\n');
+      const lines = rows.filter(l => /^\d+:/.test(l)).map(l => l.replace(/^\d+:\s*/, ''));
+      const edits = rows.filter(l => /^直した答え .+?:\s/.test(l)).map(l => l.replace(/^直した答え .+?:\s*/, ''));
+      const answers = [...lines, ...edits].flatMap(l => { const m = l.match(/^(.*)[((]補足: (.*)[))]$/); return m ? [plainChoice(m[1]), m[2]] : [plainChoice(l)]; }).filter(Boolean);
       sentAnswers.push(...answers);
       waitingAnswers = {title: s.questions.title, answers: [...carriedAnswers, ...answers]};
       carriedAnswers = [];
@@ -683,6 +784,7 @@ async function hearingFlow(stopScreen = null) {
       check(`画面 4 の答えが「ユーザー:」の行で AI へ送られる(${s.questions.title})`, lines.length === sentText, users.at(-1));
     }
   }
+  onPageTurn = null;
   clearInterval(watch);
   const rel = workRel();
   fs.writeFileSync(path.join(dir, 'visited.json'), JSON.stringify(visited, null, 2) + '\n');
@@ -695,7 +797,8 @@ async function hearingFlow(stopScreen = null) {
   check('AI が書いたすべての state.json は 16 のキーを持つ', screens.every(x => x.keys.length === 0), JSON.stringify(screens.filter(x => x.keys.length)));
   check('画面のスクリプトのエラーがない', errors.length === 0, errors.join(' / '));
   if (stopScreen) {
-    check('画面 4、AI の案、画面 5 の順に通って画面 6 に届く', reached && hasInOrder(['画面 3', '画面 4', 'AI の案', '画面 5', '画面 6']), visited.join(' → '));
+    // 段階 1 は、問いのあとに下書きの承認(画面 5)へ進む
+    check('画面 4、画面 5 の順に通って画面 6 に届く', reached && hasInOrder(['画面 3', '画面 4', '画面 5', '画面 6']), visited.join(' → '));
     check('画面 5 の「内容を修正する」を 1 回使い、直しが下書きへ戻る', fix.sent && fix.seen, JSON.stringify(fix));
     check('画面 4 で「前へ」「この質問に戻る」「分からない」を 1 回ずつ押す', backs.length === 0, `押せなかった道: ${backs.join('、')}`);
     const files = {'要件定義書.md': rel ? path.join(sf, rel, '要件定義書.md') : '', '聞き取りの記録.md': rel ? path.join(sf, rel, '聞き取りの記録.md') : ''};
@@ -738,6 +841,12 @@ async function hearingFlow(stopScreen = null) {
   }
 }
 // conversation.md の「ユーザー:」の件の本文を、順に返す
+// 聞き取りの画面が送った答え。「<番号>: <答え>」の行のうち、段階 2 を始める文より前のもの
+function hearingAnswers(text) {
+  const users = parseUsers(text);
+  const next = users.findIndex(u => u.startsWith('次の作業へ進む'));
+  return users.slice(0, next < 0 ? users.length : next).flatMap(u => u.split('\n')).map(l => (l.match(/^\d+: (.+)$/) || [])[1]).filter(Boolean).map(plainChoice);
+}
 function parseUsers(text) {
   const list = [];
   let current = null;

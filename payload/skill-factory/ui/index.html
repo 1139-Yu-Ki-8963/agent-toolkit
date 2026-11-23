@@ -218,14 +218,6 @@ body.hearing main{flex-wrap:nowrap;padding:var(--space-12) var(--space-20) var(-
 .zrsi{position:relative;flex:0 0 18px;width:18px;height:18px;margin-top:var(--space-2);display:flex;align-items:center;justify-content:center}
 .zrsi .ok{margin-top:0}
 .zskip{box-sizing:border-box;width:18px;height:18px;border:1px solid var(--color-border-control);border-radius:var(--radius-circle);background:var(--color-surface)}
-.zp3{padding:var(--space-10) var(--space-16)}
-.zp3 .zlb{display:grid;grid-template-columns:132px minmax(0,1fr);column-gap:var(--space-12);width:100%}
-.zp3 .zlb dt{grid-column:1}
-.zp3 .zsubs{grid-column:2;min-width:0}
-.zsubr{margin-top:var(--space-8)}
-.zsubr:first-of-type{margin-top:var(--space-2)}
-.zsubn{display:block;font-size:var(--font-size-caption);line-height:var(--line-height-body);color:var(--color-text-subtle)}
-.zp3 .zlb dd{font-size:var(--font-size-body-large)}
 .zans{align-items:center}
 .zans .zlb{flex:1 1 0}
 .zb2{min-height:var(--height-control-compact)}
@@ -538,11 +530,10 @@ function normalizeState(s) {
   const summary = obj(s.summary) && {lines: list(s.summary.lines), readings: list(s.summary.readings)};
   const research = obj(s.research) && {rows: rows(s.research.rows)};
   const factCheck = obj(s.factCheck) && {...s.factCheck, facts: rows(s.factCheck.facts), items: rows(s.factCheck.items)};
-  const approvalSheet = obj(s.approvalSheet) && {...s.approvalSheet, rows: rows(s.approvalSheet.rows).map(r => ({...r, cells: rows(r.cells).map(c => ({...c, choices: list(c.choices)}))}))};
-  const draftReview = obj(s.draftReview) && {checkFirst: rows(s.draftReview.checkFirst), checks: rows(s.draftReview.checks).map(x => ({...x, candidates: list(x.candidates)})), sections: rows(s.draftReview.sections).map(x => ({...x, items: rows(x.items)}))};
+  const draftReview = obj(s.draftReview) && {checkFirst: rows(s.draftReview.checkFirst).map(x => ({...x, choices: list(x.choices)})), checks: rows(s.draftReview.checks).map(x => ({...x, candidates: list(x.candidates)})), sections: rows(s.draftReview.sections).map(x => ({...x, items: rows(x.items)}))};
   // 回の一覧(インターフェース設計書の章 2 の rounds)。1 つ以上の回を持つときだけ使い、ないときと形が違うときは null(古い形)とする
   const rounds = Array.isArray(s.rounds) && s.rounds.length && s.rounds.every(r => obj(r) && typeof r.kind === 'string' && Array.isArray(r.items)) ? s.rounds.map(r => ({kind: r.kind, items: rows(r.items)})) : null;
-  return {...s, stage: s.stage ?? 1, artifacts: list(s.artifacts), figures: list(s.figures), downloads: list(s.downloads), documentPath: typeof s.documentPath === 'string' ? s.documentPath : '', decision, questions, screen: typeof s.screen === 'string' ? s.screen : null, summary, research, factCheck, approvalSheet, draftReview, rounds};
+  return {...s, stage: s.stage ?? 1, artifacts: list(s.artifacts), figures: list(s.figures), downloads: list(s.downloads), documentPath: typeof s.documentPath === 'string' ? s.documentPath : '', decision, questions, screen: typeof s.screen === 'string' ? s.screen : null, summary, research, factCheck, draftReview, rounds};
 }
 
 const fileUrl = p => '/files/' + p.split('/').map(encodeURIComponent).join('/');
@@ -1073,9 +1064,9 @@ async function send(text, fromChoice, leave) {
   sending = true;
   renderChat();
   renderHear();
-  // 画面遷移設計書の章 11 の T27: 聞き取りの画面から AI を呼ぶどの送信にも、たまった直した答えを添える
+  // 画面遷移設計書の章 11 の T27: 聞き取りの画面から AI を呼ぶどの送信にも、たまった直した答えを「直した答え <記録の番号>: <答え>」の行で添える
   const edits = hearNow() ? pendingEdits() : [];
-  const body = edits.length ? [text, ...edits.map(x => '直した答え ' + x.number + ': ' + x.answer)].join('\n') : text;
+  const body = edits.length ? [text, ...edits.map(x => '直した答え ' + x.label + ': ' + x.answer)].join('\n') : text;
   let error = null;
   try {
     const r = await fetch('/api/prompt', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({text: body, workDir: state ? seenWorkDir : null, leave})});
@@ -1124,12 +1115,10 @@ $('form').onsubmit = e => {
 };
 
 
-// ここから聞き取りの画面(docs/要件定義の聞き取り/画面遷移設計書.md)。state.json のキー screen が次の 9 つのどれかのときと、最初の依頼を AI が読んでいる間だけ出す
-const HEAR_LABEL = {'AI が読む': '文章を読んでいる', '画面 2': 'まとめの確認', '調べるための問い': '調べるための問い', '調査': '調査中', '画面 3': '調べたことの確認', '画面 4': '質問中', 'AI の案': '案の確認', '画面 5': '承認待ち', '画面 6': '書き終わり'};
+// ここから聞き取りの画面(docs/要件定義の聞き取り/画面遷移設計書.md)。state.json のキー screen が次の 8 つのどれかのときと、最初の依頼を AI が読んでいる間だけ出す
+const HEAR_LABEL = {'AI が読む': '文章を読んでいる', '画面 2': 'まとめの確認', '調べるための問い': '調べるための問い', '調査': '調査中', '画面 3': '調べたことの確認', '画面 4': '質問中', '画面 5': '承認待ち', '画面 6': '書き終わり'};
 const FRAME_STAGES = ['要件定義書', '分割設計書', 'スキルの構成の案', 'スキルの本文の下書き', 'スキルの照合と修正', 'テスト計画書', 'テストのシナリオ', 'テストの実行'];
 const CHAT_PLACEHOLDER = '足りないことを、ここに書いてください。AI がもう一度整理します。';
-// 項目 7-3 の出力の種類。リファレンス「聞き取りの項目と問い」の承認の 1 枚の表と同じ
-const OUTPUT_KINDS = ['ファイル', 'フォルダ', 'チャットへの表示', '外部への書き込み(コミット、投稿、Issue)'];
 // cat は、2 段目の問い(2 つ以上のカテゴリー)のうち、いま出しているカテゴリーの番号(0 から)
 const freshHear = () => ({editing: false, view: null, drafts: {}, answers: {}, notes: {}, fields: {}, picked: {}, sent: null, failed: null, edited: null, gate: false, sig: null, cat: 0});
 let hear = freshHear();
@@ -1164,7 +1153,7 @@ function hearOnState(before) {
   storePrune();
 }
 
-// 送る前の答えと直した答え(承認された設計の 4)。ブラウザの localStorage に、作業のフォルダごとに、問いの番号から {問いの文, 答えの文, 欄の値} の組で持つ。
+// 送る前の答えと直した答え(承認された設計の 4)。ブラウザの localStorage に、作業のフォルダごとに、問いの鍵(qkey)から {問いの文, 答えの文, 欄の値} の組で持つ。
 // 直した答えは、送った答えの文(sentAnswer)も持ち、答えの文が sentAnswer と違う間だけ、次の送信に添える
 let hearPage = null;
 const storeKey = () => { const d = status.workDir || seenWorkDir; return d ? 'sf-hear:' + d : null; };
@@ -1177,11 +1166,14 @@ function storeRead() {
 function storeWrite(all) { const k = storeKey(); if (!k) return; try { localStorage.setItem(k, JSON.stringify(all)); } catch {} }
 const roundsNow = () => (state && state.rounds) || null;
 const roundItems = () => (roundsNow() || []).flatMap(r => r.items.filter(i => i.replaced !== true));
+// 問いの鍵: 画面の中の答え(hear.answers、hear.notes、hear.picked、hear.fields)と localStorage の答えは、この鍵で持つ。
+// 回の一覧の問いは、どの回も問いの番号 1 から始まるので、「回の番号(0 から):問いの番号」とする。回の一覧にない問いは、問いの番号とする
+const qkey = it => { const ri = (roundsNow() || []).findIndex(r => r.items.includes(it)); return ri >= 0 ? ri + ':' + it.number : String(it.number); };
 function storeItem(it) {
   if (!roundsNow()) return;
   const all = storeRead();
-  const n = String(it.number);
-  const raw = JSON.parse(JSON.stringify({answer: hear.answers[it.number], note: hear.notes[it.number], picked: hear.picked[it.number], fields: hear.fields[it.number]}));
+  const n = qkey(it);
+  const raw = JSON.parse(JSON.stringify({answer: hear.answers[n], note: hear.notes[n], picked: hear.picked[n], fields: hear.fields[n]}));
   const answer = answerOf(it);
   if (it.answer == null) all[n] = {text: it.text, answer, raw, draft: true};
   else {
@@ -1199,29 +1191,32 @@ function storePrune() {
   const list = roundItems();
   let changed = false;
   for (const [n, e] of Object.entries(all)) {
-    const it = list.find(i => String(i.number) === n);
+    const it = list.find(i => qkey(i) === n);
     const written = it && it.answer != null && (e.draft || (e.answer === String(it.answer) && e.sentAnswer === e.answer));
     if (!it || !e || it.text !== e.text || written) { delete all[n]; changed = true; }
   }
   if (changed) storeWrite(all);
 }
+// 直した答えの行で問いを指す番号。聞き取りの記録の番号(recordNumber)は回をまたいでも重ならないので、それを使う。
+// recordNumber を持たない古い形の state.json の問いは、回の中の問いの番号とする
+const recordNo = it => (typeof it.recordNumber === 'string' && it.recordNumber.trim() ? it.recordNumber.trim() : String(it.number));
 // 送った回の問いのうち、送ったあとに直して、まだ送っていない答え
 function pendingEdits() {
   if (!roundsNow()) return [];
   const all = storeRead();
-  return roundItems().filter(it => it.answer != null).map(it => [it, all[String(it.number)]])
-    .filter(([it, e]) => e && !e.draft && e.text === it.text && e.answer && e.answer !== e.sentAnswer).map(([it, e]) => ({number: it.number, answer: e.answer}));
+  return roundItems().filter(it => it.answer != null).map(it => [it, all[qkey(it)]])
+    .filter(([it, e]) => e && !e.draft && e.text === it.text && e.answer && e.answer !== e.sentAnswer).map(([it, e]) => ({number: it.number, label: recordNo(it), key: qkey(it), answer: e.answer}));
 }
 function markEditsSent(list) {
   const all = storeRead();
-  for (const x of list) { const e = all[String(x.number)]; if (e && e.answer === x.answer) e.sentAnswer = x.answer; }
+  for (const x of list) { const e = all[x.key]; if (e && e.answer === x.answer) e.sentAnswer = x.answer; }
   storeWrite(all);
 }
 // 持っている答えを、画面の答えの欄に入れる。入れたときは true を返す
 function restoreStored(it) {
-  const n = it.number;
+  const n = qkey(it);
   if (!roundsNow() || hear.answers[n] !== undefined || hear.notes[n] !== undefined) return false;
-  const e = storeRead()[String(n)];
+  const e = storeRead()[n];
   // 送る前の答えは、AI が送った答えを書いた問いには入れない(開き直した直後は、捨てる前のことがある)
   if (!e || e.text !== it.text || !e.raw || (e.draft && it.answer != null)) return false;
   const r = e.raw;
@@ -1234,7 +1229,7 @@ function restoreStored(it) {
 // 2 つのタブは、同じ localStorage を使い、storage のイベントを受けると読み直す
 window.addEventListener('storage', e => {
   if (!e.key || e.key !== storeKey() || !roundsNow()) return;
-  for (const it of roundItems()) { delete hear.answers[it.number]; delete hear.notes[it.number]; delete hear.picked[it.number]; delete hear.fields[it.number]; }
+  for (const it of roundItems()) { const n = qkey(it); delete hear.answers[n]; delete hear.notes[n]; delete hear.picked[n]; delete hear.fields[n]; }
   hear.sig = null;
   renderHear();
 });
@@ -1261,14 +1256,14 @@ function keepStage2(before) {
   if (!isStage2(before)) return;
   const sent = new Set(((hear.sent && hear.sent.answers) || []).map(a => a.text));
   for (const it of before.questions.items) {
-    const n = it.number;
+    const n = qkey(it);
     if (it.answer != null || sent.has(it.text) || (hear.answers[n] === undefined && hear.notes[n] === undefined)) continue;
     kept[it.text] = JSON.parse(JSON.stringify({answer: hear.answers[n], note: hear.notes[n], picked: hear.picked[n], fields: hear.fields[n]}));
   }
 }
 function restoreKept(it) {
   const k = state && state.screen === '画面 4' && it.answer == null && kept[it.text];
-  const n = it.number;
+  const n = qkey(it);
   if (!k || hear.answers[n] !== undefined || hear.notes[n] !== undefined) return;
   if (k.answer !== undefined) hear.answers[n] = k.answer;
   if (k.note !== undefined) hear.notes[n] = k.note;
@@ -1278,19 +1273,18 @@ function restoreKept(it) {
 
 // インターフェース設計書(docs/スキル作成の確認と承認の画面/画面の状態のファイルのインターフェース設計書.md)の章 2 の表と、章 3 の聞き返しの decision の形。
 // ui/tests/lib/state-contract.mjs と同じ表と判定を持つ。語: req は「必須」、reqItems は「必須(items は 1 件以上)」、null は「null」、nullOrReq は「null か必須」、askBack は「聞き返し」、choice は「選択肢」
-const CONTRACT_KEYS = ['summary', 'research', 'factCheck', 'questions', 'approvalSheet', 'draftReview', 'decision'];
+const CONTRACT_KEYS = ['summary', 'research', 'factCheck', 'questions', 'draftReview', 'decision'];
 const contractRow = (...rules) => Object.fromEntries(CONTRACT_KEYS.map((k, i) => [k, rules[i]]));
 const CONTRACT_TABLE = {
-  'AI が読む': contractRow('null', 'null', 'null', 'null', 'null', 'null', 'null'),
-  '画面 2': contractRow('req', 'null', 'null', 'null', 'null', 'null', 'choice'),
-  '調べるための問い': contractRow('null', 'null', 'null', 'reqItems', 'null', 'null', 'askBack'),
-  '調査': contractRow('null', 'req', 'null', 'null', 'null', 'null', 'null'),
-  '画面 3': contractRow('null', 'null', 'req', 'null', 'null', 'null', 'choice'),
-  '画面 4': contractRow('null', 'null', 'null', 'reqItems', 'null', 'null', 'askBack'),
-  'AI の案': contractRow('null', 'null', 'null', 'null', 'req', 'null', 'choice'),
+  'AI が読む': contractRow('null', 'null', 'null', 'null', 'null', 'null'),
+  '画面 2': contractRow('req', 'null', 'null', 'null', 'null', 'choice'),
+  '調べるための問い': contractRow('null', 'null', 'null', 'reqItems', 'null', 'askBack'),
+  '調査': contractRow('null', 'req', 'null', 'null', 'null', 'null'),
+  '画面 3': contractRow('null', 'null', 'req', 'null', 'null', 'choice'),
+  '画面 4': contractRow('null', 'null', 'null', 'reqItems', 'null', 'askBack'),
   // draftReview の null は、下書きを作っている間と、下書きがまだないとき
-  '画面 5': contractRow('null', 'null', 'null', 'null', 'null', 'nullOrReq', 'choice'),
-  '画面 6': contractRow('null', 'null', 'null', 'null', 'null', 'null', 'null'),
+  '画面 5': contractRow('null', 'null', 'null', 'null', 'nullOrReq', 'choice'),
+  '画面 6': contractRow('null', 'null', 'null', 'null', 'null', 'null'),
 };
 const isPlainObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
 const allStrings = v => Array.isArray(v) && v.every(x => typeof x === 'string');
@@ -1531,7 +1525,7 @@ function parseChoice(c) {
 const SPLIT_WORD = '分けて';
 const ONE_FILE = '1 つのファイルにまとめる';
 const fieldKind = it => {
-  const label = parseChoice(hear.answers[it.number] || '').label;
+  const label = parseChoice(hear.answers[qkey(it)] || '').label;
   const files = Array.isArray(it.files) ? it.files : [];
   const parts = Array.isArray(it.parts) ? it.parts : [];
   if (label.startsWith(SPLIT_WORD) && files.length) return 'files';
@@ -1539,7 +1533,8 @@ const fieldKind = it => {
   return parts.length && (!asksSplit || label === ONE_FILE) ? 'parts' : null;
 };
 const fieldState = (it, kind) => {
-  const all = hear.fields[it.number] = hear.fields[it.number] || {};
+  const k = qkey(it);
+  const all = hear.fields[k] = hear.fields[k] || {};
   return all[kind] = all[kind] || {on: (it[kind] || []).filter(x => x && x.selected !== false).map(x => x.name), other: ''};
 };
 const otherNames = text => String(text).split(/[、,\n]/).map(x => x.trim()).filter(Boolean);
@@ -1559,8 +1554,8 @@ const fieldText = it => {
 };
 
 const answerOf = it => {
-  const v = hear.answers[it.number];
-  const note = (hear.notes[it.number] || '').trim();
+  const v = hear.answers[qkey(it)];
+  const note = (hear.notes[qkey(it)] || '').trim();
   if (!v && !note) return '';
   if (filesShort(it)) return '';
   const base = v ? v + fieldText(it) : '';
@@ -1600,7 +1595,7 @@ function fieldBlock(it, kind) {
 // 入れた答えから answerOf が作る文が前の回答と同じにならないときは、選択肢を選ばず、前の回答の文をそのまま「理由と補足」の欄に入れる
 // 回の一覧があるときは、送った答え(answer)も、同じ形で答えの欄に入れる(prevText)
 function fillPrevious(it, choices, many, prevText = it.previousAnswer) {
-  const number = it.number;
+  const number = qkey(it);
   const prev = String(prevText);
   const fallback = () => {
     hear.answers[number] = '';
@@ -1637,18 +1632,19 @@ function fillPrevious(it, choices, many, prevText = it.previousAnswer) {
 // 問いの塊: 調べるための問いでは結果の文をすべて出し、画面 4 では選んだ選択肢にだけ出す
 function questionBlock(it, showAll) {
   const number = it.number;
+  const key = qkey(it);
   const choices = (Array.isArray(it.choices) ? it.choices : []).map(parseChoice);
   const results = Array.isArray(it.results) ? it.results : [];
   const many = it.multiple === true;
   // 送る前の答えと直した答え(回の一覧があるとき)と、前の state.json で答えた、まだ送っていない 2 段目の答え(古い形のとき)は、送った答えと前の回答と「(推奨)」より先に入れる
   if (!restoreStored(it)) restoreKept(it);
-  if (it.answer != null && hear.answers[number] === undefined && hear.notes[number] === undefined) {
+  if (it.answer != null && hear.answers[key] === undefined && hear.notes[key] === undefined) {
     if (roundsNow()) fillPrevious(it, choices, many, it.answer);
-    else hear.answers[number] = String(it.answer);
+    else hear.answers[key] = String(it.answer);
   }
-  if (it.answer == null && it.previousAnswer != null && hear.answers[number] === undefined && hear.notes[number] === undefined) fillPrevious(it, choices, many);
+  if (it.answer == null && it.previousAnswer != null && hear.answers[key] === undefined && hear.notes[key] === undefined) fillPrevious(it, choices, many);
   const pre = choices.find(c => c.tag);
-  if (pre && hear.answers[number] === undefined) hear.answers[number] = pre.raw;
+  if (pre && hear.answers[key] === undefined) hear.answers[key] = pre.raw;
   const f = h('fieldset', 'zqs', h('legend', 'zqh', it.text));
   const found = typeof it.reason === 'string' && it.reason.startsWith('AI が調べて');
   // 違いを比べて選ぶ問い(調べて見つけたことを添えた問い、項目 7-1 と 7-10 の欄を持つ問い、AI が推測した選択肢を持つ問い、「それぞれを選ぶと」と書いた問い)は、すべての選択肢に結果の文を出す
@@ -1673,24 +1669,24 @@ function questionBlock(it, showAll) {
     const ops = h('div', 'zops' + (every ? ' zshowr' : ''));
     // 複数を選べる問いの答えは、選んだ選択肢の文を読点で連ねる。「ない」「確かめない」は、選ぶとほかを選べない
     const lone = c => c.label === 'ない' || c.label === '確かめない';
-    if (many && !hear.picked[number]) hear.picked[number] = choices.filter(c => String(hear.answers[number] || '').includes(c.raw)).map(c => c.raw);
-    const picks = () => hear.picked[number] || [];
+    if (many && !hear.picked[key]) hear.picked[key] = choices.filter(c => String(hear.answers[key] || '').includes(c.raw)).map(c => c.raw);
+    const picks = () => hear.picked[key] || [];
     const inputs = [];
     choices.forEach((c, i) => {
-      const checked = many ? picks().includes(c.raw) : hear.answers[number] === c.raw;
+      const checked = many ? picks().includes(c.raw) : hear.answers[key] === c.raw;
       const on = () => {
-        if (!many) hear.answers[number] = c.raw;
+        if (!many) hear.answers[key] = c.raw;
         else {
           const now = inputs[i].checked;
           const others = now && lone(c) ? [] : picks().filter(p => p !== c.raw && !(now && choices.some(x => x.raw === p && lone(x))));
-          hear.picked[number] = now ? [...others, c.raw] : others;
-          hear.answers[number] = hear.picked[number].join('、');
+          hear.picked[key] = now ? [...others, c.raw] : others;
+          hear.answers[key] = hear.picked[key].join('、');
           choices.forEach((x, j) => { inputs[j].checked = picks().includes(x.raw); });
         }
         sync();
         changed();
       };
-      const node = option('q' + number, c.raw, c.label, results[i], checked, on, c.tag, many);
+      const node = option('q' + key, c.raw, c.label, results[i], checked, on, c.tag, many);
       inputs.push(node.querySelector('input'));
       ops.append(node);
     });
@@ -1705,11 +1701,11 @@ function questionBlock(it, showAll) {
   t.rows = 1;
   t.placeholder = choices.length ? '選択肢にない答えか、補足の文' : '答えを書く';
   t.setAttribute('aria-label', '質問 ' + number + ' の答え');
-  t.value = hear.notes[number] || '';
-  t.oninput = () => { hear.notes[number] = t.value; changed(); };
+  t.value = hear.notes[key] || '';
+  t.oninput = () => { hear.notes[key] = t.value; changed(); };
   const why = !found && !every && it.reason ? it.reason + (it.example ? ' 例: 「' + it.example + '」' : '') : (it.example && !showAll ? '例: 「' + it.example + '」' : null);
-  more.append(h('div', 'zmb', why ? h('p', 'zp', why) : null, t, ghost('分からない', () => { hear.notes[number] = '分からない'; t.value = '分からない'; changed(); }, locked(), 'zf')));
-  if (!choices.length || (hear.notes[number] || '').trim()) more.open = true;
+  more.append(h('div', 'zmb', why ? h('p', 'zp', why) : null, t, ghost('分からない', () => { hear.notes[key] = '分からない'; t.value = '分からない'; changed(); }, locked(), 'zf')));
+  if (!choices.length || (hear.notes[key] || '').trim()) more.open = true;
   f.append(more);
   return f;
 }
@@ -1797,7 +1793,7 @@ function screenQuestions() {
   if (roundsNow()) return screenRounds();
   const q = state.questions;
   if (hear.view === 'answers') return screenAnswers();
-  if (!q || !q.items.length) return {body: [zhead('質問はありません。', 'このあと、案の画面で決めます。'), sentNote()], foot: [leftFoot()]};
+  if (!q || !q.items.length) return {body: [zhead('質問はありません。', 'このあと、要件定義書の下書きで決めます。'), sentNote()], foot: [leftFoot()]};
   // 2 段目(2 つ以上のカテゴリー)は、いまのカテゴリーの問いだけを出し、数もいまのカテゴリーの問いで数える
   const groups = questionGroups(q);
   const multi = groups.length > 1;
@@ -1846,7 +1842,7 @@ function roundPages() {
 function pageNow(pages) {
   if (hearPage !== null && hearPage < pages.length) return hearPage;
   const all = storeRead();
-  const done = it => it.answer != null || !!(all[String(it.number)] && all[String(it.number)].text === it.text && all[String(it.number)].answer);
+  const done = it => it.answer != null || !!(all[qkey(it)] && all[qkey(it)].text === it.text && all[qkey(it)].answer);
   const lastRound = pages[pages.length - 1].ri;
   const i = pages.findIndex(p => p.ri === lastRound && !p.items.every(done));
   hearPage = i >= 0 ? i : pages.length - 1;
@@ -1876,7 +1872,7 @@ function screenRounds() {
   const q = state.questions;
   const pages = roundPages();
   if (!pages.length) return state.screen === '調べるための問い' ? {body: [zhead('調べる前に聞くことはありません。', 'あなたの文章から決まりました。'), sentNote()], foot: [leftFoot()]}
-    : {body: [zhead('質問はありません。', 'このあと、案の画面で決めます。'), sentNote()], foot: [leftFoot()]};
+    : {body: [zhead('質問はありません。', 'このあと、要件定義書の下書きで決めます。'), sentNote()], foot: [leftFoot()]};
   // 出していないページの問いも、送る前の答えで「回答を送る」を押せるかを決めるので、持っている答えを先に入れる
   for (const p of pages) p.items.forEach(restoreStored);
   const pi = pageNow(pages);
@@ -1931,7 +1927,7 @@ function screenRoundAnswers() {
   pages.forEach((p, pi) => p.items.forEach(it => {
     no++;
     restoreStored(it);
-    const shown = hear.answers[it.number] !== undefined || hear.notes[it.number] !== undefined ? answerOf(it) : it.answer != null ? String(it.answer) : '';
+    const shown = hear.answers[qkey(it)] !== undefined || hear.notes[qkey(it)] !== undefined ? answerOf(it) : it.answer != null ? String(it.answer) : '';
     if (!shown) return;
     rows.push(h('div', 'zli zans', h('div', 'zlb', h('dt', null, '質問 ' + no + ' ・ ' + it.text), h('dd', null, shown)), button('この質問に戻る', {cls: 'zb2', on: () => switchPage(pi)})));
   }));
@@ -1974,69 +1970,18 @@ function screenLeave() {
     foot: [button('質問に戻る', {pri: true, on: backTo})]};
 }
 
-// AI の案と画面 5 の、これまでの答えの一覧(承認された設計の 3)。送った回の問いの塊を並べ、答えをその場で直せる。直した答えは localStorage にためる。
-// 画面 5 では「直した答えを送る」で、選択肢「直す」の文とたまった直した答えを送る。AI の案では、「この案で進む」か修正の欄の送信に添える(send)
+// 画面 5 の、これまでの答えの一覧(承認された設計の 3)。送った回の問いの塊を並べ、答えをその場で直せる。直した答えは localStorage にためる。
+// 「直した答えを送る」で、選択肢「直す」の文とたまった直した答えを送る
 const openAnswers = () => { hear.view = 'answers'; hear.sig = null; renderHear(); $('hearscroll').scrollTop = 0; };
 const answersGhost = () => (roundsNow() ? ghost('これまでの答えの一覧', openAnswers, false) : null);
 function screenReviewAnswers() {
   const answered = roundPages().flatMap(p => p.items).filter(i => i.answer != null);
-  const draft = state.screen === '画面 5';
   const backTo = () => { hear.view = null; hear.sig = null; renderHear(); };
-  const foot = [leftFoot(), button(draft ? '下書きに戻る' : '案に戻る', {on: backTo})];
-  if (draft) {
-    const go = button('直した答えを送る', {pri: true, off: locked() || !pendingEdits().length, on: () => hearSend(choiceText('直す'))});
-    go.dataset.need = 'edits';
-    foot.push(go);
-  }
-  return {body: [zhead('これまでの答え', '答えを直せます。' + (draft ? '直した答えは、「直した答えを送る」で送ります。' : '直した答えは、「この案で進む」か修正の内容と一緒に送ります。')), sentNote(),
+  const go = button('直した答えを送る', {pri: true, off: locked() || !pendingEdits().length, on: () => hearSend(choiceText('直す'))});
+  go.dataset.need = 'edits';
+  const foot = [leftFoot(), button('下書きに戻る', {on: backTo}), go];
+  return {body: [zhead('これまでの答え', '答えを直せます。直した答えは、「直した答えを送る」で送ります。'), sentNote(),
     answered.length ? h('div', 'zl zql', ...answered.map(i => questionBlock(i, false))) : h('p', 'zln', 'まだ答えた質問はありません。')], foot};
-}
-
-function screenPlan() {
-  if (hear.view === 'answers' && roundsNow()) return screenReviewAnswers();
-  const sheet = state.approvalSheet || {heading: '作り方の案は、これでよいですか？', rows: []};
-  const list = [];
-  const sections = [];
-  for (const r of sheet.rows) {
-    let sec = sections.find(x => x.title === r.section);
-    if (!sec) { sec = {title: r.section, rows: []}; sections.push(sec); }
-    sec.rows.push(r);
-  }
-  const added = [];
-  const cellNode = (r, c, ri, ci) => {
-    const key = 'p' + ri + '-' + ci;
-    const name = r.name === c.name ? r.name : r.name + ' / ' + c.name;
-    list.push({key, name, value: c.value});
-    const box = h('div', 'zsubr', h('span', 'zsubn', c.name));
-    const choices = c.choices.length ? c.choices : c.name === '出し方' ? OUTPUT_KINDS : [];
-    const showChoices = choices.length && (hear.editing || r.label === '追加');
-    if (r.label === '追加' && c.choices.length) added.push({key, name});
-    if (!hear.editing || !choices.length) box.append(h('dd', hear.editing ? 'ze' : null, hear.editing ? area(key, c.name, c.value) : c.value));
-    if (showChoices) {
-      const ops = h('div', 'zops zshowr');
-      choices.forEach(t => ops.append(option('c' + key, t, t, null, (hear.drafts[key] ?? c.value) === t, () => { hear.drafts[key] = t; hearGates(); })));
-      box.append(ops);
-    }
-    box.append(h('small', 'zsrc', '出どころ: ' + c.source));
-    return box;
-  };
-  let ri = 0;
-  const secs = sections.map(sec => h('section', 'zsec', h('h3', 'zsh', sec.title), h('dl', 'zl', ...sec.rows.map(r => {
-    const n = ri++;
-    return h('div', 'zli zp3', h('div', 'zlb', h('dt', null, r.name, r.label && mark(r.label, r.label === '追加')), h('div', 'zsubs', ...r.cells.map((c, ci) => cellNode(r, c, n, ci)))));
-  }))));
-  const headNode = hear.editing ? zhead('違うところを、その場で直してください。', '直した内容だけを AI が読み直します。ほかの案は、そのまま残ります。')
-    : zhead(sheet.heading || '作り方の案は、これでよいですか？', 'AI が、あなたの文章と答えと調べた事実から作りました。この画面は 1 回だけ確かめます。');
-  if (hear.editing) return {body: [headNode, ...secs], foot: editFoot('修正をやめる', 'この内容に直す', list, choiceText('内容を修正する')), gate: false};
-  const go = button('この案で進む', {pri: true, off: locked() || !hear.gate, on: () => {
-    const picks = added.filter(a => hear.drafts[a.key]).map(a => a.name + ': ' + hear.drafts[a.key]);
-    hearSend([choiceText('この案で進む'), ...picks].join('\n'));
-  }});
-  go.dataset.need = 'gate';
-  const hint = h('span', 'fq', '案を最後まで見ると、進めます。');
-  hint.hidden = hear.gate;
-  hint.dataset.hint = 'gate';
-  return {body: [headNode, sentNote(), ...secs], foot: [leftFoot(answersGhost()), button(hear.edited ? 'もう一度修正する' : '内容を修正する', {off: locked(), on: startEdit}), h('span', 'zgw', hint, go)], gate: true};
 }
 
 // AI の最後の文から「**確かめる点: <語>(<項目>)**」と「- 読みの候補: <候補>」の組を取り出す。候補の文は読点を持つので、分けずに出す
@@ -2077,7 +2022,8 @@ function screenDraft() {
     });
     // T20: 見出し「質問で答えた内容」は、回の一覧があるときは AI に送らず、画面の中で「これまでの答えの一覧」を出す。ほかの見出しは、見出しを添えて AI に送る
     const inScreen = sec.title === '質問で答えた内容' && roundsNow();
-    const back = sec.title === 'AI が調べた内容' ? null : ghost('この項目の画面へ', inScreen ? openAnswers : () => hearSend(choiceText('直す') + '\n「' + sec.title + '」の画面へ戻る'), locked(), 'zf');
+    // ボタン「この項目の画面へ」は、見出し「あなたの文章から決まった内容」と「質問で答えた内容」にだけ出す
+    const back = ['AI が調べた内容', 'AI の案で決まった内容'].includes(sec.title) ? null : ghost('この項目の画面へ', inScreen ? openAnswers : () => hearSend(choiceText('直す') + '\n「' + sec.title + '」の画面へ戻る'), locked(), 'zf');
     return h('section', 'zsec', h('h3', 'zsh zshb', sec.title, back), h('dl', 'zl', ...rows));
   };
   const secs = dr.sections.map(secNode);
@@ -2098,7 +2044,30 @@ function screenDraft() {
     c.options.forEach((t, i) => ops.append(option('chk' + c.key, t, parseChoice(t).label, c.results[i], hear.answers[c.key] === t, () => { hear.answers[c.key] = t; hearGates(); })));
     return h('fieldset', 'zqs zsplit', h('legend', 'zqh', c.text), found, ops);
   }))) : null;
-  const firstNode = first.length ? h('section', 'zsec', h('h3', 'zsh', '承認の前に見る 3 行'), h('dl', 'zl', ...first.map(x => h('div', 'zli zc', okIcon(), h('div', 'zlb', h('dt', null, x.name), h('dd', null, x.value)))))) : null;
+  // 先に確かめる行は、下書きの承認の直しで「変更」か「追加」のラベルを付けた行(0 件以上)。0 件のときは塊を出さない。
+  // 「追加」の行が問い(question と choices)を持つときは、その行に選択肢を出し、選んだ値を承認の文に「<行の名前>: <選んだ値>」の行で添える
+  const firstAsks = first.map((x, i) => ({...x, key: 'f' + i})).filter(x => typeof x.question === 'string' && x.question.trim());
+  const firstAsk = x => {
+    if (!x.choices.length) {
+      const t = h('textarea');
+      t.rows = 2;
+      t.placeholder = '答えを書く';
+      t.setAttribute('aria-label', x.question + ' の答え');
+      t.value = hear.answers[x.key] || '';
+      t.oninput = () => { hear.answers[x.key] = t.value.trim(); hearGates(); };
+      return h('fieldset', 'zqs zsplit', h('legend', 'zqh', x.question), h('div', 'zmb', t));
+    }
+    const ops = h('div', 'zops zshowr');
+    x.choices.forEach(t => ops.append(option('chk' + x.key, t, parseChoice(t).label, null, hear.answers[x.key] === t, () => { hear.answers[x.key] = t; hearGates(); }, parseChoice(t).tag)));
+    return h('fieldset', 'zqs zsplit', h('legend', 'zqh', x.question), ops);
+  };
+  const firstNode = first.length ? h('section', 'zsec', h('h3', 'zsh', '先に確かめる行'), h('dl', 'zl', ...first.map((x, i) => {
+    const ask = firstAsks.find(a => a.key === 'f' + i);
+    return h('div', 'zli zc', okIcon(), h('div', 'zlb', h('dt', null, x.name), h('dd', null, x.value), ask ? firstAsk(ask) : null));
+  }))) : null;
+  // 送る文の行の名前は、ラベル「(変更)」「(追加)」を除いた名前。値は、選んだ選択肢の文のまま
+  const rowName = n => n.replace(/[((](変更|追加)[))]$/, '');
+  const firstLines = () => firstAsks.map(x => rowName(x.name) + ': ' + hear.answers[x.key]);
   const dls = state.downloads.length ? h('section', 'zl', h('div', 'zchd', h('b', null, 'ダウンロードできるファイル')), ...state.downloads.map(p => {
     const a = h('a', 'btn', '保存');
     a.href = fileUrl(p) + '?download=1';
@@ -2107,13 +2076,16 @@ function screenDraft() {
   })) : null;
   const wrap = busy && !hear.edited ? waitNote('書き直しています。書き終わると、新しい中身に替わります。') : null;
   if (hear.editing) return {body: [headNode, ...secs], foot: editFoot('修正をやめる', 'この内容に直す', list, choiceText('直す'))};
-  const pickedAll = () => checkBlocks.every(c => hear.answers[c.key]);
+  const pickedAll = () => checkBlocks.every(c => hear.answers[c.key]) && firstAsks.every(x => hear.answers[x.key]);
   const go = hasChecks
-    ? button('読みを選んで続ける', {pri: true, off: locked() || !pickedAll(), on: () => hearSend([choiceText('読みを選んで続ける'), ...checkBlocks.map(c => c.text + ': ' + hear.answers[c.key])].join('\n'))})
-    : button('承認する', {pri: true, off: locked(), on: () => hearSend(choiceText('承認する'))});
-  if (hasChecks) { go.dataset.need = 'checks'; hear.checkDone = pickedAll; }
+    ? button('読みを選んで続ける', {pri: true, off: locked() || !pickedAll(), on: () => hearSend([choiceText('読みを選んで続ける'), ...checkBlocks.map(c => c.text + ': ' + hear.answers[c.key]), ...firstLines()].join('\n'))})
+    : button('承認する', {pri: true, off: locked() || !pickedAll(), on: () => hearSend([choiceText('承認する'), ...firstLines()].join('\n'))});
+  if (hasChecks || firstAsks.length) { go.dataset.need = 'checks'; hear.checkDone = pickedAll; }
+  const footNote = hasChecks ? (firstAsks.length ? '確かめる点の読みと、先に確かめる行の問いの答えを選んでください。' : '確かめる点の読みを選んでください。')
+    : firstAsks.length ? '先に確かめる行の問いに答えてから、承認してください。\n全文はその下に続きます。'
+    : first.length ? '先に確かめる行を見て、承認してください。\n全文はその下に続きます。' : '下書きの全文を見て、承認してください。';
   return {cls: wrap ? 'zrw' : '', body: [headNode, wrap || sentNote(), dls, checkNode, firstNode, ...secs],
-    foot: [leftFoot(answersGhost()), button(hear.edited ? 'もう一度修正する' : '内容を修正する', {off: locked(), on: startEdit}), h('span', 'zgw', h('span', 'fq', hasChecks ? '確かめる点の読みを選んでください。' : '上の 3 行を見て、承認してください。\n全文はその下に続きます。'), go)]};
+    foot: [leftFoot(answersGhost()), button(hear.edited ? 'もう一度修正する' : '内容を修正する', {off: locked(), on: startEdit}), h('span', 'zgw', h('span', 'fq', footNote), go)]};
 }
 
 function screenWritten() {
@@ -2191,7 +2163,7 @@ function lockBelowAsk() {
 
 const screenLost = () => ({body: [zhead('前の会話を続けられないので、新しい会話で始めます。', '成果物のパス(要件定義書、分割設計書、構成の案、テスト計画書、判定の記録のどれか)を、下の 1 行で送ってください。')], foot: [leftFoot()]});
 
-const SCREENS = {'AI が読む': screenRead, '画面 2': screenSummary, '調べるための問い': screenPreQuestions, '調査': screenResearch, '画面 3': screenFacts, '画面 4': screenQuestions, 'AI の案': screenPlan, '画面 5': screenDraft, '画面 6': screenWritten};
+const SCREENS = {'AI が読む': screenRead, '画面 2': screenSummary, '調べるための問い': screenPreQuestions, '調査': screenResearch, '画面 3': screenFacts, '画面 4': screenQuestions, '画面 5': screenDraft, '画面 6': screenWritten};
 
 // 開くレイアウトに、会話と入力欄を移す。state.json と同じく、入力欄の文は移しても残る
 function placeParts(on) {

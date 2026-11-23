@@ -1,28 +1,28 @@
 // state.json の値の組が、画面の状態のファイルのインターフェース設計書(docs/スキル作成の確認と承認の画面/画面の状態のファイルのインターフェース設計書.md)の
 // 章 2 の表(screen ごとにキーが持ってよい値の組)と、章 3 の聞き返しの decision の形に合うかを見る。
-// 表は、設計書の章 2 の 2 つの表(段階 1 の聞き取りの画面の 10 行と、段階 2 から 8 の画面の 23 行)をここに写したもの。test-mutants.mjs の写しは docs/ を持たないので、実行のときに設計書を読まない。
+// 表は、設計書の章 2 の 2 つの表(段階 1 の聞き取りの画面の 9 行と、段階 2 から 8 の画面の 23 行)をここに写したもの。test-mutants.mjs の写しは docs/ を持たないので、実行のときに設計書を読まない。
 // 1 つの state.json だけを見る。章 3 の「聞き返しの間、screen と questions と必須のキーを変えない」と、章 5 の「rounds の回を消さない」は、前後の 2 つの値が要るので、ここでは見ない。
 // rounds(章 2 の回の一覧)は持ってよいキーなので、ないときと null のときは見ない。あるときは、形だけを見る。
+// 問いの要素の欄 recordNumber(聞き取りの記録の番号)も持ってよい欄なので、あるときだけ型を見る。
 // 段階 2 から 8 で足すキー(report、panels、checkRound など)は、欠けたときと null のときは null として扱い、値を持つときは型を見る。
 
 // 章 2 の表の語: req は「必須」、reqItems は「必須(items は 1 件以上)」、null は「null」、nullOrReq は「null か必須」、askBack は「聞き返し」、choice は「選択肢」
-const KEYS = ['summary', 'research', 'factCheck', 'questions', 'approvalSheet', 'draftReview', 'decision'];
-const row = (summary, research, factCheck, questions, approvalSheet, draftReview, decision) => ({summary, research, factCheck, questions, approvalSheet, draftReview, decision});
+const KEYS = ['summary', 'research', 'factCheck', 'questions', 'draftReview', 'decision'];
+const row = (summary, research, factCheck, questions, draftReview, decision) => ({summary, research, factCheck, questions, draftReview, decision});
 export const CONTRACT_TABLE = new Map([
-  [null, row('null', 'null', 'null', 'nullOrReq', 'null', 'null', 'nullOrReq')],
-  ['AI が読む', row('null', 'null', 'null', 'null', 'null', 'null', 'null')],
-  ['画面 2', row('req', 'null', 'null', 'null', 'null', 'null', 'choice')],
-  ['調べるための問い', row('null', 'null', 'null', 'reqItems', 'null', 'null', 'askBack')],
-  ['調査', row('null', 'req', 'null', 'null', 'null', 'null', 'null')],
-  ['画面 3', row('null', 'null', 'req', 'null', 'null', 'null', 'choice')],
-  ['画面 4', row('null', 'null', 'null', 'reqItems', 'null', 'null', 'askBack')],
-  ['AI の案', row('null', 'null', 'null', 'null', 'req', 'null', 'choice')],
+  [null, row('null', 'null', 'null', 'nullOrReq', 'null', 'nullOrReq')],
+  ['AI が読む', row('null', 'null', 'null', 'null', 'null', 'null')],
+  ['画面 2', row('req', 'null', 'null', 'null', 'null', 'choice')],
+  ['調べるための問い', row('null', 'null', 'null', 'reqItems', 'null', 'askBack')],
+  ['調査', row('null', 'req', 'null', 'null', 'null', 'null')],
+  ['画面 3', row('null', 'null', 'req', 'null', 'null', 'choice')],
+  ['画面 4', row('null', 'null', 'null', 'reqItems', 'null', 'askBack')],
   // draftReview の null は、下書きを作っている間と、下書きがまだないとき
-  ['画面 5', row('null', 'null', 'null', 'null', 'null', 'nullOrReq', 'choice')],
-  ['画面 6', row('null', 'null', 'null', 'null', 'null', 'null', 'null')],
+  ['画面 5', row('null', 'null', 'null', 'null', 'nullOrReq', 'choice')],
+  ['画面 6', row('null', 'null', 'null', 'null', 'null', 'null')],
 ]);
 
-// 章 2 の段階 2 から 8 の画面の表。段階 1 の聞き取りの画面のキー 5 つ(summary、research、factCheck、approvalSheet、draftReview)は、すべての行で null。
+// 章 2 の段階 2 から 8 の画面の表。段階 1 の聞き取りの画面のキー 4 つ(summary、research、factCheck、draftReview)は、すべての行で null。
 // questions と decision の語は、上の表と同じ。decision の語 free は「自由に答える問い(choices が 0 件の decision)」、nullOrFree は「null か自由に答える問い」。
 // required は、null でない値を持つキー。stage の値で変わるキーは、byStage に段階の番号ごとに持つ。
 const stageRow = (questions, decision, required, byStage = {}) => ({questions, decision, required, byStage});
@@ -164,6 +164,15 @@ const decisionExtraGaps = (d, where) => Object.entries(DECISION_EXTRA_TYPES).fla
 // 章 2 の回の一覧(rounds)の、回の種類の 6 つの値
 export const ROUND_KINDS = ['調べるための問い', '既にあるものとの関係の問い', '1 段目', '2 段目', '追加の回', '聞き直しの回'];
 
+// 問いの要素の欄 recordNumber(聞き取りの記録の章「答え」の番号)は、持ってよい欄なので、あるときだけ型を見る。値は文字列か null
+const recordNumberGaps = (it, where) => ('recordNumber' in it && it.recordNumber !== null && (typeof it.recordNumber !== 'string' || !it.recordNumber.trim()) ? [`${where}.recordNumber が 1 文字以上の文字列でも null でもない`] : []);
+
+// questions.items の要素の、あるときだけ見る欄に合わない点の一覧。questions がないときと null のときは空の配列
+export function questionItemsGaps(questions) {
+  if (!isObj(questions) || !Array.isArray(questions.items)) return [];
+  return questions.items.flatMap((it, j) => (isObj(it) ? recordNumberGaps(it, `questions.items[${j}]`) : []));
+}
+
 // 章 2 の回の一覧(rounds)の形に合わない点の一覧。rounds がないときと null のときは空の配列
 export function roundsGaps(rounds) {
   if (rounds === undefined || rounds === null) return [];
@@ -177,9 +186,27 @@ export function roundsGaps(rounds) {
     r.items.forEach((it, j) => {
       if (!isObj(it)) { gaps.push(`${at}.items[${j}] がオブジェクトでない`); return; }
       if ('replaced' in it && typeof it.replaced !== 'boolean') gaps.push(`${at}.items[${j}].replaced が真偽値でない`);
+      gaps.push(...recordNumberGaps(it, `${at}.items[${j}]`));
     });
   });
   return gaps;
+}
+
+// rounds の最後の回の問いと questions.items の問いの選択肢が食い違う点の一覧。rounds の items の要素は、questions.items の要素と同じ欄に replaced を足したもの(リファレンス「画面の状態のファイルの形」の行 rounds と、対応表の行 questions.items[])なので、
+// 最後の回の、まだ答えていない(answer が null の)問いのうち、questions.items に同じ number の問いがあるものは、choices と results を questions.items の同じ問いと同じに持つ。
+// 画面は rounds の問いで描くので、食い違うと questions.items の選択肢が出ない(2026-11-21 の ui/tests/2026-11-21-093443-通し/state/11.json)。questions か rounds が null のときと、回が 0 件のときは空の配列
+export function roundsQuestionsGaps(questions, rounds) {
+  if (!isObj(questions) || !Array.isArray(questions.items) || !Array.isArray(rounds) || !rounds.length) return [];
+  const last = rounds[rounds.length - 1];
+  if (!isObj(last) || !Array.isArray(last.items)) return [];
+  const at = `rounds[${rounds.length - 1}]`;
+  const same = (a, b) => JSON.stringify(a ?? []) === JSON.stringify(b ?? []);
+  return last.items.flatMap((it, j) => {
+    if (!isObj(it) || (it.answer !== null && it.answer !== undefined) || it.replaced === true) return [];
+    const q = questions.items.find(x => isObj(x) && x.number === it.number);
+    if (!q) return [];
+    return ['choices', 'results'].filter(k => !same(it[k], q[k])).map(k => `${at}.items[${j}].${k} が、questions.items の番号 ${it.number} の問いの ${k} と違う(同じ問いは同じ選択肢を持つ)`);
+  });
 }
 
 // 章 3 の聞き返しの decision の形に合わない点の一覧
@@ -249,7 +276,7 @@ const dig = (state, name) => name.split('.').reduce((o, k) => (isObj(o) ? o[k] :
 function stageScreenGaps(state, screen, where) {
   const rule = STAGE_TABLE.get(screen);
   const gaps = [];
-  for (const key of ['summary', 'research', 'factCheck', 'approvalSheet', 'draftReview']) {
+  for (const key of ['summary', 'research', 'factCheck', 'draftReview']) {
     if (key in state && state[key] !== null) gaps.push(`${where}の ${key} は null(章 2 の表)だが、null でない`);
   }
   gaps.push(...keyGaps('questions', rule.questions, state.questions ?? null, where));
@@ -281,7 +308,7 @@ export function stateContractGaps(state) {
   const screen = state.screen ?? null;
   const where = `screen「${screen ?? 'null'}」`;
   if (STAGE_TABLE.has(screen)) {
-    return [...stageScreenGaps(state, screen, where), ...addedKeyGaps(state).map(g => `${where}の ${g}`), ...roundsGaps(state.rounds).map(g => `${where}の ${g}`)];
+    return [...stageScreenGaps(state, screen, where), ...addedKeyGaps(state).map(g => `${where}の ${g}`), ...roundsGaps(state.rounds).map(g => `${where}の ${g}`), ...roundsQuestionsGaps(state.questions, state.rounds).map(g => `${where}の ${g}`), ...questionItemsGaps(state.questions).map(g => `${where}の ${g}`)];
   }
   if (!CONTRACT_TABLE.has(screen)) return [`screen「${screen}」は章 2 の表にない`];
   const rule = CONTRACT_TABLE.get(screen);
@@ -293,6 +320,26 @@ export function stateContractGaps(state) {
   // 聞き返しの値は、章 2 の表で「聞き返し」か「選択肢」の画面にだけ置ける
   if (isObj(state.decision) && state.decision.askBack === true && !['askBack', 'choice'].includes(rule.decision)) gaps.push(`${where}の decision は聞き返しを持てない(章 2 の表)`);
   gaps.push(...roundsGaps(state.rounds).map(g => `${where}の ${g}`));
+  gaps.push(...roundsQuestionsGaps(state.questions, state.rounds).map(g => `${where}の ${g}`));
+  gaps.push(...questionItemsGaps(state.questions).map(g => `${where}の ${g}`));
   gaps.push(...addedKeyGaps(state).map(g => `${where}の ${g}`));
+  gaps.push(...checkFirstGaps(state.draftReview).map(g => `${where}の ${g}`));
   return gaps;
+}
+
+// 2026-11-20: draftReview.checkFirst の要素(ラベルを付けた行)は、「追加」の行が問いを持つときだけ、欄 question(問いの文)と choices(選択肢の文の配列)を持ってよい。
+// 欄があるときだけ型を見る。choices は question を持つ要素だけが持つ
+export function checkFirstGaps(dr) {
+  if (!isObj(dr) || !Array.isArray(dr.checkFirst)) return [];
+  return dr.checkFirst.flatMap((x, i) => {
+    const at = `draftReview.checkFirst[${i}]`;
+    if (!isObj(x)) return [`${at} がオブジェクトでない`];
+    const gaps = [];
+    if ('question' in x && x.question !== null && typeof x.question !== 'string') gaps.push(`${at}.question が文字列でない`);
+    if ('choices' in x && x.choices !== null) {
+      if (!strings(x.choices)) gaps.push(`${at}.choices が文字列の配列でない`);
+      if (typeof x.question !== 'string') gaps.push(`${at}.choices を持つが、question を持たない`);
+    }
+    return gaps;
+  });
 }

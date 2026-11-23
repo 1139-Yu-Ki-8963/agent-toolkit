@@ -1,0 +1,63 @@
+{
+  "workName": "コミットをまとめる",
+  "currentSkill": null,
+  "stage": 1,
+  "artifacts": [
+    {"stage": 1, "name": "要件定義書", "status": "下書き"},
+    {"stage": 2, "name": "分割設計書", "status": "未着手"},
+    {"stage": 3, "name": "構成の案", "status": "未着手"},
+    {"stage": 4, "name": "SKILL.md", "status": "未着手"},
+    {"stage": 5, "name": "照合の指摘の一覧", "status": "未着手"},
+    {"stage": 6, "name": "テスト計画書", "status": "未着手"},
+    {"stage": 7, "name": "シナリオテストの表", "status": "未着手"},
+    {"stage": 8, "name": "判定の記録", "status": "未着手"}
+  ],
+  "figures": [],
+  "documentPath": "要件定義書.md",
+  "decision": null,
+  "questions": {"title": "目的とすること", "added": 0, "removed": 0, "notice": null, "items": [
+    {"number": 1, "text": "このスキルで、何を楽にしたいですか。今のやり方があれば、補足に書いてください。", "choices": ["コミットの内容を読んで文章にする手作業を減らしたい(AI の案)", "あとから変更の理由を探す手間を減らしたい(AI の案)", "人にコミットの内容を伝える文章を書く手間を減らしたい(AI の案)"], "answer": null, "reason": "スキルの目的が決まります。", "example": "コミットの内容を読んで文章にする手作業を減らしたい", "results": ["「コミットの内容を読んで文章にする手作業を減らしたい」を選ぶと、AI は、この理由を目的に書きます", "「あとから変更の理由を探す手間を減らしたい」を選ぶと、AI は、この理由を目的に書きます", "「人にコミットの内容を伝える文章を書く手間を減らしたい」を選ぶと、AI は、この理由を目的に書きます"], "previousAnswer": null, "category": "目的とすること", "multiple": false, "parts": [], "files": [], "recordNumber": "24"},
+    {"number": 2, "text": "コミットの内容から要約を作るまでに、スキルに何をどの順でしてほしいですか。", "choices": ["コミットの内容を読み、要約を書き、要約を見せる順(AI の案。見て決めること: 要約に入れる変更の大きさ。場合によって変えること: コミットが大きいとき、変更の種類ごとに分けて書く)", "コミットの内容を読み、変更の種類ごとに分け、要約を書き、要約を見せる順(AI の案。見て決めること: 変更の種類の分け方。場合によって変えること: 変更が 1 種類のとき、分けずに書く)", "コミットの内容を読み、要約を書き、要約を見せて直す点を聞く順(AI の案。見て決めること: 要約の長さ。場合によって変えること: 直す点が出たとき、書き直す)"], "answer": null, "reason": "作業の流れを作る元になります。", "example": "読む、要約を書く、見せる", "results": ["この順を選ぶと、スキルは、コミットの内容を読み、要約を書き、要約を見せます", "この順を選ぶと、スキルは、変更の種類ごとに分けてから要約を書きます", "この順を選ぶと、スキルは、要約を見せて直す点を聞き、直す点があれば書き直します"], "previousAnswer": null, "category": "目的とすること", "multiple": false, "parts": [], "files": [], "recordNumber": "16"},
+    {"number": 3, "text": "スキルが書き換えるか消すファイルはありますか。", "choices": ["ない: 読むだけ(推奨)", "書き換える: 確かめてから変える。確認は外せない(パスを聞く)", "消す: 確かめてから消す。確認は外せない(パスを聞く)"], "answer": null, "reason": "元に戻せない操作の前の確認が決まります。", "example": "読むだけ", "results": ["「ない」を選ぶと、スキルは、読むだけで動きます", "「書き換える」を選ぶと、スキルは、確かめてから変えます", "「消す」を選ぶと、スキルは、確かめてから消します"], "previousAnswer": null, "category": "作業の範囲", "multiple": true, "parts": [], "files": [], "recordNumber": "22"},
+    {"number": 4, "text": "スキルが作ったものを、あなたはどの時点で確かめますか。", "choices": ["書く前: 案を見せて待ち、直すかやめる", "書いたあと: 見せて待ち、直すかやめる", "確かめない: 止まらずに動く"], "answer": null, "reason": "スキルが止まって待つ時点が決まります。思っていたものと違うときは、直すかやめるかを選べます。", "example": "置く前に見せる", "results": ["「書く前」を選ぶと、スキルは、案を見せて待ち、直すかやめるを選べます", "「書いたあと」を選ぶと、スキルは、書いたものを見せて待ち、直すかやめるを選べます", "「確かめない」を選ぶと、スキルは、止まらずに動きます"], "previousAnswer": null, "category": "作業の範囲", "multiple": true, "parts": [], "files": [], "recordNumber": "9"},
+    {"number": 5, "text": "スキルがうまく動いたと言えるのは、次のどの場合ですか。", "choices": ["「コミット abc1234 を要約して」で、そのコミットの識別子と件名を持つ要約が 1 件出る(AI の案)", "「直前のコミットを要約して」で、変更の概要を持つ要約が 1 件出る(AI の案)", "「コミット abc1234 を 300 字以内で要約して」で、300 字以内の要約が 1 件出る(AI の案)"], "answer": null, "reason": "あとで動作を確かめるときの基準になります。", "example": "「コミットを要約して」で要約が 1 件出る", "results": ["この組を選ぶと、AI は、この依頼と出力の組を合格の例にします", "この組を選ぶと、AI は、この依頼と出力の組を合格の例にします", "この組を選ぶと、AI は、この依頼と出力の組を合格の例にします"], "previousAnswer": null, "category": "合格と優先", "multiple": true, "parts": [], "files": [], "recordNumber": "合格"}
+  ]},
+  "rounds": [{"kind": "1 段目", "items": [
+    {"number": 1, "text": "「要約」に必ず入れる部分は、対象のコミットの範囲、変更の概要、変更の理由、影響を受けるファイルと機能でよいですか。", "choices": ["この部分でよい", "直す"], "answer": "分からない", "reason": "人によって違う「要約」の中身をここで決めると、できあがるファイルの数と合格の基準が決まります。", "example": "この部分でよい", "results": ["「この部分でよい」を選ぶと、スキルは、この部分を持つ要約を書きます", "「直す」を選ぶと、AI は、回答に書かれた部分で直します"], "previousAnswer": null, "category": "渡すものと出すもの", "multiple": false, "parts": [{"name": "対象のコミットの範囲", "source": "AI の案", "selected": true}, {"name": "変更の概要", "source": "AI の案", "selected": true}, {"name": "変更の理由", "source": "AI の案", "selected": true}, {"name": "影響を受けるファイルと機能", "source": "AI の案", "selected": true}], "files": [], "recordNumber": "7-1", "replaced": false},
+    {"number": 2, "text": "「要約」は、コミット 1 件ごとの要約と、指定した範囲の複数のコミットを 1 つにした要約のどちらですか。", "choices": ["コミット 1 件ごとの要約", "指定した範囲の複数のコミットを 1 つにした要約"], "answer": "コミット 1 件ごとの要約", "reason": "要約の数が決まり、1 回の依頼で出すものの数が変わります。", "example": "指定した範囲の複数のコミットを 1 つにした要約", "results": ["「コミット 1 件ごとの要約」を選ぶと、スキルは、コミット 1 件につき 1 つの要約を書きます", "「指定した範囲の複数のコミットを 1 つにした要約」を選ぶと、スキルは、範囲の全部のコミットを 1 つの要約にします"], "previousAnswer": null, "category": "渡すものと出すもの", "multiple": false, "parts": [], "files": [], "recordNumber": "深掘り 1", "replaced": false},
+    {"number": 3, "text": "スキルが読むものを、すべて挙げてください。ファイルならパスも書いてください。", "choices": ["コミットの内容(git の履歴。AI の推測)", "作業ツリーの未コミットの差分(AI の案)", "コミットメッセージだけ(AI の案)"], "answer": "コミットの内容(git の履歴。AI の推測)", "reason": "スキルが読むものが決まります。", "example": "コミットの内容", "results": ["「コミットの内容」を選ぶと、スキルは、git の履歴からコミットの内容を読みます", "「作業ツリーの未コミットの差分」を選ぶと、スキルは、まだコミットしていない差分も読みます", "「コミットメッセージだけ」を選ぶと、スキルは、コミットの件名と本文だけを読みます"], "previousAnswer": null, "category": "渡すものと出すもの", "multiple": true, "parts": [], "files": [], "recordNumber": "6-1", "replaced": false}
+  ]}, {"kind": "聞き直しの回", "items": [
+    {"number": 1, "text": "対象のコミット(識別子と件名)、変更の概要、変更の理由、影響を受けるファイルと機能(AI の案)を、「要約」に必ず入れる部分にしてよいですか。", "choices": ["この部分でよい(推奨)", "直す"], "answer": "この部分でよい(推奨)(必ず入れる部分: 対象のコミット(識別子と件名)、変更の概要、変更の理由、影響を受けるファイルと機能)(補足: 確認の語 ZQ4補足)", "reason": "人によって違う「要約」の中身をここで決めると、できあがるファイルの数と合格の基準が決まります。", "example": "この部分でよい", "results": ["「この部分でよい」を選ぶと、スキルは、この部分を持つ要約を書きます", "「直す」を選ぶと、AI は、回答に書かれた部分で直します"], "previousAnswer": null, "category": "渡すものと出すもの", "multiple": false, "parts": [{"name": "対象のコミット(識別子と件名)", "source": "AI の案", "selected": true}, {"name": "変更の概要", "source": "AI の案", "selected": true}, {"name": "変更の理由", "source": "AI の案", "selected": true}, {"name": "影響を受けるファイルと機能", "source": "AI の案", "selected": true}], "files": [], "recordNumber": "7-1", "replaced": false}
+  ]}, {"kind": "2 段目", "items": [
+    {"number": 1, "text": "このスキルで、何を楽にしたいですか。今のやり方があれば、補足に書いてください。", "choices": ["コミットの内容を読んで文章にする手作業を減らしたい(AI の案)", "あとから変更の理由を探す手間を減らしたい(AI の案)", "人にコミットの内容を伝える文章を書く手間を減らしたい(AI の案)"], "answer": null, "reason": "スキルの目的が決まります。", "example": "コミットの内容を読んで文章にする手作業を減らしたい", "results": [], "previousAnswer": null, "category": "目的とすること", "multiple": false, "parts": [], "files": [], "recordNumber": "24", "replaced": false},
+    {"number": 2, "text": "コミットの内容から要約を作るまでに、スキルに何をどの順でしてほしいですか。", "choices": [], "answer": null, "reason": "作業の流れを作る元になります。", "example": "読む、要約を書く、見せる", "results": [], "previousAnswer": null, "category": "目的とすること", "multiple": false, "parts": [], "files": [], "recordNumber": "16", "replaced": false},
+    {"number": 3, "text": "スキルが書き換えるか消すファイルはありますか。", "choices": [], "answer": null, "reason": "元に戻せない操作の前の確認が決まります。", "example": "読むだけ", "results": [], "previousAnswer": null, "category": "作業の範囲", "multiple": true, "parts": [], "files": [], "recordNumber": "22", "replaced": false},
+    {"number": 4, "text": "スキルが作ったものを、あなたはどの時点で確かめますか。", "choices": [], "answer": null, "reason": "スキルが止まって待つ時点が決まります。", "example": "置く前に見せる", "results": [], "previousAnswer": null, "category": "作業の範囲", "multiple": true, "parts": [], "files": [], "recordNumber": "9", "replaced": false},
+    {"number": 5, "text": "スキルがうまく動いたと言えるのは、次のどの場合ですか。", "choices": [], "answer": null, "reason": "あとで動作を確かめるときの基準になります。", "example": "「コミットを要約して」で要約が 1 件出る", "results": [], "previousAnswer": null, "category": "合格と優先", "multiple": true, "parts": [], "files": [], "recordNumber": "合格", "replaced": false}
+  ]}],
+  "downloads": [],
+  "screen": "画面 4",
+  "summary": null,
+  "research": null,
+  "factCheck": null,
+  "approvalSheet": null,
+  "draftReview": null,
+  "report": null,
+  "panels": null,
+  "checkRound": null,
+  "forms": null,
+  "abort": null,
+  "summaryCard": null,
+  "skills": null,
+  "aiValues": null,
+  "ranges": null,
+  "scenarios": null,
+  "findings": null,
+  "fixRecord": null,
+  "fixResult": null,
+  "result": null,
+  "triage": null,
+  "planFix": null,
+  "docCheck": null,
+  "install": null
+}

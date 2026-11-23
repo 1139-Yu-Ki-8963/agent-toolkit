@@ -114,6 +114,20 @@ test("checkStateContract: 結果を返さない", () => {
   assert.equal(r.code, 0, r.stderr);
 });
 
+// 2026-11-21 の本物の AI のテストで AI が書いた state.json の写し。rounds の最後の回の問い 2 から 5 が、questions.items の同じ問いの choices と results を持たない
+const split = JSON.parse(fs.readFileSync(path.join(PROJECT, "ui", "tests", "fixtures", "最後の回の問いが問いの一覧と違う選択肢を持つ state.json"), "utf8"));
+
+test("checkStateContract: 最後の回の問いが問いの一覧と違う選択肢を持つ組で結果を返す", () => {
+  const r = writeState(split);
+  assert.equal(r.code, 2);
+  assert.match(r.stderr, /checkStateContract/);
+  assert.match(r.stderr, /番号 2 の問いの choices と違う/);
+  // 最後の回の問いを questions.items の問いと同じにすると、結果を返さない
+  const fixed = { ...split, rounds: [...split.rounds.slice(0, -1), { ...split.rounds.at(-1), items: split.questions.items.map((i) => ({ ...i, replaced: false })) }] };
+  const ok = writeState(fixed);
+  assert.equal(ok.code, 0, ok.stderr);
+});
+
 // 段階 2 から 8 の画面(インターフェース設計書の章 2 の 2 つ目の表)。段階 1 のキーを null にし、段階 2 から 8 で足すキーを持つ
 const stage5 = {
   ...fit,

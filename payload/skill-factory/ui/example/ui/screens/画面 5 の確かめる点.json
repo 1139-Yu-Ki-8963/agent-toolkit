@@ -180,7 +180,7 @@
   "draftReview": {
     "checkFirst": [
       {
-        "name": "案の画面のあとで変わった行",
+        "name": "書き換えるか消すファイル",
         "value": "なし"
       },
       {

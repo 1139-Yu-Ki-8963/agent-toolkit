@@ -334,6 +334,8 @@ testCase('claude の呼び方', async () => {
   check('指示は、調べ始める前の state.json を、対応表の行を指して書かせる', instruction.includes('段階のスキルの表示と state.json の値の対応表.md') && instruction.includes(researchMark), instruction);
   check('指示が指す対応表の行は、screen を「調査」にし、調査の行のすべてを持たせる', researchRow.includes('`screen` は「調査」') && researchRow.includes('調査の行のすべて'), researchRow);
   check('リファレンスと規約にない決まりは、指示が持つ', ['downloads を、要件定義書と聞き取りの記録のパスにし', '質問を足さずに返事を終える', '「次の作業へ進む」で始まる文を送ったときに始める', '照合を流すかをユーザーに聞かない', '段階 8 が合格したあとに、まとめて 1 回だけ行う'].every(k => instruction.includes(k)), instruction);
+  check('指示は、段階 2 から 7 の完了の報告のあと、同じ返事の中で次の段階を始めさせる', instruction.includes('段階 2 から 7 のユーザーへの完了の報告のあとは') && instruction.includes('同じ返事の中で次の段階のスキルを始め'), instruction);
+  check('指示は、段階 5 の照合と修正の組を、修正のスキルの完了の報告のあとも同じ返事の中で続けさせ、段階 6 を同時に進めさせる', instruction.includes('修正のスキルの完了の報告のあとも') && instruction.includes('段階 5 の 1 回目の照合と同時に'), instruction);
   check('--resume の呼び出しにも同じ指示を渡す', argAfter(b, '--append-system-prompt') === argAfter(a, '--append-system-prompt'));
   check('1 回目の引数が要件定義書の章 7 と同じ', JSON.stringify(a.args) === JSON.stringify(['-p', '--session-id', argAfter(a, '--session-id'), ...common]), a.args.join(' '));
   check('2 回目の引数が要件定義書の章 7 と同じ', JSON.stringify(b.args) === JSON.stringify(['-p', '--resume', argAfter(a, '--session-id'), ...common]), b.args.join(' '));

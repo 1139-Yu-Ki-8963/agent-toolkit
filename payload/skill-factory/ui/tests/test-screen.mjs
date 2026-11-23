@@ -1322,7 +1322,7 @@ testCase('画面 3 の事実確認と修正', async page => {
   check('作業が決まる', await startWork(page, sample('画面 3')));
   check('見出しの文を出す', await waitHear(page, 'あなたの文章と調べた結果から 10 個決まりました。ここでは 3 個を確かめます。'));
   const body = await hearBody(page);
-  check('残りの数とこのあとの量の文を 2 行で出す', body.includes('残りの 7 個は、前の画面か案の画面に、あなたの文章と調べた結果のまま出します。\nこのあと、質問 5 問と、案の画面 1 枚で決めます。'), body);
+  check('残りの数とこのあとの量の文を 2 行で出す', body.includes('残りの 7 個は、前の画面か要件定義書の下書きに、あなたの文章と調べた結果のまま出します。\nこのあと、質問 5 問と、下書きの承認で決めます。'), body);
   check('調べた事実と出どころを出す', body.includes('AI が調べて分かったこと') && body.includes('Markdown の議事録が 9 件あります') && body.includes('出どころ: 調査: docs/議事録/'), body);
   check('確かめる項目の名前と値を出す', body.includes('作業を繰り返す頻度') && body.includes('週 1 回'), body);
   check('「修正しました」と「追加」のラベルを出す', (await page.locator('#hearbody .zmk', {hasText: '修正しました'}).count()) === 1 && (await page.locator('#hearbody .zmk', {hasText: '追加'}).count()) === 1);
@@ -1380,12 +1380,13 @@ testCase('画面 4 の問いと選択肢', async page => {
   await free.getByRole('button', {name: '分からない'}).click();
   check('「分からない」を答えに入れる', (await free.locator('textarea').inputValue()) === '分からない' && await go.isEnabled());
   fs.writeFileSync(hold, '');
-  planNext(sample('AI の案'));
+  planNext(sample('画面 5'));
   await go.click();
   check('「番号: 答え」を 1 行ずつ送る', await nextCall(2) && lastCall().stdin === `画面: ${work}\n1: ない(推奨)\n2: 書く前\n3: 分からない`, lastCall().stdin);
   check('次の質問を書いている間の表示を出す', await waitHear(page, '次の質問を書いています'));
   fs.rmSync(hold);
-  check('AI の返事で案の画面へ進む', await waitHear(page, '作り方の案は、これでよいですか？'));
+  // 段階 1 は、問いのあとに下書きの承認(画面 5)へ進む
+  check('AI の返事で下書きの画面へ進む', await waitHear(page, 'この内容で要件定義書を書いてよいですか？'));
   writeState(sample('画面 4', {questions: {...sample('画面 4').questions, notice: '調べ直した結果: docs/議事録/ の 12 件は、どれも見出しを持ちます。'}}));
   check('調べ直した結果を問いの上に出す', await waitHear(page, '調べ直した結果: docs/議事録/ の 12 件は、どれも見出しを持ちます。'));
   check('前のページがないときは「前へ」を出さない', (await hearButton(page, '前へ').count()) === 0);
@@ -1454,48 +1455,6 @@ testCase('あとで続けるとやめる', async page => {
   check('やめた作業のファイルは残る', fs.existsSync(statePath));
 });
 
-testCase('AI の案の承認', async page => {
-  check('作業が決まる', await startWork(page, sample('AI の案')));
-  check('見出しと役目の文を出す', await waitHear(page, '作り方の案は、これでよいですか？') && (await hearBody(page)).includes('AI が、あなたの文章と答えと調べた事実から作りました。この画面は 1 回だけ確かめます。'));
-  const body = await hearBody(page);
-  check('行の見出しと、小さな行の名前と値と出どころを出す', body.includes('議事録の渡し方') && body.includes('渡し方') && body.includes('ファイルのパスを依頼の文に書く') && body.includes('出どころ: AI の案'), body);
-  check('「変更」と「追加」のラベルを出す', (await page.locator('#hearbody .zmk', {hasText: '変更'}).count()) === 1 && (await page.locator('#hearbody .zmk', {hasText: '追加'}).count()) === 1);
-  check('増えた行の問いの選択肢を出す', (await page.locator('#hearbody .zop', {hasText: '頼まれたときだけ'}).count()) === 1);
-  await page.setViewportSize({width: 1280, height: 500});
-  writeState(sample('AI の案', {workName: '案を読み直す'}));
-  await until(async () => (await text(page, '#work')) === '案を読み直す');
-  const go = hearButton(page, 'この案で進む');
-  check('案を最後まで見るまで「この案で進む」を押せない', await until(() => go.isDisabled()));
-  check('押せない理由を出す', await visible(page, '#hearfoot .fq') && (await text(page, '#hearfoot .fq')) === '案を最後まで見ると、進めます。');
-  await page.locator('#hearscroll').evaluate(e => { e.scrollTop = e.scrollHeight; });
-  check('最後まで見ると押せる', await until(() => go.isEnabled()));
-  check('押せる理由の文が消える', await waitHidden(page, '#hearfoot .fq'));
-  await hearButton(page, '内容を修正する').click();
-  check('同じ画面で入力欄に変える', await waitHear(page, '違うところを、その場で直してください。'));
-  const kinds = page.locator('#hearbody .zsubr', {has: page.locator('.zsubn', {hasText: /^出し方$/})}).locator('.zop');
-  check('「出し方」は 4 つの選択肢を持つ', (await kinds.allInnerTexts()).join('|') === 'ファイル|フォルダ|チャットへの表示|外部への書き込み(コミット、投稿、Issue)', (await kinds.allInnerTexts()).join('|'));
-  check('今の値の選択肢を初めから選ぶ', await kinds.first().locator('input').isChecked());
-  await kinds.nth(3).click();
-  await page.getByLabel('渡し方').fill('チャットに貼る');
-  planNext(sample('AI の案'));
-  await hearButton(page, 'この内容に直す').click();
-  check('変えた小さな行だけを送る', await nextCall(2) && lastCall().stdin === `画面: ${work}\n内容を修正する\n渡し方と形式 / 渡し方\n前の値: ファイルのパスを依頼の文に書く\n後の値: チャットに貼る\n種類と形式 / 出し方\n前の値: ファイル\n後の値: 外部への書き込み(コミット、投稿、Issue)`, lastCall().stdin);
-  await waitIdle(page);
-  await until(() => hearButton(page, 'もう一度修正する').isEnabled());
-  await page.setViewportSize({width: 1280, height: 1400});
-  await page.locator('#hearscroll').evaluate(e => { e.scrollTop = e.scrollHeight; });
-  check('画面に収まるときは初めから押せる', await until(() => hearButton(page, 'この案で進む').isEnabled()));
-  await page.locator('#hearbody .zop', {hasText: '頼まれたときだけ'}).click();
-  planNext(null);
-  fs.writeFileSync(hold, '');
-  await hearButton(page, 'この案で進む').click();
-  check('AI の選択肢の文と、増えた行の答えを送る', await nextCall(3) && lastCall().stdin === `画面: ${work}\nこの案で進む(推奨)\n直しで生まれた質問 / 全文を出す場合: 頼まれたときだけ`, lastCall().stdin);
-  // 下まで読んで送ったあとも、スクロールの位置を変えずに、下の段で「AI が読んでいます」が見える
-  check('送ったあとに下の段で AI が読んでいることを出す', await until(() => page.locator('#hearfoot [data-foot-wait]').isVisible()) && (await text(page, '#hearfoot')).includes('AI があなたの答えを読んでいます'));
-  check('送ったあとにスクロールの位置が下のまま', await page.locator('#hearscroll').evaluate(e => e.scrollTop + e.clientHeight >= e.scrollHeight - 8));
-  fs.rmSync(hold);
-});
-
 testCase('画面 5 の下書きと承認', async page => {
   fs.writeFileSync(hold + '-after', '');
   planNext(sample('画面 5', {draftReview: null}), {holdAfter: true, reply: '返事', lines: [{type: 'system', subtype: 'init', session_id: 'x'}]});
@@ -1510,10 +1469,13 @@ testCase('画面 5 の下書きと承認', async page => {
   check('見出しの文を出す', await waitHear(page, 'この内容で要件定義書を書いてよいですか？'));
   const body = await hearBody(page);
   check('数の文を出す', body.includes('あなたの文章から 1 個、質問の答えで 1 個、AI の調査で 1 個です。'), body);
-  check('承認の前に見る 3 行を先頭に出す', body.indexOf('承認の前に見る 3 行') < body.indexOf('あなたの文章から決まった内容') && body.includes('終わったことの見分け方'), body);
+  check('先に確かめる行を先頭に出す', body.indexOf('先に確かめる行') < body.indexOf('あなたの文章から決まった内容') && body.includes('終わったことの見分け方'), body);
   check('4 つの見出しでカードを分ける', ['あなたの文章から決まった内容', '質問で答えた内容', 'AI の案で決まった内容', 'AI が調べた内容'].every(t => body.includes(t)), body);
   check('値を開かずに読める', body.includes('summarizing-meeting-minutes'), body);
-  check('承認の下の文を出す', (await text(page, '#hearfoot .fq')) === '上の 3 行を見て、承認してください。\n全文はその下に続きます。', await text(page, '#hearfoot .fq'));
+  check('承認の下の文を出す', (await text(page, '#hearfoot .fq')) === '先に確かめる行を見て、承認してください。\n全文はその下に続きます。', await text(page, '#hearfoot .fq'));
+  // ボタン「この項目の画面へ」は、見出し「あなたの文章から決まった内容」と「質問で答えた内容」にだけ出る
+  const backOf = t => page.locator('#hearbody section.zsec', {has: page.locator('h3', {hasText: t})}).locator('button', {hasText: 'この項目の画面へ'}).count();
+  check('「AI の案で決まった内容」と「AI が調べた内容」に「この項目の画面へ」を出さない', (await backOf('AI の案で決まった内容')) === 0 && (await backOf('AI が調べた内容')) === 0 && (await page.locator('#hearbody button', {hasText: 'この項目の画面へ'}).count()) === 2);
   check('段階の帯に「承認待ち」を添える', (await text(page, '#stages .pill.now')).includes('承認待ち'));
   await hearButton(page, '内容を修正する').click();
   check('調べた内容のほかの値が入力欄に変わる', await waitHear(page, '違うところを、その場で直してください。') && (await page.locator('#hearbody .ze textarea').count()) === 3);
@@ -1594,7 +1556,7 @@ testCase('画面 4 の語の定義の欄', async page => {
 
 testCase('画面 5 の確かめる点', async page => {
   check('作業が決まる', await startWork(page, sample('画面 5 の確かめる点')));
-  check('確かめる点を先頭の 3 行の前に出す', await waitHear(page, '確かめる点') && (await hearBody(page)).indexOf('確かめる点') < (await hearBody(page)).indexOf('承認の前に見る 3 行'));
+  check('確かめる点を先に確かめる行の前に出す', await waitHear(page, '確かめる点') && (await hearBody(page)).indexOf('確かめる点') < (await hearBody(page)).indexOf('先に確かめる行'));
   check('読みの候補を、読点で分けずに選択肢にする', (await page.locator('#hearbody .zop').count()) === 2 && (await hearBody(page)).includes('担当者と期限を持つ、決まったものだけ'));
   check('「承認する」の代わりに「読みを選んで続ける」を出す', (await hearButton(page, '承認する').count()) === 0);
   check('ボタンの横の文は、確かめる点の読みを選ぶことを言う', (await text(page, '#hearfoot .fq')) === '確かめる点の読みを選んでください。');
@@ -1621,6 +1583,33 @@ testCase('画面 5 の確かめる点', async page => {
   planNext(null);
   await go2.click();
   check('語と項目の組と書いた読みを送る', await nextCall(3) && lastCall().stdin === `画面: ${work}\n読みを選んで続ける(推奨)\n確かめる点: 宿題(部分): 期限だけを書く`, lastCall().stdin);
+});
+
+// 2026-11-20: defining-skill-requirements の step 9-1 は、「追加」の行が問いを持つとき、その塊に問いの文と選択肢を出し、答えを受け取る。
+// 画面は、draftReview.checkFirst の要素の question と choices で問いを出し、承認の文に「<行の名前>: <選んだ値>」の行を添える
+testCase('画面 5 の先に確かめる行の問い', async page => {
+  const base = sample('画面 5');
+  const asked = sample('画面 5', {draftReview: {...base.draftReview, checkFirst: [
+    {name: 'うまくいかなかったときの終わり方(変更)', value: '議事録を読めないときは、場所を示して止まる'},
+    {name: '終わったことの見分け方(追加)', value: '見出し「決定事項」を持つ Markdown のファイル', question: '見分け方に、見出し「宿題」も入れますか？', choices: ['入れる(推奨)', '入れない']},
+  ]}});
+  check('問いを持つ checkFirst の組は state-contract に合う', stateContractGaps(asked).length === 0, stateContractGaps(asked).join(' / '));
+  check('作業が決まる', await startWork(page, asked));
+  check('「追加」の行に問いの文を出す', await waitHear(page, '見分け方に、見出し「宿題」も入れますか？') && (await hearBody(page)).includes('終わったことの見分け方(追加)'));
+  check('問いの選択肢を出す', (await page.locator('#hearbody .zop').count()) === 2);
+  check('ボタンの横の文は、問いに答えることを言う', (await text(page, '#hearfoot .fq')) === '先に確かめる行の問いに答えてから、承認してください。\n全文はその下に続きます。', await text(page, '#hearfoot .fq'));
+  await waitIdle(page);
+  const go = hearButton(page, '承認する');
+  check('問いに答えるまで「承認する」を押せない', await go.isDisabled());
+  await page.locator('#hearbody .zop', {hasText: '入れない'}).click();
+  check('答えると「承認する」を押せる', await until(() => go.isEnabled(), 3000));
+  planNext(sample('画面 5', {draftReview: {...base.draftReview, checkFirst: []}}));
+  await go.click();
+  check('承認の文に、ラベルを除いた行の名前と選んだ値の行を添えて送る', await nextCall(2) && lastCall().stdin === `画面: ${work}\n承認する(推奨)\n終わったことの見分け方: 入れない`, lastCall().stdin);
+  // 先に確かめる行の塊は、その行が 1 件以上のときに出る。0 件のときのボタンの横の文は「下書きの全文を見て、承認してください。」である
+  check('先に確かめる行が 0 件のときは、その塊を出さない', await until(async () => !(await hearBody(page)).includes('先に確かめる行')) && (await hearBody(page)).includes('この内容で要件定義書を書いてよいですか？'), await hearBody(page));
+  check('先に確かめる行が 0 件のときの、ボタンの横の文', (await text(page, '#hearfoot .fq')) === '下書きの全文を見て、承認してください。', await text(page, '#hearfoot .fq'));
+  await waitIdle(page);
 });
 
 testCase('画面 6 の全文とダウンロード', async page => {
@@ -1695,7 +1684,6 @@ testCase('形の違う state.json: 聞き取りのキー', async page => {
   for (const [screen, word, over] of [
     ['調査', 'AI が調べています', {research: {rows: 'x'}}],
     ['画面 3', '質問へ進む', {factCheck: 'x', decision: pick(['合っています。質問へ進む(推奨)', '内容を修正する'])}],
-    ['AI の案', '作り方の案は、これでよいですか？', {approvalSheet: {rows: [{name: 'x', cells: 'y'}, 3]}, decision: pick(['この案で進む(推奨)', '内容を修正する'])}],
     ['画面 5', '要件定義書はまだありません', {draftReview: 5, decision: pick(['承認する(推奨)', '直す'])}],
   ]) {
     const st = makeState({screen, ...over});
@@ -1767,7 +1755,7 @@ testCase('聞き返しの出し方', async page => {
   check('作業が決まる', await startWork(page, sample('画面 4')));
   await waitHear(page, '作業の範囲');
   // 聞き返しの下に残る、いまの画面の本文の語
-  const own = {'画面 4': '作業の範囲', '調べるための問い': '調べる前に教えてください', '画面 3': 'ここでは 3 個を確かめます', 'AI の案': '作り方の案は、これでよいですか？', '画面 5': 'この内容で要件定義書を書いてよいですか？'};
+  const own = {'画面 4': '作業の範囲', '調べるための問い': '調べる前に教えてください', '画面 3': 'ここでは 3 個を確かめます', '画面 5': 'この内容で要件定義書を書いてよいですか？'};
   for (const [screen, word] of Object.entries(own)) for (const n of [0, 2]) {
     const name = `${screen}、選択肢 ${n} 件`;
     const decision = {question: `聞き返しの文(${name})`, choices: n ? ['直し方を変えて続ける', '中止する'] : [], replies: [], askBack: true};
@@ -1856,7 +1844,7 @@ testCase('画面 4 の 2 段目の 3 カテゴリーを送らずに切り替え�
   // 中継サーバーの答えを 1.5 秒遅らせ、答えを待たずに待っている表示を出すことを確かめる
   await page.route('**/api/prompt', async route => { await sleep(1500); await route.continue(); });
   fs.writeFileSync(hold, '');
-  planNext(sample('AI の案'));
+  planNext(sample('画面 5'));
   await hearButton(page, '回答を送る').click();
   check('送ったときに、中継サーバーの答えを待たずに待っている表示を出す', await waitHear(page, '次の質問を書いています', 1000) && calls().length === sent);
   check('最後のカテゴリーの「回答を送る」で、3 カテゴリーの答えを「番号: 答え」の行でまとめて送る', await nextCall(sent + 1) && lastCall().stdin === `画面: ${work}\n4: 要約を書く手間\n5: 議事録を書く人\n6: 1 つの議事録\n7: 要約が保存された`, lastCall().stdin);
@@ -1864,7 +1852,7 @@ testCase('画面 4 の 2 段目の 3 カテゴリーを送らずに切り替え�
   check('受け取った答えに、すべてのカテゴリーの答えを出す', ['要約を書く手間', '議事録を書く人', '1 つの議事録', '要約が保存された'].every(a => body.includes(a)), body);
   await page.unroute('**/api/prompt');
   fs.rmSync(hold);
-  check('AI の返事で案の画面へ進む', await waitHear(page, '作り方の案は、これでよいですか？'));
+  check('AI の返事で下書きの画面へ進む', await waitHear(page, 'この内容で要件定義書を書いてよいですか？'));
 });
 
 // T11
@@ -1960,7 +1948,7 @@ testCase('回をまたぐ前へ', async page => {
   await waitHead(page, '合格と優先', 3000);
   await page.getByLabel('質問 7 の答え').fill('要約が保存された');
   fs.writeFileSync(hold, '');
-  planNext(sample('AI の案'));
+  planNext(sample('画面 5'));
   await hearButton(page, '回答を送る').click();
   check('送ると待っている表示を出す', await waitHear(page, '次の質問を書いています'));
   check('待っている間も「前へ」を押せる', await until(() => hearButton(page, '前へ').isEnabled(), 3000));
@@ -1968,10 +1956,94 @@ testCase('回をまたぐ前へ', async page => {
   check('待っている間に「前へ」で前のページを読める', await waitHead(page, '作業の範囲', 3000) && await pickedOn(page, '1 つの議事録'));
   check('待っている間は、答えの欄に書き込めない', await page.locator('#hearbody .zop input').first().isDisabled());
   fs.rmSync(hold);
-  check('AI の返事で案の画面へ進む', await waitHear(page, '作り方の案は、これでよいですか？'));
+  check('AI の返事で下書きの画面へ進む', await waitHear(page, 'この内容で要件定義書を書いてよいですか？'));
 });
 
-// 承認された設計の 7: 回の途中のページは主でない「次へ」、回の最後のページだけ主なボタン「回答を送る」とその横の文
+// 回の一覧の回は、どれも問いの番号 1 から始まる。画面の中の答えは、回の番号と問いの番号の組で持ち、「前へ」で前の回を開いても、前の回の答えを今の回の同じ番号の問いに入れない
+testCase('回をまたぐ前へのあとに今の回の答えだけを送る', async page => {
+  const items = [stage2Item(1, 'スキルを使う人は誰ですか。', '使う人と終わり'), stage2Item(3, 'スキルが終わったことを、何で見分けますか。', '使う人と終わり')];
+  const st = sample('画面 4', {questions: {title: '使う人と終わり', added: 0, removed: 0, notice: null, items},
+    rounds: [{kind: '1 段目', items: round1Answered()}, {kind: '2 段目', items: items.map(i => ({...i, replaced: false}))}]});
+  check('モックの AI が書く 2 つの回の組は state-contract に合う', stateContractGaps(st).length === 0, stateContractGaps(st).join(' / '));
+  check('作業が決まる', await startWork(page, st));
+  check('今の回のページを出す', await waitHead(page, '使う人と終わり'));
+  await waitIdle(page);
+  const sent = calls().length;
+  await page.getByLabel('質問 3 の答え').fill('今の回の答え');
+  await hearButton(page, '前へ').click();
+  check('「前へ」で、前の回のページを出す', await waitHead(page, '作業の範囲', 3000));
+  check('前の回の問い 3 には、前の回の答えだけを入れる', (await page.getByLabel('質問 3 の答え').inputValue()) === 'なし', await page.getByLabel('質問 3 の答え').inputValue());
+  check('前の回の問い 2 には、前の回の答えを入れる', await pickedOn(page, '書く前'));
+  await hearButton(page, '次へ').click();
+  check('「次へ」で、今の回のページに戻る', await waitHead(page, '使う人と終わり', 3000));
+  check('今の回の問い 3 には、今の回の答えを残す', (await page.getByLabel('質問 3 の答え').inputValue()) === '今の回の答え', await page.getByLabel('質問 3 の答え').inputValue());
+  check('今の回の問い 1 には、前の回の答えを入れない', (await page.getByLabel('質問 1 の答え').inputValue()) === '', await page.getByLabel('質問 1 の答え').inputValue());
+  await unknown(page, items[0].text);
+  check('回をまたぐ「前へ」と「次へ」は AI に送らない', calls().length === sent, calls().length);
+  planNext(null);
+  await until(() => hearButton(page, '回答を送る').isEnabled(), 3000);
+  await hearButton(page, '回答を送る').click();
+  check('送る文は、今の回の答えだけを持つ', await nextCall(sent + 1) && lastCall().stdin === `画面: ${work}\n1: 分からない\n3: 今の回の答え`, lastCall().stdin);
+});
+
+// 画面遷移設計書の章 11 の T27: 「前へ」で開いた前の回の問いに書いた補足は、その問いの直した答えとして「直した答え <記録の番号>: <答え>」の行で送り、今の回の同じ番号の問いの答えに入れない。
+// 画面の見本の問いは記録の番号(recordNumber)を持たない古い形なので、このケースは、記録の番号の代わりに回の中の問いの番号を送ることを確かめる。
+// 本物の claude を使うテスト hearing-to-written は、「この質問に戻る」で開いた前の回の問い 1 に補足を書き、この形の送る文を受け取る
+testCase('前の回の同じ番号の問いに書いた補足を、直した答えの行で送る', async page => {
+  const prev = sample('画面 4').questions.items[0];
+  const items = [stage2Item(1, 'スキルを使う人は誰ですか。', '使う人と終わり')];
+  const st = sample('画面 4', {questions: {title: '使う人と終わり', added: 0, removed: 0, notice: null, items},
+    rounds: [{kind: '1 段目', items: round1Answered()}, {kind: '2 段目', items: items.map(i => ({...i, replaced: false}))}]});
+  check('モックの AI が書く 2 つの回の組は state-contract に合う', stateContractGaps(st).length === 0, stateContractGaps(st).join(' / '));
+  check('作業が決まる', await startWork(page, st));
+  check('今の回のページを出す', await waitHead(page, '使う人と終わり'));
+  await waitIdle(page);
+  const sent = calls().length;
+  await page.getByLabel('質問 1 の答え').fill('今の回の答え');
+  await hearButton(page, '前へ').click();
+  check('「前へ」で、前の回のページを出す', await waitHead(page, '作業の範囲', 3000));
+  const f = page.locator('#hearbody fieldset', {hasText: prev.text});
+  if (!(await f.locator('textarea').isVisible())) await f.locator('summary').click();
+  await f.locator('textarea').fill('前の回の補足');
+  await hearButton(page, '次へ').click();
+  check('「次へ」で、今の回のページに戻る', await waitHead(page, '使う人と終わり', 3000));
+  check('今の回の問い 1 には、前の回の問い 1 の補足を入れない', (await page.getByLabel('質問 1 の答え').inputValue()) === '今の回の答え', await page.getByLabel('質問 1 の答え').inputValue());
+  check('前の回の問いに補足を書いても AI に送らない', calls().length === sent, calls().length);
+  planNext(null);
+  await until(() => hearButton(page, '回答を送る').isEnabled(), 3000);
+  await hearButton(page, '回答を送る').click();
+  check('送る文は、今の回の答えの行のあとに、前の回の問い 1 の直した答えの行を、記録の番号を持たない問いなので回の中の番号で持つ', await nextCall(sent + 1) && lastCall().stdin === `画面: ${work}\n1: 今の回の答え\n直した答え 1: ない(推奨)(補足: 前の回の補足)`, lastCall().stdin);
+});
+
+// 画面遷移設計書の章 11 の T27: 直した答えの行は、聞き取りの記録の番号(recordNumber)で問いを指す。
+// どの回も問い 1 を持つので、段階 1 のスキルは、記録の番号で、直された問いを見分ける
+testCase('2 つの回の同じ番号の問いを直すと、直した答えの行がそれぞれの記録の番号を持つ', async page => {
+  const recItem = (category, text, recordNumber, answer) => ({...stage2Item(1, text, category), recordNumber, answer, replaced: false});
+  const r1 = recItem('渡すものと出すもの', 'スキルが読むものを、すべて挙げてください。', '6-1', '議事録のファイル 1 つ');
+  const r2 = recItem('目的とすること', 'このスキルで、何を楽にしたいですか。', '24', '要約を書く手間');
+  const now = recItem('作業の範囲', 'スキルが書き換えるか消すファイルはありますか。', '22', null);
+  const {replaced, ...nowItem} = now;
+  const st = sample('画面 4', {questions: {title: '作業の範囲', added: 0, removed: 0, notice: null, items: [nowItem]},
+    rounds: [{kind: '1 段目', items: [r1]}, {kind: '2 段目', items: [r2]}, {kind: '追加の回', items: [now]}]});
+  check('モックの AI が書く 3 つの回の組は state-contract に合う', stateContractGaps(st).length === 0, stateContractGaps(st).join(' / '));
+  check('作業が決まる', await startWork(page, st));
+  check('今の回のページを出す', await waitHead(page, '作業の範囲'));
+  await waitIdle(page);
+  const sent = calls().length;
+  await hearButton(page, '前へ').click();
+  check('「前へ」で、1 つ前の回のページを出す', await waitHead(page, '目的とすること', 3000));
+  await page.getByLabel('質問 1 の答え').fill('読み返す手間');
+  await hearButton(page, '前へ').click();
+  check('もう一度「前へ」で、最初の回のページを出す', await waitHead(page, '渡すものと出すもの', 3000));
+  await page.getByLabel('質問 1 の答え').fill('議事録のフォルダ');
+  check('2 つの回の問い 1 を直しても AI に送らない', calls().length === sent, calls().length);
+  planNext(null);
+  await page.fill('#input', '書き足す文');
+  await page.press('#input', 'Enter');
+  check('送る文は、2 つの直した答えの行を、回の順に、それぞれの記録の番号で持つ', await nextCall(sent + 1) && lastCall().stdin === `画面: ${work}\n書き足す文\n直した答え 6-1: 議事録のフォルダ\n直した答え 24: 読み返す手間`, lastCall().stdin);
+});
+
+// 承認された設計の 7:回の途中のページは主でない「次へ」、回の最後のページだけ主なボタン「回答を送る」とその横の文
 testCase('回の最後のページの回答を送る', async page => {
   check('作業が決まる', await startWork(page, stage2()));
   await waitHead(page, '目的とすること');
@@ -2007,7 +2079,7 @@ testCase('直した答えを次の送信に添える', async page => {
   await page.getByLabel('質問 3 の答え').fill('書き出すファイルの名前');
   check('答えを直しても AI に送らない', calls().length === sent, calls().length);
   const stored = JSON.parse((await page.evaluate(k => localStorage.getItem(k), `sf-hear:${work}`)) || '{}');
-  check('直した答えを、作業のフォルダと問いの番号と問いの文の組で localStorage に持つ', !!stored['3'] && stored['3'].text === q3.text && stored['3'].answer === '書き出すファイルの名前', JSON.stringify(stored));
+  check('直した答えを、作業のフォルダと、回の番号と問いの番号の組の鍵と、問いの文の組で localStorage に持つ', !!stored['0:3'] && stored['0:3'].text === q3.text && stored['0:3'].answer === '書き出すファイルの名前', JSON.stringify(stored));
   await hearButton(page, '次へ').click();
   await waitHead(page, '目的とすること', 3000);
   await pick(page, '要約を書く手間');
@@ -2021,7 +2093,7 @@ testCase('直した答えを次の送信に添える', async page => {
   // AI は回を後ろに足すだけで、前の回の問いを書き換えない
   planNext(stage2After1());
   await hearButton(page, '回答を送る').click();
-  check('回の答えのあとに、直した答えを「直した答え <問いの番号>: <答え>」の行で添える', await nextCall(sent + 1) && lastCall().stdin === `画面: ${work}\n4: 要約を書く手間\n5: 司会\n6: 1 つの議事録\n7: 要約が保存された\n直した答え 3: 書き出すファイルの名前`, lastCall().stdin);
+  check('回の答えのあとに、直した答えを、記録の番号を持たない古い形の問いなので「直した答え <回の中の問いの番号>: <答え>」の行で添える', await nextCall(sent + 1) && lastCall().stdin === `画面: ${work}\n4: 要約を書く手間\n5: 司会\n6: 1 つの議事録\n7: 要約が保存された\n直した答え 3: 書き出すファイルの名前`, lastCall().stdin);
   await waitIdle(page);
   await sleep(2500);
   planNext(null);
@@ -2071,28 +2143,6 @@ testCase('開き直したときに出すページ', async (page, context) => {
   check('開き直したあとも、回の答えがそろっていれば「回答を送る」を押せる', await until(() => hearButton(page, '回答を送る').isEnabled(), 5000));
 });
 
-// 承認された設計の 3: AI の案では、これまでの答えの一覧で答えを直し、直した答えを「この案で進む」の送信に添える
-testCase('AI の案でこれまでの答えを直す', async page => {
-  await page.setViewportSize({width: 1280, height: 1400});
-  check('作業が決まる', await startWork(page, sample('AI の案')));
-  await waitHear(page, '作り方の案は、これでよいですか？');
-  await waitIdle(page);
-  await hearButton(page, 'これまでの答えの一覧').click();
-  check('これまでの答えの一覧に、送った回の問いを答えを入れたまま出す', await waitHear(page, 'これまでの答え') && (await page.locator('#hearbody fieldset').count()) === 5 && (await page.getByLabel('質問 5 の答え').inputValue()) === 'なし');
-  check('AI の案の一覧には「直した答えを送る」を出さない', (await hearButton(page, '直した答えを送る').count()) === 0);
-  await page.getByLabel('質問 5 の答え').fill('直した答えの文');
-  const stored = JSON.parse((await page.evaluate(k => localStorage.getItem(k), `sf-hear:${work}`)) || '{}');
-  check('一覧で直した答えを localStorage にためる', !!stored['5'] && stored['5'].answer === '直した答えの文', JSON.stringify(stored));
-  check('一覧で答えを直しても AI に送らない', calls().length === 1, String(calls().length));
-  await hearButton(page, '案に戻る').click();
-  await waitHear(page, '作り方の案は、これでよいですか？');
-  await page.locator('#hearscroll').evaluate(e => { e.scrollTop = e.scrollHeight; });
-  await until(() => hearButton(page, 'この案で進む').isEnabled());
-  planNext(null);
-  await hearButton(page, 'この案で進む').click();
-  check('「この案で進む」の送信に、たまった直した答えを添える', await nextCall(2) && lastCall().stdin === `画面: ${work}\nこの案で進む(推奨)\n直した答え 5: 直した答えの文`, lastCall().stdin);
-});
-
 // 承認された設計の 2 と 3: 画面 5 の、これまでの答えの一覧の「直した答えを送る」
 testCase('画面 5 の直した答えを送る', async page => {
   check('作業が決まる', await startWork(page, sample('画面 5')));
@@ -2106,7 +2156,7 @@ testCase('画面 5 の直した答えを送る', async page => {
   check('答えを直すと「直した答えを送る」を押せる', await until(() => go.isEnabled(), 3000));
   planNext(null);
   await go.click();
-  check('選択肢「直す」の文と、直した答えの行を送る', await nextCall(2) && lastCall().stdin === `画面: ${work}\n直す\n直した答え 5: 画面 5 で直した答え`, lastCall().stdin);
+  check('選択肢「直す」の文と、直した答えの行を送る(記録の番号を持たない古い形の問いなので、回の中の番号)', await nextCall(2) && lastCall().stdin === `画面: ${work}\n直す\n直した答え 5: 画面 5 で直した答え`, lastCall().stdin);
   await waitIdle(page);
   check('送ったあとは、直した答えがないので押せない', await until(() => go.isDisabled(), 5000));
 });

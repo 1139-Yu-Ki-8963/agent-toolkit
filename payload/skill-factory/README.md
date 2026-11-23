@@ -64,7 +64,7 @@
 
 1. ユーザーは、準備として、`npm install --prefix ui/tests` と `npx --prefix ui/tests playwright install chromium` を実行する。
 2. ユーザーは、毎回流すテストとして、`bash ui/tests/run-auto.sh` を実行する。AI はモックを使うので、利用料はかからない。
-3. ユーザーは、本物の `claude` を使うテストとして、`node ui/tests/test-real.mjs <contract か until-stage-3 か until-stage-8 か check-skill か session-lost> --yes` を実行する。時間と利用料がかかるので、AI は、ユーザーが指示したときだけこのテストを流す。
+3. ユーザーは、本物の `claude` を使うテストとして、`node ui/tests/test-real.mjs <contract か hearing-screens か hearing-to-written か until-stage-3 か until-stage-8 か check-skill か session-lost> --yes` を実行する。時間がかかり、claude の使用量を使うので、AI は、ユーザーが指示したときだけこのテストを流す。
 
 ## 前提
 

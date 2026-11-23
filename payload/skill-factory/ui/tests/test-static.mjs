@@ -8,9 +8,9 @@ import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 import vm from 'node:vm';
 import {check, finish, makeState, setCase, threeQuestions} from './lib/report.mjs';
-import {ADDED_KEYS, CONTRACT_TABLE, ROUND_KINDS, STAGE_TABLE, roundsGaps, stateContractGaps} from './lib/state-contract.mjs';
+import {ADDED_KEYS, CONTRACT_TABLE, ROUND_KINDS, STAGE_TABLE, roundsGaps, roundsQuestionsGaps, stateContractGaps} from './lib/state-contract.mjs';
 
-const caseNames = ['プログラムの構文', 'index.html のスクリプトと外部のライブラリ', '段階の表', 'state.json のキー', '画面の状態の組の照合: 画面 4 で前へを押したあとの state.json', '画面の状態の組の照合: 章 2 の表の行ごとの見本', '画面の状態の組の照合: 回の一覧', '画面の状態の組の照合: 段階 2 から 8 の画面', '計画書とプログラムの同期', 'README の手順', 'モックの層が本物の claude を呼ばない'];
+const caseNames = ['プログラムの構文', 'index.html のスクリプトと外部のライブラリ', '段階の表', 'state.json のキー', '画面の状態の組の照合: 画面 4 で前へを押したあとの state.json', '画面の状態の組の照合: 章 2 の表の行ごとの見本', '画面の状態の組の照合: 回の一覧', '画面の状態の組の照合: 最後の回の問いと問いの一覧の選択肢', '画面の状態の組の照合: 段階 2 から 8 の画面', '計画書とプログラムの同期', 'README の手順', 'モックの層が本物の claude を呼ばない'];
 if (process.argv.includes('--list')) { for (const n of caseNames) console.log(n); process.exit(0); }
 
 const testsDir = path.dirname(fileURLToPath(import.meta.url));
@@ -195,10 +195,11 @@ const emptyItems = stateContractGaps({...backFixture, decision: null, questions:
 check('questions.items が 0 件の組も不合格にする', emptyItems.some(g => g.includes('items が 0 件')), emptyItems.join(' / '));
 
 setCase('画面の状態の組の照合: 章 2 の表の行ごとの見本');
-check('照合の関数は章 2 の表の 10 行を持つ', CONTRACT_TABLE.size === 10, CONTRACT_TABLE.size);
+// 章 2 の表は 9 行である
+check('照合の関数は章 2 の表の 9 行を持つ', CONTRACT_TABLE.size === 9, CONTRACT_TABLE.size);
 // 必須のキーの値は ui/example の見本から取る。聞き返しの decision は章 3 の形とする
 const screenSample = name => JSON.parse(read(path.join(screensDir, name + '.json')));
-const filled = {summary: screenSample('画面 2').summary, research: screenSample('調査').research, factCheck: screenSample('画面 3').factCheck, approvalSheet: screenSample('AI の案').approvalSheet, draftReview: screenSample('画面 5').draftReview};
+const filled = {summary: screenSample('画面 2').summary, research: screenSample('調査').research, factCheck: screenSample('画面 3').factCheck, draftReview: screenSample('画面 5').draftReview};
 const pick = {question: '承認しますか', choices: ['承認する', '直す'], replies: []};
 const askBack = n => ({question: '直し方を変えて続けますか', choices: n ? ['直し方を変えて続ける', '中止する'] : [], replies: [], askBack: true});
 const rowSamples = {
@@ -209,7 +210,6 @@ const rowSamples = {
   '調査': [['調査の状態', {research: filled.research}]],
   '画面 3': [['選択肢', {factCheck: filled.factCheck, decision: pick}], ['聞き返し', {factCheck: filled.factCheck, decision: askBack(2)}]],
   '画面 4': [['decision が null', {questions: threeQuestions()}], ['選択肢 2 件の聞き返し', {questions: threeQuestions(), decision: askBack(2)}]],
-  'AI の案': [['選択肢', {approvalSheet: filled.approvalSheet, decision: pick}], ['聞き返し', {approvalSheet: filled.approvalSheet, decision: askBack(0)}]],
   '画面 5': [['選択肢', {draftReview: filled.draftReview, decision: pick}], ['聞き返し', {draftReview: filled.draftReview, decision: askBack(2)}], ['下書きを作っている間か、まだないとき(draftReview が null)', {decision: pick}]],
   '画面 6': [['すべて null', {}]],
 };
@@ -224,13 +224,14 @@ for (const [screen, samples] of Object.entries(rowSamples)) {
 // インターフェース設計書の章 2 の回の一覧(rounds)
 setCase('画面の状態の組の照合: 回の一覧');
 check('照合の関数は回の種類の 6 つの値を持つ', ROUND_KINDS.join('、') === '調べるための問い、既にあるものとの関係の問い、1 段目、2 段目、追加の回、聞き直しの回', ROUND_KINDS.join('、'));
-const roundItem = (number, answer = null, replaced = false) => ({...threeQuestions().items[0], number, answer, replaced});
+// 回の問いは、questions.items の同じ番号の問いと同じ欄を持つ(questions.items にない番号の問いは、問い 1 の欄を使う)
+const roundItem = (number, answer = null, replaced = false) => ({...(threeQuestions().items.find(i => i.number === number) || threeQuestions().items[0]), number, answer, replaced});
 const goodRounds = [{kind: '調べるための問い', items: [roundItem(1, '必須')]}, {kind: '2 段目', items: [roundItem(2, '任意', true), roundItem(3)]}];
 for (const [label, st] of [
   ['rounds がない古い形', (({rounds, ...r}) => r)(makeState({screen: '画面 4', questions: threeQuestions()}))],
   ['rounds が null', makeState({screen: '画面 2', summary: filled.summary, decision: pick, rounds: null})],
   ['2 つの回', makeState({screen: '画面 4', questions: threeQuestions(), rounds: goodRounds})],
-  ['questions が null の画面の回', makeState({screen: 'AI の案', approvalSheet: filled.approvalSheet, decision: pick, rounds: goodRounds})],
+  ['questions が null の画面の回', makeState({screen: '画面 5', draftReview: filled.draftReview, decision: pick, rounds: goodRounds})],
 ]) check(`回の一覧の見本(${label})を合格にする`, stateContractGaps(st).length === 0, stateContractGaps(st).join(' / '));
 for (const [label, rounds, word] of [
   ['配列でない', {kind: '2 段目'}, '配列でない'],
@@ -243,6 +244,34 @@ for (const [label, rounds, word] of [
   check(`回の一覧の形が違う組(${label})を不合格にする`, gaps.some(g => g.includes(word)), gaps.join(' / '));
 }
 check('回の一覧の照合は、rounds がないときと null のときに空の一覧を返す', roundsGaps(undefined).length === 0 && roundsGaps(null).length === 0);
+
+// 画面は rounds の問いで描くので、rounds の最後の回のまだ答えていない問いは、questions.items の同じ番号の問いと同じ choices と results を持つ(リファレンス「画面の状態のファイルの形」の行 rounds)
+setCase('画面の状態の組の照合: 最後の回の問いと問いの一覧の選択肢');
+// 2026-11-21 の本物の AI のテストで AI が書いた state.json(ui/tests/2026-11-21-093443-通し/state/11.json の写し。テストの記録のフォルダは git の管理の外なので、写しを ui/tests/fixtures/ に置く)
+const splitFixture = JSON.parse(read(path.join(testsDir, 'fixtures', '最後の回の問いが問いの一覧と違う選択肢を持つ state.json')));
+const splitGaps = stateContractGaps(splitFixture);
+check('不具合の実物は screen が「画面 4」で、最後の回の問い 2 から 5 が選択肢を持たない', splitFixture.screen === '画面 4' && [1, 2, 3, 4].every(j => splitFixture.rounds.at(-1).items[j].choices.length === 0), splitFixture.screen);
+check('照合の関数は、不具合の実物の、最後の回の問い 2 から 5 の choices の食い違いを出す', [2, 3, 4, 5].every(n => splitGaps.some(g => g.includes(`番号 ${n} の問いの choices と違う`))), splitGaps.join(' / '));
+check('照合の関数は、不具合の実物の、最後の回の問い 1 の results の食い違いを出す', splitGaps.some(g => g.includes('番号 1 の問いの results と違う')), splitGaps.join(' / '));
+const nowRound = (over = {}) => threeQuestions().items.map(i => ({...i, replaced: false, ...(over[i.number] || {})}));
+for (const [label, rounds] of [
+  ['最後の回が questions.items と同じ問いを持つ', [{kind: '1 段目', items: nowRound()}]],
+  ['前の回の同じ番号の問いは違う選択肢を持つ', [{kind: '1 段目', items: nowRound({1: {choices: ['前の回の選択肢'], results: [], answer: '前の回の選択肢'}})}, {kind: '2 段目', items: nowRound()}]],
+  ['最後の回の答えた問いは違う選択肢を持つ', [{kind: '2 段目', items: nowRound({1: {choices: [], results: [], answer: '必須'}})}]],
+  ['最後の回が questions.items にない番号の問いを持つ', [{kind: '2 段目', items: [...nowRound(), {...threeQuestions().items[0], number: 9, choices: [], results: [], replaced: false}]}]],
+]) {
+  const gaps = stateContractGaps(makeState({screen: '画面 4', questions: threeQuestions(), rounds}));
+  check(`最後の回と問いの一覧の組(${label})を合格にする`, gaps.length === 0, gaps.join(' / '));
+}
+for (const [label, over, word] of [
+  ['最後の回のまだ答えていない問いが choices を持たない', {1: {choices: []}}, '番号 1 の問いの choices と違う'],
+  ['最後の回のまだ答えていない問いが、questions.items の同じ問いにない results を持つ', {1: {results: ['「必須」を選ぶと、AI は、必須の値にします']}}, '番号 1 の問いの results と違う'],
+  ['最後の回のまだ答えていない問いが違う選択肢を持つ', {1: {choices: ['必須', '任意', '分からない']}}, '番号 1 の問いの choices と違う'],
+]) {
+  const gaps = stateContractGaps(makeState({screen: '画面 4', questions: threeQuestions(), rounds: [{kind: '1 段目', items: nowRound(over)}]}));
+  check(`最後の回と問いの一覧の組(${label})を不合格にする`, gaps.some(g => g.includes(word)), gaps.join(' / '));
+}
+check('最後の回と問いの一覧の照合は、questions か rounds が null のときと、回が 0 件のときに空の一覧を返す', roundsQuestionsGaps(null, [{kind: '1 段目', items: nowRound({1: {choices: []}})}]).length === 0 && roundsQuestionsGaps(threeQuestions(), null).length === 0 && roundsQuestionsGaps(threeQuestions(), []).length === 0);
 
 // インターフェース設計書の章 2 の段階 2 から 8 の画面の表と、段階 2 から 8 で足すキーの型(ui/tests/lib/state-contract.mjs)
 setCase('画面の状態の組の照合: 段階 2 から 8 の画面');
