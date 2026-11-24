@@ -8,7 +8,7 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
-import {check, finish, freePort, makeState, setCase, sleep, until} from './lib/report.mjs';
+import {artifacts, check, finish, freePort, makeState, setCase, sleep, until} from './lib/report.mjs';
 
 const testsDir = path.dirname(fileURLToPath(import.meta.url));
 const uiDir = path.dirname(testsDir);
@@ -675,6 +675,49 @@ testCase('返事のあとに返事の時間.jsonl に 1 行足す', async () => 
   await idle();
   check('0 でない終了コードで終わった返事も 1 行足す', rows().length === 4 && rows().at(-1).promptHead === '失敗する文', rows().length);
   check('中継サーバーは返事の時間.jsonl を会話の記録に書かない', !conv('work-1').includes('duration_ms'));
+});
+
+testCase('作業中のまま返事を終えたら続きを頼む文を送る', async () => {
+  const autoText = '続けてください(中継サーバーが送りました。問いか承認を出していない返事のあとに送ります)';
+  const count = (s, t) => s.split(t).length - 1;
+  const settle = async n => { await until(() => calls().length >= n, 8000); await sleep(300); await idle(); };
+  await startWork('work-1', makeState({stage: 2}));
+  await settle(4);
+  check('段階 2 の作業中の返事のあとに、続きを頼む文を 3 回まで送る', calls().length === 4 && count(conv('work-1'), `ユーザー: ${autoText}`) === 3, calls().length);
+  check('3 回送っても進まないときは、そのことを会話に書いて止める', conv('work-1').includes('回送っても、問いか承認が出ませんでした'));
+  check('送った文は、中継サーバーが送ったと分かる文で、claude に渡る', calls()[1].stdin.endsWith(autoText), calls()[1].stdin);
+  plan({lines: [init, say('返事')]});
+  await post('/api/prompt', {text: 'ユーザーの文'});
+  await settle(8);
+  check('ユーザーが送ると、送る回数を数え直す', calls().length === 8, calls().length);
+});
+
+testCase('問いか承認か完了か中止があるか、段階 1 のときは続きを頼む文を送らない', async () => {
+  const autoText = '続けてください(中継サーバーが送りました';
+  const done = makeState({stage: 8, artifacts: artifacts(8).map(a => ({...a, status: '済み'}))});
+  const states = [
+    ['段階 1 の画面 6', makeState({screen: '画面 6'})],
+    ['承認を持つ', makeState({stage: 3, decision: {question: 'q', choices: ['a'], replies: []}})],
+    ['8 件目の成果物が済み', done],
+    ['中止', makeState({stage: 4, abort: {reason: 'r'}})],
+  ];
+  for (const [name, state] of states) {
+    const work = 'work-1';
+    const before = calls().length;
+    plan({files: writesWork(work, state)});
+    await post('/api/prompt', {text: name});
+    await idle();
+    await sleep(500);
+    await idle();
+    check(`${name}のときは送らない`, calls().length === before + 1 && !conv(work).includes(autoText), calls().length - before);
+  }
+  const before = calls().length;
+  plan({files: writesWork('work-1', makeState({stage: 2})), exit: 1});
+  await post('/api/prompt', {text: '失敗する文'});
+  await idle();
+  await sleep(500);
+  await idle();
+  check('終了コードが 0 でないときは送らない', calls().length === before + 1, calls().length - before);
 });
 
 testCase('API の答えの形', async () => {

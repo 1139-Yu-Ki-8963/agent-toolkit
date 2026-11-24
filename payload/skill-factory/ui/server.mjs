@@ -52,6 +52,11 @@ let lostStateTime = null;
 const lostText = '前の会話を続けられないので、新しい会話で始めます。成果物のパスを送ってください';
 // 「あとで続ける」か「やめる」で離れた作業。作業のフォルダの候補にしない(「続きから」で開くと外す)
 const leftWorks = new Set();
+// 段階 2 から、AI が問いも承認も出さずに返事を終えたとき(画面の状態が「作業中」)は、中継サーバーが続きを頼む文を送る。
+// ユーザーが画面から送るまでに続けて送るのは autoLimit 回まで
+const autoText = '続けてください(中継サーバーが送りました。問いか承認を出していない返事のあとに送ります)';
+const autoLimit = 3;
+let autoCount = 0;
 
 function markSessionLost() {
   // state.json がないときは、書かれた時点で続けられない状態を終える
@@ -288,7 +293,25 @@ function prompt(text, leave) {
     }
     if (code !== 0) append('Claude Code', `(終了コード ${code ?? signal}) ${[err.trim(), ...resultErrors].filter(Boolean).join(' ')}`);
     if (leave) leaveWork(leave);
+    else if (code === 0) continueIfWorking();
   });
+}
+
+// 段階 2 からの返事が、問いも承認もなく、完了でも中止でもない状態で終わったら、続きを頼む文を送る
+function continueIfWorking() {
+  const dir = findWorkDir();
+  if (!dir) return;
+  let state;
+  try { state = JSON.parse(fs.readFileSync(path.join(dir, 'ui', 'state.json'), 'utf8')); } catch { return; }
+  if (!state || typeof state !== 'object' || Array.isArray(state) || !(Number(state.stage) >= 2)) return;
+  const artifacts = (Array.isArray(state.artifacts) ? state.artifacts : []).filter(a => a && typeof a === 'object');
+  if (workState(state, artifacts) !== '作業中') return;
+  if (autoCount >= autoLimit) {
+    append('Claude Code', `(中継サーバー: 続きを頼む文を ${autoLimit} 回送っても、問いか承認が出ませんでした。入力欄に続きを書いて送ってください)`);
+    return;
+  }
+  autoCount++;
+  prompt(autoText, null);
 }
 
 // 中継サーバーを止めるときは、動いている claude に SIGTERM を送り、5 秒以内に終わらなければ SIGKILL を送ってから終わる
@@ -408,6 +431,7 @@ function handle(req, res) {
         if (!resume(seen)) return send(res, 404, 'その作業のフォルダに ui/state.json がありません');
         if (sessionLost()) return send(res, 409, lostText);
       }
+      autoCount = 0;
       prompt(text, json.leave === 'あとで続ける' || json.leave === 'やめる' ? json.leave : null);
       send(res, 202, '送りました');
     });
