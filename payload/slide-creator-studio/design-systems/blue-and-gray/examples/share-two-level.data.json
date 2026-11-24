@@ -1,0 +1,24 @@
+{
+  "template": "share-two-level",
+  "section": "9月の内訳",
+  "page": "2",
+  "conclusion": "開発部の9月の会議520時間のうち、\n進捗の報告の240時間が、いちばん大きい",
+  "from": [
+    "9月の内訳"
+  ],
+  "content": {
+    "denominator": "2026年9月の、開発部の会議の時間520時間の内訳",
+    "items": [
+      {
+        "name": "定例の会議",
+        "value": { "n": 360, "unit": "時間" },
+        "children": [
+          { "name": "進捗の報告", "value": { "n": 240, "unit": "時間" } },
+          { "name": "情報の共有", "value": { "n": 120, "unit": "時間" } }
+        ]
+      },
+      { "name": "臨時の会議", "value": { "n": 160, "unit": "時間" } }
+    ],
+    "focus": "進捗の報告"
+  }
+}

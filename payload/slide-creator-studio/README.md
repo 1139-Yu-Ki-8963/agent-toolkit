@@ -1,83 +1,85 @@
 # slide-creator-studio
 
-このフォルダは、Claude Code で、説明用のスライドを Claude デザイン(Artifact の型「Design」)の上に作るための、スキル 4 本と規約 1 本の一式です。色、文字、部品の値は、規約の中のデザインシステムが持ち、どの依頼でも同じ見た目のスライドが出ます。
-
-## 何ができるか
-
-- 1 つの結論を、1 枚のスライドにする。同じ 1 枚を、見せ方の違う複数の案で出す。
-- 1 枚の図が、1 つの結論だけを伝えているかを判定する(1 スライド 1 メッセージ)。
-- スライドごとの結論の並びが、1 つの話として通るかを判定する。
-- 決まった並びのとおりに、スライドを 1 つの資料に組み立てる。
+このフォルダは、Claude Code で、説明用のスライドを Claude デザイン(Artifact の型「Design」)の上に作るための一式です。規約は、見た目と中身の原則を持ち、デザインシステムは、値とテンプレートを持ち、チェックツールは、スライドを機械で確かめ、スキル 2 本は、作る手順と、HTML にまとめる手順を持ちます。責務の定義と置き場の地図は、プロジェクトの直下の `CLAUDE.md` が持ちます。この文書は、使う人のための説明です。
 
 ## 入っているもの
 
-```
-.claude/
-├── skills/
-│   ├── creating-claude-design-slide/      1 枚を作る
-│   ├── checking-one-slide-one-message/    1 枚の図が、1 つの結論だけを伝えているかを判定する
-│   ├── checking-slide-story/              結論の並びが、1 つの話として通るかを判定する
-│   └── assembling-claude-design-slides/   決まった並びで、資料スライドに組み立てる
-└── rules/slide-writing/
-    ├── slide-writing-rule/                規約(構成、言葉、文字と可読性、色と図形、レイアウト、ファイルの名前)
-    └── template/
-        ├── ink-and-red-design-system/                    デザインシステム「墨と赤」(色、文字、グリッド、部品、間隔の値)
-        │   └── illustration/                             デジタル庁のイラスト 40 点と、その利用規約
-        └── ink-and-red-design-system-completed-example/  デザインシステムの見本(8 枚のスライドと、確認用の画像)
-```
-
-## イラストの著作権
-
-`.claude/rules/slide-writing/template/ink-and-red-design-system/illustration/` の PNG 40 点は、デジタル庁の[イラストレーション・アイコン素材](https://www.digital.go.jp/policies/servicedesign/designsystem/Illustration_Icons)のファイルを、変えずに置いたものです。著作権はデジタル庁にあり、利用の条件は、同じフォルダの `LICENSE.txt` に従います。編集、加工して使うときは、出典と編集の内容の表記が要ります。
-
-## 導入
-
-`.claude/` の中身を、使うプロジェクトの直下の `.claude/` に置く。
-
-```bash
-cp -R .claude/skills/* <プロジェクト>/.claude/skills/
-cp -R .claude/rules/slide-writing <プロジェクト>/.claude/rules/
-```
+| 置き場 | 中身 |
+|---|---|
+| `CLAUDE.md` | 一式の責務の定義と、置き場の地図 |
+| `.claude/rules/slide-writing/` | 規約。`design-principles.md`(見た目の原則)、`content-principles.md`(話の組み立て、結論の一文、言葉、数字の原則)、`value-names.json`(値の名前の一覧) |
+| `design-systems/<名前>/` | デザインシステム。値(`tokens.json`)、部品と意図(`parts.json`)、型ごとのテンプレート(`templates/`)、見本のデータ(`examples/`)、そのデザインシステムだけの NG 例(`ng-examples/`)。今は、`blue-and-gray`(青と灰)と `ink-and-red`(墨と赤)の 2 つ |
+| `design-systems/ng-examples/` | どのデザインシステムにも共通の NG 例(画像と一覧) |
+| `tools/` | 描く、測る、検査する道具。コマンドは `tools/README.md` |
+| `.claude/skills/creating-claude-design-slides/` | スライドを作るスキル |
+| `.claude/skills/exporting-slides-to-html/` | 全ページを 1 つの HTML にまとめるスキル |
+| `output-slides/<作る日>_<資料の名前>/` | 作ったスライド。元の資料、データ、`.dc.html`、`canvas.json`、確認用の画像 |
+| `payload/` | ユーザーが公開すると選んだ成果物への symlink |
+| `docs/` | 経緯の記録、確かめの記録 |
 
 ## 前提
 
-- Claude Code。ツール `Artifact` で、型「Design」の Artifact を作れること。
-- サブエージェントを起動できること。2 つの判定のスキルは、読む役目に haiku、判定する役目に opus のサブエージェントを使う。
-- 画像にして確かめる手順は、Playwright の MCP のツール `browser_run_code_unsafe` を使う。画像を作ると同時に、絵の欠け、フォントの読み込み、日本語の指定を自動で確かめられるためである。入れていないときは、スキルが入れてよいかを聞く。入れるコマンドは `claude mcp add playwright npx @playwright/mcp@latest`。
+- Claude Code。ツール `Artifact` で、型「Design」の Artifact を作れること(Claude Code の CLI か、デスクトップのアプリで始めた会話)。
+- Node.js。`tools/` は、外のパッケージを使わない。
+- Playwright の MCP のツール `browser_run_code_unsafe`。スライドを測って画像にするときと、まとめた HTML を開いて確かめるときに使う。入れていないときは、スキルが入れてよいかを聞く。入れるコマンドは `claude mcp add playwright npx @playwright/mcp@latest`。
 - このツールは、AI が書いたコードを、利用者の権限で、Claude Code のサンドボックスの外で動かせる(Playwright MCP の説明では RCE 相当)。使うたびに許可の確認が出たら、実行するコードを見て判断する。
-- 規約 slide-writing-rule は、文の書き方の規約 text-writing-rule を前提にしている。text-writing-rule は、このリポジトリの `payload/skill-factory/.claude/rules/text-writing/` にある。
 
 ## 使い方
 
 Claude Code に、次の形で依頼する。
 
-| したいこと | 依頼の文の例 | 動くスキル |
-|---|---|---|
-| 図を 1 枚作る | 「<内容>を 1 枚のスライドにして」 | creating-claude-design-slide |
-| 同じ 1 枚を、複数の案で見る | 「このページを 3 パターンで見たい」 | creating-claude-design-slide |
-| 図が伝わるかを確かめる | 「このスライドは、1 メッセージになっている?」 | checking-one-slide-one-message |
-| 話の流れを相談する | 「この順で、話が通るかを見て」 | checking-slide-story |
-| 資料にまとめる | 「この順で、資料スライドに組み立てて」 | assembling-claude-design-slides |
+**スライドを作る**
+- 依頼の例: 「<資料のファイル>を、青と灰で、数枚のスライドにして」
+- 動くスキル: creating-claude-design-slides
+- 結果: Claude デザインの URL、`output-slides/` の資料のフォルダ、確認用の画像、チェックツールの結果
+- デザインシステムの名前が依頼の文にないとき、スキルは、`design-systems/` の一覧を見せて、ユーザーの選択を待つ。
 
-資料を作るときの流れ:
+**テンプレートにない型を足す**
+- 依頼の例: 「この内容に合う型のテンプレートを足して、スライドにして」
+- 動くスキル: creating-claude-design-slides
+- 結果: そのデザインシステムの `templates/` に、新しい型が足される
 
-1. 結論の文を並べて、checking-slide-story で、話が通るかを判定する。判定はチャットに出るので、順序をチャットで話し合う。
-2. 並びが決まったら、assembling-claude-design-slides で、資料に組み立てる。足りないページは、creating-claude-design-slide が作る。
-3. できた図を、checking-one-slide-one-message で判定し、伝わらない図を直す。
+**部品の理由を聞く**
+- 依頼の例: 「このスライドの、この棒の色の理由を教えて」
+- 動くスキル: creating-claude-design-slides
+- 結果: 部品の意図(`parts.json`)、値の理由(`tokens.json`)、数字と言葉の出どころ(データの `from`)から答える
 
-## 判定の仕組み
+**1 つの HTML にまとめる**
+- 依頼の例: 「このスライドを HTML にして」
+- 動くスキル: exporting-slides-to-html
+- 結果: 資料のフォルダの `<資料の名前>スライド.html`。ブラウザで 1 ページずつ切り替えて見られる
 
-2 つの判定のスキルは、役目を 3 つに分ける。
+道具のコマンド(描く、測る、検査する、型の一覧を出す)は、`tools/README.md` にある。
 
-- 進める役目: スキルを動かしている AI。材料を用意し、結果をチャットに出す。合否は決めない。
-- 読む役目: haiku のサブエージェント。図か、結論の文だけを、初めて見る人として読む。性能の高くないモデルが読み取れない所は、初めて見る人がつまずく所である。
-- 判定する役目: opus のサブエージェント 1 人。読む役目が読み取ったことを、結論の一文と比べて、合否を決める。
+## デザインシステムを足すとき
+
+読むもの:
+
+- `.claude/rules/slide-writing/design-principles.md`: 見た目の原則。デザインシステムは、これを 1 つの見た目として実装する。
+- `.claude/rules/slide-writing/value-names.json`: 値の名前の一覧。デザインシステムは、このすべての名前に、`tokens.json` の `values` で値を定義する。
+- 今あるデザインシステムの 1 つ(`design-systems/blue-and-gray/` か `design-systems/ink-and-red/`): 置き場の構成と、ファイルの形の手本。
+
+足したあとに、`node tools/check.js --design-system <名前>` を実行する。値の名前、部品の意図、テンプレート、見本のデータを確かめ、合格(終了コード 0)になるまで直す。
+
+## テンプレートを足すとき
+
+読むもの:
+
+- `.claude/skills/creating-claude-design-slides/SKILL.md` の節「テンプレートにない型のとき」: 足す手順。
+- `.claude/rules/slide-writing/design-principles.md`: 足した型を照らす原則。
+- そのデザインシステムの `templates/` の、いちばん近い型のファイル: 写す元。
+
+足すもの: `templates/<型の名前>.js`(`when`、`parts`、`schema`、`render`)、新しい部品の `parts.json` の行(`name` と `intent`)、新しい値の `tokens.json` の項目、`examples/<型の名前>.data.json`。
+
+## イラストの著作権
+
+`design-systems/ink-and-red/illustration/` の PNG 40 点は、デジタル庁の[イラストレーション・アイコン素材](https://www.digital.go.jp/policies/servicedesign/designsystem/Illustration_Icons)のファイルを、変えずに置いたものです。著作権はデジタル庁にあり、利用の条件は、同じフォルダの `LICENSE.txt` に従います。編集、加工して使うときは、出典と編集の内容の表記が要ります。
 
 ## 作ったスライドの置き場と、公開するものの選び方
 
 作ったスライドと、公開するものを、2 つのフォルダに分けて置く。
 
-- `output-slides/<作る日>_<資料の名前>/`: スキルが作った元のファイル(`.dc.html`、`canvas.json`、確認用の画像)と、1 つにまとめた HTML の置き場。このフォルダは公開しない。
+- `output-slides/<作る日>_<資料の名前>/`: 作るスキルが作ったファイルと、HTML にするスキルが作った、全ページを 1 つにまとめた HTML の置き場。このフォルダは公開しない。
 - `payload/<作る日>_<資料の名前>/`: ユーザーが公開すると選んだ成果物だけを、`output-slides/` のファイルへの symlink で置く。公開の側は、このフォルダだけを写す。
 
 公開するときは、次の順で進める。
@@ -85,7 +87,3 @@ Claude Code に、次の形で依頼する。
 1. `payload/` の下に、選んだファイルへの相対パスの symlink を置く。
 2. 公開の側の承認の記録に、そのファイルの行を足す。
 3. 公開の側で同期のスクリプトを走らせ、写したものをコミットして push する。
-
-## デザインを足す
-
-別のデザインを使うときは、`.claude/rules/slide-writing/template/` の下に、`<名前>-design-system/` と `<名前>-design-system-completed-example/` を足す。デザインシステムが持つ章は、規約の節「デザインシステムが持つもの」が決めている。

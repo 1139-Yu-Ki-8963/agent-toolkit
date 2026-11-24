@@ -336,6 +336,26 @@
       "dst": "payload/slide-creator-studio/README.md"
     },
     {
+      "mode": "file",
+      "src": "~/Projects/slide-creator-studio/CLAUDE.md",
+      "dst": "payload/slide-creator-studio/CLAUDE.md"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/slide-creator-studio/tools",
+      "dst": "payload/slide-creator-studio/tools"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/slide-creator-studio/design-systems/ink-and-red",
+      "dst": "payload/slide-creator-studio/design-systems/ink-and-red"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/slide-creator-studio/design-systems/blue-and-gray",
+      "dst": "payload/slide-creator-studio/design-systems/blue-and-gray"
+    },
+    {
       "mode": "mirror",
       "src": "~/Projects/slide-creator-studio/payload",
       "dst": "payload/slide-creator-studio/slides",

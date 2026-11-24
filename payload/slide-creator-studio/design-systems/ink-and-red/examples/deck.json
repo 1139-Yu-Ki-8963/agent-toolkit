@@ -1,0 +1,23 @@
+{
+  "title": "業務システム刷新の提案",
+  "designSystem": "ink-and-red",
+  "source": "元の資料.md",
+  "slides": [
+    "share-bar",
+    "share-with-timeline",
+    "before-after",
+    "compare-two",
+    "timeline-steps",
+    "compare-two-with-formula",
+    "summary",
+    "next-actions",
+    "source-table",
+    "share-two",
+    "base-and-swap",
+    "trend-bars",
+    "share-two-level",
+    "quadrant",
+    "image-and-points",
+    "funnel"
+  ]
+}

@@ -75,9 +75,9 @@ payload/
 
 ## slide-creator-studio(Claude デザインの上にスライドを作る)
 
-説明用のスライドを、Claude デザイン(Artifact の型「Design」)の上に作るスキル 4 本と、規約 1 本の一式。1 枚を作る、1 枚の図が 1 つの結論だけを伝えているかを判定する、結論の並びが 1 つの話として通るかを判定する、決まった並びで資料に組み立てる、の 4 つができる。使い方は [`payload/slide-creator-studio/README.md`](payload/slide-creator-studio/README.md) にある。2026-11-14 に公開を始めた。
+説明用のスライドを、Claude デザイン(Artifact の型「Design」)の上に作る一式。規約(見た目の原則と中身の原則)、デザインシステム 2 つ(「墨と赤」と「青と灰」。値、部品の意図、型ごとのテンプレート)、機械のチェックツール(`tools/`。描く、測る、検査する)、スキル 2 本(スライドを作る、全ページを 1 つの HTML にまとめる)を持つ。2026-11-25 に、この構成に入れ替えた。使い方は [`payload/slide-creator-studio/README.md`](payload/slide-creator-studio/README.md) にある。2026-11-14 に公開を始めた。
 
-slide-creator-studio のデザインシステム「墨と赤」は、デジタル庁の[イラストレーション・アイコン素材](https://www.digital.go.jp/policies/servicedesign/designsystem/Illustration_Icons)のイラスト 40 点を、変えずに持つ。素材の著作権はデジタル庁にあり、利用の条件は、同梱の [`LICENSE.txt`](payload/slide-creator-studio/.claude/rules/slide-writing/template/ink-and-red-design-system/illustration/LICENSE.txt) に従う。2026-11-22 に公開を始めた。
+slide-creator-studio のデザインシステム「墨と赤」は、デジタル庁の[イラストレーション・アイコン素材](https://www.digital.go.jp/policies/servicedesign/designsystem/Illustration_Icons)のイラスト 40 点を、変えずに持つ。素材の著作権はデジタル庁にあり、利用の条件は、同梱の [`LICENSE.txt`](payload/slide-creator-studio/design-systems/ink-and-red/illustration/LICENSE.txt) に従う。2026-11-22 に公開を始めた。
 
 このスキルで作った資料「理想の AI駆動開発フロー(一般論)」11 枚を、1 つの HTML ファイルにまとめて [`payload/slide-creator-studio/slides/`](payload/slide-creator-studio/slides/2026-11-14_理想のAI駆動開発フロー/理想のAI駆動開発フロースライド.html) に置いている。ファイルを落としてブラウザで開き、← → かスペースでページを送る。3 枚目は、周回のボタンを押すと動く。10 枚目は、基本設計の合格を、設計書だけを別の AI に読ませて推測の数で確かめる方法を示す。2026-11-16 に公開を始めた。
 

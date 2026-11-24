@@ -441,3 +441,17 @@ pstack(cursor/plugins、MIT、Copyright (c) 2026 Lauren Tan)の原則とプレ�
 |---|---|---|---|
 | ~/Projects/slide-creator-studio/.claude/skills(mirror) | 承認済み | ユーザーの承認(2026-11-23「a」。MCP を確かめ、なければ許可を得て入れる案で公開まで進める)。上記の検査 | 公開の開始(2026-11-14)の行の範囲の中の変更 |
 | ~/Projects/slide-creator-studio/README.md(file) | 承認済み | 同上 | 前提の 2 行 |
+
+## slide-creator-studio の構成の入れ替え(2026-11-25)
+
+slide-creator-studio は、規約(原則)、デザインシステム(値、部品の意図、テンプレート)、機械のチェックツール、スキル 2 本に、責務を分け直した。前の公開(スキル 4 本、規約 slide-writing-rule、`.claude/rules/` の下のデザインシステム「墨と赤」)を、この構成に入れ替える。デザインシステムは、`.claude/rules/slide-writing/template/` から `design-systems/` に移り、「青と灰」が加わった。写したのは、slide-creator-studio のコミット 7207b3d の状態(`git archive` で書き出した写しから同期した。作業フォルダの、コミットしていない変更は写していない)。名前が `ng-examples` のフォルダ(NG の例の画像。ユーザーの指摘の赤字を持つ画像を含み、中身の公開の可否を確かめていない)は、`payload-artifacts.json` の `names` に足して、写す対象から除いた。`design-systems/navy-and-violet/` は、slide-creator-studio でコミットされていないので、対応に入れていない。公開前の検査(2026-11-25): 写したすべてのファイルで、`/Users/`、`agent-home`、メールアドレス、利用者の名前の照合で 0 件。`sync-payload.mjs --check-artifacts` で該当なし。公開の側の写しで、`node tools/check.js --design-system ink-and-red` と `--design-system blue-and-gray` が合格。見本のデータは、架空の内容(見本の `元の資料.md` の冒頭に明記)。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| ~/Projects/slide-creator-studio/.claude/skills(mirror) | 承認済み | ユーザーの指示(2026-11-25「このセッションでは、完了としてコミット、公開まで済ませろ」)。上記の検査 | 公開の開始(2026-11-14)の行の範囲の中の変更。スキル 4 本を、2 本に入れ替え |
+| ~/Projects/slide-creator-studio/.claude/rules(mirror) | 承認済み | 同上 | 規約 slide-writing-rule を、design-principles、content-principles、value-names に入れ替え |
+| ~/Projects/slide-creator-studio/README.md(file) | 承認済み | 同上 | 新しい構成の説明 |
+| ~/Projects/slide-creator-studio/CLAUDE.md(file) | 承認済み | 同上。対応の追加は AI の判断(README が、責務の定義の置き場として指す) | 新しい対応 |
+| ~/Projects/slide-creator-studio/tools(mirror) | 承認済み | 同上。対応の追加は AI の判断(公開するスキルの手順が呼ぶ) | 新しい対応 |
+| ~/Projects/slide-creator-studio/design-systems/ink-and-red(mirror) | 承認済み | 同上。対応の追加は AI の判断(2026-11-14 と 2026-11-22 に公開を始めたデザインシステムとイラストの、置き場の移動) | 新しい対応。`ng-examples/` は除く |
+| ~/Projects/slide-creator-studio/design-systems/blue-and-gray(mirror) | 承認済み | 同上。対応の追加は AI の判断(公開する README とスキルが、2 つのデザインシステムを指す) | 新しい対応。`ng-examples/` は除く |

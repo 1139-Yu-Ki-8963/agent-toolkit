@@ -1,0 +1,30 @@
+{
+  "template": "summary",
+  "section": "まとめ",
+  "page": "7",
+  "conclusion": "レビューの 2日前に設計の前提を配り、手戻りを66件減らす",
+  "from": [
+    "数字と、式か数え方"
+  ],
+  "content": {
+    "quantityLabel": "半年あたりの、レビュー後の仕様変更による手戻りの件数",
+    "rowNames": {
+      "current": "現状",
+      "cause": "原因",
+      "proposal": "提案",
+      "effect": "効果"
+    },
+    "current": {
+      "n": 96,
+      "unit": "件"
+    },
+    "cause": "設計の前提が文書にない",
+    "proposal": "設計者が設計の前提を 1枚にまとめ、レビューの 2日前に配る",
+    "effect": {
+      "n": 30,
+      "unit": "件",
+      "approx": true
+    },
+    "range": "25〜35件"
+  }
+}

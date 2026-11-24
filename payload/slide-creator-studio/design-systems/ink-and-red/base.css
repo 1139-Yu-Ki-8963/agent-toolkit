@@ -1,0 +1,75 @@
+:root{--design-system:ink-and-red;--ink:#16202B;--sub:#5B6672;--line:#C9CFD6;--tint:#F1F3F5;--red:#B3261E;--bg:#FFFFFF}
+.t-資料の名前{font-size:24px;font-weight:400;line-height:32px;color:var(--sub)}
+.t-タイトル{font-size:24px;font-weight:400;line-height:32px;color:var(--sub)}
+.t-結論の一文{font-size:56px;font-weight:700;line-height:78px;color:var(--ink)}
+.t-ページ番号{font-size:24px;font-weight:400;line-height:32px;color:var(--sub)}
+.t-付録の出典{font-size:24px;font-weight:400;line-height:32px;color:var(--sub)}
+.t-ラベル{font-size:32px;font-weight:400;line-height:44px;color:var(--sub)}
+.t-列の上のラベル{font-size:32px;font-weight:400;line-height:44px;color:var(--sub)}
+.t-行の見出し{font-size:32px;font-weight:400;line-height:44px;color:var(--sub)}
+.t-表の見出し{font-size:32px;font-weight:400;line-height:44px;color:var(--sub)}
+.t-表の行の名前{font-size:32px;font-weight:400;line-height:44px;color:var(--sub)}
+.t-表のセル{font-size:32px;font-weight:400;line-height:44px;color:var(--ink)}
+.t-カードの見出し{font-size:44px;font-weight:700;line-height:62px;color:var(--ink)}
+.t-点の見出し{font-size:44px;font-weight:700;line-height:62px;color:var(--ink)}
+.t-まとめの原因と提案{font-size:44px;font-weight:700;line-height:62px;color:var(--ink)}
+.t-言葉の説明{font-size:24px;font-weight:400;line-height:34px;color:var(--ink)}
+.t-図の中の説明{font-size:32px;font-weight:400;line-height:44px;color:var(--ink)}
+.t-補う説明{font-size:32px;font-weight:400;line-height:32px;color:var(--ink)}
+.t-値の説明{font-size:32px;font-weight:400;line-height:44px;color:var(--sub)}
+.t-時点の名前{font-size:32px;font-weight:400;line-height:44px;color:var(--sub)}
+.t-見てほしい点のラベル{font-size:32px;font-weight:400;line-height:44px;color:var(--sub)}
+.t-図の中のカードの名前{font-size:44px;font-weight:700;line-height:44px;color:var(--ink)}
+.t-矢印に添える名前{font-size:32px;font-weight:400;line-height:44px;color:var(--ink)}
+.t-項目の名前{font-size:32px;font-weight:400;line-height:44px;color:var(--ink)}
+.t-棒の値{font-size:44px;font-weight:700;line-height:62px;color:var(--ink)}
+.t-図に添える値{font-size:56px;font-weight:700;line-height:78px;color:var(--ink)}
+.t-主な数字{font-size:88px;font-weight:700;line-height:96px;color:var(--ink)}
+.t-次のアクションの期日{font-size:56px;font-weight:700;line-height:78px;color:var(--ink)}
+.t-次のアクションの読者の期日{font-size:88px;font-weight:700;line-height:96px;color:var(--ink)}
+.t-次のアクションの文{font-size:56px;font-weight:400;line-height:78px;color:var(--ink)}
+.t-グラフの軸の名前{font-size:24px;font-weight:400;line-height:34px;color:var(--sub)}
+.t-グラフの軸の値{font-size:24px;font-weight:400;line-height:34px;color:var(--sub)}
+body{margin:0}
+svg{display:block}
+.s{position:relative;width:1920px/*スライドの幅*/;height:1080px/*スライドの高さ*/;background:var(--bg);color:var(--ink);font-family:'Inter','Zen Kaku Gothic New',sans-serif;line-height:1.4/*文字の行の高さの既定の倍率*/;font-feature-settings:'palt'/*字詰めの指定*/;word-break:auto-phrase/*折り返しの指定*/}
+.hd{position:absolute;left:80px/*本文領域の左端*/;top:64px/*資料の名前とタイトルの行の上端*/;height:32px/*文字の行の高さ.資料の名前*/;display:flex;align-items:baseline;white-space:nowrap/*1 行に置く字の折り返しの指定*/}
+.hd i{font-style:normal;margin:0 16px/*区切りの記号の左右の間*/;font-size:24px/*文字の大きさ.資料の名前*/;line-height:32px/*文字の行の高さ.資料の名前*/;color:var(--sub)}
+.cc{position:absolute;left:80px/*本文領域の左端*/;top:112px/*結論の一文の上端*/;width:1760px/*本文領域の幅*/;margin:0}
+.bd{position:absolute;left:80px/*本文領域の左端*/;top:310px/*本文領域の上端*/;width:1760px/*本文領域の幅*/;height:650px/*本文領域の高さ*/;display:flex;flex-direction:column;justify-content:center}
+.ft{position:absolute;left:1648px/*スライドの幅 - ページ番号の右端の余白 - ページ番号の欄の幅*/;width:192px/*ページ番号の欄の幅*/;text-align:right;top:988px/*ページ番号の上端*/;height:32px/*文字の行の高さ.ページ番号*/}
+[data-role]{white-space:nowrap/*1 行に置く字の折り返しの指定*/}
+.cc[data-role]{white-space:normal;display:block}
+.ft[data-role]{display:block}
+.lb{display:block}
+.rf{display:inline-block}
+.it{display:flex;align-items:baseline}
+.k{display:flex;align-items:baseline;gap:8px/*間隔.項目の名前と値*/;white-space:nowrap/*1 行に置く字の折り返しの指定*/}
+.k .n{margin-left:24px/*間隔.値と値の説明 - 間隔.項目の名前と値*/}
+.br{display:flex}
+.rl{position:relative}
+.rl>i{position:absolute;top:0}
+.fg{position:relative}
+.fg>*{position:absolute;white-space:nowrap/*1 行に置く字の折り返しの指定*/}
+.fg [data-role],.pt [data-role]{display:block}
+.pt [data-role]{width:max-content}
+.av{display:flex;justify-content:space-between;margin-top:8px/*間隔.軸と軸の値*/}
+.ax{margin-top:8px/*間隔.棒と軸*/}
+.tl{display:block}
+.pt{display:grid;column-gap:64px/*間隔.まとまりとまとまり*/}
+.pt .t-時点の名前{margin-top:16px/*間隔.時間の線と点の文字*/}
+.pt .t-点の見出し{margin-top:8px/*間隔.名前と、その中身*/}
+.pt .t-言葉の説明{margin-top:16px/*間隔.点の見出しと言葉の説明*/}
+.tb{display:grid;column-gap:32px/*表の列と列の間*/;align-content:center}
+.tb .gp{grid-column:1/-1;height:16px/*表の出どころのまとまりの間*/}
+.so{box-sizing:border-box;padding:0 32px/*出どころの面の余白(左右)*/;background:var(--ink);display:flex;flex-direction:column;justify-content:center}
+.so [data-role]{color:var(--bg);display:block}
+.so .sn{font-weight:700}
+.bs{box-sizing:border-box;height:120px/*土台の帯の高さ*/;padding:0 32px/*つながりの帯とカードの内側の余白*/;background:var(--ink);display:flex;align-items:center;white-space:nowrap/*1 行に置く字の折り返しの指定*/}
+.bs>div{display:flex;align-items:baseline;gap:32px/*間隔.土台の帯の名前と補う説明*/}
+.bs [data-role]{color:var(--bg)}
+.cs{display:grid;column-gap:32px/*つながりの差し替えるカードの間*/;margin:8px/*間隔.名前と、その中身*/ 0 8px/*間隔.差し替えるカードと土台の帯*/}
+.bx{box-sizing:border-box;height:200px/*つながりの差し替えるカードの高さ*/;padding:0 31px/*カードの余白 - カードの枠線の太さ*/;background:var(--bg);border:1px/*カードの枠線の太さ*/ solid var(--line);border-radius:8px/*カードの角丸*/;display:flex;flex-direction:column;justify-content:center;white-space:nowrap/*1 行に置く字の折り返しの指定*/}
+.bx .t-補う説明{margin-top:8px/*間隔.カードの名前と補う説明*/}
+.bx.mn{background:var(--red);border-color:var(--red)}
+.bx.mn [data-role]{color:var(--bg)}
