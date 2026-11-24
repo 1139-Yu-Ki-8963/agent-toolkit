@@ -1,0 +1,38 @@
+{
+  "template": "voices",
+  "section": "利用者の声",
+  "page": "3",
+  "conclusion": "利用者の声では、入力の項目の多さが最も多い",
+  "from": [
+    "利用者の声"
+  ],
+  "content": {
+    "voices": [
+      {
+        "image": {
+          "src": "ds:illustration/s_human03.png",
+          "alt": "申し込む人のイラスト"
+        },
+        "role": "申し込む人",
+        "quote": "入力の項目が多くて、途中でやめたことがある。"
+      },
+      {
+        "image": {
+          "src": "ds:illustration/s_human04.png",
+          "alt": "更新する人のイラスト"
+        },
+        "role": "更新する人",
+        "quote": "前に入れた住所を、もう一度入れるのが手間だ。"
+      },
+      {
+        "image": {
+          "src": "ds:illustration/s_human05.png",
+          "alt": "初めて使う人のイラスト"
+        },
+        "role": "初めて使う人",
+        "quote": "申込が終わったのか、画面を見ても分からない。"
+      }
+    ],
+    "focus": "申し込む人"
+  }
+}

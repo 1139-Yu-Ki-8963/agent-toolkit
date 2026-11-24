@@ -8,7 +8,7 @@
 |---|---|
 | `CLAUDE.md` | 一式の責務の定義と、置き場の地図 |
 | `.claude/rules/slide-writing/` | 規約。`design-principles.md`(見た目の原則)、`content-principles.md`(話の組み立て、結論の一文、言葉、数字の原則)、`value-names.json`(値の名前の一覧) |
-| `design-systems/<名前>/` | デザインシステム。値(`tokens.json`)、部品と意図(`parts.json`)、型ごとのテンプレート(`templates/`)、見本のデータ(`examples/`)、そのデザインシステムだけの NG 例(`ng-examples/`)。今は、`blue-and-gray`(青と灰)と `ink-and-red`(墨と赤)の 2 つ |
+| `design-systems/<名前>/` | デザインシステム。値(`tokens.json`)、部品と意図(`parts.json`)、型ごとのテンプレート(`templates/`)、見本のデータ(`examples/`)、そのデザインシステムだけの NG 例(`ng-examples/`)。今は、`blue-and-gray`(青と灰)と `ink-and-red`(墨と赤)と `navy-and-violet`(紺と紫。デジタル庁のイラストを置く型を持つ)の 3 つ |
 | `design-systems/ng-examples/` | どのデザインシステムにも共通の NG 例(画像と一覧) |
 | `tools/` | 描く、測る、検査する道具。コマンドは `tools/README.md` |
 | `.claude/skills/creating-claude-design-slides/` | スライドを作るスキル |
@@ -57,7 +57,7 @@ Claude Code に、次の形で依頼する。
 
 - `.claude/rules/slide-writing/design-principles.md`: 見た目の原則。デザインシステムは、これを 1 つの見た目として実装する。
 - `.claude/rules/slide-writing/value-names.json`: 値の名前の一覧。デザインシステムは、このすべての名前に、`tokens.json` の `values` で値を定義する。
-- 今あるデザインシステムの 1 つ(`design-systems/blue-and-gray/` か `design-systems/ink-and-red/`): 置き場の構成と、ファイルの形の手本。
+- 今あるデザインシステムの 1 つ(`design-systems/blue-and-gray/` か `design-systems/ink-and-red/` か `design-systems/navy-and-violet/`): 置き場の構成と、ファイルの形の手本。
 
 足したあとに、`node tools/check.js --design-system <名前>` を実行する。値の名前、部品の意図、テンプレート、見本のデータを確かめ、合格(終了コード 0)になるまで直す。
 
@@ -73,17 +73,19 @@ Claude Code に、次の形で依頼する。
 
 ## イラストの著作権
 
-`design-systems/ink-and-red/illustration/` の PNG 40 点は、デジタル庁の[イラストレーション・アイコン素材](https://www.digital.go.jp/policies/servicedesign/designsystem/Illustration_Icons)のファイルを、変えずに置いたものです。著作権はデジタル庁にあり、利用の条件は、同じフォルダの `LICENSE.txt` に従います。編集、加工して使うときは、出典と編集の内容の表記が要ります。
+`design-systems/ink-and-red/illustration/` と `design-systems/navy-and-violet/illustration/` の PNG 40 点(2 つのフォルダは、同じファイルを持つ)は、デジタル庁の[イラストレーション・アイコン素材](https://www.digital.go.jp/policies/servicedesign/designsystem/Illustration_Icons)のファイルを、変えずに置いたものです。著作権はデジタル庁にあり、利用の条件は、同じフォルダの `LICENSE.txt` に従います。編集、加工して使うときは、出典と編集の内容の表記が要ります。
 
 ## 作ったスライドの置き場と、公開するものの選び方
 
 作ったスライドと、公開するものを、2 つのフォルダに分けて置く。
 
 - `output-slides/<作る日>_<資料の名前>/`: 作るスキルが作ったファイルと、HTML にするスキルが作った、全ページを 1 つにまとめた HTML の置き場。このフォルダは公開しない。
-- `payload/<作る日>_<資料の名前>/`: ユーザーが公開すると選んだ成果物だけを、`output-slides/` のファイルへの symlink で置く。公開の側は、このフォルダだけを写す。
+- `payload/<作る日>_<資料の名前>/`: ユーザーが公開すると選んだ成果物だけを、`output-slides/` のファイルへの symlink で置く。公開の側は、作ったスライドのうち、このフォルダだけを写す。
 
 公開するときは、次の順で進める。
 
 1. `payload/` の下に、選んだファイルへの相対パスの symlink を置く。
 2. 公開の側の承認の記録に、そのファイルの行を足す。
 3. 公開の側で同期のスクリプトを走らせ、写したものをコミットして push する。
+
+公開の側は、資料のほかに、一式の `.claude/skills/`、`.claude/rules/`、`design-systems/` の下のデザインシステムごとのフォルダ、`tools/`、この `README.md`、`CLAUDE.md` を、コミットした状態で写す。`ng-examples/` と、`.gitignore` にある見本の描いたファイル(`.dc.html`、`canvas.json`、`確認用の画像/`、`測った値.json`)は、写さない。

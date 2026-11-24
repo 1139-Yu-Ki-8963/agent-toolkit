@@ -1,0 +1,404 @@
+[
+  {
+    "file": "s_human01.png",
+    "kind": "人物(正面)",
+    "depicts": "巻き毛、青緑の服の人",
+    "onlyFor": null,
+    "templates": [
+      "one-sentence",
+      "voices",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "s_human03.png",
+    "kind": "人物(正面)",
+    "depicts": "肩までの茶色の髪、桃色の服の人",
+    "onlyFor": null,
+    "templates": [
+      "one-sentence",
+      "voices",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "s_human04.png",
+    "kind": "人物(正面)",
+    "depicts": "白髪の短い髪、青緑の服の人",
+    "onlyFor": null,
+    "templates": [
+      "one-sentence",
+      "voices",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "s_human05.png",
+    "kind": "人物(正面)",
+    "depicts": "紺の短い髪、青い服の人",
+    "onlyFor": null,
+    "templates": [
+      "one-sentence",
+      "voices",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "s_human07.png",
+    "kind": "人物(正面)",
+    "depicts": "こげ茶の短い髪、紺の服の人",
+    "onlyFor": null,
+    "templates": [
+      "one-sentence",
+      "voices",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "s_human08.png",
+    "kind": "人物(正面)",
+    "depicts": "結んだ茶色の髪、水色の服の人",
+    "onlyFor": null,
+    "templates": [
+      "one-sentence",
+      "voices",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "s_human10.png",
+    "kind": "人物(正面)",
+    "depicts": "結んだ金色の髪、緑の服の人",
+    "onlyFor": null,
+    "templates": [
+      "one-sentence",
+      "voices",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "s_human11.png",
+    "kind": "人物(横顔)",
+    "depicts": "s_human10 の横顔",
+    "onlyFor": null,
+    "templates": [
+      "system-context-illustrated(右の相手)"
+    ]
+  },
+  {
+    "file": "s_human12.png",
+    "kind": "人物(横顔)",
+    "depicts": "s_human01 の横顔",
+    "onlyFor": null,
+    "templates": [
+      "system-context-illustrated(右の相手)"
+    ]
+  },
+  {
+    "file": "s_human13.png",
+    "kind": "人物(横顔)",
+    "depicts": "s_human07 の横顔",
+    "onlyFor": null,
+    "templates": [
+      "system-context-illustrated(右の相手)"
+    ]
+  },
+  {
+    "file": "s_human15.png",
+    "kind": "人物(横顔)",
+    "depicts": "s_human03 の横顔",
+    "onlyFor": null,
+    "templates": [
+      "system-context-illustrated(右の相手)"
+    ]
+  },
+  {
+    "file": "s_human16.png",
+    "kind": "人物(横顔)",
+    "depicts": "s_human04 の横顔",
+    "onlyFor": null,
+    "templates": [
+      "system-context-illustrated(右の相手)"
+    ]
+  },
+  {
+    "file": "s_human18.png",
+    "kind": "人物(横顔)",
+    "depicts": "s_human05 の横顔",
+    "onlyFor": null,
+    "templates": [
+      "system-context-illustrated(右の相手)"
+    ]
+  },
+  {
+    "file": "s_human19.png",
+    "kind": "人物(全身)",
+    "depicts": "s_human01 の全身",
+    "onlyFor": null,
+    "templates": [
+      "one-sentence"
+    ]
+  },
+  {
+    "file": "s_human22.png",
+    "kind": "人物(全身)",
+    "depicts": "s_human05 の全身",
+    "onlyFor": null,
+    "templates": [
+      "one-sentence"
+    ]
+  },
+  {
+    "file": "s_human24.png",
+    "kind": "人物(全身)",
+    "depicts": "s_human03 の全身",
+    "onlyFor": null,
+    "templates": [
+      "one-sentence"
+    ]
+  },
+  {
+    "file": "l_02_square_white.png",
+    "kind": "場面",
+    "depicts": "スマホとカードを両手に持つ人。縦横の比 1:1",
+    "onlyFor": null,
+    "templates": [
+      "one-sentence"
+    ]
+  },
+  {
+    "file": "l_02_rectangle_white.png",
+    "kind": "場面",
+    "depicts": "スマホとカードを両手に持つ人。縦横の比 16:9",
+    "onlyFor": null,
+    "templates": [
+      "one-sentence"
+    ]
+  },
+  {
+    "file": "m_01_white.png",
+    "kind": "場面",
+    "depicts": "スマホでマイナンバーカードを読み取り終えた",
+    "onlyFor": "マイナンバーカードの話",
+    "templates": [
+      "one-sentence",
+      "steps-illustrated",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "m_02_white.png",
+    "kind": "場面",
+    "depicts": "スマホに完了の表示",
+    "onlyFor": null,
+    "templates": [
+      "one-sentence",
+      "steps-illustrated",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "m_03_white.png",
+    "kind": "場面",
+    "depicts": "スマホに警告の表示",
+    "onlyFor": null,
+    "templates": [
+      "one-sentence",
+      "steps-illustrated",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "m_04_white.png",
+    "kind": "場面",
+    "depicts": "スマホに修理、設定の表示",
+    "onlyFor": null,
+    "templates": [
+      "one-sentence",
+      "steps-illustrated",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "m_05_white.png",
+    "kind": "場面",
+    "depicts": "スマホで QR コードを見せる",
+    "onlyFor": null,
+    "templates": [
+      "one-sentence",
+      "steps-illustrated",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "m_06_white.png",
+    "kind": "場面",
+    "depicts": "スマホで QR コードを読み取る",
+    "onlyFor": null,
+    "templates": [
+      "one-sentence",
+      "steps-illustrated",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "m_07_white.png",
+    "kind": "場面",
+    "depicts": "スマホにマイナンバーカードをかざす",
+    "onlyFor": "マイナンバーカードの話",
+    "templates": [
+      "one-sentence",
+      "steps-illustrated",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "m_09_white.png",
+    "kind": "場面",
+    "depicts": "マイナンバーカードを手で示す",
+    "onlyFor": "マイナンバーカードの話",
+    "templates": [
+      "one-sentence",
+      "steps-illustrated",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "m_10_white.png",
+    "kind": "場面",
+    "depicts": "ノート PC で作業する人",
+    "onlyFor": null,
+    "templates": [
+      "one-sentence",
+      "steps-illustrated",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "m_14_white.png",
+    "kind": "場面",
+    "depicts": "郵便受けから通知を受け取る人",
+    "onlyFor": null,
+    "templates": [
+      "one-sentence",
+      "steps-illustrated",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "s_hand01.png",
+    "kind": "手",
+    "depicts": "横向きのスマホを持つ手",
+    "onlyFor": null,
+    "templates": [
+      "steps-illustrated"
+    ]
+  },
+  {
+    "file": "s_hand02.png",
+    "kind": "手",
+    "depicts": "縦のスマホを持つ手。親指が画面の横",
+    "onlyFor": null,
+    "templates": [
+      "steps-illustrated"
+    ]
+  },
+  {
+    "file": "s_hand03.png",
+    "kind": "手",
+    "depicts": "縦のスマホを持つ手。指が端末の外",
+    "onlyFor": null,
+    "templates": [
+      "steps-illustrated"
+    ]
+  },
+  {
+    "file": "s_hand04.png",
+    "kind": "手",
+    "depicts": "無地のカードを持つ手",
+    "onlyFor": null,
+    "templates": [
+      "steps-illustrated"
+    ]
+  },
+  {
+    "file": "s_01.png",
+    "kind": "物",
+    "depicts": "マイナンバーカードの表",
+    "onlyFor": "マイナンバーカードの話",
+    "templates": [
+      "steps-illustrated",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "s_02.png",
+    "kind": "物",
+    "depicts": "マイナンバーカードの裏",
+    "onlyFor": "マイナンバーカードの話",
+    "templates": [
+      "steps-illustrated",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "s_07.png",
+    "kind": "物",
+    "depicts": "マイナンバーカードの略図",
+    "onlyFor": "マイナンバーカードの話",
+    "templates": [
+      "steps-illustrated",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "s_08.png",
+    "kind": "物",
+    "depicts": "青いカード",
+    "onlyFor": null,
+    "templates": [
+      "steps-illustrated",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "s_10.png",
+    "kind": "物",
+    "depicts": "青い書類",
+    "onlyFor": null,
+    "templates": [
+      "steps-illustrated",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "s_12.png",
+    "kind": "物",
+    "depicts": "スマホの裏",
+    "onlyFor": null,
+    "templates": [
+      "steps-illustrated",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "s_13.png",
+    "kind": "物",
+    "depicts": "スマホの表",
+    "onlyFor": null,
+    "templates": [
+      "steps-illustrated",
+      "system-context-illustrated"
+    ]
+  },
+  {
+    "file": "s_14.png",
+    "kind": "物",
+    "depicts": "ノート PC",
+    "onlyFor": null,
+    "templates": [
+      "steps-illustrated",
+      "system-context-illustrated"
+    ]
+  }
+]

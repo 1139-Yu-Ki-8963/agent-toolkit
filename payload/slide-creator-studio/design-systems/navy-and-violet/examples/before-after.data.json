@@ -1,0 +1,30 @@
+{
+  "template": "before-after",
+  "section": "申込の完了までの時間",
+  "page": "11",
+  "conclusion": "作り直すと、申込の完了までの時間は、\n8分から約3分に減る見込みである",
+  "from": [
+    "申込の完了までの時間"
+  ],
+  "content": {
+    "label": "申込1件の、開始から完了までの時間",
+    "labelRef": "数字の出どころは付録1",
+    "before": {
+      "name": "作り直す前",
+      "value": {
+        "n": 8,
+        "unit": "分"
+      }
+    },
+    "after": {
+      "name": "作り直した後",
+      "value": {
+        "n": 3,
+        "unit": "分",
+        "approx": true
+      },
+      "range": "2〜4分",
+      "rangeNote": "試作の5人から"
+    }
+  }
+}

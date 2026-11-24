@@ -101,7 +101,7 @@ AI は、新しく作るファイルを、この節の置き場に置きます�
 | `.claude/rules/slide-writing/design-principles.md` | 規約。デザインの原則 |
 | `.claude/rules/slide-writing/content-principles.md` | 規約。中身の原則 |
 | `.claude/rules/slide-writing/value-names.json` | 規約。値の名前の一覧 |
-| `design-systems/blue-and-gray/`、`design-systems/ink-and-red/` | デザインシステム「青と灰」と「墨と赤」。値(`tokens.json`)、部品と意図(`parts.json`)、骨組みと部品のコード(`base.css`、`frame.js`、`parts.js`)、テンプレート(`templates/`)、見本のデータ(`examples/`)、NG の例(`ng-examples/`)、素材 |
+| `design-systems/blue-and-gray/`、`design-systems/ink-and-red/`、`design-systems/navy-and-violet/` | デザインシステム「青と灰」と「墨と赤」と「紺と紫」。値(`tokens.json`)、部品と意図(`parts.json`)、骨組みと部品のコード(`base.css`、`frame.js`、`parts.js`)、テンプレート(`templates/`)、見本のデータ(`examples/`)、NG の例(`ng-examples/`)、素材(`illustration/`。絵の一覧は `illustration/illustrations.json`) |
 | `design-systems/ng-examples/` | どのデザインシステムにも共通の NG の例 |
 | `tools/` | 機械のチェックツールと、描く道具。使い方は `tools/README.md` |
 | `.claude/skills/creating-claude-design-slides/` | スライドを作るスキル |

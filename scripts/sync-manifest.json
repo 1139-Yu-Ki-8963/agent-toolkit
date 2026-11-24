@@ -357,6 +357,11 @@
     },
     {
       "mode": "mirror",
+      "src": "~/Projects/slide-creator-studio/design-systems/navy-and-violet",
+      "dst": "payload/slide-creator-studio/design-systems/navy-and-violet"
+    },
+    {
+      "mode": "mirror",
       "src": "~/Projects/slide-creator-studio/payload",
       "dst": "payload/slide-creator-studio/slides",
       "symlinkRoot": "~/Projects/slide-creator-studio/output-slides"

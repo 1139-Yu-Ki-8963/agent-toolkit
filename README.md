@@ -75,9 +75,9 @@ payload/
 
 ## slide-creator-studio(Claude デザインの上にスライドを作る)
 
-説明用のスライドを、Claude デザイン(Artifact の型「Design」)の上に作る一式。規約(見た目の原則と中身の原則)、デザインシステム 2 つ(「墨と赤」と「青と灰」。値、部品の意図、型ごとのテンプレート)、機械のチェックツール(`tools/`。描く、測る、検査する)、スキル 2 本(スライドを作る、全ページを 1 つの HTML にまとめる)を持つ。2026-11-25 に、この構成に入れ替えた。使い方は [`payload/slide-creator-studio/README.md`](payload/slide-creator-studio/README.md) にある。2026-11-14 に公開を始めた。
+説明用のスライドを、Claude デザイン(Artifact の型「Design」)の上に作る一式。規約(見た目の原則と中身の原則)、デザインシステム 3 つ(「墨と赤」と「青と灰」と「紺と紫」。値、部品の意図、型ごとのテンプレート。「紺と紫」は、2026-11-25 に足した)、機械のチェックツール(`tools/`。描く、測る、検査する)、スキル 2 本(スライドを作る、全ページを 1 つの HTML にまとめる)を持つ。2026-11-25 に、この構成に入れ替えた。使い方は [`payload/slide-creator-studio/README.md`](payload/slide-creator-studio/README.md) にある。2026-11-14 に公開を始めた。
 
-slide-creator-studio のデザインシステム「墨と赤」は、デジタル庁の[イラストレーション・アイコン素材](https://www.digital.go.jp/policies/servicedesign/designsystem/Illustration_Icons)のイラスト 40 点を、変えずに持つ。素材の著作権はデジタル庁にあり、利用の条件は、同梱の [`LICENSE.txt`](payload/slide-creator-studio/design-systems/ink-and-red/illustration/LICENSE.txt) に従う。2026-11-22 に公開を始めた。
+slide-creator-studio のデザインシステム「墨と赤」と「紺と紫」は、デジタル庁の[イラストレーション・アイコン素材](https://www.digital.go.jp/policies/servicedesign/designsystem/Illustration_Icons)の同じイラスト 40 点を、変えずに持つ。素材の著作権はデジタル庁にあり、利用の条件は、同梱の [`LICENSE.txt`](payload/slide-creator-studio/design-systems/ink-and-red/illustration/LICENSE.txt) に従う。墨と赤は 2026-11-22 に、紺と紫は 2026-11-25 に公開を始めた。
 
 このスキルで作った資料「理想の AI駆動開発フロー(一般論)」11 枚を、1 つの HTML ファイルにまとめて [`payload/slide-creator-studio/slides/`](payload/slide-creator-studio/slides/2026-11-14_理想のAI駆動開発フロー/理想のAI駆動開発フロースライド.html) に置いている。ファイルを落としてブラウザで開き、← → かスペースでページを送る。3 枚目は、周回のボタンを押すと動く。10 枚目は、基本設計の合格を、設計書だけを別の AI に読ませて推測の数で確かめる方法を示す。2026-11-16 に公開を始めた。
 
@@ -94,6 +94,8 @@ slide-creator-studio の側では、作ったスライドを非公開の `output
 資料「PoCを前提にした基本設計書の管理」は、設計書の md に書いた番号と説明を、試作した画面(PoC)の部品に重ねて表示し、画面と設計書のずれを CI で止め、PR の承認とタグで版を残す仕組みと、ふるまいを 3 つの表で書く書き方、設計書と共通規約と API の設計書の分け方、規約からテストを作る流れを、18 枚で説明したスライド([`payload/slide-creator-studio/slides/2026-11-19_PoCを前提にした基本設計書の管理/PoCを前提にした基本設計書の管理スライド.html`](payload/slide-creator-studio/slides/2026-11-19_PoCを前提にした基本設計書の管理/PoCを前提にした基本設計書の管理スライド.html))。ファイルを落としてブラウザで開き、← → かスペースでページを送る。2026-11-19 に公開を始めた。
 
 その仕組みで作った設計書のサンプルを、[`payload/slide-creator-studio/slides/2026-11-19_PoCを前提にした基本設計書の管理/画面基本設計書のサンプル.html`](payload/slide-creator-studio/slides/2026-11-19_PoCを前提にした基本設計書の管理/画面基本設計書のサンプル.html) に置いている。架空の「会議室予約」の画面 1 つ分の基本設計書で、画面の部品ごと 1 つの HTML にまとめてある。PoC を別に触れる前提の構成で、スマホと PC の図に番号の枠が付き、項目定義表、条件と期待結果の表、状態遷移表、保存する中身、PoC と本番の違い、決めた理由、承認の記録を持つ。上のタブで、どの画面にも共通の決まりを書いた「画面の共通規約」に切り替えられる。ファイルを落としてブラウザで開く。2026-11-19 に公開を始めた。
+
+資料「会員サイトの申込の画面の作り直しの提案」は、デザインシステム「紺と紫」で作った、Web 開発の提案の見本 19 枚(課題、提案、進め方の 3 つの章と、数字の出どころの付録)を、1 つの HTML にまとめたもの([`payload/slide-creator-studio/slides/2026-11-24_会員サイトの申込の画面の作り直しの提案/会員サイトの申込の画面の作り直しの提案スライド.html`](payload/slide-creator-studio/slides/2026-11-24_会員サイトの申込の画面の作り直しの提案/会員サイトの申込の画面の作り直しの提案スライド.html))。中身は架空。ファイルを落としてブラウザで開き、← → かスペースでページを送る。2026-11-25 に公開を始めた。
 
 ## engineering-handbook(ベテランエンジニアのように振る舞わせる規約とスキル)
 

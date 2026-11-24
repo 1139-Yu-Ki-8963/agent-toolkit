@@ -1,0 +1,26 @@
+{
+  "title": "会員サイトの申込の画面の作り直しの提案",
+  "designSystem": "navy-and-violet",
+  "source": "元の資料.md",
+  "slides": [
+    "contents",
+    "chapter-opener",
+    "voices",
+    "funnel",
+    "share-two",
+    "chapter-opener-2",
+    "one-sentence",
+    "steps-illustrated",
+    "state-transition",
+    "system-context-illustrated",
+    "before-after",
+    "chapter-opener-3",
+    "swimlane",
+    "compare-two",
+    "quadrant",
+    "timeline-steps",
+    "summary",
+    "next-actions",
+    "source-table"
+  ]
+}

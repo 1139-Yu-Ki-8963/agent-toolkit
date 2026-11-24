@@ -1,0 +1,15 @@
+{
+  "template": "one-sentence",
+  "section": "見直しの方針",
+  "page": "7",
+  "conclusion": "申込は、スマホだけで3分で終えられるようにする",
+  "from": [
+    "見直しの方針"
+  ],
+  "content": {
+    "image": {
+      "src": "ds:illustration/s_human03.png",
+      "alt": "申し込む人のイラスト"
+    }
+  }
+}

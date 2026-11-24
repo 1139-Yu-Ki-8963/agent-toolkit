@@ -1,0 +1,37 @@
+{
+  "template": "steps-illustrated",
+  "section": "作り直したあとの操作",
+  "page": "8",
+  "conclusion": "申込は、読み取り、入力、完了の3つの手順で終わる",
+  "from": [
+    "作り直したあとの操作"
+  ],
+  "content": {
+    "steps": [
+      {
+        "image": {
+          "src": "ds:illustration/m_06_white.png",
+          "alt": "QRコードの読み取りのイラスト"
+        },
+        "heading": "QRコードを読み取る",
+        "note": "利用者がスマホで読み取る"
+      },
+      {
+        "image": {
+          "src": "ds:illustration/s_hand02.png",
+          "alt": "スマホでの入力のイラスト"
+        },
+        "heading": "内容を入力する",
+        "note": "住所は前の申込から引き継ぐ"
+      },
+      {
+        "image": {
+          "src": "ds:illustration/m_02_white.png",
+          "alt": "完了の表示のイラスト"
+        },
+        "heading": "完了が届く",
+        "note": "利用者のスマホに届く"
+      }
+    ]
+  }
+}

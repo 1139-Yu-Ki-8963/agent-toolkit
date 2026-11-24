@@ -1,0 +1,36 @@
+{
+  "template": "system-context-illustrated",
+  "section": "申込システムの範囲",
+  "page": "10",
+  "conclusion": "申込システムは、利用者と担当者のやりとりを受け持つ",
+  "from": [
+    "申込システムの範囲"
+  ],
+  "content": {
+    "partnerLabel": "相手",
+    "systemLabel": "作るシステム",
+    "system": {
+      "name": "申込システム"
+    },
+    "leftPartner": {
+      "image": {
+        "src": "ds:illustration/s_human03.png",
+        "alt": "利用者のイラスト"
+      },
+      "name": "利用者",
+      "note": "スマホで申し込む",
+      "gives": "申込",
+      "gets": "受付の通知"
+    },
+    "rightPartner": {
+      "image": {
+        "src": "ds:illustration/s_human13.png",
+        "alt": "担当者のイラスト"
+      },
+      "name": "担当者",
+      "note": "申込を確かめる",
+      "gives": "確認の結果",
+      "gets": "申込"
+    }
+  }
+}

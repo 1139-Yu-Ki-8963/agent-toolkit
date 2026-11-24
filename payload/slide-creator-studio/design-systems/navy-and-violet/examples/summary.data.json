@@ -1,0 +1,30 @@
+{
+  "template": "summary",
+  "section": "まとめ",
+  "page": "17",
+  "conclusion": "申込の画面を作り直し、\n完了までの時間を約5分減らす見込みである",
+  "from": [
+    "申込の完了までの時間"
+  ],
+  "content": {
+    "quantityLabel": "申込1件の、開始から完了までの時間",
+    "rowNames": {
+      "current": "現状",
+      "cause": "原因",
+      "proposal": "提案",
+      "effect": "効果"
+    },
+    "current": {
+      "n": 8,
+      "unit": "分"
+    },
+    "cause": "入力の項目が多く、前の住所を引き継げない",
+    "proposal": "申込を、3つの手順で終わる画面に作り直す",
+    "effect": {
+      "n": 3,
+      "unit": "分",
+      "approx": true
+    },
+    "range": "2〜4分"
+  }
+}

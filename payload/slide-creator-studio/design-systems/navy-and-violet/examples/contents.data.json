@@ -1,0 +1,16 @@
+{
+  "template": "contents",
+  "section": "目次",
+  "page": "1",
+  "conclusion": "この資料は、課題、提案、進め方の順に話す",
+  "from": [
+    "資料の前提"
+  ],
+  "content": {
+    "chapters": [
+      "課題",
+      "提案",
+      "進め方"
+    ]
+  }
+}

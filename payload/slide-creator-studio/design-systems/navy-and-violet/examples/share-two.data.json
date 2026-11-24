@@ -1,0 +1,30 @@
+{
+  "template": "share-two",
+  "section": "申込に使われる端末",
+  "page": "5",
+  "conclusion": "申込を終えた720人のうち、スマホが540人で、PCの180人の3倍である",
+  "from": [
+    "申込に使われる端末"
+  ],
+  "content": {
+    "denominator": "2026年10月に申込を終えた720人の、使った端末ごとの人数",
+    "denominatorRef": "数字の出どころは付録1",
+    "items": [
+      {
+        "name": "スマホ",
+        "value": {
+          "n": 540,
+          "unit": "人"
+        }
+      },
+      {
+        "name": "PC",
+        "value": {
+          "n": 180,
+          "unit": "人"
+        }
+      }
+    ],
+    "focus": "スマホ"
+  }
+}

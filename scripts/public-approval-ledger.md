@@ -455,3 +455,14 @@ slide-creator-studio は、規約(原則)、デザインシステム(値、部�
 | ~/Projects/slide-creator-studio/tools(mirror) | 承認済み | 同上。対応の追加は AI の判断(公開するスキルの手順が呼ぶ) | 新しい対応 |
 | ~/Projects/slide-creator-studio/design-systems/ink-and-red(mirror) | 承認済み | 同上。対応の追加は AI の判断(2026-11-14 と 2026-11-22 に公開を始めたデザインシステムとイラストの、置き場の移動) | 新しい対応。`ng-examples/` は除く |
 | ~/Projects/slide-creator-studio/design-systems/blue-and-gray(mirror) | 承認済み | 同上。対応の追加は AI の判断(公開する README とスキルが、2 つのデザインシステムを指す) | 新しい対応。`ng-examples/` は除く |
+
+## slide-creator-studio のデザインシステム「紺と紫」と、資料「会員サイトの申込の画面の作り直しの提案」(公開の開始 2026-11-25)
+
+デザインシステム「紺と紫」(テンプレート 17 本。デジタル庁のイラスト 40 点を、墨と赤と同じファイルのまま持ち、イラストを置く型 8 本を含む)と、それで作った Web 開発の提案の見本 19 枚を 1 つにまとめた HTML を公開する。紺と紫の共通の作りは、青と灰の 7207b3d の版から写し直した。写したのは、slide-creator-studio のコミット 9fbc808 の状態(`git archive` で書き出した写しから、`--only payload/slide-creator-studio` で同期した。作業フォルダの、コミットしていない変更は写していない)。資料の中身は架空。手元のパスを持つ `測った値.json` は、非公開の側の禁止の一覧の `names` に足し、写す対象から除いた。公開前の検査(2026-11-25): 写したすべてのファイルで、`/Users/`、`MacPro`、`agent-home`、メールアドレス、禁止の一覧の語の照合で 0 件。`sync-payload.mjs --check-artifacts` で該当なし。公開の側の写しで、`node tools/check.js --design-system navy-and-violet` が合格。資料は、19 枚の測った値の検査が合格し、まとめた HTML をヘッドレスのブラウザで開いて 19 ページが見えることを確かめた。PNG の中身は、機械では照合していない(イラスト 40 点は墨と赤と同じファイル)。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| ~/Projects/slide-creator-studio/design-systems/navy-and-violet(mirror) | 承認済み | ユーザーの指示(2026-11-25「公開まで済ませて、完了として」)と、一式の全部を公開する案 A への承認(2026-11-25「a」)。上記の検査 | 新しい対応。`ng-examples/` と、`.gitignore` にある見本の描いたファイルは除く |
+| ~/Projects/slide-creator-studio/README.md(file) | 承認済み | 同上 | 紺と紫の行と、公開の側が写すものの説明 |
+| ~/Projects/slide-creator-studio/CLAUDE.md(file) | 承認済み | 同上 | 置き場の地図の紺と紫の行 |
+| payload/2026-11-24_会員サイトの申込の画面の作り直しの提案/会員サイトの申込の画面の作り直しの提案スライド.html(symlink) | 承認済み | 同上 | 指す先は output-slides の同じ名前のフォルダのまとめた HTML。slide-creator-studio の payload の mirror で写す |
