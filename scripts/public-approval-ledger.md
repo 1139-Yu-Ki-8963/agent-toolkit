@@ -484,3 +484,13 @@ slide-creator-studio は、規約(原則)、デザインシステム(値、部�
 | payload/2026-11-25_品質保証のテストの2つの軸/品質保証のテストの 2 つの軸スライド.html(symlink) | 承認済み | ユーザーの指示(2026-11-25「公開して」。公開するものの一覧を見せたうえでの承認)。上記の検査 | 指す先は output-slides の同じ名前のフォルダのまとめた HTML。slide-creator-studio の payload の mirror で写す |
 | ~/Projects/slide-creator-studio/.claude/rules(mirror) | 承認済み | 同上 | 公開の開始(2026-11-14)の行の範囲の中の変更。design-principles と content-principles の 3 つの変更 |
 | ~/Projects/slide-creator-studio/design-systems/blue-and-gray(mirror) | 承認済み | 同上 | 公開の開始(2026-11-25)の行の範囲の中の変更。型 5 本と見本のデータの追加、値と部品の意図の変更。`ng-examples/` は除く |
+
+## slide-creator-studio の資料「品質保証のテストの 2 つの軸」の更新(2026-11-25)
+
+資料「品質保証のテストの 2 つの軸」を 10 枚に直した版を公開する(1 枚目: カテゴリの分け方の木、2 枚目: テストで見つけられるバグの残りのイメージ図、3 枚目: 工程の順、4〜10 枚目: 工程ごとの道具の紹介)。あわせて、青と灰の型 remaining-triangle の作りと値と部品の意図、見本のデータと見本の元の資料、スライドを作るスキルの点検の問いの追加を公開する。写したのは、slide-creator-studio のコミット 67315af の状態(`git archive` で書き出した写しから、`--only payload/slide-creator-studio` で同期した。作業フォルダの、コミットしていない変更は写していない)。残りのバグの割合(100、40、20、0)は説明のための仮の数値で、見本の元の資料に、数値の出典(Capers Jones の記事)と、置いた値であることを書いている。公開前の検査(2026-11-25): 写す 8 本で、禁止の一覧の forbiddenContent の 5 語、`/Users/`、`MacPro`、`agent-home`、メールアドレスの照合で 0 件。資料は、10 枚の測った値の検査が合格し、まとめた HTML をヘッドレスのブラウザで開いて 10 ページが見えることを確かめた。外から読むのは Google Fonts だけ。PNG の中身は、機械では照合していない。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| payload/2026-11-25_品質保証のテストの2つの軸/品質保証のテストの 2 つの軸スライド.html(symlink) | 承認済み | ユーザーの指示(2026-11-25「公開して」。公開するものの一覧を見せたうえでの承認)。上記の検査 | 10 枚に直した版 |
+| ~/Projects/slide-creator-studio/design-systems/blue-and-gray(mirror) | 承認済み | 同上 | 公開の開始(2026-11-25)の行の範囲の中の変更。型 remaining-triangle の作り、値と部品の意図、見本のデータと見本の元の資料の変更 |
+| ~/Projects/slide-creator-studio/.claude/skills(mirror) | 承認済み | 同上 | スライドを作るスキルの点検の問いの追加 |
