@@ -474,3 +474,13 @@ slide-creator-studio は、規約(原則)、デザインシステム(値、部�
 | 資産 | 承認状況 | 承認根拠 | 備考 |
 |---|---|---|---|
 | payload/2026-11-14_理想のAI駆動開発フロー/理想のAI駆動開発フロースライド.html(symlink) | 承認済み | ユーザーの指示(2026-11-25「公開までして」)。上記の検査 | 中身の更新だけ。指す先は変えない |
+
+## slide-creator-studio の資料「品質保証のテストの 2 つの軸」と、青と灰の型 5 本(公開の開始 2026-11-25)
+
+資料「品質保証のテストの 2 つの軸」(7 枚: カテゴリの分け方の木、項目を受け持つ道具の格子 4 枚、ISTQB の 5 つのテストレベルの工程の順、テストで見つけられる種類が 0% で閉じる逆三角形)を 1 つにまとめた HTML を公開する。あわせて、青と灰の型 category-tree、level-steps、summary-chapters、tool-grid、remaining-triangle と、その値と部品の意図、規約の 3 つの変更(原則「読ませる中身を、本文の大きさ以上で描く」、結論の一文を元の資料の言葉で書く決まり、ユーザーが目次を不要と指示した資料は目次を持たない決まり)を公開する。写したのは、slide-creator-studio のコミット dc4a03c の状態(`git archive` で書き出した写しから、`--only payload/slide-creator-studio` で同期した。作業フォルダの、コミットしていない変更は写していない)。資料の中身は架空でなく、ユーザーが渡した文書の言葉で、残りのバグの割合は、元の資料の説明のための仮の数値を、ユーザーの承認(読み C)に従って直したもの。公開前の検査(2026-11-25): 写すファイル 55 本(まとめた HTML、規約、blue-and-gray)で、禁止の一覧の forbiddenContent の 5 語、`/Users/`、`MacPro`、`agent-home`、メールアドレスの照合で 0 件。`sync-payload.mjs --check-artifacts` で該当なし。公開の側の写しで、`node tools/check.js --design-system blue-and-gray` が合格。資料は、7 枚の測った値の検査が合格し、まとめた HTML をヘッドレスのブラウザで開いて 7 ページが見えることを確かめた。外から読むのは Google Fonts だけ。PNG の中身は、機械では照合していない。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| payload/2026-11-25_品質保証のテストの2つの軸/品質保証のテストの 2 つの軸スライド.html(symlink) | 承認済み | ユーザーの指示(2026-11-25「公開して」。公開するものの一覧を見せたうえでの承認)。上記の検査 | 指す先は output-slides の同じ名前のフォルダのまとめた HTML。slide-creator-studio の payload の mirror で写す |
+| ~/Projects/slide-creator-studio/.claude/rules(mirror) | 承認済み | 同上 | 公開の開始(2026-11-14)の行の範囲の中の変更。design-principles と content-principles の 3 つの変更 |
+| ~/Projects/slide-creator-studio/design-systems/blue-and-gray(mirror) | 承認済み | 同上 | 公開の開始(2026-11-25)の行の範囲の中の変更。型 5 本と見本のデータの追加、値と部品の意図の変更。`ng-examples/` は除く |
