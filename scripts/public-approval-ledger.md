@@ -466,3 +466,11 @@ slide-creator-studio は、規約(原則)、デザインシステム(値、部�
 | ~/Projects/slide-creator-studio/README.md(file) | 承認済み | 同上 | 紺と紫の行と、公開の側が写すものの説明 |
 | ~/Projects/slide-creator-studio/CLAUDE.md(file) | 承認済み | 同上 | 置き場の地図の紺と紫の行 |
 | payload/2026-11-24_会員サイトの申込の画面の作り直しの提案/会員サイトの申込の画面の作り直しの提案スライド.html(symlink) | 承認済み | 同上 | 指す先は output-slides の同じ名前のフォルダのまとめた HTML。slide-creator-studio の payload の mirror で写す |
+
+## slide-creator-studio の資料「理想の AI駆動開発フロー」の更新(2026-11-25)
+
+詳細設計の作業をどのファイルで行うかを示すページ(10 枚目)を足して 13 枚にし、5、8、9、12、13 枚目の文を直した。公開のパスは変えない。公開前の検査(2026-11-25): `payload-forbidden-content.json` の forbiddenContent、`/Users/`、`agent-home`、メールアドレスの照合で 0 件。外から読むのは Google Fonts だけ。内容は一般論で、特定の案件の名前を持たない。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| payload/2026-11-14_理想のAI駆動開発フロー/理想のAI駆動開発フロースライド.html(symlink) | 承認済み | ユーザーの指示(2026-11-25「公開までして」)。上記の検査 | 中身の更新だけ。指す先は変えない |
