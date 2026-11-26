@@ -504,3 +504,11 @@ slide-creator-studio は、規約(原則)、デザインシステム(値、部�
 | ~/Projects/test-skills/.claude/skills(mirror) | 承認済み | ユーザーの指示(2026-11-27「とりあえず、日本語版をコピーして公開までを進めて」)と、公開する 12 本とほかのファイルの一覧を見せたうえでの承認(2026-11-27「はい、まずは公開して」)。上記の検査 | 新しい対応 |
 | ~/Projects/test-skills/third-party(mirror) | 承認済み | 同上 | 新しい対応。gstack の MIT License と、gstack がもとにした作品の表示とライセンスの全文 |
 | ~/Projects/test-skills/README.md、LICENSE、NOTICE.md、setup.sh、.gitignore(file) | 承認済み | 同上 | 新しい対応 |
+
+## slide-creator-studio の公開済みのスライドの一覧のサイト(公開の開始 2026-11-27)
+
+agent-toolkit の `payload/slide-creator-studio/slides/` で公開済みのスライドを、一覧のページから選んで開けるサイトを、新しい公開リポジトリ `1139-Yu-Ki-8963/slide-creator-studio-slides` に作り、GitHub Pages(GitHub Actions、build_type は workflow)で https://1139-yu-ki-8963.github.io/slide-creator-studio-slides/ に公開した。中身は、一覧のページ、README、一覧を作り直すスクリプト `scripts/build-site.mjs`、ai-slide-library の `deploy.yml` の写し、公開済みのスライド 9 件の 12 ファイルの写し、サムネイル 9 枚。スライドの 12 ファイルは、agent-toolkit の公開済みのファイルと中身が同じ(cmp)。サムネイルは、公開済みの HTML の 1 枚目を 960×540 の画像にしたもので、新しく公開するもの。HTML を持たないフォルダ `2026-11-16_AIエージェントの誤りを止める仕組み/` は載せない。公開前の検査(2026-11-27): 公開する 25 本で、禁止の一覧の forbiddenContent の 5 語、`/Users/`、`MacPro`、`agent-home`、メールアドレスの照合で 0 件。公開後に、一覧のリンクとサムネイルの 21 件が 200 を返すことを確かめた。外から読むのは、スライドの中の Google Fonts だけ。サムネイルの中身は、機械では照合していない。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| 1139-Yu-Ki-8963/slide-creator-studio-slides(公開リポジトリと GitHub Pages) | 承認済み | ユーザーの指示(2026-11-27「候補1で進めて」。公開するものの一覧を見せたうえでの承認)。上記の検査 | 新しい公開の場所。スライドを足すときは、agent-toolkit に公開したあとに `build-site.mjs` で作り直す |
