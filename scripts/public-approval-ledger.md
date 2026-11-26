@@ -494,3 +494,13 @@ slide-creator-studio は、規約(原則)、デザインシステム(値、部�
 | payload/2026-11-25_品質保証のテストの2つの軸/品質保証のテストの 2 つの軸スライド.html(symlink) | 承認済み | ユーザーの指示(2026-11-25「公開して」。公開するものの一覧を見せたうえでの承認)。上記の検査 | 10 枚に直した版 |
 | ~/Projects/slide-creator-studio/design-systems/blue-and-gray(mirror) | 承認済み | 同上 | 公開の開始(2026-11-25)の行の範囲の中の変更。型 remaining-triangle の作り、値と部品の意図、見本のデータと見本の元の資料の変更 |
 | ~/Projects/slide-creator-studio/.claude/skills(mirror) | 承認済み | 同上 | スライドを作るスキルの点検の問いの追加 |
+
+## test-skills(公開の開始 2026-11-27)
+
+資料「品質保証のテストの 2 つの軸」で挙げたテストの道具の skill 12 本と、その README、LICENSE、NOTICE.md、setup.sh、.gitignore、gstack のライセンスの文書(`third-party/gstack/`)を公開する。12 本のうち 6 本(gstack-qa、gstack-design-review、gstack-ios-design-review、gstack-cso、gstack-benchmark、gstack-canary)は、gstack(garrytan/gstack、MIT License)のコミット 789e9ba を日本語に訳し、名前の前に `gstack-` を付けたもの。この 6 本は、gstack の道具を `~/.claude/skills/gstack/` から呼ぶので、gstack を別に入れないと動かない(README に記載)。test-skills は git のリポジトリではないので、作業フォルダから同期した。公開前の検査(2026-11-27): 写す 56 本で、禁止の一覧の forbiddenContent の 5 語、`/Users/`、`MacPro`、`agent-home`、メールアドレスの照合で 0 件(照合で見つかった break-ui の `SOURCE.md` の `agent-home` の 1 件は、正本で直した)。`sync-payload.mjs --check-artifacts` で該当なし。公開の側の `setup.sh` は終了コード 0。gstack から作った 6 本を Claude Code で呼ぶことは、確かめていない。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| ~/Projects/test-skills/.claude/skills(mirror) | 承認済み | ユーザーの指示(2026-11-27「とりあえず、日本語版をコピーして公開までを進めて」)と、公開する 12 本とほかのファイルの一覧を見せたうえでの承認(2026-11-27「はい、まずは公開して」)。上記の検査 | 新しい対応 |
+| ~/Projects/test-skills/third-party(mirror) | 承認済み | 同上 | 新しい対応。gstack の MIT License と、gstack がもとにした作品の表示とライセンスの全文 |
+| ~/Projects/test-skills/README.md、LICENSE、NOTICE.md、setup.sh、.gitignore(file) | 承認済み | 同上 | 新しい対応 |

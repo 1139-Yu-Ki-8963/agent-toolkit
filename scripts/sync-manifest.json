@@ -415,6 +415,41 @@
       "mode": "file",
       "src": "~/Projects/skill-static-checker/SkillEvaluator との対応.md",
       "dst": "payload/skill-static-checker/SkillEvaluator との対応.md"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/test-skills/.claude/skills",
+      "dst": "payload/test-skills/.claude/skills"
+    },
+    {
+      "mode": "mirror",
+      "src": "~/Projects/test-skills/third-party",
+      "dst": "payload/test-skills/third-party"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/test-skills/README.md",
+      "dst": "payload/test-skills/README.md"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/test-skills/LICENSE",
+      "dst": "payload/test-skills/LICENSE"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/test-skills/NOTICE.md",
+      "dst": "payload/test-skills/NOTICE.md"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/test-skills/setup.sh",
+      "dst": "payload/test-skills/setup.sh"
+    },
+    {
+      "mode": "file",
+      "src": "~/Projects/test-skills/.gitignore",
+      "dst": "payload/test-skills/.gitignore"
     }
   ]
 }

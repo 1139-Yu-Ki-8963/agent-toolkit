@@ -65,6 +65,13 @@ payload/
 │   ├── SkillEvaluator との対応.md         SkillEvaluator のどの検査を写したかの記録
 │   ├── .claude/skills/                   スキル 2 本と、テスト計画書と判定の記録
 │   └── sample-reports/                   報告の HTML の見本 4 本
+├── test-skills/                          資料「品質保証のテストの 2 つの軸」のテストの道具の skill 12 本
+│   ├── README.md
+│   ├── LICENSE                           MIT(pstack、break-ui、gstack 由来の部分を含む)
+│   ├── NOTICE.md                         もとにした作品と、ファイルの対応
+│   ├── setup.sh                          designing-test-cases が使う Python のパッケージを確かめる
+│   ├── .claude/skills/                   skill 12 本(gstack から作った gstack-qa など 6 本を含む)
+│   └── third-party/gstack/               gstack のライセンスと、gstack がもとにした作品の表示
 ```
 
 2026-09-29 に、reverse-docs-skills、claude-code-template、explanation-slides-kit、ai-driven-development-setup、ai-consulting-toolkit の公開をやめた。2026-10-05 に、`.claude/` 配下の構成に改め、規約を 1 ファイル版に一本化し、reviewing-agent-skills(checking-skill-with-template に置き換え)の公開をやめた。同日、ai-consulting-toolkit の公開を再開した(skills、docs、portal に加え、templates と README.md を同期)。
@@ -111,6 +118,12 @@ Cursor の公式プラグインリポジトリにある pstack(作者 Lauren Tan
 - checking-skill-duplication: スキルの中で同じ指示を繰り返す節と、役目が重なるほかのスキルを、判定者 2 人(サブエージェント)に仕分けさせ、重複の検査の合否と報告の HTML を出す。Tier 2 に当たり、節の本文を埋め込みの提供元に送らない。
 
 どちらも、スキルのフォルダを `.claude/skills/` に写して使う。node が要る。step ごとのツールと AI の受け持ちは [`payload/skill-static-checker/スキルとツールの責務.html`](payload/skill-static-checker/スキルとツールの責務.html)、SkillEvaluator のどの検査を写したかは [`payload/skill-static-checker/SkillEvaluator との対応.md`](<payload/skill-static-checker/SkillEvaluator との対応.md>) にある。スキルが名前で挙げる規約は、[`payload/skill-factory/.claude/rules/`](payload/skill-factory/.claude/rules/) にある。報告の見本は [`payload/skill-static-checker/sample-reports/`](payload/skill-static-checker/sample-reports/) にあり、ファイルを落としてブラウザで開く。使い方は [`payload/skill-static-checker/README.md`](payload/skill-static-checker/README.md) にある。2026-11-19 に公開を始めた。
+
+## test-skills(品質保証のテストの道具)
+
+slide-creator-studio の資料「品質保証のテストの 2 つの軸」で挙げたテストの道具を、Claude Code の skill として集めた 12 本。形式検証、仕様のテスト、UI/UX、セキュリティ、性能、互換性、信頼性の項目ごとに、skill を当てている。このフォルダで Claude Code を開くか、skill のフォルダを `.claude/skills/` に写して使う。使い方は [`payload/test-skills/README.md`](payload/test-skills/README.md) にある。
+
+gstack(作者 Garry Tan、MIT License)の qa、design-review、ios-design-review、cso、benchmark、canary を日本語に訳し、名前の前に `gstack-` を付けた 6 本を含む。この 6 本は、gstack の道具を `~/.claude/skills/gstack/` から呼ぶので、gstack を gstack の手順で入れておく必要がある。ほかの 6 本のうち 5 本は、pstack と break-ui をもとにした。ライセンスは [`payload/test-skills/LICENSE`](payload/test-skills/LICENSE)、もとにした作品は [`payload/test-skills/NOTICE.md`](payload/test-skills/NOTICE.md) にある。2026-11-27 に公開を始めた。
 
 ## public-skills(プロジェクトに置いて動く公開スキル集)
 

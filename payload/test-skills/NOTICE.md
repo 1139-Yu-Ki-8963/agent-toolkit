@@ -1,0 +1,78 @@
+# NOTICE
+
+このフォルダの skill のうち 11 は、ほかの作品をもとに作っています。pstack から作ったものが 4 つ(そのうち performance は、engineering-handbook を経たもの)、break-ui から作ったものが 1 つ、gstack から作ったものが 6 つです。designing-test-cases は、一般のテスト技法から書いたもので、ほかの作品から作ったものではありません。
+
+engineering-handbook は、このフォルダと同じ作者(1139-Yu-Ki-8963)の、pstack をもとに日本語で作り直した規約と skill の集まりです。ライセンスは MIT License で、pstack の部分の著作権表示と許諾表示を持ちます。
+
+## pstack から作った skill
+
+- 元の作品: pstack(https://github.com/cursor/plugins/tree/main/pstack)
+- 元の作者: Lauren Tan
+- 元のライセンス: MIT License(下に全文を掲載)
+- 訳した元: pstack のミラー(https://github.com/backnotprop/pstack、コミット 2a5621683e2bbb274efea8b52dd69f5beef6c25f、2026 年 11 月 24 日)。このミラーは、cursor/plugins の pstack を写し、Cursor でしか動かなかった skill を、ほかの道具でも動くように書き直したものです。
+
+すべて、英語の原文を日本語に訳したものです。原文をそのまま収録したファイルはありません。
+
+| このフォルダのファイル | もとにしたファイル | 元から変えたこと |
+|---|---|---|
+| `.claude/skills/create-formal-verification-skill/SKILL.md` | pstack の `skills/create-formal-verification-skill/SKILL.md` | 日本語に訳した。TLA+ の結果を pstack の statechart で読む指示を、反例を最短の手順の並びとしてコードの言葉で読む指示に置き換えた。 |
+| `.claude/skills/maintain-formal-verification-skill/SKILL.md` | pstack の `skills/maintain-formal-verification-skill/SKILL.md` | 日本語に訳した。 |
+| `.claude/skills/blast-radius/SKILL.md` | pstack の `skills/blast-radius/SKILL.md` | 日本語に訳した。how と why の名前を出す文と、報告を unslop で書く指示を外した。大きな変更で arena を使う手順を、互いの結果を知らない 2 つ以上のサブエージェントに同じ問いを出してまとめる手順に置き換えた。 |
+| `.claude/skills/performance/SKILL.md` | engineering-handbook の `skills/performance/SKILL.md`(その元は、pstack の `skills/poteto-mode/playbooks/perf-issue.md` と `skills/benchmark-checklist/SKILL.md`) | ほかの skill(bug-fix、open-pr)と規約の ID への参照を外した。pstack の benchmark-checklist の中身のうち、engineering-handbook の版に入っていなかった点を訳して足した。足した点は、おおまかな見積もりのとき、コアの数と忙しいときの確かめ、本番と同じにする条件の項目、交互に実行する理由、基準値への確かめ、プロファイルの道具の例、調整されていない側の扱い(手順 4 に置いた)、効かなかった変更の扱い、エラーを数える処理と再試行、順位和検定、全体の時間を測る条件と 1% の例、処理が実際に行われたかの確かめの項目、山登りの改善の計測の道具である。コアの数の確かめに、macOS のコマンドを足した。 |
+
+pstack の skill の Codex 向けの設定のファイル(`agents/openai.yaml`)は、写していません。
+
+## break-ui
+
+- 元の作品: break-ui(作者 Emil Kowalski、MIT License)
+- 出どころと、元から変えたことは、`.claude/skills/break-ui/SOURCE.md` にあります。
+- 元のライセンスの全文は、`.claude/skills/break-ui/LICENSE` にあります。
+
+## gstack から作った skill
+
+- 元の作品: gstack(https://github.com/garrytan/gstack)
+- 元の作者: Garry Tan
+- 元のライセンス: MIT License。全文は `third-party/gstack/LICENSE` にあります。
+- 訳した元: gstack のコミット 789e9badaa754c666fba0ad18032e7c5dad474d7
+- gstack がほかの作品から作った部分の表示は `third-party/gstack/NOTICE.md` に、そのライセンスの全文は `third-party/gstack/licenses/` にあります。`gstack-design-review` の `sections/craft-audit.md` は、その表示にある redesign-skill と ai-design-skills(Elaya、MIT License)から作られています。`gstack-design-review` の `SKILL.md` の、Persuade、Operate、Read、Experience のモードの分類と、three looks の調整の文は、その表示にある impeccable(Paul Bakaus、Apache License 2.0)から gstack が作った `scripts/resolvers/design.ts` が書いた文で、この版では、ほかの文と同じく、一部を日本語に訳して変えています。Apache License 2.0 の全文は、`third-party/gstack/licenses/Apache-2.0.txt` にあります。
+
+| このフォルダのフォルダ | もとにしたフォルダ |
+|---|---|
+| `.claude/skills/gstack-qa/` | gstack の `qa/` |
+| `.claude/skills/gstack-design-review/` | gstack の `design-review/` |
+| `.claude/skills/gstack-ios-design-review/` | gstack の `ios-design-review/` |
+| `.claude/skills/gstack-cso/` | gstack の `cso/` |
+| `.claude/skills/gstack-benchmark/` | gstack の `benchmark/` |
+| `.claude/skills/gstack-canary/` | gstack の `canary/` |
+
+元から変えたことは、次の 3 つです。
+
+- AI が読む英語の文の一部を、日本語に訳した。訳したのは、gstack の雛形(`SKILL.md.tmpl`、`sections/*.md.tmpl`)、手書きの文書(`qa/references/`、`qa/templates/`、`cso/ACKNOWLEDGEMENTS.md`)、6 つの skill に差し込まれる共有の文で、訳した雛形から `SKILL.md` と `sections/*.md` を作り直した。frontmatter の description、見出し、コード、コマンド、gstack のテストが英語の文そのものを照らし合わせている文は、英語のまま残した。
+- frontmatter の `name` を、元の名前の前に `gstack-` を付けた名前にした。
+- 雛形(`*.tmpl`)は、写していない。
+
+## pstack の元のライセンス
+
+```
+MIT License
+
+Copyright (c) 2026 Lauren Tan
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+```
