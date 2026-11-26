@@ -3,11 +3,11 @@
 | 項目 | 値 |
 |---|---|
 | 日付 / ブランチ / リビジョン | {日付 / ブランチ / コミットと作業ツリーの入力} |
-| 呼び出し元 / 権限 / 深さ | {qa-only、qa、review、ship のどれか。許された書き込み。上限} |
+| 呼び出し元 / 権限 / 深さ | {ユーザーが直接呼んだか、ほかの skill かエージェントが呼んだか。許された書き込み。上限} |
 | 面 / 範囲 | {API、CLI、ジョブ、ワーカー、webhook。変わった契約と隣の契約} |
 | ランタイム / ネイティブの道具 | {バージョンと、リポジトリが対応しているコマンド} |
 | fixture の持ち主 / 行き先 | {隔離したルート、ストア、下流の行き先} |
-| Probe budget / guarded command time / stop reason | {CONFIGURED LIMIT / SUM OF CAPTURE durationMs / COMPLETE OR BOUND/BLOCKER} |
+| 時間の上限 / かかった時間 / 止めた理由 | {決めた上限 / 取り込みのかかった時間の合計 / 終えた、上限に達した、妨げがあった} |
 
 ## 契約ごとの結果
 
@@ -27,20 +27,17 @@
 - 意図した契約と出どころ: {期待する振る舞い。今の実装だけではないもの}。
 - 再現: {作業のディレクトリ。安全な準備とリセット。環境変数は名前だけ。合成の値を使った、コマンドそのもの、またはメソッド、パス、ヘッダー、ボディ}。
 - 観察: {終了コードかステータス。stdout。stderr。最初と最後の残る状態。再現と再試行の順}。
-- Evidence: {EXACT SAFE OUTPUT AND STATE PATHS; REVISION/RUNTIME; REDACTION AND REPRODUCIBILITY LIMITS}.
+- 証拠: {安全な出力と状態のパスそのもの(`evidence/NNN/`)。リビジョンとランタイム。伏せた値と、再現の限り}。
 - 診断 / 次の行動: {原因の証拠か、具体的な前提。推測の直しは書かない}。
 
 ## 見つけたことと、残すテスト
 
-Link each `exploration-NNN.json` checkpoint, saved before its next probe, in this report.
-チェックポイントの受け取りは、それぞれの `link` を出力する。`.qa-evidence/NNN` の取り込みのフォルダは、チェックポイントではない。
+次のプローブの前に保存した `exploration-NNN.json` のチェックポイントを、この報告から 1 つずつリンクする。`evidence/NNN/` の取り込みのフォルダは、チェックポイントではない。
 チェックポイントの 1 つごとに、Markdown の項目を 1 つ使う。例:
 
 - [checkpoint 001](exploration-001.json) — この観察が、次のプローブをどう決めたか。
 
-Use the actual filename and a path relative to this report (or its owned absolute
-path); plain or backticked filenames are not links.
-Include superseded checkpoints as history, not current passing evidence.
+リンクは、実際のファイルの名前と、この報告からの相対のパス(またはこの実行が持つ絶対のパス)を使う。リンクの形でないファイルの名前と、バッククォートで囲んだだけのファイルの名前は、リンクにならない。superseded のチェックポイントは、今の通った証拠でなく、履歴として入れる。
 これらの元のメモは、報告と一緒に残す。
 
 | 仮説 / 見つけたこと | ネイティブのテストか、提案するケース | 直す前の赤の証拠 | 緑と元と隣の証拠 | 親の扱い |

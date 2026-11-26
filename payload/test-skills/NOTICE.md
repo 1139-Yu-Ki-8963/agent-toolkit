@@ -34,7 +34,7 @@ pstack の skill の Codex 向けの設定のファイル(`agents/openai.yaml`)�
 - 元の作者: Garry Tan
 - 元のライセンス: MIT License。全文は `third-party/gstack/LICENSE` にあります。
 - 訳した元: gstack のコミット 789e9badaa754c666fba0ad18032e7c5dad474d7
-- gstack がほかの作品から作った部分の表示は `third-party/gstack/NOTICE.md` に、そのライセンスの全文は `third-party/gstack/licenses/` にあります。`gstack-design-review` の `sections/craft-audit.md` は、その表示にある redesign-skill と ai-design-skills(Elaya、MIT License)から作られています。`gstack-design-review` の `SKILL.md` の、Persuade、Operate、Read、Experience のモードの分類と、three looks の調整の文は、その表示にある impeccable(Paul Bakaus、Apache License 2.0)から gstack が作った `scripts/resolvers/design.ts` が書いた文で、この版では、ほかの文と同じく、一部を日本語に訳して変えています。Apache License 2.0 の全文は、`third-party/gstack/licenses/Apache-2.0.txt` にあります。
+- gstack がほかの作品から作った部分の表示は `third-party/gstack/NOTICE.md` に、そのライセンスの全文は `third-party/gstack/licenses/` にあります。`gstack-design-review` の `sections/craft-audit.md` は、その表示にある redesign-skill と ai-design-skills(Elaya、MIT License)から作られています。`gstack-design-review` の `SKILL.md` の、Persuade、Operate、Read、Experience のモードの分類の文は、その表示にある impeccable(Paul Bakaus、Apache License 2.0)から gstack が作った `scripts/resolvers/design.ts` が書いた文で、この版では、ほかの文と同じく、一部を日本語に訳して変えています。Apache License 2.0 の全文は、`third-party/gstack/licenses/Apache-2.0.txt` にあります。
 
 | このフォルダのフォルダ | もとにしたフォルダ |
 |---|---|
@@ -45,11 +45,12 @@ pstack の skill の Codex 向けの設定のファイル(`agents/openai.yaml`)�
 | `.claude/skills/gstack-benchmark/` | gstack の `benchmark/` |
 | `.claude/skills/gstack-canary/` | gstack の `canary/` |
 
-元から変えたことは、次の 3 つです。
+元から変えたことは、次の 4 つです。
 
-- AI が読む英語の文の一部を、日本語に訳した。訳したのは、gstack の雛形(`SKILL.md.tmpl`、`sections/*.md.tmpl`)、手書きの文書(`qa/references/`、`qa/templates/`、`cso/ACKNOWLEDGEMENTS.md`)、6 つの skill に差し込まれる共有の文で、訳した雛形から `SKILL.md` と `sections/*.md` を作り直した。frontmatter の description、見出し、コード、コマンド、gstack のテストが英語の文そのものを照らし合わせている文は、英語のまま残した。
-- frontmatter の `name` を、元の名前の前に `gstack-` を付けた名前にした。
-- 雛形(`*.tmpl`)は、写していない。
+- 日本語に訳した。
+- gstack の道具(`bin/` のスクリプト、ブラウザの道具 `browse`、`design`、/cso の launcher、iOS のデーモン)を使わず、Claude Code の道具と Playwright の MCP と iOS シミュレータだけで動く手順に書き直した。gstack の学び、質問、判断、テレメトリの記録と、共有の前置き(`preamble.md`)は消し、要る決まりだけを各 `SKILL.md` に入れた。報告の置き場は、調べるリポジトリの `test-reports/` にした。
+- 外の AI(Codex)の意見を、互いの結果を知らない 2 つのサブエージェントの意見に置き換えた。
+- frontmatter の `name` を、元の名前の前に `gstack-` を付けた名前にした。雛形(`*.tmpl`)と、節の登録簿(`sections/manifest.json`)は、写していない。
 
 ## pstack の元のライセンス
 

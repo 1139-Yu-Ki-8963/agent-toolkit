@@ -1,61 +1,39 @@
-<!-- AUTO-GENERATED from system-functional.md.tmpl — do not edit directly -->
-<!-- Regenerate: bun run gen:skill-docs -->
-# Functional QA with repository-native tools
+# リポジトリの道具で行う機能の QA
 
-Use documented repository commands, CLI/API clients and job/queue tools, not a new
-harness or browser substitution.
+AI は、リポジトリの文書にあるコマンド、CLI や API のクライアント、ジョブやキューの道具を、Bash で使う。新しいテストの仕組みを作らず、ブラウザで代えない。
 
-## Functional modes
+## 機能のモード
 
-For /qa and /qa-only, within the selected scope:
-- **Full** (default): cover every applicable documented contract below.
-- **Quick** (`--quick`): check success and the highest-risk changed edge; mark other
-  contracts not run.
-- **Regression** (`--regression <previous-report>`): before probes, read the supplied
-  functional report and linked replay evidence. A missing, unreadable or wrong-target
-  baseline blocks regression mode. A browser-only `baseline.json` is not a functional
-  baseline. Re-establish owned setup; replay prior failed probes against the documented
-  expectation, never recorded buggy output, then check changed adjacent behavior.
-  Preserve the prior report; report fixed, still failing and new findings separately.
-  Missing safe replay inputs block affected probes, never count as passes.
+選んだ範囲の中で:
+- **Full**(既定): 下の、当てはまる、文書にある契約をすべて確かめる。
+- **Quick**(`--quick`): 成功する実行と、変わった所の最も危険な端を確かめる。ほかの契約は not run とする。
+- **Regression**(`--regression <前の報告>`): AI は、プローブの前に、渡された機能の報告と、リンクされた再生の証拠を読む。前の報告がない、読めない、対象が違うときは、Regression のモードは blocked とする。ブラウザだけの `baseline.json` は、機能の基準にならない。AI は、この実行が持つ準備をやり直し、前に失敗したプローブを、記録されたバグのある出力でなく、文書にある期待に照らして再生し、そのあと、変わった隣の振る舞いを確かめる。AI は、前の報告を残し、直ったもの、まだ失敗するもの、新しく見つけたものを分けて報告する。安全な再生の入力がないときは、そのプローブを blocked とし、通ったことにしない。
 
-Mixed runs apply each surface's mode separately. /review and /gstack-ship retain their caller's
-bounded smoke and explicit plan checks, not Full exploration.
+両方の面の実行では、面ごとにモードを当てる。呼び出し元がほかの skill かエージェントのときは、その呼び出し元の短い確かめと、計画に書かれた確かめだけを行い、Full の探索はしない。
 
-## Contract map
+## 契約の表
 
-Record each contract/source, isolated setup, exact probe, expectation and outcome:
-pass/fail/blocked/not run/inconclusive/not applicable (reason).
+AI は、契約の 1 つごとに、契約と出どころ、隔離した準備、プローブそのもの、期待、結果を記録する。結果は、pass、fail、blocked、not run、inconclusive、not applicable(理由)のどれかとする。
 
 | 契約 | 観察するもの |
 |---|---|
 | 成功する実行 | 期待した戻り値か出力と、業務の最後の効果。起動か受け付けだけではない |
-| Invalid/missing input | One probe per documented input rule of each field (allowed characters, format, sign, range, arity) breaking only it: declared rejection, correct status and no forbidden state change |
-| Authentication/authorization | Valid identity, missing/invalid identity, wrong owner/role and durable no-effect boundary |
-| CLI process contract | Exact exit code, stdout and stderr separately; resulting file/state changes |
+| 不正な入力と、ない入力 | 欄ごとの、文書にある入力の決まり(使える文字、形、符号、範囲、個数)の 1 つずつに、その決まりだけを破るプローブ。決めた拒み方、正しいステータス、禁じた状態の変化がないこと |
+| 認証と認可 | 正しい ID、ない ID と不正な ID、違う持ち主と役割。効果が残らない境目 |
+| CLI のプロセスの契約 | 終了コード、stdout、stderr を分けて。その結果のファイルと状態の変化 |
 | 状態の遷移 | 最初、途中、完了か失敗の状態と、それらの間の許された遷移 |
-| Timeout/cancellation | Deadline, partial state, termination of owned work and recovery |
+| 時間切れと取り消し | 期限、途中の状態、この実行が持つ作業の終わり方、回復 |
 | 再試行 | リポジトリが約束する試行の回数、間隔の延ばし方、最後の状態。限りのない再試行はない |
-| Duplicates/idempotency | Repeated request/event and number of durable effects under the documented guarantee |
+| 重複と冪等 | 同じリクエストかイベントのくり返しと、文書にある保証の下での、残る効果の数 |
 | 並行と順序 | 制御して競わせた操作を、関係する 2 つの完了の順の両方で行う。最後の不変条件 |
 | 途中の失敗からの回復 | 効果のあとで中断し、再開か再実行をして、完了か dead-letter の状態と、重複を調べる |
 
-Do not impose universal exactly-once delivery. Separate acceptance, enqueue, processing,
-retry/dead-letter and final effect; 2xx is not completion. Expected rejection/injected
-failure may pass; a missing service preventing execution blocks coverage.
+AI は、どの仕組みにも「ちょうど 1 回の配達」を求めない。AI は、受け付け、キューへの投入、処理、再試行か dead-letter、最後の効果を分ける。2xx は完了ではない。期待した拒みと、わざと起こした失敗は、pass になりうる。サービスがなくて走らせられないときは、その範囲を blocked とする。
 
-## Execute and retain evidence
+## 走らせ方と、証拠の残し方
 
-1. Apply the shared isolation/permission preflight. Verify cwd, command, environment
-   NAMES and safe reset; use synthetic data/credentials.
-2. Follow the shared exploratory loop's order and written checkpoints.
-   プローブの 1 つごとに、最初と最後の残る状態を調べ、終了コードかステータスと、
-   stdout と stderr を、失敗を隠さずに分けて残す。
-3. On timeout, retain partial output/state and stop only owned work. Record setup errors
-   and untested contracts; never patch product code to hide missing prerequisites.
-4. Record exact command or method/path/headers/body, setup/reset, expected contract/source,
-   observed output/state, revision/runtime, evidence paths and limits. Secrets are referenced
-   only by environment name. 値を伏せたために再現できない限りは、そのことを伝える。
-5. Use `templates/functional-report-template.md` relative to the installed QA SKILL.md.
-   この実行が持つものを片付ける前に証拠を残し、残したものを伝える。探索の権限を
-   広げずに、呼び出し元に戻る。
+1. AI は、面の選び方の節の隔離と許可の確かめを当てる。AI は、作業のフォルダ、コマンド、環境変数の名前、安全なリセットを確かめ、合成のデータと合成の認証情報を使う。
+2. AI は、探索の節の繰り返しの順と、書くチェックポイントに従う。AI は、プローブの 1 つごとに、最初と最後の残る状態を調べ、終了コードかステータスと、stdout と stderr を、失敗を隠さずに分けて、探索の節の「機能の証拠の残し方」で残す。
+3. 時間切れのときは、AI は、途中の出力と状態を残し、この実行が持つ作業だけを止める。AI は、準備のエラーと、テストしなかった契約を記録する。前提がないことを隠すために、製品のコードを変えない。
+4. AI は、コマンドそのものか、メソッド、パス、ヘッダー、ボディと、準備とリセット、期待する契約と出どころ、観察した出力と状態、リビジョンとランタイム、証拠のパス、限りを記録する。秘密は、環境変数の名前でだけ指す。値を伏せたために再現できない限りは、そのことを伝える。
+5. AI は、この SKILL.md と同じフォルダの `templates/functional-report-template.md` を使う。AI は、この実行が持つものを片付ける前に証拠を残し、残したものを伝える。AI は、探索の権限を広げずに、呼び出し元に戻る。

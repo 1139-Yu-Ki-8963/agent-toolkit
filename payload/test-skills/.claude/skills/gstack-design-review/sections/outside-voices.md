@@ -1,140 +1,64 @@
-<!-- AUTO-GENERATED from outside-voices.md.tmpl — do not edit directly -->
-<!-- Regenerate: bun run gen:skill-docs -->
-## Design Outside Voices (independent)
+## デザインの外の意見(互いに独立した 2 つ)
 
-**同意:** Codex が使え、`codex_reviews` が送ることを許すとき(設定がないときは既定の enabled であり、最初の送信は 1 回だけの知らせを表示する)、外の声は、質問なしに走る。`codex_reviews=disabled` のときは、内の声だけが走る。
+この節は、Phase 6 のあと、Phase 7 の仕分けの前に行う。AI は、自分の監査とは別の目で、フロントエンドのソースを見てもらうために、互いの結果を知らない 2 つのサブエージェントを、Agent の道具で起動する。
 
-**Check Codex availability:**
-```bash
+### 1. 材料を用意する
 
-if ! _OUTSIDE_CFG=$("$HOME/.claude/skills/gstack/bin/gstack-config" get --stored codex_reviews) || [ "$_OUTSIDE_CFG" = disabled ]; then
-  echo 'CODEX_MODE: disabled'
-elif ( # GSTACK_ACTIVE_HOST names the harness, never the model.
-if { [ -n "${CODEX_THREAD_ID:-}" ] || [ -n "${CODEX_SANDBOX:-}" ] || [ "${GSTACK_ACTIVE_HOST:-}" = codex ]; }; then
-  echo 'Codex outside review unavailable: harness mismatch; no outside process started. Missing coverage.' >&2
-  if { [ -n "${CLAUDECODE:-}" ] || [ "${GSTACK_ACTIVE_HOST:-}" = claude ]; } && { [ -n "${CODEX_THREAD_ID:-}" ] || [ -n "${CODEX_SANDBOX:-}" ] || [ "${GSTACK_ACTIVE_HOST:-}" = codex ]; }; then
-    echo 'Inherited harness markers conflict. Run setup --host <actual-harness> (claude or codex); do not guess a replacement provider.' >&2
-  else
-    echo 'Repair installed skills: run setup --host codex from your gstack checkout.' >&2
-  fi
-  exit 78
-fi
-); then
-  if command -v codex >/dev/null 2>&1; then echo 'CODEX_MODE: ready'; else echo 'CODEX_MODE: not_installed'; fi
-else
-  echo 'CODEX_MODE: under_current_harness'
-fi
-```
+AI は、2 つのサブエージェントに渡す材料を、1 つの依頼の文にまとめる。依頼の文は、ファイルのパスだけでなく、実際の文脈を持つ:
 
-The historical `CODEX_MODE` variable describes **Codex** availability here. `CODEX_MODE: disabled` or a send's `consent_missing` line: `codex_reviews` is off or unreadable; do not ask; record `outside_status: disabled`. Authentication and configured model validity are checked by the actual invocation, without overriding either. Missing/broken CLI: install or repair Codex; authentication failure: run `codex login`. Otherwise honor this caller’s opt-in/skip choice. Any non-ready outcome is missing outside coverage; follow the caller’s existing fallback. Never substitute another external provider.
+- 対象の URL と、監査したページの一覧
+- 取り込んだデザインシステム(DESIGN.md のトークンか決まり、コードのトークン)
+- フロントエンドのソースのある場所(フォルダのパスと、主なファイルの一覧)
+- SKILL.md の「デザインの厳しい決まり」の分類で決めたモード(PERSUADE、OPERATE、READ、EXPERIENCE、HYBRID)
 
-断られたとき: 両方の声を飛ばす。`CODEX_MODE: disabled` のとき: 内の声だけを走らせ、`outside_status: disabled` を記録する。準備ができていないとき: 直し方の知らせを残し、use only the native voice, and record `outside_status: unavailable` even if it succeeds. 呼び出しは、起動の前に、実行の環境を確かめ直す。
+AI は、自分の監査の問題の一覧を、依頼の文に入れない(サブエージェントの判断を、AI の結論に寄せないため)。
 
-**準備ができたら**、AI は、両方の声を走らせ、await both before synthesis. 使えるなら、呼び出しを重ねて走らせる。内の声の呼び出しは、終わるまで待つ形のままにする。
+### 2. 2 つのサブエージェントに、同じ依頼を出す
 
-1. **Codex design voice** (via Bash):
-依頼(ファイルのパスだけでなく、実際の計画、プロダクト、フロントエンドのソースの文脈を入れる):
+AI は、2 つのサブエージェントを、同じ依頼の文で、1 つのメッセージの中で並べて起動し、両方の結果を待ってからまとめる。サブエージェントには、互いの存在も結果も知らせない。依頼の文は、次の問いを持つ:
 
-"このリポジトリのフロントエンドのソースコードをレビューする。次のデザインの厳しい規則で評価する:
-- 余白: 決まりに沿っているか(デザイントークンか CSS 変数)、根拠のない数か。
+「あなたは、ソースコードでデザインの監査を行う、独立した上級のプロダクトデザイナーである。このリポジトリのフロントエンドのソースコードを Read と Grep で読み、次のデザインの厳しい規則で評価する:
+- 余白: 決まりに沿っているか(デザイントークンか CSS 変数)、根拠のない数か。余白の値は、コード全体で決まりに沿っているか。
 - 文字組み: 表現と目的のある書体か、既定の書体の並びか。
-- 色: 決まった仕組みを持つ CSS 変数か、直に書いた 16 進の色が散らばっているか。
-- 画面幅への対応: 区切りの幅は決まっているか。ヒーローに calc(100svh - header) を使うか。スマホで確かめたか。
-- アクセシビリティ: ARIA のランドマーク、代替テキスト、コントラスト比、44px の押せる大きさはあるか。
+- 色: 決まった仕組みを持つ CSS 変数か、直に書いた 16 進の色が散らばっているか。色の仕組みは 1 つか、やり方が散らばっているか。
+- 画面幅への対応: 区切りの幅は決まっていて、一貫した組に従っているか。ヒーローに calc(100svh - header) を使うか。スマホで確かめたか。
+- アクセシビリティ: ARIA のランドマーク、代替テキスト、コントラスト比、44px の押せる大きさはあるか。やり方は一貫しているか、まだらか。
 - 動き: 見せ場の 1 つ(見えている既定の状態から ease-out する、登場かスクロールに連動した表示)と、情報を運ぶ所だけの状態の切り替えがあるか、ゼロか、飾りだけか。
 - カード: カードそのものが操作であるときだけ使っているか。飾りのカードのグリッドはないか。
 
-まず、MARKETING/LANDING PAGE か APP UI か HYBRID かに分け、次に、当たる規則を当てる。
+1 つずつの違反だけでなく、ファイルをまたぐ一貫性の型にも目を向ける。まず、マーケティングかランディングページか、アプリの UI か、その両方かに分け、次に、当たる規則を当てる。
 
-LITMUS CHECKS — YES か NO で答える:
-1. Brand/product unmistakable in first screen?
-2. One strong visual anchor present?
-3. Page understandable by scanning headlines only?
-4. Each section has one job?
-5. Are cards actually necessary?
-6. Does motion improve hierarchy or atmosphere?
-7. Would design feel premium with all decorative shadows removed?
+試金石の確かめ — YES か NO で答える:
+1. 最初の画面で、ブランドかプロダクトが見間違えようがないか。
+2. 強い見た目の錨が 1 つあるか。
+3. 見出しを流し見るだけで、ページが分かるか。
+4. それぞれの区分は、役目を 1 つだけ持つか。
+5. カードは、本当に要るか。
+6. 動きは、階層か雰囲気を良くしているか。
+7. 飾りの影をすべて外しても、デザインは上質に感じるか。
 
-HARD REJECTION — 1 つでも当たれば印を付ける:
-1. Generic SaaS card grid as first impression
-2. Beautiful image with weak brand
-3. Strong headline with no clear action
-4. Busy imagery behind text
-5. Sections repeating same mood statement
-6. Carousel with no narrative purpose
-7. App UI made of stacked cards instead of layout
+厳しい不合格 — 1 つでも当たれば印を付ける:
+1. 第一印象が、ありきたりの SaaS のカードのグリッド
+2. 美しい画像に、弱いブランド
+3. 強い見出しに、はっきりした行動がない
+4. 文字の後ろの、ごちゃごちゃした画像
+5. 同じ雰囲気の言葉をくり返す区分
+6. 物語の目的のないカルーセル
+7. レイアウトでなく、カードを積んだアプリの UI
 
-具体的に書く。すべての問題に file:line を示す。"
+具体的に書く。問題の 1 件ずつに、何がまずいか、重大度(Critical、High、Medium、Low)、file:line、『Recommendation: <すること> because <理由>』の 1 行を付ける。最後の行は、問題がなければ『VERDICT: CLEAN』、あれば『VERDICT: FINDINGS』とする。ファイルは変えない。」
 
-Write the **complete prompt and context**, including actual plan/spec/source, to a private file. Substitute its shell-quoted path for `<prepared-prompt-file>`; never interpolate user text into shell source. Request severity (Critical, High, Medium or Low) per finding, a Recommendation: <action> because <reason> line, and `VERDICT: CLEAN` or `VERDICT: FINDINGS` as the last line.
+### 3. 失敗の扱い(どれも止めない)
 
-```bash
-# GSTACK_ACTIVE_HOST names the harness, never the model.
-if { [ -n "${CODEX_THREAD_ID:-}" ] || [ -n "${CODEX_SANDBOX:-}" ] || [ "${GSTACK_ACTIVE_HOST:-}" = codex ]; }; then
-  echo 'Codex outside review unavailable: harness mismatch; no outside process started. Missing coverage.' >&2
-  if { [ -n "${CLAUDECODE:-}" ] || [ "${GSTACK_ACTIVE_HOST:-}" = claude ]; } && { [ -n "${CODEX_THREAD_ID:-}" ] || [ -n "${CODEX_SANDBOX:-}" ] || [ "${GSTACK_ACTIVE_HOST:-}" = codex ]; }; then
-    echo 'Inherited harness markers conflict. Run setup --host <actual-harness> (claude or codex); do not guess a replacement provider.' >&2
-  else
-    echo 'Repair installed skills: run setup --host codex from your gstack checkout.' >&2
-  fi
-  exit 78
-fi
+- 片方のサブエージェントが失敗したか、空の答えか、最後の `VERDICT:` の行のない答えを返したときは、AI は、もう片方の答えだけで進め、`[片方だけ]` の印を付ける。
+- 両方が失敗したときは、AI は、「外の意見が得られなかった。自分の監査だけで続ける。」と報告に書く。外の意見が得られなかったことは、問題がないことを意味しない。
 
-_REPO_ROOT=$(git rev-parse --show-toplevel) || { echo 'ERROR: not in a git repo' >&2; exit 1; }
-_OUTSIDE_TMP=$(mktemp -d "${TMPDIR:-/tmp}/gstack-outside.XXXXXXXX") || exit 1
-trap 'rm -r "$_OUTSIDE_TMP"' EXIT
-_OUTSIDE_INPUT="$_OUTSIDE_TMP/prompt"
-cat -- '<prepared-prompt-file>' >"$_OUTSIDE_INPUT" || exit 1
-_CODEX_PROBE="$HOME/.claude/skills/gstack/bin/gstack-codex-probe"
-_CODEX_OUT=$("$_CODEX_PROBE" select-model exec) || exit 1
-_CODEX_SEL=$(echo "$_CODEX_OUT" | sed -n 's/^CODEX_SEL: //p')
-_CODEX_SANDBOX_MODE=$(echo "$_CODEX_OUT" | sed -n 's/^CODEX_SANDBOX: //p')
-"$_CODEX_PROBE" check-sandbox || exit 1
-"$_CODEX_PROBE" show-first-use-notice
-_OUTSIDE_EXIT=0
-"$_CODEX_PROBE" run-with-timeout --effort high 300 codex exec - -C "$_REPO_ROOT" -s "${_CODEX_SANDBOX_MODE:?}" -c "model=\"${_CODEX_SEL:?}\"" -c skills.include_instructions=false -c 'web_search="cached"' --json -o "$_OUTSIDE_TMP/text" <"$_OUTSIDE_INPUT" >"$_OUTSIDE_TMP/events" 2>"$_OUTSIDE_TMP/stderr" || _OUTSIDE_EXIT=$?
-cat "$_OUTSIDE_TMP/text" 2>/dev/null || tail -n 20 "$_OUTSIDE_TMP/events"
+### 4. まとめる
 
-cat "$_OUTSIDE_TMP/stderr" >&2 || { [ "$_OUTSIDE_EXIT" -ne 0 ] || _OUTSIDE_EXIT=1; }
-_OUTSIDE_RC=0
-bun --no-env-file --config=/dev/null "$HOME/.claude/skills/gstack/lib/outside-review-result.ts" --label 'Codex outside review' --exit "$_OUTSIDE_EXIT" --stderr "$_OUTSIDE_TMP/stderr" --events "$_OUTSIDE_TMP/events" review "$_OUTSIDE_TMP/text" || _OUTSIDE_RC=$?
-case "$_OUTSIDE_RC" in
-  0|3) ;;
-  4) echo 'OUTSIDE_STATUS: unverified provider=codex host=claude'; exit 4 ;;
-  *) [ "$_OUTSIDE_EXIT" -ne 0 ] && exit "$_OUTSIDE_EXIT"; exit 1 ;;
-esac
-echo 'OUTSIDE_STATUS: completed provider=codex host=claude'
-```
+AI は、出力の見出しを `意見 1(デザインのソースの監査):` と `意見 2(デザインのソースの監査):` とし、両方の答えをそのまま見せる。
 
-Use Bash `timeout: 360000`; show the full response in a `tool-output` fence. Require successful execution and valid markers. Refusal, empty/malformed output, missing score/severity/completion markers, timeout or CLI failure means `outside_status: unavailable`. P0/P1 findings block like native ones; `OUTSIDE_STATUS: unverified` is missing coverage. Use the caller's fallback; missing coverage is never clean/PASS. After either outcome, delete only your private prompt; scratch cleanup is automatic.
+**試金石の採点表:** AI は、SKILL.md の「試金石の確かめ」の 7 問の 1 つずつに、意見 1 の答え、意見 2 の答え、AI 自身の答えを並べた表を作る。3 つが分かれた問いは、報告に「意見が分かれた」と書く。
 
-2. **Claude design subagent** (Agent tool, `run_in_background: false` when available。その結果を待つ。A launch receipt means it went background: await its completion notice.):
-"このリポジトリのフロントエンドのソースコードをレビューする。あなたは、ソースコードでデザインの監査を行う、独立した上級のプロダクトデザイナーである。1 つずつの違反より、ファイルをまたぐ一貫性の型に目を向ける:
-- 余白の値は、コード全体で決まりに沿っているか。
-- 色の仕組みは 1 つか、やり方が散らばっているか。
-- 画面幅の区切りは、一貫した組に従っているか。
-- アクセシビリティのやり方は、一貫しているか、まだらか。
+AI は、問題を、`[意見 1]` / `[意見 2]` / `[両方]` の印を付けて、仕分けに混ぜる。両方が挙げた問題(同じ箇所と同じ原因のもの)は、`[両方]` とし、重大度は高いほうを取る。片方だけが挙げた問題は、AI が、描かれたページの画像か DOM で確かめてから、仕分けに入れる。Critical と High の問題は、AI 自身の問題と同じく、直しのループの先頭に置く。
 
-問題の 1 件ずつに: 何がまずいか、重大度(critical/high/medium)、file:line。"
-
-**エラーの扱い(どれも止めない):**
-- **Auth failure:** If stderr contains "auth", "login", "unauthorized", or "API key": "Codex authentication failed. Run `codex login` to authenticate."
-- **Timeout:** "Codex timed out after 5 minutes."
-- **Empty response:** "Codex returned no response."
-- Codex がエラーになったときは、どのエラーでも: Claude のサブエージェントの出力だけで進める。`[single-model]` の印を付ける。
-- Claude のサブエージェントも失敗したとき: "Outside voices unavailable — continuing with primary review."
-
-出力の見出し: `CODEX SAYS (design source audit):` and `CLAUDE SUBAGENT (design consistency):`.
-
-**Synthesis — Litmus scorecard:**
-
-AI は、/plan-design-review と同じ採点表の形(上に示したもの)を使い、両方の出力から埋める。
-AI は、問題を、`[codex]` / `[subagent]` / `[cross-model]` の印を付けて、仕分けに混ぜる。
-
-**結果を記録する:**
-```bash
-~/.claude/skills/gstack/bin/gstack-review-log '{"skill":"design-outside-voices","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'","status":"STATUS","source":"SOURCE","host":"claude","outside_provider":"codex","outside_status":"OUTSIDE_STATUS","phase":"design","commit":"'"$(git rev-parse --short HEAD)"'"}'
-```
-STATUS="clean" は、問題のない、終わったレビューを要する。問題があれば "issues_found"、どちらも終わらなければ "unavailable" を使う。SOURCE は、終わった提供元か in-host とする。
-
-Retain the historical review-log skill ID; add `"host":"claude","outside_provider":"codex","outside_status":"completed|unavailable|disabled|skipped","phase":"design"`. Record differing attempt outcomes separately. `source:"codex"` requires completed CLI output; native uses `source:"in-host"` (historical `source:"claude"`: native Claude). Availability/native fallback is not outside completion. Preserve all reported modelUsage; unknown model identity stays unknown. Under `GSTACK_CODEX_NO_SANDBOX=1` add `"codex_sandbox":"danger-full-access"`.
+AI は、外の意見の結果(得られた意見の数、問題の数、`VERDICT:` の行)を、報告の「外の意見」の節に書く。

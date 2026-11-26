@@ -1,25 +1,24 @@
 #!/usr/bin/env node
-// gstack preview fixtures: serve a frontend on loopback with canned API
-// answers, one scenario per state, so /design-review --build can lint and
-// screenshot the states a spec names. docs/howto-preview-a-frontend.md is the
-// contract. Two ways to run it:
+// プレビューのフィクスチャ: フロントエンドを loopback で出し、API の答えを
+// 状態(シナリオ)ごとに決めた答えにする。gstack-design-review の --build が、
+// 仕様が挙げる状態を撮って確かめられるようにする。使い方は、この skill の
+// sections/build-loop.md にある。走らせ方は 2 つある:
 //
 //   start --root <app dir> --fixtures <dir> [--port 5300] [--api /api/] [--state <dir>] [--static]
-//     Without --static: the repo's own Vite (resolved from --root, never
-//     installed by gstack) with its own config plus this file's plugin.
-//     With --static: a plain file server over --root (a built or hand-written
-//     page) with the same shim and fixture API.
-//   stop --state <dir>   (or --port <n>, which finds the default state dir)
+//     --static なし: リポジトリ自身の Vite(--root から解決する。このスクリプトは
+//     入れない)を、その設定と、このファイルのプラグインで動かす。
+//     --static あり: --root の下を出す素のファイルのサーバー(作ったページか、
+//     手で書いたページ)に、同じ差し込みのスクリプトとフィクスチャの API を付ける。
+//   stop --state <dir>   (か --port <n>。既定の状態のフォルダを見つける)
 //
-// A request under the API prefix is answered only from
-// <fixtures>/<scenario>.json; anything else under the prefix is a 501 problem
-// document naming the route and the file to edit, recorded in
-// <state>/unhandled.jsonl, never passed to a live backend; so is a path the
-// app's own server.proxy would forward. Loopback only, a
-// port this process owns (strict), a private redacted log, a clean stop.
+// API の前置きの下の要求は、<fixtures>/<scenario>.json からだけ答える。前置きの
+// 下のほかの要求は、route と直すファイルの名前を持つ 501 の問題の文書を返し、
+// <state>/unhandled.jsonl に記録し、本番のバックエンドに決して渡さない。アプリ
+// 自身の server.proxy が転送するパスも同じに扱う。loopback だけ、このプロセスが
+// 持つポート(strict)、持ち主だけが読める伏せ字済みの記録、きれいな停止。
 //
-// Plugin use inside a repo's vite.config: import { gstackPreviewFixtures }
-// from this file and add gstackPreviewFixtures({ fixtures: '<dir>' }).
+// リポジトリの vite.config の中でプラグインとして使うとき: このファイルから
+// import { previewFixtures } し、previewFixtures({ fixtures: '<dir>' }) を足す。
 
 import * as fs from 'node:fs';
 import * as http from 'node:http';
@@ -28,7 +27,7 @@ import * as path from 'node:path';
 import { createRequire } from 'node:module';
 import { pathToFileURL } from 'node:url';
 
-const DOC = 'https://github.com/garrytan/gstack/blob/main/docs/howto-preview-a-frontend.md';
+const DOC = 'sections/build-loop.md';
 const HOST = '127.0.0.1';
 const SCENARIO = /^[A-Za-z0-9._-]{1,64}$/;
 const SECRET_PARAM = /token|key|secret|auth|session|sig|signature|password|pass|code|jwt|bearer/i;
@@ -46,27 +45,27 @@ export const FIXES = {
   PREVIEW_STATE: 'pass --state <a private directory this user owns>',
 };
 
-/** Userinfo dropped and secret-looking parameter values replaced, up to the next &, # or whitespace. */
+/** URL の userinfo を落とし、秘密に見える値(次の &、#、空白まで)を伏せる。 */
 export function redact(s) {
   return String(s)
     .replace(/([a-z][a-z0-9+.-]*:\/\/)[^\s/?#@]*@/gi, '$1')
     .replace(/([?&#;])([^=&#?;\s]+)=([^&#\s]*)/g, (all, sep, key) => (SECRET_PARAM.test(key) ? `${sep}${key}=REDACTED` : all));
 }
 
-/** The script every HTML page gets first: ?as= persists for the tab and rides every same-origin fetch and XHR as x-gstack-scenario. */
-export const SHIM = `(function(){var K='gstack-scenario',q=null;try{q=new URLSearchParams(location.search).get('as');if(q!==null)sessionStorage.setItem(K,q);else q=sessionStorage.getItem(K);}catch(e){}
-if(!q)return;window.__gstackScenario=q;
+/** すべての HTML のページが最初に受けるスクリプト: ?as= をタブの間保ち、同じ origin のすべての fetch と XHR に x-preview-scenario として付ける。 */
+export const SHIM = `(function(){var K='preview-scenario',q=null;try{q=new URLSearchParams(location.search).get('as');if(q!==null)sessionStorage.setItem(K,q);else q=sessionStorage.getItem(K);}catch(e){}
+if(!q)return;window.__previewScenario=q;
 function same(u){try{return new URL(u,location.href).origin===location.origin}catch(e){return false}}
-var f=window.fetch;if(f){window.fetch=function(input,init){var u=typeof input==='string'?input:(input&&input.url)||String(input);if(!same(u))return f.call(this,input,init);init=Object.assign({},init||{});var h=new Headers(init.headers||(typeof Request!=='undefined'&&input instanceof Request?input.headers:undefined));h.set('x-gstack-scenario',q);init.headers=h;return f.call(this,input,init)}}
-var X=window.XMLHttpRequest&&XMLHttpRequest.prototype;if(X){var o=X.open,s=X.send;X.open=function(m,u){this.__gstackSame=same(u);return o.apply(this,arguments)};X.send=function(){if(this.__gstackSame)this.setRequestHeader('x-gstack-scenario',q);return s.apply(this,arguments)}}})();`;
+var f=window.fetch;if(f){window.fetch=function(input,init){var u=typeof input==='string'?input:(input&&input.url)||String(input);if(!same(u))return f.call(this,input,init);init=Object.assign({},init||{});var h=new Headers(init.headers||(typeof Request!=='undefined'&&input instanceof Request?input.headers:undefined));h.set('x-preview-scenario',q);init.headers=h;return f.call(this,input,init)}}
+var X=window.XMLHttpRequest&&XMLHttpRequest.prototype;if(X){var o=X.open,s=X.send;X.open=function(m,u){this.__previewSame=same(u);return o.apply(this,arguments)};X.send=function(){if(this.__previewSame)this.setRequestHeader('x-preview-scenario',q);return s.apply(this,arguments)}}})();`;
 
 export function injectShim(html) {
-  const tag = `<script data-gstack-preview>${SHIM}</script>`;
+  const tag = `<script data-preview-fixtures>${SHIM}</script>`;
   return /<head[^>]*>/i.test(html) ? html.replace(/<head[^>]*>/i, (h) => h + tag) : tag + html;
 }
 
 function scenarioOf(req, url) {
-  const header = req.headers['x-gstack-scenario'];
+  const header = req.headers['x-preview-scenario'];
   if (typeof header === 'string' && header) return header;
   const q = url.searchParams.get('as');
   if (q) return q;
@@ -85,7 +84,7 @@ function matchRoute(routes, method, pathname) {
   return null;
 }
 
-/** Connect-style middleware answering the API prefix from fixtures; everything else goes to next(). */
+/** API の前置きにフィクスチャで答える、Connect の形の middleware。ほかは next() に渡す。 */
 export function createFixtureMiddleware({ fixtures, api = '/api/', stateDir, log = () => {}, proxied = [] }) {
   const record = (hit) => { if (stateDir) fs.appendFileSync(path.join(stateDir, 'unhandled.jsonl'), JSON.stringify(hit) + '\n', { mode: 0o600 }); };
   return (req, res, next) => {
@@ -95,14 +94,14 @@ export function createFixtureMiddleware({ fixtures, api = '/api/', stateDir, log
     const fail = (code, detail, fixLine) => {
       record({ scenario, method, path: redact(url.pathname), code });
       log(`${method} ${redact(url.pathname + url.search)} 501 ${code} scenario=${scenario || '-'}`);
-      res.writeHead(501, { 'content-type': 'application/problem+json', 'x-gstack-preview': code, 'cache-control': 'no-store' });
+      res.writeHead(501, { 'content-type': 'application/problem+json', 'x-preview-fixtures': code, 'cache-control': 'no-store' });
       res.end(JSON.stringify({ type: `${DOC}#${code.toLowerCase().replace(/_/g, '-')}`, title: 'No fixture answers this request', status: 501, code, detail, fix: fixLine }));
     };
     const live = url.pathname.startsWith(api) ? undefined : proxied.find((k) => (k.startsWith('^') ? new RegExp(k).test(req.url ?? '/') : (req.url ?? '/').startsWith(k)));
     if (live !== undefined) return fail('PREVIEW_LIVE_PROXY', `${method} ${url.pathname} matches the app's dev proxy "${live}", a live backend`, `serve it under ${api} from a fixture`);
     if (!url.pathname.startsWith(api)) return next();
-    if (url.pathname === api + '__gstack-preview') { res.writeHead(204, { 'x-gstack-preview': 'ready', 'x-gstack-preview-state': stateDir ? encodeURIComponent(stateDir) : '', 'cache-control': 'no-store' }); return res.end(); }
-    if (!scenario) return fail('PREVIEW_NO_SCENARIO', `${method} ${url.pathname} arrived with no scenario (no x-gstack-scenario header, ?as= or Referer ?as=)`, FIXES.PREVIEW_NO_SCENARIO);
+    if (url.pathname === api + '__preview-fixtures') { res.writeHead(204, { 'x-preview-fixtures': 'ready', 'x-preview-fixtures-state': stateDir ? encodeURIComponent(stateDir) : '', 'cache-control': 'no-store' }); return res.end(); }
+    if (!scenario) return fail('PREVIEW_NO_SCENARIO', `${method} ${url.pathname} arrived with no scenario (no x-preview-scenario header, ?as= or Referer ?as=)`, FIXES.PREVIEW_NO_SCENARIO);
     const file = path.join(fixtures, `${scenario}.json`);
     if (!SCENARIO.test(scenario) || !fs.existsSync(file)) return fail('PREVIEW_UNKNOWN_SCENARIO', `scenario "${redact(scenario)}" has no fixture file`, `add ${path.join(fixtures, '<scenario>.json')} with {"version":1,"routes":{}}`);
     let doc;
@@ -121,12 +120,12 @@ export function createFixtureMiddleware({ fixtures, api = '/api/', stateDir, log
   };
 }
 
-/** The Vite plugin: the shim in every HTML page, the fixture API ahead of the app's own middleware. */
-export function gstackPreviewFixtures({ fixtures, api = '/api/', stateDir, log } = {}) {
+/** Vite のプラグイン: すべての HTML のページに差し込みのスクリプトを入れ、アプリ自身の middleware の前にフィクスチャの API を置く。 */
+export function previewFixtures({ fixtures, api = '/api/', stateDir, log } = {}) {
   return {
-    name: 'gstack-preview-fixtures',
+    name: 'preview-fixtures',
     apply: 'serve',
-    transformIndexHtml: () => [{ tag: 'script', attrs: { 'data-gstack-preview': '' }, children: SHIM, injectTo: 'head-prepend' }],
+    transformIndexHtml: () => [{ tag: 'script', attrs: { 'data-preview-fixtures': '' }, children: SHIM, injectTo: 'head-prepend' }],
     configureServer(server) { server.middlewares.use(createFixtureMiddleware({ fixtures: path.resolve(fixtures), api, stateDir, log, proxied: Object.keys(server.config?.server?.proxy ?? {}) })); },
   };
 }
@@ -167,7 +166,7 @@ function parseArgs(argv) {
   return out;
 }
 
-/** The app's own Vite: a node_modules/vite at or above the root. A runtime's global cache (Bun's auto-install) does not count. */
+/** アプリ自身の Vite: root か、その上の node_modules/vite。ランタイムの共有の置き場(Bun の自動のインストール)は数えない。 */
 function hasLocalVite(root) {
   for (let dir = root; ; dir = path.dirname(dir)) {
     if (fs.existsSync(path.join(dir, 'node_modules', 'vite', 'package.json'))) return true;
@@ -175,7 +174,7 @@ function hasLocalVite(root) {
   }
 }
 
-const defaultState = (port) => path.join(os.tmpdir(), `gstack-preview-${port}`);
+const defaultState = (port) => path.join(os.tmpdir(), `preview-fixtures-${port}`);
 const ownState = (dir) => {
   const st = fs.lstatSync(dir);
   if (st.isSymbolicLink() || !st.isDirectory() || (process.getuid && st.uid !== process.getuid())) throw new PreviewError('PREVIEW_STATE', `${dir} is a link or not a directory this user owns`);
@@ -220,7 +219,7 @@ async function start(o) {
     const vite = await import(pathToFileURL(vitePath).href);
     let server;
     try {
-      server = await vite.createServer({ root, logLevel: 'silent', server: { host: HOST, port, strictPort: true }, plugins: [gstackPreviewFixtures({ fixtures, api, stateDir, log })] });
+      server = await vite.createServer({ root, logLevel: 'silent', server: { host: HOST, port, strictPort: true }, plugins: [previewFixtures({ fixtures, api, stateDir, log })] });
     } catch (e) { throw new PreviewError('PREVIEW_CONFIG', `vite could not load the app's config: ${redact(e.message)}`); }
     try { await server.listen(); } catch (e) {
       await server.close();

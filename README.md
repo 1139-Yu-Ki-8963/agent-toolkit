@@ -123,7 +123,7 @@ Cursor の公式プラグインリポジトリにある pstack(作者 Lauren Tan
 
 slide-creator-studio の資料「品質保証のテストの 2 つの軸」で挙げたテストの道具を、Claude Code の skill として集めた 12 本。形式検証、仕様のテスト、UI/UX、セキュリティ、性能、互換性、信頼性の項目ごとに、skill を当てている。このフォルダで Claude Code を開くか、skill のフォルダを `.claude/skills/` に写して使う。使い方は [`payload/test-skills/README.md`](payload/test-skills/README.md) にある。
 
-gstack(作者 Garry Tan、MIT License)の qa、design-review、ios-design-review、cso、benchmark、canary を日本語に訳し、名前の前に `gstack-` を付けた 6 本を含む。この 6 本は、gstack の道具を `~/.claude/skills/gstack/` から呼ぶので、gstack を gstack の手順で入れておく必要がある。ほかの 6 本のうち 5 本は、pstack と break-ui をもとにした。ライセンスは [`payload/test-skills/LICENSE`](payload/test-skills/LICENSE)、もとにした作品は [`payload/test-skills/NOTICE.md`](payload/test-skills/NOTICE.md) にある。2026-11-27 に公開を始めた。
+gstack(作者 Garry Tan、MIT License)の qa、design-review、ios-design-review、cso、benchmark、canary を日本語に訳し、gstack を入れなくても Claude Code だけで動くように書き直して、名前の前に `gstack-` を付けた 6 本を含む。ブラウザを使う 4 本は Playwright の MCP を、gstack-ios-design-review は Xcode と iOS シミュレータを使う(2026-11-27 に書き直した)。ほかの 6 本のうち 5 本は、pstack と break-ui をもとにした。ライセンスは [`payload/test-skills/LICENSE`](payload/test-skills/LICENSE)、もとにした作品は [`payload/test-skills/NOTICE.md`](payload/test-skills/NOTICE.md) にある。2026-11-27 に公開を始めた。
 
 ## public-skills(プロジェクトに置いて動く公開スキル集)
 

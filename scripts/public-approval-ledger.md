@@ -512,3 +512,13 @@ agent-toolkit の `payload/slide-creator-studio/slides/` で公開済みのス�
 | 資産 | 承認状況 | 承認根拠 | 備考 |
 |---|---|---|---|
 | 1139-Yu-Ki-8963/slide-creator-studio-slides(公開リポジトリと GitHub Pages) | 承認済み | ユーザーの指示(2026-11-27「候補1で進めて」。公開するものの一覧を見せたうえでの承認)。上記の検査 | 新しい公開の場所。スライドを足すときは、agent-toolkit に公開したあとに `build-site.mjs` で作り直す |
+
+## test-skills の gstack の 6 本の書き直し(2026-11-27)
+
+gstack から作った 6 本(gstack-qa、gstack-design-review、gstack-ios-design-review、gstack-cso、gstack-benchmark、gstack-canary)を、gstack を入れなくても Claude Code だけで動くように書き直した版を公開する。ブラウザを使う 4 本は Playwright の MCP を、gstack-ios-design-review は Xcode と iOS シミュレータを使う。外の AI(Codex)の意見は、2 つのサブエージェントの意見に置き換えた。gstack の道具の呼び出しを持つ `sections/manifest.json` 4 本と `sections/preamble.md` 4 本を消し、gstack-qa の `sections/browser-setup.md` と `browser-verify.md` を `web-setup.md` と `web-verify.md` に名前を変えた。あわせて、test-skills の README.md(要るもの、なくなった機能、確かめた範囲)、NOTICE.md(元から変えたこと)、gstack-cso の ACKNOWLEDGEMENTS.md、agent-toolkit の直下の README.md の test-skills の節を直した。ほかの 6 本の skill は変えていない。test-skills は git のリポジトリではないので、作業フォルダから同期した。公開前の検査(2026-11-27): 6 本の中で、`skills/gstack`、`GSTACK`、`.gstack`、`aside`、`codex`、6 本の名前でない `gstack-` で始まる語、ほかの gstack の skill への参照は 0 件。`sync-payload.mjs --check --only payload/test-skills` で乖離なし、`--check-artifacts` で該当なし。公開する 48 のファイルで、禁止の一覧の forbiddenContent の 5 語、`/Users/`、`MacPro`、`agent-home`、メールアドレスの照合で 0 件。gstack-qa、gstack-design-review、gstack-cso、gstack-benchmark、gstack-canary は、見本のページと見本のコードで走らせ、そのとき見つかった手順の問題を直したあとには走らせ直していない。gstack-ios-design-review は、この PC で `xcrun simctl` が見つからず、走らせていない。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| ~/Projects/test-skills/.claude/skills(mirror) | 承認済み | ユーザーの指示(2026-11-27「A で進めて」)と、公開する中身を見せたうえでの承認(2026-11-27「はい、公開して」)。上記の検査 | 公開の開始(2026-11-27)の行の範囲の中の変更。gstack の 6 本の書き直し |
+| ~/Projects/test-skills/README.md、NOTICE.md(file) | 承認済み | 同上 | gstack の節と、元から変えたことの書き直し |
+| README.md(agent-toolkit の直下) | 承認済み | 同上 | test-skills の節の、gstack を入れる必要があるという文の書き直し |

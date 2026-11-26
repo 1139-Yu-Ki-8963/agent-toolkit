@@ -13,7 +13,7 @@
 2. このフォルダで Claude Code を開きます。`.claude/skills/` の skill が読み込まれます。
 3. skill は、`/名前` で呼びます。break-ui、performance、designing-test-cases と、gstack から作った skill は、依頼の文からも自動で呼ばれます。
 
-ほかのプロジェクトでも使うときは、`.claude/skills/` の下の skill のフォルダを、そのプロジェクトの `.claude/skills/` か、`~/.claude/skills/` に写します。gstack から作った 6 つの skill を使うには、下の「gstack から作った skill について」の準備が要ります。
+ほかのプロジェクトでも使うときは、`.claude/skills/` の下の skill のフォルダを、そのプロジェクトの `.claude/skills/` か、`~/.claude/skills/` に写します。gstack から作った 6 つの skill が要るものは、下の「gstack から作った skill について」にあります。
 
 ## 集めた道具
 
@@ -70,19 +70,29 @@
 
 ## gstack から作った skill について
 
-gstack-qa、gstack-design-review、gstack-ios-design-review、gstack-cso、gstack-benchmark、gstack-canary の 6 つは、gstack(https://github.com/garrytan/gstack、作者 Garry Tan、MIT License)の qa、design-review、ios-design-review、cso、benchmark、canary の skill を日本語に訳し、名前の前に `gstack-` を付けたものです。訳した元と、元から変えたことは、[NOTICE.md](./NOTICE.md) にあります。
+gstack-qa、gstack-design-review、gstack-ios-design-review、gstack-cso、gstack-benchmark、gstack-canary の 6 つは、gstack(https://github.com/garrytan/gstack、作者 Garry Tan、MIT License)の qa、design-review、ios-design-review、cso、benchmark、canary の skill を日本語に訳し、gstack を入れなくても Claude Code だけで動くように書き直したものです。名前の前に `gstack-` を付けています。訳した元と、元から変えたことは、[NOTICE.md](./NOTICE.md) にあります。
 
-6 つの skill は、gstack の道具(`bin/` のスクリプト、ブラウザの道具 `browse`、`design`、/cso の launcher)を、`~/.claude/skills/gstack/` のパスで呼びます。使うには、gstack を、gstack の README の手順で `~/.claude/skills/gstack` に入れておく必要があります。gstack の `./setup` は、gstack のすべての skill(英語の版)を `~/.claude/skills/` に入れ、`~/.claude/settings.json` に hook を足します。
+要るものは、次のとおりです。
 
-使うときの注意は、次のとおりです。
+- gstack-qa、gstack-design-review、gstack-benchmark、gstack-canary: Playwright の MCP。入っていないときは、skill が、入れるコマンド `claude mcp add playwright npx @playwright/mcp@latest` を示し、入れてよいかを聞きます。
+- gstack-design-review の `--build`: 加えて、プレビューを起動する `node`。
+- gstack-ios-design-review: Xcode と iOS シミュレータ。色のコントラスト比の計算に `python3`。
+- gstack-cso: `git`、`jq`、`shasum`。Gitleaks、OSV-Scanner、Semgrep、zizmor、Trivy、Schemathesis が入っていれば、それも走らせます。
 
-- 6 つの skill は、skill ごとの節の文書(`sections/` の下の文書)の多くを、このフォルダの写しでなく、`~/.claude/skills/gstack/<元の名前>/sections/` から読みます。そこで読まれるのは、入れた gstack の英語の文書です。gstack-design-review、gstack-cso、gstack-benchmark の節の文書と、gstack-qa、gstack-design-review、gstack-ios-design-review、gstack-canary の `preamble.md` が、これに当たります。gstack-qa の `preamble.md` のほかの節の文書は、`SKILL.md` のあるフォルダから読むので、このフォルダの日本語の文書が読まれます。
-- 6 つの skill は、gstack のコミット 789e9badaa754c666fba0ad18032e7c5dad474d7 から作りました。gstack の道具と節の文書は、入れた gstack から読まれるので、入れた gstack がこのコミットより新しいと、`SKILL.md` と版が合わないことがあります。版をそろえるときは、入れた gstack のフォルダで `git checkout 789e9badaa754c666fba0ad18032e7c5dad474d7` を走らせてから、gstack の `./setup` を走らせます。
-- 6 つの skill の中では、日本語と英語が混ざります。frontmatter の description、見出し、コード、コマンド、gstack のテストが英語の文そのものを照らし合わせている文は、英語のまま残しています。gstack の道具が出す文は、英語です。
-- gstack を入れると、同じ中身の英語の skill(/qa など)も呼べます。日本語の版は、`/gstack-qa` のように、`gstack-` の付いた名前で呼びます。
-- gstack の `./setup` が skill の名前の付け方を聞いたときは、短い名前(`1) Short names`。`./setup --no-prefix` と同じ)を選びます。名前の前に `gstack-` を付ける方を選ぶと、gstack の英語の skill が、この 6 つと同じ名前になります。
-- 6 つの skill の本文は、/review、/plan-tune など、ほかの gstack の skill の名前も出します。それらは、入れた gstack の英語の skill です。
-- 6 つの skill を、Claude Code で呼んで確かめてはいません。
+報告と基準値は、調べるリポジトリの `test-reports/<skill の名前>/` に書かれます。
+
+gstack の元の skill から、なくなった機能は次のとおりです。
+
+- ユーザーのいつものブラウザのサインイン済みの状態を使うこと。サインインが要るページは、Playwright のブラウザの窓で自分でサインインします。
+- gstack-design-review: デザインの案の画像を作る道具と、impeccable の検出器。外の AI(Codex)の意見は、互いの結果を知らない 2 つのサブエージェントの意見に置き換えました。
+- gstack-ios-design-review: 実機の iPhone での確かめ。シミュレータで確かめ、VoiceOver のラベルとタップの大きさは、コードを読んで確かめます。
+- gstack-cso: Docker の中での再現、直しの候補を当てて確かめること、`--replay`。調べは AI がコードを読んで行うので、結果は回ごとに変わることがあります。
+- 6 つすべて: gstack の学び、質問、判断、テレメトリの記録と、ほかの gstack の skill との連携。
+
+確かめた範囲は、次のとおりです。
+
+- gstack-qa、gstack-design-review、gstack-cso、gstack-benchmark、gstack-canary は、見本のページと見本のコードで、gstack を入れずに走らせました。そのとき見つかった手順の問題を直したあとには、走らせ直していません。
+- gstack-ios-design-review は、走らせていません。
 
 ## 出典とライセンス
 

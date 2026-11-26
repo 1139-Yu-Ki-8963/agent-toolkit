@@ -1,92 +1,75 @@
-<!-- AUTO-GENERATED from exploratory.md.tmpl — do not edit directly -->
-<!-- Regenerate: bun run gen:skill-docs -->
-# Shared exploratory QA
+# 探索の QA
 
-The **caller** (/qa, /qa-only, /review or /gstack-ship) owns decisions, tests, fixes and publication. Discovery writes only reports/evidence
-and owned fixture state; no workflows, framework installs or publication.
+呼び出し元が、判断、テスト、直し、公開を持つ(面の選び方の節の「呼び出し元による権限」)。探索は、報告と証拠と、この実行が持つ fixture の状態だけを書き、ワークフロー、枠組みの導入、公開は行わない。
 
-Complete these Reads in order before writing charters or probing. Await their results before the first probe, never in the same response. Do not repeat a Read already completed in this invocation.
-1. Read `sections/scope.md` relative to the installed `qa`/`gstack-qa` SKILL.md directory in full and select the surfaces.
-2. Read the selected surface methods below in full.
+AI は、charter を書くかプローブを走らせる前に、次の順に読み、読み終わってから最初のプローブを走らせる。この呼び出しで読み終えた節は、読み直さない。
 
-**Functional surfaces:**
-Read `sections/system-functional.md` in full.
+1. この SKILL.md と同じフォルダの `sections/scope.md` を全文で読み、面を選ぶ。
+2. 選んだ面のやり方を全文で読む。
+   - **機能の面:** この SKILL.md と同じフォルダの `sections/system-functional.md`
+   - **ブラウザの面:** この SKILL.md と同じフォルダの `sections/qa-patterns.md`
 
-**Browser surfaces only:**
-Read `sections/qa-patterns.md` in full.
+文書、前提、許可が足りないときは、それに頼るプローブだけを blocked とし、独立した安全な確かめは続ける。AI は、準備の妨げを報告する。
 
-Missing or unreadable assets, prerequisites or permission block affected probes, not independent safe checks. Report QA setup blockers.
+## 1. charter と、走らせる前の準備
 
-## 1. Charter and preflight
+AI は、決めた `REPORT_DIR` を使う。振る舞いの 1 つごとに、**charter**(契約、危険、入口、隔離、終わりの条件、出どころ、コマンド、入力)を書き、Markdown で報告に入れる。
 
-Reuse resolved REPORT_DIR; otherwise use the `reportDir` `EVIDENCE_TOOL report-dir` prints.
-Write a **charter** per behavior: contract, risk, entrypoint, isolation, exit condition, source, commands and inputs. Save charters as Markdown in the report.
+**時間の上限の目安:**
+- ブラウザの Quick: 3 分。ブラウザの Full と Regression: 15 分。
+- 機能の Full、Quick、Regression: 全体の上限は置かない。コマンドの 1 つごとに上限の秒数を決めて、告げる。
+- 呼び出し元が上限を決めたときは、短いほうを使う。上限のないモードでは、呼び出し元の上限を使う。
+- 呼び出し元がほかの skill かエージェントで、計画もサーバーもないときは、5 分か 12 回のプローブの早いほうで止める。計画に書かれた確かめと、確かめ直しは、この上限を越えても行う。
 
-For /review and /gstack-ship, no plan/server is required.
-Stop after 5 minutes or 12 probes, whichever comes first (SECONDS=300 across surfaces).
-Explicit plan checks and revalidation remain required beyond this smoke budget.
-/qa と /qa-only では:
-- Browser Quick: SECONDS=180. Browser Full/Regression: SECONDS=900.
-- Functional Full, Quick and Regression have no default total timer.
-Set SECONDS to the shorter mode/caller limit; an unlimited mode uses the caller's bound.
-Without a total time limit, do not create DEADLINE_FILE; announce finite command timeouts.
-Stop when scoped contracts are tested or blocked: each field's documented input rule needs a probe that breaks only it and satisfies every other rule; rules uncovered at a probe/time cap go in limits.
-Clocks/checkpoints use REPORT_DIR; mixed standalone runs use REPORT_DIR/browser and REPORT_DIR/functional, with one final report at REPORT_DIR. Caller paths win.
-Names used below (quote every path):
-- PROBE_DIR: this surface's owned probe directory per the line above. DEADLINE_FILE: `PROBE_DIR/deadline.json`, which exists only for a bounded run.
-- SECONDS: the total probe budget set above. NNN: a fresh three-digit ID (001, 002, ...) for each capture or checkpoint; never reuse one.
-- DEADLINE_TOOL = `$HOME/.claude/skills/gstack/bin/gstack-qa-deadline`, the deadline guard: `start` creates DEADLINE_FILE, `status` prints `remainingMs` and `expired`, and `run` executes one command, stopping it at the deadline.
-- EVIDENCE_TOOL = `$HOME/.claude/skills/gstack/bin/gstack-qa-evidence`, the functional evidence recorder: `capture` runs one command, stores its exit code, stdout and stderr under `PROBE_DIR/.qa-evidence/NNN/`, and prints status `complete`, `incomplete` or `sensitive`.
+AI は、上限のある実行では、baseline の前に、始めた時刻を `date -u +%Y-%m-%dT%H:%M:%SZ` で取り、`PROBE_DIR/started-at.txt` に書く。AI は、プローブの前に毎回、経った時間を確かめ、上限を越えたら探索を止め、終わらなかった範囲を報告する。AI は、始めた時刻を書き直さない。
 
-Start once before baseline: `bun DEADLINE_TOOL start DEADLINE_FILE SECONDS [EARLIER_UTC]` if bounded.
-EARLIER_UTC は、呼び出し元が決めていれば、その絶対の期限とする。
-Functional: `bun EVIDENCE_TOOL capture PROBE_DIR NNN [--public] --deadline DEADLINE_FILE -- COMMAND ARGS`.
-Unbounded: use `--timeout-ms MS` instead of `--deadline DEADLINE_FILE`.
---public requires approved public/synthetic output; EVIDENCE_TOOL screens credentials. For complete private captures, await a safe Read of `PROBE_DIR/.qa-evidence/NNN/observation.json` (the decoded stdout). Sensitive/incomplete captures cannot anchor checkpoints.
-期限のあるブラウザ: `bun DEADLINE_TOOL run DEADLINE_FILE -- COMMAND ARGS`。切り離したプローブは使わない。
-Never reset DEADLINE_FILE/bypass DEADLINE_TOOL. Expiry or an invalid/missing DEADLINE_FILE stops probes; report unfinished coverage. QA_DEADLINE receipts are not observations.
+AI は、範囲の契約がすべてテストされたか blocked になったときに止まる。欄ごとの文書にある入力の決まり(使える文字、形、符号、範囲、個数)の 1 つずつに、その決まりだけを破り、ほかの決まりをすべて満たすプローブが要る。プローブの数か時間の上限で確かめられなかった決まりは、限りとして報告に書く。
 
-## 2. Probe loop
+**置き場:** 1 つの面だけの実行では、`PROBE_DIR` は `REPORT_DIR` とする。両方の面の実行では、`REPORT_DIR/web` と `REPORT_DIR/functional` を `PROBE_DIR` とし、最後の報告は `REPORT_DIR` に 1 つ書く。呼び出し元が決めたパスがあるときは、それを使う。すべてのパスは引用符で囲む。NNN は、取り込みかチェックポイントの 1 つごとに付ける、新しい 3 桁の番号(001、002、...)とし、使い回さない。
 
-Each probe is one native command/interaction plus checks, excluding bookkeeping.
-Never batch probes.
+**機能の証拠の残し方:** AI は、機能のプローブの 1 つごとに、Bash でコマンドを走らせ、終了コード、stdout、stderr を分けて、`PROBE_DIR/evidence/NNN/` に書く。
 
-1. First demonstrate success: output AND durable effects. Guard if bounded; await completion.
-2. **Decide whether another probe is needed.** If bounded, run `bun DEADLINE_TOOL status DEADLINE_FILE`.
-   If expired or no safe next probe remains, STOP exploration; write the report (§4), not a checkpoint.
-   **Publish before probing.** Create (browser) or compose (functional) `exploration-NNN.json` in the probe directory, beside its deadline if bounded, with exactly four top-level fields:
-   observationCommand: last completed probe's full outer command, including guard.
-   observed: its exact decoded child JSON (no wrapper/extra keys), or its full non-JSON text.
-   hypothesis: why nextCommand. nextCommand: exact command/request, guarded if bounded.
-   Preserve every safe program-JSON key/value and identity hash unchanged.
-   Withhold unsafe values, disclose limits and stop that chain.
-   Check fields before publication. No drafts/placeholders or invented safe-path redactions; corrections cannot repair published notes.
-   Functional: do not write this file; the next capture publishes it: `bun EVIDENCE_TOOL capture PROBE_DIR NNN --deadline DEADLINE_FILE --after PREV --hypothesis 'why' -- CMD` (PREV: the last complete capture's ID). EVIDENCE_TOOL supplies observed; never transcribe it.
-   Browser checkpoints use Write.
-   Wait for successful checkpoint publication before dispatch.
-   Never backfill or overwrite notes.
-3. Run that exact probe; DEADLINE_TOOL enforces the deadline when bounded.
-   Report refusals as not-run; retain initial state/inputs/results. Repeat from step 2.
-4. Replay the exact failing command/request from the same initial fixture state via steps 2–3 (same native command, fresh capture ID)
-   before repair, then minimize via those gates. Expiry leaves confirmation/minimization incomplete.
-   Another input or a regression test is not that replay.
-5. After source/commands/fixtures change, re-review and return to step 2 for each affected revalidation (unproven=affected). Keep limits/notes; status requires fresh evidence.
+```bash
+mkdir -p "$PROBE_DIR/evidence/NNN"
+perl -e 'alarm shift; exec @ARGV' <上限の秒数> <コマンド> <引数> \
+  >"$PROBE_DIR/evidence/NNN/stdout.txt" 2>"$PROBE_DIR/evidence/NNN/stderr.txt"
+echo $? >"$PROBE_DIR/evidence/NNN/exit-code.txt"
+printf '%s\n' '<走らせたコマンドの全文>' >"$PROBE_DIR/evidence/NNN/command.txt"
+```
 
-## 3. Parent handoff
+- `perl` がないときは、Bash の道具の `timeout` を、上限の秒数に合わせて指定する。
+- AI は、書いた stdout と stderr を Read で読み、認証情報、トークン、個人の情報があるかを確かめる。あるときは、その取り込みを「機微」とし、ファイルを `[REDACTED]` に置き換え、その取り込みを根拠にしない。
+- 終わらなかった取り込み(上限で止まった、書けなかった)は「不完全」とし、根拠にしない。
 
-- **/qa:** parent owns severity, root-cause and Phase 8 regression gates before verified repair.
-- **/review:** return before Fix-First; test_stub proposals require ASK approval.
-- **Planning:** propose charters only; no execution.
+## 2. プローブの繰り返し
 
-Choose the smallest native test: unit for logic, integration for state/requests; E2E only if smaller tests miss the journey, not automatically both.
-Mock only unrelated services.
-Never freeze buggy output, weaken tests or delete valid red tests.
+1 回のプローブは、1 つのコマンドか操作と、その確かめとする。記録の作業は、プローブに数えない。AI は、プローブをまとめて走らせない。
 
-## 4. Final report
+1. AI は、最初に成功する実行を示す。示すものは、出力と、残る効果の両方とする。
+2. **次のプローブが要るかを決める。** 上限のある実行では、AI は経った時間を確かめる。上限を越えたか、安全な次のプローブがないときは、探索を止め、チェックポイントでなく報告(§4)を書く。
+   **プローブの前にチェックポイントを書く。** AI は、Write で、`PROBE_DIR` に `exploration-NNN.json` を書く。このファイルは、次の 4 つの欄だけを持つ。
+   - `observationCommand`: 最後に終えたプローブのコマンドの全文
+   - `observed`: その出力そのもの(JSON なら、包みや足した欄のない JSON。JSON でないなら、全文)。機能のプローブでは、`evidence/NNN/` のファイルの中身を写す。
+   - `hypothesis`: なぜ `nextCommand` を走らせるか
+   - `nextCommand`: 次に走らせるコマンドかリクエストそのもの
 
-Use the surface report template; link each checkpoint. Separate browser scores, functional outcomes and proposed/executed tests.
-Write PROBE_DIR/annotations.json {evidence: [{capture, command, contract, expected, classification}], limits: ["checkpoint 001"]} (limits: non-empty string array, not an object; browser-only: evidence []); before Markdown `bun EVIDENCE_TOOL materialize PROBE_DIR annotations.json` (fills observed/metadata; prints reportLinks; runs once per PROBE_DIR); you classify. Annotate every safe capture, including failures/replays: an omitted capture is withheld and keeps the verdict inconclusive. Classify a capture taken before an input change `superseded`; it closes when the same command reran on current inputs. After a fix, every earlier capture is superseded, even from a client that prints no snapshot: rerun each one your verdict relies on, or report it as an open remainder. Disclose withheld/incomplete evidence.
-証拠は、その呼び出しの中だけで使う。/gstack-ship は、呼び出しごとに 1 回走らせ直す。
-Missing prerequisites/expectations/observations, timeouts and refusal never pass.
-Pass requires all required current-input contracts to pass with no required remainder.
-Required failure leaves /review incomplete and /gstack-ship blocked unless the user explicitly accepts that named risk; noninteractive runs return blocked. Only nonbehavioral diffs may be not applicable (give a reason); prompts/templates are behavioral.
+   AI は、出力の中の安全な JSON の鍵と値と、識別のハッシュを変えずに残す。安全でない値は出さず、限りとして書き、その流れを止める。AI は、書く前に欄を確かめる。下書き、仮の値、作り話の伏せ字は書かない。書いたあとの直しは、書いたメモを直さない。AI は、チェックポイントを書き終えてから、次のプローブを走らせる。あとからメモを足すことも、上書きすることもしない。
+3. AI は、チェックポイントに書いたプローブを、そのまま走らせる。断られたプローブは not run とし、最初の状態、入力、結果を残す。そのあと手順 2 に戻る。
+4. AI は、直す前に、失敗したコマンドかリクエストを、同じ最初の fixture の状態から、手順 2〜3 を通して、そのままもう一度走らせる(同じコマンド、新しい取り込みの番号)。そのあとで、同じ手順で最小にする。時間の上限で止まったときは、確かめと最小化を終わっていないものとする。ほかの入力や回帰テストは、この再生にならない。
+5. ソース、コマンド、fixture が変わったあとは、AI は見直し、影響を受けた確かめ直しの 1 つごとに手順 2 に戻る(影響がないと証明できないものは、影響を受けたものとする)。AI は、限りとメモを残す。状態を書くには、新しい証拠が要る。
+
+## 3. 呼び出し元への引き渡し
+
+- **ユーザーが直接呼んだとき:** SKILL.md の Phase 7〜8 が、重大度、原因、回帰テストの関門を、確かめた直しの前に持つ。
+- **ほかの skill かエージェントが呼んだとき:** AI は、見つけたことと、テストの提案を返し、テストを書かない。
+- **計画だけのとき:** AI は、charter を提案するだけとし、走らせない。
+
+AI は、最も小さいテストを選ぶ。ロジックは単体、状態とリクエストは結合とし、E2E は、小さいテストで流れを捕まえられないときだけとする。自動で両方を書かない。モックは、関係のないサービスにだけ使う。AI は、バグのある出力をテストに固めず、テストを弱めず、正しい赤のテストを消さない。
+
+## 4. 最後の報告
+
+AI は、面ごとの報告の雛形を使い、チェックポイントの 1 つずつにリンクする。ブラウザのスコア、機能の結果、提案したテストと実行したテストを分けておく。
+
+AI は、報告に、証拠の一覧を書く。証拠の 1 つずつは、取り込みの番号、コマンド、契約、期待、分け方を持つ。AI は、失敗と再生を含む、すべての安全な取り込みを一覧に入れる。一覧に入れない取り込みは、伏せたものとして扱い、判定を「結論が出ない」に保つ。入力が変わる前の取り込みは `superseded` とし、同じコマンドを今の入力で走らせ直したときに閉じる。直したあとは、前の取り込みはすべて `superseded` になる。判定が頼る取り込みは、すべて走らせ直すか、残りとして報告する。AI は、伏せた証拠と、不完全な証拠を書く。
+
+証拠は、この呼び出しの中だけで使う。前提、期待、観察が足りないものと、時間切れと、断られたものは、通ったことにならない。通ったとするには、今の入力で、要る契約がすべて通り、要る残りがないことが要る。要る契約が失敗したときは、ユーザーがその名指しした危険を受け入れない限り、結果は「通らない」とする。ユーザーがいない実行では、blocked を返す。振る舞いを変えない diff だけを、当てはまらないとしてよい(理由を書く)。プロンプトと雛形は、振る舞いを変えるものとする。

@@ -9,11 +9,11 @@
 | **PR** | {PR_NUMBER} ({PR_URL}) か "—" |
 | **段階** | Quick / Standard / Exhaustive |
 | **範囲** | {SCOPE か "Full app"} |
-| **Probe budget / guarded command time** | {CONFIGURED LIMIT / SUM OF MEASURED COMMAND SPANS} |
+| **時間の上限 / かかった時間** | {決めた上限 / 始めた時刻から終えた時刻までの時間} |
 | **訪れたページ** | {COUNT} |
 | **スクリーンショット** | {COUNT} |
 | **フレームワーク** | {DETECTED か "Unknown"} |
-| **電話** | {まねた Chromium のデバイスのプロファイルか "—"}。実機がまだ要るもの(/ios-qa): {何か、または "—"} |
+| **電話** | {確かめた画面の幅か "—"}。実機かタッチの操作で確かめることが残るもの: {何か、または "—"} |
 
 ## Health Score: {SCORE}/100
 
@@ -94,7 +94,7 @@
 ### Deferred Tests
 
 #### ISSUE-NNN: {title}
-**Precondition:** {バグを起こす準備の状態}
+**前提の状態:** {バグを起こす準備の状態}
 **操作:** {ユーザーが行うこと}
 **期待:** {正しい振る舞い}
 **先送りにした理由:** {理由}
