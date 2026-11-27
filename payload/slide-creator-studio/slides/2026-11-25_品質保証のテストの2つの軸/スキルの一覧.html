@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>工程ごとのスキル</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f6f8fa;
+    --text: #1f2328;
+    --muted: #59636e;
+    --line: #d1d9e0;
+    --accent: #0b5cad;
+    --accent-soft: #e3eefb;
+    --empty: #8c959f;
+    --t-ui: #8250df;
+    --t-spec: #1a7f37;
+    --t-perf: #bc4c00;
+    --t-formal: #0969da;
+    --t-compat: #9a6700;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --text: #e6edf3;
+      --muted: #9198a1;
+      --line: #30363d;
+      --accent: #6cb6ff;
+      --accent-soft: #132339;
+      --empty: #6e7681;
+      --t-ui: #c297ff;
+      --t-spec: #56d364;
+      --t-perf: #ffa657;
+      --t-formal: #79c0ff;
+      --t-compat: #e3b341;
+    }
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+    line-height: 1.7;
+  }
+  main { max-width: 860px; margin: 0 auto; padding: 40px 16px 64px; }
+  h1 { font-size: 1.5rem; margin: 0 0 8px; }
+  .lead { color: var(--muted); margin: 0 0 24px; font-size: 0.95rem; }
+
+  /* 工程の帯 */
+  .flow {
+    display: grid;
+    grid-template-columns: repeat(9, minmax(0, 1fr));
+    gap: 4px;
+    margin: 0 0 16px;
+    padding: 0;
+    list-style: none;
+  }
+  .flow a {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    height: 100%;
+    padding: 8px 2px;
+    border-radius: 6px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    color: var(--text);
+    text-decoration: none;
+    font-size: 0.75rem;
+    text-align: center;
+    line-height: 1.3;
+  }
+  .flow a.has { background: var(--accent-soft); border-color: var(--accent); }
+  .flow .count { font-size: 1.1rem; font-weight: 700; color: var(--accent); }
+  .flow a:not(.has) .count { color: var(--empty); }
+  @media (max-width: 640px) {
+    .flow { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  }
+
+  /* タグ */
+  .lead a { color: var(--accent); }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin: 0 0 40px;
+    font-size: 0.85rem;
+    color: var(--muted);
+  }
+  .legend .group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+  .legend .gname { font-weight: 600; }
+  .tag {
+    display: inline-block;
+    padding: 0 8px;
+    border-radius: 999px;
+    border: 1px solid currentColor;
+    font-size: 0.75rem;
+    font-weight: 600;
+    line-height: 1.7;
+    white-space: nowrap;
+  }
+  .t-ui { color: var(--t-ui); }
+  .t-spec { color: var(--t-spec); }
+  .t-perf { color: var(--t-perf); }
+  .t-formal { color: var(--t-formal); }
+  .t-compat { color: var(--t-compat); }
+
+  /* 工程の節 */
+  section { scroll-margin-top: 16px; margin: 0 0 32px; }
+  h2 {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    font-size: 1.15rem;
+    margin: 0 0 12px;
+    padding-bottom: 6px;
+    border-bottom: 2px solid var(--line);
+  }
+  h2 .no { font-size: 0.8rem; color: var(--muted); font-weight: 600; }
+  .empty { color: var(--empty); margin: 0; font-size: 0.95rem; }
+  .skill {
+    padding: 12px 14px;
+    margin: 0 0 8px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--surface);
+  }
+  .skill .head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; }
+  .skill h3 {
+    margin: 0;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 0.95rem;
+    color: var(--accent);
+    overflow-wrap: anywhere;
+  }
+  .skill p { margin: 4px 0 0; }
+  .skill .when { color: var(--muted); font-size: 0.9rem; }
+</style>
+</head>
+<body>
+<main>
+  <h1>工程ごとのスキル</h1>
+  <p class="lead">ウォーターフォールの工程の順に、その工程で使う、このフォルダの <code>.claude/skills/</code> のスキルを並べた一覧です。2 つ以上の工程で使うスキルは、使う工程のすべてに置いています。タグは、資料「<a href="https://1139-yu-ki-8963.github.io/slide-creator-studio-slides/slides/2026-11-25_%E5%93%81%E8%B3%AA%E4%BF%9D%E8%A8%BC%E3%81%AE%E3%83%86%E3%82%B9%E3%83%88%E3%81%AE2%E3%81%A4%E3%81%AE%E8%BB%B8/%E5%93%81%E8%B3%AA%E4%BF%9D%E8%A8%BC%E3%81%AE%E3%83%86%E3%82%B9%E3%83%88%E3%81%AE%202%20%E3%81%A4%E3%81%AE%E8%BB%B8%E3%82%B9%E3%83%A9%E3%82%A4%E3%83%89.html#1">品質保証のテストの 2 つの軸</a>」の軸 1(カテゴリ)の項目の番号と名前です。</p>
+
+  <ol class="flow">
+    <li><a href="#p1"><span class="count">0</span>要件定義</a></li>
+    <li><a href="#p2"><span class="count">0</span>基本設計</a></li>
+    <li><a href="#p3"><span class="count">0</span>詳細設計</a></li>
+    <li><a class="has" href="#p4"><span class="count">3</span>製造</a></li>
+    <li><a class="has" href="#p5"><span class="count">4</span>単体テスト</a></li>
+    <li><a class="has" href="#p6"><span class="count">4</span>結合テスト</a></li>
+    <li><a class="has" href="#p7"><span class="count">5</span>総合テスト</a></li>
+    <li><a class="has" href="#p8"><span class="count">1</span>受け入れテスト</a></li>
+    <li><a class="has" href="#p9"><span class="count">3</span>運用・保守</a></li>
+  </ol>
+
+  <div class="legend">
+    <div class="group"><span class="gname">静的テスト</span><span class="tag t-formal">2 形式検証</span></div>
+    <div class="group"><span class="gname">ブラックボックスの機能のテスト</span><span class="tag t-spec">6 仕様のテスト</span></div>
+    <div class="group"><span class="gname">ブラックボックスの非機能のテスト</span><span class="tag t-ui">7 UI/UX</span><span class="tag t-perf">9 性能</span><span class="tag t-compat">10 互換性</span></div>
+  </div>
+
+  <section id="p1">
+    <h2><span class="no">工程 1</span>要件定義</h2>
+    <p class="empty">このフォルダのスキルはありません。</p>
+  </section>
+
+  <section id="p2">
+    <h2><span class="no">工程 2</span>基本設計</h2>
+    <p class="empty">このフォルダのスキルはありません。</p>
+  </section>
+
+  <section id="p3">
+    <h2><span class="no">工程 3</span>詳細設計</h2>
+    <p class="empty">このフォルダのスキルはありません。</p>
+  </section>
+
+  <section id="p4">
+    <h2><span class="no">工程 4</span>製造</h2>
+    <div class="skill">
+      <div class="head"><h3>blast-radius</h3><span class="tag t-compat">10 互換性</span></div>
+      <p>変更が差分の外で何を壊しうるかを見つけ、安全である理由を、コードを走らせて証明するskill</p>
+      <p class="when">使う場面: できた変更を出す前に、差分の外への影響を確かめるとき</p>
+    </div>
+    <div class="skill">
+      <div class="head"><h3>create-formal-verification-skill</h3><span class="tag t-formal">2 形式検証</span></div>
+      <p>バグの害が大きく、テストが届きにくいコードを形式検証し、その検証を、プロジェクトの中のskillとして残すskill</p>
+      <p class="when">使う場面: できたコードのうち、テストが届きにくい部分を形式検証するとき</p>
+    </div>
+    <div class="skill">
+      <div class="head"><h3>gstack-design-review(--build)</h3><span class="tag t-ui">7 UI/UX</span></div>
+      <p>画面がデザインシステムに沿っているかを調べて修正するskill</p>
+      <p class="when">使う場面: <code>--build</code> を付けて、作っている途中の UI を確かめるとき</p>
+    </div>
+  </section>
+
+  <section id="p5">
+    <h2><span class="no">工程 5</span>単体テスト</h2>
+    <div class="skill">
+      <div class="head"><h3>break-ui</h3><span class="tag t-ui">7 UI/UX</span></div>
+      <p>画面の部品に最悪の場合のデータを入れて壊し、壊れた箇所と直し方を報告するskill</p>
+      <p class="when">使う場面: 画面の部品や 1 つの画面に、最悪の場合のデータを入れて確かめるとき</p>
+    </div>
+    <div class="skill">
+      <div class="head"><h3>create-formal-verification-skill</h3><span class="tag t-formal">2 形式検証</span></div>
+      <p>バグの害が大きく、テストが届きにくいコードを形式検証し、その検証を、プロジェクトの中のskillとして残すskill</p>
+      <p class="when">使う場面: できたコードのうち、テストが届きにくい部分を形式検証するとき</p>
+    </div>
+    <div class="skill">
+      <div class="head"><h3>designing-black-box-test-cases</h3><span class="tag t-spec">6 仕様のテスト</span></div>
+      <p>テストベースから、単体、結合、総合のうち選んだ 1 つの工程のブラックボックステストのテストケースを、テスト対象とテスト観点とテスト技法の掛け合わせで作り、足りない箇所と仮に決めた点を持つ md に書くskill</p>
+      <p class="when">使う場面: 単体テストの前に、テストベースから単体テストのテストケースを作るとき</p>
+    </div>
+    <div class="skill">
+      <div class="head"><h3>designing-test-cases</h3><span class="tag t-spec">6 仕様のテスト</span></div>
+      <p>仕様からテスト技法を選んで、テストケースの一覧を作るskill</p>
+      <p class="when">使う場面: 単体テストの前に、単体テストのテストケースを作るとき</p>
+    </div>
+  </section>
+
+  <section id="p6">
+    <h2><span class="no">工程 6</span>結合テスト</h2>
+    <div class="skill">
+      <div class="head"><h3>designing-black-box-test-cases</h3><span class="tag t-spec">6 仕様のテスト</span></div>
+      <p>テストベースから、単体、結合、総合のうち選んだ 1 つの工程のブラックボックステストのテストケースを、テスト対象とテスト観点とテスト技法の掛け合わせで作り、足りない箇所と仮に決めた点を持つ md に書くskill</p>
+      <p class="when">使う場面: 結合テストの前に、テストベースから結合テストのテストケースを作るとき</p>
+    </div>
+    <div class="skill">
+      <div class="head"><h3>designing-test-cases</h3><span class="tag t-spec">6 仕様のテスト</span></div>
+      <p>仕様からテスト技法を選んで、テストケースの一覧を作るskill</p>
+      <p class="when">使う場面: 結合テストの前に、結合テストのテストケースを作るとき</p>
+    </div>
+    <div class="skill">
+      <div class="head"><h3>gstack-design-review</h3><span class="tag t-ui">7 UI/UX</span></div>
+      <p>画面がデザインシステムに沿っているかを調べて修正するskill</p>
+      <p class="when">使う場面: 画面がつながって動く段階で、見た目を調べるとき</p>
+    </div>
+    <div class="skill">
+      <div class="head"><h3>gstack-qa</h3><span class="tag t-spec">6 仕様のテスト</span></div>
+      <p>サイト、API、CLI をテストし、見つけたバグを直して、直ったことを確かめるskill</p>
+      <p class="when">使う場面: 差分で範囲を絞って確かめるとき</p>
+    </div>
+  </section>
+
+  <section id="p7">
+    <h2><span class="no">工程 7</span>総合テスト</h2>
+    <div class="skill">
+      <div class="head"><h3>designing-black-box-test-cases</h3><span class="tag t-spec">6 仕様のテスト</span></div>
+      <p>テストベースから、単体、結合、総合のうち選んだ 1 つの工程のブラックボックステストのテストケースを、テスト対象とテスト観点とテスト技法の掛け合わせで作り、足りない箇所と仮に決めた点を持つ md に書くskill</p>
+      <p class="when">使う場面: 総合テストの前に、テストベースから総合テストのテストケースを作るとき</p>
+    </div>
+    <div class="skill">
+      <div class="head"><h3>designing-test-cases</h3><span class="tag t-spec">6 仕様のテスト</span></div>
+      <p>仕様からテスト技法を選んで、テストケースの一覧を作るskill</p>
+      <p class="when">使う場面: 総合テストの前に、総合テストのテストケースを作るとき</p>
+    </div>
+    <div class="skill">
+      <div class="head"><h3>gstack-benchmark</h3><span class="tag t-perf">9 性能</span></div>
+      <p>Web のページの読み込みの時間、Core Web Vitals、資源の大きさを測り、基準値と比べて悪くなったところを見つけるskill</p>
+      <p class="when">使う場面: 変更の前に基準値を取り、変更のあとのページの性能と比べるとき</p>
+    </div>
+    <div class="skill">
+      <div class="head"><h3>gstack-qa</h3><span class="tag t-spec">6 仕様のテスト</span></div>
+      <p>サイト、API、CLI をテストし、見つけたバグを直して、直ったことを確かめるskill</p>
+      <p class="when">使う場面: サイト、API、CLI の全体を確かめるとき</p>
+    </div>
+    <div class="skill">
+      <div class="head"><h3>performance</h3><span class="tag t-perf">9 性能</span></div>
+      <p>遅い、重い、メモリを食う問題の原因を計測で特定して直し、変更の前後の数字で効果を示すskill</p>
+      <p class="when">使う場面: 遅い、重い、メモリを食う問題が見つかったときに直すとき</p>
+    </div>
+  </section>
+
+  <section id="p8">
+    <h2><span class="no">工程 8</span>受け入れテスト</h2>
+    <div class="skill">
+      <div class="head"><h3>designing-test-cases</h3><span class="tag t-spec">6 仕様のテスト</span></div>
+      <p>仕様からテスト技法を選んで、テストケースの一覧を作るskill</p>
+      <p class="when">使う場面: 受け入れテストの前に、受け入れテストのテストケースを作るとき</p>
+    </div>
+  </section>
+
+  <section id="p9">
+    <h2><span class="no">工程 9</span>運用・保守</h2>
+    <div class="skill">
+      <div class="head"><h3>blast-radius</h3><span class="tag t-compat">10 互換性</span></div>
+      <p>変更が差分の外で何を壊しうるかを見つけ、安全である理由を、コードを走らせて証明するskill</p>
+      <p class="when">使う場面: 改修の変更を出す前に、差分の外への影響を確かめるとき</p>
+    </div>
+    <div class="skill">
+      <div class="head"><h3>maintain-formal-verification-skill</h3><span class="tag t-formal">2 形式検証</span></div>
+      <p>コードが変わったあとに、形式検証をコードに合わせ直すskill</p>
+      <p class="when">使う場面: コードが変わったあとに、形式検証をコードに合わせ直すとき</p>
+    </div>
+    <div class="skill">
+      <div class="head"><h3>performance</h3><span class="tag t-perf">9 性能</span></div>
+      <p>遅い、重い、メモリを食う問題の原因を計測で特定して直し、変更の前後の数字で効果を示すskill</p>
+      <p class="when">使う場面: 遅い、重い、メモリを食う問題が見つかったときに直すとき</p>
+    </div>
+  </section>
+</main>
+</body>
+</html>

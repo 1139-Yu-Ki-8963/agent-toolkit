@@ -539,3 +539,11 @@ slide-creator-studio の `payload/README.md`(symlink でないふつうのファ
 |---|---|---|---|
 | payload/2026-11-14_理想のAI駆動開発フロー/理想のAI駆動開発フロースライド.html(symlink) | 承認済み | ユーザーの指示(2026-11-27「修正して、再度公開して」「はい、早くして」)。上記の検査 | 中身の更新だけ。指す先は変えない |
 | ~/Projects/slide-creator-studio/.claude/skills(mirror) | 承認済み | 同上 | exporting-slides-to-html の SKILL.md とスクリプト 2 本の直し |
+
+## slide-creator-studio の資料「品質保証のテストの 2 つの軸」への、工程ごとのスキルの一覧の追加(公開の開始 2026-11-27)
+
+test-skills の 10 本の skill を、ウォーターフォールの 9 つの工程の順に並べ、一言の説明、その工程で使う場面、資料「品質保証のテストの 2 つの軸」の軸 1(カテゴリ)の項目のタグを付けた 1 ページの HTML `スキルの一覧.html` を、資料のフォルダに足して公開する。HTML は test-skills で作ったものを、slide-creator-studio の `output-slides/2026-11-25_品質保証のテストの2つの軸/` に写し(中身は cmp で同じ)、`payload/` の同じフォルダに相対パスの symlink を置いた。写したのは、slide-creator-studio のコミット 86ab7c3 の状態(`git archive` で書き出した写しから、`--only payload/slide-creator-studio/slides` で同期した。同期の前の `--check` の乖離は、この 1 本だけ)。公開前の検査(2026-11-27): 禁止の一覧の forbiddenContent の 5 語、`/Users/`、`MacPro`、`agent-home`、メールアドレスの照合で 0 件。外から読むものはなく、外へのリンクは資料のスライドの URL の 1 つだけ。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| payload/2026-11-25_品質保証のテストの2つの軸/スキルの一覧.html(symlink) | 承認済み | ユーザーの指示(2026-11-27「payload に置いて公開して」)。上記の検査 | 指す先は output-slides の同じ名前のフォルダの `スキルの一覧.html`。slide-creator-studio の payload の mirror で写す |
