@@ -65,12 +65,12 @@ payload/
 │   ├── SkillEvaluator との対応.md         SkillEvaluator のどの検査を写したかの記録
 │   ├── .claude/skills/                   スキル 2 本と、テスト計画書と判定の記録
 │   └── sample-reports/                   報告の HTML の見本 4 本
-├── test-skills/                          資料「品質保証のテストの 2 つの軸」のテストの道具の skill 12 本
+├── test-skills/                          資料「品質保証のテストの 2 つの軸」のテストの道具の skill 10 本
 │   ├── README.md
 │   ├── LICENSE                           MIT(pstack、break-ui、gstack 由来の部分を含む)
 │   ├── NOTICE.md                         もとにした作品と、ファイルの対応
 │   ├── setup.sh                          designing-test-cases が使う Python のパッケージを確かめる
-│   ├── .claude/skills/                   skill 12 本(gstack から作った gstack-qa など 6 本を含む)
+│   ├── .claude/skills/                   skill 10 本(gstack から作った gstack-qa など 3 本を含む)
 │   └── third-party/gstack/               gstack のライセンスと、gstack がもとにした作品の表示
 ```
 
@@ -121,9 +121,9 @@ Cursor の公式プラグインリポジトリにある pstack(作者 Lauren Tan
 
 ## test-skills(品質保証のテストの道具)
 
-slide-creator-studio の資料「品質保証のテストの 2 つの軸」で挙げたテストの道具を、Claude Code の skill として集めた 12 本。形式検証、仕様のテスト、UI/UX、セキュリティ、性能、互換性、信頼性の項目ごとに、skill を当てている。このフォルダで Claude Code を開くか、skill のフォルダを `.claude/skills/` に写して使う。使い方は [`payload/test-skills/README.md`](payload/test-skills/README.md) にある。
+slide-creator-studio の資料「品質保証のテストの 2 つの軸」で挙げたテストの道具を、Claude Code の skill として集めた 10 本。形式検証、仕様のテスト、UI/UX、セキュリティ、性能、互換性、信頼性の項目ごとに、skill を当てている。このフォルダで Claude Code を開くか、skill のフォルダを `.claude/skills/` に写して使う。使い方は [`payload/test-skills/README.md`](payload/test-skills/README.md) にある。
 
-gstack(作者 Garry Tan、MIT License)の qa、design-review、ios-design-review、cso、benchmark、canary を日本語に訳し、gstack を入れなくても Claude Code だけで動くように書き直して、名前の前に `gstack-` を付けた 6 本を含む。ブラウザを使う 4 本は Playwright の MCP を、gstack-ios-design-review は Xcode と iOS シミュレータを使う(2026-11-27 に書き直した)。ほかの 6 本のうち 5 本は、pstack と break-ui をもとにした。ライセンスは [`payload/test-skills/LICENSE`](payload/test-skills/LICENSE)、もとにした作品は [`payload/test-skills/NOTICE.md`](payload/test-skills/NOTICE.md) にある。2026-11-27 に公開を始めた。
+gstack(作者 Garry Tan、MIT License)の qa、design-review、benchmark を日本語に訳し、gstack を入れなくても Claude Code だけで動くように書き直して、名前の前に `gstack-` を付けた 3 本を含む。3 本とも Playwright の MCP を使う(2026-11-27 に書き直した)。ほかの 7 本のうち 5 本は、pstack と break-ui をもとにした。2026-11-27 に、テストベースから選んだ工程のブラックボックステストのテストケースを作る designing-black-box-test-cases を足し、gstack-ios-design-review、gstack-cso、gstack-canary の公開をやめた。ライセンスは [`payload/test-skills/LICENSE`](payload/test-skills/LICENSE)、もとにした作品は [`payload/test-skills/NOTICE.md`](payload/test-skills/NOTICE.md) にある。2026-11-27 に公開を始めた。
 
 ## public-skills(プロジェクトに置いて動く公開スキル集)
 

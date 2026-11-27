@@ -1,6 +1,6 @@
 # NOTICE
 
-このフォルダの skill のうち 11 は、ほかの作品をもとに作っています。pstack から作ったものが 4 つ(そのうち performance は、engineering-handbook を経たもの)、break-ui から作ったものが 1 つ、gstack から作ったものが 6 つです。designing-test-cases は、一般のテスト技法から書いたもので、ほかの作品から作ったものではありません。
+このフォルダの skill のうち 8 は、ほかの作品をもとに作っています。pstack から作ったものが 4 つ(そのうち performance は、engineering-handbook を経たもの)、break-ui から作ったものが 1 つ、gstack から作ったものが 3 つです。designing-test-cases は、一般のテスト技法から書いたもので、ほかの作品から作ったものではありません。
 
 engineering-handbook は、このフォルダと同じ作者(1139-Yu-Ki-8963)の、pstack をもとに日本語で作り直した規約と skill の集まりです。ライセンスは MIT License で、pstack の部分の著作権表示と許諾表示を持ちます。
 
@@ -40,15 +40,12 @@ pstack の skill の Codex 向けの設定のファイル(`agents/openai.yaml`)�
 |---|---|
 | `.claude/skills/gstack-qa/` | gstack の `qa/` |
 | `.claude/skills/gstack-design-review/` | gstack の `design-review/` |
-| `.claude/skills/gstack-ios-design-review/` | gstack の `ios-design-review/` |
-| `.claude/skills/gstack-cso/` | gstack の `cso/` |
 | `.claude/skills/gstack-benchmark/` | gstack の `benchmark/` |
-| `.claude/skills/gstack-canary/` | gstack の `canary/` |
 
 元から変えたことは、次の 4 つです。
 
 - 日本語に訳した。
-- gstack の道具(`bin/` のスクリプト、ブラウザの道具 `browse`、`design`、/cso の launcher、iOS のデーモン)を使わず、Claude Code の道具と Playwright の MCP と iOS シミュレータだけで動く手順に書き直した。gstack の学び、質問、判断、テレメトリの記録と、共有の前置き(`preamble.md`)は消し、要る決まりだけを各 `SKILL.md` に入れた。報告の置き場は、調べるリポジトリの `test-reports/` にした。
+- gstack の道具(`bin/` のスクリプト、ブラウザの道具 `browse`、`design`)を使わず、Claude Code の道具と Playwright の MCP だけで動く手順に書き直した。gstack の学び、質問、判断、テレメトリの記録と、共有の前置き(`preamble.md`)は消し、要る決まりだけを各 `SKILL.md` に入れた。報告の置き場は、調べるリポジトリの `test-reports/` にした。
 - 外の AI(Codex)の意見を、互いの結果を知らない 2 つのサブエージェントの意見に置き換えた。
 - frontmatter の `name` を、元の名前の前に `gstack-` を付けた名前にした。雛形(`*.tmpl`)と、節の登録簿(`sections/manifest.json`)は、写していない。
 
