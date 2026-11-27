@@ -522,3 +522,11 @@ gstack から作った 6 本(gstack-qa、gstack-design-review、gstack-ios-desig
 | ~/Projects/test-skills/.claude/skills(mirror) | 承認済み | ユーザーの指示(2026-11-27「A で進めて」)と、公開する中身を見せたうえでの承認(2026-11-27「はい、公開して」)。上記の検査 | 公開の開始(2026-11-27)の行の範囲の中の変更。gstack の 6 本の書き直し |
 | ~/Projects/test-skills/README.md、NOTICE.md(file) | 承認済み | 同上 | gstack の節と、元から変えたことの書き直し |
 | README.md(agent-toolkit の直下) | 承認済み | 同上 | test-skills の節の、gstack を入れる必要があるという文の書き直し |
+
+## slide-creator-studio の payload の一覧のサイトへの案内(公開の開始 2026-11-27)
+
+slide-creator-studio の `payload/README.md`(symlink でないふつうのファイル)に、公開したスライドの一覧のサイト https://1139-yu-ki-8963.github.io/slide-creator-studio-slides/ の URL と見方を書き、payload の mirror で `payload/slide-creator-studio/slides/README.md` に写した。公開前の検査(2026-11-27): 禁止の一覧の forbiddenContent の 5 語、`/Users/`、`MacPro`、`agent-home`、メールアドレスの照合で 0 件。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| payload/README.md(file) | 承認済み | ユーザーの指示(2026-11-27「このURLをmdファイルに書いて、payloadで公開して」)。上記の検査 | slide-creator-studio の payload の mirror で写す |
