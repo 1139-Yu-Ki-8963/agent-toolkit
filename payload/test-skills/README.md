@@ -35,7 +35,8 @@
   - 資料が挙げた test-case-designer は、本家にライセンスのファイルがなく、日本語にして公開できないので、同じ技法を使う skill を、test-case-designer を写さずに書いた。
 - designing-black-box-test-cases: テストベース(仕様書など)から、選んだ工程(単体、結合、総合)のブラックボックステストのテストケースを、テスト条件 = テスト対象 × テスト観点と、テストケース = テスト条件 × テスト技法の 2 つの公式で作り、仮に決めた点と足りない箇所を持つ md に書く。根拠は、IPA の高信頼化ソフトウェアのための開発手法ガイドブック第 6 章と、JSTQB の Foundation Level シラバス。
   - 使える状態: このフォルダを開けば使える。
-  - md の見本: `.claude/skills/designing-black-box-test-cases/references/テストケースの例.md`
+  - md の見本: `.claude/skills/designing-black-box-test-cases/references/テストケースの例.md`(工程別のタブで見る HTML 版: `.claude/skills/designing-black-box-test-cases/references/テストケースの例.html`)
+  - skill の構成の図: `.claude/skills/designing-black-box-test-cases/references/テストケースを作るskillの構成.html`
 - gstack-qa: 下の「gstack から作った skill について」。
 
 ### 7 UI/UX
