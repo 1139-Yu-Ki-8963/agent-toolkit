@@ -37,6 +37,8 @@
   - 使える状態: このフォルダを開けば使える。
   - md の見本: `.claude/skills/designing-black-box-test-cases/references/テストケースの例.md`(工程別のタブで見る HTML 版: `.claude/skills/designing-black-box-test-cases/references/テストケースの例.html`)
   - skill の構成の図: `.claude/skills/designing-black-box-test-cases/references/テストケースを作るskillの構成.html`
+- running-e2e-tests-from-test-case-md: designing-black-box-test-cases が書いたテストケースの md から、Playwright のテストのエージェント(planner、generator、healer)で E2E のテストのコードを書いて流し、md の結果の 5 列を埋める。どこまで進めるか(計画まで、コードまで、実行まで、修復まで)を選べる。
+  - 要るもの: 動いているアプリ、Playwright 1.56 以上(`npx playwright init-agents --loop=claude` を済ませる)、seed のテスト `tests/seed.spec.ts`、node。
 - gstack-qa: 下の「gstack から作った skill について」。
 
 ### 7 UI/UX
