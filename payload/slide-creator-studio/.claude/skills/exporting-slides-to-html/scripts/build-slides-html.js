@@ -72,6 +72,48 @@ const W = canvas.boards[names[0]].w;
 const H = canvas.boards[names[0]].h;
 
 const KEY_SCRIPT = '<script>document.addEventListener("keydown",function(e){parent.postMessage({slideKey:e.key},"*")});</script>';
+// 差し込みの印「{{名前}}」。
+const MARK = /\{\{[^{}]+\}\}/;
+// Claude デザインの support.js の代わりに、動きのあるスライドの iframe に入れる処理。
+// 最初に、本文の印の場所(属性と文字)を控え、Component の renderVals() の値で埋める。
+// setState のたびに、値が変わった所だけを書き換えるので、変わらない要素の CSS の動きは始め直さない。
+// on で始まる属性の印(onClick="{{l1.pick}}")は、属性を外し、値の関数を代入する。
+const DC_RUNTIME = `
+function DCLogic() {}
+DCLogic.prototype.setState = function (s) { this.state = Object.assign({}, this.state || {}, s); if (this.__render) this.__render(); };
+function DC_BOOT(C) {
+  var MARKS = /\\{\\{\\s*([^{}]+?)\\s*\\}\\}/g;
+  var binds = [];
+  var walk = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT);
+  var n;
+  while ((n = walk.nextNode())) {
+    if (n.nodeType === 3) {
+      if (n.parentNode.nodeName !== 'SCRIPT' && n.parentNode.nodeName !== 'STYLE' && n.nodeValue.indexOf('{{') >= 0) binds.push({ node: n, tpl: n.nodeValue });
+      continue;
+    }
+    Array.prototype.slice.call(n.attributes).forEach(function (a) {
+      if (a.value.indexOf('{{') < 0) return;
+      if (/^on/i.test(a.name)) { n.removeAttribute(a.name); binds.push({ el: n, ev: 'on' + a.name.slice(2).toLowerCase(), path: a.value.replace(/[{}\\s]/g, '') }); }
+      else binds.push({ el: n, attr: a.name, tpl: a.value });
+    });
+  }
+  function get(v, p) { return p.split('.').reduce(function (o, k) { return o == null ? undefined : o[k]; }, v); }
+  function fill(tpl, v) { return tpl.replace(MARKS, function (m, p) { var x = get(v, p); return x == null ? '' : String(x); }); }
+  var c = new C();
+  c.__render = function () {
+    var v = c.renderVals() || {};
+    binds.forEach(function (b) {
+      if (b.ev) { b.el[b.ev] = get(v, b.path) || null; return; }
+      var s = fill(b.tpl, v);
+      if (s === b.last) return;
+      b.last = s;
+      if (b.node) b.node.nodeValue = s; else b.el.setAttribute(b.attr, s);
+    });
+  };
+  c.__render();
+  if (c.componentDidMount) c.componentDidMount();
+}
+`;
 const escapeHtml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 let docLang = '';
@@ -82,9 +124,16 @@ const slides = names.map((name) => {
   const body = text.match(/<x-dc[^>]*>([\s\S]*)<\/x-dc>/i)?.[1].replace(/<helmet>[\s\S]*?<\/helmet>/i, '');
   if (head === undefined || body === undefined) throw new Error(`helmet か x-dc がない: ${name}`);
   docLang = docLang || lang;
+  // 動きのあるスライド(本文に差し込みの印「{{名前}}」を持つもの)だけ、Component と、印を埋める処理を入れる。
+  let logic = '';
+  if (MARK.test(body)) {
+    const component = text.match(/<script type="text\/x-dc"[^>]*>([\s\S]*?)<\/script>/i)?.[1];
+    if (component === undefined) throw new Error(`差し込みの印があるのに、<script type="text/x-dc"> がない: ${name}`);
+    logic = `<script>${DC_RUNTIME}</script><script>${component}\nDC_BOOT(Component);</script>`;
+  }
   return {
     title: canvas.boards[name].title,
-    html: `<!doctype html><html lang="${lang}"><head><meta charset="utf-8">${head}</head><body>${body}${KEY_SCRIPT}</body></html>`,
+    html: `<!doctype html><html lang="${lang}"><head><meta charset="utf-8">${head}</head><body>${body}${logic}${KEY_SCRIPT}</body></html>`,
   };
 });
 

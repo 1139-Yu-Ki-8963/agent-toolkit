@@ -11,7 +11,7 @@ description: 資料のフォルダ(output-slides/<作る日>_<資料の名前>/)
 - 入力: 資料のフォルダ `output-slides/<作る日>_<資料の名前>/` の、`canvas.json` と、`canvas.json` の `order` の `.dc.html`。
 - 出力: 資料のフォルダの直下の、`<資料の名前>スライド.html` 1 つ。資料の名前は、`canvas.json` の `title` とする。
 - まとめた HTML に入れるスライド: `order` のスライドのうち、ファイルの名前が `-alt<数字>.dc.html` で終わる案のスライドと、`canvas.json` の題が「使わなかったスライド 」で始まるスライドを除いたもの。順は `order` の順とする。
-- まとめた HTML の作り: スクリプトは、1 枚のスライドを、1 つの iframe の中の 1 ページにする。表示しているページだけを見せ、画面の下のボタンと、キー(→、←、PageDown、PageUp、空白、Home、End)で切り替え、ページの大きさを、ウィンドウに合わせて縮める。ページの大きさは、`canvas.json` のスライドの幅と高さとする。
+- まとめた HTML の作り: スクリプトは、1 枚のスライドを、1 つの iframe の中の 1 ページにする。表示しているページだけを見せ、画面の下のボタンと、キー(→、←、PageDown、PageUp、空白、Home、End)で切り替え、ページの大きさを、ウィンドウに合わせて縮める。ページの大きさは、`canvas.json` のスライドの幅と高さとする。本文に差し込みの印(`{{名前}}`)を持つ、動きのあるスライドだけは、スクリプトが、`<script type="text/x-dc">` の Component と、印を Component の値で埋める処理を、iframe に入れる。
 - AI がこのスキルで資料のフォルダに作るファイルは、まとめた HTML の 1 つだけとする。スライドの中身は、スキル creating-claude-design-slides の手順(データを直して描く)で直す。`payload/` に置く作業は、ユーザーが公開すると選んだときだけ行う別の作業とする。
 
 ## 入力
@@ -51,7 +51,7 @@ AI は、返った値の `pages` が、step 1 で控えたページのスライ�
    - `stage` が、step 2 の `width`、`height` と同じである。
    - ページごとの `visible` が 1 で、`counter` が「<そのページの番号> / <ページの数>」である。
    - ページごとの `title` が、step 2 の `titles` と同じ順である。
-   - ページごとの `brokenImages` が 0 で、`fonts` が 1 以上で、`root` が `stage` と同じである。
+   - ページごとの `brokenImages` と `marks` が 0 で、`fonts` が 1 以上で、`root` が `stage` と同じである。
 4. AI は、ページごとの画像を 1 枚ずつ見て、スライドの中身が欠けずに見えることを確かめる。
 5. 値か画像が合わないときは、AI は、原因がスライドにあるときに、スキル creating-claude-design-slides の手順でデータを直して描き直し、step 2 からもう一度行う。
 

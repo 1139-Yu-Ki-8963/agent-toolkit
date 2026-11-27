@@ -6,12 +6,13 @@
 // 返す値: { pages, stage, results }。
 //   pages: まとめた HTML が持つページの数
 //   stage: ページの大きさ(px)
-//   results: ページごとの { no, title, counter, visible, root, fonts, brokenImages, out }
+//   results: ページごとの { no, title, counter, visible, root, fonts, brokenImages, marks, out }
 //     counter: 画面の下の「<今のページ> / <ページの数>」の文字
 //     visible: 見えているページの数(1 が正しい)
 //     root: ページの中の、スライドのいちばん外の要素の幅と高さ(px)
 //     fonts: 読み込めたフォントの数
 //     brokenImages: 欠けた絵の数
+//     marks: スライドに、値で埋まらずに残った差し込みの印(「{{名前}}」)の数
 //     out: そのページの画像のパス
 async (page) => {
   // ---- AI が書き換える値(ここから) ----
@@ -62,6 +63,7 @@ async (page) => {
           root: { width: Math.round(r.width), height: Math.round(r.height) },
           fonts: [...document.fonts].filter((f) => f.status === 'loaded').length,
           brokenImages: [...document.images].filter((i) => !i.naturalWidth).length,
+          marks: el ? (el.outerHTML.match(/\{\{[^{}]+\}\}/g) || []).length : 0,
         };
       }, ROOT_CLASS);
       const out = `${outDir}/${no}.png`;

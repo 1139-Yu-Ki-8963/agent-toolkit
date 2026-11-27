@@ -530,3 +530,12 @@ slide-creator-studio の `payload/README.md`(symlink でないふつうのファ
 | 資産 | 承認状況 | 承認根拠 | 備考 |
 |---|---|---|---|
 | payload/README.md(file) | 承認済み | ユーザーの指示(2026-11-27「このURLをmdファイルに書いて、payloadで公開して」)。上記の検査 | slide-creator-studio の payload の mirror で写す |
+
+## slide-creator-studio の資料「理想の AI駆動開発フロー」の 3 枚目の直し(2026-11-27)
+
+公開中の 3 枚目(回るほど、人の出番が減る)は、全ページを 1 つにまとめた HTML を作るスクリプトが、動きのあるスライドの差し込みの印(`{{名前}}`)を値で埋める処理を写さなかったので、印が文字のまま出て、周のボタンが動かなかった。スクリプト `build-slides-html.js` に、本文に印を持つスライドだけ、Component と印を埋める処理を入れる直しをし、`check-slides-html.js` に残った印の数を返す確かめを、`SKILL.md` にその扱いを足した。まとめた HTML を作り直し、全 13 ページで残った印が 0 件、3 枚目の 1〜3 周目のボタンで確認用の画像と同じ動きになることを確かめた。公開前の検査(2026-11-27): 公開する 4 本で、禁止の一覧の forbiddenContent の 5 語、`/Users/`、`MacPro`、`agent-home`、メールアドレスの照合で 0 件。
+
+| 資産 | 承認状況 | 承認根拠 | 備考 |
+|---|---|---|---|
+| payload/2026-11-14_理想のAI駆動開発フロー/理想のAI駆動開発フロースライド.html(symlink) | 承認済み | ユーザーの指示(2026-11-27「修正して、再度公開して」「はい、早くして」)。上記の検査 | 中身の更新だけ。指す先は変えない |
+| ~/Projects/slide-creator-studio/.claude/skills(mirror) | 承認済み | 同上 | exporting-slides-to-html の SKILL.md とスクリプト 2 本の直し |
